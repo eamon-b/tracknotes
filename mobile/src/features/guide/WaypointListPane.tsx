@@ -61,6 +61,7 @@ import {
   type ListRow,
 } from './list-rows';
 import { PoiRow } from './PoiRow';
+import { OffTrailBadge } from './OffTrailBadge';
 import { useVisiblePois } from './use-visible-pois';
 import { useGuidePositionContext } from './GuidePositionContext';
 import { useWaterStatus } from './use-water-status';
@@ -68,7 +69,7 @@ import {
   isPlaceOffTrail,
   isWaterFamily,
   waterStatusMeta,
-  waypointOffTrailMeters,
+  placeOffTrailMeters,
 } from './waypoint-detail';
 import {
   formatWaterStatusChip,
@@ -109,13 +110,7 @@ export function WaypointListPane({ trail }: { trail: TrailJson }) {
   const favoriteSet = useMemo(() => new Set(favoriteIds ?? []), [favoriteIds]);
   // How far each waypoint sits off the line, once per trail: a lodging 2 km
   // off the route is never "Here" just because its km is.
-  const placeOffTrailM = useMemo(() => {
-    const byWaypoint = new Map<Waypoint, number | null>();
-    for (const wp of trail.waypoints) {
-      byWaypoint.set(wp, waypointOffTrailMeters(wp, trail.track.points));
-    }
-    return byWaypoint;
-  }, [trail]);
+  const placeOffTrailM = useMemo(() => placeOffTrailMeters(trail).byWaypoint, [trail]);
 
   const chips = useMemo(
     () => FILTER_FAMILIES.filter((f) => f.value !== 'planned' || plannedIds != null),
@@ -265,6 +260,7 @@ export function WaypointListPane({ trail }: { trail: TrailJson }) {
             units={units}
             currentKm={currentKm}
             offLine={hikerOffTrail || isPlaceOffTrail(placeOffTrailM.get(waypoint))}
+            offTrailM={placeOffTrailM.get(waypoint)}
             favorite={favoriteSet.has(row.key)}
             planned={plannedIds?.has(row.key) ?? false}
             water={
@@ -415,6 +411,7 @@ function WaypointRow({
   units,
   currentKm,
   offLine,
+  offTrailM,
   favorite,
   planned,
   water,
@@ -424,6 +421,8 @@ function WaypointRow({
   currentKm: number | null;
   /** The hiker or the waypoint is off the trail: level is not "Here". */
   offLine: boolean;
+  /** How far the place is from the trail line; badged when it is a walk off it. */
+  offTrailM: number | null | undefined;
   favorite: boolean;
   /** A ticked resupply stop — only ever true once a plan exists. */
   planned: boolean;
@@ -480,6 +479,7 @@ function WaypointRow({
             {formatDistance(wpKm, units)}
           </Text>
         )}
+        <OffTrailBadge metres={offTrailM} units={units} />
         {waypoint.elevation != null && (
           <Text style={[styles.elevation, { color: colors.textSecondary }]}>
             {formatElevation(waypoint.elevation, units)}

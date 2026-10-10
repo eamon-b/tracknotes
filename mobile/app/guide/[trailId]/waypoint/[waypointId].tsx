@@ -71,9 +71,11 @@ import { useCheckInShare } from '../../../../src/features/share/use-check-in-sha
 import { waypointColor } from '../../../../src/features/elevation/waypoint-category';
 import {
   duplicatePoisFor,
+  isPlaceOffTrail,
   waypointOffTrailMeters,
 } from '../../../../src/features/guide/waypoint-detail';
 import { TripCard } from '../../../../src/features/guide/TripCard';
+import { offTrailDistance } from '../../../../src/features/guide/OffTrailBadge';
 import {
   findStop,
   isTrailEnd,
@@ -561,6 +563,15 @@ export default function WaypointDetailScreen() {
           {waypoint.elevation != null && (
             <Stat label="Elevation" value={formatElevation(waypoint.elevation, units)} />
           )}
+          {/* The km above is where the route passes the place; a walk (or
+              ride) beyond that is called out in the off-trail colour. */}
+          {placeOffTrailM != null && isPlaceOffTrail(placeOffTrailM) && (
+            <Stat
+              label="Off the route"
+              value={offTrailDistance(placeOffTrailM, units)}
+              tint={colors.offTrail}
+            />
+          )}
         </View>
 
         {/* Its alternates: where each leaves and rejoins the main route, and
@@ -841,12 +852,14 @@ function accessLineFor(waypoint: TrailJsonWaypoint, units: Units): string {
   return waypoint.acceptsBoxes ? `${where} · accepts boxes` : where;
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, tint }: { label: string; value: string; tint?: string }) {
   const { colors } = useTheme();
   return (
-    <View style={[styles.stat, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{label}</Text>
-      <Text style={[styles.statValue, { color: colors.textPrimary }]}>{value}</Text>
+    <View
+      style={[styles.stat, { backgroundColor: colors.surface, borderColor: tint ?? colors.border }]}
+    >
+      <Text style={[styles.statLabel, { color: tint ?? colors.textSecondary }]}>{label}</Text>
+      <Text style={[styles.statValue, { color: tint ?? colors.textPrimary }]}>{value}</Text>
     </View>
   );
 }

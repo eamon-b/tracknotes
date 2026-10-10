@@ -34,7 +34,7 @@ import { emptyMessage, type TodayEntry, type TodayRow } from '../../../src/featu
 import { useTodayPlan } from '../../../src/features/plan/use-today-plan';
 import { PoiFilterChips } from '../../../src/features/plan/PoiFilterChips';
 import { poiColor } from '../../../src/features/elevation/waypoint-category';
-import { isPlaceOffTrail } from '../../../src/features/guide/waypoint-detail';
+import { OffTrailBadge } from '../../../src/features/guide/OffTrailBadge';
 
 export default function TodayScreen() {
   const { trailId } = useLocalSearchParams<{ trailId: string }>();
@@ -161,7 +161,6 @@ function TodayPoiRowView({
   const { colors } = useTheme();
   const { poi } = entry;
   const name = poiDisplayName(poi);
-  const offTrail = isPlaceOffTrail(poi.distanceFromTrail * 1000);
   const hours = poi.tags?.opening_hours;
   return (
     <Pressable
@@ -195,11 +194,7 @@ function TodayPoiRowView({
         <Text style={[styles.rowKm, { color: colors.textPrimary }]}>
           {formatDistance(entry.fromStartKm, units)}
         </Text>
-        {offTrail && (
-          <Text style={[styles.rowClimb, { color: colors.textSecondary }]}>
-            {`${formatDistance(poi.distanceFromTrail, units)} off trail`}
-          </Text>
-        )}
+        <OffTrailBadge metres={poi.distanceFromTrail * 1000} units={units} />
       </View>
     </Pressable>
   );
@@ -255,6 +250,7 @@ function TodayRowView({
         <Text style={[styles.rowClimb, { color: colors.textSecondary }]}>
           {`↑ ${formatElevation(row.totalAscentM, units)} ↓ ${formatElevation(row.totalDescentM, units)}`}
         </Text>
+        <OffTrailBadge metres={row.offTrailM} units={units} />
       </View>
     </Pressable>
   );

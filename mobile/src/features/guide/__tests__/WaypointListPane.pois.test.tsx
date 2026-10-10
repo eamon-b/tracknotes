@@ -134,10 +134,10 @@ function press(node: TestInstance): void {
   });
 }
 
-function render(): ReactTestRenderer {
+function render(t: TrailJson = trail): ReactTestRenderer {
   let tree!: ReactTestRenderer;
   act(() => {
-    tree = TestRenderer.create(<WaypointListPane trail={trail} />);
+    tree = TestRenderer.create(<WaypointListPane trail={t} />);
   });
   // FlatList schedules its cell pass on a timer; flush it here so the rows are
   // settled before the assertions (and nothing lands after the test ends).
@@ -184,6 +184,22 @@ describe('WaypointListPane POI rows', () => {
     expect(text).toContain('Level with you');
   });
 
+  it('badges a waypoint off the route with how far, and only that one', () => {
+    mockVisiblePois.mockImplementation(() => []);
+    const withTurnOff = {
+      ...trail,
+      waypoints: [
+        ...trail.waypoints,
+        { id: 'w_town', name: 'Mount Pleasant', type: 'town-access', totalDistance: 26, offTrailKm: 2.5 },
+      ],
+    } as unknown as TrailJson;
+    const tree = render(withTurnOff);
+    const row = (name: string) =>
+      textOf(tree.root.findAll((n) => n.props.accessibilityLabel === `Open ${name}`)[0]);
+    expect(row('Mount Pleasant')).toContain('2.5 km off trail');
+    expect(row('Stone Hut')).not.toContain('off trail');
+  });
+
   it('interleaves POIs by distance, waypoint first on a tie', () => {
     expect(rowLabels(render())).toEqual([
       'Open Trailhead',
@@ -203,7 +219,7 @@ describe('WaypointListPane POI rows', () => {
     const text = allText(render());
     expect(text).toContain('OSM');
     expect(text).toContain('Food & drink');
-    expect(text).toContain('0.4 km off trail');
+    expect(text).toContain('400 m off trail');
     // No fix, so the position column is the plain cumulative km.
     expect(text).toContain('18.0 km');
   });

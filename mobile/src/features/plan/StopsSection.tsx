@@ -38,6 +38,7 @@ import { useTheme } from '../../theme';
 import { radii, spacing, typography } from '../../tokens';
 import type { Units } from '../../state/settings-store';
 import { StopEditor } from './StopEditor';
+import { OffTrailBadge } from '../guide/OffTrailBadge';
 import { stopKeyOf, type StopCandidate, type StopLeg } from './plan-stops';
 
 /** Rows revealed at a time — a long trail's "All waypoints" list is thousands. */
@@ -68,6 +69,12 @@ export interface StopsSectionProps {
   legs: Map<string, StopLeg>;
   /** False for a trail with no usable profile: the climb figures would be zeros. */
   showClimb: boolean;
+  /**
+   * How far each place is from the trail line, by waypoint id
+   * (`placeOffTrailMeters(trail).byId`): a town 3 km down a side road is a
+   * stop with a walk in and out, and its row says so.
+   */
+  offTrailM?: ReadonlyMap<string, number | null>;
   showAll: boolean;
   onShowAll: (showAll: boolean) => void;
   onToggle: (candidate: StopCandidate) => void;
@@ -183,6 +190,9 @@ export function StopsSection(props: StopsSectionProps) {
               stop={plan ? findStop(plan, stopKeyOf(candidate)) : undefined}
               services={services.get(candidate.key)}
               leg={props.legs.get(candidate.key)}
+              offTrailM={
+                candidate.waypointId ? props.offTrailM?.get(candidate.waypointId) : undefined
+              }
               showClimb={props.showClimb}
               units={units}
               onToggle={() => props.onToggle(candidate)}
@@ -308,6 +318,7 @@ function StopRow({
   stop,
   services,
   leg,
+  offTrailM,
   showClimb,
   units,
   onToggle,
@@ -319,6 +330,7 @@ function StopRow({
   stop: PlanStop | undefined;
   services: StopServices | undefined;
   leg: StopLeg | undefined;
+  offTrailM: number | null | undefined;
   showClimb: boolean;
   units: Units;
   onToggle: () => void;
@@ -363,6 +375,7 @@ function StopRow({
           <Text style={[styles.km, { color: colors.textSecondary }]}>
             {leg ? legText(leg, units, showClimb) : formatDistance(candidate.activeKm, units)}
           </Text>
+          <OffTrailBadge metres={offTrailM} units={units} style={styles.offTrail} />
           {services && <ServicesStrip services={services} />}
         </View>
       </Pressable>
@@ -426,6 +439,7 @@ const styles = StyleSheet.create({
   rowBody: { flex: 1, gap: 2 },
   name: { ...typography.bodySmall, fontWeight: '600' },
   km: { ...typography.caption, fontVariant: ['tabular-nums'] },
+  offTrail: { alignSelf: 'flex-start', marginTop: spacing.xs },
   services: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
   serviceGlyph: { ...typography.caption },
   serviceAbsent: { opacity: 0.25 },

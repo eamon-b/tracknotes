@@ -119,7 +119,7 @@ export function TripCard({
         </Text>
       )}
       {placeOff && placeOffTrailM != null && (
-        <Text style={[styles.note, { color: colors.textSecondary }]}>
+        <Text style={[styles.note, { color: colors.offTrail }]}>
           {`Then ${formatDistance(placeOffTrailM / 1000, units, { decimals: 2 })} ${beyondWord(placeAccessMode)} to reach it`}
         </Text>
       )}

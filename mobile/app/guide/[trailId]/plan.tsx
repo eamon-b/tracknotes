@@ -116,6 +116,7 @@ import {
 import { DaySplitList } from '../../../src/features/plan/DaySplitList';
 import { PoiFilterChips } from '../../../src/features/plan/PoiFilterChips';
 import { useVisiblePois } from '../../../src/features/guide/use-visible-pois';
+import { placeOffTrailMeters } from '../../../src/features/guide/waypoint-detail';
 import { StopsSection } from '../../../src/features/plan/StopsSection';
 import { ResupplyCard } from '../../../src/features/plan/ResupplyCard';
 import { WaterCarryCard } from '../../../src/features/plan/WaterCarryCard';
@@ -288,6 +289,9 @@ export default function PlanScreen() {
           ),
     [trail.pois, plannedDays],
   );
+
+  // How far each place is from the route as planned, for the Stops rows' badges.
+  const offTrailById = useMemo(() => placeOffTrailMeters(trail).byId, [trail]);
 
   const plannedKm = plannedDays.reduce((sum, day) => sum + (day.endKm - day.startKm), 0);
   const effectiveDailyKm = plannedDays.length > 0 ? plannedKm / plannedDays.length : 0;
@@ -576,6 +580,7 @@ export default function PlanScreen() {
                 pois={trail.pois}
                 units={units}
                 legs={legs}
+                offTrailM={offTrailById}
                 showClimb={!distanceOnly}
                 showAll={showAllWaypoints}
                 onShowAll={setShowAllWaypoints}

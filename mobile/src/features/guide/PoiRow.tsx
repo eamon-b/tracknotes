@@ -20,6 +20,7 @@ import { radii, spacing, typography } from '../../tokens';
 import { poiColor } from '../elevation/waypoint-category';
 import { formatSignedDistance } from './waypoint-filters';
 import { isPlaceOffTrail } from './waypoint-detail';
+import { OffTrailBadge } from './OffTrailBadge';
 
 export function PoiRow({
   poi,
@@ -85,13 +86,9 @@ export function PoiRow({
               {formatDistance(poi.distanceAlongTrail, units)}
             </Text>
           )}
-          {/* Only worth a line when the place is a walk from the trail: a POI a
-              few metres off it is on the trail as far as the hiker cares. */}
-          {placeOffTrail && (
-            <Text style={[styles.offTrail, { color: colors.textSecondary }]}>
-              {`${formatDistance(poi.distanceFromTrail, units)} off trail`}
-            </Text>
-          )}
+          {/* Only drawn when the place is a walk from the trail: a POI a few
+              metres off it is on the trail as far as the hiker cares. */}
+          <OffTrailBadge metres={poi.distanceFromTrail * 1000} units={units} />
         </View>
       </View>
     </Pressable>
@@ -141,9 +138,6 @@ const styles = StyleSheet.create({
   },
   distance: {
     ...typography.dataSmall,
-  },
-  offTrail: {
-    ...typography.caption,
   },
   pressed: {
     opacity: 0.6,

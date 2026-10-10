@@ -66,6 +66,12 @@ export interface ThemeColors {
    * colour where both apply — the plan is the rarer, more deliberate signal.
    */
   resupplyPlanned: string;
+  /**
+   * A place off the route: the "1.2 km off trail" badge on its rows. Not a
+   * waypoint category — any type can be off the trail — so it is a ring and
+   * a label, never a marker fill.
+   */
+  offTrail: string;
 
   // Water-status semantics (source reliability: flowing → low → dry)
   waterFlowing: string;
@@ -135,6 +141,7 @@ const themes: Record<ThemeVariant, ThemeColors> = {
     waypointHazard: palette.wpHazardLight,
     waypointFavorite: palette.wpFavoriteLight,
     resupplyPlanned: palette.resupplyPlannedLight,
+    offTrail: palette.offTrailLight,
 
     waterFlowing: palette.infoLight,
     waterLow: palette.warningLight,
@@ -194,6 +201,7 @@ const themes: Record<ThemeVariant, ThemeColors> = {
     waypointHazard: palette.wpHazardDark,
     waypointFavorite: palette.wpFavoriteDark,
     resupplyPlanned: palette.resupplyPlannedDark,
+    offTrail: palette.offTrailDark,
 
     waterFlowing: palette.infoDark,
     waterLow: palette.warningDark,

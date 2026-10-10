@@ -27,6 +27,7 @@ import { routeBreakStarts } from '@lib/route-breaks';
 import { calculateElevationBetween } from '@lib/track-geometry';
 import type { TrailPOI } from '@lib/trail-types';
 import type { TrailJson, TrailJsonWaypoint } from '../../services/trail-assets';
+import { placeOffTrailMeters } from '../guide/waypoint-detail';
 import type { PlanGlance } from './plan-glance';
 
 /** What the plan says about today. */
@@ -110,6 +111,12 @@ export interface TodayRow {
   /** Climb and descent so far today. */
   totalAscentM: number;
   totalDescentM: number;
+  /**
+   * How far the row's place is from the trail line (a turn-off's own
+   * `offTrailKm`); absent for an end with no waypoint. The km above is where
+   * the route passes it, so a place well off the line is badged as such.
+   */
+  offTrailM?: number | null;
 }
 
 /**
@@ -124,6 +131,7 @@ export interface TodayRow {
 export function todayRows(trail: TrailJson, day: ComputedDay): TodayRow[] {
   const points = trail.track.points;
   const breakStarts = routeBreakStarts(trail.track.breaks, 'points');
+  const offTrail = placeOffTrailMeters(trail).byWaypoint;
   const near = (a: number, b: number) => Math.abs(a - b) < KM_EPSILON;
 
   const sorted = trail.waypoints
@@ -178,6 +186,7 @@ export function todayRows(trail: TrailJson, day: ComputedDay): TodayRow[] {
       legDescentM: loss,
       totalAscentM,
       totalDescentM,
+      ...(stop.waypoint ? { offTrailM: offTrail.get(stop.waypoint) ?? null } : {}),
     });
   });
   return rows;

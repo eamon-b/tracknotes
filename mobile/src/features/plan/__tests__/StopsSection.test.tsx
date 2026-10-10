@@ -124,6 +124,16 @@ function render(overrides: Partial<React.ComponentProps<typeof StopsSection>> = 
 }
 
 describe('StopsSection', () => {
+  it('badges a place off the trail with how far, and not one on it', () => {
+    const offTrailM = new Map([
+      ['w_a', 3200],
+      ['w_b', 20],
+    ]);
+    const text = allText(render({ offTrailM }));
+    expect(text).toContain('3.2 km off trail');
+    expect(text).not.toContain('20 m off trail');
+  });
+
   it("shows each row's day so far, with its climb, when given legs", () => {
     const legs = new Map([
       ['w_a', { distanceKm: 10, ascentM: 420, descentM: 130 }],
