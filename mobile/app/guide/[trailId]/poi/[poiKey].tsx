@@ -1,13 +1,21 @@
 /**
  * Point-of-interest detail screen.
  *
- * The read-only twin of the waypoint screen. A POI is uncurated OpenStreetMap
- * data — a lead the walker checks, not content the trail data stands behind —
- * so everything that implies the app vouches for the place, or that would file
- * user content against it, is deliberately absent: no favorite heart, no
- * comments feed, no composer, no water status, no check-in share. That also
- * means this screen issues no SQLite read and no network request; it renders
- * entirely from the trail JSON already in memory.
+ * The OSM twin of the waypoint screen. A POI is uncurated OpenStreetMap data —
+ * a lead the walker checks, not content the trail data stands behind — so
+ * everything that implies the app vouches for the place is deliberately absent:
+ * no favorite heart, no water status of our own, no check-in share. What it does
+ * have is what walkers need when the map is wrong:
+ *
+ * - **Comments**, the waypoint screen's own block (`CommentsSection`), filed
+ *   under the OSM element (`poiCommentId`, `osm_node_123`): "this FamilyMart
+ *   has closed" reaches every hiker behind on the next sync, long before the
+ *   data is re-fetched.
+ * - **Report a problem on OpenStreetMap**, which opens OSM's new-note page with
+ *   its marker on the POI (`poiNoteUrl`). No OSM account is needed, and the fix
+ *   it leads to reaches the app with the next POI fetch.
+ *
+ * Everything else renders from the trail JSON already in memory.
  *
  * The POI is resolved from `useGuide().trail.pois` — the direction-applied
  * trail, so `distanceAlongTrail` is already mirrored for a reversed guide — by
@@ -29,7 +37,6 @@ import {
   Linking,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -41,6 +48,8 @@ import {
   findPoiByRouteKey,
   poiCategoryLabel,
   poiDisplayName,
+  poiCommentId,
+  poiNoteUrl,
   poiOsmUrl,
   summarisePoiTags,
   type PoiTagLine,
@@ -60,9 +69,11 @@ import {
   openUrlWithFallback,
 } from '../../../../src/features/guide/poi-detail';
 import { useBottomInsetContentStyle } from '../../../../src/navigation/bottom-inset';
+import { KeyboardAwareScrollView } from '../../../../src/navigation/KeyboardAwareScrollView';
+import { CommentsSection } from '../../../../src/features/comments/CommentsSection';
 
 export default function PoiDetailScreen() {
-  const { poiKey } = useLocalSearchParams<{ trailId: string; poiKey: string }>();
+  const { trailId, poiKey } = useLocalSearchParams<{ trailId: string; poiKey: string }>();
   const { colors } = useTheme();
   const contentStyle = useBottomInsetContentStyle(styles.content);
   const { trail } = useGuide();
@@ -95,6 +106,10 @@ export default function PoiDetailScreen() {
     void openUrlWithFallback((url) => Linking.openURL(url), osmUrl);
   };
 
+  const reportOnOsm = () => {
+    void openUrlWithFallback((url) => Linking.openURL(url), poiNoteUrl(poi));
+  };
+
   // A device with no maps app is unusual but real (and `geo:`/`maps:` are not
   // universally handled), so fall back to the Google Maps web link rather than
   // failing silently. See `openUrlWithFallback` for why there is no canOpenURL check.
@@ -108,7 +123,7 @@ export default function PoiDetailScreen() {
   };
 
   return (
-    <ScrollView
+    <KeyboardAwareScrollView
       style={[styles.flex, { backgroundColor: colors.background }]}
       contentContainerStyle={contentStyle}
       testID="poi-detail-scroll"
@@ -164,13 +179,25 @@ export default function PoiDetailScreen() {
       <View style={styles.actions}>
         <ActionButton label="Open in OpenStreetMap" onPress={openOsm} />
         <ActionButton label="Open in Maps" onPress={openMaps} />
+        <ActionButton label="Report a problem on OpenStreetMap" onPress={reportOnOsm} />
       </View>
 
       <Text style={[styles.note, { color: colors.textSecondary }]}>
-        Uncurated OpenStreetMap data. The trail’s own waypoints are the checked ones.
+        Uncurated OpenStreetMap data. The trail’s own waypoints are the checked ones. Closed,
+        moved or wrong? Leave a comment for other hikers, and report it on OpenStreetMap so it
+        gets fixed at the source.
       </Text>
       <Text style={[styles.attribution, { color: colors.textSecondary }]}>{OSM_ATTRIBUTION}</Text>
-    </ScrollView>
+
+      <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+      <CommentsSection
+        trailId={trailId ?? ''}
+        waypointId={poiCommentId(poi)}
+        waypointType={poi.category}
+        unavailableText="Comments aren’t supported for this point of interest."
+      />
+    </KeyboardAwareScrollView>
   );
 }
 

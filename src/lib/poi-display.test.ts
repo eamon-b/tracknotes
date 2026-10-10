@@ -21,6 +21,8 @@ import {
   safeHttpUrl,
   parsePoiRouteKey,
   poiDisplayName,
+  poiCommentId,
+  poiNoteUrl,
   poiOsmUrl,
   poiRouteKey,
   slimPoi,
@@ -54,6 +56,22 @@ describe('POI naming and links', () => {
   it('links to the right OSM element, defaulting an unknown type to node', () => {
     expect(poiOsmUrl({ type: 'way', id: 7 })).toBe('https://www.openstreetmap.org/way/7');
     expect(poiOsmUrl({ type: 'nonsense', id: 7 })).toBe('https://www.openstreetmap.org/node/7');
+  });
+
+  it('opens a new OSM note with its marker on the POI', () => {
+    expect(poiNoteUrl({ lat: 34.13538, lon: 134.4753449 })).toBe(
+      'https://www.openstreetmap.org/note/new?lat=34.135380&lon=134.475345#map=19/34.135380/134.475345'
+    );
+  });
+
+  it('files comments under an osm_ id inside the API waypoint-id pattern', () => {
+    const id = poiCommentId({ type: 'way', id: 1386690615 });
+    expect(id).toBe('osm_way_1386690615');
+    expect(id).toMatch(/^[a-z0-9_-]{4,64}$/);
+    expect(poiCommentId({ type: 'node', id: 0 })).toBe('osm_node_0');
+    expect(poiCommentId({ type: 'nonsense', id: 7 })).toBeNull();
+    expect(poiCommentId({ type: 'node', id: -1 })).toBeNull();
+    expect(poiCommentId({ type: 'node', id: 1.5 })).toBeNull();
   });
 
   it('shows sub-kilometre off-trail distances in metres', () => {

@@ -64,6 +64,16 @@ jest.mock('../../plan/plan-inputs-store', () => ({
   selectPaceBaseKmh: () => () => mockPaceKmh,
 }));
 
+// The comments block has its own tests; here it only has to be handed the
+// right place to file comments under.
+const mockCommentsProps: Record<string, unknown>[] = [];
+jest.mock('../../comments/CommentsSection', () => ({
+  CommentsSection: (props: Record<string, unknown>) => {
+    mockCommentsProps.push(props);
+    return null;
+  },
+}));
+
 jest.mock('../../../state/settings-store', () => ({
   useSettingsStore: (selector: (s: unknown) => unknown) => selector({ units: 'km' }),
 }));
@@ -127,6 +137,7 @@ describe('PoiDetailScreen', () => {
     mockStatus = 'no-permission';
     mockOffTrailMeters = null;
     mockPaceKmh = 4;
+    mockCommentsProps.length = 0;
     jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
     jest.spyOn(Linking, 'canOpenURL').mockResolvedValue(true);
   });
@@ -214,6 +225,26 @@ describe('PoiDetailScreen', () => {
     expect(Linking.openURL).toHaveBeenCalledWith('https://www.openstreetmap.org/node/1');
   });
 
+  it("opens a new OpenStreetMap note at the POI's position", () => {
+    const press = controls(render()).get('Report a problem on OpenStreetMap');
+    expect(press).toBeDefined();
+    act(() => press?.());
+    expect(Linking.openURL).toHaveBeenCalledWith(
+      'https://www.openstreetmap.org/note/new?lat=-34.928500&lon=138.600700#map=19/-34.928500/138.600700',
+    );
+  });
+
+  it('files comments under the OSM element, on this trail', () => {
+    mockPois = [poi({ type: 'way', id: 1386690615 })];
+    mockParams = { trailId: 'shikoku', poiKey: 'way-1386690615' };
+    render();
+    expect(mockCommentsProps.at(-1)).toMatchObject({
+      trailId: 'shikoku',
+      waypointId: 'osm_way_1386690615',
+      waypointType: 'water',
+    });
+  });
+
   it('hands the platform maps app the POI, falling back to Google Maps when it cannot open', async () => {
     const press = controls(render()).get('Open in Maps');
     expect(press).toBeDefined();
@@ -250,6 +281,7 @@ describe('PoiDetailScreen', () => {
     expect([...controls(tree).keys()]).toEqual([
       'Open in OpenStreetMap',
       'Open in Maps',
+      'Report a problem on OpenStreetMap',
     ]);
   });
 
