@@ -6,7 +6,7 @@
 import React from 'react';
 import TestRenderer, { act, type ReactTestRenderer } from 'react-test-renderer';
 import { Text } from 'react-native';
-import { OffTrailBadge, offTrailDistance, offTrailLabel } from '../OffTrailBadge';
+import { OffTrailBadge, offTrailA11y, offTrailDistance, offTrailLabel } from '../OffTrailBadge';
 
 jest.mock('../../../theme', () => ({
   useTheme: () => ({ colors: new Proxy({}, { get: (_t, key) => `#${String(key)}` }) }),
@@ -26,6 +26,14 @@ describe('offTrailLabel', () => {
     expect(offTrailLabel(2500, 'km')).toBe('2.5 km off trail');
     expect(offTrailDistance(350, 'mi')).toMatch(/ft$/);
     expect(offTrailDistance(3219, 'mi')).toMatch(/mi$/);
+  });
+});
+
+describe('offTrailA11y', () => {
+  it("gives a row's label the badge's words, and nothing on the trail", () => {
+    expect(offTrailA11y(1200, 'km')).toBe(', 1.2 km off trail');
+    expect(offTrailA11y(30, 'km')).toBe('');
+    expect(offTrailA11y(undefined, 'km')).toBe('');
   });
 });
 

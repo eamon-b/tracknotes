@@ -20,7 +20,7 @@ import { radii, spacing, typography } from '../../tokens';
 import { poiColor } from '../elevation/waypoint-category';
 import { formatSignedDistance } from './waypoint-filters';
 import { isPlaceOffTrail } from './waypoint-detail';
-import { OffTrailBadge } from './OffTrailBadge';
+import { OffTrailBadge, offTrailA11y } from './OffTrailBadge';
 
 export function PoiRow({
   poi,
@@ -54,7 +54,7 @@ export function PoiRow({
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`Open ${name} (OpenStreetMap)`}
+      accessibilityLabel={`Open ${name} (OpenStreetMap)${offTrailA11y(poi.distanceFromTrail * 1000, units)}`}
       style={({ pressed }) => pressed && styles.pressed}
     >
       <View style={styles.row}>

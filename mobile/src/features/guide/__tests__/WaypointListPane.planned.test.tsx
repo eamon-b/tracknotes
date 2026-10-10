@@ -195,7 +195,7 @@ describe('WaypointListPane planned resupply', () => {
     act(() => {
       jest.runOnlyPendingTimers();
     });
-    expect(rowLabels(tree)).toEqual(['Open Hahndorf turn-off', 'Open Hahndorf']);
+    expect(rowLabels(tree)).toEqual(['Open Hahndorf turn-off', 'Open Hahndorf, 4.0 km off trail']);
     expect(rowLabels(tree)).not.toContain('Open Mount Barker');
     expect(allText(tree)).toContain('Resupply');
   });

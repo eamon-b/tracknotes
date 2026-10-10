@@ -17,7 +17,7 @@
  * counts of uncurated leads, labelled OSM, never folded into the day's figures.
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { formatDistance, formatElevation } from '@lib/format-distance';
 import type { ComputedDay } from '@lib/plan-types';
@@ -40,12 +40,24 @@ const POI_GLYPHS: { category: TrailPOICategory; glyph: string }[] = [
   { category: 'emergency', glyph: '➕' },
 ];
 
-/** What OSM knows of along a day, as glyph counts and as words; null for nothing. */
+/**
+ * What OSM knows of along a day, as glyph counts and as words; null for nothing.
+ *
+ * `includeStart: false` leaves out the POIs at the day's start (within a
+ * metre, as `poisBetween`): back-to-back days share that km, so every day
+ * after the first passes it and a shop in the town a day ends at is counted
+ * on that day alone.
+ */
 export function dayPoiSummary(
   pois: readonly TrailPOI[],
   day: Pick<ComputedDay, 'startKm' | 'endKm'>,
+  { includeStart = true }: { includeStart?: boolean } = {},
 ): { text: string; label: string } | null {
-  const counts = countPoisByCategory(poisBetween(pois, day.startKm, day.endKm));
+  const lo = Math.min(day.startKm, day.endKm);
+  const inDay = includeStart
+    ? poisBetween(pois, day.startKm, day.endKm)
+    : poisBetween(pois, day.startKm, day.endKm).filter((p) => p.distanceAlongTrail > lo + 0.001);
+  const counts = countPoisByCategory(inDay);
   const present = POI_GLYPHS.filter(({ category }) => counts[category] > 0);
   if (present.length === 0) return null;
   return {
@@ -107,6 +119,15 @@ export function DaySplitList({
   units: Units;
 }) {
   const { colors } = useTheme();
+  // Once per plan or filter change, not on every render: the Plan screen
+  // re-renders on each GPS fix, and a long trail has thousands of POIs.
+  const poiSummaries = useMemo(
+    () =>
+      pois === undefined
+        ? null
+        : days.map((day, i) => dayPoiSummary(pois, day, { includeStart: i === 0 })),
+    [pois, days],
+  );
 
   // A snapped camp can (rarely, by construction) push a day past the window the
   // splitter allows around the target. Surface that overshoot subtly so the card
@@ -129,7 +150,7 @@ export function DaySplitList({
 
   return (
     <View style={styles.list}>
-      {days.map((day) => (
+      {days.map((day, i) => (
         <View
           key={day.dayNumber}
           style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
@@ -163,7 +184,7 @@ export function DaySplitList({
             </Text>
           </View>
 
-          {pois !== undefined && <AlongTheWay pois={pois} day={day} />}
+          {poiSummaries?.[i] && <AlongTheWay summary={poiSummaries[i]} />}
 
           {day.restDays !== undefined && day.restDays > 0 && (
             <Text style={[styles.rest, { color: colors.accent }]}>
@@ -195,10 +216,8 @@ export function DaySplitList({
   );
 }
 
-function AlongTheWay({ pois, day }: { pois: readonly TrailPOI[]; day: PlanDay }) {
+function AlongTheWay({ summary }: { summary: { text: string; label: string } }) {
   const { colors } = useTheme();
-  const summary = dayPoiSummary(pois, day);
-  if (!summary) return null;
   return (
     <Text
       style={[styles.along, { color: colors.textSecondary }]}

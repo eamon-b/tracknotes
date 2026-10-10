@@ -34,7 +34,7 @@ import { emptyMessage, type TodayEntry, type TodayRow } from '../../../src/featu
 import { useTodayPlan } from '../../../src/features/plan/use-today-plan';
 import { PoiFilterChips } from '../../../src/features/plan/PoiFilterChips';
 import { poiColor } from '../../../src/features/elevation/waypoint-category';
-import { OffTrailBadge } from '../../../src/features/guide/OffTrailBadge';
+import { OffTrailBadge, offTrailA11y } from '../../../src/features/guide/OffTrailBadge';
 
 export default function TodayScreen() {
   const { trailId } = useLocalSearchParams<{ trailId: string }>();
@@ -166,7 +166,7 @@ function TodayPoiRowView({
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${name}, OpenStreetMap ${poiCategoryLabel(poi.category)}, ${formatDistance(entry.fromStartKm, units)} from start`}
+      accessibilityLabel={`${name}, OpenStreetMap ${poiCategoryLabel(poi.category)}, ${formatDistance(entry.fromStartKm, units)} from start${offTrailA11y(poi.distanceFromTrail * 1000, units)}`}
       style={({ pressed }) => [styles.poiRow, pressed && styles.pressed]}
     >
       <View style={styles.rowMain}>
@@ -222,7 +222,7 @@ function TodayRowView({
       onPress={onPress}
       disabled={!onPress}
       accessibilityRole={onPress ? 'button' : undefined}
-      accessibilityLabel={`${row.name}, ${formatDistance(row.fromStartKm, units)} from start${leg ? `, leg ${leg}` : ''}`}
+      accessibilityLabel={`${row.name}, ${formatDistance(row.fromStartKm, units)} from start${leg ? `, leg ${leg}` : ''}${offTrailA11y(row.offTrailM, units)}`}
       style={({ pressed }) => [
         styles.row,
         {

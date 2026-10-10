@@ -27,6 +27,15 @@ export function offTrailLabel(metres: number, units: DistanceUnit): string {
   return `${offTrailDistance(metres, units)} off trail`;
 }
 
+/**
+ * The badge's words for a row's own `accessibilityLabel` (", 1.2 km off
+ * trail"), or '' on the trail. Every row the badge sits in is one accessible
+ * element whose label replaces its children's, so the row must say it.
+ */
+export function offTrailA11y(metres: number | null | undefined, units: DistanceUnit): string {
+  return metres != null && isPlaceOffTrail(metres) ? `, ${offTrailLabel(metres, units)}` : '';
+}
+
 export function OffTrailBadge({
   metres,
   units,
@@ -43,8 +52,6 @@ export function OffTrailBadge({
   const label = offTrailLabel(metres, units);
   return (
     <View
-      accessible
-      accessibilityLabel={label}
       style={[styles.pill, { borderColor: colors.offTrail }, style]}
     >
       <Text style={[styles.text, { color: colors.offTrail }]} numberOfLines={1}>

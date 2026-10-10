@@ -198,7 +198,9 @@ export function todayRows(trail: TrailJson, day: ComputedDay): TodayRow[] {
  * kept here and dropped by `visiblePois`/`countPoisByCategory`, as everywhere.
  *
  * `trail` is the route the plan walks (as for `todayRows`): its POIs are in
- * route km, direction applied, so a taken alternate's are on the day too.
+ * route km, direction applied. POIs are fetched along the main route only, so
+ * a stretch on a taken alternate has none (`plannedRouteTrail` drops the ones
+ * it bypasses) — an empty list there means no data, not nothing found.
  */
 export function todayPois(trail: Pick<TrailJson, 'pois'>, day: ComputedDay): TrailPOI[] {
   return poisBetween(trail.pois, day.startKm, day.endKm);
