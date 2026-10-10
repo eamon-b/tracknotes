@@ -68,14 +68,12 @@ import {
   mapsUrlFor,
   openUrlWithFallback,
 } from '../../../../src/features/guide/poi-detail';
-import { useBottomInsetContentStyle } from '../../../../src/navigation/bottom-inset';
 import { KeyboardAwareScrollView } from '../../../../src/navigation/KeyboardAwareScrollView';
 import { CommentsSection } from '../../../../src/features/comments/CommentsSection';
 
 export default function PoiDetailScreen() {
   const { trailId, poiKey } = useLocalSearchParams<{ trailId: string; poiKey: string }>();
   const { colors } = useTheme();
-  const contentStyle = useBottomInsetContentStyle(styles.content);
   const { trail } = useGuide();
   const units = useSettingsStore((s) => s.units);
 
@@ -125,7 +123,7 @@ export default function PoiDetailScreen() {
   return (
     <KeyboardAwareScrollView
       style={[styles.flex, { backgroundColor: colors.background }]}
-      contentContainerStyle={contentStyle}
+      contentContainerStyle={styles.content}
       testID="poi-detail-scroll"
     >
       <Stack.Screen options={{ title: name }} />
