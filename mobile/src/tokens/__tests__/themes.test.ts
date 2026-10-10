@@ -44,7 +44,7 @@ describe('Design Tokens — Themes', () => {
     'danger', 'dangerText', 'warning', 'warningText', 'success', 'info',
     'waypointWater', 'waypointCamp', 'waypointTown', 'waypointShelter',
     'waypointJunction', 'waypointHazard', 'waypointFavorite',
-    'resupplyPlanned',
+    'resupplyPlanned', 'offTrail',
     'waterFlowing', 'waterLow', 'waterDry',
     'downloadIdle', 'downloadActive', 'downloadDone', 'downloadError',
     'chartGrid', 'chartLine', 'chartFillTop', 'chartFillBottom',
@@ -90,7 +90,7 @@ describe('Design Tokens — Themes', () => {
   it('waypoint category colors are all distinct within each theme', () => {
     const waypointKeys: (keyof ThemeColors)[] = [
       'waypointWater', 'waypointCamp', 'waypointTown', 'waypointShelter',
-      'waypointJunction', 'waypointFavorite', 'resupplyPlanned',
+      'waypointJunction', 'waypointFavorite', 'resupplyPlanned', 'offTrail',
     ];
     for (const variant of themeVariants) {
       const theme = resolveTheme(variant);
@@ -160,6 +160,12 @@ describe('Design Tokens — Themes', () => {
       it(`${label}: danger/warning/success/info meet AA (4.5:1) against background`, () => {
         for (const key of ['danger', 'warning', 'success', 'info'] as const) {
           expect(contrastRatio(theme[key], theme.background)).toBeGreaterThanOrEqual(4.5);
+        }
+      });
+
+      it(`${label}: offTrail is readable as caption text on every surface (AA 4.5:1)`, () => {
+        for (const key of ['background', 'surface', 'surfaceElevated'] as const) {
+          expect(contrastRatio(theme.offTrail, theme[key])).toBeGreaterThanOrEqual(4.5);
         }
       });
 

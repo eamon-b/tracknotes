@@ -95,6 +95,18 @@ describe('todayPlan', () => {
 });
 
 describe('todayRows', () => {
+  it('says how far each place is from the trail line', () => {
+    const t = trail();
+    // The creek sits ~1.1 km north of the line; the camps are on it.
+    t.waypoints[1] = { ...t.waypoints[1], lat: 0.01, lon: 0.03 };
+    const today = todayPlan(planGlance(t, plan(t, ['c1', 'c2', 'c3'], '2026-10-10'), OPTS), '2026-10-11');
+    const rows = todayRows(t, today!.day);
+    const creek = rows.find((r) => r.name === 'Creek')!;
+    expect(creek.offTrailM).toBeGreaterThan(1000);
+    expect(creek.offTrailM).toBeLessThan(1200);
+    expect(rows.find((r) => r.name === 'Camp B')!.offTrailM).toBeLessThan(50);
+  });
+
   it('lists the day from camp to camp with each leg', () => {
     const t = trail();
     const today = todayPlan(planGlance(t, plan(t, ['c1', 'c2', 'c3'], '2026-10-10'), OPTS), '2026-10-11');

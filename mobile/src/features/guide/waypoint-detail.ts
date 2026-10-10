@@ -140,6 +140,38 @@ export function waypointOffTrailMeters(
   return distanceToLineMeters(waypoint.lat, waypoint.lon, trackPoints);
 }
 
+type TrailWaypoint = TrailJson['waypoints'][number];
+
+/** How far each waypoint sits off the line, by waypoint and by id. */
+export interface PlaceOffTrail {
+  byWaypoint: ReadonlyMap<TrailWaypoint, number | null>;
+  byId: ReadonlyMap<string, number | null>;
+}
+
+const offTrailCache = new WeakMap<TrailJson, PlaceOffTrail>();
+
+/**
+ * `waypointOffTrailMeters` for every waypoint of a trail, once per trail
+ * object: the list pane, the Today screen and the planner's Stops list all
+ * badge the same places with the same figure, and a long trail's thousands of
+ * waypoints are measured once rather than per screen.
+ */
+export function placeOffTrailMeters(trail: TrailJson): PlaceOffTrail {
+  let cached = offTrailCache.get(trail);
+  if (!cached) {
+    const byWaypoint = new Map<TrailWaypoint, number | null>();
+    const byId = new Map<string, number | null>();
+    for (const wp of trail.waypoints) {
+      const metres = waypointOffTrailMeters(wp, trail.track.points);
+      byWaypoint.set(wp, metres);
+      if (wp.id) byId.set(wp.id, metres);
+    }
+    cached = { byWaypoint, byId };
+    offTrailCache.set(trail, cached);
+  }
+  return cached;
+}
+
 /**
  * Straight-line metres from (lat, lon) to the track as a line, not to its
  * nearest vertex: the app's tracks are thinned, and a waypoint on a long

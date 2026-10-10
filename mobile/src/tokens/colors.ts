@@ -73,6 +73,13 @@ export const palette = {
   resupplyPlannedLight: '#C2410C',
   resupplyPlannedDark: '#FFA94D',
 
+  // Off the route — a place the trail does not reach (a town down a side road,
+  // a hut up a spur, an OSM shop a few hundred metres away). Teal: away from
+  // the water blue, the camp green, the resupply orange and the warning amber,
+  // so "how far off the trail" never reads as a status or a category.
+  offTrailLight: '#0F766E',
+  offTrailDark: '#5EEAD4',
+
   // Modal/backdrop scrim (theme-independent translucent black)
   scrim: 'rgba(0, 0, 0, 0.5)',
 } as const;
