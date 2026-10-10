@@ -15,6 +15,22 @@ describe('categoryToken', () => {
     expect(categoryToken('hazard')).toBe('waypointHazard');
   });
 
+  it('colours every alias of a glyph with that glyph\'s family', () => {
+    // These used to get the water / bed / shop glyph on a grey ring.
+    expect(categoryToken('tank')).toBe('waypointWater');
+    expect(categoryToken('rainwater')).toBe('waypointWater');
+    expect(categoryToken('tap')).toBe('waypointWater');
+    expect(categoryToken('hostel')).toBe('waypointShelter');
+    expect(categoryToken('post-office')).toBe('waypointTown');
+    expect(categoryToken('restaurant')).toBe('waypointTown');
+    expect(categoryToken('emergency')).toBe('waypointHazard');
+  });
+
+  it('colours a turn-off as the place it serves', () => {
+    expect(categoryToken('water-access')).toBe('waypointWater');
+    expect(categoryToken('hut-access')).toBe('waypointShelter');
+  });
+
   it('falls back to junction for unknown types', () => {
     expect(categoryToken('nonsense')).toBe('waypointJunction');
     expect(categoryToken('')).toBe('waypointJunction');
