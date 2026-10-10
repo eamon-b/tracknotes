@@ -41,6 +41,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { formatDistance } from '@lib/format-distance';
+import { poisBetween } from '@lib/poi-display';
 import { routeBreakStarts } from '@lib/route-breaks';
 import { resupplySummaryText } from '@lib/resupply-display';
 import { trailElevationIsUsable } from '@lib/elevation-backfill';
@@ -113,6 +114,8 @@ import {
   PlanSettingsSummary,
 } from '../../../src/features/plan/PlanSettingsSheet';
 import { DaySplitList } from '../../../src/features/plan/DaySplitList';
+import { PoiFilterChips } from '../../../src/features/plan/PoiFilterChips';
+import { useVisiblePois } from '../../../src/features/guide/use-visible-pois';
 import { StopsSection } from '../../../src/features/plan/StopsSection';
 import { ResupplyCard } from '../../../src/features/plan/ResupplyCard';
 import { WaterCarryCard } from '../../../src/features/plan/WaterCarryCard';
@@ -271,6 +274,21 @@ export default function PlanScreen() {
     () => splitUnplannedTail(days, finalDayMaxHours(prefs.dailyHours)),
     [days, prefs.dailyHours],
   ) as { days: PlanDay[]; unplanned: PlanDay | null };
+  // The OSM POIs along the planned days: every one for the filter chips' counts,
+  // the ones the guide's filter shows for each day card's "along the way" line.
+  const visiblePois = useVisiblePois(trail);
+  const planPois = useMemo(
+    () =>
+      plannedDays.length === 0
+        ? []
+        : poisBetween(
+            trail.pois,
+            plannedDays[0].startKm,
+            plannedDays[plannedDays.length - 1].endKm,
+          ),
+    [trail.pois, plannedDays],
+  );
+
   const plannedKm = plannedDays.reduce((sum, day) => sum + (day.endKm - day.startKm), 0);
   const effectiveDailyKm = plannedDays.length > 0 ? plannedKm / plannedDays.length : 0;
 
@@ -534,11 +552,15 @@ export default function PlanScreen() {
                   : undefined
               }
             >
+              <PoiFilterChips pois={planPois} />
               <DaySplitList
                 days={plannedDays}
                 unplanned={unplanned}
                 targetHours={prefs.dailyHours}
                 units={units}
+                // A trail never enriched with POIs says nothing, rather than
+                // implying OSM found nothing along every day.
+                pois={trail.pois === undefined ? undefined : visiblePois}
               />
             </Section>
 

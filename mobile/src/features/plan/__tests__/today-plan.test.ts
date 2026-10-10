@@ -7,7 +7,15 @@ import type { PlanDocument } from '@lib/plan-types';
 import type { TrailJson } from '../../../services/trail-assets';
 import { planGlance, type PlanGlanceOptions } from '../plan-glance';
 import { stopCandidateOf, toggleTargetOf } from '../plan-stops';
-import { emptyMessage, localIsoDate, todayPlan, todayRows } from '../today-plan';
+import type { TrailPOI } from '@lib/trail-types';
+import {
+  emptyMessage,
+  localIsoDate,
+  todayEntries,
+  todayPlan,
+  todayPois,
+  todayRows,
+} from '../today-plan';
 
 /** 100 km trail climbing 10 m per km for the first 50 km, then descending. */
 function trail(): TrailJson {
@@ -110,5 +118,61 @@ describe('todayRows', () => {
     expect(rows[0]).toMatchObject({ role: 'start', name: 'Synthetic Start', km: 0 });
     expect(rows[0].waypoint).toBeUndefined();
     expect(rows[rows.length - 1].name).toBe('Camp A');
+  });
+});
+
+function poi(id: number, km: number, over: Partial<TrailPOI> = {}): TrailPOI {
+  return {
+    id,
+    type: 'node',
+    category: 'restaurant',
+    lat: 0,
+    lon: 0,
+    name: `Place ${id}`,
+    tags: {},
+    distanceAlongTrail: km,
+    distanceFromTrail: 0.1,
+    ...over,
+  };
+}
+
+describe('the POIs along today', () => {
+  const t: TrailJson = {
+    ...trail(),
+    pois: [poi(1, 10), poi(2, 25), poi(3, 30), poi(4, 59.9), poi(5, 75), poi(6, 45, { duplicateOf: 'x' })],
+  };
+  const today = todayPlan(planGlance(t, plan(t, ['c1', 'c2', 'c3'], '2026-10-10'), OPTS), '2026-10-11')!;
+
+  it('takes the day start to tonight, nothing either side', () => {
+    expect(today.day).toMatchObject({ startKm: 20, endKm: 60 });
+    expect(todayPois(t, today.day).map((p) => p.id)).toEqual([2, 3, 6, 4]);
+  });
+
+  it('has none on a trail with no POI data', () => {
+    expect(todayPois(trail(), today.day)).toEqual([]);
+  });
+
+  it('places each POI among the rows at its km, after a waypoint at the same km', () => {
+    const rows = todayRows(t, today.day);
+    const entries = todayEntries(rows, todayPois(t, today.day).filter((p) => !p.duplicateOf), today.day);
+    expect(entries.map((e) => (e.kind === 'row' ? e.row.name : `poi ${e.poi.id}`))).toEqual([
+      'Camp A',
+      'poi 2',
+      'Creek',
+      'poi 3',
+      'Junction',
+      'poi 4',
+      'Camp B',
+    ]);
+    const poi3 = entries.find((e) => e.kind === 'poi' && e.poi.id === 3);
+    expect(poi3).toMatchObject({ fromStartKm: 10 });
+    expect(new Set(entries.map((e) => e.key)).size).toBe(entries.length);
+  });
+
+  it('leaves the waypoint legs alone', () => {
+    const rows = todayRows(t, today.day);
+    const entries = todayEntries(rows, todayPois(t, today.day), today.day);
+    const legs = entries.flatMap((e) => (e.kind === 'row' ? [e.row.legKm] : []));
+    expect(legs).toEqual([0, 10, 25, 5]);
   });
 });

@@ -7,10 +7,11 @@
 
 import React from 'react';
 import TestRenderer, { act, type ReactTestRenderer } from 'react-test-renderer';
-import { DaySplitList } from '../DaySplitList';
+import { DaySplitList, dayPoiSummary } from '../DaySplitList';
 import { planFloorHours, planWindowHours } from '../plan-adapters';
 import type { PlanDay } from '../plan-adapters';
 import type { ComputedDay } from '@lib/plan-types';
+import type { TrailPOI } from '@lib/trail-types';
 
 jest.mock('../../../theme', () => ({
   useTheme: () => ({ colors: new Proxy({}, { get: () => '#123456' }) }),
@@ -50,11 +51,18 @@ function render(
   days: PlanDay[],
   targetHours: number,
   unplanned?: ComputedDay | null,
+  pois?: TrailPOI[],
 ): ReactTestRenderer {
   let tree!: ReactTestRenderer;
   act(() => {
     tree = TestRenderer.create(
-      <DaySplitList days={days} unplanned={unplanned} targetHours={targetHours} units="km" />,
+      <DaySplitList
+        days={days}
+        unplanned={unplanned}
+        targetHours={targetHours}
+        units="km"
+        pois={pois}
+      />,
     );
   });
   return tree;
@@ -169,6 +177,46 @@ describe('DaySplitList', () => {
       expect(unplannedCards(render([day({})], 8))).toHaveLength(0);
       expect(unplannedCards(render([day({})], 8, null))).toHaveLength(0);
       expect(allText(render([], 8, null))).toContain('Choose a section');
+    });
+  });
+
+  describe('what OSM knows of along each day', () => {
+    const poi = (id: number, km: number, category: TrailPOI['category']): TrailPOI => ({
+      id,
+      type: 'node',
+      category,
+      lat: 0,
+      lon: 0,
+      name: null,
+      tags: {},
+      distanceAlongTrail: km,
+      distanceFromTrail: 0,
+    });
+    const pois = [
+      poi(1, 5, 'restaurant'),
+      poi(2, 6, 'restaurant'),
+      poi(3, 12, 'resupply'),
+      poi(4, 15, 'water'),
+      poi(5, 30, 'resupply'),
+      { ...poi(6, 8, 'restaurant'), duplicateOf: 'w1' },
+    ];
+
+    it('counts each category on the day, shops first, duplicates left out', () => {
+      expect(dayPoiSummary(pois, { startKm: 0, endKm: 20 })).toEqual({
+        text: '🛒 1 · 🍽 2 · 💧 1',
+        label: 'Resupply 1, Food & drink 2, Water 1',
+      });
+      expect(dayPoiSummary(pois, { startKm: 40, endKm: 60 })).toBeNull();
+    });
+
+    it('puts the line on the card when POIs are given', () => {
+      expect(allText(render([day({})], 8, null, pois))).toContain(
+        'Along the way (OSM): 🛒 1 · 🍽 2 · 💧 1',
+      );
+      expect(allText(render([day({})], 8, null))).not.toContain('Along the way');
+      expect(allText(render([day({ startKm: 40, endKm: 60 })], 8, null, pois))).not.toContain(
+        'Along the way',
+      );
     });
   });
 });

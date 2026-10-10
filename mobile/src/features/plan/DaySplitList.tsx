@@ -10,18 +10,51 @@
  * hiker is staying more than one night at its end, the rest days that push
  * every later date along. A rest day is never a card of its own: it is a night
  * spent at a stop, not a day walked.
+ *
+ * Given the POIs the guide's filter shows, each card also says what
+ * OpenStreetMap knows of along that day — "🛒 2 · 🍽 5 · 💧 3" — so a day with
+ * no shop or café on it stands out while the plan is still being made. They are
+ * counts of uncurated leads, labelled OSM, never folded into the day's figures.
  */
 
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { formatDistance, formatElevation } from '@lib/format-distance';
 import type { ComputedDay } from '@lib/plan-types';
+import { countPoisByCategory, POI_CATEGORY_LABELS, poisBetween } from '@lib/poi-display';
+import type { TrailPOI, TrailPOICategory } from '@lib/trail-types';
 import { useTheme } from '../../theme';
 import { radii, spacing, typography } from '../../tokens';
 import type { ThemeColors } from '../../tokens/themes';
 import type { Units } from '../../state/settings-store';
 import { planFloorHours, planWindowHours, type PlanDay } from './plan-adapters';
 import { formatHours } from './plan-format';
+
+/** One glyph per POI category, in the order a hiker scans for them. */
+const POI_GLYPHS: { category: TrailPOICategory; glyph: string }[] = [
+  { category: 'resupply', glyph: '🛒' },
+  { category: 'restaurant', glyph: '🍽' },
+  { category: 'water', glyph: '💧' },
+  { category: 'camping', glyph: '⛺' },
+  { category: 'transport', glyph: '🚌' },
+  { category: 'emergency', glyph: '➕' },
+];
+
+/** What OSM knows of along a day, as glyph counts and as words; null for nothing. */
+export function dayPoiSummary(
+  pois: readonly TrailPOI[],
+  day: Pick<ComputedDay, 'startKm' | 'endKm'>,
+): { text: string; label: string } | null {
+  const counts = countPoisByCategory(poisBetween(pois, day.startKm, day.endKm));
+  const present = POI_GLYPHS.filter(({ category }) => counts[category] > 0);
+  if (present.length === 0) return null;
+  return {
+    text: present.map(({ category, glyph }) => `${glyph} ${counts[category]}`).join(' · '),
+    label: present
+      .map(({ category }) => `${POI_CATEGORY_LABELS[category]} ${counts[category]}`)
+      .join(', '),
+  };
+}
 
 /** Footer end-of-day label, keyed off the day's three-state `endKind`. */
 function endLabel(day: PlanDay): string {
@@ -56,8 +89,14 @@ export function DaySplitList({
   unplanned = null,
   targetHours,
   units,
+  pois,
 }: {
   days: PlanDay[];
+  /**
+   * The POIs the guide's filter shows, on the days' km scale (`useVisiblePois`
+   * over the route the plan walks). Absent: no "along the way" line.
+   */
+  pois?: readonly TrailPOI[];
   /**
    * The stretch after the last stop, when it is too long to be a day
    * (`@lib/plan-editor` `splitUnplannedTail`). Shown as one muted line rather
@@ -124,6 +163,8 @@ export function DaySplitList({
             </Text>
           </View>
 
+          {pois !== undefined && <AlongTheWay pois={pois} day={day} />}
+
           {day.restDays !== undefined && day.restDays > 0 && (
             <Text style={[styles.rest, { color: colors.accent }]}>
               {`+${day.restDays} rest day${day.restDays === 1 ? '' : 's'} at ${day.endName}`}
@@ -151,6 +192,20 @@ export function DaySplitList({
         </View>
       )}
     </View>
+  );
+}
+
+function AlongTheWay({ pois, day }: { pois: readonly TrailPOI[]; day: PlanDay }) {
+  const { colors } = useTheme();
+  const summary = dayPoiSummary(pois, day);
+  if (!summary) return null;
+  return (
+    <Text
+      style={[styles.along, { color: colors.textSecondary }]}
+      accessibilityLabel={`Along the way, from OpenStreetMap: ${summary.label}`}
+    >
+      {`Along the way (OSM): ${summary.text}`}
+    </Text>
   );
 }
 
@@ -186,6 +241,7 @@ const styles = StyleSheet.create({
   route: { ...typography.titleSmall, flexShrink: 1 },
   date: { ...typography.caption, fontVariant: ['tabular-nums'] },
   rest: { ...typography.caption },
+  along: { ...typography.caption, fontVariant: ['tabular-nums'] },
   stats: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   stat: { gap: 2 },
   statLabel: { ...typography.caption },
