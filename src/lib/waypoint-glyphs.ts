@@ -141,10 +141,20 @@ const TYPE_TO_GLYPH: Record<string, MapGlyphName> = {
   other: 'poi',
 };
 
+/**
+ * A table's own entry for `key`. Types come from user GPX, so a plain index
+ * would hand `<type>constructor</type>` the prototype's function.
+ */
+function own<T>(table: Readonly<Record<string, T>>, key: string): T | undefined {
+  return Object.prototype.hasOwnProperty.call(table, key) ? table[key] : undefined;
+}
+
 /** The glyph for a waypoint type (generic point-of-interest for unknowns). */
 export function waypointGlyph(type: string | undefined): MapGlyphName {
   // A turn-off shows the glyph of the place it serves: `hut-access` is the hut.
-  return TYPE_TO_GLYPH[type ?? ''] ?? TYPE_TO_GLYPH[baseWaypointType(type)] ?? FALLBACK_GLYPH;
+  return (
+    own(TYPE_TO_GLYPH, type ?? '') ?? own(TYPE_TO_GLYPH, baseWaypointType(type)) ?? FALLBACK_GLYPH
+  );
 }
 
 /**
@@ -162,7 +172,7 @@ const POI_CATEGORY_TO_GLYPH: Record<string, MapGlyphName> = {
 
 /** The glyph for an OpenStreetMap POI category. */
 export function poiGlyph(category: string): MapGlyphName {
-  return POI_CATEGORY_TO_GLYPH[category] ?? FALLBACK_GLYPH;
+  return own(POI_CATEGORY_TO_GLYPH, category) ?? FALLBACK_GLYPH;
 }
 
 /** Glyph → colour family. Exhaustive, so a new glyph must pick one. */

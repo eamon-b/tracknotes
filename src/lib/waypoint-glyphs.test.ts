@@ -58,3 +58,14 @@ describe('poiGlyph / poiFamily', () => {
     expect(glyphFamily(poiGlyph('helipad'))).toBe('neutral');
   });
 });
+
+describe('lookups from user-supplied strings', () => {
+  it('gives an Object.prototype key the fallback glyph, not the prototype member', () => {
+    for (const key of ['constructor', 'toString', '__proto__', 'hasOwnProperty']) {
+      expect(waypointGlyph(key)).toBe(FALLBACK_GLYPH);
+      expect(waypointFamily(key)).toBe(glyphFamily(FALLBACK_GLYPH));
+      expect(poiGlyph(key)).toBe(FALLBACK_GLYPH);
+      expect(poiFamily(key)).toBe(glyphFamily(FALLBACK_GLYPH));
+    }
+  });
+});
