@@ -72,6 +72,19 @@ export function poiOsmUrl(poi: Pick<TrailPOI, 'type' | 'id'>): string {
   return `https://www.openstreetmap.org/${type}/${encodeURIComponent(String(poi.id))}`;
 }
 
+/**
+ * OpenStreetMap's "add a note" page with its marker on the POI: the way a
+ * walker reports a closed shop or a dry tap without an OSM account. Local
+ * mappers read notes and fix the data, which reaches the app on the next POI
+ * fetch. Coordinates are clamped to 6 decimals (~0.1 m) and never anything but
+ * numbers, so the URL cannot carry anything else.
+ */
+export function poiNoteUrl(poi: Pick<TrailPOI, 'lat' | 'lon'>): string {
+  const lat = Number(poi.lat).toFixed(6);
+  const lon = Number(poi.lon).toFixed(6);
+  return `https://www.openstreetmap.org/note/new?lat=${lat}&lon=${lon}#map=19/${lat}/${lon}`;
+}
+
 /** Metres below 1 km, kilometres above — matching the off-trail waypoint rows. */
 export function formatOffTrail(km: number): string {
   if (!Number.isFinite(km)) return '—';
@@ -568,6 +581,20 @@ export function interleavePoisByDistance<T>(
 // Router param is a path separator, so navigation needs a slash-free form.
 
 const ROUTE_KEY_TYPES = new Set(['node', 'way', 'relation']);
+
+/**
+ * The id a POI's comments are filed under in the comments API: `osm_node_12345`.
+ * It sits inside the API's waypoint-id pattern (`^[a-z0-9_-]{4,64}$`) and apart
+ * from curated (`w_`) and hiker (`hw_`) waypoint ids, and it is the OSM element
+ * itself, so a comment survives a re-fetch or a rebuild that renumbers nothing
+ * else. An element type outside the three OSM ones, or an id that is not a
+ * non-negative integer, gets no id (null): no comments rather than a malformed key.
+ */
+export function poiCommentId(poi: Pick<TrailPOI, 'type' | 'id'>): string | null {
+  if (!ROUTE_KEY_TYPES.has(poi.type)) return null;
+  if (!Number.isSafeInteger(poi.id) || poi.id < 0) return null;
+  return `osm_${poi.type}_${poi.id}`;
+}
 
 /** The slash-free key a route param can carry: `node-12345`. */
 export function poiRouteKey(poi: Pick<TrailPOI, 'type' | 'id'>): string {
