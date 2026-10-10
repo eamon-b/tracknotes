@@ -167,7 +167,7 @@ describe('WaypointListPane POI rows', () => {
     mockPosition = { currentKm: 6, status: 'fix' };
     const tree = render();
     const row = (name: string) =>
-      textOf(tree.root.findAll((n) => n.props.accessibilityLabel === `Open ${name} (OpenStreetMap)`)[0]);
+      textOf(tree.root.findAll((n) => String(n.props.accessibilityLabel).startsWith(`Open ${name} (OpenStreetMap)`))[0]);
     // The tank is on the line: here. The cafe is 2 km off it: level, not here.
     expect(row('Trailside Tank')).toContain('Here');
     expect(row('Town Cafe')).toContain('Level with you');
@@ -195,22 +195,25 @@ describe('WaypointListPane POI rows', () => {
     } as unknown as TrailJson;
     const tree = render(withTurnOff);
     const row = (name: string) =>
-      textOf(tree.root.findAll((n) => n.props.accessibilityLabel === `Open ${name}`)[0]);
+      textOf(tree.root.findAll((n) => String(n.props.accessibilityLabel).startsWith(`Open ${name}`))[0]);
     expect(row('Mount Pleasant')).toContain('2.5 km off trail');
+    // The row is one accessible element, so its label carries the badge's words.
+    expect(rowLabels(tree)).toContain('Open Mount Pleasant, 2.5 km off trail');
+    expect(rowLabels(tree)).toContain('Open Stone Hut');
     expect(row('Stone Hut')).not.toContain('off trail');
   });
 
   it('interleaves POIs by distance, waypoint first on a tie', () => {
     expect(rowLabels(render())).toEqual([
       'Open Trailhead',
-      'Open Kanmantoo Tank (OpenStreetMap)',
+      'Open Kanmantoo Tank (OpenStreetMap), 400 m off trail',
       // Both sit at km 12: the curated waypoint leads, the OSM row reads as an
       // addendum to it.
       'Open Kennedy Creek',
-      'Open Mount Crawford Camp (OpenStreetMap)',
-      'Open Bakery (OpenStreetMap)',
+      'Open Mount Crawford Camp (OpenStreetMap), 400 m off trail',
+      'Open Bakery (OpenStreetMap), 400 m off trail',
       'Open Ridge Camp',
-      'Open Unnamed water (OpenStreetMap)',
+      'Open Unnamed water (OpenStreetMap), 400 m off trail',
       'Open Stone Hut',
     ]);
   });
@@ -243,9 +246,9 @@ describe('WaypointListPane POI rows', () => {
     const tree = render();
     pressChip(tree, 'Water');
     expect(rowLabels(tree)).toEqual([
-      'Open Kanmantoo Tank (OpenStreetMap)',
+      'Open Kanmantoo Tank (OpenStreetMap), 400 m off trail',
       'Open Kennedy Creek',
-      'Open Unnamed water (OpenStreetMap)',
+      'Open Unnamed water (OpenStreetMap), 400 m off trail',
     ]);
   });
 
@@ -260,7 +263,7 @@ describe('WaypointListPane POI rows', () => {
     const tree = render();
     const [row] = tree.root.findAll(
       (n) =>
-        n.props.accessibilityLabel === 'Open Bakery (OpenStreetMap)' && n.props.onPress != null,
+        n.props.accessibilityLabel === 'Open Bakery (OpenStreetMap), 400 m off trail' && n.props.onPress != null,
     );
     press(row);
     expect(mockPush).toHaveBeenCalledWith({

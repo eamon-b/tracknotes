@@ -61,7 +61,7 @@ import {
   type ListRow,
 } from './list-rows';
 import { PoiRow } from './PoiRow';
-import { OffTrailBadge } from './OffTrailBadge';
+import { OffTrailBadge, offTrailA11y } from './OffTrailBadge';
 import { useVisiblePois } from './use-visible-pois';
 import { useGuidePositionContext } from './GuidePositionContext';
 import { useWaterStatus } from './use-water-status';
@@ -252,7 +252,7 @@ export function WaypointListPane({ trail }: { trail: TrailJson }) {
         <Pressable
           onPress={() => openWaypoint(row.key)}
           accessibilityRole="button"
-          accessibilityLabel={`Open ${waypoint.name}`}
+          accessibilityLabel={`Open ${waypoint.name}${offTrailA11y(placeOffTrailM.get(waypoint), units)}`}
           style={({ pressed }) => pressed && styles.pressed}
         >
           <WaypointRow

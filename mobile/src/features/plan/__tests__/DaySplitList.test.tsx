@@ -209,6 +209,14 @@ describe('DaySplitList', () => {
       expect(dayPoiSummary(pois, { startKm: 40, endKm: 60 })).toBeNull();
     });
 
+    it('counts a POI at a stop on the day that ends there, not the next one too', () => {
+      expect(dayPoiSummary(pois, { startKm: 0, endKm: 12 })?.text).toBe('🛒 1 · 🍽 2');
+      expect(dayPoiSummary(pois, { startKm: 12, endKm: 20 }, { includeStart: false })?.text).toBe(
+        '💧 1',
+      );
+      expect(dayPoiSummary(pois, { startKm: 12, endKm: 20 })?.text).toBe('🛒 1 · 💧 1');
+    });
+
     it('puts the line on the card when POIs are given', () => {
       expect(allText(render([day({})], 8, null, pois))).toContain(
         'Along the way (OSM): 🛒 1 · 🍽 2 · 💧 1',

@@ -38,7 +38,7 @@ import { useTheme } from '../../theme';
 import { radii, spacing, typography } from '../../tokens';
 import type { Units } from '../../state/settings-store';
 import { StopEditor } from './StopEditor';
-import { OffTrailBadge } from '../guide/OffTrailBadge';
+import { OffTrailBadge, offTrailA11y } from '../guide/OffTrailBadge';
 import { stopKeyOf, type StopCandidate, type StopLeg } from './plan-stops';
 
 /** Rows revealed at a time — a long trail's "All waypoints" list is thousands. */
@@ -354,7 +354,7 @@ function StopRow({
         onPress={onToggle}
         accessibilityRole="checkbox"
         accessibilityState={{ checked }}
-        accessibilityLabel={candidate.name}
+        accessibilityLabel={`${candidate.name}${offTrailA11y(offTrailM, units)}`}
         style={({ pressed }) => [styles.rowPress, pressed && styles.pressed]}
       >
         <View
