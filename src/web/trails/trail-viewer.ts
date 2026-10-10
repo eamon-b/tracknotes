@@ -26,7 +26,7 @@ import {
 // name, type and description on this page.
 import { SITE_ROOT, escapeHtml, generatedDataUrl } from '../web-utils';
 import { buildGpx, csvQuote } from './trail-export';
-import { waypointIcon } from './waypoint-icons';
+import { waypointFamilyClass, waypointIcon } from './waypoint-icons';
 import { onThemeChange, themeColor } from '../theme';
 // OpenStreetMap points of interest. The pure half — labels, tag summaries,
 // popup/row markup, interleave ordering, filter state — lives next door so it
@@ -272,9 +272,9 @@ function createPoiIcon(category: string): L.DivIcon {
   return L.divIcon({
     className: `poi-marker poi-cat-${isPoiCategory(category) ? category : 'other'}`,
     html: poiCategoryIcon(category),
-    iconSize: [16, 16],
-    iconAnchor: [8, 8],
-    popupAnchor: [0, -8],
+    iconSize: [18, 18],
+    iconAnchor: [9, 9],
+    popupAnchor: [0, -9],
   });
 }
 
@@ -1161,7 +1161,7 @@ function drawTermini(termini: RouteVariant[]): void {
 
 function createWaypointIcon(type?: string): L.DivIcon {
   return L.divIcon({
-    className: `waypoint-marker ${type || 'waypoint'}`,
+    className: `waypoint-marker ${type || 'waypoint'} ${waypointFamilyClass(type)}`,
     // A turn-off shows its served type's icon: `hut-access` is the hut glyph.
     html: waypointIcon(type),
     iconSize: [24, 24],

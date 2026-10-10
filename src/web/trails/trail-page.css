@@ -280,9 +280,6 @@
   border: 1px dashed #e65100;
 }
 /* Map/table markers keep light pastel fills, so their glyphs stay dark. */
-.waypoint-marker {
-  color: #1f2937;
-}
 .section-header {
   display: flex;
   justify-content: space-between;
@@ -332,35 +329,6 @@
   white-space: nowrap;
 }
 /* Waypoint marker styles */
-.waypoint-marker {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  font-size: 14px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-  border: 2px solid white;
-}
-.waypoint-marker.town { background: #ffcc80; }
-.waypoint-marker.hut { background: #b39ddb; }
-.waypoint-marker.campsite { background: #a5d6a7; }
-.waypoint-marker.water { background: #81d4fa; }
-.waypoint-marker.water-tank { background: #80cbc4; }
-.waypoint-marker.mountain { background: #bcaaa4; }
-.waypoint-marker.side-trip { background: #f8bbd0; }
-.waypoint-marker.caravan-park { background: #c5e1a5; }
-.waypoint-marker.trailhead { background: #ffe082; }
-.waypoint-marker.food { background: #ffab91; }
-.waypoint-marker.road-crossing { background: #b0bec5; }
-.waypoint-marker.inlet-crossing { background: #80deea; }
-.waypoint-marker.beach { background: #fff9c4; }
-.waypoint-marker.poi { background: #ffe0b2; }
-.waypoint-marker.resupply { background: #d1c4e9; }
-.waypoint-marker.endpoint { background: #ef9a9a; }
-.waypoint-marker.accommodation { background: #ce93d8; }
-.waypoint-marker.waypoint { background: #e0e0e0; }
 @media (max-width: 768px) {
   .trail-map {
     height: 300px;
