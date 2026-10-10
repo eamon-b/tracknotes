@@ -540,6 +540,27 @@ function nearestLineKm(lat: number, lon: number, points: readonly unknown[]): nu
   return Math.sqrt(best);
 }
 
+/**
+ * The POIs between two km of the trail (inclusive, with a metre's slack at
+ * either end), sorted along it — "what is on the way from here to there".
+ *
+ * Takes the list as given, so pass `visiblePois(…)` for what the filter shows,
+ * or the raw list (counted with `countPoisByCategory`) for what each switch
+ * would show. Both ends must be on the scale of the POIs' `distanceAlongTrail`.
+ */
+export function poisBetween<P extends Pick<TrailPOI, 'distanceAlongTrail'>>(
+  pois: readonly P[] | undefined,
+  fromKm: number,
+  toKm: number
+): P[] {
+  if (!pois) return [];
+  const lo = Math.min(fromKm, toKm) - 0.001;
+  const hi = Math.max(fromKm, toKm) + 0.001;
+  return pois
+    .filter(poi => poi.distanceAlongTrail >= lo && poi.distanceAlongTrail <= hi)
+    .sort((a, b) => a.distanceAlongTrail - b.distanceAlongTrail);
+}
+
 // === Interleaving ===
 
 export type InterleavedEntry<T> = { kind: 'item'; item: T } | { kind: 'poi'; poi: TrailPOI };

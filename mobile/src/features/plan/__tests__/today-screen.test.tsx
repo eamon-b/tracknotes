@@ -1,12 +1,16 @@
 /**
- * The Today screen: the day's rows, the way into a waypoint, and the empty
- * states (no plan for today, a rest day).
+ * The Today screen: the day's rows, the way into a waypoint, the OSM points of
+ * interest among them and their filter, and the empty states (no plan for
+ * today, a rest day).
  */
 
 import React from 'react';
 import TestRenderer, { act, type ReactTestRenderer } from 'react-test-renderer';
 import { Text } from 'react-native';
 import type { ComputedDay } from '@lib/plan-types';
+import { defaultPoiFilterState, type PoiFilterState } from '@lib/poi-display';
+import type { TrailPOI } from '@lib/trail-types';
+import { todayEntries, type TodayRow } from '../today-plan';
 import type { TodayPlanState } from '../use-today-plan';
 import TodayScreen from '../../../../app/guide/[trailId]/today';
 
@@ -20,8 +24,18 @@ jest.mock('../../../theme', () => ({
   useTheme: () => ({ colors: new Proxy({}, { get: () => '#123456' }) }),
 }));
 
+let mockFilter: PoiFilterState;
+const mockSetPoiEnabled = jest.fn();
+const mockSetPoiCategory = jest.fn();
 jest.mock('../../../state/settings-store', () => ({
-  useSettingsStore: (selector: (s: unknown) => unknown) => selector({ units: 'km' }),
+  useSettingsStore: (selector: (s: unknown) => unknown) =>
+    selector({
+      units: 'km',
+      poiFilter: mockFilter,
+      setPoiEnabled: mockSetPoiEnabled,
+      setPoiCategory: mockSetPoiCategory,
+    }),
+  selectPoiFilter: (s: { poiFilter: PoiFilterState }) => s.poiFilter,
 }));
 
 let mockState: TodayPlanState;
@@ -42,7 +56,32 @@ const day: ComputedDay = {
   restDays: 0,
 };
 
-const base = { date: '2026-10-11', trail: {} as never, hasStartDate: true, hasStops: true };
+const base = {
+  date: '2026-10-11',
+  trail: {} as never,
+  hasStartDate: true,
+  hasStops: true,
+  entries: [],
+  pois: [],
+};
+
+const ROWS: TodayRow[] = [
+  { key: 's', waypoint: { id: 'c1', name: 'Camp A', lat: 0, lon: 0, type: 'campsite' }, name: 'Camp A', type: 'campsite', role: 'start', km: 20, fromStartKm: 0, legKm: 0, legAscentM: 0, legDescentM: 0, totalAscentM: 0, totalDescentM: 0 },
+  { key: 'v', waypoint: { id: 'wa', name: 'Creek', lat: 0, lon: 0, type: 'water' }, name: 'Creek', type: 'water', role: 'via', km: 30, fromStartKm: 10, legKm: 10, legAscentM: 100, legDescentM: 0, totalAscentM: 100, totalDescentM: 0 },
+  { key: 'e', waypoint: { id: 'c2', name: 'Camp B', lat: 0, lon: 0, type: 'campsite' }, name: 'Camp B', type: 'campsite', role: 'end', km: 60, fromStartKm: 40, legKm: 30, legAscentM: 200, legDescentM: 100, totalAscentM: 300, totalDescentM: 100 },
+];
+
+const KONBINI: TrailPOI = {
+  id: 42,
+  type: 'node',
+  category: 'resupply',
+  lat: 0,
+  lon: 0,
+  name: 'Lawson',
+  tags: { shop: 'convenience', opening_hours: '24/7' },
+  distanceAlongTrail: 35,
+  distanceFromTrail: 0.3,
+};
 
 function render(): ReactTestRenderer {
   let tree!: ReactTestRenderer;
@@ -59,6 +98,9 @@ const texts = (tree: ReactTestRenderer) =>
 beforeEach(() => {
   jest.useFakeTimers();
   mockPush.mockClear();
+  mockSetPoiEnabled.mockClear();
+  mockSetPoiCategory.mockClear();
+  mockFilter = defaultPoiFilterState();
 });
 
 afterEach(() => jest.useRealTimers());
@@ -67,11 +109,8 @@ it('lists the day camp to camp and opens a waypoint', () => {
   mockState = {
     ...base,
     today: { kind: 'walk', day },
-    rows: [
-      { key: 's', waypoint: { id: 'c1', name: 'Camp A', lat: 0, lon: 0, type: 'campsite' }, name: 'Camp A', type: 'campsite', role: 'start', km: 20, fromStartKm: 0, legKm: 0, legAscentM: 0, legDescentM: 0, totalAscentM: 0, totalDescentM: 0 },
-      { key: 'v', waypoint: { id: 'wa', name: 'Creek', lat: 0, lon: 0, type: 'water' }, name: 'Creek', type: 'water', role: 'via', km: 30, fromStartKm: 10, legKm: 10, legAscentM: 100, legDescentM: 0, totalAscentM: 100, totalDescentM: 0 },
-      { key: 'e', waypoint: { id: 'c2', name: 'Camp B', lat: 0, lon: 0, type: 'campsite' }, name: 'Camp B', type: 'campsite', role: 'end', km: 60, fromStartKm: 40, legKm: 30, legAscentM: 200, legDescentM: 100, totalAscentM: 300, totalDescentM: 100 },
-    ],
+    rows: ROWS,
+    entries: todayEntries(ROWS, [], day),
   };
   const tree = render();
   const shown = texts(tree);
@@ -105,4 +144,57 @@ it('shows a rest day', () => {
   const shown = texts(render());
   expect(shown).toContain('Rest day');
   expect(shown).toContain('A rest day at Camp B.');
+});
+
+it('lists the OSM places on the way, opens one, and filters them', () => {
+  mockState = {
+    ...base,
+    today: { kind: 'walk', day },
+    rows: ROWS,
+    entries: todayEntries(ROWS, [KONBINI], day),
+    pois: [KONBINI],
+  };
+  const tree = render();
+  const shown = texts(tree);
+  // Between the creek (10 km) and tonight (40 km), at 15 km from the start.
+  const names = shown.filter((s) => ['Creek', 'Lawson', 'Camp B'].includes(s));
+  expect(names).toEqual(['Creek', 'Lawson', 'Camp B']);
+  expect(shown).toContain('OSM');
+  expect(shown).toContain('24/7');
+  expect(shown).toContain('15.0 km');
+  expect(shown.some((s) => s.endsWith('off trail'))).toBe(true);
+  expect(shown.some((s) => s.includes('OpenStreetMap contributors'))).toBe(true);
+
+  const [row] = tree.root.findAll(
+    (n) =>
+      typeof n.props.onPress === 'function' &&
+      typeof n.props.accessibilityLabel === 'string' &&
+      n.props.accessibilityLabel.startsWith('Lawson'),
+  );
+  act(() => (row.props.onPress as () => void)());
+  expect(mockPush).toHaveBeenCalledWith({
+    pathname: '/guide/[trailId]/poi/[poiKey]',
+    params: { trailId: 'syn', poiKey: 'node-42' },
+  });
+
+  // A chip per category on today's way, editing the guide's one filter.
+  expect(shown).toContain('Resupply 1');
+  const [chip] = tree.root.findAll(
+    (n) => n.props.accessibilityRole === 'switch' && n.props.accessibilityLabel === 'Resupply, 1',
+  );
+  act(() => (chip.props.onPress as () => void)());
+  expect(mockSetPoiCategory).toHaveBeenCalledWith('resupply', false);
+  const [master] = tree.root.findAll(
+    (n) =>
+      n.props.accessibilityRole === 'switch' &&
+      n.props.accessibilityLabel === 'Show OpenStreetMap places',
+  );
+  act(() => (master.props.onPress as () => void)());
+  expect(mockSetPoiEnabled).toHaveBeenCalledWith(false);
+});
+
+it('shows no filter or credit on a day OSM has nothing for', () => {
+  mockState = { ...base, today: { kind: 'walk', day }, rows: ROWS, entries: todayEntries(ROWS, [], day) };
+  const shown = texts(render());
+  expect(shown.some((s) => s.includes('OpenStreetMap'))).toBe(false);
 });

@@ -7,6 +7,12 @@
  * at to the one they have entered for tonight — with every waypoint between,
  * each with the distance, climb and descent from the row before it.
  *
+ * Between the waypoints sit the OpenStreetMap points of interest the hiker's
+ * POI filter shows — the konbini, the café, the bus stop — so the day reads as
+ * "where can I eat and buy food today?" as well as "where is the water?". They
+ * are leads, not checked trail data: they never split a waypoint's leg (the
+ * leg figures stay waypoint to waypoint), and they are drawn as OSM rows.
+ *
  * Only a *planned* day counts: the "not planned yet" tail does not end at a stop
  * the hiker entered, so a date that falls in it has no plan for today.
  *
@@ -15,9 +21,11 @@
  */
 
 import { KM_EPSILON } from '@lib/plan-direction';
+import { interleavePoisByDistance, poisBetween } from '@lib/poi-display';
 import type { ComputedDay } from '@lib/plan-types';
 import { routeBreakStarts } from '@lib/route-breaks';
 import { calculateElevationBetween } from '@lib/track-geometry';
+import type { TrailPOI } from '@lib/trail-types';
 import type { TrailJson, TrailJsonWaypoint } from '../../services/trail-assets';
 import type { PlanGlance } from './plan-glance';
 
@@ -173,4 +181,51 @@ export function todayRows(trail: TrailJson, day: ComputedDay): TodayRow[] {
     });
   });
   return rows;
+}
+
+/**
+ * Every POI along the day, start to tonight's stop, before any filter — what
+ * the Today screen's filter chips count. Duplicates of curated waypoints are
+ * kept here and dropped by `visiblePois`/`countPoisByCategory`, as everywhere.
+ *
+ * `trail` is the route the plan walks (as for `todayRows`): its POIs are in
+ * route km, direction applied, so a taken alternate's are on the day too.
+ */
+export function todayPois(trail: Pick<TrailJson, 'pois'>, day: ComputedDay): TrailPOI[] {
+  return poisBetween(trail.pois, day.startKm, day.endKm);
+}
+
+/** One entry of the Today list: a waypoint row, or an OSM point of interest. */
+export type TodayEntry =
+  | { kind: 'row'; key: string; row: TodayRow }
+  | {
+      kind: 'poi';
+      key: string;
+      poi: TrailPOI;
+      /** km from the day's start. */
+      fromStartKm: number;
+    };
+
+/**
+ * The day's waypoint rows with the POIs among them, each at its km. A POI at
+ * the same km as a waypoint follows it (`interleavePoisByDistance`), so the
+ * Start row stays first; one at tonight's km follows the Tonight row.
+ *
+ * `pois` is what the filter shows (`visiblePois` over `todayPois`).
+ */
+export function todayEntries(
+  rows: readonly TodayRow[],
+  pois: readonly TrailPOI[],
+  day: ComputedDay,
+): TodayEntry[] {
+  return interleavePoisByDistance(rows, pois, (row) => row.km).map((entry, i): TodayEntry =>
+    entry.kind === 'item'
+      ? { kind: 'row', key: entry.item.key, row: entry.item }
+      : {
+          kind: 'poi',
+          key: `poi:${entry.poi.type}/${entry.poi.id}:${i}`,
+          poi: entry.poi,
+          fromStartKm: Math.max(0, entry.poi.distanceAlongTrail - day.startKm),
+        },
+  );
 }

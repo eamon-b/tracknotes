@@ -23,6 +23,7 @@ import {
   poiDisplayName,
   poiCommentId,
   poiNoteUrl,
+  poisBetween,
   poiOsmUrl,
   poiRouteKey,
   slimPoi,
@@ -298,6 +299,27 @@ describe('interleaving POIs with rows', () => {
   it('handles an empty list of rows and an empty POI list', () => {
     expect(interleavePoisByDistance([], [poi()], () => 0)).toHaveLength(1);
     expect(interleavePoisByDistance(rows, [], r => r.distance)).toHaveLength(3);
+  });
+});
+
+describe('POIs between two km', () => {
+  const pois = [
+    poi({ id: 3, distanceAlongTrail: 12 }),
+    poi({ id: 1, distanceAlongTrail: 4.9995 }),
+    poi({ id: 2, distanceAlongTrail: 8 }),
+    poi({ id: 4, distanceAlongTrail: 12.002 }),
+  ];
+
+  it('keeps the span, both ends included, sorted along the trail', () => {
+    expect(poisBetween(pois, 5, 12).map(p => p.id)).toEqual([1, 2, 3]);
+  });
+
+  it('reads the ends either way round', () => {
+    expect(poisBetween(pois, 12, 5).map(p => p.id)).toEqual([1, 2, 3]);
+  });
+
+  it('answers an absent list with nothing', () => {
+    expect(poisBetween(undefined, 0, 10)).toEqual([]);
   });
 });
 
