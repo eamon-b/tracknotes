@@ -16,7 +16,7 @@
  * its appearance on every surface that shows a POI.
  */
 
-import type { TrailPOI, TrailPOICategory } from '@lib/trail-types';
+import type { TrailPOI } from '@lib/trail-types';
 import {
   countPoisByCategory,
   defaultPoiFilterState,
@@ -35,6 +35,7 @@ import {
   type PoiTagLine,
 } from '@lib/poi-display';
 import { escapeHtml } from '../web-utils';
+import { poiIcon } from './waypoint-icons';
 
 // The shared half, re-exported so `trail-viewer.ts` and the imported-trail page
 // keep importing POI behaviour from one place.
@@ -65,24 +66,18 @@ export {
 } from '@lib/poi-display';
 export type { InterleavedEntry, PoiFilterState, PoiTagLine } from '@lib/poi-display';
 
-/**
- * Marker glyphs. Deliberately a different set from `WAYPOINT_ICONS` in
- * `waypoint-icons.ts` — a POI marker must never be mistaken for a curated waypoint.
- */
-export const POI_CATEGORY_ICONS: Record<TrailPOICategory, string> = {
-  water: '\u{1F4A7}',
-  camping: '⛺',
-  resupply: '\u{1F6D2}',
-  restaurant: '\u{1F37D}\uFE0F',
-  transport: '\u{1F68C}',
-  emergency: '\u{1F3E5}',
-};
-
 /** The credit line, shown wherever POI data is. */
 
-/** Marker/badge glyph for a category, tolerating an unknown one. */
+/**
+ * Marker/badge glyph for a category (inline SVG), tolerating an unknown one.
+ * It is the shared map glyph set (`waypoint-icons.ts` `poiIcon`), the same
+ * shapes a curated waypoint of that kind uses, as on the phone. What says
+ * "this is an uncurated OSM lead" is the treatment — a smaller, thinner-ringed
+ * badge drawn beneath the waypoints, and the OSM pill in the datasheet — not a
+ * second set of pictures to learn.
+ */
 export function poiCategoryIcon(category: string): string {
-  return isPoiCategory(category) ? POI_CATEGORY_ICONS[category] : '⭐';
+  return poiIcon(category);
 }
 
 /**
@@ -223,7 +218,7 @@ export function poiControlHtml(
     return `
         <label class="poi-cat-toggle poi-cat-${category}${empty ? ' is-empty' : ''}">
           <input type="checkbox" data-poi-category="${category}"${state.categories[category] ? ' checked' : ''}${empty ? ' disabled' : ''}>
-          <span class="poi-badge-icon" aria-hidden="true">${POI_CATEGORY_ICONS[category]}</span>
+          <span class="poi-badge-icon" aria-hidden="true">${poiCategoryIcon(category)}</span>
           <span class="poi-cat-name">${escapeHtml(POI_CATEGORY_LABELS[category])}</span>
           <span class="poi-cat-count">${count}</span>
         </label>`;

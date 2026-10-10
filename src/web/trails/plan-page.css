@@ -720,35 +720,17 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
 
 /* ---- Waypoint map markers ---- */
 .waypoint-marker {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   width: 22px;
   height: 22px;
-  border-radius: 50%;
-  font-size: 12px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-  border: 2px solid white;
 }
-.waypoint-marker.town { background: #ffcc80; }
-.waypoint-marker.hut { background: #b39ddb; }
-.waypoint-marker.campsite { background: #a5d6a7; }
-.waypoint-marker.water { background: #81d4fa; }
-.waypoint-marker.water-tank { background: #80cbc4; }
-.waypoint-marker.mountain { background: #bcaaa4; }
-.waypoint-marker.food { background: #ffab91; }
-.waypoint-marker.trailhead { background: #ffe082; }
-.waypoint-marker.endpoint { background: #ef9a9a; }
-.waypoint-marker.default { background: #e0e0e0; }
-/* Markers keep light pastel fills over the map, so their glyphs stay dark. */
-.waypoint-marker { color: #1f2937; }
+.waypoint-marker .map-glyph { width: 13px; height: 13px; }
 .waypoint-marker.is-stop { border-color: var(--select); border-width: 3px; }
 /* After .is-stop on purpose: a planned stop that is also a camp stop shows the
  * plan's ring, which is the rarer and more consequential of the two. */
 .waypoint-marker.planned-resupply {
   border-color: var(--resupply-planned);
   border-width: 3px;
-  box-shadow: 0 0 0 2px var(--resupply-planned), 0 2px 5px rgba(0,0,0,0.3);
+  box-shadow: 0 0 0 2px var(--resupply-planned), 0 1px 4px rgba(0,0,0,0.4);
 }
 .stop-flag-icon {
   display: flex;
@@ -763,6 +745,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
   box-shadow: 0 2px 5px rgba(0,0,0,0.3);
   border: 2px solid white;
 }
+.stop-flag-icon .map-glyph { width: 15px; height: 15px; color: #ffffff; }
 
 /* ---- Waypoint popup (map) ---- */
 /* Leaflet's own popup chrome keeps its light background in both themes, so the

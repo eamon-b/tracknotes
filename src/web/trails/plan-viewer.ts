@@ -79,7 +79,7 @@ import { createReversedTrail } from '@lib/trail-reverse';
 import { trailElevationIsUsable } from '@lib/elevation-backfill';
 import { KM_EPSILON, getDirectionLabel, stopsToActive, toNoboKm, type PlanDirection } from '@lib/plan-direction';
 import { baseWaypointType, waypointTypeLabel } from '@lib/waypoint-taxonomy';
-import { waypointIcon } from './waypoint-icons';
+import { waypointFamilyClass, waypointIcon } from './waypoint-icons';
 import {
   loadOrMigratePlan,
   loadPlanUiPrefs,
@@ -734,7 +734,8 @@ function drawWaypointMarkers(): void {
     // camp-stop border where a marker is both. The ring is the whole marking —
     // the title stays the plain name, which is what the map's tooltip is for.
     const isPlanned = isPlannedResupply(wp);
-    const className = `waypoint-marker ${type}${isSelected || isPicked ? ' is-stop' : ''}` +
+    const className = `waypoint-marker ${type} ${waypointFamilyClass(type)}` +
+      `${isSelected || isPicked ? ' is-stop' : ''}` +
       `${isPlanned ? ' planned-resupply' : ''}`;
     const divIcon = L.divIcon({
       className: '',
@@ -841,7 +842,7 @@ function redrawMapLayers(): void {
     if (!wp) return;
     const divIcon = L.divIcon({
       className: '',
-      html: `<div class="stop-flag-icon" title="${escapeHtml(stop.name)}">⛺</div>`,
+      html: `<div class="stop-flag-icon" title="${escapeHtml(stop.name)}">${waypointIcon('campsite')}</div>`,
       iconSize: [24, 24],
       iconAnchor: [12, 12],
     });
@@ -1068,8 +1069,8 @@ function renderDayList(): void {
   container.innerHTML = elevationNote + days.map((day, i) => {
     const dateStr = day.date ? `<span class="day-card-date">${formatDate(day.date)}</span>` : '';
     const waterStr = day.waterSources > 0
-      ? `<span class="water-info">💧 ${day.waterSources} water</span>`
-      : '<span>💧 0 water</span>';
+      ? `<span class="water-info">${waypointIcon('water')} ${day.waterSources} water</span>`
+      : `<span>${waypointIcon('water')} 0 water</span>`;
     const selected = selectedDayIndex === i ? ' selected' : '';
     // A day is "planned resupply" when one of the ticked stops falls inside it,
     // its own ends included: the day you walk into town is the day it matters.
@@ -1177,7 +1178,7 @@ function renderWaterCarrySection(): void {
     const cls = g.isDryStretch ? ' gap-warn' : ' gap-ok';
     const badge = g.isDryStretch ? ' 🔴 DRY' : '';
     return `<div class="gap-item">
-      <span class="${cls}">💧${badge}</span>
+      <span class="${cls}">${waypointIcon('water')}${badge}</span>
       <span>${escapeHtml(g.fromName)} → ${escapeHtml(g.toName)}: ${g.distanceKm} km</span>
     </div>`;
   }).join('');

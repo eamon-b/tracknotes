@@ -72,6 +72,14 @@
   --poi-emergency: #dc2626;
   --poi-other: #64748b;
   --poi-surface: #f1f5f9;
+  /* Waypoint glyph families (@lib/waypoint-glyphs): map-marker rings and the
+   * glyphs in tables. The same values as the phone's waypoint* tokens. */
+  --wp-water: #1F6FB2;
+  --wp-camp: #2D6A4F;
+  --wp-town: #7A3EA1;
+  --wp-shelter: #9A5B1E;
+  --wp-hazard: #C1121F;
+  --wp-neutral: #5A6B64;
 
   /* Canvas + Chart.js colors (read from JS via themeColor()) */
   --chart-text: #666666;
@@ -155,6 +163,12 @@
     --poi-emergency: #f87171;
     --poi-other: #94a3b8;
     --poi-surface: #223049;
+    --wp-water: #6BB8F0;
+    --wp-camp: #74C69D;
+    --wp-town: #C79BE8;
+    --wp-shelter: #D9A566;
+    --wp-hazard: #FF6B6B;
+    --wp-neutral: #A9B8B2;
 
     --chart-text: #94a3b8;
     --chart-grid: #33415a;
@@ -219,6 +233,12 @@
   --poi-emergency: #f87171;
   --poi-other: #94a3b8;
   --poi-surface: #223049;
+  --wp-water: #6BB8F0;
+  --wp-camp: #74C69D;
+  --wp-town: #C79BE8;
+  --wp-shelter: #D9A566;
+  --wp-hazard: #FF6B6B;
+  --wp-neutral: #A9B8B2;
 
   --chart-text: #94a3b8;
   --chart-grid: #33415a;
@@ -1493,8 +1513,53 @@ input::placeholder {
 }
 
 .poi-badge-icon {
-  font-size: 0.8em;
+  display: inline-flex;
+  font-size: 0.95em;
   line-height: 1;
+}
+
+/* A POI chip's glyph takes the chip's own category accent. */
+.poi-badge-icon .map-glyph {
+  color: var(--poi-accent, var(--poi-other));
+}
+
+/* ---- Map glyphs (@lib/map-glyphs, inlined by waypoint-icons.ts) ----
+ * In text — tables, lists, chips — a glyph is a 1em square in its family's
+ * colour. On a map marker the family colours the ring instead and the glyph is
+ * dark ink on a white disc, in both themes, as on the phone. */
+.map-glyph {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.15em;
+  flex-shrink: 0;
+  color: var(--wp-accent, currentColor);
+}
+
+.wp-fam-water { --wp-accent: var(--wp-water); }
+.wp-fam-camp { --wp-accent: var(--wp-camp); }
+.wp-fam-town { --wp-accent: var(--wp-town); }
+.wp-fam-shelter { --wp-accent: var(--wp-shelter); }
+.wp-fam-hazard { --wp-accent: var(--wp-hazard); }
+.wp-fam-neutral { --wp-accent: var(--wp-neutral); }
+
+.waypoint-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2.5px solid var(--wp-accent, var(--wp-neutral));
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+.waypoint-marker .map-glyph {
+  width: 14px;
+  height: 14px;
+  color: #1a1a1a;
 }
 
 .poi-cat-water { --poi-accent: var(--poi-water); }
@@ -1580,13 +1645,22 @@ a.poi-source-badge:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
+  box-sizing: border-box;
   border-radius: 50%;
-  font-size: 9px;
-  background: var(--surface);
-  border: 2px solid var(--poi-accent, var(--poi-other));
+  /* White in both themes, like the waypoint badges: the glyph is dark ink. */
+  background: #ffffff;
+  color: #1a1a1a;
+  border: 1.5px solid var(--poi-accent, var(--poi-other));
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  opacity: 0.92;
+}
+
+.poi-marker .map-glyph {
+  width: 11px;
+  height: 11px;
+  color: inherit;
 }
 
 .poi-marker.poi-cat-water { --poi-accent: var(--poi-water); }
