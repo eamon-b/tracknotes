@@ -1560,7 +1560,7 @@ function renderDayDatasheet(day: ComputedDay | null): void {
   // badged like any other row.
   const startPlanned = isPlannedResupplyKm(day.startKm);
   rows.push(`<div class="ds-row ds-start${startPlanned ? ' planned-resupply' : ''}">
-    <span class="ds-type-icon">\u{1F6A9}</span>
+    <span class="ds-type-icon">${waypointIcon('endpoint')}</span>
     <span class="ds-name">${escapeHtml(day.startName)}${startPlanned ? plannedBadge() : ''}</span>
     <span class="ds-km">${day.startKm.toFixed(1)} km</span>
   </div>`);
@@ -1584,7 +1584,7 @@ function renderDayDatasheet(day: ComputedDay | null): void {
   const endStop = stopAtActiveKm(day.endKm);
   const endPlanned = isPlannedResupplyKm(day.endKm);
   rows.push(`<div class="ds-row ds-end${endPlanned ? ' planned-resupply' : ''}">
-    <span class="ds-type-icon">\u26FA</span>
+    <span class="ds-type-icon">${waypointIcon('campsite')}</span>
     <span class="ds-name">${escapeHtml(day.endName)}${endPlanned ? plannedBadge() : ''}</span>
     <span class="ds-km">${day.endKm.toFixed(1)} km</span>
   </div>`);

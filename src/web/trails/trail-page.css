@@ -279,7 +279,6 @@
   color: #e65100;
   border: 1px dashed #e65100;
 }
-/* Map/table markers keep light pastel fills, so their glyphs stay dark. */
 .section-header {
   display: flex;
   justify-content: space-between;

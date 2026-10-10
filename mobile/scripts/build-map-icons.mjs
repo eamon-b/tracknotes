@@ -55,6 +55,14 @@ const INK = '#1A1A1A';
  * stripping (on by default from Node 22.18; on older Node run this script with
  * `--experimental-strip-types`). Edit the shapes there, not here.
  */
+// Node strips the TypeScript types itself from 22.18 (and 23.6) on.
+const [nodeMajor, nodeMinor] = process.versions.node.split('.').map(Number);
+if (nodeMajor < 22 || (nodeMajor === 22 && nodeMinor < 18)) {
+  console.error(
+    `build-map-icons needs Node 22.18 or later to import src/lib/map-glyphs.ts (this is ${process.versions.node}).`,
+  );
+  process.exit(1);
+}
 const { MAP_GLYPHS } = await import('../../src/lib/map-glyphs.ts');
 const GLYPHS = Object.fromEntries(
   Object.entries(MAP_GLYPHS).map(([name, body]) => [name, body.replaceAll('currentColor', INK)])
