@@ -411,15 +411,17 @@ async function main(): Promise<void> {
       let ways: WalkWay[];
       try {
         ways = await fetchWays(args.endpoint, cluster.bbox, args.timeoutS, args.refresh);
+        // Overpass returns each way whole, running past the query box: load
+        // heights for everything it returned, or the far ends read as unknown.
+        // A height that cannot be read fails the query like the ways would:
+        // routing without it would take every climb as flat.
+        await dem.load(waysBbox(ways, cluster.bbox));
       } catch (error) {
         console.warn(`  ${label}: failed: ${(error as Error).message}`);
         failed.push({ cluster, n });
         await new Promise(resolve => setTimeout(resolve, 5000));
         continue;
       }
-      // Overpass returns each way whole, running past the query box: load
-      // heights for everything it returned, or the far ends read as unknown.
-      await dem.load(waysBbox(ways, cluster.bbox));
       const network = buildWalkNetwork(ways);
       console.log(`  ${label}: ${ways.length} ways`);
       for (const member of cluster.members) {
