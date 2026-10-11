@@ -33,6 +33,7 @@ describe('selectCandidates', () => {
         wp('w_turnoff', 138.01, { type: 'campsite-access' }),
         wp('w_given', 138.01, { offTrailKm: 1 }),
         wp('w_ours', 138.02, { offTrailKm: 2.5 }),
+        wp('w_note', 138.01, { type: 'junction' }),
       ],
     };
     const ids = selectCandidates(trail as never, 150, new Set(['w_ours'])).map(c => c.id);
