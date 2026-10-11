@@ -205,10 +205,16 @@ class RouteLine {
       if (breakStarts.has(i)) continue;
       const a = points[i - 1];
       const b = points[i];
+      // Padded by the reach either side. A cell is square in degrees, and a
+      // degree of longitude shrinks with latitude, so east-west the reach
+      // spans more than one cell beyond 60°.
+      const maxAbsLat = Math.max(Math.abs(a.lat), Math.abs(b.lat));
+      const cellLonM = this.cellDeg * M_PER_DEG * Math.max(0.01, Math.cos((maxAbsLat * Math.PI) / 180));
+      const lonPad = Math.max(1, Math.ceil(reachM / cellLonM));
       const r0 = Math.floor(Math.min(a.lat, b.lat) / this.cellDeg) - 1;
       const r1 = Math.floor(Math.max(a.lat, b.lat) / this.cellDeg) + 1;
-      const c0 = Math.floor(Math.min(a.lon, b.lon) / this.cellDeg) - 1;
-      const c1 = Math.floor(Math.max(a.lon, b.lon) / this.cellDeg) + 1;
+      const c0 = Math.floor(Math.min(a.lon, b.lon) / this.cellDeg) - lonPad;
+      const c1 = Math.floor(Math.max(a.lon, b.lon) / this.cellDeg) + lonPad;
       for (let r = r0; r <= r1; r++) {
         for (let c = c0; c <= c1; c++) {
           const key = `${r},${c}`;
