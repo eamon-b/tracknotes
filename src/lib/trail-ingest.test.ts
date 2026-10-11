@@ -647,6 +647,62 @@ describe('waypoint km across a route break', () => {
   });
 });
 
+describe('waypointJunctions', () => {
+  /** A valley floor, then a climb to a summit; a camp off to the side of the summit. */
+  function climb(): ParsedGpxResult {
+    const points = [0, 1, 2, 3, 4, 5, 6].map(i => ({
+      lat: -34 - i * 0.005,
+      lon: 138,
+      ele: i < 2 ? 50 : 50 + (i - 1) * 100,
+      time: null,
+    }));
+    return {
+      tracks: [{ name: 'Main', points }],
+      waypoints: [
+        { name: 'Valley', lat: -34.005, lon: 138, type: 'waypoint' },
+        // Nearest the summit in a straight line, reached from the valley.
+        { name: 'Camp', lat: -34.03, lon: 138.012, type: 'campsite', offTrailKm: 2.5 },
+      ],
+      name: null,
+    };
+  }
+
+  it('places the waypoint at the junction and keeps its own position', () => {
+    const plain = buildTrail(climb(), { config: config({ waypointMaxDistance: 3000 }) });
+    expect(plain.waypoints.find(w => w.name === 'Camp')!.elevation).toBe(550);
+
+    const trail = buildTrail(climb(), {
+      config: config({
+        waypointMaxDistance: 3000,
+        waypointJunctions: [{ name: 'Camp', lat: -34.005, lon: 138 }],
+      }),
+    });
+    const camp = trail.waypoints.find(w => w.name === 'Camp')!;
+    expect(camp.trackIndex).toBe(1);
+    expect(camp.elevation).toBe(50);
+    expect(camp.totalAscent).toBe(0);
+    expect([camp.lat, camp.lon]).toEqual([-34.03, 138.012]);
+    expect(camp.offTrailKm).toBe(2.5);
+    expect(trail.offTrailWaypoints.map(w => w.name)).not.toContain('Camp');
+  });
+
+  it('refuses a junction that names no waypoint', () => {
+    expect(() =>
+      buildTrail(climb(), {
+        config: config({ waypointJunctions: [{ name: 'Nowhere', lat: -34.005, lon: 138 }] }),
+      })
+    ).toThrow(/names 0 waypoints/);
+  });
+
+  it('refuses a junction off the route', () => {
+    expect(() =>
+      buildTrail(climb(), {
+        config: config({ waypointJunctions: [{ name: 'Camp', lat: -34.005, lon: 138.1 }] }),
+      })
+    ).toThrow(/beyond the 500m match radius/);
+  });
+});
+
 describe('the display copy of an out-and-back route', () => {
   /**
    * 2,000 points north along a meander the simplification keeps some of, then
