@@ -38,6 +38,12 @@ describe('selectCandidates', () => {
     const ids = selectCandidates(trail as never, 150, new Set(['w_ours'])).map(c => c.id);
     expect(ids).toEqual(['w_far', 'w_ours']);
   });
+
+  it("leaves a waypoint on one of the trail's side trips to the side trip", () => {
+    const sideTrips = [{ name: 'Spur', type: 'side-trip', points: [{ lat: -34.01, lon: 138 }, { lat: -34.01, lon: 138.02 }] }];
+    const trail = { track, sideTrips, waypoints: [wp('w_summit', 138.01)] };
+    expect(selectCandidates(trail as never, 150, new Set())).toEqual([]);
+  });
 });
 
 describe('clusterCandidates', () => {

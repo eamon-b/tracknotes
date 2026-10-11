@@ -44,3 +44,6 @@ logs/
 
 # Claude Code session worktrees (agent scratch space)
 .claude/worktrees/
+
+# Overpass answers cached by fetch-access.ts
+data/osm-ways-cache/
