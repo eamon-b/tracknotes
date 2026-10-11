@@ -106,10 +106,13 @@ describe('findAccess', () => {
   });
 
   it('refuses a straight line all the way to the route', () => {
-    // Nothing mapped reaches the falls; the route road is 225 m away up a cliff.
+    // Nothing mapped reaches the falls; the route road is 225 m away up a 70 m cliff.
     const falls = { lat: -34.01, lon: 138.0025 };
     const routeRoad: WalkWay = { coords: [[-34.0, 138.0], [-34.02, 138.0]] };
-    expect(findAccess(buildWalkNetwork([routeRoad]), falls, ROUTE).ok).toBe(false);
+    const cliff = (_lat: number, lon: number) => (lon > 138.002 ? 0 : 70);
+    expect(findAccess(buildWalkNetwork([routeRoad]), falls, ROUTE, { elevationAt: cliff }).ok).toBe(false);
+    // The same 225 m over flat bush is a walk.
+    expect(findAccess(buildWalkNetwork([routeRoad]), falls, ROUTE, { elevationAt: () => 50 }).ok).toBe(true);
     // A hut 100 m off is just a short walk across.
     const hut = { lat: -34.01, lon: 138.0011 };
     expect(findAccess(buildWalkNetwork([routeRoad]), hut, ROUTE).ok).toBe(true);

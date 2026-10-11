@@ -63,8 +63,14 @@ export const OFF_NETWORK_PENALTY = 1.5;
  */
 export const PLACE_SNAP_SLACK_M = 60;
 
-/** The longest walk allowed with no mapped way at all between the place and the route (metres). */
+/** The longest walk allowed with no mapped way at all between the place and the route (metres)… */
 export const MAX_CROSS_COUNTRY_ONLY_M = 150;
+
+/** …unless the ground between is gentle: up to this far (metres), */
+export const MAX_GENTLE_CROSS_COUNTRY_M = 500;
+
+/** at no steeper an average grade than this (rise over run). */
+export const MAX_CROSS_COUNTRY_GRADE = 0.2;
 
 /** One OSM way: its vertices in order, and their node ids when known. */
 export interface WalkWay {
@@ -388,8 +394,15 @@ export function findAccess(
       // A walk that is cross-country all the way to the route — straight to a
       // node on the route itself — is a line over whatever lies between:
       // Rainbow Falls on the Great Ocean Walk read 225 m down a cliff, where
-      // the falls are reached along the beach. Only short ones stand.
-      if (distanceM > MAX_CROSS_COUNTRY_ONLY_M && touch(node)) continue;
+      // the falls are reached along the beach. Short ones stand, and so do
+      // longer ones over gentle ground: the Heysen passes The Scrub Campsite
+      // 231 m away through flat bush while its tracks join the trail 7 km
+      // round by road.
+      if (distanceM > MAX_CROSS_COUNTRY_ONLY_M && touch(node)) {
+        const rise = climb(placeEle, ele(node));
+        const gentle = distanceM <= MAX_GENTLE_CROSS_COUNTRY_M && rise <= distanceM * MAX_CROSS_COUNTRY_GRADE;
+        if (!gentle) continue;
+      }
       const cost = 2 * distanceM * OFF_NETWORK_PENALTY + CLIMB_EQUIVALENT_M * climb(placeEle, ele(node));
       if (cost < (effort.get(node) ?? Infinity)) {
         effort.set(node, cost);
