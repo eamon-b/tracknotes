@@ -136,6 +136,26 @@ describe('findAccess', () => {
     expect(findAccess(net, place, ROUTE).ok).toBe(true);
     expect(findAccess(net, place, ROUTE, { breakStarts: new Set([10]) }).ok).toBe(false);
   });
+
+  it('reaches the route as far east-west at high latitude as at the equator', () => {
+    // At 75° a degree of longitude is a quarter of one at the equator, so a
+    // grid cell is ~18 m wide east-west against the 35 m touch radius.
+    const lat0 = 75;
+    const mPerDegLon = 111_320 * Math.cos((lat0 * Math.PI) / 180);
+    const north: AccessRoutePoint[] = Array.from({ length: 11 }, (_, i) => ({
+      lat: lat0 + i * 0.001,
+      lon: 20,
+      dist: i * 0.1113,
+    }));
+    for (const offsetM of [31, 32, 33, 34]) {
+      const end = 20 + offsetM / mPerDegLon;
+      const place = { lat: lat0 + 0.005, lon: 20 + 300 / mPerDegLon };
+      const lane = buildWalkNetwork([{ coords: [[place.lat, place.lon], [place.lat, end]] }]);
+      const access = findAccess(lane, place, north);
+      expect(access.ok, `${offsetM} m`).toBe(true);
+      if (access.ok) expect(access.junctionKm).toBeCloseTo(0.5565, 2);
+    }
+  });
 });
 
 describe('buildWalkNetwork', () => {
