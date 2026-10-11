@@ -197,6 +197,22 @@ describe('walks to camps off the route', () => {
     expect(plans.some(plan => plan.stops.some(s => s.km === 20))).toBe(false);
   });
 
+  it('keeps the shortest walk among places that share a junction', () => {
+    const far = { ...offRoute(20, 2.8), name: 'Far inn' };
+    const near = { ...offRoute(20, 0.3), name: 'Near inn' };
+    for (const candidates of [[far, near], [near, far]]) {
+      const { plans } = suggestDays(input({ days: 1, candidates, criteria: { distanceKm: { min: 18, max: 25 } } }));
+      expect(plans[0].stops.map(s => s.name)).toEqual(['Near inn']);
+    }
+  });
+
+  it('prefers a camp on the route to a place off it at the same km', () => {
+    const { plans } = suggestDays(
+      input({ days: 1, candidates: [offRoute(20, 1), camp(20)], criteria: { distanceKm: { min: 18, max: 25 } } })
+    );
+    expect(plans[0].stops.map(s => s.name)).toEqual(['Camp 20']);
+  });
+
   it('starts the first day with the walk back out of an off-route stop', () => {
     const { plans } = suggestDays(
       input({ days: 1, candidates: [camp(20), camp(24)], criteria: { distanceKm: { min: 18, max: 25 } }, fromWalk: { km: 3, ascentM: 0, descentM: 0 } })

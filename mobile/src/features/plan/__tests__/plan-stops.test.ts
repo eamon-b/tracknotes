@@ -167,7 +167,31 @@ describe('stopLegs', () => {
     ...emptyPlan(),
     stops: kms.map((km) => ({ km, waypointId: `p${km}`, name: `p${km}`, nights: 1 })),
   });
-  const opts = { direction: 'NOBO' as const, totalDistance: 100, sectionStartKm: 0, points };
+  /** The trail's waypoints behind a set of candidates (stored = active km, NOBO). */
+  const waypointsOf = (list: StopCandidate[]): TrailJson['waypoints'] =>
+    list.map((c) => ({
+      id: c.waypointId,
+      name: c.name ?? c.key,
+      lat: 0,
+      lon: 0,
+      type: c.type ?? 'campsite',
+      totalDistance: c.activeKm,
+      ...(c.walk
+        ? {
+            offTrailKm: c.walk.km,
+            accessMode: 'foot' as const,
+            offTrailAscentM: c.walk.ascentM,
+            offTrailDescentM: c.walk.descentM,
+          }
+        : {}),
+    }));
+  const opts = {
+    direction: 'NOBO' as const,
+    totalDistance: 100,
+    sectionStartKm: 0,
+    points,
+    waypoints: waypointsOf(candidates),
+  };
 
   it('counts from the section start while nothing is ticked', () => {
     const legs = stopLegs(candidates, undefined, opts);
@@ -185,11 +209,32 @@ describe('stopLegs', () => {
   it('adds the walk out of an off-route stop and the walk in to an off-route place', () => {
     const walk = { km: 2, ascentM: 30, descentM: 10 };
     const off = [place(20), { ...place(40), walk }, place(60)];
-    const legs = stopLegs(off, withStops(40), opts);
+    const legs = stopLegs(off, withStops(40), { ...opts, waypoints: waypointsOf(off) });
     // Ticked and off the route: its day ends with the walk in.
     expect(legs.get('p40')).toEqual({ distanceKm: 42, ascentM: 430, descentM: 10, offTrailKm: 2 });
     // The next place starts with the walk back out, climbing what came down.
     expect(legs.get('p60')).toEqual({ distanceKm: 22, ascentM: 110, descentM: 130, offTrailKm: 2 });
+  });
+
+  it('walks out of an off-route stop that is not among the candidates shown', () => {
+    // Ticked while "All waypoints" was on: a water point off the route, not
+    // an overnight candidate, so not in the default list.
+    const walk = { km: 2, ascentM: 30, descentM: 10 };
+    const hidden = { ...place(40), type: 'water', walk };
+    const shown = [place(20), place(60)];
+    const legs = stopLegs(shown, withStops(40), { ...opts, waypoints: waypointsOf([...shown, hidden]) });
+    expect(legs.get('p60')).toEqual({ distanceKm: 22, ascentM: 110, descentM: 130, offTrailKm: 2 });
+  });
+
+  it('does not walk out of a stop saved before its place moved', () => {
+    // The plan has p40 at km 40; the data now places it at km 38.
+    const walk = { km: 2, ascentM: 30, descentM: 10 };
+    const moved = { ...place(38, 'p40'), walk };
+    const legs = stopLegs([place(20), place(60)], withStops(40), {
+      ...opts,
+      waypoints: waypointsOf([place(20), moved, place(60)]),
+    });
+    expect(legs.get('p60')).toEqual({ distanceKm: 20, ascentM: 100, descentM: 100 });
   });
 
   it('counts from the chosen section start', () => {

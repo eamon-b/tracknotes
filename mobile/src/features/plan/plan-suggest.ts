@@ -10,7 +10,7 @@
  * Pure and React-free, like `plan-stops.ts`.
  */
 
-import { buildTimeIndex, placeWalk, type PlanTrail } from '@lib/day-calculator';
+import { buildTimeIndex, stopWalk, type PlanTrail } from '@lib/day-calculator';
 import {
   MAX_SUGGEST_DAYS,
   suggestDays,
@@ -88,7 +88,7 @@ export function suggestNextDays(
     alternatives: input.prefs.alternatives,
     criteria: input.criteria,
     baseKmh: input.baseKmh,
-    fromWalk: placeWalk(startWaypoint),
+    fromWalk: stopWalk(startWaypoint, input.start.km),
   });
 }
 

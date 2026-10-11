@@ -17,7 +17,7 @@
  * container, which survives — the same idiom as the Stops and Resupply tabs.
  */
 
-import { buildTimeIndex, placeWalk, type PlanTrail } from '@lib/day-calculator';
+import { buildTimeIndex, placeWalk, stopWalk, type PlanTrail } from '@lib/day-calculator';
 import { haversineDistance } from '@lib/distance';
 import {
   MAX_SUGGEST_DAYS,
@@ -147,7 +147,7 @@ export function suggestForTrail(
     alternatives: prefs.alternatives,
     criteria,
     baseKmh,
-    fromWalk: placeWalk(startWaypoint),
+    fromWalk: stopWalk(startWaypoint, start.km),
   });
 }
 
