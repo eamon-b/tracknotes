@@ -9,6 +9,8 @@ import { planGlance, type PlanGlanceOptions } from '../plan-glance';
 import { stopCandidateOf, toggleTargetOf } from '../plan-stops';
 import type { TrailPOI } from '@lib/trail-types';
 import {
+  dayFromRouteParams,
+  dayRouteParams,
   emptyMessage,
   localIsoDate,
   todayEntries,
@@ -207,5 +209,43 @@ describe('the POIs along today', () => {
     const entries = todayEntries(rows, todayPois(t, today.day), today.day);
     const legs = entries.flatMap((e) => (e.kind === 'row' ? [e.row.legKm] : []));
     expect(legs).toEqual([0, 10, 25, 5]);
+  });
+});
+
+describe('dayRouteParams / dayFromRouteParams', () => {
+  const day = {
+    dayNumber: 3,
+    date: '2026-10-12',
+    startName: 'Camp A',
+    endName: 'Hut & Co',
+    startKm: 20.25,
+    endKm: 41.5,
+    distanceKm: 21.25,
+    ascentM: 812,
+    descentM: 640,
+    estimatedHours: 7.4,
+    waterSources: 2,
+    restDays: 1,
+  };
+
+  it('round-trips a day through string params', () => {
+    const params = dayRouteParams(day);
+    expect(Object.values(params).every((v) => typeof v === 'string')).toBe(true);
+    expect(dayFromRouteParams(params)).toEqual(day);
+  });
+
+  it('leaves out a date and rest days the day does not have', () => {
+    const { date: _date, restDays: _rest, ...undated } = day;
+    expect(dayFromRouteParams(dayRouteParams(undated))).toEqual(undated);
+  });
+
+  it('refuses missing or malformed params', () => {
+    const params = dayRouteParams(day);
+    expect(dayFromRouteParams({ ...params, startKm: 'x' })).toBeNull();
+    expect(dayFromRouteParams({ ...params, endKm: '' })).toBeNull();
+    expect(dayFromRouteParams({ ...params, endKm: '10' })).toBeNull();
+    const { endName: _end, ...noEnd } = params;
+    expect(dayFromRouteParams(noEnd)).toBeNull();
+    expect(dayFromRouteParams({ ...params, startName: ['a', 'b'] })).toBeNull();
   });
 });

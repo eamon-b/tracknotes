@@ -116,6 +116,8 @@ export default function GuideLayout() {
         <Stack.Screen name="routes" options={{ title: 'Routes' }} />
         <Stack.Screen name="plan" options={{ title: 'Plan' }} />
         <Stack.Screen name="today" options={{ title: 'Today' }} />
+        {/* A Plan screen day card's waypoints; titled "Day N" from within. */}
+        <Stack.Screen name="day" options={{ title: 'Day' }} />
         {/* A modal over the plan: 70 CDT rows want a header, a scroll and a
             back gesture, which a sheet has none of. */}
         <Stack.Screen

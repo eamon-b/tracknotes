@@ -14,6 +14,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AppState } from 'react-native';
 import { visiblePois } from '@lib/poi-display';
+import type { ComputedDay } from '@lib/plan-types';
 import type { TrailPOI } from '@lib/trail-types';
 import type { TrailJson } from '../../services/trail-assets';
 import { usePoiFilter } from '../guide/use-visible-pois';
@@ -60,24 +61,41 @@ export function useLocalDate(): string {
   return date;
 }
 
+/**
+ * One day's rows, and the POIs among them through the guide's filter, on
+ * `trail` (the route the plan walks). Empty for no day. Shared by the Today
+ * screen and the Day screen the Plan screen's day cards open.
+ */
+export function useDayEntries(
+  trail: TrailJson,
+  day: ComputedDay | null,
+): { rows: TodayRow[]; entries: TodayEntry[]; pois: TrailPOI[] } {
+  const filter = usePoiFilter();
+  const rows = useMemo(() => (day ? todayRows(trail, day) : []), [trail, day]);
+  const pois = useMemo(() => (day ? todayPois(trail, day) : []), [trail, day]);
+  const entries = useMemo(
+    () => (day ? todayEntries(rows, visiblePois(pois, filter), day) : []),
+    [rows, pois, filter, day],
+  );
+  return { rows, entries, pois };
+}
+
 export function useTodayPlan(): TodayPlanState {
   const glance = usePlanGlance();
   const date = useLocalDate();
-  const filter = usePoiFilter();
   const today = useMemo(() => todayPlan(glance, date), [glance, date]);
   const walk = today?.kind === 'walk' ? today.day : null;
-  const rows = useMemo(() => (walk ? todayRows(glance.trail, walk) : []), [glance.trail, walk]);
-  const pois = useMemo(() => (walk ? todayPois(glance.trail, walk) : []), [glance.trail, walk]);
+  const { rows, entries, pois } = useDayEntries(glance.trail, walk);
   return useMemo(() => {
     return {
       today,
       rows,
-      entries: walk ? todayEntries(rows, visiblePois(pois, filter), walk) : [],
+      entries,
       pois,
       date,
       trail: glance.trail,
       hasStartDate: glance.plan.startDate !== null,
       hasStops: glance.hasStops,
     };
-  }, [today, walk, rows, pois, filter, date, glance]);
+  }, [today, rows, entries, pois, date, glance]);
 }
