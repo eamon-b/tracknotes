@@ -6,7 +6,8 @@
  * Usage: `await dem.load(bbox)` once per area (async: it fetches), then
  * `dem.at(lat, lon)` as often as you like (sync, bilinear). A point outside
  * every loaded area, or on a tile the bucket does not have (open ocean), is
- * `null`.
+ * `null`. Any other failure to read a tile — a timeout, a proxy refusing the
+ * request — makes `load` throw rather than pass the area off as flat sea.
  *
  * Node's built-in fetch ignores `HTTPS_PROXY`; behind a proxy run with
  * `NODE_USE_ENV_PROXY=1` (Node ≥ 22.21).
@@ -37,31 +38,58 @@ interface Region {
 
 export class CopernicusDem {
   private readonly images = new Map<string, Promise<GeoTIFFImage | null>>();
-  private readonly regions: Region[] = [];
+  /** Loaded windows by 1° tile (`tileKey`), newest last. */
+  private readonly regions = new Map<string, Region[]>();
 
-  constructor(private readonly tileUrl: (tile: DemTile) => string = copernicusTileUrl) {}
+  constructor(
+    private readonly tileUrl: (tile: DemTile) => string = copernicusTileUrl,
+    private readonly open: (url: string) => Promise<GeoTIFFImage | null> = openTile
+  ) {}
 
-  /** Fetch the heights covering `bbox`. */
+  /** Fetch the heights covering `bbox`. Throws when a tile cannot be read. */
   async load(bbox: Bbox): Promise<void> {
     for (let lat = Math.floor(bbox.south); lat <= Math.floor(bbox.north); lat++) {
       for (let lon = Math.floor(bbox.west); lon <= Math.floor(bbox.east); lon++) {
-        const image = await this.image({ lat, lon });
-        if (!image) continue;
         const part: Bbox = {
           west: Math.max(bbox.west, lon),
           south: Math.max(bbox.south, lat),
           east: Math.min(bbox.east, lon + 1),
           north: Math.min(bbox.north, lat + 1),
         };
-        this.regions.push(await readRegion(image, part));
+        const key = tileKey(lat, lon);
+        const loaded = this.regions.get(key) ?? [];
+        // Overlapping areas (neighbouring clusters of places) share their
+        // windows rather than download and hold the same blocks again.
+        if (loaded.some(region => contains(region.bbox, part))) continue;
+        const image = await this.image({ lat, lon });
+        if (!image) continue;
+        loaded.push(await readRegion(image, part));
+        this.regions.set(key, loaded);
       }
     }
   }
 
   /** Height in metres, bilinear between pixel centres, or null where nothing is loaded. */
   at(lat: number, lon: number): number | null {
-    for (let i = this.regions.length - 1; i >= 0; i--) {
-      const region = this.regions[i];
+    const tileLat = Math.floor(lat);
+    const tileLon = Math.floor(lon);
+    const own = this.sample(this.regions.get(tileKey(tileLat, tileLon)), lat, lon);
+    if (own !== null) return own;
+    // A point on a tile's edge can read its neighbour's edge pixel.
+    for (let dLat = -1; dLat <= 1; dLat++) {
+      for (let dLon = -1; dLon <= 1; dLon++) {
+        if (dLat === 0 && dLon === 0) continue;
+        const value = this.sample(this.regions.get(tileKey(tileLat + dLat, tileLon + dLon)), lat, lon);
+        if (value !== null) return value;
+      }
+    }
+    return null;
+  }
+
+  private sample(regions: readonly Region[] | undefined, lat: number, lon: number): number | null {
+    if (!regions) return null;
+    for (let i = regions.length - 1; i >= 0; i--) {
+      const region = regions[i];
       // A point within a pixel of the edge — between the last pixel centres of
       // two neighbouring 1° tiles — reads the edge pixel rather than nothing.
       const rawX = (lon - region.lon0) / region.resLon;
@@ -82,17 +110,37 @@ export class CopernicusDem {
   }
 
   private image(tile: DemTile): Promise<GeoTIFFImage | null> {
-    const key = `${tile.lat},${tile.lon}`;
+    const key = tileKey(tile.lat, tile.lon);
     let image = this.images.get(key);
     if (!image) {
-      // A tile the bucket lacks is open ocean: no height, not an error.
-      image = fromUrl(this.tileUrl(tile))
-        .then(tiff => tiff.getImage())
-        .catch(() => null);
+      image = this.open(this.tileUrl(tile));
+      // A failure is not remembered: the caller's next pass asks again.
+      image.catch(() => this.images.delete(key));
       this.images.set(key, image);
     }
     return image;
   }
+}
+
+function tileKey(lat: number, lon: number): string {
+  return `${lat},${lon}`;
+}
+
+function contains(outer: Bbox, inner: Bbox): boolean {
+  return outer.west <= inner.west && outer.south <= inner.south && outer.east >= inner.east && outer.north >= inner.north;
+}
+
+/**
+ * Open one tile, or null when the bucket does not have it (open ocean: S3
+ * answers 404). geotiff reports every failed request alike, so the tile is
+ * asked for with a HEAD first; anything but a 404 or a readable tile throws.
+ */
+async function openTile(url: string): Promise<GeoTIFFImage | null> {
+  const head = await fetch(url, { method: 'HEAD' });
+  if (head.status === 404) return null;
+  if (!head.ok) throw new Error(`DEM tile ${url}: HTTP ${head.status}`);
+  const tiff = await fromUrl(url);
+  return tiff.getImage();
 }
 
 async function readRegion(image: GeoTIFFImage, part: Bbox): Promise<Region> {
