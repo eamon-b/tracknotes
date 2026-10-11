@@ -3,8 +3,9 @@
 # Upload built tile files to Cloudflare R2.
 #
 # Prerequisites:
-#   1. Install wrangler: npm install -g wrangler
-#   2. Authenticate: wrangler login
+#   1. wrangler is a root devDependency: run `npm install`, then start this
+#      through `npm run upload:tiles`, which puts node_modules/.bin on PATH
+#   2. Authenticate: wrangler login (or CLOUDFLARE_API_TOKEN in the environment)
 #
 # Usage:
 #   ./scripts/upload-tiles.sh                  # Upload all per-trail files (not national contours)
@@ -53,7 +54,7 @@ upload_file() {
   local content_type="$3"
   local cache_control="$4"
 
-  require_command "wrangler" "Install it with: npm install -g wrangler"
+  require_command "wrangler" "Run npm install, then start this with: npm run upload:tiles"
   echo "  Uploading $dest ($content_type)"
   wrangler r2 object put "$BUCKET/$dest" \
     --remote \

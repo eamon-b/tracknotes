@@ -145,7 +145,9 @@ On the device the copies live in `{documentDir}/trail-data/` beside a small
    ```bash
    npm run publish:trail-data -- --dry-run
    ```
-5. Publish. This needs `wrangler` on `PATH` and `wrangler login`:
+5. Publish. `wrangler` is a root devDependency, so `npm install` provides it and
+   `npm run` puts it on `PATH`; it needs `wrangler login` or a
+   `CLOUDFLARE_API_TOKEN` in the environment:
    ```bash
    npm run publish:trail-data
    ```
