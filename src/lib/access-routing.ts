@@ -63,6 +63,9 @@ export const OFF_NETWORK_PENALTY = 1.5;
  */
 export const PLACE_SNAP_SLACK_M = 60;
 
+/** The longest walk allowed with no mapped way at all between the place and the route (metres). */
+export const MAX_CROSS_COUNTRY_ONLY_M = 150;
+
 /** One OSM way: its vertices in order, and their node ids when known. */
 export interface WalkWay {
   coords: ReadonlyArray<readonly [number, number]>;
@@ -382,6 +385,11 @@ export function findAccess(
   function search(seeds: ReadonlyArray<{ node: number; distanceM: number }>): AccessResult {
     const heap = new MinHeap();
     for (const { node, distanceM } of seeds) {
+      // A walk that is cross-country all the way to the route — straight to a
+      // node on the route itself — is a line over whatever lies between:
+      // Rainbow Falls on the Great Ocean Walk read 225 m down a cliff, where
+      // the falls are reached along the beach. Only short ones stand.
+      if (distanceM > MAX_CROSS_COUNTRY_ONLY_M && touch(node)) continue;
       const cost = 2 * distanceM * OFF_NETWORK_PENALTY + CLIMB_EQUIVALENT_M * climb(placeEle, ele(node));
       if (cost < (effort.get(node) ?? Infinity)) {
         effort.set(node, cost);
