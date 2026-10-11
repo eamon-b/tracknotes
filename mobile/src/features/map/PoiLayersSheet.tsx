@@ -21,6 +21,7 @@
 
 import React from 'react';
 import { Image, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   countPoisByCategory,
   OSM_ATTRIBUTION,
@@ -48,6 +49,8 @@ export interface PoiLayersSheetProps {
 
 export function PoiLayersSheet({ visible, onClose, pois }: PoiLayersSheetProps) {
   const { colors } = useTheme();
+  // A bottom sheet in an edge-to-edge Modal: its last row clears the navigation bar.
+  const { bottom } = useSafeAreaInsets();
   const filter = useSettingsStore(selectPoiFilter);
   const setPoiEnabled = useSettingsStore((s) => s.setPoiEnabled);
   const setPoiCategory = useSettingsStore((s) => s.setPoiCategory);
@@ -66,7 +69,10 @@ export function PoiLayersSheet({ visible, onClose, pois }: PoiLayersSheetProps) 
         {/* An inner Pressable with no handler swallows taps on the sheet itself
             so toggling a switch never also dismisses the sheet. */}
         <Pressable
-          style={[styles.sheet, { backgroundColor: colors.surfaceElevated }]}
+          style={[
+            styles.sheet,
+            { backgroundColor: colors.surfaceElevated, paddingBottom: spacing.xl + bottom },
+          ]}
           accessibilityViewIsModal
         >
           <View style={styles.header}>

@@ -38,4 +38,32 @@ module.exports = defineConfig([
       ],
     },
   },
+  // A screen's scroll view runs under the Android navigation bar (edge-to-edge),
+  // so a bare one stops its last rows behind it. Each screen used to opt in to
+  // the bottom-inset padding by hand, and new screens kept forgetting (the
+  // Today screen). Screens and full-screen panes use the padded versions.
+  {
+    files: [
+      'app/**/*.{ts,tsx}',
+      'src/features/guide/WaypointListPane.tsx',
+      'src/features/plan/ResupplySelectList.tsx',
+    ],
+    ignores: ['**/__tests__/**'],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'react-native',
+              importNames: ['ScrollView', 'FlatList', 'SectionList'],
+              allowTypeImports: true,
+              message:
+                'Use ScreenScrollView / ScreenFlatList / ScreenSectionList (src/navigation/ScreenScrollView) or KeyboardAwareScrollView, which pad for the bottom system bar.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 ]);

@@ -24,7 +24,6 @@ import {
   ActivityIndicator,
   Alert,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -43,6 +42,7 @@ import { uuidv4 } from '../../src/api/uuid';
 import { getTrailIndexEntry, loadTrail, type TrailJson } from '../../src/services/trail-loader';
 import { ensureTrailDownloaded } from '../../src/services/trail-data-updates';
 import { isCatalogTrailId } from '../../src/services/trail-catalog';
+import { ScreenScrollView } from '../../src/navigation/ScreenScrollView';
 import { resolveGuideTrail } from '../../src/features/guide/guide-trail';
 import { plannableTrail, planRouteOf } from '../../src/features/plan/use-plan-route';
 import { plannedRouteFor, planToRoute } from '@lib/plan-alternates';
@@ -306,13 +306,13 @@ export default function SharedPlanScreen() {
   };
 
   return (
-    <ScrollView
+    <ScreenScrollView
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={styles.container}
     >
       <Stack.Screen options={{ title: 'Shared plan' }} />
       {body()}
-    </ScrollView>
+    </ScreenScrollView>
   );
 }
 

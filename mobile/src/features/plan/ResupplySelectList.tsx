@@ -14,7 +14,7 @@
  */
 
 import React, { useCallback, useMemo } from 'react';
-import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { formatDistance } from '@lib/format-distance';
 import { accessSummary, firstSentence } from '@lib/resupply-display';
 import type { ResupplyOption, ResupplyOptionGroup } from '@lib/resupply-plan';
@@ -23,6 +23,7 @@ import { glyphSizes, radii, spacing, touchTarget, typography } from '../../token
 import type { Units } from '../../state/settings-store';
 import { WAYPOINT_ICON_IMAGES } from '../map/waypoint-icon-images';
 import { waypointIconName } from '../map/waypoint-icons';
+import { ScreenFlatList } from '../../navigation/ScreenScrollView';
 
 /** The km window the plan screen is showing, when it passed one. */
 export interface ResupplySection {
@@ -126,7 +127,7 @@ export function ResupplySelectList({
         </Text>
       </View>
 
-      <FlatList
+      <ScreenFlatList
         data={rows}
         keyExtractor={(row) => row.key}
         renderItem={renderItem}
