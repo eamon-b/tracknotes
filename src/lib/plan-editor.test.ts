@@ -8,6 +8,7 @@ import {
   newPlan,
   overnightCandidates,
   planDocumentBytes,
+  refreshStopKms,
   replaceStopsInRange,
   servicesAtStop,
   setDirection,
@@ -908,5 +909,65 @@ describe('splitUnplannedTail', () => {
     const split = splitUnplannedTail(computePlanDays(flatTrail(), newPlan('t', 'P', 'NOBO', opts), { baseKmh: 4 }), 10);
     expect(split.days).toEqual([]);
     expect(split.unplanned?.distanceKm).toBe(100);
+  });
+});
+
+describe('refreshStopKms', () => {
+  /** Camp A's junction moved from km 20 to km 18 in a data update. */
+  function movedTrail(): PlanTrail {
+    const trail = flatTrail();
+    trail.waypoints![1] = { ...trail.waypoints![1], totalDistance: 18, offTrailKm: 2.6, accessMode: 'foot' };
+    return trail;
+  }
+
+  it('moves a stop to its waypoint\'s current km, keeping everything else about it', () => {
+    let plan = toggleStop(emptyPlan(), { id: 'w_a', km: 20, name: 'Camp A' }, opts);
+    plan = setStopNote(plan, { waypointId: 'w_a', km: 20 }, 'Booked by phone', opts);
+    const next = refreshStopKms(plan, movedTrail(), { ...opts, now: () => '2026-10-12T00:00:00.000Z' });
+    expect(next.stops).toEqual([{ ...plan.stops[0], km: 18 }]);
+    expect(next.updatedAt).toBe('2026-10-12T00:00:00.000Z');
+    // And the day now ends at the junction and walks in: no double count.
+    const days = computePlanDays(movedTrail(), next, { baseKmh: 4 });
+    expect(days.map(d => d.distanceKm)).toEqual([20.6, 84.6]);
+  });
+
+  it('returns the same document when nothing moved', () => {
+    const plan = toggleStop(emptyPlan(), { id: 'w_a', km: 20, name: 'Camp A' }, opts);
+    expect(refreshStopKms(plan, flatTrail())).toBe(plan);
+    // Within the mirror's rounding is not a move.
+    const nearly = { ...plan, stops: [{ ...plan.stops[0], km: 20.01 }] };
+    expect(refreshStopKms(nearly, flatTrail())).toBe(nearly);
+  });
+
+  it('leaves a stop whose waypoint is gone, or that would land on another stop', () => {
+    let plan = toggleStop(emptyPlan(), { id: 'w_a', km: 20, name: 'Camp A' }, opts);
+    plan = toggleStop(plan, { id: 'w_b', km: 50, name: 'Camp B' }, opts);
+    const trail = flatTrail();
+    trail.waypoints = trail.waypoints!.filter(wp => wp.id !== 'w_a');
+    trail.waypoints[1] = { ...trail.waypoints[1], totalDistance: 20 }; // Camp B moved onto km 20
+    expect(refreshStopKms(plan, trail)).toBe(plan);
+  });
+
+  it('keeps the stops in km order when a move passes another stop', () => {
+    let plan = toggleStop(emptyPlan(), { id: 'w_a', km: 20, name: 'Camp A' }, opts);
+    plan = toggleStop(plan, { id: 'w_b', km: 50, name: 'Camp B' }, opts);
+    const trail = flatTrail();
+    trail.waypoints![1] = { ...trail.waypoints![1], totalDistance: 60 };
+    const next = refreshStopKms(plan, trail);
+    expect(next.stops.map(s => [s.waypointId, s.km])).toEqual([['w_b', 50], ['w_a', 60]]);
+    expect(isPlanDocument(next)).toBe(true);
+  });
+
+  it("measures a stop on an alternate against that alternate's waypoints", () => {
+    const plan: PlanDocument = {
+      ...emptyPlan(),
+      alternates: ['Ridge'],
+      stops: [{ waypointId: 'w_r', km: 34, name: 'Ridge hut', nights: 1, alternate: 'Ridge' }],
+    };
+    const trail = {
+      waypoints: [{ id: 'w_r', totalDistance: 90 }],
+      alternates: [{ name: 'Ridge', waypoints: [{ id: 'w_r', totalDistance: 33 }] }],
+    };
+    expect(refreshStopKms(plan, trail).stops[0].km).toBe(33);
   });
 });
