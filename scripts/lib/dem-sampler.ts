@@ -62,9 +62,13 @@ export class CopernicusDem {
   at(lat: number, lon: number): number | null {
     for (let i = this.regions.length - 1; i >= 0; i--) {
       const region = this.regions[i];
-      const x = (lon - region.lon0) / region.resLon;
-      const y = (region.lat0 - lat) / region.resLat;
-      if (x < 0 || y < 0 || x > region.width - 1 || y > region.height - 1) continue;
+      // A point within a pixel of the edge — between the last pixel centres of
+      // two neighbouring 1° tiles — reads the edge pixel rather than nothing.
+      const rawX = (lon - region.lon0) / region.resLon;
+      const rawY = (region.lat0 - lat) / region.resLat;
+      if (rawX < -1 || rawY < -1 || rawX > region.width || rawY > region.height) continue;
+      const x = Math.min(Math.max(rawX, 0), region.width - 1);
+      const y = Math.min(Math.max(rawY, 0), region.height - 1);
       const x0 = Math.min(Math.floor(x), region.width - 2);
       const y0 = Math.min(Math.floor(y), region.height - 2);
       const fx = x - x0;

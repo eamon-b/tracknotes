@@ -53,6 +53,16 @@ export const DEFAULT_PLACE_SNAP_M = 300;
 /** Walking off the network costs this many times walking on it. */
 export const OFF_NETWORK_PENALTY = 1.5;
 
+/**
+ * The walk starts from ways no more than this much further from the place
+ * than the nearest one (metres). Without it, a road the route itself follows
+ * 150-300 m away beats the place's own access lane, and the "walk" is a
+ * straight line across a river or a gorge: Shikoku's Iyadani Kanon rest stop
+ * read 0.4 km where the walk is 2.2 km. Only when no way that close leads to
+ * the route are the further ones tried.
+ */
+export const PLACE_SNAP_SLACK_M = 60;
+
 /** One OSM way: its vertices in order, and their node ids when known. */
 export interface WalkWay {
   coords: ReadonlyArray<readonly [number, number]>;
@@ -325,10 +335,11 @@ export function findAccess(
   const grid = new NodeGrid(network, 0.002);
   const line = new RouteLine(route, touchM, options.breakStarts ?? new Set());
 
-  const seeds = grid.within(place.lat, place.lon, snapM);
-  if (seeds.length === 0) {
+  const allSeeds = grid.within(place.lat, place.lon, snapM);
+  if (allSeeds.length === 0) {
     return { ok: false, reason: `no mapped way within ${snapM} m of the place` };
   }
+  const nearSeeds = allSeeds.filter(seed => seed.distanceM <= allSeeds[0].distanceM + PLACE_SNAP_SLACK_M);
 
   const elevations = new Map<number, number | null>();
   const ele = (node: number): number | null => {
@@ -355,45 +366,54 @@ export function findAccess(
 
   // Effort is the round trip in flat-equivalent metres; walked is one way, to
   // bound the search by something a reader can picture.
-  const effort = new Map<number, number>();
-  const walked = new Map<number, number>();
-  const prev = new Map<number, number>();
-  const heap = new MinHeap();
+  let effort = new Map<number, number>();
+  let walked = new Map<number, number>();
+  let prev = new Map<number, number>();
 
-  // Every node near the place can start the walk, reached cross-country:
-  // the nearest node can be a fragment of driveway joined to nothing.
-  for (const { node, distanceM } of seeds) {
-    const cost = 2 * distanceM * OFF_NETWORK_PENALTY + CLIMB_EQUIVALENT_M * climb(placeEle, ele(node));
-    if (cost < (effort.get(node) ?? Infinity)) {
-      effort.set(node, cost);
-      walked.set(node, distanceM);
-      heap.push(cost, node);
-    }
-  }
+  const near = search(nearSeeds);
+  if (near.ok || nearSeeds.length === allSeeds.length) return near;
+  // The nearest ways lead nowhere (a fragment of driveway joined to nothing):
+  // let the walk start from any way in reach.
+  effort = new Map();
+  walked = new Map();
+  prev = new Map();
+  return search(allSeeds);
 
-  const done = new Set<number>();
-  while (heap.size > 0) {
-    const { cost, node } = heap.pop();
-    if (done.has(node) || cost > (effort.get(node) ?? Infinity)) continue;
-    done.add(node);
-
-    const projection = touch(node);
-    if (projection) return describe(node, projection);
-
-    const here = walked.get(node)!;
-    if (here > maxWalkM) continue;
-    for (const { to, lengthM } of network.adj[node]) {
-      if (done.has(to)) continue;
-      const next = cost + 2 * lengthM + CLIMB_EQUIVALENT_M * climb(ele(node), ele(to));
-      if (next < (effort.get(to) ?? Infinity)) {
-        effort.set(to, next);
-        walked.set(to, here + lengthM);
-        prev.set(to, node);
-        heap.push(next, to);
+  function search(seeds: ReadonlyArray<{ node: number; distanceM: number }>): AccessResult {
+    const heap = new MinHeap();
+    for (const { node, distanceM } of seeds) {
+      const cost = 2 * distanceM * OFF_NETWORK_PENALTY + CLIMB_EQUIVALENT_M * climb(placeEle, ele(node));
+      if (cost < (effort.get(node) ?? Infinity)) {
+        effort.set(node, cost);
+        walked.set(node, distanceM);
+        heap.push(cost, node);
       }
     }
+
+    const done = new Set<number>();
+    while (heap.size > 0) {
+      const { cost, node } = heap.pop();
+      if (done.has(node) || cost > (effort.get(node) ?? Infinity)) continue;
+      done.add(node);
+
+      const projection = touch(node);
+      if (projection) return describe(node, projection);
+
+      const here = walked.get(node)!;
+      if (here > maxWalkM) continue;
+      for (const { to, lengthM } of network.adj[node]) {
+        if (done.has(to)) continue;
+        const next = cost + 2 * lengthM + CLIMB_EQUIVALENT_M * climb(ele(node), ele(to));
+        if (next < (effort.get(to) ?? Infinity)) {
+          effort.set(to, next);
+          walked.set(to, here + lengthM);
+          prev.set(to, node);
+          heap.push(next, to);
+        }
+      }
+    }
+    return { ok: false, reason: `no mapped way reaches the route within ${(maxWalkM / 1000).toFixed(1)} km` };
   }
-  return { ok: false, reason: `no mapped way reaches the route within ${(maxWalkM / 1000).toFixed(1)} km` };
 
   function describe(junctionNode: number, projection: RouteProjection): AccessFound {
     // prev runs from the junction back towards the place.

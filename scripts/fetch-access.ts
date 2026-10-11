@@ -22,6 +22,7 @@
  *   - --timeout <s>       Overpass `[timeout:]` per query (default 90)
  *   - --min-distance <m>  waypoints nearer the route are left alone (default 150)
  *   - --only <id,…>       only these waypoints (a run that lost queries prints the list)
+ *   - --refresh           query Overpass even for boxes in the way cache
  *   - --dry-run           list the candidates and queries, fetch nothing
  *
  * Behind a proxy, Node's fetch needs `NODE_USE_ENV_PROXY=1` (Node ≥ 22.21).
@@ -34,6 +35,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { createHash } from 'crypto';
 import { fileURLToPath } from 'url';
 
 import { buildWalkNetwork, findAccess, type WalkWay } from '../src/lib/access-routing.js';
@@ -148,17 +150,27 @@ export function clusterCandidates(candidates: readonly Candidate[]): Array<{ bbo
   return clusters;
 }
 
+/** A waypoint this close to one of the trail's side trips is reached by it (metres). */
+const ON_SIDE_TRIP_M = 200;
+
 /**
  * The waypoints worth routing: far enough off the route, not a turn-off (which
- * is on the route by definition), and not one whose source file already says
- * how far off it is — unless that figure came from this file to begin with.
+ * is on the route by definition), not one on a side trip the trail draws (the
+ * side trip is how it is reached: Shikoku's Okunoin is up a summit path from
+ * the temple that OSM lacks, and routing over OSM found a road and a 250 m
+ * cross-country climb from elsewhere instead), and not one whose source file
+ * already says how far off it is — unless that figure came from this file.
  */
 export function selectCandidates(
-  trail: Pick<ProcessedTrail, 'waypoints' | 'track'>,
+  trail: Pick<ProcessedTrail, 'waypoints' | 'track'> & Partial<Pick<ProcessedTrail, 'sideTrips'>>,
   minDistanceM: number,
   ownIds: ReadonlySet<string>
 ): Candidate[] {
   const breakStarts = routeBreakStarts(trail.track.breaks, 'points');
+  // Only the distance to the line is read, so the km along it can be left at 0.
+  const sideTripLines = (trail.sideTrips ?? []).map(trip => trip.points.map(p => ({ lat: p.lat, lon: p.lon, dist: 0 })));
+  const onSideTrip = (lat: number, lon: number) =>
+    sideTripLines.some(line => (snapToTrail(lat, lon, line)?.offTrailMeters ?? Infinity) <= ON_SIDE_TRIP_M);
   const candidates: Candidate[] = [];
   const seen = new Set<string>();
   for (const wp of trail.waypoints) {
@@ -167,6 +179,7 @@ export function selectCandidates(
     seen.add(wp.id);
     const snap = snapToTrail(wp.lat, wp.lon, trail.track.points, undefined, breakStarts);
     if (!snap || snap.offTrailMeters < minDistanceM) continue;
+    if (onSideTrip(wp.lat, wp.lon)) continue;
     candidates.push({
       id: wp.id,
       name: wp.name,
@@ -187,11 +200,18 @@ interface OverpassWay {
   tags?: Record<string, string>;
 }
 
-async function fetchWays(endpoint: string, bbox: Bbox, timeoutS: number): Promise<WalkWay[]> {
-  const query =
-    `[out:json][timeout:${timeoutS}];` +
-    `way["highway"](${bbox.south.toFixed(5)},${bbox.west.toFixed(5)},${bbox.north.toFixed(5)},${bbox.east.toFixed(5)});` +
-    'out body geom;';
+/**
+ * Overpass answers are kept here, keyed by box, so changing the routing and
+ * running again re-routes from disk instead of re-downloading every query
+ * (`--refresh` ignores the cache). Gitignored: it is a download cache.
+ */
+const CACHE_DIR = path.join(PROJECT_ROOT, 'data/osm-ways-cache');
+
+async function fetchWays(endpoint: string, bbox: Bbox, timeoutS: number, refresh: boolean): Promise<WalkWay[]> {
+  const box = `${bbox.south.toFixed(5)},${bbox.west.toFixed(5)},${bbox.north.toFixed(5)},${bbox.east.toFixed(5)}`;
+  const cacheFile = path.join(CACHE_DIR, `${createHash('sha1').update(box).digest('hex')}.json`);
+  if (!refresh && fs.existsSync(cacheFile)) return parseWays(fs.readFileSync(cacheFile, 'utf-8'));
+  const query = `[out:json][timeout:${timeoutS}];way["highway"](${box});out body geom;`;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), (timeoutS + 10) * 1000);
   try {
@@ -203,37 +223,45 @@ async function fetchWays(endpoint: string, bbox: Bbox, timeoutS: number): Promis
     });
     const text = await response.text();
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    let body: { elements?: OverpassWay[]; remark?: string };
-    try {
-      body = JSON.parse(text);
-    } catch {
-      throw new Error(`not JSON: ${text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160)}`);
-    }
-    // Overpass reports a timeout or memory limit as a remark on a 200 with a
-    // truncated element list: treat it as a failure, not as an empty map.
-    if (body.remark && /runtime error|timed out|out of memory/i.test(body.remark)) throw new Error(body.remark);
-    const ways: WalkWay[] = [];
-    for (const element of body.elements ?? []) {
-      if (element.type !== 'way' || !isWalkableWay(element.tags) || !element.geometry) continue;
-      // `out geom` leaves a null for a vertex outside the box; split there.
-      let coords: Array<[number, number]> = [];
-      let ids: number[] = [];
-      const flush = () => {
-        if (coords.length >= 2) ways.push({ coords, nodeIds: element.nodes ? ids : undefined });
-        coords = [];
-        ids = [];
-      };
-      element.geometry.forEach((vertex, i) => {
-        if (!vertex) return flush();
-        coords.push([vertex.lat, vertex.lon]);
-        if (element.nodes) ids.push(element.nodes[i]);
-      });
-      flush();
-    }
+    const ways = parseWays(text);
+    fs.mkdirSync(CACHE_DIR, { recursive: true });
+    fs.writeFileSync(cacheFile, text);
     return ways;
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** Walkable ways out of an Overpass JSON answer; throws on an error page or a truncated answer. */
+function parseWays(text: string): WalkWay[] {
+  let body: { elements?: OverpassWay[]; remark?: string };
+  try {
+    body = JSON.parse(text);
+  } catch {
+    throw new Error(`not JSON: ${text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160)}`);
+  }
+  // Overpass reports a timeout or memory limit as a remark on a 200 with a
+  // truncated element list: treat it as a failure, not as an empty map.
+  if (body.remark && /runtime error|timed out|out of memory/i.test(body.remark)) throw new Error(body.remark);
+  const ways: WalkWay[] = [];
+  for (const element of body.elements ?? []) {
+    if (element.type !== 'way' || !isWalkableWay(element.tags) || !element.geometry) continue;
+    // `out geom` leaves a null for a vertex outside the box; split there.
+    let coords: Array<[number, number]> = [];
+    let ids: number[] = [];
+    const flush = () => {
+      if (coords.length >= 2) ways.push({ coords, nodeIds: element.nodes ? ids : undefined });
+      coords = [];
+      ids = [];
+    };
+    element.geometry.forEach((vertex, i) => {
+      if (!vertex) return flush();
+      coords.push([vertex.lat, vertex.lon]);
+      if (element.nodes) ids.push(element.nodes[i]);
+    });
+    flush();
+  }
+  return ways;
 }
 
 function waysBbox(ways: readonly WalkWay[], start: Bbox): Bbox {
@@ -283,6 +311,8 @@ interface Args {
   timeoutS: number;
   minDistanceM: number;
   dryRun: boolean;
+  /** Fetch from Overpass even when the cache has the box. */
+  refresh: boolean;
   /** Only these waypoint ids (what a run that lost queries prints). */
   only: Set<string> | null;
 }
@@ -294,6 +324,7 @@ function parseArgs(argv: string[]): Args {
     timeoutS: 90,
     minDistanceM: 150,
     dryRun: false,
+    refresh: false,
     only: null,
   };
   for (let i = 0; i < argv.length; i++) {
@@ -307,6 +338,7 @@ function parseArgs(argv: string[]): Args {
     else if (arg === '--timeout') args.timeoutS = Number(value());
     else if (arg === '--min-distance') args.minDistanceM = Number(value());
     else if (arg === '--dry-run') args.dryRun = true;
+    else if (arg === '--refresh') args.refresh = true;
     else if (arg === '--only') args.only = new Set(value().split(',').map(id => id.trim()).filter(Boolean));
     else if (arg.startsWith('--')) throw new Error(`unknown option ${arg}`);
     else args.trailId = arg;
@@ -360,7 +392,7 @@ async function main(): Promise<void> {
       const label = `[${n + 1}/${clusters.length}] ${widthKm(cluster.bbox).toFixed(1)} km box, ${cluster.members.length} place(s)`;
       let ways: WalkWay[];
       try {
-        ways = await fetchWays(args.endpoint, cluster.bbox, args.timeoutS);
+        ways = await fetchWays(args.endpoint, cluster.bbox, args.timeoutS, args.refresh);
       } catch (error) {
         console.warn(`  ${label}: failed: ${(error as Error).message}`);
         failed.push({ cluster, n });

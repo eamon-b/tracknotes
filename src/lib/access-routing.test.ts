@@ -85,6 +85,26 @@ describe('findAccess', () => {
     expect(access.lengthM).toBeGreaterThan(access.offNetworkM);
   });
 
+  it('walks the place\'s own lane, not straight across to a road the route follows', () => {
+    // The route runs along a road; the lodge is 230 m east of it across a
+    // river, reached by its lane north and round to the bridge.
+    const routeRoad: WalkWay = { coords: [[-34.0, 138.0], [-34.02, 138.0]] };
+    const lodge = { lat: -34.01, lon: 138.0025 };
+    const lane: WalkWay = { coords: [[lodge.lat, lodge.lon], [-34.01, 138.004], [-34.0, 138.004], [-34.0, 138.0]] };
+    const access = findAccess(buildWalkNetwork([routeRoad, lane]), lodge, ROUTE);
+    if (!access.ok) throw new Error(access.reason);
+    expect(access.lengthM).toBeGreaterThan(1400);
+    expect(access.offNetworkM).toBe(0);
+  });
+
+  it('tries further ways when the nearest ones lead nowhere', () => {
+    const stub: WalkWay = { coords: [[-34.0151, 138.0201], [-34.0152, 138.0202]] };
+    const road: WalkWay = { coords: [[-34.0162, 138.0201], [-34.0162, 138.0]] };
+    const access = findAccess(buildWalkNetwork([stub, road]), CAMP, ROUTE);
+    if (!access.ok) throw new Error(access.reason);
+    expect(access.offNetworkM).toBeGreaterThan(100);
+  });
+
   it('reports a place with no way near it', () => {
     const access = findAccess(network, { lat: -34.05, lon: 138.05 }, ROUTE);
     expect(access).toEqual({ ok: false, reason: 'no mapped way within 300 m of the place' });
