@@ -27,6 +27,7 @@ import { countDuplicatePois, dedupCandidates, markDuplicatePois } from '../src/l
 import { countNoiseByReason, dropNoisePois } from '../src/lib/poi-noise.js';
 import { findDenseStretches, thinUrbanPois } from '../src/lib/poi-urban.js';
 import { readTrailPOIsForBuild } from './lib/trail-pois-file.js';
+import { accessPlacements, readTrailAccessFile } from './lib/trail-access-file.js';
 import { BUNDLED_PLAN_FILLS, inlinePlanShell } from './lib/plan-shell.js';
 import { fillTemplate } from './lib/fill-template.js';
 
@@ -371,6 +372,9 @@ async function processTrail(trailDir: string, registry: WaypointRegistry, autoGe
         console.warn(message);
         waypointIdWarnings.push(message);
       }),
+
+    // Off-route places attached where they are walked to from, by the same ids.
+    waypointAccess: accessPlacements(readTrailAccessFile(trailDir)),
 
     // Curated descriptions are keyed by the ids just assigned.
     afterWaypointIds: (waypoints, resolvedConfig) =>

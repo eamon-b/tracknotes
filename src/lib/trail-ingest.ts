@@ -12,6 +12,7 @@
  */
 
 import { haversineDistance as haversineDistanceMeters } from './distance';
+import { snapToTrail } from './position-on-trail';
 import {
   douglasPeuckerIndices,
   removeElevationSpikes,
@@ -47,7 +48,6 @@ import type {
   TrailConfig,
   TrailWaypoint,
   VariantWaypoint,
-  WaypointJunctionConfig,
   WaypointVisit,
 } from './trail-types';
 
@@ -994,43 +994,62 @@ export function enrichWaypoints(
   return enriched;
 }
 
+/** Where the build attaches an off-route waypoint, from `data/trails/<dir>/access.json`. */
+export interface WaypointAccessPlacement {
+  /** The point on the route the walk to the place leaves from. */
+  junction: { lat: number; lon: number };
+  /** One-way walk from the junction to the place, km. */
+  offTrailKm: number;
+}
+
 /**
- * The waypoints as the main route should match them: each one named in
- * `waypointJunctions` stands at its junction, so `enrichWaypoints` places it
- * at the route point nearest the junction rather than nearest the place. Pair
- * with {@link restoreJunctionPositions}, which puts the real position back.
+ * A junction further than this from the route no longer lies on it: the route
+ * was redrawn since `fetch-access` ran, and the entry is ignored until it runs
+ * again (metres).
+ */
+const STALE_JUNCTION_METERS = 100;
+
+/**
+ * The waypoints as the main route should match them: each one with a
+ * placement stands at its junction, so `enrichWaypoints` attaches it to the
+ * route point nearest the junction rather than nearest the place, and gets the
+ * placement's walk in as `offTrailKm` (on the source waypoint, so every view
+ * of it carries the figure). Pair with {@link restoreJunctionPositions}.
  *
- * Throws on a junction that names no waypoint, names two, or sits outside the
- * match radius: a junction that silently did nothing would leave the place
- * back at the wrong side of the climb it was added to fix.
+ * A placement is skipped, with a warning, when the place is beyond the match
+ * radius (it would not be on the route without one — a stale entry must not
+ * pull an off-trail place onto it) or the junction is no longer on the route.
  */
 export function matchAtJunctions(
   waypoints: TrailWaypoint[],
-  junctions: readonly WaypointJunctionConfig[],
+  placements: ReadonlyMap<string, WaypointAccessPlacement>,
   trackPoints: { lat: number; lon: number; ele: number }[],
-  maxDistanceMeters: number
+  maxDistanceMeters: number,
+  warn: (message: string) => void = () => {}
 ): TrailWaypoint[] {
-  if (junctions.length === 0) return waypoints;
-  const byName = new Map<string, WaypointJunctionConfig>();
-  for (const junction of junctions) {
-    const matches = waypoints.filter(wp => wp.name === junction.name).length;
-    if (matches !== 1) {
-      throw new Error(
-        `waypointJunctions: "${junction.name}" names ${matches} waypoints; it must name exactly one`
-      );
-    }
-    const { distanceFromTrack } = findNearestTrackPoint(junction, trackPoints);
-    if (distanceFromTrack > maxDistanceMeters) {
-      throw new Error(
-        `waypointJunctions: the junction for "${junction.name}" is ${Math.round(distanceFromTrack)}m ` +
-          `from the route, beyond the ${maxDistanceMeters}m match radius`
-      );
-    }
-    byName.set(junction.name, junction);
-  }
+  if (placements.size === 0) return waypoints;
+  // The junction is measured to the route *line*, as fetch-access found it:
+  // where the route runs straight its vertices can be a kilometre apart.
+  const line = trackPoints.map(p => ({ lat: p.lat, lon: p.lon, dist: 0 }));
   return waypoints.map(wp => {
-    const junction = byName.get(wp.name);
-    return junction ? { ...wp, lat: junction.lat, lon: junction.lon } : wp;
+    const placement = wp.id === undefined ? undefined : placements.get(wp.id);
+    if (!placement) return wp;
+    const place = findNearestTrackPoint(wp, trackPoints);
+    if (place.distanceFromTrack > maxDistanceMeters) {
+      warn(`access for "${wp.name}" (${wp.id}) ignored: the place is ${Math.round(place.distanceFromTrack)}m from the route`);
+      return wp;
+    }
+    const junctionOffM = snapToTrail(placement.junction.lat, placement.junction.lon, line)?.offTrailMeters ?? Infinity;
+    if (junctionOffM > STALE_JUNCTION_METERS) {
+      warn(
+        `access for "${wp.name}" (${wp.id}) ignored: its junction is ${Math.round(junctionOffM)}m ` +
+          'from the route — re-run fetch-access'
+      );
+      return wp;
+    }
+    wp.offTrailKm = placement.offTrailKm;
+    wp.accessMode = 'foot';
+    return { ...wp, lat: placement.junction.lat, lon: placement.junction.lon };
   });
 }
 
@@ -1038,13 +1057,12 @@ export function matchAtJunctions(
 export function restoreJunctionPositions(
   enriched: EnrichedWaypoint[],
   waypoints: readonly TrailWaypoint[],
-  junctions: readonly WaypointJunctionConfig[]
+  placements: ReadonlyMap<string, WaypointAccessPlacement>
 ): EnrichedWaypoint[] {
-  if (junctions.length === 0) return enriched;
-  const names = new Set(junctions.map(junction => junction.name));
-  const source = new Map(waypoints.filter(wp => names.has(wp.name)).map(wp => [wp.name, wp]));
+  if (placements.size === 0) return enriched;
+  const source = new Map(waypoints.filter(wp => wp.id !== undefined && placements.has(wp.id)).map(wp => [wp.id, wp]));
   return enriched.map(ew => {
-    const wp = names.has(ew.name) ? source.get(ew.name) : undefined;
+    const wp = ew.id === undefined ? undefined : source.get(ew.id);
     return wp ? { ...ew, lat: wp.lat, lon: wp.lon } : ew;
   });
 }
@@ -1173,6 +1191,12 @@ export interface BuildTrailOptions {
   elevation?: ElevationCleaningOptions;
   /** Mint stable ids for the source waypoints before enrichment. */
   mintWaypointIds?: WaypointIdMinter;
+  /**
+   * Off-route waypoints to attach at a junction found over OpenStreetMap
+   * rather than at the route point nearest them, by waypoint id (the build
+   * reads them from `data/trails/<dir>/access.json`; see `fetch-access.ts`).
+   */
+  waypointAccess?: ReadonlyMap<string, WaypointAccessPlacement>;
   /**
    * What to do when the route passes one waypoint twice, fanning a single
    * source waypoint into several output rows that share an id. The build script
@@ -1537,16 +1561,17 @@ export function buildTrail(gpx: ParsedGpxResult, options: BuildTrailOptions): Pr
 
   // Enrich waypoints with distance and elevation data
   const waypointMaxDist = config.waypointMaxDistance ?? DEFAULT_WAYPOINT_MAX_DISTANCE_METERS;
+  const placements = options.waypointAccess ?? new Map<string, WaypointAccessPlacement>();
   const enrichedWaypoints = restoreJunctionPositions(
     enrichWaypoints(
-      matchAtJunctions(waypoints, config.waypointJunctions ?? [], mainRoutePoints, waypointMaxDist),
+      matchAtJunctions(waypoints, placements, mainRoutePoints, waypointMaxDist, message => warn(`  Warning: ${message}`)),
       mainRoutePoints,
       waypointMaxDist,
       breakStarts,
       climb
     ),
     waypoints,
-    config.waypointJunctions ?? []
+    placements
   );
 
   // Output invariant: every enriched waypoint carries a distinct stable id.
