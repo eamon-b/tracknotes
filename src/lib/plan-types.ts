@@ -62,6 +62,17 @@ export interface ComputedDay {
   estimatedHours: number;
   waterSources: number;
   /**
+   * Of `distanceKm`, the km walked off the route: to this day's end stop and
+   * back out from its start stop, when they are off it (`placeWalk`). Their
+   * climb is in `ascentM`/`descentM` and the walk in `estimatedHours`.
+   * Absent when the day stays on the route.
+   */
+  offTrailKm?: number;
+  /** The walk back to the route from this day's start stop, when it is off the route. */
+  walkOut?: { km: number; ascentM: number; descentM: number };
+  /** The walk in to this day's end stop (measured walking in), when it is off the route. */
+  walkIn?: { km: number; ascentM: number; descentM: number };
+  /**
    * Rest days taken at this day's end stop: `nights - 1` of that stop, 0 at
    * the trail end. A rest day is not a day of its own; the next walking
    * day's `date` is pushed back by this many days.

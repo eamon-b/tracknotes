@@ -153,7 +153,7 @@ export function PlanDayLine({
         {` · ${day.startName} → ${day.endName}`}
       </Text>
       <Text style={[styles.dayStats, { color: colors.textSecondary }]}>
-        {`${formatDistance(day.distanceKm, units)} · ↑ ${formatElevation(day.ascentM, units)} · ↓ ${formatElevation(day.descentM, units)} · ${formatHours(day.estimatedHours)}${date}${rest}`}
+        {`${formatDistance(day.distanceKm, units)}${day.offTrailKm ? ` (${formatDistance(day.offTrailKm, units)} off route)` : ''} · ↑ ${formatElevation(day.ascentM, units)} · ↓ ${formatElevation(day.descentM, units)} · ${formatHours(day.estimatedHours)}${date}${rest}`}
       </Text>
     </View>
   );

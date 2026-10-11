@@ -391,7 +391,8 @@ function StopRow({
 
 /** "12.4 km · ↑ 540 m · ↓ 320 m" — the day so far, from the previous stop. */
 function legText(leg: StopLeg, units: Units, showClimb: boolean): string {
-  const distance = formatDistance(leg.distanceKm, units);
+  const offRoute = leg.offTrailKm ? ` (${formatDistance(leg.offTrailKm, units)} off route)` : '';
+  const distance = `${formatDistance(leg.distanceKm, units)}${offRoute}`;
   if (!showClimb) return distance;
   return `${distance} · ↑ ${formatElevation(leg.ascentM, units)} · ↓ ${formatElevation(leg.descentM, units)}`;
 }

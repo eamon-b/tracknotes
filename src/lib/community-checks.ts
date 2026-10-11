@@ -993,7 +993,7 @@ function bool(v: unknown, path: string): boolean {
 }
 
 /** Copy the optional WaypointAccess fields onto `out`. */
-function copyAccess(w: Obj, path: string, out: { offTrailKm?: number; accessMode?: AccessMode; acceptsBoxes?: boolean; accessName?: string }): void {
+function copyAccess(w: Obj, path: string, out: AccessFields): void {
   const offTrailKm = optNum(w.offTrailKm, `${path}.offTrailKm`, 0, 10_000);
   if (offTrailKm !== undefined) out.offTrailKm = offTrailKm;
   if (w.accessMode !== undefined && w.accessMode !== null) {
@@ -1005,6 +1005,10 @@ function copyAccess(w: Obj, path: string, out: { offTrailKm?: number; accessMode
   if (w.acceptsBoxes !== undefined && w.acceptsBoxes !== null) out.acceptsBoxes = bool(w.acceptsBoxes, `${path}.acceptsBoxes`);
   const accessName = optStr(w.accessName, `${path}.accessName`, S.shortString);
   if (accessName !== undefined) out.accessName = accessName;
+  const ascent = optNum(w.offTrailAscentM, `${path}.offTrailAscentM`, 0, 10_000);
+  if (ascent !== undefined) out.offTrailAscentM = ascent;
+  const descent = optNum(w.offTrailDescentM, `${path}.offTrailDescentM`, 0, 10_000);
+  if (descent !== undefined) out.offTrailDescentM = descent;
 }
 
 function mergedIds(v: unknown, path: string): string[] | undefined {
@@ -1192,13 +1196,22 @@ function asMainRoute(w: VariantWaypoint): EnrichedWaypoint {
   return out;
 }
 
-type AccessFields = { offTrailKm?: number; accessMode?: AccessMode; acceptsBoxes?: boolean; accessName?: string };
+type AccessFields = {
+  offTrailKm?: number;
+  accessMode?: AccessMode;
+  acceptsBoxes?: boolean;
+  accessName?: string;
+  offTrailAscentM?: number;
+  offTrailDescentM?: number;
+};
 
 function copyAccessFields(from: AccessFields, to: AccessFields): void {
   if (from.offTrailKm !== undefined) to.offTrailKm = from.offTrailKm;
   if (from.accessMode !== undefined) to.accessMode = from.accessMode;
   if (from.acceptsBoxes !== undefined) to.acceptsBoxes = from.acceptsBoxes;
   if (from.accessName !== undefined) to.accessName = from.accessName;
+  if (from.offTrailAscentM !== undefined) to.offTrailAscentM = from.offTrailAscentM;
+  if (from.offTrailDescentM !== undefined) to.offTrailDescentM = from.offTrailDescentM;
 }
 
 const VARIANT_TYPES: readonly RouteVariant['type'][] = ['alternate', 'side-trip', 'terminus'];

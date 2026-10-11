@@ -123,6 +123,27 @@ describe('todayRows', () => {
     expect(rows[3].waypoint?.id).toBe('c2');
   });
 
+  it("walks out of last night's off-route stop and in to tonight's", () => {
+    const t = trail();
+    const walk = { offTrailKm: 2, accessMode: 'foot' as const, offTrailAscentM: 30, offTrailDescentM: 10 };
+    t.waypoints[0] = { ...t.waypoints[0], ...walk };
+    t.waypoints[3] = { ...t.waypoints[3], ...walk };
+    const today = todayPlan(planGlance(t, plan(t, ['c1', 'c2', 'c3'], '2026-10-10'), OPTS), '2026-10-11');
+    const rows = todayRows(t, today!.day);
+    expect(rows.map((r) => [r.name, r.fromStartKm, r.legKm])).toEqual([
+      ['Camp A', 0, 0],
+      ['Creek', 12, 12],
+      ['Junction', 37, 25],
+      ['Camp B', 44, 7],
+    ]);
+    // Out of Camp A climbs what its walk in descended; in to Camp B climbs its own.
+    expect(rows[1]).toMatchObject({ legAscentM: 110, legDescentM: 30 });
+    expect(rows[3]).toMatchObject({ legAscentM: 30, legDescentM: 60 });
+    // The rows add up to the day.
+    expect(rows[3].fromStartKm).toBeCloseTo(today!.day.distanceKm, 5);
+    expect(rows[3].totalAscentM).toBe(today!.day.ascentM);
+  });
+
   it('names the trail start when the day has no waypoint there', () => {
     const t = trail();
     const today = todayPlan(planGlance(t, plan(t, ['c1', 'c2'], '2026-10-10'), OPTS), '2026-10-10');

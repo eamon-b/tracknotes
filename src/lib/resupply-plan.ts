@@ -50,7 +50,7 @@ import type { ComputedDay, SectionConfig } from './plan-types';
 import type { AccessMode, WaypointAccess } from './types';
 import { isAccessMode } from './types';
 import type { PlanTrail } from './day-calculator';
-import { estimateHikingHoursRaw } from './day-calculator';
+import { estimateHikingHoursRaw, WALKED_WHEN_UNSAID_MAX_KM } from './day-calculator';
 import { calculateElevationBetween } from './track-geometry';
 import { haversineDistance } from './distance';
 import { routeBreakStarts } from './route-breaks';
@@ -141,6 +141,9 @@ export interface ResupplyOption {
   accessMode?: AccessMode;
   /** The side trip walked to reach it, when the trail draws one. */
   accessRoute?: AccessRoute;
+  /** Climb and descent walking in, when the waypoint carries them (`access.json`). */
+  offTrailAscentM?: number;
+  offTrailDescentM?: number;
   acceptsBoxes?: boolean;
   description?: string;
 }
@@ -270,15 +273,8 @@ export const SIDE_TRIP_END_REACH_M = 1000;
 /** A side-trip waypoint closer than this to the junction is at the junction, on the route. */
 const AT_JUNCTION_KM = 0.05;
 
-/**
- * The longest off-trail distance taken to be walked when the data does not say
- * how it is covered — every one of Te Araroa's. Its turn-offs fall into two
- * groups with a gap between them: 3.1 km and under (Kerikeri 0.7, Mt Potts
- * Lodge 3.0), then 4.5 km and up (Warkworth 6, Te Anau 35). The CDT, whose data
- * does say, walks to a median 4 km and hitches from 6.4 km, so 5 km sits
- * between what gets walked and what gets hitched. A stated mode always wins.
- */
-export const WALKED_WHEN_UNSAID_MAX_KM = 5;
+/** The longest unsaid off-trail distance taken to be walked; see day-calculator. */
+export { WALKED_WHEN_UNSAID_MAX_KM };
 
 /** Default grouping radius: the CDT's twins share a km, so this is slack, not need. */
 export const DEFAULT_GROUP_WITHIN_KM = 0.1;
@@ -446,6 +442,12 @@ export function listResupplyOptions(
       // carry anything under this key.
       if (isAccessMode(wp.accessMode)) option.accessMode = wp.accessMode;
       if (wp.accessRoute) option.accessRoute = wp.accessRoute;
+      if (typeof wp.offTrailAscentM === 'number' && Number.isFinite(wp.offTrailAscentM)) {
+        option.offTrailAscentM = wp.offTrailAscentM;
+      }
+      if (typeof wp.offTrailDescentM === 'number' && Number.isFinite(wp.offTrailDescentM)) {
+        option.offTrailDescentM = wp.offTrailDescentM;
+      }
       if (typeof wp.acceptsBoxes === 'boolean') option.acceptsBoxes = wp.acceptsBoxes;
       if (typeof wp.description === 'string' && wp.description) option.description = wp.description;
       if (typeof wp.accessName === 'string' && wp.accessName.trim() !== '') {
@@ -523,7 +525,7 @@ export function resolveResupplyStops(
  * for the surfaces that show a single option (a turn-off's detail).
  */
 export function optionAccess(
-  option: Pick<ResupplyOption, 'name' | 'offTrailKm' | 'accessMode' | 'accessRoute'>
+  option: Pick<ResupplyOption, 'name' | 'offTrailKm' | 'accessMode' | 'accessRoute' | 'offTrailAscentM' | 'offTrailDescentM'>
 ): StopAccess | null {
   const km = offTrailKmOf(option);
   if (km === 0) return null;
@@ -539,8 +541,8 @@ export function optionAccess(
     const access: StopAccess = {
       place: option.name,
       walkKm: km,
-      walkAscentM: option.accessRoute?.ascentM ?? 0,
-      walkDescentM: option.accessRoute?.descentM ?? 0,
+      walkAscentM: option.accessRoute?.ascentM ?? option.offTrailAscentM ?? 0,
+      walkDescentM: option.accessRoute?.descentM ?? option.offTrailDescentM ?? 0,
       rideKm: 0,
     };
     if (option.accessRoute) access.via = option.accessRoute.name;

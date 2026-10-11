@@ -7,6 +7,7 @@ import {
   kmAtHours,
   countWaterSources,
   computeDays,
+  placeWalk,
 } from './day-calculator';
 import type { PlanTrail } from './day-calculator';
 import { annotateCumulativeElevation, calculateElevationBetween } from './track-geometry';
@@ -465,5 +466,50 @@ describe('time index on a thinned track', () => {
     const index = buildTimeIndex(points);
     expect(index.ascent).toEqual([0, 50, 50]);
     expect(index.descent).toEqual([0, 0, 30]);
+  });
+});
+
+describe('walks to stops off the route', () => {
+  const walk = { km: 2.5, ascentM: 100, descentM: 20 };
+
+  it('adds the walk in to the day that ends at the stop, and the walk out to the next', () => {
+    const trail = makeFlatTrail(40);
+    const days = computeDays(trail, [{ km: 20, waypointName: 'Camp', walk }], null, null, 4);
+    expect(days[0]).toMatchObject({ distanceKm: 22.5, ascentM: 100, descentM: 20, offTrailKm: 2.5, walkIn: walk });
+    // Walking back out climbs what the walk in descended.
+    expect(days[1]).toMatchObject({ distanceKm: 22.5, ascentM: 20, descentM: 100, offTrailKm: 2.5, walkOut: walk });
+    expect(days[0].estimatedHours).toBe(estimateHikingTime(22.5, 100, 20, 4));
+    // The route km are unchanged: the walk is beside them, not along them.
+    expect([days[0].endKm, days[1].startKm]).toEqual([20, 20]);
+  });
+
+  it('leaves a day on the route exactly as it was', () => {
+    const trail = makeFlatTrail(40);
+    const [day] = computeDays(trail, [{ km: 20, waypointName: 'Camp' }], null, null, 4);
+    expect(day).not.toHaveProperty('offTrailKm');
+    expect(day).not.toHaveProperty('walkIn');
+    expect(day.distanceKm).toBe(20);
+  });
+});
+
+describe('placeWalk', () => {
+  it('walks a place reached on foot, with its climb', () => {
+    expect(placeWalk({ offTrailKm: 2.6, accessMode: 'foot', offTrailAscentM: 17, offTrailDescentM: 7 })).toEqual({
+      km: 2.6,
+      ascentM: 17,
+      descentM: 7,
+    });
+  });
+
+  it('walks a short distance whose way is not said, without climb it does not know', () => {
+    expect(placeWalk({ offTrailKm: 1.2 })).toEqual({ km: 1.2, ascentM: 0, descentM: 0 });
+  });
+
+  it('does not walk a ride, a long unsaid distance, a turn-off or a place on the route', () => {
+    expect(placeWalk({ offTrailKm: 3, accessMode: 'hitch' })).toBeNull();
+    expect(placeWalk({ offTrailKm: 12 })).toBeNull();
+    expect(placeWalk({ offTrailKm: 2, type: 'town-access' })).toBeNull();
+    expect(placeWalk({})).toBeNull();
+    expect(placeWalk(undefined)).toBeNull();
   });
 });

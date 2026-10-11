@@ -532,6 +532,8 @@ function applyAccessFields(waypoint: WaypointAccess, value: Record<string, unkno
   delete waypoint.accessMode;
   delete waypoint.acceptsBoxes;
   delete waypoint.accessName;
+  delete waypoint.offTrailAscentM;
+  delete waypoint.offTrailDescentM;
 
   if (typeof value.offTrailKm === 'number' && Number.isFinite(value.offTrailKm)) {
     waypoint.offTrailKm = value.offTrailKm;
@@ -540,6 +542,10 @@ function applyAccessFields(waypoint: WaypointAccess, value: Record<string, unkno
   if (typeof value.acceptsBoxes === 'boolean') waypoint.acceptsBoxes = value.acceptsBoxes;
   const accessName = readName(value.accessName);
   if (accessName !== null) waypoint.accessName = accessName;
+  for (const key of ['offTrailAscentM', 'offTrailDescentM'] as const) {
+    const metres = value[key];
+    if (typeof metres === 'number' && Number.isFinite(metres) && metres >= 0) waypoint[key] = metres;
+  }
 }
 
 /** Finite, in-range coordinates, or a rejected file. */

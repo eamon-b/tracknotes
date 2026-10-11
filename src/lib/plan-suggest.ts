@@ -143,6 +143,8 @@ export interface SuggestStart {
   /** Active km. */
   km: number;
   name: string;
+  /** The stop's waypoint, for `kind: 'stop'` — its walk back to the route starts day 1. */
+  waypointId?: string;
 }
 
 /**
@@ -168,7 +170,9 @@ export function suggestionStart(
     stop => inSection(stop.km) && stop.km > section.startKm + KM_EPSILON,
   );
   const last = active[active.length - 1];
-  if (last) return { kind: 'stop', km: last.km, name: last.name };
+  if (last) {
+    return { kind: 'stop', km: last.km, name: last.name, ...(last.waypointId ? { waypointId: last.waypointId } : {}) };
+  }
   return { kind: 'start', km: section.startKm, name: section.startName };
 }
 

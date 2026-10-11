@@ -43,7 +43,7 @@
  * track.
  */
 
-import { climbBetweenIndexed, estimateHikingHoursRaw, type TimeIndex } from './day-calculator';
+import { climbBetweenIndexed, estimateHikingHoursRaw, type PlaceWalk, type TimeIndex } from './day-calculator';
 import { KM_EPSILON } from './plan-direction';
 
 /** One criterion's acceptable band, and the value inside it to aim for. */
@@ -77,6 +77,11 @@ export interface DayMetrics {
 export interface SuggestCandidate {
   /** km along the trail in the same (active) space as the time index. */
   km: number;
+  /**
+   * The walk to the place when it is off the route (`placeWalk`): a day that
+   * ends here walks in, the day after walks back out.
+   */
+  walk?: PlaceWalk | null;
 }
 
 export interface SuggestDaysInput<C extends SuggestCandidate> {
@@ -95,6 +100,8 @@ export interface SuggestDaysInput<C extends SuggestCandidate> {
   criteria: DayCriteria;
   /** Naismith flat-ground speed, from the hiker's pace. */
   baseKmh: number;
+  /** The walk back to the route from where day 1 starts, when that is an off-route stop. */
+  fromWalk?: PlaceWalk | null;
 }
 
 export interface SuggestedDay<C extends SuggestCandidate> extends DayMetrics {
@@ -257,6 +264,25 @@ export function measureDay(index: TimeIndex, fromKm: number, toKm: number, baseK
   };
 }
 
+/**
+ * A day's metrics with the walks off the route added: back out from the stop
+ * it starts at (climbing what the walk in descended) and in to the one it
+ * ends at. The hours are Naismith's over the totals, as `computeDays` reports
+ * them.
+ */
+export function withWalks(
+  metrics: DayMetrics,
+  walkOut: PlaceWalk | null | undefined,
+  walkIn: PlaceWalk | null | undefined,
+  baseKmh: number
+): DayMetrics {
+  if (!walkOut && !walkIn) return metrics;
+  const distanceKm = metrics.distanceKm + (walkOut?.km ?? 0) + (walkIn?.km ?? 0);
+  const ascentM = metrics.ascentM + (walkOut?.descentM ?? 0) + (walkIn?.ascentM ?? 0);
+  const descentM = metrics.descentM + (walkOut?.ascentM ?? 0) + (walkIn?.descentM ?? 0);
+  return { distanceKm, ascentM, descentM, hours: estimateHikingHoursRaw(distanceKm, ascentM, descentM, baseKmh) };
+}
+
 /** A partial plan: the camp it last slept at (or -1 for the start), its days, their cost. */
 interface Partial {
   at: number;
@@ -323,6 +349,7 @@ export function suggestDays<C extends SuggestCandidate>(input: SuggestDaysInput<
   }
 
   const kmAt = (at: number) => (at === -1 ? fromKm : camps[at].km);
+  const walkFrom = (at: number) => (at === -1 ? input.fromWalk : camps[at].walk);
   const finished: Partial[] = [];
   let layer = new Map<number, Partial[]>([[-1, [{ at: -1, days: [], cost: 0 }]]]);
   let deepest: Partial[] = [];
@@ -331,10 +358,14 @@ export function suggestDays<C extends SuggestCandidate>(input: SuggestDaysInput<
     const next = new Map<number, Partial[]>();
     for (const [at, partials] of layer) {
       const startKm = kmAt(at);
-      // Day ends at a camp further along, until a maximum is passed.
+      const walkOut = walkFrom(at);
+      // Day ends at a camp further along, until a maximum is passed. The walk
+      // in differs camp to camp, so the stopping test leaves it out: the route
+      // and the walk out only grow with j.
       for (let j = at + 1; j < camps.length; j++) {
-        const metrics = measureDay(index, startKm, camps[j].km, baseKmh);
-        if (pastMaximum(metrics, scored)) break;
+        const along = withWalks(measureDay(index, startKm, camps[j].km, baseKmh), walkOut, null, baseKmh);
+        if (pastMaximum(along, scored)) break;
+        const metrics = withWalks(along, null, camps[j].walk, baseKmh);
         const cost = dayCost(metrics, scored, false);
         if (cost === undefined) continue;
         const suggested: SuggestedDay<SuggestCandidate> = {
@@ -353,16 +384,22 @@ export function suggestDays<C extends SuggestCandidate>(input: SuggestDaysInput<
       // Or the day walks out to the end of the range. Whether that is free
       // below its targets depends on the day before it: if that day could
       // have walked out within every maximum, this one is not forced.
-      const out = measureDay(index, startKm, endKm, baseKmh);
+      const out = withWalks(measureDay(index, startKm, endKm, baseKmh), walkOut, null, baseKmh);
       const outDays = new Map<number, SuggestedDay<SuggestCandidate> | null>();
       for (const partial of partials) {
         const previous = partial.days[partial.days.length - 1];
         const key = previous ? previous.startKm : -Infinity;
         let suggested = outDays.get(key);
         if (suggested === undefined) {
+          const previousWalkOut =
+            partial.days.length >= 2 ? partial.days[partial.days.length - 2].end?.walk : input.fromWalk;
           const avoidable =
             previous !== undefined &&
-            dayCost(measureDay(index, previous.startKm, endKm, baseKmh), scored, true) !== undefined;
+            dayCost(
+              withWalks(measureDay(index, previous.startKm, endKm, baseKmh), previousWalkOut, null, baseKmh),
+              scored,
+              true
+            ) !== undefined;
           const outCost = dayCost(out, scored, true, avoidable);
           suggested = outCost === undefined ? null : { ...out, startKm, endKm, end: null, cost: outCost };
           outDays.set(key, suggested);

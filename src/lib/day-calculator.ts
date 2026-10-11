@@ -21,7 +21,8 @@ import {
 import type { ElevationPoint } from './track-geometry';
 import { routeBreakStarts } from './route-breaks';
 import type { RouteBreak } from './trail-types';
-import { isWaterWaypoint } from './waypoint-taxonomy';
+import { isAccessWaypoint, isWaterWaypoint } from './waypoint-taxonomy';
+import type { WaypointAccess } from './types';
 
 /** Trail shape accepted by computeDays (subset of the full Trail interfaces). */
 export interface PlanTrail {
@@ -41,6 +42,50 @@ export interface PlanStopInput {
   km: number;
   waypointName?: string | null;
   customLocation?: { name: string };
+  /** The walk between the route and the stop, when it is off the route (`placeWalk`). */
+  walk?: PlaceWalk | null;
+}
+
+/**
+ * The walk between the route and an off-route place, measured walking IN
+ * (from the junction to the place). Walking back out covers the same km with
+ * the climb and descent swapped.
+ */
+export interface PlaceWalk {
+  km: number;
+  ascentM: number;
+  descentM: number;
+}
+
+/**
+ * The longest off-trail distance taken to be walked when the data does not say
+ * how it is covered — every one of Te Araroa's. Its turn-offs fall into two
+ * groups with a gap between them: 3.1 km and under (Kerikeri 0.7, Mt Potts
+ * Lodge 3.0), then 4.5 km and up (Warkworth 6, Te Anau 35). The CDT, whose data
+ * does say, walks to a median 4 km and hitches from 6.4 km, so 5 km sits
+ * between what gets walked and what gets hitched. A stated mode always wins.
+ */
+export const WALKED_WHEN_UNSAID_MAX_KM = 5;
+
+/**
+ * The walk to a place off the route, or null when there is none to make: the
+ * place is on the route, it is a turn-off (the point on the route itself), or
+ * it is reached by a ride (a hitch, a shuttle, a boat, or a distance too long
+ * to be a walk when the data does not say — `WALKED_WHEN_UNSAID_MAX_KM`).
+ */
+export function placeWalk(
+  place: (WaypointAccess & { type?: string | null }) | null | undefined
+): PlaceWalk | null {
+  if (!place || isAccessWaypoint(place.type)) return null;
+  const km = place.offTrailKm;
+  if (typeof km !== 'number' || !Number.isFinite(km) || km <= 0) return null;
+  const mode = place.accessMode;
+  const walked =
+    mode === 'foot' || mode === 'on-trail' || (mode === undefined && km <= WALKED_WHEN_UNSAID_MAX_KM);
+  if (!walked) return null;
+  const metres = (value: number | undefined) =>
+    typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : 0;
+  return { km, ascentM: metres(place.offTrailAscentM), descentM: metres(place.offTrailDescentM) };
 }
 
 /**
@@ -311,6 +356,7 @@ export function computeDays(
   interface Boundary {
     name: string;
     km: number;
+    walk: PlaceWalk | null;
   }
 
   // Sort stops by km and clamp to the range bounds
@@ -319,9 +365,9 @@ export function computeDays(
     .filter(s => s.km > rangeStartKm && s.km < rangeEndKm);
 
   const boundaries: Boundary[] = [
-    { name: rangeStartName, km: rangeStartKm },
-    ...sortedStops.map(s => ({ name: stopDisplayName(s), km: s.km })),
-    { name: rangeEndName, km: rangeEndKm },
+    { name: rangeStartName, km: rangeStartKm, walk: null },
+    ...sortedStops.map(s => ({ name: stopDisplayName(s), km: s.km, walk: s.walk ?? null })),
+    { name: rangeEndName, km: rangeEndKm, walk: null },
   ];
 
   const days: ComputedDay[] = [];
@@ -331,8 +377,16 @@ export function computeDays(
     const end = boundaries[i + 1];
     const dayNumber = i + 1;
 
-    const distanceKm = Math.round((end.km - start.km) * 10) / 10;
-    const { gain, loss } = calculateElevationBetween(start.km, end.km, trackPoints, breakStarts);
+    // A stop off the route is walked to at the end of the day that reaches
+    // it and walked back from at the start of the next: its km, and its climb
+    // each way (in climbs ascentM; out climbs what in descended).
+    const walkIn = end.walk;
+    const walkOut = start.walk;
+    const offTrailKm = (walkIn?.km ?? 0) + (walkOut?.km ?? 0);
+    const distanceKm = Math.round((end.km - start.km + offTrailKm) * 10) / 10;
+    const route = calculateElevationBetween(start.km, end.km, trackPoints, breakStarts);
+    const gain = route.gain + (walkIn?.ascentM ?? 0) + (walkOut?.descentM ?? 0);
+    const loss = route.loss + (walkIn?.descentM ?? 0) + (walkOut?.ascentM ?? 0);
     const hours = estimateHikingTime(distanceKm, gain, loss, baseKmh);
     const water = countWaterSources(start.km, end.km, waypoints);
 
@@ -356,6 +410,9 @@ export function computeDays(
       descentM: loss,
       estimatedHours: hours,
       waterSources: water,
+      ...(offTrailKm > 0 ? { offTrailKm: Math.round(offTrailKm * 10) / 10 } : {}),
+      ...(walkOut ? { walkOut } : {}),
+      ...(walkIn ? { walkIn } : {}),
     });
   }
 

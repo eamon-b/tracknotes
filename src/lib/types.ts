@@ -38,6 +38,13 @@ export interface WaypointAccess {
   acceptsBoxes?: boolean;
   /** Name of the turn-off itself (e.g. "Monarch Pass (US 50)"). */
   accessName?: string;
+  /**
+   * Climb walking in, from the route to the place, in metres (the way back
+   * climbs `offTrailDescentM`). Only meaningful with a walked `offTrailKm`.
+   */
+  offTrailAscentM?: number;
+  /** Descent walking in, from the route to the place, in metres. */
+  offTrailDescentM?: number;
 }
 
 export interface GpxWaypoint extends WaypointAccess {

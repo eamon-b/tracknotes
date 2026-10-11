@@ -165,6 +165,11 @@ function parseWaypointAccess(wpt: XmlNode): WaypointAccess {
   const accessName = read('accessName');
   if (accessName !== null) access.accessName = accessName;
 
+  for (const key of ['offTrailAscentM', 'offTrailDescentM'] as const) {
+    const metres = parseFloat(read(key) ?? '');
+    if (Number.isFinite(metres) && metres >= 0) access[key] = metres;
+  }
+
   return access;
 }
 
@@ -221,6 +226,10 @@ function accessExtensionsXml(wpt: GpxWaypoint): string {
     fields.push(`<tn:acceptsBoxes>${wpt.acceptsBoxes}</tn:acceptsBoxes>`);
   }
   if (wpt.accessName) fields.push(`<tn:accessName>${escapeXml(wpt.accessName)}</tn:accessName>`);
+  for (const key of ['offTrailAscentM', 'offTrailDescentM'] as const) {
+    const metres = wpt[key];
+    if (metres !== undefined && Number.isFinite(metres)) fields.push(`<tn:${key}>${metres}</tn:${key}>`);
+  }
   if (fields.length === 0) return '';
 
   return `    <extensions>

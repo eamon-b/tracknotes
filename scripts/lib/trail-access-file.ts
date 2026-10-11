@@ -84,6 +84,8 @@ export interface TrailAccessFile {
 export interface WaypointAccessPlacement {
   junction: { lat: number; lon: number };
   offTrailKm: number;
+  ascentM?: number;
+  descentM?: number;
 }
 
 export function trailAccessPath(trailDir: string): string {
@@ -159,6 +161,8 @@ export function accessPlacements(file: TrailAccessFile | null): Map<string, Wayp
     placements.set(id, {
       junction: { lat: entry.junction[0], lon: entry.junction[1] },
       offTrailKm: entry.offTrailKm,
+      ...(entry.ascentM !== undefined ? { ascentM: entry.ascentM } : {}),
+      ...(entry.descentM !== undefined ? { descentM: entry.descentM } : {}),
     });
   }
   return placements;
