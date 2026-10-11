@@ -105,6 +105,16 @@ describe('findAccess', () => {
     expect(access.offNetworkM).toBeGreaterThan(100);
   });
 
+  it('refuses a straight line all the way to the route', () => {
+    // Nothing mapped reaches the falls; the route road is 225 m away up a cliff.
+    const falls = { lat: -34.01, lon: 138.0025 };
+    const routeRoad: WalkWay = { coords: [[-34.0, 138.0], [-34.02, 138.0]] };
+    expect(findAccess(buildWalkNetwork([routeRoad]), falls, ROUTE).ok).toBe(false);
+    // A hut 100 m off is just a short walk across.
+    const hut = { lat: -34.01, lon: 138.0011 };
+    expect(findAccess(buildWalkNetwork([routeRoad]), hut, ROUTE).ok).toBe(true);
+  });
+
   it('reports a place with no way near it', () => {
     const access = findAccess(network, { lat: -34.05, lon: 138.05 }, ROUTE);
     expect(access).toEqual({ ok: false, reason: 'no mapped way within 300 m of the place' });
