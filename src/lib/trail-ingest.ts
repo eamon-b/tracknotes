@@ -47,6 +47,7 @@ import type {
   TrailConfig,
   TrailWaypoint,
   VariantWaypoint,
+  WaypointJunctionConfig,
   WaypointVisit,
 } from './trail-types';
 
@@ -994,6 +995,61 @@ export function enrichWaypoints(
 }
 
 /**
+ * The waypoints as the main route should match them: each one named in
+ * `waypointJunctions` stands at its junction, so `enrichWaypoints` places it
+ * at the route point nearest the junction rather than nearest the place. Pair
+ * with {@link restoreJunctionPositions}, which puts the real position back.
+ *
+ * Throws on a junction that names no waypoint, names two, or sits outside the
+ * match radius: a junction that silently did nothing would leave the place
+ * back at the wrong side of the climb it was added to fix.
+ */
+export function matchAtJunctions(
+  waypoints: TrailWaypoint[],
+  junctions: readonly WaypointJunctionConfig[],
+  trackPoints: { lat: number; lon: number; ele: number }[],
+  maxDistanceMeters: number
+): TrailWaypoint[] {
+  if (junctions.length === 0) return waypoints;
+  const byName = new Map<string, WaypointJunctionConfig>();
+  for (const junction of junctions) {
+    const matches = waypoints.filter(wp => wp.name === junction.name).length;
+    if (matches !== 1) {
+      throw new Error(
+        `waypointJunctions: "${junction.name}" names ${matches} waypoints; it must name exactly one`
+      );
+    }
+    const { distanceFromTrack } = findNearestTrackPoint(junction, trackPoints);
+    if (distanceFromTrack > maxDistanceMeters) {
+      throw new Error(
+        `waypointJunctions: the junction for "${junction.name}" is ${Math.round(distanceFromTrack)}m ` +
+          `from the route, beyond the ${maxDistanceMeters}m match radius`
+      );
+    }
+    byName.set(junction.name, junction);
+  }
+  return waypoints.map(wp => {
+    const junction = byName.get(wp.name);
+    return junction ? { ...wp, lat: junction.lat, lon: junction.lon } : wp;
+  });
+}
+
+/** Undo {@link matchAtJunctions} on the enriched rows: the place stays where it is. */
+export function restoreJunctionPositions(
+  enriched: EnrichedWaypoint[],
+  waypoints: readonly TrailWaypoint[],
+  junctions: readonly WaypointJunctionConfig[]
+): EnrichedWaypoint[] {
+  if (junctions.length === 0) return enriched;
+  const names = new Set(junctions.map(junction => junction.name));
+  const source = new Map(waypoints.filter(wp => names.has(wp.name)).map(wp => [wp.name, wp]));
+  return enriched.map(ew => {
+    const wp = names.has(ew.name) ? source.get(ew.name) : undefined;
+    return wp ? { ...ew, lat: wp.lat, lon: wp.lon } : ew;
+  });
+}
+
+/**
  * Enrich route variants with waypoint data.
  * For each variant, walks along its track points and matches nearby waypoints
  * using the same hysteresis approach as the main route.
@@ -1481,12 +1537,16 @@ export function buildTrail(gpx: ParsedGpxResult, options: BuildTrailOptions): Pr
 
   // Enrich waypoints with distance and elevation data
   const waypointMaxDist = config.waypointMaxDistance ?? DEFAULT_WAYPOINT_MAX_DISTANCE_METERS;
-  const enrichedWaypoints = enrichWaypoints(
+  const enrichedWaypoints = restoreJunctionPositions(
+    enrichWaypoints(
+      matchAtJunctions(waypoints, config.waypointJunctions ?? [], mainRoutePoints, waypointMaxDist),
+      mainRoutePoints,
+      waypointMaxDist,
+      breakStarts,
+      climb
+    ),
     waypoints,
-    mainRoutePoints,
-    waypointMaxDist,
-    breakStarts,
-    climb
+    config.waypointJunctions ?? []
   );
 
   // Output invariant: every enriched waypoint carries a distinct stable id.

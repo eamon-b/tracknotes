@@ -537,8 +537,13 @@ Features: Toilet</desc>
     <desc>Farm minshuku 農家民宿 クニ舛田 at Ebisuhama, about 4 km before Temple 23. Four rooms; dinner and breakfast (from 6:30). Check-in 15:00, check-out 9:00. Cash only. Bookings by email to tomoioi707@gmail.com. Tel: 0884-77-2173 https://www.kuni-masuda.com/</desc>
   </wpt>
   <wpt lat="33.9245" lon="134.49647">
-    <name>Maekama Campground</name>
+    <name>Maekawa Campground</name>
     <type>campsite</type>
+    <desc>Campground 前川キャンプ場 in the Katsuura river valley, 2.8 km by road west of the path at the foot of the climb to Temple 20.</desc>
+    <extensions>
+      <tn:offTrailKm>2.8</tn:offTrailKm>
+      <tn:accessMode>foot</tn:accessMode>
+    </extensions>
   </wpt>
   <wpt lat="33.929296" lon="134.518211">
     <name>Mikan no Yado</name>
