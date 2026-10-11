@@ -107,6 +107,12 @@ export interface Candidate {
   bbox: Bbox;
   /** The longest walk worth searching (metres). */
   maxWalkM: number;
+  /**
+   * Near-duplicates the build merged into this waypoint (`dedupeWaypoints`).
+   * They get the same entry: one place, and if only the survivor moved, the
+   * next build's merge would keep the other copy, which has none.
+   */
+  mergedIds?: string[];
 }
 
 /** The box around a place a walk to the route could plausibly use. */
@@ -197,6 +203,7 @@ export function selectCandidates(
       lon: wp.lon,
       straightLineM: snap.offTrailMeters,
       nearestKm: snap.currentKm,
+      ...(wp.mergedIds?.length ? { mergedIds: [...wp.mergedIds] } : {}),
       ...searchBox(wp.lat, wp.lon, snap.offTrailMeters),
     });
   }
@@ -421,7 +428,9 @@ async function main(): Promise<void> {
           maxWalkM: member.maxWalkM,
           breakStarts,
         });
-        fetched[member.id] = entryFor(member, result);
+        const entry = entryFor(member, result);
+        fetched[member.id] = entry;
+        for (const id of member.mergedIds ?? []) fetched[id] = entry;
       }
       await new Promise(resolve => setTimeout(resolve, 1000));
     }

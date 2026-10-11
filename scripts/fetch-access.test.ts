@@ -40,6 +40,11 @@ describe('selectCandidates', () => {
     expect(ids).toEqual(['w_far', 'w_ours']);
   });
 
+  it('carries the near-duplicates merged into a waypoint', () => {
+    const trail = { track, waypoints: [wp('w_kept', 138.01, { mergedIds: ['w_twin'] })] };
+    expect(selectCandidates(trail as never, 150, new Set())[0].mergedIds).toEqual(['w_twin']);
+  });
+
   it("leaves a waypoint on one of the trail's side trips to the side trip", () => {
     const sideTrips = [{ name: 'Spur', type: 'side-trip', points: [{ lat: -34.01, lon: 138 }, { lat: -34.01, lon: 138.02 }] }];
     const trail = { track, sideTrips, waypoints: [wp('w_summit', 138.01)] };
