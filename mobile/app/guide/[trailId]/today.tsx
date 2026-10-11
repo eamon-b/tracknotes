@@ -16,7 +16,7 @@
  */
 
 import React from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { formatDistance, formatElevation } from '@lib/format-distance';
 import {
@@ -35,6 +35,7 @@ import { useTodayPlan } from '../../../src/features/plan/use-today-plan';
 import { PoiFilterChips } from '../../../src/features/plan/PoiFilterChips';
 import { poiColor } from '../../../src/features/elevation/waypoint-category';
 import { OffTrailBadge, offTrailA11y } from '../../../src/features/guide/OffTrailBadge';
+import { ScreenFlatList } from '../../../src/navigation/ScreenScrollView';
 
 export default function TodayScreen() {
   const { trailId } = useLocalSearchParams<{ trailId: string }>();
@@ -74,7 +75,7 @@ export default function TodayScreen() {
   const { day } = today;
   const hasPoiRows = entries.some((entry) => entry.kind === 'poi');
   return (
-    <FlatList<TodayEntry>
+    <ScreenFlatList<TodayEntry>
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={styles.list}
       data={entries}

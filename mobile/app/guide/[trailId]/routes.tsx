@@ -9,7 +9,7 @@
  */
 
 import React, { useEffect } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { formatDistance, formatElevation } from '@lib/format-distance';
 import { useTheme } from '../../../src/theme';
@@ -18,11 +18,10 @@ import { useSettingsStore } from '../../../src/state/settings-store';
 import { useGuide } from '../../../src/features/guide/GuideContext';
 import { useRoutesStore } from '../../../src/features/routes/routes-store';
 import type { Route } from '../../../src/db/routes-repo';
-import { useBottomInsetContentStyle } from '../../../src/navigation/bottom-inset';
+import { ScreenScrollView } from '../../../src/navigation/ScreenScrollView';
 
 export default function RoutesScreen() {
   const { colors } = useTheme();
-  const contentStyle = useBottomInsetContentStyle(styles.content);
   const { trailId } = useGuide();
   const units = useSettingsStore((s) => s.units);
   const router = useRouter();
@@ -49,9 +48,9 @@ export default function RoutesScreen() {
   }
 
   return (
-    <ScrollView
+    <ScreenScrollView
       style={[styles.root, { backgroundColor: colors.background }]}
-      contentContainerStyle={contentStyle}
+      contentContainerStyle={styles.content}
     >
       {routes.length === 0 ? (
         <View style={styles.empty}>
@@ -120,7 +119,7 @@ export default function RoutesScreen() {
           );
         })
       )}
-    </ScrollView>
+    </ScreenScrollView>
   );
 }
 

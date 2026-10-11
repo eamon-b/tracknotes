@@ -38,7 +38,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type ScrollView } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { formatDistance } from '@lib/format-distance';
 import { poisBetween } from '@lib/poi-display';

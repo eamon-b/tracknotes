@@ -33,7 +33,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  FlatList,
+  type FlatList,
   Pressable,
   StyleSheet,
   Text,
@@ -41,6 +41,7 @@ import {
   type ViewToken,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatDistance, formatElevation } from '@lib/format-distance';
 import { OSM_ATTRIBUTION, poiRouteKey } from '@lib/poi-display';
 import { useTheme } from '../../theme';
@@ -53,6 +54,7 @@ import { useGuide } from './GuideContext';
 import { useGuidePaneFocus } from './GuideFocusContext';
 import { firstIndexInFocus, focusFromItems, type FocusWindow } from './guide-focus';
 import { orderedWaypoints } from './guide-trail';
+import { ScreenFlatList } from '../../navigation/ScreenScrollView';
 import {
   interleaveListRows,
   rowKm,
@@ -89,6 +91,9 @@ type Waypoint = TrailJson['waypoints'][number];
 
 export function WaypointListPane({ trail }: { trail: TrailJson }) {
   const { colors } = useTheme();
+  // The pane runs to the bottom of the window (edge-to-edge), so the floating
+  // button sits above the navigation bar, as the list's last row does.
+  const { bottom: bottomInset } = useSafeAreaInsets();
   const { trailId } = useGuide();
   const router = useRouter();
   const units = useSettingsStore((s) => s.units);
@@ -316,7 +321,7 @@ export function WaypointListPane({ trail }: { trail: TrailJson }) {
         })}
       </View>
 
-      <FlatList
+      <ScreenFlatList
         ref={listRef}
         data={data}
         keyExtractor={(row) => row.key}
@@ -389,6 +394,7 @@ export function WaypointListPane({ trail }: { trail: TrailJson }) {
           accessibilityLabel="Scroll to my position"
           style={({ pressed }) => [
             styles.scrollToMe,
+            { bottom: spacing.xl + bottomInset },
             { backgroundColor: colors.surfaceElevated, borderColor: colors.border },
             pressed && styles.pressed,
           ]}
