@@ -286,7 +286,7 @@ const DESCRIPTION_OVERRIDES: Record<string, string> = {
     'About 400 m from Temple 11. Tent pitches ¥1,000 with a coin shower, plus rooms (Oct 2026). Kitchen, luggage forwarding. ' +
     'https://henrohouse.jp/en/houses/86',
   'Maekawa Campground':
-    'Campground 前川キャンプ場 in the Katsuura river valley, 2.8 km by road west of the path at the foot of the climb to Temple 20.',
+    'Campground 前川キャンプ場 in the Katsuura river valley, reached by road from the path at the foot of the climb to Temple 20.',
   'Karuizawa Camp':
     'Campground 軽井沢キャンプ場 beside the Akui river, under 100 m from the path, 6.7 km before Temple 13. ' +
     'Own tent ¥1,000, shower ¥300, bath ¥500 (Oct 2026); kitchen and vending machines. Open March to November only; check-in from 13:00. ' +
@@ -358,17 +358,6 @@ function withHenroyadoLine(desc: string, line: string | undefined): string {
   return own.join('\n');
 }
 
-/**
- * Markers off the route, with the walk in from the junction `trail.json`
- * places them at (`waypointJunctions`). Measured over OpenStreetMap roads.
- */
-const ACCESS_OVERRIDES: Record<string, Pick<GpxWaypoint, 'offTrailKm' | 'accessMode'>> = {
-  // From the path at Mikan no Yado, at the foot of the Temple 20 climb, west
-  // along the Katsuura river road (徳島上那賀線). The summit of the climb is
-  // nearer in a straight line (1.4 km) but 3.1 km by road and 450 m higher.
-  'Maekawa Campground': { offTrailKm: 2.8, accessMode: 'foot' },
-};
-
 /** Source-map markers for places that have closed, with the evidence. */
 const CLOSED_MARKERS: Record<string, string> = {
   'Kamojima Onsen Iyashi-no-Ya': 'free pilgrim huts; henro.org lists them as permanently closed (checked 2026-10-04)',
@@ -389,7 +378,6 @@ export function applyCuratedWaypoints(waypoints: GpxWaypoint[]): GpxWaypoint[] {
     .map(w => (w.name in TITLE_FIXES ? { ...w, name: TITLE_FIXES[w.name] } : w))
     .filter(w => !(w.name in CLOSED_MARKERS) && !curatedNames.has(w.name))
     .map(w => (w.name in DESCRIPTION_OVERRIDES ? { ...w, desc: DESCRIPTION_OVERRIDES[w.name] } : w))
-    .map(w => (w.name in ACCESS_OVERRIDES ? { ...w, ...ACCESS_OVERRIDES[w.name] } : w))
     .map(w => ({ ...w, desc: withHenroyadoLine(w.desc, Object.prototype.hasOwnProperty.call(HENROYADO.listed, w.name) ? HENROYADO.listed[w.name] : undefined) }));
   const missing = Object.keys(HENROYADO.listed).filter(name => !kept.some(w => w.name === name));
   if (missing.length > 0) {

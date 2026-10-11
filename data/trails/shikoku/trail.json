@@ -12,9 +12,6 @@
     "text": "Track, accommodation and rest areas from a personal CalTopo map of the Shikoku 88 temples; Temples 3-9 and the Shosanji Okunoin positioned from OpenStreetMap. Inns, prices and contacts from henroyado.com's Tokushima list (Oct 2026), positioned from OpenStreetMap, henro.org, the inns' own maps, GSI address search, min88.jp's Street View points and Rakuten Travel's maps."
   },
   "waypointMaxDistance": 3000,
-  "waypointJunctions": [
-    { "name": "Maekawa Campground", "lat": 33.93002, "lon": 134.51906 }
-  ],
   "pois": {
     "exclude": ["amenity=post_office", "amenity=fuel"],
     "keepInCities": [{ "tag": "shop=convenience", "withinKm": 0.5 }]

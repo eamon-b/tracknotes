@@ -539,11 +539,7 @@ Features: Toilet</desc>
   <wpt lat="33.9245" lon="134.49647">
     <name>Maekawa Campground</name>
     <type>campsite</type>
-    <desc>Campground 前川キャンプ場 in the Katsuura river valley, 2.8 km by road west of the path at the foot of the climb to Temple 20.</desc>
-    <extensions>
-      <tn:offTrailKm>2.8</tn:offTrailKm>
-      <tn:accessMode>foot</tn:accessMode>
-    </extensions>
+    <desc>Campground 前川キャンプ場 in the Katsuura river valley, reached by road from the path at the foot of the climb to Temple 20.</desc>
   </wpt>
   <wpt lat="33.929296" lon="134.518211">
     <name>Mikan no Yado</name>
