@@ -1018,8 +1018,8 @@ const STALE_JUNCTION_METERS = 100;
  * The waypoints as the main route should match them: each one with a
  * placement stands at its junction, so `enrichWaypoints` attaches it to the
  * route point nearest the junction rather than nearest the place, and gets the
- * placement's walk in as `offTrailKm` (on the source waypoint, so every view
- * of it carries the figure). Pair with {@link restoreJunctionPositions}.
+ * placement's walk in as `offTrailKm` — on the main route's row only, not the
+ * source waypoint the variants match. Pair with {@link restoreJunctionPositions}.
  *
  * A placement is skipped, with a warning, when the place is beyond the match
  * radius (it would not be on the route without one — a stale entry must not
@@ -1052,11 +1052,19 @@ export function matchAtJunctions(
       );
       return wp;
     }
-    wp.offTrailKm = placement.offTrailKm;
-    wp.accessMode = 'foot';
-    if (placement.ascentM !== undefined) wp.offTrailAscentM = placement.ascentM;
-    if (placement.descentM !== undefined) wp.offTrailDescentM = placement.descentM;
-    return { ...wp, lat: placement.junction.lat, lon: placement.junction.lon };
+    // On the main route's row only, never the source waypoint: an alternate
+    // or side trip that passes the place reaches it with no walk at all
+    // (Shikoku's Kamiyama inns are on the Kamiyama alternative, and 3-4 km
+    // off the main route).
+    return {
+      ...wp,
+      lat: placement.junction.lat,
+      lon: placement.junction.lon,
+      offTrailKm: placement.offTrailKm,
+      accessMode: 'foot' as const,
+      ...(placement.ascentM !== undefined ? { offTrailAscentM: placement.ascentM } : {}),
+      ...(placement.descentM !== undefined ? { offTrailDescentM: placement.descentM } : {}),
+    };
   });
 }
 
