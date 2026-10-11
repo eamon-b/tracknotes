@@ -40,25 +40,6 @@ export interface SpurExtractionConfig {
 }
 
 /**
- * An off-route place that is walked to from somewhere other than the point of
- * the route nearest to it in a straight line. With a wide
- * `waypointMaxDistance` the nearest point can be the wrong side of a climb:
- * Shikoku's Maekawa Campground is 1.4 km from the summit of the Temple 20
- * climb but is reached by road from the valley floor before it, so placing it
- * at the summit planned a night there as if the climb were already done.
- *
- * The waypoint named `name` keeps its own position and is placed on the main
- * route at the point nearest (`lat`, `lon`) — the junction — instead. Its
- * `offTrailKm` (the walk in, from the GPX) is what says how far it is from
- * there. Main route only; variants match waypoints as before.
- */
-export interface WaypointJunctionConfig {
-  name: string;
-  lat: number;
-  lon: number;
-}
-
-/**
  * Where a trail's GPX track came from. `text` is the sentence shown to
  * readers; `url` links back to the guide when the track is someone else's.
  */
@@ -120,8 +101,6 @@ export interface TrailConfig {
   dedupeWaypoints?: boolean | { radiusMeters?: number };
   /** Max distance (meters) from track to match waypoints (default 500). */
   waypointMaxDistance?: number;
-  /** Off-route places placed at a given junction rather than the nearest point. */
-  waypointJunctions?: WaypointJunctionConfig[];
   waypointsFile?: string;
   climateFile?: string;
   climateLocations?: ClimateLocationConfig[];

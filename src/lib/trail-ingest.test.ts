@@ -647,7 +647,7 @@ describe('waypoint km across a route break', () => {
   });
 });
 
-describe('waypointJunctions', () => {
+describe('waypointAccess', () => {
   /** A valley floor, then a climb to a summit; a camp off to the side of the summit. */
   function climb(): ParsedGpxResult {
     const points = [0, 1, 2, 3, 4, 5, 6].map(i => ({
@@ -659,47 +659,49 @@ describe('waypointJunctions', () => {
     return {
       tracks: [{ name: 'Main', points }],
       waypoints: [
-        { name: 'Valley', lat: -34.005, lon: 138, type: 'waypoint' },
+        { id: 'w_valley', name: 'Valley', lat: -34.005, lon: 138, type: 'waypoint' },
         // Nearest the summit in a straight line, reached from the valley.
-        { name: 'Camp', lat: -34.03, lon: 138.012, type: 'campsite', offTrailKm: 2.5 },
+        { id: 'w_camp', name: 'Camp', lat: -34.03, lon: 138.012, type: 'campsite' },
       ],
       name: null,
     };
   }
+  const atValley = new Map([['w_camp', { junction: { lat: -34.005, lon: 138 }, offTrailKm: 2.5 }]]);
 
-  it('places the waypoint at the junction and keeps its own position', () => {
+  it('places the waypoint at its junction and keeps its own position', () => {
     const plain = buildTrail(climb(), { config: config({ waypointMaxDistance: 3000 }) });
     expect(plain.waypoints.find(w => w.name === 'Camp')!.elevation).toBe(550);
 
-    const trail = buildTrail(climb(), {
-      config: config({
-        waypointMaxDistance: 3000,
-        waypointJunctions: [{ name: 'Camp', lat: -34.005, lon: 138 }],
-      }),
-    });
+    const trail = buildTrail(climb(), { config: config({ waypointMaxDistance: 3000 }), waypointAccess: atValley });
     const camp = trail.waypoints.find(w => w.name === 'Camp')!;
     expect(camp.trackIndex).toBe(1);
     expect(camp.elevation).toBe(50);
     expect(camp.totalAscent).toBe(0);
     expect([camp.lat, camp.lon]).toEqual([-34.03, 138.012]);
     expect(camp.offTrailKm).toBe(2.5);
+    expect(camp.accessMode).toBe('foot');
     expect(trail.offTrailWaypoints.map(w => w.name)).not.toContain('Camp');
   });
 
-  it('refuses a junction that names no waypoint', () => {
-    expect(() =>
-      buildTrail(climb(), {
-        config: config({ waypointJunctions: [{ name: 'Nowhere', lat: -34.005, lon: 138 }] }),
-      })
-    ).toThrow(/names 0 waypoints/);
+  it('never pulls a place beyond the match radius onto the route', () => {
+    const warnings: string[] = [];
+    const trail = buildTrail(climb(), { config: config(), waypointAccess: atValley, warn: m => warnings.push(m) });
+    expect(trail.waypoints.map(w => w.name)).not.toContain('Camp');
+    expect(trail.offTrailWaypoints.map(w => w.name)).toContain('Camp');
+    expect(warnings.join('\n')).toMatch(/access for "Camp" \(w_camp\) ignored: the place is \d+m from the route/);
   });
 
-  it('refuses a junction off the route', () => {
-    expect(() =>
-      buildTrail(climb(), {
-        config: config({ waypointJunctions: [{ name: 'Camp', lat: -34.005, lon: 138.1 }] }),
-      })
-    ).toThrow(/beyond the 500m match radius/);
+  it('ignores a junction the route no longer passes', () => {
+    const warnings: string[] = [];
+    const trail = buildTrail(climb(), {
+      config: config({ waypointMaxDistance: 3000 }),
+      waypointAccess: new Map([['w_camp', { junction: { lat: -34.005, lon: 138.01 }, offTrailKm: 2.5 }]]),
+      warn: m => warnings.push(m),
+    });
+    const camp = trail.waypoints.find(w => w.name === 'Camp')!;
+    expect(camp.elevation).toBe(550);
+    expect(camp.offTrailKm).toBeUndefined();
+    expect(warnings.join('\n')).toMatch(/re-run fetch-access/);
   });
 });
 
