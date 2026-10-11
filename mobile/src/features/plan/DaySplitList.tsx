@@ -15,10 +15,13 @@
  * OpenStreetMap knows of along that day — "🛒 2 · 🍽 5 · 💧 3" — so a day with
  * no shop or café on it stands out while the plan is still being made. They are
  * counts of uncurated leads, labelled OSM, never folded into the day's figures.
+ *
+ * Given `onDayPress`, a card opens that day waypoint by waypoint (the Plan
+ * screen's Day screen). The "not planned yet" tail is not a day and never opens.
  */
 
 import React, { useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { formatDistance, formatElevation } from '@lib/format-distance';
 import type { ComputedDay } from '@lib/plan-types';
 import { countPoisByCategory, POI_CATEGORY_LABELS, poisBetween } from '@lib/poi-display';
@@ -102,8 +105,11 @@ export function DaySplitList({
   targetHours,
   units,
   pois,
+  onDayPress,
 }: {
   days: PlanDay[];
+  /** Opens a day's waypoints. Absent: the cards are not pressable. */
+  onDayPress?: (day: PlanDay) => void;
   /**
    * The POIs the guide's filter shows, on the days' km scale (`useVisiblePois`
    * over the route the plan walks). Absent: no "along the way" line.
@@ -151,9 +157,17 @@ export function DaySplitList({
   return (
     <View style={styles.list}>
       {days.map((day, i) => (
-        <View
+        <Pressable
           key={day.dayNumber}
-          style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          onPress={onDayPress ? () => onDayPress(day) : undefined}
+          disabled={!onDayPress}
+          accessibilityRole={onDayPress ? 'button' : undefined}
+          accessibilityHint={onDayPress ? "Shows the day's waypoints" : undefined}
+          style={({ pressed }) => [
+            styles.card,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+            pressed && onDayPress && styles.pressed,
+          ]}
         >
           <View style={styles.head}>
             <Text
@@ -164,6 +178,15 @@ export function DaySplitList({
             <Text style={[styles.route, { color: colors.textPrimary }]} numberOfLines={1}>
               {day.startName} → {day.endName}
             </Text>
+            {onDayPress && (
+              <Text
+                style={[styles.chevron, { color: colors.textSecondary }]}
+                importantForAccessibility="no"
+                accessibilityElementsHidden
+              >
+                ›
+              </Text>
+            )}
           </View>
 
           {day.date !== undefined && (
@@ -203,7 +226,7 @@ export function DaySplitList({
               {`+${formatHours(day.estimatedHours - targetHours)} over target`}
             </Text>
           )}
-        </View>
+        </Pressable>
       ))}
       {unplanned !== null && (
         <View
@@ -263,7 +286,9 @@ const styles = StyleSheet.create({
     borderRadius: radii.full,
     overflow: 'hidden',
   },
-  route: { ...typography.titleSmall, flexShrink: 1 },
+  route: { ...typography.titleSmall, flexShrink: 1, flexGrow: 1 },
+  chevron: { ...typography.titleSmall },
+  pressed: { opacity: 0.6 },
   date: { ...typography.caption, fontVariant: ['tabular-nums'] },
   rest: { ...typography.caption },
   along: { ...typography.caption, fontVariant: ['tabular-nums'] },

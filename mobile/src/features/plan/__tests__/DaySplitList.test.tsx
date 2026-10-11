@@ -52,6 +52,7 @@ function render(
   targetHours: number,
   unplanned?: ComputedDay | null,
   pois?: TrailPOI[],
+  onDayPress?: (day: PlanDay) => void,
 ): ReactTestRenderer {
   let tree!: ReactTestRenderer;
   act(() => {
@@ -62,6 +63,7 @@ function render(
         targetHours={targetHours}
         units="km"
         pois={pois}
+        onDayPress={onDayPress}
       />,
     );
   });
@@ -226,5 +228,28 @@ describe('DaySplitList', () => {
         'Along the way',
       );
     });
+  });
+});
+
+describe('opening a day', () => {
+  const buttons = (tree: ReactTestRenderer) =>
+    tree.root.findAll(
+      (n) => n.props.accessibilityRole === 'button' && typeof n.props.onPress === 'function',
+    );
+
+  it('opens the pressed day', () => {
+    const onDayPress = jest.fn();
+    const days = [day({ dayNumber: 1 }), day({ dayNumber: 2, endName: 'Town' })];
+    const tree = render(days, 8, null, undefined, onDayPress);
+    const cards = buttons(tree);
+    expect(cards).toHaveLength(2);
+    act(() => (cards[1].props.onPress as () => void)());
+    expect(onDayPress).toHaveBeenCalledWith(days[1]);
+  });
+
+  it('is not pressable without a handler, and the unplanned tail never is', () => {
+    expect(buttons(render([day({})], 8))).toHaveLength(0);
+    const tail: ComputedDay = { ...day({ dayNumber: 2, startKm: 20, endKm: 90 }) };
+    expect(buttons(render([day({})], 8, tail, undefined, jest.fn()))).toHaveLength(1);
   });
 });

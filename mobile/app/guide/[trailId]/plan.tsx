@@ -114,6 +114,7 @@ import {
   PlanSettingsSummary,
 } from '../../../src/features/plan/PlanSettingsSheet';
 import { DaySplitList } from '../../../src/features/plan/DaySplitList';
+import { dayRouteParams } from '../../../src/features/plan/today-plan';
 import { PoiFilterChips } from '../../../src/features/plan/PoiFilterChips';
 import { useVisiblePois } from '../../../src/features/guide/use-visible-pois';
 import { placeOffTrailMeters } from '../../../src/features/guide/waypoint-detail';
@@ -566,6 +567,12 @@ export default function PlanScreen() {
                 // A trail never enriched with POIs says nothing, rather than
                 // implying OSM found nothing along every day.
                 pois={trail.pois === undefined ? undefined : visiblePois}
+                onDayPress={(day) =>
+                  router.push({
+                    pathname: '/guide/[trailId]/day',
+                    params: { trailId, ...dayRouteParams(day) },
+                  })
+                }
               />
             </Section>
 

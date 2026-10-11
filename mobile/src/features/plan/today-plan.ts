@@ -254,3 +254,83 @@ export function todayEntries(
         },
   );
 }
+
+/**
+ * A day as Expo Router params, for the Day screen a Plan screen day card opens.
+ *
+ * The day travels whole rather than by number: the Plan screen's days are
+ * scoped to its section (a local choice the Day screen cannot see), so "day 3"
+ * there need not be day 3 of the whole plan. The rows are rebuilt from the km
+ * on the same route; the figures shown are the card's own.
+ */
+export function dayRouteParams(day: ComputedDay): Record<string, string> {
+  return {
+    dayNumber: String(day.dayNumber),
+    ...(day.date !== undefined ? { date: day.date } : {}),
+    startName: day.startName,
+    endName: day.endName,
+    startKm: String(day.startKm),
+    endKm: String(day.endKm),
+    distanceKm: String(day.distanceKm),
+    ascentM: String(day.ascentM),
+    descentM: String(day.descentM),
+    estimatedHours: String(day.estimatedHours),
+    waterSources: String(day.waterSources),
+    ...(day.restDays !== undefined ? { restDays: String(day.restDays) } : {}),
+  };
+}
+
+/** The day back out of `dayRouteParams`; null when a param is missing or not a number. */
+export function dayFromRouteParams(
+  params: Partial<Record<string, string | string[]>>,
+): ComputedDay | null {
+  const str = (key: string): string | undefined => {
+    const value = params[key];
+    return typeof value === 'string' ? value : undefined;
+  };
+  const num = (key: string): number | null => {
+    const value = str(key);
+    if (value === undefined || value.trim() === '') return null;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  };
+  const dayNumber = num('dayNumber');
+  const startKm = num('startKm');
+  const endKm = num('endKm');
+  const distanceKm = num('distanceKm');
+  const ascentM = num('ascentM');
+  const descentM = num('descentM');
+  const estimatedHours = num('estimatedHours');
+  const startName = str('startName');
+  const endName = str('endName');
+  if (
+    dayNumber === null ||
+    startKm === null ||
+    endKm === null ||
+    distanceKm === null ||
+    ascentM === null ||
+    descentM === null ||
+    estimatedHours === null ||
+    startName === undefined ||
+    endName === undefined ||
+    endKm < startKm
+  ) {
+    return null;
+  }
+  const date = str('date');
+  const restDays = num('restDays');
+  return {
+    dayNumber,
+    ...(date !== undefined ? { date } : {}),
+    startName,
+    endName,
+    startKm,
+    endKm,
+    distanceKm,
+    ascentM,
+    descentM,
+    estimatedHours,
+    waterSources: num('waterSources') ?? 0,
+    ...(restDays !== null ? { restDays } : {}),
+  };
+}
