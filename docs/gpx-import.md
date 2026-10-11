@@ -285,8 +285,16 @@ hanging a few extra fields off the waypoint that marks the turn-off:
   ahead.
 - `accessName` names the turn-off itself, which is what a list of options at
   one road end is grouped under.
+- `offTrailAscentM` and `offTrailDescentM` are the metres climbed and descended
+  walking *in*, from the route to the place; walking back out climbs the
+  descent and descends the climb.
 
-All four are optional and all four are read on import, so a hand-made file
+A place you walk to (`foot`, or no mode and 5 km or less) is counted in the
+day planner: a night there adds the walk in, with its climb, to the day that
+reaches it, and the walk back to the day after. A place you ride to is not
+walked, so it adds nothing to the days.
+
+All six are optional and all six are read on import, so a hand-made file
 can describe a turn-off exactly the way the built-in trails do. They have to
 be direct children of `<extensions>`; anything the guide cannot read — an
 `accessMode` that is not one of the five words, an `offTrailKm` that is not a

@@ -151,6 +151,8 @@ function waypointAccess(source: WaypointAccess): WaypointAccess {
   if (source.accessMode !== undefined) access.accessMode = source.accessMode;
   if (source.acceptsBoxes !== undefined) access.acceptsBoxes = source.acceptsBoxes;
   if (source.accessName !== undefined) access.accessName = source.accessName;
+  if (source.offTrailAscentM !== undefined) access.offTrailAscentM = source.offTrailAscentM;
+  if (source.offTrailDescentM !== undefined) access.offTrailDescentM = source.offTrailDescentM;
   return access;
 }
 
@@ -1000,6 +1002,9 @@ export interface WaypointAccessPlacement {
   junction: { lat: number; lon: number };
   /** One-way walk from the junction to the place, km. */
   offTrailKm: number;
+  /** Climb and descent walking in, from the junction to the place (metres). */
+  ascentM?: number;
+  descentM?: number;
 }
 
 /**
@@ -1049,6 +1054,8 @@ export function matchAtJunctions(
     }
     wp.offTrailKm = placement.offTrailKm;
     wp.accessMode = 'foot';
+    if (placement.ascentM !== undefined) wp.offTrailAscentM = placement.ascentM;
+    if (placement.descentM !== undefined) wp.offTrailDescentM = placement.descentM;
     return { ...wp, lat: placement.junction.lat, lon: placement.junction.lon };
   });
 }

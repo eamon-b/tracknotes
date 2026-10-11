@@ -1096,6 +1096,7 @@ function renderDayList(): void {
           <span>+${day.ascentM} m</span>
           <span>-${day.descentM} m</span>
           <span>~${day.estimatedHours}h</span>
+          ${day.offTrailKm ? `<span title="Walking between the route and a stop off it">incl. ${day.offTrailKm.toFixed(1)} km off route</span>` : ''}
           ${waterStr}
           ${planned ? plannedBadge(plannedNames) : ''}
         </div>

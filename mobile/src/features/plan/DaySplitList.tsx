@@ -177,6 +177,12 @@ export function DaySplitList({
             <Stat label="Est. time" value={formatHours(day.estimatedHours)} />
           </View>
 
+          {day.offTrailKm !== undefined && day.offTrailKm > 0 && (
+            <Text style={[styles.water, { color: colors.textSecondary }]}>
+              {`Includes ${formatDistance(day.offTrailKm, units)} off the route, to or from a stop`}
+            </Text>
+          )}
+
           <View style={styles.footer}>
             <Text style={[styles.camp, { color: endColor(day, colors) }]}>{endLabel(day)}</Text>
             <Text style={[styles.water, { color: colors.textSecondary }]}>

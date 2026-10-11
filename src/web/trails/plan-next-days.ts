@@ -17,7 +17,7 @@
  * container, which survives — the same idiom as the Stops and Resupply tabs.
  */
 
-import { buildTimeIndex, type PlanTrail } from '@lib/day-calculator';
+import { buildTimeIndex, placeWalk, type PlanTrail } from '@lib/day-calculator';
 import { haversineDistance } from '@lib/distance';
 import {
   MAX_SUGGEST_DAYS,
@@ -53,6 +53,7 @@ export type NextDaysTrail = PlanTrail & {
 export interface NextDaysCandidate {
   km: number;
   waypoint: PlanWaypoint;
+  walk?: ReturnType<typeof placeWalk>;
 }
 
 export type NextDaysPlan = SuggestedPlan<NextDaysCandidate>;
@@ -133,7 +134,10 @@ export function suggestForTrail(
   const candidates = overnightCandidates(trail.waypoints ?? []).map(waypoint => ({
     km: waypoint.totalDistance ?? 0,
     waypoint,
+    walk: placeWalk(waypoint),
   }));
+  // Day 1 from an off-route stop starts with the walk back to the route.
+  const startWaypoint = start.waypointId ? trail.waypoints?.find(wp => wp.id === start.waypointId) : undefined;
   return suggestDays({
     index,
     candidates,
@@ -143,6 +147,7 @@ export function suggestForTrail(
     alternatives: prefs.alternatives,
     criteria,
     baseKmh,
+    fromWalk: placeWalk(startWaypoint),
   });
 }
 

@@ -161,16 +161,35 @@ export function todayRows(trail: TrailJson, day: ComputedDay): TodayRow[] {
     { waypoint: endWp, name: day.endName, role: 'end', km: day.endKm },
   ];
 
+  // An off-route stop either end is walked to and from (`computeDays`): the
+  // walk back out joins the first leg, the walk in the last, so the rows add
+  // up to the day.
+  const walkOut = day.walkOut;
+  const walkIn = day.walkIn;
   const rows: TodayRow[] = [];
   let totalAscentM = 0;
   let totalDescentM = 0;
+  let walkedOffRoute = 0;
   stops.forEach((stop, i) => {
     const prevKm = i === 0 ? stop.km : stops[i - 1].km;
-    const legKm = Math.max(0, stop.km - prevKm);
-    const { gain, loss } =
-      legKm > 0
-        ? calculateElevationBetween(prevKm, stop.km, points, breakStarts)
-        : { gain: 0, loss: 0 };
+    const route = Math.max(0, stop.km - prevKm);
+    const route_ =
+      route > 0 ? calculateElevationBetween(prevKm, stop.km, points, breakStarts) : { gain: 0, loss: 0 };
+    let legKm = route;
+    let gain = route_.gain;
+    let loss = route_.loss;
+    if (i === 1 && walkOut) {
+      legKm += walkOut.km;
+      gain += walkOut.descentM;
+      loss += walkOut.ascentM;
+      walkedOffRoute += walkOut.km;
+    }
+    if (stop.role === 'end' && i > 0 && walkIn) {
+      legKm += walkIn.km;
+      gain += walkIn.ascentM;
+      loss += walkIn.descentM;
+      walkedOffRoute += walkIn.km;
+    }
     totalAscentM += gain;
     totalDescentM += loss;
     rows.push({
@@ -180,7 +199,7 @@ export function todayRows(trail: TrailJson, day: ComputedDay): TodayRow[] {
       type: stop.waypoint?.type ?? 'waypoint',
       role: stop.role,
       km: stop.km,
-      fromStartKm: stop.km - day.startKm,
+      fromStartKm: stop.km - day.startKm + walkedOffRoute,
       legKm,
       legAscentM: gain,
       legDescentM: loss,

@@ -10,7 +10,7 @@
  * Pure and React-free, like `plan-stops.ts`.
  */
 
-import { buildTimeIndex, type PlanTrail } from '@lib/day-calculator';
+import { buildTimeIndex, placeWalk, type PlanTrail } from '@lib/day-calculator';
 import {
   MAX_SUGGEST_DAYS,
   suggestDays,
@@ -43,6 +43,7 @@ export { MAX_SUGGEST_DAYS };
 export interface SearchCandidate {
   km: number;
   candidate: StopCandidate;
+  walk?: StopCandidate['walk'] | null;
 }
 
 export interface NextDaysInput {
@@ -72,7 +73,12 @@ export function suggestNextDays(
   const candidates = stopCandidates(trail, input.direction).map((candidate) => ({
     km: candidate.activeKm,
     candidate,
+    walk: candidate.walk ?? null,
   }));
+  // Day 1 from an off-route stop starts with the walk back to the route.
+  const startWaypoint = input.start.waypointId
+    ? trail.waypoints.find((wp) => wp.id === input.start.waypointId)
+    : undefined;
   return suggestDays({
     index,
     candidates,
@@ -82,6 +88,7 @@ export function suggestNextDays(
     alternatives: input.prefs.alternatives,
     criteria: input.criteria,
     baseKmh: input.baseKmh,
+    fromWalk: placeWalk(startWaypoint),
   });
 }
 

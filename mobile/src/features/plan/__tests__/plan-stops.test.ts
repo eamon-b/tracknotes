@@ -182,6 +182,16 @@ describe('stopLegs', () => {
     expect(legs.get('p80')).toEqual({ distanceKm: 40, ascentM: 100, descentM: 300 });
   });
 
+  it('adds the walk out of an off-route stop and the walk in to an off-route place', () => {
+    const walk = { km: 2, ascentM: 30, descentM: 10 };
+    const off = [place(20), { ...place(40), walk }, place(60)];
+    const legs = stopLegs(off, withStops(40), opts);
+    // Ticked and off the route: its day ends with the walk in.
+    expect(legs.get('p40')).toEqual({ distanceKm: 42, ascentM: 430, descentM: 10, offTrailKm: 2 });
+    // The next place starts with the walk back out, climbing what came down.
+    expect(legs.get('p60')).toEqual({ distanceKm: 22, ascentM: 110, descentM: 130, offTrailKm: 2 });
+  });
+
   it('counts from the chosen section start', () => {
     const legs = stopLegs(candidates, undefined, { ...opts, sectionStartKm: 50 });
     expect(legs.get('p60')).toEqual({ distanceKm: 10, ascentM: 0, descentM: 100 });

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildTimeIndex } from './day-calculator';
-import { assertSearchable, measureDay, suggestDays, type SuggestDaysInput } from './day-suggest';
+import { assertSearchable, measureDay, suggestDays, withWalks, type SuggestDaysInput } from './day-suggest';
 
 /** A 100 km trail, flat unless `hill` raises a stretch (1 m per 10 m of km … simple ramps). */
 function track(lengthKm = 100, elevationAt: (km: number) => number = () => 100) {
@@ -13,6 +13,7 @@ function track(lengthKm = 100, elevationAt: (km: number) => number = () => 100) 
 interface Camp {
   km: number;
   name: string;
+  walk?: { km: number; ascentM: number; descentM: number };
 }
 
 const camp = (km: number): Camp => ({ km, name: `Camp ${km}` });
@@ -169,5 +170,39 @@ describe('suggestDays', () => {
     expect(plans[0].stops.map(s => s.km)).toEqual([32]);
     expect(plans[0].days[1].cost).toBe(0);
     expect(plans[0].score).toBe(0);
+  });
+});
+
+describe('walks to camps off the route', () => {
+  const offRoute = (km: number, walkKm: number): Camp => ({ ...camp(km), walk: { km: walkKm, ascentM: 0, descentM: 0 } });
+
+  it('adds the walk out and in to a day, and its Naismith hours over the totals', () => {
+    const day = withWalks(
+      { distanceKm: 10, ascentM: 0, descentM: 0, hours: 2.5 },
+      { km: 1, ascentM: 50, descentM: 0 },
+      { km: 2, ascentM: 100, descentM: 10 },
+      4
+    );
+    // Out climbs what the walk in to that stop descended, and the other way round.
+    expect(day).toEqual({ distanceKm: 13, ascentM: 100, descentM: 60, hours: 13 / 4 + 100 / 600 });
+  });
+
+  it('counts the walk to a camp against the day that ends there', () => {
+    // Camp 20 is 6 km off the route: 26 km is over the 25 km maximum, so the
+    // first day ends at 22 instead.
+    const { plans } = suggestDays(
+      input({ days: 1, candidates: [offRoute(20, 6), camp(22)], criteria: { distanceKm: { min: 18, max: 25 } } })
+    );
+    expect(plans[0].stops.map(s => s.km)).toEqual([22]);
+    expect(plans.some(plan => plan.stops.some(s => s.km === 20))).toBe(false);
+  });
+
+  it('starts the first day with the walk back out of an off-route stop', () => {
+    const { plans } = suggestDays(
+      input({ days: 1, candidates: [camp(20), camp(24)], criteria: { distanceKm: { min: 18, max: 25 } }, fromWalk: { km: 3, ascentM: 0, descentM: 0 } })
+    );
+    // 20 + 3 = 23 fits; 24 + 3 = 27 does not.
+    expect(plans.map(plan => plan.stops.map(s => s.km))).toEqual([[20]]);
+    expect(plans[0].days[0].distanceKm).toBe(23);
   });
 });

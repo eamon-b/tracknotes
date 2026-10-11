@@ -250,6 +250,16 @@ describe('computePlanDays', () => {
     expect(days.map(d => d.distanceKm)).toEqual([20, 30, 50]);
   });
 
+  it('walks to a stop off the route and back, by its waypoint', () => {
+    const trail = flatTrail();
+    trail.waypoints![1] = { ...trail.waypoints![1], offTrailKm: 2.6, accessMode: 'foot', offTrailAscentM: 17, offTrailDescentM: 7 };
+    const plan = toggleStop(emptyPlan(), { id: 'w_a', km: 20, name: 'Camp A' }, opts);
+    const days = computePlanDays(trail, plan, { baseKmh: 4 });
+    expect(days.map(d => d.distanceKm)).toEqual([22.6, 82.6]);
+    expect(days.map(d => [d.ascentM, d.descentM])).toEqual([[17, 7], [7, 17]]);
+    expect(days.map(d => d.offTrailKm)).toEqual([2.6, 2.6]);
+  });
+
   it('leaves dates undefined when there is no start date', () => {
     const plan = toggleStop(emptyPlan(), { id: 'w_a', km: 20, name: 'Camp A' }, opts);
     const days = computePlanDays(flatTrail(), plan, { baseKmh: 4 });

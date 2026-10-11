@@ -21,6 +21,7 @@ import {
 import type { PlanDocument } from '@lib/plan-types';
 import { KM_EPSILON, toActiveKm, toNoboKm, type PlanDirection } from '@lib/plan-direction';
 import { calculateElevationBetween, type ElevationPoint } from '@lib/track-geometry';
+import { placeWalk, type PlaceWalk } from '@lib/day-calculator';
 import type { TrailJson } from '../../services/trail-assets';
 import type { Direction } from '../../state/settings-store';
 
@@ -36,6 +37,8 @@ export interface StopCandidate {
   activeKm: number;
   /** NOBO-absolute km — what a `PlanStop` stores. */
   noboKm: number;
+  /** The walk to it when it is off the route (`@lib/day-calculator` `placeWalk`). */
+  walk?: PlaceWalk;
 }
 
 /** The guide's direction setting as the plan document's direction enum. */
@@ -77,7 +80,13 @@ export function stopCandidateOf(
     type: wp.type,
     activeKm,
     noboKm,
+    ...walkOf(wp),
   };
+}
+
+function walkOf(wp: TrailJson['waypoints'][number]): { walk?: PlaceWalk } {
+  const walk = placeWalk(wp);
+  return walk ? { walk } : {};
 }
 
 /** Options for `stopCandidates`. */
@@ -120,6 +129,12 @@ export interface StopLeg {
   ascentM: number;
   /** Metres descended over that stretch. */
   descentM: number;
+  /**
+   * Of `distanceKm`, the km walked off the route: back out of the stop it
+   * starts from and in to this place, when they are off it. Their climb is in
+   * `ascentM`/`descentM`. Absent when the leg stays on the route.
+   */
+  offTrailKm?: number;
 }
 
 /**
@@ -147,28 +162,45 @@ export function stopLegs(
     breakStarts?: ReadonlySet<number>;
   },
 ): Map<string, StopLeg> {
-  const stopKms = (plan?.stops ?? []).map((s) =>
-    toActiveKm(s.km, opts.direction, opts.totalDistance),
-  );
-  const anchors = [opts.sectionStartKm, ...stopKms].sort((a, b) => a - b);
+  // A stop off the route is walked back from; its walk is its candidate's.
+  const walkById = new Map<string, PlaceWalk>();
+  for (const candidate of candidates) {
+    if (candidate.waypointId && candidate.walk) walkById.set(candidate.waypointId, candidate.walk);
+  }
+  const anchors: { km: number; walk?: PlaceWalk }[] = [
+    { km: opts.sectionStartKm },
+    ...(plan?.stops ?? []).map((s) => ({
+      km: toActiveKm(s.km, opts.direction, opts.totalDistance),
+      walk: s.waypointId ? walkById.get(s.waypointId) : undefined,
+    })),
+  ].sort((a, b) => a.km - b.km);
 
   const legs = new Map<string, StopLeg>();
   for (const candidate of candidates) {
     const km = candidate.activeKm;
     // The same test as the row's checkbox, so the figures and the tick agree.
     const ticked = plan !== undefined && isStopSelected(plan, stopKeyOf(candidate));
-    let from = 0;
+    let from: { km: number; walk?: PlaceWalk } = { km: 0 };
     for (const anchor of anchors) {
-      const behind = ticked ? anchor < km - KM_EPSILON : anchor <= km + KM_EPSILON;
+      const behind = ticked ? anchor.km < km - KM_EPSILON : anchor.km <= km + KM_EPSILON;
       if (!behind) break;
       from = anchor;
     }
-    const distanceKm = Math.max(0, km - from);
+    const routeKm = Math.max(0, km - from.km);
     const { gain, loss } =
-      distanceKm > 0
-        ? calculateElevationBetween(from, km, opts.points, opts.breakStarts)
+      routeKm > 0
+        ? calculateElevationBetween(from.km, km, opts.points, opts.breakStarts)
         : { gain: 0, loss: 0 };
-    legs.set(candidate.key, { distanceKm, ascentM: gain, descentM: loss });
+    // Standing at the place itself (an unticked row at a stop's km) is no leg.
+    const walkOut = routeKm > 0 ? from.walk : undefined;
+    const walkIn = candidate.walk;
+    const offTrailKm = (walkOut?.km ?? 0) + (walkIn?.km ?? 0);
+    legs.set(candidate.key, {
+      distanceKm: routeKm + offTrailKm,
+      ascentM: gain + (walkOut?.descentM ?? 0) + (walkIn?.ascentM ?? 0),
+      descentM: loss + (walkOut?.ascentM ?? 0) + (walkIn?.descentM ?? 0),
+      ...(offTrailKm > 0 ? { offTrailKm } : {}),
+    });
   }
   return legs;
 }

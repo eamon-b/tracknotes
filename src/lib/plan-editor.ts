@@ -39,7 +39,7 @@ import type {
   SectionConfig,
 } from './plan-types';
 import { PLAN_LIMITS, PLAN_WAYPOINT_ID_PATTERN } from './plan-types';
-import { computeDays, type PlanStopInput, type PlanTrail } from './day-calculator';
+import { computeDays, placeWalk, type PlanStopInput, type PlanTrail } from './day-calculator';
 import type { TrailPOI } from './trail-types';
 import { baseWaypointType, isAccessWaypoint } from './waypoint-taxonomy';
 
@@ -749,9 +749,14 @@ export function computePlanDays(
   const rangeEndKm = opts.section ? opts.section.endKm : total;
   const boundaryStops = active.filter(stop => stop.km > rangeStartKm && stop.km < rangeEndKm);
 
+  // A stop off the route adds its walk in and out to the days either side
+  // (`computeDays`); the walk is the stop's waypoint's, by id.
+  const byId = new Map<string, PlanWaypoint>();
+  for (const wp of trail.waypoints ?? []) if (wp.id && !byId.has(wp.id)) byId.set(wp.id, wp);
   const stopInputs: PlanStopInput[] = boundaryStops.map(stop => ({
     km: stop.km,
     waypointName: stop.name,
+    walk: stop.waypointId ? placeWalk(byId.get(stop.waypointId)) : null,
   }));
 
   const days = computeDays(trail, stopInputs, plan.startDate, opts.section, opts.baseKmh);
