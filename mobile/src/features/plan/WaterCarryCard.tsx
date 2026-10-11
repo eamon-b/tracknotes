@@ -57,12 +57,18 @@ export function WaterCarryCard({
             )}
           </View>
           <Text style={[styles.stats, { color: colors.textSecondary }]}>
-            {formatDistance(gap.distanceKm, units)} carry
+            {formatDistance(gap.distanceKm, units)} carry{offRouteText(gap, units)}
           </Text>
         </View>
       ))}
     </View>
   );
+}
+
+/** " (incl. 2.3 km off route to water)" — the walk to and from sources off the route. */
+function offRouteText(gap: WaterGap, units: Parameters<typeof formatDistance>[1]): string {
+  const km = (gap.fromOffTrailKm ?? 0) + (gap.toOffTrailKm ?? 0);
+  return km > 0 ? ` (incl. ${formatDistance(km, units)} off route to water)` : '';
 }
 
 const styles = StyleSheet.create({

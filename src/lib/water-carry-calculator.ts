@@ -8,6 +8,7 @@
  */
 
 import type { PlanWaypoint, WaterGap } from './plan-types';
+import { placeWalk } from './day-calculator';
 import { isWaterWaypoint } from './waypoint-taxonomy';
 
 export type { WaterGap };
@@ -17,6 +18,12 @@ export interface WaterSource {
   km: number;
   type: string;
   seasonalNote?: string;
+  /**
+   * The walk from the route to the source, one way, when it is off the route
+   * (`placeWalk`): it is carried twice, in to the source on the carry before
+   * it and back out on the carry after.
+   */
+  offTrailKm?: number;
 }
 
 export interface WaterCarryAnalysis {
@@ -46,18 +53,27 @@ export function extractWaterSources(waypoints: PlanWaypoint[]): WaterSource[] {
           seasonalNote = wp.description;
         }
       }
+      const walk = placeWalk(wp);
       return {
         name: wp.name ?? 'Water',
         km: wp.totalDistance ?? 0,
         type: wp.type ?? 'water',
         seasonalNote,
+        ...(walk ? { offTrailKm: walk.km } : {}),
       };
     })
-    .sort((a, b) => a.km - b.km);
+    // At one km, the source nearest the route first: it is the one to use.
+    .sort((a, b) => a.km - b.km || (a.offTrailKm ?? 0) - (b.offTrailKm ?? 0));
 }
 
 /**
  * Compute gaps between consecutive water sources, including trail start/end.
+ *
+ * A carry is measured as walked: the route km between the two sources, plus
+ * the walk back to the route from the one it starts at and the walk in to the
+ * one it ends at when they are off the route. A source 2 km down a side
+ * valley adds 2 km to the carry on each side of it, which is how far the
+ * water has to last.
  *
  * With no sources the whole range is one gap, start to end. Whether that
  * means "dry" or "unmapped" is the caller's to say (`hasWaterData`); what this
@@ -87,50 +103,51 @@ export function computeWaterGaps(
     return gaps;
   }
 
-  // Deduplicate sources at the same km position
-  const deduped = sources.filter(
-    (s, i) => i === 0 || s.km !== sources[i - 1].km,
+  // A source is no use when another is reached for no more walking: one at the
+  // same km nearer the route, or one on the route a short way along from a
+  // tap 2.4 km down a side valley. Keeping it would list a carry from the far
+  // tap to the near one that nobody walks. Ties keep the first.
+  const reach = (s: WaterSource) => s.offTrailKm ?? 0;
+  const deduped = sources.filter((s, i) =>
+    !sources.some((t, j) => {
+      if (j === i) return false;
+      const cost = Math.abs(t.km - s.km) + reach(t);
+      return cost < reach(s) || (cost === reach(s) && j < i && t.km === s.km);
+    }),
   );
 
-  // Gap from trail start to first source
-  const firstDist = deduped[0].km - trailStartKm;
-  if (firstDist > 0) {
+  const carry = (
+    fromName: string,
+    toName: string,
+    fromKm: number,
+    toKm: number,
+    walkOut: number,
+    walkIn: number,
+  ) => {
+    const dist = toKm - fromKm;
+    if (dist <= 0) return;
+    const total = dist + walkOut + walkIn;
     gaps.push({
-      fromName: 'Trail Start',
-      toName: deduped[0].name,
-      fromKm: trailStartKm,
-      toKm: deduped[0].km,
-      distanceKm: Math.round(firstDist * 10) / 10,
-      isDryStretch: firstDist >= effectiveThreshold,
+      fromName,
+      toName,
+      fromKm,
+      toKm,
+      distanceKm: Math.round(total * 10) / 10,
+      isDryStretch: total >= effectiveThreshold,
+      ...(walkOut > 0 ? { fromOffTrailKm: walkOut } : {}),
+      ...(walkIn > 0 ? { toOffTrailKm: walkIn } : {}),
     });
-  }
+  };
 
-  // Gaps between consecutive sources
+  const first = deduped[0];
+  carry('Trail Start', first.name, trailStartKm, first.km, 0, first.offTrailKm ?? 0);
   for (let i = 0; i < deduped.length - 1; i++) {
-    const dist = deduped[i + 1].km - deduped[i].km;
-    if (dist <= 0) continue;
-    gaps.push({
-      fromName: deduped[i].name,
-      toName: deduped[i + 1].name,
-      fromKm: deduped[i].km,
-      toKm: deduped[i + 1].km,
-      distanceKm: Math.round(dist * 10) / 10,
-      isDryStretch: dist >= effectiveThreshold,
-    });
+    const from = deduped[i];
+    const to = deduped[i + 1];
+    carry(from.name, to.name, from.km, to.km, from.offTrailKm ?? 0, to.offTrailKm ?? 0);
   }
-
-  // Gap from last source to trail end
-  const lastDist = trailEndKm - deduped[deduped.length - 1].km;
-  if (lastDist > 0) {
-    gaps.push({
-      fromName: deduped[deduped.length - 1].name,
-      toName: 'Trail End',
-      fromKm: deduped[deduped.length - 1].km,
-      toKm: trailEndKm,
-      distanceKm: Math.round(lastDist * 10) / 10,
-      isDryStretch: lastDist >= effectiveThreshold,
-    });
-  }
+  const last = deduped[deduped.length - 1];
+  carry(last.name, 'Trail End', last.km, trailEndKm, last.offTrailKm ?? 0, 0);
 
   return gaps;
 }

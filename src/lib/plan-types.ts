@@ -212,8 +212,17 @@ export interface WaterGap {
   toName: string;
   fromKm: number;
   toKm: number;
+  /**
+   * The carry: route km from one source to the next, plus the walk back to
+   * the route from `fromName` and the walk in to `toName` when either is off
+   * the route.
+   */
   distanceKm: number;
   isDryStretch: boolean;   // >= dryStretchThreshold km
+  /** Of `distanceKm`, the walk back to the route from the source it starts at. */
+  fromOffTrailKm?: number;
+  /** Of `distanceKm`, the walk off the route to the source it ends at. */
+  toOffTrailKm?: number;
 }
 
 /** Minimal track point shape required by plan calculators. */

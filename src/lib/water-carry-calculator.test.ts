@@ -188,3 +188,46 @@ describe('analyzeWaterCarryForSection', () => {
     expect(result).toEqual({ sources: [], gaps: [], longestGapKm: 0, dryStretchCount: 0, hasWaterData: false });
   });
 });
+
+describe('water off the route', () => {
+  const water = (name: string, km: number, extra: Record<string, unknown> = {}) =>
+    ({ name, type: 'water', totalDistance: km, ...extra }) as never;
+
+  it('carries the walk to a source off the route on both carries either side of it', () => {
+    const analysis = analyzeWaterCarry(
+      [water('Tank', 10), water('Creek', 20, { offTrailKm: 2.3, accessMode: 'foot' }), water('Spring', 30)],
+      40,
+    );
+    const [, toCreek, fromCreek] = analysis.gaps;
+    expect(toCreek).toMatchObject({ fromName: 'Tank', toName: 'Creek', distanceKm: 12.3, toOffTrailKm: 2.3 });
+    expect(fromCreek).toMatchObject({ fromName: 'Creek', toName: 'Spring', distanceKm: 12.3, fromOffTrailKm: 2.3 });
+    expect(toCreek).not.toHaveProperty('fromOffTrailKm');
+  });
+
+  it('makes a stretch dry when the walk to water tips it over the threshold', () => {
+    const { gaps } = analyzeWaterCarry([water('A', 0), water('B', 14, { offTrailKm: 1.5 })], 14, 15);
+    expect(gaps[0]).toMatchObject({ distanceKm: 15.5, isDryStretch: true });
+  });
+
+  it('uses the source nearest the route when two share a km', () => {
+    const { gaps } = analyzeWaterCarry(
+      [water('Far tank', 10, { offTrailKm: 2, accessMode: 'foot' }), water('Tap', 10), water('End', 20)],
+      20,
+    );
+    expect(gaps.map(g => g.toName)).toEqual(['Tap', 'End']);
+    expect(gaps[1].distanceKm).toBe(10);
+  });
+
+  it('drops a far source when another is reached for less walking', () => {
+    const { gaps } = analyzeWaterCarry(
+      [water('Tap', 11), water('Far creek', 11.4, { offTrailKm: 2.4, accessMode: 'foot' }), water('End', 20)],
+      20,
+    );
+    expect(gaps.map(g => g.toName)).toEqual(['Tap', 'End']);
+  });
+
+  it('does not walk to water reached by a ride', () => {
+    const { gaps } = analyzeWaterCarry([water('A', 0), water('Town tap', 10, { offTrailKm: 8, accessMode: 'hitch' })], 20);
+    expect(gaps[0].distanceKm).toBe(10);
+  });
+});
