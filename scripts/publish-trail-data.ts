@@ -36,8 +36,9 @@
  * `--dry-run` reports the same refusals; `--check` only compares.
  *
  * Env: R2_BUCKET (default aus-map-data), TRAIL_DATA_BASE_URL (default
- * https://data.contour-map-tiles.net). Uploads need `wrangler` on PATH and
- * logged in (`wrangler login`).
+ * https://data.contour-map-tiles.net). Uploads run `wrangler`, a root
+ * devDependency that `npm run` puts on PATH, logged in with `wrangler login`
+ * or a `CLOUDFLARE_API_TOKEN` in the environment.
  */
 
 import { spawnSync } from 'child_process';
@@ -231,7 +232,7 @@ function requireWrangler(): void {
   const probe = spawnSync('wrangler', ['--version'], { stdio: 'ignore' });
   if (probe.error || probe.status !== 0) {
     throw new Error(
-      'wrangler not found (or not runnable). Install it with `npm install -g wrangler` and run `wrangler login`.'
+      'wrangler not found (or not runnable). Run `npm install` (it is a devDependency) and start this through `npm run publish:trail-data`, then `wrangler login` or set CLOUDFLARE_API_TOKEN.'
     );
   }
 }
