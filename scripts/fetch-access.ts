@@ -150,6 +150,16 @@ export function clusterCandidates(candidates: readonly Candidate[]): Array<{ bbo
   return clusters;
 }
 
+/**
+ * Types that mark a point of the route itself — a junction, a crossing, a km
+ * marker, a route break — not a place anyone walks off it to reach. The CDT's
+ * "Wyoming old route 6 branches off Wyoming old route 5" is a junction note.
+ */
+const NOT_DESTINATIONS = new Set(['junction', 'milestone', 'road-crossing', 'inlet-crossing', 'gap', 'side-trip', 'endpoint']);
+
+/** A walk whose last, cross-country stretch is longer than this is printed for review (metres). */
+const LONG_CROSS_COUNTRY_M = 150;
+
 /** A waypoint this close to one of the trail's side trips is reached by it (metres). */
 const ON_SIDE_TRIP_M = 200;
 
@@ -174,7 +184,7 @@ export function selectCandidates(
   const candidates: Candidate[] = [];
   const seen = new Set<string>();
   for (const wp of trail.waypoints) {
-    if (!wp.id || seen.has(wp.id) || isAccessWaypoint(wp.type)) continue;
+    if (!wp.id || seen.has(wp.id) || isAccessWaypoint(wp.type) || NOT_DESTINATIONS.has(wp.type)) continue;
     if (wp.offTrailKm !== undefined && !ownIds.has(wp.id)) continue;
     seen.add(wp.id);
     const snap = snapToTrail(wp.lat, wp.lon, trail.track.points, undefined, breakStarts);
@@ -299,6 +309,7 @@ function entryFor(candidate: Candidate, result: ReturnType<typeof findAccess>): 
     offTrailKm: round(result.lengthM / 1000, 2),
     ascentM: result.ascentM,
     descentM: result.descentM,
+    ...(result.offNetworkM >= 1 ? { crossCountryM: Math.round(result.offNetworkM) } : {}),
     straightLineM: base.straightLineM,
     nearestKm: base.nearestKm,
     path,
@@ -441,7 +452,9 @@ async function main(): Promise<void> {
       console.log(`  ${candidate.nearestKm.toFixed(1).padStart(7)}  (unchanged)            ${candidate.name}: ${entry.reason}`);
       continue;
     }
-    const moved = Math.abs((entry.junctionKm ?? 0) - candidate.nearestKm) >= 0.5 ? '  ← moved' : '';
+    const moved =
+      (Math.abs((entry.junctionKm ?? 0) - candidate.nearestKm) >= 0.5 ? '  ← moved' : '') +
+      ((entry.crossCountryM ?? 0) > LONG_CROSS_COUNTRY_M ? `  ← ends ${entry.crossCountryM} m cross-country` : '');
     console.log(
       `  ${candidate.nearestKm.toFixed(1).padStart(7)} → ${entry.junctionKm!.toFixed(1).padStart(7)}   ` +
         `${entry.offTrailKm!.toFixed(2)} km +${entry.ascentM}/-${entry.descentM} m   ${candidate.name}${moved}`

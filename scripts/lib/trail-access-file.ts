@@ -22,6 +22,7 @@
  *       "offTrailKm": 2.82,
  *       "ascentM": 9,
  *       "descentM": 2,
+ *       "crossCountryM": 5,
  *       "straightLineM": 1409,
  *       "nearestKm": 114.52,
  *       "path": [[33.930011, 134.519143], …]
@@ -63,6 +64,12 @@ export interface TrailAccessEntry {
   offTrailKm?: number;
   ascentM?: number;
   descentM?: number;
+  /**
+   * Of the walk, the part off any mapped way, between the place and the
+   * nearest way. Long ones deserve a look: a landmark seen from a lookout, or
+   * a place with no mapped path to it.
+   */
+  crossCountryM?: number;
   straightLineM?: number;
   nearestKm?: number;
   path?: Array<[number, number]>;
@@ -136,7 +143,7 @@ export function parseTrailAccessFile(text: string, filePath: string): TrailAcces
     }
     if (!isLatLon(entry.junction)) fail(`${where}.junction must be [lat, lon]`);
     if (!isFiniteNumber(entry.offTrailKm) || entry.offTrailKm < 0) fail(`${where}.offTrailKm must be a number ≥ 0`);
-    for (const key of ['junctionKm', 'ascentM', 'descentM', 'straightLineM', 'nearestKm'] as const) {
+    for (const key of ['junctionKm', 'ascentM', 'descentM', 'crossCountryM', 'straightLineM', 'nearestKm'] as const) {
       if (entry[key] !== undefined && !isFiniteNumber(entry[key])) fail(`${where}.${key} must be a number`);
     }
     if (entry.path !== undefined && !(Array.isArray(entry.path) && entry.path.every(isLatLon))) {
