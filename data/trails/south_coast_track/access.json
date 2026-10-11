@@ -1,0 +1,90 @@
+{
+  "source": "OpenStreetMap ways via Overpass; heights from Copernicus GLO-30",
+  "attribution": "© OpenStreetMap contributors (ODbL); Copernicus DEM © DLR e.V. 2010-2014 and © Airbus 2014-2018",
+  "fetchedAt": "2026-10-11T21:59:38.819Z",
+  "endpoint": "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+  "minDistanceM": 150,
+  "places": {
+    "w_4e50d347": {
+      "name": "Melaleuca walkers' huts",
+      "method": "osm",
+      "junction": [-43.422174, 146.162995],
+      "junctionKm": 0,
+      "offTrailKm": 0.47,
+      "ascentM": 3,
+      "descentM": 0,
+      "crossCountryM": 30,
+      "straightLineM": 446,
+      "nearestKm": 0,
+      "path": [
+        [-43.422174, 146.162995],
+        [-43.421799, 146.16252],
+        [-43.42096, 146.163426],
+        [-43.420307, 146.163723],
+        [-43.420127, 146.163895],
+        [-43.419093, 146.164212],
+        [-43.418708, 146.16406],
+        [-43.41847, 146.16423]
+      ]
+    },
+    "w_c0ac40e4": {
+      "name": "Drinking water",
+      "method": "osm",
+      "junction": [-43.583288, 146.893586],
+      "junctionKm": 85.52,
+      "offTrailKm": 0.22,
+      "ascentM": 0,
+      "descentM": 8,
+      "crossCountryM": 7,
+      "straightLineM": 192,
+      "nearestKm": 85.53,
+      "path": [
+        [-43.583288, 146.893586],
+        [-43.58335, 146.893785],
+        [-43.583064, 146.893989],
+        [-43.582857, 146.893963],
+        [-43.582717, 146.894446],
+        [-43.582743, 146.895641]
+      ]
+    },
+    "w_d65b6f04": {
+      "name": "Osmiridium Beach Campsite",
+      "method": "osm",
+      "junction": [-43.55948, 146.62264],
+      "junctionKm": 56.51,
+      "offTrailKm": 0.29,
+      "ascentM": 3,
+      "descentM": 15,
+      "crossCountryM": 13,
+      "straightLineM": 273,
+      "nearestKm": 56.73,
+      "path": [
+        [-43.55948, 146.62264],
+        [-43.560375, 146.623606],
+        [-43.561409, 146.624035],
+        [-43.561448, 146.624347],
+        [-43.561553, 146.624421]
+      ]
+    },
+    "w_fe5e4f78": {
+      "name": "Boltons Green Campground",
+      "method": "osm",
+      "junction": [-43.583288, 146.893586],
+      "junctionKm": 85.52,
+      "offTrailKm": 0.18,
+      "ascentM": 0,
+      "descentM": 3,
+      "crossCountryM": 80,
+      "straightLineM": 153,
+      "nearestKm": 85.53,
+      "path": [
+        [-43.583288, 146.893586],
+        [-43.58335, 146.893785],
+        [-43.583064, 146.893989],
+        [-43.582857, 146.893963],
+        [-43.582791, 146.894239],
+        [-43.582976, 146.895197]
+      ]
+    }
+  }
+}

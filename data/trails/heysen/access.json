@@ -1,0 +1,578 @@
+{
+  "source": "OpenStreetMap ways via Overpass; heights from Copernicus GLO-30",
+  "attribution": "© OpenStreetMap contributors (ODbL); Copernicus DEM © DLR e.V. 2010-2014 and © Airbus 2014-2018",
+  "fetchedAt": "2026-10-11T21:53:37.093Z",
+  "endpoint": "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+  "minDistanceM": 150,
+  "places": {
+    "w_01f47758": {
+      "name": "Morse Cottage",
+      "method": "osm",
+      "junction": [-33.684501, 138.943621],
+      "junctionKm": 488.76,
+      "offTrailKm": 0.31,
+      "ascentM": 4,
+      "descentM": 0,
+      "crossCountryM": 36,
+      "straightLineM": 307,
+      "nearestKm": 488.86,
+      "path": [
+        [-33.684501, 138.943621],
+        [-33.68591, 138.941239],
+        [-33.685879, 138.940855]
+      ]
+    },
+    "w_295f4a99": {
+      "name": "Heysen Hideaway",
+      "method": "osm",
+      "junction": [-34.955747, 138.71818],
+      "junctionKm": 212.69,
+      "offTrailKm": 0.4,
+      "ascentM": 0,
+      "descentM": 16,
+      "crossCountryM": 57,
+      "straightLineM": 150,
+      "nearestKm": 212.9,
+      "path": [
+        [-34.955747, 138.71818],
+        [-34.955828, 138.718363],
+        [-34.95617, 138.718718],
+        [-34.95318, 138.71905]
+      ]
+    },
+    "w_2f8080c2": {
+      "name": "Mt Lofty Summit cafe",
+      "method": "osm",
+      "junction": [-34.973666, 138.706743],
+      "junctionKm": 206.89,
+      "offTrailKm": 0.36,
+      "ascentM": 63,
+      "descentM": 0,
+      "crossCountryM": 65,
+      "straightLineM": 218,
+      "nearestKm": 206.82,
+      "path": [
+        [-34.973666, 138.706743],
+        [-34.973255, 138.707522],
+        [-34.973271, 138.70766],
+        [-34.972981, 138.708001],
+        [-34.972915, 138.708509],
+        [-34.973033, 138.70874],
+        [-34.973588, 138.709317],
+        [-34.974113, 138.708992]
+      ]
+    },
+    "w_33bcba8a": {
+      "name": "Mount Brown Bush Camp",
+      "method": "osm",
+      "junction": [-32.526144, 138.034038],
+      "junctionKm": 837.98,
+      "offTrailKm": 0.17,
+      "ascentM": 0,
+      "descentM": 25,
+      "crossCountryM": 170,
+      "straightLineM": 167,
+      "nearestKm": 837.88,
+      "path": [
+        [-32.526144, 138.034038],
+        [-32.525533, 138.035704]
+      ]
+    },
+    "w_37952977": {
+      "name": "Barossa Backpackers",
+      "method": "osm",
+      "junction": [-34.525715, 138.964997],
+      "junctionKm": 323.92,
+      "offTrailKm": 0.15,
+      "ascentM": 0,
+      "descentM": 0,
+      "crossCountryM": 23,
+      "straightLineM": 162,
+      "nearestKm": 323.94,
+      "path": [
+        [-34.525715, 138.964997],
+        [-34.526769, 138.964536],
+        [-34.526809, 138.964295]
+      ]
+    },
+    "w_4ddbe35f": {
+      "name": "Goat Square Cottages",
+      "method": "osm",
+      "junction": [-34.525456, 138.954548],
+      "junctionKm": 325.17,
+      "offTrailKm": 0.2,
+      "ascentM": 0,
+      "descentM": 3,
+      "crossCountryM": 61,
+      "straightLineM": 205,
+      "nearestKm": 325.21,
+      "path": [
+        [-34.525456, 138.954548],
+        [-34.524248, 138.955061],
+        [-34.523755, 138.954763]
+      ]
+    },
+    "w_5080de9a": {
+      "name": "A Little Pug Cottage at Melrose",
+      "method": "osm",
+      "junction": [-32.826796, 138.187032],
+      "junctionKm": 783.17,
+      "offTrailKm": 0.32,
+      "ascentM": 0,
+      "descentM": 0,
+      "crossCountryM": 17,
+      "straightLineM": 216,
+      "nearestKm": 783.28,
+      "path": [
+        [-32.826796, 138.187032],
+        [-32.827712, 138.188696],
+        [-32.826718, 138.18943]
+      ]
+    },
+    "w_57397e6d": {
+      "name": "Jewel of the Valley",
+      "method": "osm",
+      "junction": [-34.524185, 138.960655],
+      "junctionKm": 324.33,
+      "offTrailKm": 0.22,
+      "ascentM": 0,
+      "descentM": 3,
+      "crossCountryM": 4,
+      "straightLineM": 169,
+      "nearestKm": 324.33,
+      "path": [
+        [-34.524185, 138.960655],
+        [-34.524058, 138.960206],
+        [-34.523775, 138.96055],
+        [-34.523492, 138.960463],
+        [-34.5232, 138.959562]
+      ]
+    },
+    "w_5b74cd4b": {
+      "name": "Spalding Escape",
+      "method": "osm",
+      "junction": [-33.497214, 138.611516],
+      "junctionKm": 611.65,
+      "offTrailKm": 0.19,
+      "ascentM": 0,
+      "descentM": 3,
+      "crossCountryM": 48,
+      "straightLineM": 196,
+      "nearestKm": 611.52,
+      "path": [
+        [-33.497214, 138.611516],
+        [-33.498316, 138.610985],
+        [-33.498496, 138.61042]
+      ]
+    },
+    "w_623efa4d": {
+      "name": "Crystal Brook Caravan Park",
+      "method": "osm",
+      "junction": [-33.346268, 138.202501],
+      "junctionKm": 691.36,
+      "offTrailKm": 0.45,
+      "ascentM": 0,
+      "descentM": 0,
+      "crossCountryM": 97,
+      "straightLineM": 198,
+      "nearestKm": 691.31,
+      "path": [
+        [-33.346268, 138.202501],
+        [-33.346247, 138.201664],
+        [-33.346057, 138.200342],
+        [-33.34629, 138.200042],
+        [-33.346428, 138.199398],
+        [-33.346504, 138.19934],
+        [-33.346858, 138.199499],
+        [-33.34714, 138.20049]
+      ]
+    },
+    "w_64050645": {
+      "name": "Burra Creek Gorge Reserve (Worlds End)",
+      "method": "osm",
+      "junction": [-33.830168, 139.046187],
+      "junctionKm": 464.86,
+      "offTrailKm": 0.24,
+      "ascentM": 0,
+      "descentM": 4,
+      "crossCountryM": 9,
+      "straightLineM": 246,
+      "nearestKm": 464.85,
+      "path": [
+        [-33.830168, 139.046187],
+        [-33.83087, 139.044125],
+        [-33.830914, 139.04403],
+        [-33.831077, 139.044101],
+        [-33.831139, 139.044037]
+      ]
+    },
+    "w_721d0707": {
+      "name": "Doughboy Reserve",
+      "method": "osm",
+      "junction": [-32.897522, 138.233234],
+      "junctionKm": 770.5,
+      "offTrailKm": 0.78,
+      "ascentM": 0,
+      "descentM": 4,
+      "crossCountryM": 84,
+      "straightLineM": 445,
+      "nearestKm": 770.52,
+      "path": [
+        [-32.897522, 138.233234],
+        [-32.895395, 138.235669],
+        [-32.895355, 138.23626],
+        [-32.895468, 138.23864],
+        [-32.895626, 138.23839],
+        [-32.89613, 138.23815],
+        [-32.896671, 138.237524]
+      ]
+    },
+    "w_7c9a0d0c": {
+      "name": "The Dutchman Hut",
+      "method": "osm",
+      "junction": [-32.29697, 137.981439],
+      "junctionKm": 878.23,
+      "offTrailKm": 0.15,
+      "ascentM": 0,
+      "descentM": 0,
+      "crossCountryM": 40,
+      "straightLineM": 166,
+      "nearestKm": 878.23,
+      "path": [
+        [-32.29697, 137.981439],
+        [-32.296624, 137.982037],
+        [-32.296614, 137.982426],
+        [-32.296364, 137.982727]
+      ]
+    },
+    "w_7e2e886f": {
+      "name": "Kapunda Tourist Park",
+      "method": "osm",
+      "junction": [-34.339257, 138.907302],
+      "junctionKm": 355.74,
+      "offTrailKm": 0.26,
+      "ascentM": 7,
+      "descentM": 0,
+      "crossCountryM": 2,
+      "straightLineM": 273,
+      "nearestKm": 355.74,
+      "path": [
+        [-34.339257, 138.907302],
+        [-34.337333, 138.908796]
+      ]
+    },
+    "w_85eb1c33": {
+      "name": "Trig Campground",
+      "method": "osm",
+      "junction": [-35.648079, 138.215724],
+      "junctionKm": 21.23,
+      "offTrailKm": 0.56,
+      "ascentM": 0,
+      "descentM": 18,
+      "crossCountryM": 11,
+      "straightLineM": 495,
+      "nearestKm": 21.05,
+      "path": [
+        [-35.648079, 138.215724],
+        [-35.64822, 138.215997],
+        [-35.649936, 138.215649],
+        [-35.650255, 138.215792],
+        [-35.651815, 138.216947],
+        [-35.652371, 138.217021],
+        [-35.65261, 138.21692]
+      ]
+    },
+    "w_88a3da5f": {
+      "name": "Wonoka Station",
+      "straightLineM": 300,
+      "nearestKm": 984.85,
+      "method": "none",
+      "reason": "no mapped way reaches the route within 3.0 km"
+    },
+    "w_90e6cbb2": {
+      "name": "Marrabel ‘Walk-in’ site",
+      "method": "osm",
+      "junction": [-34.140941, 138.877842],
+      "junctionKm": 398.78,
+      "offTrailKm": 0.17,
+      "ascentM": 0,
+      "descentM": 0,
+      "crossCountryM": 63,
+      "straightLineM": 172,
+      "nearestKm": 398.82,
+      "path": [
+        [-34.140941, 138.877842],
+        [-34.139988, 138.87784],
+        [-34.139612, 138.878351]
+      ]
+    },
+    "w_92b405f9": {
+      "name": "Old Telegraph Station Bed and Breakfast",
+      "method": "osm",
+      "junction": [-34.457602, 138.927604],
+      "junctionKm": 337.01,
+      "offTrailKm": 0.2,
+      "ascentM": 0,
+      "descentM": 0,
+      "crossCountryM": 35,
+      "straightLineM": 209,
+      "nearestKm": 337.12,
+      "path": [
+        [-34.457602, 138.927604],
+        [-34.458073, 138.929282],
+        [-34.457905, 138.9296]
+      ]
+    },
+    "w_9e2647e1": {
+      "name": "Apartments on Fiedler",
+      "method": "osm",
+      "junction": [-34.526926, 138.957805],
+      "junctionKm": 324.83,
+      "offTrailKm": 0.19,
+      "ascentM": 0,
+      "descentM": 0,
+      "crossCountryM": 43,
+      "straightLineM": 187,
+      "nearestKm": 324.92,
+      "path": [
+        [-34.526926, 138.957805],
+        [-34.52761, 138.956479],
+        [-34.527965, 138.956293]
+      ]
+    },
+    "w_ab49154b": {
+      "name": "Inman Valley",
+      "method": "osm",
+      "junction": [-35.494409, 138.45622],
+      "junctionKm": 89.76,
+      "offTrailKm": 0.22,
+      "ascentM": 0,
+      "descentM": 0,
+      "crossCountryM": 9,
+      "straightLineM": 160,
+      "nearestKm": 89.96,
+      "path": [
+        [-35.494409, 138.45622],
+        [-35.494019, 138.457273],
+        [-35.493382, 138.458313]
+      ]
+    },
+    "w_aecdaa67": {
+      "name": "Fromms Farm",
+      "method": "osm",
+      "junction": [-34.722894, 138.969353],
+      "junctionKm": 287.13,
+      "offTrailKm": 0.41,
+      "ascentM": 0,
+      "descentM": 61,
+      "crossCountryM": 17,
+      "straightLineM": 395,
+      "nearestKm": 287.04,
+      "path": [
+        [-34.722894, 138.969353],
+        [-34.723346, 138.968096],
+        [-34.723734, 138.967551],
+        [-34.724403, 138.965996],
+        [-34.72469, 138.96555]
+      ]
+    },
+    "w_b44ca17e": {
+      "name": "Griffiths Retreat and Cottage",
+      "method": "osm",
+      "junction": [-33.672778, 138.929726],
+      "junctionKm": 490.64,
+      "offTrailKm": 0.41,
+      "ascentM": 8,
+      "descentM": 0,
+      "crossCountryM": 30,
+      "straightLineM": 370,
+      "nearestKm": 490.64,
+      "path": [
+        [-33.672778, 138.929726],
+        [-33.672979, 138.929313],
+        [-33.671862, 138.927985],
+        [-33.671601, 138.927793],
+        [-33.671909, 138.926471],
+        [-33.671874, 138.926155]
+      ]
+    },
+    "w_bc550aab": {
+      "name": "Centennial Drive",
+      "method": "osm",
+      "junction": [-34.70095, 138.966262],
+      "junctionKm": 290.59,
+      "offTrailKm": 0.61,
+      "ascentM": 0,
+      "descentM": 12,
+      "crossCountryM": 8,
+      "straightLineM": 467,
+      "nearestKm": 291.82,
+      "path": [
+        [-34.70095, 138.966262],
+        [-34.700975, 138.965619],
+        [-34.701075, 138.965425],
+        [-34.701408, 138.96511],
+        [-34.70139, 138.964225],
+        [-34.700467, 138.961929],
+        [-34.699379, 138.96087],
+        [-34.69939, 138.960785]
+      ]
+    },
+    "w_beb039db": {
+      "name": "Pichi Richi Park",
+      "straightLineM": 452,
+      "nearestKm": 856.92,
+      "method": "none",
+      "reason": "no mapped way reaches the route within 3.0 km"
+    },
+    "w_c5484f7d": {
+      "name": "Melrose Holiday Units",
+      "method": "osm",
+      "junction": [-32.825546, 138.187637],
+      "junctionKm": 783.29,
+      "offTrailKm": 0.53,
+      "ascentM": 0,
+      "descentM": 0,
+      "crossCountryM": 32,
+      "straightLineM": 411,
+      "nearestKm": 783.29,
+      "path": [
+        [-32.825546, 138.187637],
+        [-32.825054, 138.187927],
+        [-32.826095, 138.189894],
+        [-32.824409, 138.191153],
+        [-32.824386, 138.191495]
+      ]
+    },
+    "w_ce43e9bd": {
+      "name": "Flinders Family Getaway",
+      "method": "osm",
+      "junction": [-32.830186, 138.187372],
+      "junctionKm": 782.49,
+      "offTrailKm": 0.26,
+      "ascentM": 0,
+      "descentM": 8,
+      "crossCountryM": 32,
+      "straightLineM": 219,
+      "nearestKm": 782.51,
+      "path": [
+        [-32.830186, 138.187372],
+        [-32.830576, 138.188159],
+        [-32.829471, 138.188937],
+        [-32.829364, 138.189256]
+      ]
+    },
+    "w_cf6d016c": {
+      "name": "Prince of Wales Hotel",
+      "method": "osm",
+      "junction": [-34.340545, 138.915587],
+      "junctionKm": 354.87,
+      "offTrailKm": 0.23,
+      "ascentM": 0,
+      "descentM": 0,
+      "crossCountryM": 7,
+      "straightLineM": 245,
+      "nearestKm": 354.87,
+      "path": [
+        [-34.340545, 138.915587],
+        [-34.33897, 138.916761],
+        [-34.338834, 138.916814],
+        [-34.338811, 138.916747]
+      ]
+    },
+    "w_d7d02f6a": {
+      "name": "The Scrub Campsite",
+      "method": "osm",
+      "junction": [-35.526298, 138.513207],
+      "junctionKm": 81.43,
+      "offTrailKm": 0.23,
+      "ascentM": 0,
+      "descentM": 6,
+      "crossCountryM": 231,
+      "straightLineM": 221,
+      "nearestKm": 81.5,
+      "path": [
+        [-35.526298, 138.513207],
+        [-35.52426, 138.5137]
+      ]
+    },
+    "w_e78a9769": {
+      "name": "Oldham House B&B",
+      "method": "osm",
+      "junction": [-34.341253, 138.916894],
+      "junctionKm": 354.72,
+      "offTrailKm": 0.35,
+      "ascentM": 15,
+      "descentM": 0,
+      "crossCountryM": 66,
+      "straightLineM": 337,
+      "nearestKm": 354.67,
+      "path": [
+        [-34.341253, 138.916894],
+        [-34.33929, 138.918398],
+        [-34.339402, 138.918613],
+        [-34.33917, 138.91928]
+      ]
+    },
+    "w_ed9f406e": {
+      "name": "Miriam’s Cottage",
+      "method": "osm",
+      "junction": [-34.524326, 138.961782],
+      "junctionKm": 324.25,
+      "offTrailKm": 0.63,
+      "ascentM": 6,
+      "descentM": 10,
+      "crossCountryM": 74,
+      "straightLineM": 492,
+      "nearestKm": 324.33,
+      "path": [
+        [-34.524326, 138.961782],
+        [-34.524021, 138.961918],
+        [-34.523769, 138.961855],
+        [-34.523348, 138.962042],
+        [-34.523216, 138.961911],
+        [-34.523125, 138.962008],
+        [-34.52289, 138.961713],
+        [-34.522665, 138.962],
+        [-34.522144, 138.961379],
+        [-34.52193, 138.960811],
+        [-34.520486, 138.961374],
+        [-34.520415, 138.961147],
+        [-34.519849, 138.960732]
+      ]
+    },
+    "w_f358f4a0": {
+      "name": "Kapunda",
+      "method": "osm",
+      "junction": [-34.340545, 138.915587],
+      "junctionKm": 354.87,
+      "offTrailKm": 0.19,
+      "ascentM": 0,
+      "descentM": 0,
+      "crossCountryM": 6,
+      "straightLineM": 216,
+      "nearestKm": 354.87,
+      "path": [
+        [-34.340545, 138.915587],
+        [-34.339077, 138.916672]
+      ]
+    },
+    "w_fef350de": {
+      "name": "Burra Bed & Breakfast",
+      "method": "osm",
+      "junction": [-33.680171, 138.93916],
+      "junctionKm": 489.4,
+      "offTrailKm": 0.31,
+      "ascentM": 7,
+      "descentM": 0,
+      "crossCountryM": 43,
+      "straightLineM": 298,
+      "nearestKm": 489.32,
+      "path": [
+        [-33.680171, 138.93916],
+        [-33.679199, 138.941742],
+        [-33.679307, 138.942191]
+      ]
+    }
+  }
+}

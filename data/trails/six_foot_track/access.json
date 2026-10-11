@@ -1,0 +1,30 @@
+{
+  "source": "OpenStreetMap ways via Overpass; heights from Copernicus GLO-30",
+  "attribution": "© OpenStreetMap contributors (ODbL); Copernicus DEM © DLR e.V. 2010-2014 and © Airbus 2014-2018",
+  "fetchedAt": "2026-10-11T21:58:05.890Z",
+  "endpoint": "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+  "minDistanceM": 150,
+  "places": {
+    "w_760a564c": {
+      "name": "Old Ford Reserve",
+      "method": "osm",
+      "junction": [-33.735301, 150.2346],
+      "junctionKm": 7.87,
+      "offTrailKm": 0.48,
+      "ascentM": 10,
+      "descentM": 30,
+      "crossCountryM": 22,
+      "straightLineM": 429,
+      "nearestKm": 7.87,
+      "path": [
+        [-33.735301, 150.2346],
+        [-33.734836, 150.234715],
+        [-33.732584, 150.235888],
+        [-33.732319, 150.235758],
+        [-33.732036, 150.234983],
+        [-33.731858, 150.234923],
+        [-33.73167, 150.235]
+      ]
+    }
+  }
+}

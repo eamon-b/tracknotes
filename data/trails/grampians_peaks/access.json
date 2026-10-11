@@ -1,0 +1,168 @@
+{
+  "source": "OpenStreetMap ways via Overpass; heights from Copernicus GLO-30",
+  "attribution": "© OpenStreetMap contributors (ODbL); Copernicus DEM © DLR e.V. 2010-2014 and © Airbus 2014-2018",
+  "fetchedAt": "2026-10-11T22:18:56.208Z",
+  "endpoint": "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+  "minDistanceM": 150,
+  "places": {
+    "w_16f46ba4": {
+      "name": "Drinking water",
+      "method": "osm",
+      "junction": [-37.066201, 142.486624],
+      "junctionKm": 36.49,
+      "offTrailKm": 0.17,
+      "ascentM": 0,
+      "descentM": 3,
+      "crossCountryM": 18,
+      "straightLineM": 159,
+      "nearestKm": 36.39,
+      "path": [
+        [-37.066201, 142.486624],
+        [-37.066317, 142.486486],
+        [-37.066301, 142.48634],
+        [-37.066191, 142.486056],
+        [-37.065999, 142.485822],
+        [-37.066183, 142.48563],
+        [-37.066224, 142.485479],
+        [-37.066071, 142.48513]
+      ]
+    },
+    "w_2dc44101": {
+      "name": "Drinking water",
+      "method": "osm",
+      "junction": [-36.987565, 142.432313],
+      "junctionKm": 16.13,
+      "offTrailKm": 0.19,
+      "ascentM": 4,
+      "descentM": 0,
+      "crossCountryM": 19,
+      "straightLineM": 174,
+      "nearestKm": 16.02,
+      "path": [
+        [-36.987565, 142.432313],
+        [-36.987191, 142.43198],
+        [-36.986645, 142.430588]
+      ]
+    },
+    "w_782fd786": {
+      "name": "Drinking water",
+      "method": "osm",
+      "junction": [-37.138655, 142.517516],
+      "junctionKm": 48.41,
+      "offTrailKm": 0.17,
+      "ascentM": 0,
+      "descentM": 8,
+      "crossCountryM": 9,
+      "straightLineM": 168,
+      "nearestKm": 48.41,
+      "path": [
+        [-37.138655, 142.517516],
+        [-37.139074, 142.517455],
+        [-37.139481, 142.518437],
+        [-37.139645, 142.518536]
+      ]
+    },
+    "w_8f72dec2": {
+      "name": "Barri Yalug Hike-in Campground",
+      "method": "osm",
+      "junction": [-37.223245, 142.549176],
+      "junctionKm": 71.41,
+      "offTrailKm": 0.37,
+      "ascentM": 32,
+      "descentM": 0,
+      "crossCountryM": 26,
+      "straightLineM": 342,
+      "nearestKm": 71.75,
+      "path": [
+        [-37.223245, 142.549176],
+        [-37.223181, 142.550076],
+        [-37.223013, 142.550502],
+        [-37.223138, 142.551024],
+        [-37.223069, 142.551484],
+        [-37.223121, 142.551846],
+        [-37.223285, 142.552262],
+        [-37.223255, 142.552546],
+        [-37.22347, 142.55305]
+      ]
+    },
+    "w_917b8a2c": {
+      "name": "Werdug Hike-in Campground",
+      "method": "osm",
+      "junction": [-37.066201, 142.486624],
+      "junctionKm": 36.49,
+      "offTrailKm": 0.19,
+      "ascentM": 0,
+      "descentM": 3,
+      "crossCountryM": 39,
+      "straightLineM": 182,
+      "nearestKm": 36.38,
+      "path": [
+        [-37.066201, 142.486624],
+        [-37.066317, 142.486486],
+        [-37.066301, 142.48634],
+        [-37.066191, 142.486056],
+        [-37.065999, 142.485822],
+        [-37.066215, 142.485542],
+        [-37.066133, 142.485316],
+        [-37.066154, 142.484882]
+      ]
+    },
+    "w_c1cc30ea": {
+      "name": "Halls Gap",
+      "method": "osm",
+      "junction": [-37.138655, 142.517516],
+      "junctionKm": 48.41,
+      "offTrailKm": 0.48,
+      "ascentM": 0,
+      "descentM": 10,
+      "crossCountryM": 80,
+      "straightLineM": 448,
+      "nearestKm": 48.41,
+      "path": [
+        [-37.138655, 142.517516],
+        [-37.139391, 142.517409],
+        [-37.139662, 142.517488],
+        [-37.141056, 142.518714],
+        [-37.141108, 142.518879],
+        [-37.141412, 142.518927],
+        [-37.141357, 142.519132],
+        [-37.141568, 142.519372],
+        [-37.141769, 142.520244]
+      ]
+    },
+    "w_cc75cbf9": {
+      "name": "Drinking water",
+      "method": "osm",
+      "junction": [-37.482585, 142.447611],
+      "junctionKm": 120.67,
+      "offTrailKm": 0.19,
+      "ascentM": 0,
+      "descentM": 5,
+      "crossCountryM": 92,
+      "straightLineM": 212,
+      "nearestKm": 120.69,
+      "path": [
+        [-37.482585, 142.447611],
+        [-37.482333, 142.446567],
+        [-37.481852, 142.445722]
+      ]
+    },
+    "w_dc8e8669": {
+      "name": "Troopers Creek Campground",
+      "method": "osm",
+      "junction": [-36.987565, 142.432313],
+      "junctionKm": 16.13,
+      "offTrailKm": 0.19,
+      "ascentM": 4,
+      "descentM": 0,
+      "crossCountryM": 4,
+      "straightLineM": 173,
+      "nearestKm": 16.02,
+      "path": [
+        [-36.987565, 142.432313],
+        [-36.987191, 142.43198],
+        [-36.986672, 142.430592]
+      ]
+    }
+  }
+}

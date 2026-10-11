@@ -1,0 +1,69 @@
+{
+  "source": "OpenStreetMap ways via Overpass; heights from Copernicus GLO-30",
+  "attribution": "© OpenStreetMap contributors (ODbL); Copernicus DEM © DLR e.V. 2010-2014 and © Airbus 2014-2018",
+  "fetchedAt": "2026-10-11T21:50:31.570Z",
+  "endpoint": "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+  "minDistanceM": 150,
+  "places": {
+    "w_3ac270ea": {
+      "name": "Mallee Hike-in Campground",
+      "method": "osm",
+      "junction": [-38.426648, 141.552432],
+      "junctionKm": 233.22,
+      "offTrailKm": 0.23,
+      "ascentM": 0,
+      "descentM": 3,
+      "crossCountryM": 32,
+      "straightLineM": 183,
+      "nearestKm": 233.03,
+      "path": [
+        [-38.426648, 141.552432],
+        [-38.426713, 141.550816],
+        [-38.426621, 141.550219],
+        [-38.426439, 141.549928]
+      ]
+    },
+    "w_b1c4c971": {
+      "name": "Nelson",
+      "method": "osm",
+      "junction": [-38.04759, 141.006375],
+      "junctionKm": 128.49,
+      "offTrailKm": 0.19,
+      "ascentM": 3,
+      "descentM": 0,
+      "crossCountryM": 35,
+      "straightLineM": 188,
+      "nearestKm": 128.49,
+      "path": [
+        [-38.04759, 141.006375],
+        [-38.047594, 141.006551],
+        [-38.047707, 141.006538],
+        [-38.047842, 141.007941],
+        [-38.04759, 141.00818]
+      ]
+    },
+    "w_dc92d4b2": {
+      "name": "Portland",
+      "method": "osm",
+      "junction": [-38.348524, 141.606813],
+      "junctionKm": 253.47,
+      "offTrailKm": 0.52,
+      "ascentM": 11,
+      "descentM": 0,
+      "crossCountryM": 47,
+      "straightLineM": 270,
+      "nearestKm": 253.73,
+      "path": [
+        [-38.348524, 141.606813],
+        [-38.348541, 141.606575],
+        [-38.348443, 141.60648],
+        [-38.347865, 141.606504],
+        [-38.347565, 141.606315],
+        [-38.346402, 141.606375],
+        [-38.346357, 141.604556],
+        [-38.345941, 141.604578],
+        [-38.345623, 141.60423]
+      ]
+    }
+  }
+}
