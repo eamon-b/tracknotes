@@ -1,0 +1,31 @@
+{
+  "source": "OpenStreetMap ways via Overpass; heights from Copernicus GLO-30",
+  "attribution": "© OpenStreetMap contributors (ODbL); Copernicus DEM © DLR e.V. 2010-2014 and © Airbus 2014-2018",
+  "fetchedAt": "2026-10-11T22:06:37.472Z",
+  "endpoint": "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+  "minDistanceM": 150,
+  "places": {
+    "w_b47033ee": {
+      "name": "Banksia Bay campsite",
+      "method": "osm",
+      "junction": [-18.35873, 146.311577],
+      "junctionKm": 8.08,
+      "offTrailKm": 0.33,
+      "ascentM": 0,
+      "descentM": 45,
+      "crossCountryM": 30,
+      "straightLineM": 237,
+      "nearestKm": 7.98,
+      "path": [
+        [-18.35873, 146.311577],
+        [-18.358408, 146.311902],
+        [-18.35779, 146.312143],
+        [-18.357723, 146.312412],
+        [-18.357414, 146.312483],
+        [-18.357239, 146.312639],
+        [-18.356493, 146.312596],
+        [-18.356325, 146.312823]
+      ]
+    }
+  }
+}

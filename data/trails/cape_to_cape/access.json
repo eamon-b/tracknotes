@@ -1,0 +1,157 @@
+{
+  "source": "OpenStreetMap ways via Overpass; heights from Copernicus GLO-30",
+  "attribution": "© OpenStreetMap contributors (ODbL); Copernicus DEM © DLR e.V. 2010-2014 and © Airbus 2014-2018",
+  "fetchedAt": "2026-10-11T21:41:24.755Z",
+  "endpoint": "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+  "minDistanceM": 150,
+  "places": {
+    "w_077cff01": {
+      "name": "Deepdene Campsite",
+      "method": "osm",
+      "junction": [-34.272632, 115.04726],
+      "junctionKm": 15.8,
+      "offTrailKm": 0.21,
+      "ascentM": 16,
+      "descentM": 0,
+      "crossCountryM": 43,
+      "straightLineM": 213,
+      "nearestKm": 15.75,
+      "path": [
+        [-34.272632, 115.04726],
+        [-34.272326, 115.047751],
+        [-34.272223, 115.048336],
+        [-34.271777, 115.048609],
+        [-34.27161, 115.04903]
+      ]
+    },
+    "w_236ca161": {
+      "name": "Canal Rocks",
+      "method": "osm",
+      "junction": [-33.669901, 115.001155],
+      "junctionKm": 108.02,
+      "offTrailKm": 0.64,
+      "ascentM": 0,
+      "descentM": 34,
+      "crossCountryM": 8,
+      "straightLineM": 494,
+      "nearestKm": 107.95,
+      "path": [
+        [-33.669901, 115.001155],
+        [-33.670737, 114.998811],
+        [-33.6706, 114.996234],
+        [-33.670474, 114.996081],
+        [-33.670171, 114.996071],
+        [-33.670112, 114.995981],
+        [-33.670143, 114.995862],
+        [-33.669846, 114.995609],
+        [-33.66945, 114.99558]
+      ]
+    },
+    "w_2f9a4e45": {
+      "name": "Prevelly",
+      "method": "osm",
+      "junction": [-33.973923, 114.994619],
+      "junctionKm": 63.39,
+      "offTrailKm": 0.44,
+      "ascentM": 0,
+      "descentM": 30,
+      "crossCountryM": 18,
+      "straightLineM": 410,
+      "nearestKm": 63.45,
+      "path": [
+        [-33.973923, 114.994619],
+        [-33.974889, 114.993527],
+        [-33.975281, 114.993265],
+        [-33.97582, 114.993129],
+        [-33.976528, 114.993174],
+        [-33.976836, 114.993072],
+        [-33.976917, 114.993208],
+        [-33.977226, 114.993304],
+        [-33.97728, 114.99349]
+      ]
+    },
+    "w_3e042ac7": {
+      "name": "Sugarloaf Rock",
+      "method": "osm",
+      "junction": [-33.559448, 115.01072],
+      "junctionKm": 123.52,
+      "offTrailKm": 0.6,
+      "ascentM": 7,
+      "descentM": 38,
+      "crossCountryM": 214,
+      "straightLineM": 337,
+      "nearestKm": 123.23,
+      "path": [
+        [-33.559448, 115.01072],
+        [-33.559217, 115.009507],
+        [-33.559055, 115.009448],
+        [-33.559242, 115.009263],
+        [-33.559459, 115.009352],
+        [-33.55956, 115.009227],
+        [-33.559952, 115.008127],
+        [-33.560011, 115.007615],
+        [-33.55958, 115.0052]
+      ]
+    },
+    "w_455abc29": {
+      "name": "Cape Leeuwin Lighthouse",
+      "method": "osm",
+      "junction": [-34.371933, 115.135954],
+      "junctionKm": 0,
+      "offTrailKm": 0.4,
+      "ascentM": 7,
+      "descentM": 6,
+      "crossCountryM": 19,
+      "straightLineM": 419,
+      "nearestKm": 0,
+      "path": [
+        [-34.371933, 115.135954],
+        [-34.373128, 115.135913],
+        [-34.3736, 115.136216],
+        [-34.373959, 115.136282],
+        [-34.374819, 115.136309],
+        [-34.3754, 115.13615]
+      ]
+    },
+    "w_4ec1d492": {
+      "name": "Hamelin Bay",
+      "method": "osm",
+      "junction": [-34.2211, 115.028665],
+      "junctionKm": 24.63,
+      "offTrailKm": 0.24,
+      "ascentM": 3,
+      "descentM": 0,
+      "crossCountryM": 7,
+      "straightLineM": 210,
+      "nearestKm": 24.79,
+      "path": [
+        [-34.2211, 115.028665],
+        [-34.221034, 115.02938],
+        [-34.221314, 115.029539],
+        [-34.221659, 115.03085],
+        [-34.2216, 115.03088]
+      ]
+    },
+    "w_9863ffae": {
+      "name": "Quinninup Falls",
+      "method": "osm",
+      "junction": [-33.747227, 114.992394],
+      "junctionKm": 97.4,
+      "offTrailKm": 0.31,
+      "ascentM": 17,
+      "descentM": 0,
+      "crossCountryM": 28,
+      "straightLineM": 248,
+      "nearestKm": 97.3,
+      "path": [
+        [-33.747227, 114.992394],
+        [-33.746781, 114.993019],
+        [-33.746677, 114.994194],
+        [-33.746469, 114.99487],
+        [-33.746364, 114.994952],
+        [-33.746385, 114.995086],
+        [-33.74621, 114.9953]
+      ]
+    }
+  }
+}

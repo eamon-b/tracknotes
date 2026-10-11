@@ -1,0 +1,64 @@
+{
+  "source": "OpenStreetMap ways via Overpass; heights from Copernicus GLO-30",
+  "attribution": "© OpenStreetMap contributors (ODbL); Copernicus DEM © DLR e.V. 2010-2014 and © Airbus 2014-2018",
+  "fetchedAt": "2026-10-11T22:56:04.410Z",
+  "endpoint": "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+  "minDistanceM": 150,
+  "places": {
+    "w_2bbddefe": {
+      "name": "Finke River Trailhead",
+      "method": "osm",
+      "junction": [-23.65829, 132.678357],
+      "junctionKm": 189.86,
+      "offTrailKm": 0.14,
+      "ascentM": 6,
+      "descentM": 0,
+      "crossCountryM": 91,
+      "straightLineM": 164,
+      "nearestKm": 189.86,
+      "path": [
+        [-23.65829, 132.678357],
+        [-23.658718, 132.678339],
+        [-23.65942, 132.67879]
+      ]
+    },
+    "w_409f844e": {
+      "name": "Rocky Gully",
+      "method": "osm",
+      "junction": [-23.757059, 133.167928],
+      "junctionKm": 110.97,
+      "offTrailKm": 0.21,
+      "ascentM": 0,
+      "descentM": 4,
+      "crossCountryM": 13,
+      "straightLineM": 209,
+      "nearestKm": 110.95,
+      "path": [
+        [-23.757059, 133.167928],
+        [-23.757303, 133.167851],
+        [-23.757789, 133.167846],
+        [-23.758737, 133.168009],
+        [-23.7588, 133.16812]
+      ]
+    },
+    "w_5b17238e": {
+      "name": "Rocky Gully",
+      "method": "osm",
+      "junction": [-23.757059, 133.167928],
+      "junctionKm": 110.97,
+      "offTrailKm": 0.21,
+      "ascentM": 0,
+      "descentM": 4,
+      "crossCountryM": 13,
+      "straightLineM": 209,
+      "nearestKm": 110.95,
+      "path": [
+        [-23.757059, 133.167928],
+        [-23.757303, 133.167851],
+        [-23.757789, 133.167846],
+        [-23.758737, 133.168009],
+        [-23.7588, 133.16812]
+      ]
+    }
+  }
+}

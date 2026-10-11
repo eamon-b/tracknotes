@@ -1,0 +1,107 @@
+{
+  "source": "OpenStreetMap ways via Overpass; heights from Copernicus GLO-30",
+  "attribution": "© OpenStreetMap contributors (ODbL); Copernicus DEM © DLR e.V. 2010-2014 and © Airbus 2014-2018",
+  "fetchedAt": "2026-10-11T21:55:44.055Z",
+  "endpoint": "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+  "minDistanceM": 150,
+  "places": {
+    "w_01986ced": {
+      "name": "Drinking water",
+      "method": "osm",
+      "junction": [-31.905412, 116.168636],
+      "junctionKm": 6.98,
+      "offTrailKm": 0.24,
+      "ascentM": 4,
+      "descentM": 0,
+      "crossCountryM": 86,
+      "straightLineM": 256,
+      "nearestKm": 6.98,
+      "path": [
+        [-31.905412, 116.168636],
+        [-31.904888, 116.167198],
+        [-31.904302, 116.166597]
+      ]
+    },
+    "w_0616baae": {
+      "name": "Drinking water",
+      "method": "osm",
+      "junction": [-31.952345, 116.16768],
+      "junctionKm": 0,
+      "offTrailKm": 0.27,
+      "ascentM": 3,
+      "descentM": 4,
+      "crossCountryM": 44,
+      "straightLineM": 285,
+      "nearestKm": 0,
+      "path": [
+        [-31.952345, 116.16768],
+        [-31.95347, 116.166527],
+        [-31.954397, 116.166352]
+      ]
+    },
+    "w_6fc0f8bc": {
+      "name": "Mundaring",
+      "method": "osm",
+      "junction": [-31.905412, 116.168636],
+      "junctionKm": 6.98,
+      "offTrailKm": 0.56,
+      "ascentM": 4,
+      "descentM": 17,
+      "crossCountryM": 13,
+      "straightLineM": 493,
+      "nearestKm": 6.98,
+      "path": [
+        [-31.905412, 116.168636],
+        [-31.905376, 116.168449],
+        [-31.905206, 116.168359],
+        [-31.90498, 116.168295],
+        [-31.904677, 116.168362],
+        [-31.904509, 116.168176],
+        [-31.903558, 116.168211],
+        [-31.903356, 116.16829],
+        [-31.901446, 116.168261],
+        [-31.901359, 116.168213],
+        [-31.901341, 116.167552],
+        [-31.90125, 116.16747]
+      ]
+    },
+    "w_cf1eb062": {
+      "name": "Mount Helena",
+      "method": "osm",
+      "junction": [-31.879934, 116.209828],
+      "junctionKm": 13.67,
+      "offTrailKm": 0.33,
+      "ascentM": 10,
+      "descentM": 8,
+      "crossCountryM": 82,
+      "straightLineM": 242,
+      "nearestKm": 13.63,
+      "path": [
+        [-31.879934, 116.209828],
+        [-31.878368, 116.210457],
+        [-31.878129, 116.210474],
+        [-31.878181, 116.210142],
+        [-31.87788, 116.209348]
+      ]
+    },
+    "w_ef6ca162": {
+      "name": "Northam RV 48hr Stay",
+      "method": "osm",
+      "junction": [-31.658835, 116.65779],
+      "junctionKm": 72.5,
+      "offTrailKm": 0.29,
+      "ascentM": 0,
+      "descentM": 0,
+      "crossCountryM": 85,
+      "straightLineM": 282,
+      "nearestKm": 72.5,
+      "path": [
+        [-31.658835, 116.65779],
+        [-31.65783, 116.658696],
+        [-31.65788, 116.658899],
+        [-31.657543, 116.659189],
+        [-31.657551, 116.660092]
+      ]
+    }
+  }
+}

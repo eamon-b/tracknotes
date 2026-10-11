@@ -1,0 +1,34 @@
+{
+  "source": "OpenStreetMap ways via Overpass; heights from Copernicus GLO-30",
+  "attribution": "© OpenStreetMap contributors (ODbL); Copernicus DEM © DLR e.V. 2010-2014 and © Airbus 2014-2018",
+  "fetchedAt": "2026-10-11T21:55:55.542Z",
+  "endpoint": "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+  "minDistanceM": 150,
+  "places": {
+    "w_00850a80": {
+      "name": "Otford station",
+      "method": "osm",
+      "junction": [-34.211356, 151.010491],
+      "junctionKm": 25.26,
+      "offTrailKm": 0.79,
+      "ascentM": 21,
+      "descentM": 88,
+      "crossCountryM": 35,
+      "straightLineM": 460,
+      "nearestKm": 25.27,
+      "path": [
+        [-34.211356, 151.010491],
+        [-34.211873, 151.009396],
+        [-34.210605, 151.008398],
+        [-34.210306, 151.007965],
+        [-34.210279, 151.007686],
+        [-34.211247, 151.006782],
+        [-34.21152, 151.006112],
+        [-34.211872, 151.005547],
+        [-34.211235, 151.005327],
+        [-34.210993, 151.005733],
+        [-34.21069, 151.00582]
+      ]
+    }
+  }
+}

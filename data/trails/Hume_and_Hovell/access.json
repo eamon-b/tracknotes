@@ -1,0 +1,95 @@
+{
+  "source": "OpenStreetMap ways via Overpass; heights from Copernicus GLO-30",
+  "attribution": "© OpenStreetMap contributors (ODbL); Copernicus DEM © DLR e.V. 2010-2014 and © Airbus 2014-2018",
+  "fetchedAt": "2026-10-11T21:55:33.106Z",
+  "endpoint": "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+  "minDistanceM": 150,
+  "places": {
+    "w_0ea9676b": {
+      "name": "Billy Grace reserve",
+      "method": "osm",
+      "junction": [-35.140004, 148.6754],
+      "junctionKm": 71.6,
+      "offTrailKm": 0.71,
+      "ascentM": 7,
+      "descentM": 22,
+      "crossCountryM": 60,
+      "straightLineM": 182,
+      "nearestKm": 71.14,
+      "path": [
+        [-35.140004, 148.6754],
+        [-35.14038, 148.675511],
+        [-35.140669, 148.675713],
+        [-35.140775, 148.677097],
+        [-35.140143, 148.679044],
+        [-35.139901, 148.679385],
+        [-35.139248, 148.679698],
+        [-35.138864, 148.68028],
+        [-35.13864, 148.680963],
+        [-35.13887, 148.68156]
+      ]
+    },
+    "w_3668bb18": {
+      "name": "table top park actual",
+      "method": "osm",
+      "junction": [-35.975206, 147.041036],
+      "junctionKm": 399.12,
+      "offTrailKm": 0.43,
+      "ascentM": 0,
+      "descentM": 0,
+      "crossCountryM": 83,
+      "straightLineM": 374,
+      "nearestKm": 399.24,
+      "path": [
+        [-35.975206, 147.041036],
+        [-35.974993, 147.041358],
+        [-35.974915, 147.041637],
+        [-35.975021, 147.042799],
+        [-35.974807, 147.043303],
+        [-35.974978, 147.044644],
+        [-35.97442, 147.04525]
+      ]
+    },
+    "w_6af21e38": {
+      "name": "Cafe and takeaway",
+      "method": "osm",
+      "junction": [-36.043689, 146.986094],
+      "junctionKm": 411.06,
+      "offTrailKm": 0.37,
+      "ascentM": 0,
+      "descentM": 16,
+      "crossCountryM": 50,
+      "straightLineM": 389,
+      "nearestKm": 411.06,
+      "path": [
+        [-36.043689, 146.986094],
+        [-36.043631, 146.986804],
+        [-36.043444, 146.987412],
+        [-36.043394, 146.987884],
+        [-36.043526, 146.98869],
+        [-36.043479, 146.989338],
+        [-36.0436, 146.99014]
+      ]
+    },
+    "w_fe7d1507": {
+      "name": "Paddys river dam actual",
+      "method": "osm",
+      "junction": [-35.711731, 148.168273],
+      "junctionKm": 223.34,
+      "offTrailKm": 0.16,
+      "ascentM": 4,
+      "descentM": 8,
+      "crossCountryM": 4,
+      "straightLineM": 162,
+      "nearestKm": 223.37,
+      "path": [
+        [-35.711731, 148.168273],
+        [-35.711815, 148.167903],
+        [-35.712055, 148.167761],
+        [-35.712025, 148.167497],
+        [-35.712438, 148.167091],
+        [-35.71255, 148.16708]
+      ]
+    }
+  }
+}
