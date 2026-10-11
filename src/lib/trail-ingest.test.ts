@@ -683,6 +683,26 @@ describe('waypointAccess', () => {
     expect(trail.offTrailWaypoints.map(w => w.name)).not.toContain('Camp');
   });
 
+  it("gives the walk to the main route's row only, not a variant that passes the place", () => {
+    const gpx = climb();
+    // An alternative from the valley through the camp and back to the summit.
+    gpx.tracks.push({
+      name: 'Alternative: by the camp',
+      points: [
+        [-34.005, 138],
+        [-34.03, 138.012],
+        [-34.03, 138],
+      ].map(([lat, lon]) => ({ lat, lon, ele: 50, time: null })),
+    });
+    const trail = buildTrail(gpx, {
+      config: config({ waypointMaxDistance: 3000, trackClassification: { mainRoutePatterns: ['^Main$'] } }),
+      waypointAccess: atValley,
+    });
+    expect(trail.waypoints.find(w => w.name === 'Camp')!.offTrailKm).toBe(2.5);
+    const onAlternate = trail.alternates[0].waypoints!.find(w => w.name === 'Camp')!;
+    expect(onAlternate.offTrailKm).toBeUndefined();
+  });
+
   it('never pulls a place beyond the match radius onto the route', () => {
     const warnings: string[] = [];
     const trail = buildTrail(climb(), { config: config(), waypointAccess: atValley, warn: m => warnings.push(m) });
