@@ -1178,9 +1178,11 @@ function renderWaterCarrySection(): void {
   body.innerHTML = analysis.gaps.map(g => {
     const cls = g.isDryStretch ? ' gap-warn' : ' gap-ok';
     const badge = g.isDryStretch ? ' 🔴 DRY' : '';
+    const offRoute = (g.fromOffTrailKm ?? 0) + (g.toOffTrailKm ?? 0);
+    const offRouteText = offRoute > 0 ? ` (incl. ${offRoute.toFixed(1)} km off route to water)` : '';
     return `<div class="gap-item">
       <span class="${cls}">${waypointIcon('water')}${badge}</span>
-      <span>${escapeHtml(g.fromName)} → ${escapeHtml(g.toName)}: ${g.distanceKm} km</span>
+      <span>${escapeHtml(g.fromName)} → ${escapeHtml(g.toName)}: ${g.distanceKm} km${offRouteText}</span>
     </div>`;
   }).join('');
 }
