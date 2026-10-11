@@ -39,7 +39,7 @@ import type {
   SectionConfig,
 } from './plan-types';
 import { PLAN_LIMITS, PLAN_WAYPOINT_ID_PATTERN } from './plan-types';
-import { computeDays, stopWalk, type PlanStopInput, type PlanTrail } from './day-calculator';
+import { computeDays, STOP_AT_PLACE_KM, stopWalk, type PlanStopInput, type PlanTrail } from './day-calculator';
 import type { TrailPOI } from './trail-types';
 import { baseWaypointType, isAccessWaypoint } from './waypoint-taxonomy';
 
@@ -774,6 +774,70 @@ export function computePlanDays(
     restBefore += restDays;
     return dated;
   });
+}
+
+/** A place a stop can be measured against: its id and its km as stored. */
+interface StopPlace {
+  id?: string;
+  totalDistance?: number;
+}
+
+/** The trail as stored (NOBO km) that `refreshStopKms` reads its places from. */
+export interface StopPlacesTrail {
+  waypoints?: readonly StopPlace[];
+  alternates?: readonly { name: string; waypoints?: readonly StopPlace[] }[];
+}
+
+/**
+ * Move each stop to its waypoint's km in `trail`, when a data update has moved
+ * the place since the stop was saved (`access.json` re-placing an off-route
+ * place at the junction it is walked to from, say). Without this the day keeps
+ * ending at the old km, walking the old way there, and the place's walk is
+ * left out (`stopWalk`) rather than counted twice.
+ *
+ * `trail` is the trail as stored — NOBO km, alternates unspliced — so a
+ * main-route stop is matched against `trail.waypoints` and a stop on an
+ * alternate against that alternate's own waypoints, whose km is on the same
+ * absolute scale the stop keeps. A stop whose waypoint is gone, or that would
+ * land on another stop's km on its line, is left where it is. Returns the same
+ * document when nothing moved, so a caller can save only a real change.
+ */
+export function refreshStopKms(
+  plan: PlanDocument,
+  trail: StopPlacesTrail,
+  opts?: PlanEditOptions,
+): PlanDocument {
+  const index = (places: readonly StopPlace[] | undefined) => {
+    const byId = new Map<string, number>();
+    for (const place of places ?? []) {
+      if (place.id && typeof place.totalDistance === 'number' && Number.isFinite(place.totalDistance)) {
+        if (!byId.has(place.id)) byId.set(place.id, place.totalDistance);
+      }
+    }
+    return byId;
+  };
+  const main = index(trail.waypoints);
+  const onAlternate = new Map<string, Map<string, number>>();
+  for (const alternate of trail.alternates ?? []) {
+    if (!onAlternate.has(alternate.name)) onAlternate.set(alternate.name, index(alternate.waypoints));
+  }
+
+  let stops = plan.stops;
+  for (let i = 0; i < plan.stops.length; i++) {
+    const stop = plan.stops[i];
+    if (!stop.waypointId) continue;
+    const places = stop.alternate === undefined ? main : onAlternate.get(stop.alternate);
+    const km = places?.get(stop.waypointId);
+    if (km === undefined || Math.abs(km - stop.km) <= STOP_AT_PLACE_KM) continue;
+    const line = stop.alternate ?? '';
+    const taken = stops.some(
+      (other, j) => j !== i && (other.alternate ?? '') === line && Math.abs(other.km - km) < KM_EPSILON,
+    );
+    if (taken) continue;
+    if (stops === plan.stops) stops = [...plan.stops];
+    stops[i] = { ...stop, km };
+  }
+  return stops === plan.stops ? plan : withStops(plan, sortStops(stops), opts);
 }
 
 /** `splitUnplannedTail`'s answer: the days walked to a stop, and what is left. */

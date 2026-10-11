@@ -29,6 +29,7 @@ import {
   setStartDate as editStartDate,
   setStopBooked as editStopBooked,
   setStopNote as editStopNote,
+  refreshStopKms,
   splitUnplannedTail,
   toggleStop as editToggleStop,
   findStop,
@@ -2261,9 +2262,13 @@ function planSyncHost(trailId: string): PlanSyncHost {
       // still pending would do the same, so it is dropped (the sync arm has
       // already flushed and weighed it before deciding to adopt).
       cancelPendingSave();
-      adoptStoredPlan(next);
+      // Unless it was saved before a data update moved one of its places: the
+      // corrected copy is ours to save and send back.
+      const refreshed = refreshStopKms(next, trail);
+      adoptStoredPlan(refreshed);
       savePlanDocument(trail.config.id, storedPlan);
       setSaveStatus('saved');
+      if (refreshed !== next) scheduleSave();
       refreshHeaderInputs();
       renderAll();
     },
@@ -2406,7 +2411,9 @@ export async function initPlanViewer(
   // migration of the pre-day-planner `trail-plan-<id>` save, or a fresh empty
   // plan. A newer server copy replaces it a moment after the first render —
   // see `plan-sync.ts`; the page is drawn first and never waits on the network.
-  const stored = options.preloadedPlan ?? loadOrMigratePlan(trailId, trail).plan;
+  const loaded = options.preloadedPlan ?? loadOrMigratePlan(trailId, trail).plan;
+  // A stop saved before a data update moved its place is moved with it.
+  const stored = refreshStopKms(loaded, trail);
   // Read in read-only mode too, so a shared plan's days are timed at the
   // reader's own pace and hours; `setUiPrefs` never writes them back there.
   uiPrefs = loadPlanUiPrefs(trailId);
@@ -2439,6 +2446,7 @@ export async function initPlanViewer(
   // network, so the planner is on screen and usable before any of that starts.
   // A shared plan is nobody's to sync, so it never gets one.
   syncController = readOnly ? null : initPlanSync(planSyncHost(trailId));
+  if (!readOnly && stored !== loaded) scheduleSave();
 
   // Redraw elevation on resize
   window.addEventListener('resize', debounce(() => {

@@ -21,7 +21,8 @@ import { StyleSheet, View } from 'react-native';
 import { useTheme } from '../../theme';
 import { spacing } from '../../tokens';
 import { useFavoritesStore } from '../../state/favorites-store';
-import { usePlansStore } from '../../state/plans-store';
+import { refreshStopKms } from '@lib/plan-editor';
+import { selectPlan, usePlansStore } from '../../state/plans-store';
 import { useCommentSync } from '../../sync/connectivity';
 import { ElevationPane } from '../elevation/ElevationPane';
 import { MapPane } from '../map/MapPane';
@@ -48,7 +49,7 @@ export function GuideView() {
 
 function GuidePanes() {
   const { colors } = useTheme();
-  const { trail, trailId } = useGuide();
+  const { trail, trailId, baseTrail } = useGuide();
   const { pane, switchPane } = useGuideFocus();
 
   // Hydrate favorite hearts and the trail's plan (both local, every guide), and run
@@ -64,6 +65,17 @@ function GuidePanes() {
     void usePlansStore.getState().hydrate(trailId);
   }, [trailId]);
   useCommentSync(trailId);
+
+  // A data update can move a place a stop was saved at (a junction found over
+  // OSM): move the stop with it, so its day ends where the walk in leaves the
+  // route. A saved plan from another device or an older build is caught the
+  // same way when it arrives. The edit is a no-op, and writes nothing, once
+  // every stop sits at its place.
+  const plan = usePlansStore(selectPlan(trailId));
+  useEffect(() => {
+    if (!plan || refreshStopKms(plan, baseTrail) === plan) return;
+    void usePlansStore.getState().apply(trailId, (p) => refreshStopKms(p, baseTrail));
+  }, [plan, baseTrail, trailId]);
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
