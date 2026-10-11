@@ -20,6 +20,7 @@
  * hook `use-today-plan.ts`.
  */
 
+import { addPlaceWalks } from '@lib/day-calculator';
 import { KM_EPSILON } from '@lib/plan-direction';
 import { interleavePoisByDistance, poisBetween } from '@lib/poi-display';
 import type { ComputedDay } from '@lib/plan-types';
@@ -175,21 +176,15 @@ export function todayRows(trail: TrailJson, day: ComputedDay): TodayRow[] {
     const route = Math.max(0, stop.km - prevKm);
     const route_ =
       route > 0 ? calculateElevationBetween(prevKm, stop.km, points, breakStarts) : { gain: 0, loss: 0 };
-    let legKm = route;
-    let gain = route_.gain;
-    let loss = route_.loss;
-    if (i === 1 && walkOut) {
-      legKm += walkOut.km;
-      gain += walkOut.descentM;
-      loss += walkOut.ascentM;
-      walkedOffRoute += walkOut.km;
-    }
-    if (stop.role === 'end' && i > 0 && walkIn) {
-      legKm += walkIn.km;
-      gain += walkIn.ascentM;
-      loss += walkIn.descentM;
-      walkedOffRoute += walkIn.km;
-    }
+    const walked = addPlaceWalks(
+      { distanceKm: route, ascentM: route_.gain, descentM: route_.loss },
+      i === 1 ? walkOut : null,
+      stop.role === 'end' && i > 0 ? walkIn : null,
+    );
+    const legKm = walked.distanceKm;
+    const gain = walked.ascentM;
+    const loss = walked.descentM;
+    walkedOffRoute += walked.offTrailKm;
     totalAscentM += gain;
     totalDescentM += loss;
     rows.push({

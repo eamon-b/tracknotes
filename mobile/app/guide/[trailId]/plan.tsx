@@ -337,6 +337,7 @@ export default function PlanScreen() {
         sectionStartKm: sectionConfig.startKm,
         points: trail.track.points,
         breakStarts: routeBreakStarts(trail.track.breaks, 'points'),
+        waypoints: trail.waypoints,
       }),
     [candidates, displayPlan, planDirection, trail, sectionConfig.startKm],
   );

@@ -260,6 +260,17 @@ describe('computePlanDays', () => {
     expect(days.map(d => d.offTrailKm)).toEqual([2.6, 2.6]);
   });
 
+  it('does not walk to a stop saved before its waypoint moved', () => {
+    // A data update moved Camp A's junction from km 20 to km 18; the plan
+    // still ends the day at km 20, which already walks the old way there.
+    const trail = flatTrail();
+    trail.waypoints![1] = { ...trail.waypoints![1], totalDistance: 18, offTrailKm: 2.6, accessMode: 'foot' };
+    const plan = toggleStop(emptyPlan(), { id: 'w_a', km: 20, name: 'Camp A' }, opts);
+    const days = computePlanDays(trail, plan, { baseKmh: 4 });
+    expect(days.map(d => d.distanceKm)).toEqual([20, 80]);
+    expect(days.every(d => d.offTrailKm === undefined)).toBe(true);
+  });
+
   it('leaves dates undefined when there is no start date', () => {
     const plan = toggleStop(emptyPlan(), { id: 'w_a', km: 20, name: 'Camp A' }, opts);
     const days = computePlanDays(flatTrail(), plan, { baseKmh: 4 });

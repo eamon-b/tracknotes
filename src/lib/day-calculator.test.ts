@@ -8,6 +8,8 @@ import {
   countWaterSources,
   computeDays,
   placeWalk,
+  stopWalk,
+  addPlaceWalks,
 } from './day-calculator';
 import type { PlanTrail } from './day-calculator';
 import { annotateCumulativeElevation, calculateElevationBetween } from './track-geometry';
@@ -511,5 +513,45 @@ describe('placeWalk', () => {
     expect(placeWalk({ offTrailKm: 2, type: 'town-access' })).toBeNull();
     expect(placeWalk({})).toBeNull();
     expect(placeWalk(undefined)).toBeNull();
+  });
+});
+
+describe('stopWalk', () => {
+  const camp = { totalDistance: 111.93, offTrailKm: 2.58, accessMode: 'foot' as const, offTrailAscentM: 12 };
+
+  it("walks a stop that sits at its place's km", () => {
+    expect(stopWalk(camp, 111.93)).toEqual({ km: 2.58, ascentM: 12, descentM: 0 });
+    expect(stopWalk(camp, 111.95)).toEqual({ km: 2.58, ascentM: 12, descentM: 0 });
+  });
+
+  it('does not walk a stop saved before its place moved', () => {
+    // The old nearest point: that day already walks the old way there.
+    expect(stopWalk(camp, 114.52)).toBeNull();
+  });
+
+  it('does not walk a place without a km', () => {
+    expect(stopWalk({ offTrailKm: 2.58, accessMode: 'foot' }, 0)).toBeNull();
+    expect(stopWalk(undefined, 0)).toBeNull();
+  });
+});
+
+describe('addPlaceWalks', () => {
+  it('adds the walk out with its climb swapped and the walk in as it is', () => {
+    expect(
+      addPlaceWalks(
+        { distanceKm: 10, ascentM: 100, descentM: 50 },
+        { km: 1, ascentM: 30, descentM: 5 },
+        { km: 2, ascentM: 20, descentM: 10 }
+      )
+    ).toEqual({ distanceKm: 13, ascentM: 125, descentM: 90, offTrailKm: 3 });
+  });
+
+  it('leaves a leg on the route as it is', () => {
+    expect(addPlaceWalks({ distanceKm: 10, ascentM: 1, descentM: 2 }, null, undefined)).toEqual({
+      distanceKm: 10,
+      ascentM: 1,
+      descentM: 2,
+      offTrailKm: 0,
+    });
   });
 });

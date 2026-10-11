@@ -43,7 +43,13 @@
  * track.
  */
 
-import { climbBetweenIndexed, estimateHikingHoursRaw, type PlaceWalk, type TimeIndex } from './day-calculator';
+import {
+  addPlaceWalks,
+  climbBetweenIndexed,
+  estimateHikingHoursRaw,
+  type PlaceWalk,
+  type TimeIndex,
+} from './day-calculator';
 import { KM_EPSILON } from './plan-direction';
 
 /** One criterion's acceptable band, and the value inside it to aim for. */
@@ -277,9 +283,7 @@ export function withWalks(
   baseKmh: number
 ): DayMetrics {
   if (!walkOut && !walkIn) return metrics;
-  const distanceKm = metrics.distanceKm + (walkOut?.km ?? 0) + (walkIn?.km ?? 0);
-  const ascentM = metrics.ascentM + (walkOut?.descentM ?? 0) + (walkIn?.ascentM ?? 0);
-  const descentM = metrics.descentM + (walkOut?.ascentM ?? 0) + (walkIn?.descentM ?? 0);
+  const { distanceKm, ascentM, descentM } = addPlaceWalks(metrics, walkOut, walkIn);
   return { distanceKm, ascentM, descentM, hours: estimateHikingHoursRaw(distanceKm, ascentM, descentM, baseKmh) };
 }
 
@@ -339,12 +343,17 @@ export function suggestDays<C extends SuggestCandidate>(input: SuggestDaysInput<
   if (!(endKm - fromKm > KM_EPSILON)) return { plans: [] };
 
   // The camps strictly inside the range, in walking order, one per km: two
-  // waypoints at the same km are the same night.
+  // waypoints at the same km are the same night. Places off the route that
+  // share a junction are not the same walk, though, so the km keeps the one
+  // with the shortest walk (an on-route camp has none).
   const camps: C[] = [];
   for (const candidate of [...input.candidates].sort((a, b) => a.km - b.km)) {
     if (candidate.km <= fromKm + KM_EPSILON || candidate.km >= endKm - KM_EPSILON) continue;
     const previous = camps[camps.length - 1];
-    if (previous && candidate.km - previous.km < KM_EPSILON) continue;
+    if (previous && candidate.km - previous.km < KM_EPSILON) {
+      if ((candidate.walk?.km ?? 0) < (previous.walk?.km ?? 0)) camps[camps.length - 1] = candidate;
+      continue;
+    }
     camps.push(candidate);
   }
 

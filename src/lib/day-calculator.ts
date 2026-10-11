@@ -89,6 +89,57 @@ export function placeWalk(
 }
 
 /**
+ * How far (km) a plan stop may sit from its waypoint's km and still be at it.
+ * A stop is saved at its waypoint's km, so the two differ only by the
+ * direction mirror's rounding — or because the data moved the place.
+ */
+export const STOP_AT_PLACE_KM = 0.05;
+
+/**
+ * The walk for a plan stop at `stopKm` (the same km space as `place`) whose
+ * waypoint is `place`: `placeWalk`, but only while the stop still sits at the
+ * place's km. A stop saved before a data update moved its place (to a junction
+ * found over OSM, say) still ends its day at the old km, so it already walks
+ * the old way there; adding the walk as well would count both.
+ */
+export function stopWalk(
+  place: (WaypointAccess & { type?: string | null; totalDistance?: number }) | null | undefined,
+  stopKm: number
+): PlaceWalk | null {
+  if (!place || typeof place.totalDistance !== 'number') return null;
+  if (Math.abs(place.totalDistance - stopKm) > STOP_AT_PLACE_KM) return null;
+  return placeWalk(place);
+}
+
+/** A stretch's distance and climb. */
+export interface LegTotals {
+  distanceKm: number;
+  ascentM: number;
+  descentM: number;
+}
+
+/**
+ * A stretch with the walks off the route added: back out from the place it
+ * starts at (climbing what the walk in descended) and in to the place it ends
+ * at. `offTrailKm` is the part of `distanceKm` walked off the route. The one
+ * home of this rule — the day splitter, the suggester, the phone's Stops-list
+ * legs and Today rows all add walks through it, so they add up to one day.
+ */
+export function addPlaceWalks(
+  leg: LegTotals,
+  walkOut: PlaceWalk | null | undefined,
+  walkIn: PlaceWalk | null | undefined
+): LegTotals & { offTrailKm: number } {
+  const offTrailKm = (walkOut?.km ?? 0) + (walkIn?.km ?? 0);
+  return {
+    distanceKm: leg.distanceKm + offTrailKm,
+    ascentM: leg.ascentM + (walkOut?.descentM ?? 0) + (walkIn?.ascentM ?? 0),
+    descentM: leg.descentM + (walkOut?.ascentM ?? 0) + (walkIn?.descentM ?? 0),
+    offTrailKm,
+  };
+}
+
+/**
  * Estimate hiking time using Naismith's rule with Tranter's correction for descent
  * (unrounded). This is the raw internal variant used by the day splitter and the
  * time index, so boundary search does not staircase on the public 0.1 h rounding.
@@ -382,11 +433,16 @@ export function computeDays(
     // each way (in climbs ascentM; out climbs what in descended).
     const walkIn = end.walk;
     const walkOut = start.walk;
-    const offTrailKm = (walkIn?.km ?? 0) + (walkOut?.km ?? 0);
-    const distanceKm = Math.round((end.km - start.km + offTrailKm) * 10) / 10;
     const route = calculateElevationBetween(start.km, end.km, trackPoints, breakStarts);
-    const gain = route.gain + (walkIn?.ascentM ?? 0) + (walkOut?.descentM ?? 0);
-    const loss = route.loss + (walkIn?.descentM ?? 0) + (walkOut?.ascentM ?? 0);
+    const walked = addPlaceWalks(
+      { distanceKm: end.km - start.km, ascentM: route.gain, descentM: route.loss },
+      walkOut,
+      walkIn
+    );
+    const offTrailKm = walked.offTrailKm;
+    const distanceKm = Math.round(walked.distanceKm * 10) / 10;
+    const gain = walked.ascentM;
+    const loss = walked.descentM;
     const hours = estimateHikingTime(distanceKm, gain, loss, baseKmh);
     const water = countWaterSources(start.km, end.km, waypoints);
 

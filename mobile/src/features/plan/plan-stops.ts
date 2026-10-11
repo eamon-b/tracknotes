@@ -21,7 +21,7 @@ import {
 import type { PlanDocument } from '@lib/plan-types';
 import { KM_EPSILON, toActiveKm, toNoboKm, type PlanDirection } from '@lib/plan-direction';
 import { calculateElevationBetween, type ElevationPoint } from '@lib/track-geometry';
-import { placeWalk, type PlaceWalk } from '@lib/day-calculator';
+import { addPlaceWalks, placeWalk, stopWalk, type PlaceWalk } from '@lib/day-calculator';
 import type { TrailJson } from '../../services/trail-assets';
 import type { Direction } from '../../state/settings-store';
 
@@ -160,19 +160,23 @@ export function stopLegs(
     sectionStartKm: number;
     points: ElevationPoint[];
     breakStarts?: ReadonlySet<number>;
+    /**
+     * The direction-applied trail's waypoints. A stop is walked back from by
+     * its waypoint's walk, looked up here rather than among `candidates`: a
+     * stop ticked while "All waypoints" was on is not a candidate once it is
+     * off, and `computePlanDays` would still walk it.
+     */
+    waypoints: readonly TrailJson['waypoints'][number][];
   },
 ): Map<string, StopLeg> {
-  // A stop off the route is walked back from; its walk is its candidate's.
-  const walkById = new Map<string, PlaceWalk>();
-  for (const candidate of candidates) {
-    if (candidate.waypointId && candidate.walk) walkById.set(candidate.waypointId, candidate.walk);
-  }
+  const byId = new Map<string, TrailJson['waypoints'][number]>();
+  for (const wp of opts.waypoints) if (wp.id && !byId.has(wp.id)) byId.set(wp.id, wp);
   const anchors: { km: number; walk?: PlaceWalk }[] = [
     { km: opts.sectionStartKm },
-    ...(plan?.stops ?? []).map((s) => ({
-      km: toActiveKm(s.km, opts.direction, opts.totalDistance),
-      walk: s.waypointId ? walkById.get(s.waypointId) : undefined,
-    })),
+    ...(plan?.stops ?? []).map((s) => {
+      const km = toActiveKm(s.km, opts.direction, opts.totalDistance);
+      return { km, walk: (s.waypointId && stopWalk(byId.get(s.waypointId), km)) || undefined };
+    }),
   ].sort((a, b) => a.km - b.km);
 
   const legs = new Map<string, StopLeg>();
@@ -193,14 +197,12 @@ export function stopLegs(
         : { gain: 0, loss: 0 };
     // Standing at the place itself (an unticked row at a stop's km) is no leg.
     const walkOut = routeKm > 0 ? from.walk : undefined;
-    const walkIn = candidate.walk;
-    const offTrailKm = (walkOut?.km ?? 0) + (walkIn?.km ?? 0);
-    legs.set(candidate.key, {
-      distanceKm: routeKm + offTrailKm,
-      ascentM: gain + (walkOut?.descentM ?? 0) + (walkIn?.ascentM ?? 0),
-      descentM: loss + (walkOut?.ascentM ?? 0) + (walkIn?.descentM ?? 0),
-      ...(offTrailKm > 0 ? { offTrailKm } : {}),
-    });
+    const { offTrailKm, ...leg } = addPlaceWalks(
+      { distanceKm: routeKm, ascentM: gain, descentM: loss },
+      walkOut,
+      candidate.walk,
+    );
+    legs.set(candidate.key, { ...leg, ...(offTrailKm > 0 ? { offTrailKm } : {}) });
   }
   return legs;
 }
