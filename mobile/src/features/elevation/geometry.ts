@@ -143,6 +143,181 @@ export function zoomWindowAtFocal(
   return shiftIntoRange(focalKm - frac * span, span, totalKm);
 }
 
+// --- Elevation (y) axis ------------------------------------------------------
+//
+// The y-axis does not auto-fit the visible km window: stretching whatever relief
+// is on screen to the full plot height turns a 40 m rise into a cliff and makes
+// every section look equally brutal. Instead it shows a fixed elevation range
+// the hiker controls — by default the whole trail from 0 m (sea level) to just
+// above its highest point, so the horizontal axis sits at 0 m and one stretch
+// can be compared with another by eye. A vertical pinch zooms it.
+
+/** A visible elevation range [minM, maxM], in metres. */
+export interface EleWindow {
+  minM: number;
+  maxM: number;
+}
+
+/** The limits an elevation window is kept inside (see `eleBounds`). */
+export interface EleBounds {
+  /** Lowest the window may start: 0 m, or the trail's low point if below sea level. */
+  floorM: number;
+  /** Highest the window may reach while zoomed in: just above the trail's high point. */
+  ceilingM: number;
+}
+
+/** Smallest elevation span (m) the y-axis can zoom into. */
+export const MIN_ELE_SPAN_M = 50;
+/** How far past the whole trail the y-axis can zoom *out* (flattening it). */
+export const MAX_ELE_ZOOM_OUT = 4;
+
+/** Round `v` up to a "nice" step (1, 2, 5 × 10^n) of roughly a tenth of it. */
+function niceCeil(v: number): number {
+  if (!(v > 0)) return 0;
+  const magnitude = Math.pow(10, Math.floor(Math.log10(v / 10)));
+  for (const step of [1, 2, 5, 10]) {
+    const s = step * magnitude;
+    if (v / s <= 20) return Math.ceil(v / s) * s;
+  }
+  return Math.ceil(v / (10 * magnitude)) * 10 * magnitude;
+}
+
+/**
+ * The elevation bounds of a track: a floor at 0 m (or the track's low point,
+ * should it dip below sea level) and a ceiling rounded up just above its high
+ * point. The default y-axis is exactly this range.
+ */
+export function eleBounds(points: readonly { ele: number }[]): EleBounds {
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (const p of points) {
+    if (!Number.isFinite(p.ele)) continue;
+    if (p.ele < lo) lo = p.ele;
+    if (p.ele > hi) hi = p.ele;
+  }
+  const floorM = lo < 0 ? -niceCeil(-lo) : 0;
+  const ceilingM = Math.max(hi > 0 ? niceCeil(hi) : 0, floorM + MIN_ELE_SPAN_M);
+  return { floorM, ceilingM };
+}
+
+/** The whole-trail elevation window: floor to ceiling. */
+export function defaultEleWindow(bounds: EleBounds): EleWindow {
+  return { minM: bounds.floorM, maxM: bounds.ceilingM };
+}
+
+/**
+ * Clamp a candidate elevation window:
+ *  - the span is kept within [`MIN_ELE_SPAN_M`, whole trail × `MAX_ELE_ZOOM_OUT`],
+ *    re-centred on the requested midpoint,
+ *  - a window no taller than the trail is shifted (not squashed) inside
+ *    [floor, ceiling], so panning rests against either end,
+ *  - a window taller than the trail (zoomed out) sits on the floor: the axis
+ *    keeps starting at 0 m and the extra room goes above the high point.
+ */
+export function clampEleWindow(minM: number, maxM: number, bounds: EleBounds): EleWindow {
+  const full = bounds.ceilingM - bounds.floorM;
+  if (!(full > 0)) return defaultEleWindow(bounds);
+  const lo = Math.min(minM, maxM);
+  const hi = Math.max(minM, maxM);
+  const span = Math.min(Math.max(hi - lo, Math.min(MIN_ELE_SPAN_M, full)), full * MAX_ELE_ZOOM_OUT);
+  if (span >= full) return { minM: bounds.floorM, maxM: bounds.floorM + span };
+  let start = (lo + hi) / 2 - span / 2;
+  if (start < bounds.floorM) start = bounds.floorM;
+  if (start + span > bounds.ceilingM) start = bounds.ceilingM - span;
+  return { minM: start, maxM: start + span };
+}
+
+/** Vertical plot geometry needed to map metres <-> y. */
+export interface PlotLayoutY {
+  /** Top inset (px) where the plot area starts. */
+  top: number;
+  /** Plot area height (px). */
+  chartHeight: number;
+}
+
+/**
+ * Pinch-zoom an elevation window about a focal pixel: the elevation under
+ * `focalY` stays under it. `scale` > 1 zooms in (a smaller span, exaggerating
+ * the relief); < 1 flattens it.
+ */
+export function zoomEleWindowAtFocal(
+  base: EleWindow,
+  scale: number,
+  focalY: number,
+  layout: PlotLayoutY,
+  bounds: EleBounds,
+): EleWindow {
+  const baseSpan = base.maxM - base.minM;
+  if (!(baseSpan > 0) || !(layout.chartHeight > 0)) return { ...base };
+  const factor = scale > 0 ? scale : 1;
+  const span = baseSpan / factor;
+  // Fraction up from the plot floor (clamped, so a focal point in the x-axis
+  // gutter anchors on the floor rather than extrapolating).
+  const frac = Math.min(Math.max((layout.top + layout.chartHeight - focalY) / layout.chartHeight, 0), 1);
+  const focalM = base.minM + frac * baseSpan;
+  const minM = focalM - frac * span;
+  return clampEleWindow(minM, minM + span, bounds);
+}
+
+/**
+ * Shift an elevation window by a vertical finger drag, preserving its span.
+ * The content follows the finger: dragging **down** shows higher ground.
+ */
+export function panEleWindowByPixels(
+  base: EleWindow,
+  translationYPx: number,
+  chartHeight: number,
+  bounds: EleBounds,
+): EleWindow {
+  const span = base.maxM - base.minM;
+  if (!(span > 0) || !(chartHeight > 0)) return { ...base };
+  const dyM = (translationYPx / chartHeight) * span;
+  return clampEleWindow(base.minM + dyM, base.maxM + dyM, bounds);
+}
+
+/**
+ * Step the elevation zoom from a button: the window's floor stays put and only
+ * its top moves, so from the default view the axis keeps starting at 0 m.
+ * `factor` > 1 zooms in.
+ */
+export function scaleEleWindow(base: EleWindow, factor: number, bounds: EleBounds): EleWindow {
+  const span = base.maxM - base.minM;
+  const full = bounds.ceilingM - bounds.floorM;
+  if (!(span > 0) || !(factor > 0) || !(full > 0)) return { ...base };
+  // Clamp the span here, so the clamp below never has to re-centre (and so
+  // move the floor) to fit it.
+  const next = Math.min(Math.max(span / factor, Math.min(MIN_ELE_SPAN_M, full)), full * MAX_ELE_ZOOM_OUT);
+  return clampEleWindow(base.minM, base.minM + next, bounds);
+}
+
+/** Which axes a two-finger pinch zooms. */
+export interface PinchAxes {
+  x: boolean;
+  y: boolean;
+}
+
+/**
+ * Pick the axes a pinch zooms from how the two fingers were placed: side by
+ * side zooms distance, one above the other zooms elevation, and a diagonal
+ * (30°–60°) zooms both.
+ */
+export function pinchAxes(dx: number, dy: number): PinchAxes {
+  const ax = Math.abs(dx);
+  const ay = Math.abs(dy);
+  if (ax === 0 && ay === 0) return { x: true, y: false };
+  const angle = (Math.atan2(ay, ax) * 180) / Math.PI;
+  if (angle < 30) return { x: true, y: false };
+  if (angle > 60) return { x: false, y: true };
+  return { x: true, y: true };
+}
+
+/** Convert an elevation (m) to a screen y (px) within the elevation window. */
+export function eleToY(ele: number, window: EleWindow, layout: PlotLayoutY): number {
+  const span = window.maxM - window.minM;
+  if (!(span > 0)) return layout.top + layout.chartHeight;
+  return layout.top + layout.chartHeight - ((ele - window.minM) / span) * layout.chartHeight;
+}
+
 /** A rendered waypoint marker in pixel space. */
 export interface MarkerHit {
   id: string;
@@ -224,8 +399,8 @@ export interface MarkerPlot {
 
 /**
  * Place waypoint markers on the elevation trace. Pure so favorite emphasis and
- * windowing are unit-testable without Skia: markers outside the window (or with
- * no distance) are dropped, and `resolve` supplies each marker's color, radius
+ * windowing are unit-testable without Skia: markers outside the km or elevation
+ * window (or with no distance) are dropped, and `resolve` supplies each marker's color, radius
  * and fill so the caller routes favorite/category colors through the theme and
  * decides which markers are hollow (omitted `fill` means a filled dot).
  */
@@ -242,6 +417,10 @@ export function buildProfileMarkers(
     const x = plot.left + ((wp.totalDistance - plot.startKm) / span) * plot.chartWidth;
     const ele = wp.elevation ?? plot.eleMin;
     const y = plot.top + plot.chartHeight - ((ele - plot.eleMin) / plot.eleRange) * plot.chartHeight;
+    // Above or below the elevation window (the y-axis is zoomed): the trace is
+    // clipped there, and a marker left floating over the frame would still
+    // catch taps.
+    if (y < plot.top - 0.5 || y > plot.top + plot.chartHeight + 0.5) continue;
     const { color, radius, fill } = resolve(wp);
     out.push({ id: wp.id, kind: wp.kind ?? 'waypoint', x, y, color, radius, fill: fill ?? true });
   }

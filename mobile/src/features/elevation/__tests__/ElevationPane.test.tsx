@@ -158,9 +158,48 @@ describe('ElevationPane POI ticks', () => {
 
 /** Whether the chip shows its hint, i.e. no readout is on screen. */
 function hintShown(tree: ReactTestRenderer): boolean {
-  return tree.root.findAll((n) => n.props.children === 'Tap to read off · pinch to zoom · drag to pan')
+  return tree.root.findAll((n) => n.props.children === 'Tap to read off · pinch to zoom (up/down for height) · drag to pan')
     .length > 0;
 }
+
+describe('ElevationPane elevation axis', () => {
+  beforeEach(() => {
+    mockProfileProps.length = 0;
+    mockVisiblePois = [];
+    mockDirection = 'default';
+    mockActivePoints = undefined;
+  });
+
+  function press(tree: ReactTestRenderer, label: string) {
+    const [button] = tree.root.findAll(
+      (n) => n.props.accessibilityLabel === label && typeof n.props.onPress === 'function',
+    );
+    act(() => (button.props.onPress as () => void)());
+  }
+
+  it('opens on 0 m to just above the high point, whatever the km window', () => {
+    // The fixture climbs 100 → 200 m.
+    const tree = render();
+    expect(lastProps().eleWindow).toEqual({ minM: 0, maxM: 200 });
+    act(() => lastProps().onWindowChange({ startKm: 10, endKm: 20 }));
+    expect(lastProps().eleWindow).toEqual({ minM: 0, maxM: 200 });
+    act(() => tree.unmount());
+  });
+
+  it('stretches and flattens from the floor, and resets with the zoom', () => {
+    const tree = render();
+    press(tree, 'Stretch elevation');
+    expect(lastProps().eleWindow.minM).toBe(0);
+    expect(lastProps().eleWindow.maxM).toBeCloseTo(200 / 1.5, 6);
+
+    press(tree, 'Reset zoom');
+    expect(lastProps().eleWindow).toEqual({ minM: 0, maxM: 200 });
+
+    press(tree, 'Flatten elevation');
+    expect(lastProps().eleWindow).toEqual({ minM: 0, maxM: 300 });
+    act(() => tree.unmount());
+  });
+});
 
 describe('ElevationPane across a direction flip', () => {
   beforeEach(() => {
