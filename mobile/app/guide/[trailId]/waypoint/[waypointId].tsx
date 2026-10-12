@@ -75,6 +75,7 @@ import {
   waypointOffTrailMeters,
 } from '../../../../src/features/guide/waypoint-detail';
 import { TripCard } from '../../../../src/features/guide/TripCard';
+import { requestMapTarget } from '../../../../src/features/guide/map-target';
 import { offTrailDistance } from '../../../../src/features/guide/OffTrailBadge';
 import {
   findStop,
@@ -573,6 +574,25 @@ export default function WaypointDetailScreen() {
             />
           )}
         </View>
+
+        {/* Back to the guide, on the map, centred on the place — the web
+            datasheet's "show on map". Its own position, so a place off the
+            route is shown where it is, not where the route passes it. */}
+        <Pressable
+          onPress={() => {
+            requestMapTarget(trailId, { lat: waypoint.lat, lon: waypoint.lon });
+            router.dismissTo({ pathname: '/guide/[trailId]', params: { trailId } });
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Show on map"
+          style={({ pressed }) => [
+            styles.planButton,
+            { borderColor: colors.accent },
+            pressed && styles.pressed,
+          ]}
+        >
+          <Text style={[styles.planButtonText, { color: colors.accent }]}>Show on map</Text>
+        </Pressable>
 
         {/* Its alternates: where each leaves and rejoins the main route, and
             the planner's choice to take it or stay on the main route. */}

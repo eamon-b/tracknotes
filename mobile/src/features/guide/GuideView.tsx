@@ -16,8 +16,9 @@
  * showing. See GuideFocusContext for the one-shot, one-direction rule.
  */
 
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { useTheme } from '../../theme';
 import { spacing } from '../../tokens';
 import { useFavoritesStore } from '../../state/favorites-store';
@@ -32,6 +33,7 @@ import { SegmentedControl } from './SegmentedControl';
 import { WaypointListPane } from './WaypointListPane';
 import { useGuide } from './GuideContext';
 import { GuideFocusProvider, useGuideFocus, type GuidePaneKey } from './GuideFocusContext';
+import { takeMapTarget } from './map-target';
 
 const OPTIONS = [
   { value: 'map' as const, label: 'Map' },
@@ -50,7 +52,16 @@ export function GuideView() {
 function GuidePanes() {
   const { colors } = useTheme();
   const { trail, trailId, baseTrail } = useGuide();
-  const { pane, switchPane } = useGuideFocus();
+  const { pane, switchPane, showOnMap } = useGuideFocus();
+
+  // "Show on map" from the waypoint screen: it leaves the place here and
+  // dismisses back to this screen, which picks it up as it regains focus.
+  useFocusEffect(
+    useCallback(() => {
+      const target = takeMapTarget(trailId);
+      if (target) showOnMap(target);
+    }, [trailId, showOnMap]),
+  );
 
   // Hydrate favorite hearts and the trail's plan (both local, every guide), and run
   // comment sync in the background (drain outbox + pull delta on open /

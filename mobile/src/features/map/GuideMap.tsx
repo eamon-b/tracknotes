@@ -248,7 +248,12 @@ export interface GuideMapHandle {
   centerOnMe: () => void;
   /** Fit the camera to an arbitrary box — how a focus window reaches the map. */
   fitBounds: (bounds: ViewportBounds) => void;
+  /** Centre on a place, zooming in to at least street level (never out). */
+  showPoint: (lat: number, lon: number) => void;
 }
+
+/** The least zoom "Show on map" lands at — the web viewer's figure. */
+const SHOW_POINT_MIN_ZOOM = 14;
 
 export interface GuideMapProps {
   trailId: string;
@@ -719,6 +724,13 @@ export const GuideMap = memo(
             duration: 500,
           });
         },
+        showPoint: (lat: number, lon: number) => {
+          cameraRef.current?.easeTo({
+            center: [lon, lat],
+            zoom: Math.max(zoomRef.current ?? 0, SHOW_POINT_MIN_ZOOM),
+            duration: 500,
+          });
+        },
         fitBounds: (box: ViewportBounds) => {
           cameraRef.current?.fitBounds(
             [box.sw[0], box.sw[1], box.ne[0], box.ne[1]],
@@ -736,9 +748,12 @@ export const GuideMap = memo(
     onVisibleBoundsChangeRef.current = onVisibleBoundsChange;
     const onCameraChangeRef = useRef(onCameraChange);
     onCameraChangeRef.current = onCameraChange;
+    // The last zoom the camera reported, so "Show on map" never zooms out.
+    const zoomRef = useRef<number | null>(null);
     const reportCamera = useCallback((event: NativeSyntheticEvent<ViewStateChangeEvent>) => {
       const zoom = event?.nativeEvent?.zoom;
       const latitude = event?.nativeEvent?.center?.[1];
+      if (typeof zoom === 'number') zoomRef.current = zoom;
       if (typeof zoom !== 'number' || typeof latitude !== 'number') return;
       onCameraChangeRef.current?.(zoom, latitude);
     }, []);
