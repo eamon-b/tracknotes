@@ -234,8 +234,10 @@ const LAYER_EXPECTATIONS: Record<
 
 type ContourLayer = {
   id: string;
+  type?: string;
   minzoom?: number;
   filter?: unknown;
+  layout?: Record<string, unknown>;
 };
 
 // The bundled offline template, loaded exactly the way tile-service.ts loads it.
@@ -304,6 +306,19 @@ describe('contour layer zooms match the tile data tiers', () => {
       });
     },
   );
+
+  it('draws contour lines with round joins and caps in both styles', () => {
+    // MapLibre's default miter join spikes every sharp vertex of a simplified
+    // contour; the line layers of both styles must say round, and agree.
+    for (const layers of [onlineContourLayers, offlineContourLayers()]) {
+      const lines = layers.filter((l) => l.type === 'line');
+      expect(lines).toHaveLength(3);
+      for (const layer of lines) {
+        expect(layer.layout?.['line-join']).toBe('round');
+        expect(layer.layout?.['line-cap']).toBe('round');
+      }
+    }
+  });
 
   it('offline contour source declares the tippecanoe zoom range', () => {
     expect(OFFLINE_STYLE.sources.contour.minzoom).toBe(CONTOUR_SOURCE_MIN_ZOOM);

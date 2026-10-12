@@ -7,7 +7,8 @@
  *
  * Each variant runs the production per-cell pipeline from
  * build-contours-australia.ts — buffered gdalwarp (`-tap`) → gdal_contour -i 10
- * → 4 zoom-tier ogr2ogr splits carrying `is_index` → tippecanoe — with one or
+ * → 4 zoom-tier ogr2ogr splits carrying `is_index` → tippecanoe (one layer per
+ * tier, gated by zoom) → tile-join (tiers folded into `contour`) — with one or
  * more knobs changed, and writes `data/experiments/{run}/{variant}.pmtiles`
  * plus timings/sizes/feature counts in `results.json`.
  *
@@ -16,7 +17,7 @@
  *
  *   npx serve data/experiments/{run}     # any static server with range support
  *
- * Prerequisites: gdal (3.6+), tippecanoe (2.17+ for direct .pmtiles output)
+ * Prerequisites: gdal (3.6+), tippecanoe + tile-join (2.17+ for .pmtiles output)
  *
  * Usage:
  *   npx tsx scripts/contour-experiment.ts --list
@@ -38,9 +39,16 @@ import {
   CONTOUR_MIN_ZOOM,
   MAX_ZOOM,
   CONTOUR_WARP_TR_DEG,
+  CONTOUR_TIERS,
+  CONTOUR_LAYER,
+  CONTOUR_TIPPECANOE_DEFAULTS,
+  contourTierLayerArg,
+  contourTippecanoeArgs,
+  renameContourTiers,
   run,
   ensureDir,
   formatBytes,
+  type ContourTier,
 } from './tile-pipeline.js';
 
 // --- Constants ---
@@ -61,23 +69,10 @@ const CELL_BUFFER_DEG = 0.01;
  */
 const DEM_TR_DEG = CONTOUR_WARP_TR_DEG * 2;
 
-const CLASSIFIED_LAYER = 'contour';
+const CLASSIFIED_LAYER = CONTOUR_LAYER;
 
-/** Copied verbatim from build-contours-australia.ts — the tier split IS the schema. */
-interface Tier {
-  suffix: string;
-  minZoom: number;
-  where: string;
-}
-
-const TIERS: Tier[] = [
-  { suffix: 'z9',  minZoom: 9,  where: `(CAST(elevation AS INTEGER) % 100) = 0` },
-  { suffix: 'z10', minZoom: 10, where: `(CAST(elevation AS INTEGER) % 50) = 0 AND (CAST(elevation AS INTEGER) % 100) != 0` },
-  { suffix: 'z12', minZoom: 12, where: `(CAST(elevation AS INTEGER) % 20) = 0 AND (CAST(elevation AS INTEGER) % 50) != 0` },
-  // %50 != 0 as well: odd multiples of 50 (50, 150, ...) have %20 = 10 and are
-  // already emitted by the z10 tier — without it they'd appear twice.
-  { suffix: 'z13', minZoom: 13, where: `(CAST(elevation AS INTEGER) % 20) != 0 AND (CAST(elevation AS INTEGER) % 50) != 0` },
-];
+/** The tier split IS the schema: the production table, not a copy of it. */
+const TIERS: ContourTier[] = CONTOUR_TIERS;
 
 // --- Variant matrix ---
 
@@ -96,16 +91,24 @@ interface Variant {
   simplifyOnlyLowZooms: boolean;
   /** tippecanoe --maximum-tile-bytes; undefined = tippecanoe default (500 KB). */
   maxTileBytes?: number;
+  /** tippecanoe --visvalingam instead of Douglas-Peucker. */
+  visvalingam: boolean;
+  /**
+   * Gate each tier at its minzoom (the `-j` filter in tile-pipeline.ts). Off
+   * reproduces every archive built before 2026-10, when the tiers' `minzoom`
+   * was silently ignored and every zoom carried every 10 m contour.
+   */
+  tiered: boolean;
 }
 
-/** Mirrors the tippecanoe flags in build-contours-world.ts (decision gate 2026-08-22). */
+/**
+ * The production tippecanoe bundle (decision gate 2026-08-22), taken from the
+ * constant the builds use so this variant cannot drift away from them.
+ */
 const BASELINE: Omit<Variant, 'name' | 'description'> = {
   warpScale: 2,
   resampling: 'cubicspline',
-  simplification: 2,
-  minimumDetail: 7,
-  simplifyOnlyLowZooms: true,
-  maxTileBytes: 1_000_000,
+  ...CONTOUR_TIPPECANOE_DEFAULTS,
 };
 
 const VARIANTS: Variant[] = [
@@ -115,12 +118,25 @@ const VARIANTS: Variant[] = [
     ...BASELINE,
   },
   {
+    name: 'untiered',
+    description: 'Tier minzooms ignored, as every archive built before 2026-10 (world.pmtiles as deployed): every zoom carries every 10 m contour',
+    ...BASELINE,
+    tiered: false,
+  },
+  {
     name: 'legacy-simp-14',
-    description: 'Pre-2026-08-22 production settings (australia.pmtiles as deployed): polygonal at z12–14',
+    description: 'Pre-2026-08-22 production settings (australia.pmtiles as deployed): polygonal at z12–14, tiers ignored',
     ...BASELINE,
     simplification: 14,
     minimumDetail: 4,
     maxTileBytes: undefined,
+    tiered: false,
+  },
+  {
+    name: 'visvalingam',
+    description: 'Visvalingam-Whyatt simplification at z9–14 instead of Douglas-Peucker (rounder low-zoom lines)',
+    ...BASELINE,
+    visvalingam: true,
   },
   {
     name: 'no-oversample',
@@ -376,6 +392,8 @@ interface VariantResult {
     minimumDetail: number;
     simplifyOnlyLowZooms: boolean;
     maxTileBytes?: number;
+    visvalingam: boolean;
+    tiered: boolean;
   };
   pmtiles?: string;
   pmtilesBytes?: number;
@@ -446,6 +464,8 @@ function buildVariant(
       minimumDetail: variant.minimumDetail,
       simplifyOnlyLowZooms: variant.simplifyOnlyLowZooms,
       maxTileBytes: variant.maxTileBytes,
+      visvalingam: variant.visvalingam,
+      tiered: variant.tiered,
     },
   };
 
@@ -465,6 +485,7 @@ function buildVariant(
   const demPath = path.join(workDir, 'dem.tif');
   const rawPath = path.join(workDir, 'raw.fgb');
   const tmpDir = path.join(workDir, 'tmp');
+  const tieredPath = path.join(workDir, 'tiered.mbtiles');
   const pmtilesPath = path.join(runDir, `${variant.name}.pmtiles`);
 
   const [west, south, east, north] = args.bbox;
@@ -548,41 +569,39 @@ function buildVariant(
   });
   console.log(`    tiers:  ${tiers.map(t => `${t.suffix}=${t.features}`).join(' ')} (${(tiersMs / 1000).toFixed(1)}s)`);
 
-  // 5: tippecanoe straight to PMTiles. Same flags as the Australia merge except
-  //    the variant knobs; argv form (not a shell string) to match that script.
+  // 5: tippecanoe to a tiered mbtiles (one layer per tier, gated by zoom),
+  //    then tile-join folds the tiers into `contour` and writes the PMTiles —
+  //    the production pipeline's two steps, with the variant's knobs.
   ensureDir(tmpDir);
   const layerArgs: string[] = [];
   for (const tier of TIERS) {
     const tierPath = path.join(workDir, `${tier.suffix}.fgb`);
     if (!fs.existsSync(tierPath) || fs.statSync(tierPath).size === 0) continue;
-    layerArgs.push('-L', JSON.stringify({ file: tierPath, layer: CLASSIFIED_LAYER, minzoom: tier.minZoom }));
+    layerArgs.push('-L', contourTierLayerArg(tierPath, tier));
   }
   if (layerArgs.length === 0) {
     throw new Error('no tier files were produced — the bbox may be entirely nodata');
   }
 
   const [, tippecanoeMs] = timed(() => {
-    if (fs.existsSync(pmtilesPath)) fs.unlinkSync(pmtilesPath);
+    if (fs.existsSync(tieredPath)) fs.unlinkSync(tieredPath);
     execFileSync('tippecanoe', [
       '-t', tmpDir,
-      '-o', pmtilesPath,
-      ...(args.verbose ? [] : ['-q']),
-      `-Z${CONTOUR_MIN_ZOOM}`,
-      `-z${MAX_ZOOM}`,
-      '-P',
-      '-y', 'elevation',
-      '-y', 'is_index',
-      '--drop-smallest-as-needed',
-      `--simplification=${variant.simplification}`,
-      `--minimum-detail=${variant.minimumDetail}`,
-      ...(variant.simplifyOnlyLowZooms ? ['--simplify-only-low-zooms'] : []),
-      ...(variant.maxTileBytes ? [`--maximum-tile-bytes=${variant.maxTileBytes}`] : []),
-      '--force',
+      '-o', tieredPath,
+      ...contourTippecanoeArgs({
+        simplification: variant.simplification,
+        minimumDetail: variant.minimumDetail,
+        simplifyOnlyLowZooms: variant.simplifyOnlyLowZooms,
+        maxTileBytes: variant.maxTileBytes,
+        visvalingam: variant.visvalingam,
+        tiered: variant.tiered,
+      }, { verbose: args.verbose }),
       ...layerArgs,
     ], {
       cwd: PROJECT_ROOT,
       stdio: ['ignore', 'inherit', 'inherit'],
     });
+    renameContourTiers(tieredPath, pmtilesPath, { verbose: args.verbose });
   });
 
   result.status = 'ok';
@@ -610,7 +629,7 @@ const TOPO_STYLE_PATH = path.join(PROJECT_ROOT, 'scripts', 'topo-style.json');
 
 /**
  * The production contour layers from scripts/topo-style.json, retargeted at
- * the viewer's `contours` source and given round joins. Reading the real
+ * the viewer's `contours` source — joins, widths and all. Reading the real
  * style (rather than copying it) keeps the compare page honest when the app
  * style changes.
  */
@@ -620,11 +639,7 @@ function prodContourLayers(): Record<string, unknown>[] {
   };
   return style.layers
     .filter(l => l.source === 'contour' && l.type === 'line')
-    .map(l => ({
-      ...l,
-      source: 'contours',
-      layout: { ...((l.layout as Record<string, unknown>) ?? {}), 'line-join': 'round', 'line-cap': 'round' },
-    }));
+    .map(l => ({ ...l, source: 'contours' }));
 }
 
 function settingsLabel(v: VariantResult): string {
@@ -634,6 +649,8 @@ function settingsLabel(v: VariantResult): string {
     `detail ${v.settings.minimumDetail}`,
     v.settings.simplifyOnlyLowZooms ? 'low-zooms only' : 'all zooms',
     v.settings.maxTileBytes ? `tile ≤${formatBytes(v.settings.maxTileBytes)}` : 'tile ≤500 KB',
+    v.settings.visvalingam ? 'visvalingam' : 'douglas-peucker',
+    v.settings.tiered ? 'tiered' : 'UNTIERED',
     v.settings.demDir,
   ].join(' · ');
 }
@@ -831,7 +848,8 @@ async function main(): Promise<void> {
       console.log(`  ${''.padEnd(16)} warp ${v.warpScale}x (tr=${tr}) ${v.resampling}, ` +
         `simplification=${v.simplification}, minimum-detail=${v.minimumDetail}, ` +
         `simplify-only-low-zooms=${v.simplifyOnlyLowZooms}, ` +
-        `maximum-tile-bytes=${v.maxTileBytes ?? 'default'}, dem=${v.demDir ?? '--dem-dir'}`);
+        `maximum-tile-bytes=${v.maxTileBytes ?? 'default'}, visvalingam=${v.visvalingam}, ` +
+        `tiered=${v.tiered}, dem=${v.demDir ?? '--dem-dir'}`);
     }
     return;
   }
@@ -906,6 +924,8 @@ async function main(): Promise<void> {
           simplification: variant.simplification,
           minimumDetail: variant.minimumDetail,
           simplifyOnlyLowZooms: variant.simplifyOnlyLowZooms,
+          visvalingam: variant.visvalingam,
+          tiered: variant.tiered,
         },
       };
     }

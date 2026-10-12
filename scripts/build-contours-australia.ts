@@ -35,9 +35,11 @@ import {
   DEM_CACHE_DIR,
   CONTOUR_INTERVAL,
   INDEX_CONTOUR_INTERVAL,
-  MAX_ZOOM,
-  CONTOUR_MIN_ZOOM,
   CONTOUR_TIERS,
+  CONTOUR_LAYER,
+  contourTierLayerArg,
+  contourTippecanoeArgs,
+  renameContourTiers,
   run,
   ensureDir,
   cleanWorkDir,
@@ -71,7 +73,7 @@ const CELL_BUFFER_DEG = 0.01; // ~1.1km
 // polygonal lines on the DEM lattice. Costs 4x the pixels per cell.
 const WARP_TR_DEG = 0.000139;
 
-const CLASSIFIED_LAYER = 'contour';
+const CLASSIFIED_LAYER = CONTOUR_LAYER;
 
 // Tier definitions live in tile-pipeline.ts so this build and the world build
 // cannot drift apart — they feed the same public schema.
@@ -363,7 +365,7 @@ function mergeToPmtiles(outputPath: string, verbose: boolean): void {
       continue;
     }
     const filePath = path.join(WORK_DIR, file);
-    layerArgs.push('-L', JSON.stringify({ file: filePath, layer: CLASSIFIED_LAYER, minzoom: tier.minZoom }));
+    layerArgs.push('-L', contourTierLayerArg(filePath, tier));
     fileCount++;
   }
 
@@ -379,39 +381,25 @@ function mergeToPmtiles(outputPath: string, verbose: boolean): void {
   const tmpDir = path.join(WORK_DIR, 'tmp');
   ensureDir(tmpDir);
 
+  // One layer per tier, gated by zoom (see contourTierLayer in tile-pipeline.ts),
+  // then tile-join folds them into the served `contour` layer and writes the
+  // PMTiles. The intermediate stays in the work dir for a tile-join-only retry.
+  const tieredPath = path.join(WORK_DIR, 'australia-contours.tiered.mbtiles');
+  if (fs.existsSync(tieredPath)) fs.unlinkSync(tieredPath);
   execFileSync('tippecanoe', [
     '-t', tmpDir,
-    '-o', outputPath,
-    // Quiet the progress indicator unless --verbose. Output also streams to
-    // the terminal (stdio inherit) instead of a pipe: any capture buffer
-    // eventually fills over a multi-hour merge and kills tippecanoe with
-    // ENOBUFS — -q alone doesn't prevent per-tile feature-drop warnings.
-    ...(verbose ? [] : ['-q']),
-    `-Z${CONTOUR_MIN_ZOOM}`,
-    `-z${MAX_ZOOM}`,
-    '-P',
-    '-y', 'elevation',
-    '-y', 'is_index',
-    '--drop-smallest-as-needed',
-    // Quality bundle chosen at the 2026-08-22 decision gate (Mt Sonder,
-    // `npm run experiment:contours`, run `smooth-z13`): simplification 14
-    // left z12–z14 contours visibly polygonal; 2 renders smooth at every zoom
-    // for ~+35% archive size in mountainous tiles (z15 is unaffected).
-    '--simplification=2',
-    // Keep full vertex detail at maxzoom: z15 tiles are what MapLibre
-    // overzooms past z15, so simplifying them makes contours visibly
-    // polygonal exactly where users zoom in. Lower zooms stay simplified.
-    '--simplify-only-low-zooms',
-    // tippecanoe's default (128 units): an oversize tile may be quantised no
-    // coarser than that before features are dropped — 4 allowed a 16×16 grid.
-    '--minimum-detail=7',
-    '--maximum-tile-bytes=1000000',
-    '--force',
+    '-o', tieredPath,
+    ...contourTippecanoeArgs({}, { verbose }),
     ...layerArgs,
   ], {
     cwd: PROJECT_ROOT,
     stdio: ['ignore', 'inherit', 'inherit'],
   });
+  console.log(`  ✓ Tiered mbtiles: ${tieredPath} (${formatBytes(fileSizeBytes(tieredPath))})`);
+
+  console.log('  Folding tier layers into `contour` (tile-join)...');
+  renameContourTiers(tieredPath, outputPath, { verbose });
+  fs.unlinkSync(tieredPath);
 
   console.log(`  ✓ PMTiles output: ${outputPath} (${formatBytes(fileSizeBytes(outputPath))})`);
 }
