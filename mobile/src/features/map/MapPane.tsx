@@ -427,6 +427,7 @@ export function MapPane() {
       const box = boundsForKmRange(displayPoints, focus);
       if (box) mapRef.current?.fitBounds(box);
     },
+    showPoint: ({ lat, lon }) => mapRef.current?.showPoint(lat, lon),
   });
 
   return (

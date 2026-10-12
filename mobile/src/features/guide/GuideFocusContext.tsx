@@ -30,6 +30,14 @@ export interface PaneFocusHandlers {
   capture?: () => FocusWindow | null;
   /** Bring this pane to the given section. */
   apply?: (focus: FocusWindow) => void;
+  /** Centre on one place (the map only: "Show on map" from a waypoint). */
+  showPoint?: (point: MapPoint) => void;
+}
+
+/** A place to centre the map on. */
+export interface MapPoint {
+  lat: number;
+  lon: number;
 }
 
 /** Runs `fn` after the pane switch has been laid out. */
@@ -40,6 +48,12 @@ export interface GuideFocusValue {
   pane: GuidePaneKey;
   /** Switch panes, carrying the focus window across. */
   switchPane: (next: GuidePaneKey) => void;
+  /**
+   * Switch to the map and centre it on one place. The pane being left still
+   * reports its focus (so going back to it keeps that section), but the map
+   * gets the place rather than that section.
+   */
+  showOnMap: (point: MapPoint) => void;
   /** Register a pane's capture/apply handlers; returns an unregister function. */
   registerPane: (pane: GuidePaneKey, handlers: PaneFocusHandlers) => () => void;
   /** The last captured focus window (null until a pane reports one). */
@@ -97,9 +111,24 @@ export function GuideFocusProvider({
     [scheduler],
   );
 
+  const showOnMap = useCallback(
+    (point: MapPoint) => {
+      const from = paneRef.current;
+      if (from !== 'map') {
+        const captured = handlersRef.current.get(from)?.capture?.();
+        if (isValidFocus(captured)) focusRef.current = captured;
+        paneRef.current = 'map';
+        setPane('map');
+      }
+      const show = handlersRef.current.get('map')?.showPoint;
+      if (show) scheduler(() => show(point));
+    },
+    [scheduler],
+  );
+
   const value = useMemo<GuideFocusValue>(
-    () => ({ pane, switchPane, registerPane, getFocus }),
-    [pane, switchPane, registerPane, getFocus],
+    () => ({ pane, switchPane, showOnMap, registerPane, getFocus }),
+    [pane, switchPane, showOnMap, registerPane, getFocus],
   );
 
   return <GuideFocusContext.Provider value={value}>{children}</GuideFocusContext.Provider>;
@@ -137,6 +166,7 @@ export function useGuidePaneFocus(pane: GuidePaneKey, handlers: PaneFocusHandler
     return registerPane(pane, {
       capture: () => handlersRef.current.capture?.() ?? null,
       apply: (focus) => handlersRef.current.apply?.(focus),
+      showPoint: (point) => handlersRef.current.showPoint?.(point),
     });
   }, [pane, registerPane]);
 }

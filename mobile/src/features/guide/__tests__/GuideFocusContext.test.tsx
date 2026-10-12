@@ -14,6 +14,7 @@ import {
   useGuideFocus,
   useGuidePaneFocus,
   type GuidePaneKey,
+  type MapPoint,
 } from '../GuideFocusContext';
 import type { FocusWindow } from '../guide-focus';
 
@@ -22,12 +23,14 @@ function FakePane({
   pane,
   capture,
   apply,
+  showPoint,
 }: {
   pane: GuidePaneKey;
   capture?: () => FocusWindow | null;
   apply?: (focus: FocusWindow) => void;
+  showPoint?: (point: MapPoint) => void;
 }) {
-  useGuidePaneFocus(pane, { capture, apply });
+  useGuidePaneFocus(pane, { capture, apply, showPoint });
   return null;
 }
 
@@ -36,6 +39,7 @@ const immediate = (fn: () => void) => fn();
 
 interface Harness {
   switchPane: (pane: GuidePaneKey) => void;
+  showOnMap: (point: MapPoint) => void;
   currentPane: () => GuidePaneKey;
   getFocus: () => FocusWindow | null;
 }
@@ -66,6 +70,7 @@ function renderPanes(panes: React.ReactNode): Harness {
 
   return {
     switchPane: (next) => act(() => latest().switchPane(next)),
+    showOnMap: (point) => act(() => latest().showOnMap(point)),
     currentPane: () => latest().pane,
     getFocus: () => latest().getFocus(),
   };
@@ -155,6 +160,38 @@ describe('GuideFocusProvider', () => {
     mapWindow = { startKm: 70, endKm: 80 };
     harness.switchPane('elevation');
     expect(elevationApply).toHaveBeenLastCalledWith({ startKm: 70, endKm: 80 });
+  });
+
+  it('shows a place on the map instead of the section the list was showing', () => {
+    const mapApply = jest.fn();
+    const showPoint = jest.fn();
+    const elevationApply = jest.fn();
+    const harness = renderPanes(
+      <>
+        <FakePane pane="map" apply={mapApply} showPoint={showPoint} />
+        <FakePane pane="elevation" apply={elevationApply} />
+        <FakePane pane="list" capture={() => ({ startKm: 30, endKm: 35 })} />
+      </>,
+    );
+    harness.switchPane('list');
+
+    harness.showOnMap({ lat: -33.5, lon: 150.2 });
+
+    expect(harness.currentPane()).toBe('map');
+    expect(showPoint).toHaveBeenCalledWith({ lat: -33.5, lon: 150.2 });
+    expect(mapApply).not.toHaveBeenCalled();
+    // The list's section is still kept for the next switch.
+    expect(harness.getFocus()).toEqual({ startKm: 30, endKm: 35 });
+  });
+
+  it('shows a place on a map that is already showing', () => {
+    const showPoint = jest.fn();
+    const harness = renderPanes(<FakePane pane="map" showPoint={showPoint} />);
+
+    harness.showOnMap({ lat: 1, lon: 2 });
+
+    expect(harness.currentPane()).toBe('map');
+    expect(showPoint).toHaveBeenCalledWith({ lat: 1, lon: 2 });
   });
 
   it('leaves panes alone outside a provider', () => {
