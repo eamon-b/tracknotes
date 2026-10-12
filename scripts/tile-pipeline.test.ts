@@ -16,6 +16,14 @@ import {
   BASE_ZOOM_EXPECTATION,
   projectedEpsgFor,
   isWithinAustralia,
+  CONTOUR_TIERS,
+  CONTOUR_LAYER,
+  CONTOUR_TIPPECANOE_DEFAULTS,
+  contourTierLayer,
+  contourTierLayerArg,
+  contourTierFilter,
+  contourTierRenameArgs,
+  contourTippecanoeArgs,
 } from './tile-pipeline';
 
 /**
@@ -106,6 +114,95 @@ describe('isWithinAustralia', () => {
   it('is true for an Australian trail and false for Te Araroa', () => {
     expect(isWithinAustralia({ west: 137.9, south: -35.7, east: 139.1, north: -31.1 })).toBe(true);
     expect(isWithinAustralia({ west: 167.8, south: -46.6, east: 175.7, north: -34.4 })).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Contour tiers
+//
+// tippecanoe's `-L {"file","layer"}` object has no `minzoom` key: the tiers'
+// zoom gating has to go through a per-layer `$zoom` feature filter and a
+// tile-join rename, and these pin the three halves of that to each other.
+// ---------------------------------------------------------------------------
+
+describe('contour tiers', () => {
+  it('partition every 10 m elevation exactly once', () => {
+    // Evaluate the SQL `where` clauses in JS: `(CAST(elevation AS INTEGER) % n) = 0`.
+    const matches = (where: string, e: number): boolean =>
+      new Function('e', `return ${where.replace(/CAST\(elevation AS INTEGER\)/g, 'e').replace(/ AND /g, ' && ').replace(/(?<![!<>=])=(?!=)/g, '==')};`)(e) as boolean;
+    for (let e = -200; e <= 3000; e += 10) {
+      const tiers = CONTOUR_TIERS.filter(t => matches(t.where, e));
+      expect(tiers, `${e} m`).toHaveLength(1);
+    }
+  });
+
+  it('name each tier layer under the served layer, never as it', () => {
+    for (const tier of CONTOUR_TIERS) {
+      expect(contourTierLayer(tier)).toBe(`${CONTOUR_LAYER}_${tier.suffix}`);
+      expect(contourTierLayer(tier)).not.toBe(CONTOUR_LAYER);
+    }
+  });
+
+  it('pass tippecanoe only the keys its -L object honours', () => {
+    const tier = CONTOUR_TIERS[1];
+    expect(JSON.parse(contourTierLayerArg('/tmp/x_z10.fgb', tier))).toEqual({
+      file: '/tmp/x_z10.fgb',
+      layer: 'contour_z10',
+    });
+  });
+
+  it('gate every tier above the archive minzoom at its own minzoom, and only those', () => {
+    const filter = JSON.parse(contourTierFilter()) as Record<string, unknown>;
+    for (const tier of CONTOUR_TIERS) {
+      if (tier.minZoom === CONTOUR_MIN_ZOOM) {
+        // An unnamed layer passes the filter at every zoom.
+        expect(filter).not.toHaveProperty(contourTierLayer(tier));
+      } else {
+        expect(filter[contourTierLayer(tier)]).toEqual(['>=', '$zoom', tier.minZoom]);
+      }
+    }
+    expect(Object.keys(filter)).toHaveLength(CONTOUR_TIERS.length - 1);
+  });
+
+  it('rename every tier layer back to the served layer', () => {
+    const args = contourTierRenameArgs();
+    expect(args).toHaveLength(CONTOUR_TIERS.length * 2);
+    for (const tier of CONTOUR_TIERS) {
+      expect(args).toContain(`${contourTierLayer(tier)}:${CONTOUR_LAYER}`);
+    }
+    expect(args.filter(a => a === '-R')).toHaveLength(CONTOUR_TIERS.length);
+  });
+
+  it('tile with the zoom range, the decision-gate bundle and the tier filter by default', () => {
+    const args = contourTippecanoeArgs();
+    expect(args).toContain(`-Z${CONTOUR_MIN_ZOOM}`);
+    expect(args).toContain(`-z${MAX_ZOOM}`);
+    expect(args).toContain('--simplification=2');
+    expect(args).toContain('--simplify-only-low-zooms');
+    expect(args).toContain('--minimum-detail=7');
+    expect(args).toContain('--maximum-tile-bytes=1000000');
+    expect(args).toContain('--drop-smallest-as-needed');
+    expect(args).not.toContain('--visvalingam');
+    expect(args[args.indexOf('-j') + 1]).toBe(contourTierFilter());
+    expect(CONTOUR_TIPPECANOE_DEFAULTS.tiered).toBe(true);
+    // Both served attributes, nothing else.
+    const kept = args.flatMap((a, i) => (a === '-y' ? [args[i + 1]] : []));
+    expect(kept).toEqual(['elevation', 'is_index']);
+  });
+
+  it('let the experiment harness turn the tiers and the algorithm off and on', () => {
+    const untiered = contourTippecanoeArgs({ tiered: false, visvalingam: true, maxTileBytes: undefined });
+    expect(untiered).not.toContain('-j');
+    expect(untiered).toContain('--visvalingam');
+    expect(untiered.some(a => a.startsWith('--maximum-tile-bytes'))).toBe(false);
+    expect(contourTippecanoeArgs({ simplification: 14, minimumDetail: 4 })).toEqual(
+      expect.arrayContaining(['--simplification=14', '--minimum-detail=4']),
+    );
+  });
+
+  it('is quiet unless verbose', () => {
+    expect(contourTippecanoeArgs()).toContain('-q');
+    expect(contourTippecanoeArgs({}, { verbose: true })).not.toContain('-q');
   });
 });
 

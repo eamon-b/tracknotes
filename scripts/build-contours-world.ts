@@ -55,10 +55,13 @@ import {
   CONTOUR_INTERVAL,
   INDEX_CONTOUR_INTERVAL,
   CONTOUR_WARP_TR_DEG,
-  MAX_ZOOM,
-  CONTOUR_MIN_ZOOM,
   CONTOUR_TIERS,
+  CONTOUR_LAYER,
   CONTOUR_ZOOM_EXPECTATION,
+  contourTierLayerArg,
+  contourTierRenameArgs,
+  contourTippecanoeArgs,
+  renameContourTiers,
   run,
   ensureDir,
   cleanWorkDir,
@@ -97,7 +100,7 @@ const CUSTOM_SELECTION_NAME = 'custom';
 // land on identical elevations.
 const WARP_TR_DEG = CONTOUR_WARP_TR_DEG;
 
-const CLASSIFIED_LAYER = 'contour';
+const CLASSIFIED_LAYER = CONTOUR_LAYER;
 
 /** Tier filename pattern, e.g. `S26E132_z12.fgb`. */
 const TIER_FILE_PATTERN = /^([NS]\d{2}[EW]\d{3})_(z\d+)\.fgb$/;
@@ -737,7 +740,7 @@ function mergeToMbtiles(workDir: string, outputPath: string, verbose: boolean, m
     }
     const filePath = path.join(workDir, file);
     const cellArgs = layerArgsByCell.get(m[1]) ?? [];
-    cellArgs.push('-L', JSON.stringify({ file: filePath, layer: CLASSIFIED_LAYER, minzoom: tier.minZoom }));
+    cellArgs.push('-L', contourTierLayerArg(filePath, tier));
     layerArgsByCell.set(m[1], cellArgs);
     bytesByCell.set(m[1], (bytesByCell.get(m[1]) ?? 0) + fileSizeBytes(filePath));
     fileCount++;
@@ -760,10 +763,15 @@ function mergeToMbtiles(workDir: string, outputPath: string, verbose: boolean, m
   const tmpDir = path.join(workDir, 'tmp');
   ensureDir(tmpDir);
 
-  // One batch is the whole shard: tile straight to the output, so shards under
-  // the threshold stay byte-for-byte what they were before batching existed.
+  // One batch is the whole shard: tile it in one run, then fold the tier
+  // layers into `contour` with the same tile-join a batched shard gets.
   if (batches.length === 1 && mode === 'full') {
-    tippecanoeMerge(cellIds.flatMap(id => layerArgsByCell.get(id)!), outputPath, tmpDir, verbose);
+    const tieredPath = path.join(workDir, 'shard.tiered.mbtiles');
+    if (fs.existsSync(tieredPath)) fs.unlinkSync(tieredPath);
+    tippecanoeMerge(cellIds.flatMap(id => layerArgsByCell.get(id)!), tieredPath, tmpDir, verbose);
+    console.log(`    folding tier layers → ${path.basename(outputPath)}`);
+    renameContourTiers(tieredPath, outputPath, { verbose });
+    fs.unlinkSync(tieredPath);
     console.log(`  ✓ Shard mbtiles: ${outputPath} (${formatBytes(fileSizeBytes(outputPath))})`);
     return;
   }
@@ -812,18 +820,9 @@ function mergeToMbtiles(workDir: string, outputPath: string, verbose: boolean, m
 function joinBatchFiles(batchPaths: string[], outputPath: string, verbose: boolean): void {
   if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
   console.log(`    joining ${batchPaths.length} batches → ${path.basename(outputPath)}`);
-  // --no-tile-size-limit for the same reason joinShards() needs it: a
-  // re-encoded seam tile over 500 KB is silently dropped without it.
-  execFileSync('tile-join', [
-    '-o', outputPath,
-    '--no-tile-size-limit',
-    '--force',
-    ...(verbose ? [] : ['-q']),
-    ...batchPaths,
-  ], {
-    cwd: PROJECT_ROOT,
-    stdio: ['ignore', 'inherit', 'inherit'],
-  });
+  // The batches carry one layer per tier; this join is also where they fold
+  // into the served `contour` layer.
+  renameContourTiers(batchPaths, outputPath, { verbose });
 }
 
 function removeBatchFiles(batchPaths: string[]): void {
@@ -873,36 +872,16 @@ function cleanTierFiles(workDir: string): void {
   console.log(`  Removed ${removed} tier files from ${workDir} (batches kept)`);
 }
 
-/** One tippecanoe invocation over a set of -L layer arguments. */
+/**
+ * One tippecanoe invocation over a set of -L layer arguments. The output has
+ * one layer per tier (`contour_z9`…), gated by zoom; the caller folds them
+ * into `contour` with renameContourTiers() — see contourTierLayer().
+ */
 function tippecanoeMerge(layerArgs: string[], outputPath: string, tmpDir: string, verbose: boolean): void {
   execFileSync('tippecanoe', [
     '-t', tmpDir,
     '-o', outputPath,
-    // Quiet the progress indicator unless --verbose. Output also streams to
-    // the terminal (stdio inherit) instead of a pipe: any capture buffer
-    // eventually fills over a multi-hour merge and kills tippecanoe with
-    // ENOBUFS — -q alone doesn't prevent per-tile feature-drop warnings.
-    ...(verbose ? [] : ['-q']),
-    `-Z${CONTOUR_MIN_ZOOM}`,
-    `-z${MAX_ZOOM}`,
-    '-P',
-    '-y', 'elevation',
-    '-y', 'is_index',
-    '--drop-smallest-as-needed',
-    // Quality bundle chosen at the 2026-08-22 decision gate (Mt Sonder,
-    // `npm run experiment:contours`, run `smooth-z13`): simplification 14
-    // left z12–z14 contours visibly polygonal; 2 renders smooth at every zoom
-    // for ~+35% archive size in mountainous tiles (z15 is unaffected).
-    '--simplification=2',
-    // Keep full vertex detail at maxzoom: z15 tiles are what MapLibre
-    // overzooms past z15, so simplifying them makes contours visibly
-    // polygonal exactly where users zoom in. Lower zooms stay simplified.
-    '--simplify-only-low-zooms',
-    // tippecanoe's default (128 units): an oversize tile may be quantised no
-    // coarser than that before features are dropped — 4 allowed a 16×16 grid.
-    '--minimum-detail=7',
-    '--maximum-tile-bytes=1000000',
-    '--force',
+    ...contourTippecanoeArgs({}, { verbose }),
     ...layerArgs,
   ], {
     cwd: PROJECT_ROOT,
@@ -949,6 +928,9 @@ function joinShards(outputDir: string, verbose: boolean): void {
     '--no-tile-size-limit',
     '--force',
     ...(verbose ? [] : ['-q']),
+    // Shards already serve `contour`; the renames are no-ops for them and
+    // cover a shard mbtiles a killed run left with its tier layers.
+    ...contourTierRenameArgs(),
     ...shardFiles,
   ], {
     cwd: PROJECT_ROOT,

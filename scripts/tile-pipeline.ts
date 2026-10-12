@@ -8,7 +8,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
-import { execSync, type ExecSyncOptions } from 'child_process';
+import { execSync, execFileSync, type ExecSyncOptions } from 'child_process';
 import type { TileManifest, TileManifestFile } from '../src/lib/types.js';
 
 // --- Path setup ---
@@ -73,6 +73,149 @@ export const CONTOUR_TIERS: ContourTier[] = [
   // already emitted by the z10 tier — without it they'd appear twice.
   { suffix: 'z13', minZoom: 13, where: `(CAST(elevation AS INTEGER) % 20) != 0 AND (CAST(elevation AS INTEGER) % 50) != 0` },
 ];
+
+/** The one vector-tile layer every contour archive serves (public schema). */
+export const CONTOUR_LAYER = 'contour';
+
+/**
+ * The layer name a tier is tiled under *inside tippecanoe*: `contour_z9`,
+ * `contour_z10`, … — never the name a tile is served with.
+ *
+ * tippecanoe has no per-input zoom range: the `-L {"file", "layer"}` object
+ * takes no `minzoom` key (it was silently ignored by every build before
+ * 2026-10, so each tile at z9–z12 carried every 10 m contour, blew its byte
+ * budget and had its lines dropped and coarsened — the "jagged when zoomed
+ * out" contours). The only per-feature gate it offers is the `-j` feature
+ * filter, which is keyed by layer name and may test `$zoom`. So each tier is
+ * read as its own layer, `contourTierFilter()` lets it into a tile only from
+ * its minzoom, and `renameContourTiers()` (tile-join `-R`) folds the layers
+ * back into the one `contour` layer before anything is served or shipped.
+ */
+export function contourTierLayer(tier: ContourTier): string {
+  return `${CONTOUR_LAYER}_${tier.suffix}`;
+}
+
+/** The tippecanoe `-L` JSON for one tier file. */
+export function contourTierLayerArg(filePath: string, tier: ContourTier): string {
+  return JSON.stringify({ file: filePath, layer: contourTierLayer(tier) });
+}
+
+/**
+ * The tippecanoe `-j` feature filter that admits each tier from its minzoom.
+ * A tier that starts at the archive's minzoom needs no rule: a layer the
+ * filter does not name passes through at every zoom.
+ */
+export function contourTierFilter(tiers: ContourTier[] = CONTOUR_TIERS): string {
+  const filter: Record<string, unknown> = {};
+  for (const tier of tiers) {
+    if (tier.minZoom > CONTOUR_MIN_ZOOM) {
+      filter[contourTierLayer(tier)] = ['>=', '$zoom', tier.minZoom];
+    }
+  }
+  return JSON.stringify(filter);
+}
+
+/** tile-join `-R old:new` pairs folding every tier layer into `contour`. */
+export function contourTierRenameArgs(tiers: ContourTier[] = CONTOUR_TIERS): string[] {
+  return tiers.flatMap(tier => ['-R', `${contourTierLayer(tier)}:${CONTOUR_LAYER}`]);
+}
+
+/** The tippecanoe knobs the contour experiment harness varies. */
+export interface ContourTippecanoeOptions {
+  /** `--simplification` (Douglas-Peucker tolerance in tile units). */
+  simplification?: number;
+  /** `--minimum-detail`: the coarsest grid an oversize tile may be quantised to. */
+  minimumDetail?: number;
+  /** `--simplify-only-low-zooms`: leave maxzoom tiles at full vertex detail. */
+  simplifyOnlyLowZooms?: boolean;
+  /** `--maximum-tile-bytes`; undefined = tippecanoe's 500 KB default. */
+  maxTileBytes?: number;
+  /** `--visvalingam`: Visvalingam-Whyatt instead of Douglas-Peucker. */
+  visvalingam?: boolean;
+  /** Pass the tier `$zoom` filter (off reproduces the pre-2026-10 archives). */
+  tiered?: boolean;
+}
+
+/**
+ * The quality bundle every contour build tiles with, chosen at the
+ * 2026-08-22 decision gate (Mt Sonder, `npm run experiment:contours`, run
+ * `smooth-z13`): simplification 14 left z12–z14 contours visibly polygonal;
+ * 2 renders smooth at every zoom for ~+35% archive size in mountainous tiles
+ * (z15 is unaffected).
+ */
+export const CONTOUR_TIPPECANOE_DEFAULTS: Required<ContourTippecanoeOptions> = {
+  simplification: 2,
+  // Keep full vertex detail at maxzoom: z15 tiles are what MapLibre overzooms
+  // past z15, so simplifying them makes contours visibly polygonal exactly
+  // where users zoom in. Lower zooms stay simplified.
+  simplifyOnlyLowZooms: true,
+  // tippecanoe's default (128 units): an oversize tile may be quantised no
+  // coarser than that before features are dropped — 4 allowed a 16×16 grid.
+  minimumDetail: 7,
+  maxTileBytes: 1_000_000,
+  visvalingam: false,
+  tiered: true,
+};
+
+/**
+ * The tippecanoe argv shared by every contour build, minus `-o`, `-t` and the
+ * `-L` tier layers: zoom range, attributes, the quality bundle above and the
+ * tier filter. Build one tiered archive, then `renameContourTiers()` it.
+ */
+export function contourTippecanoeArgs(
+  options: ContourTippecanoeOptions = {},
+  opts?: { verbose?: boolean }
+): string[] {
+  const o = { ...CONTOUR_TIPPECANOE_DEFAULTS, ...options };
+  return [
+    // Quiet the progress indicator unless verbose. Output also streams to the
+    // terminal (stdio inherit) instead of a pipe: any capture buffer
+    // eventually fills over a multi-hour merge and kills tippecanoe with
+    // ENOBUFS — -q alone doesn't prevent per-tile feature-drop warnings.
+    ...(opts?.verbose ? [] : ['-q']),
+    `-Z${CONTOUR_MIN_ZOOM}`,
+    `-z${MAX_ZOOM}`,
+    '-P',
+    '-y', 'elevation',
+    '-y', 'is_index',
+    '--drop-smallest-as-needed',
+    `--simplification=${o.simplification}`,
+    ...(o.simplifyOnlyLowZooms ? ['--simplify-only-low-zooms'] : []),
+    `--minimum-detail=${o.minimumDetail}`,
+    ...(o.maxTileBytes ? [`--maximum-tile-bytes=${o.maxTileBytes}`] : []),
+    ...(o.visvalingam ? ['--visvalingam'] : []),
+    ...(o.tiered ? ['-j', contourTierFilter()] : []),
+    '--force',
+  ];
+}
+
+/**
+ * Fold a tippecanoe output's tier layers (`contour_z9`…) into the one served
+ * `contour` layer with tile-join. `outputPath` may be `.mbtiles` or
+ * `.pmtiles`. `--no-tile-size-limit` is mandatory: tile-join re-encodes every
+ * tile, and silently drops one over 500 KB without it, while the tippecanoe
+ * run allows a megabyte. Renaming a layer the input does not have is a no-op,
+ * so joining already-renamed archives through this is safe.
+ */
+export function renameContourTiers(
+  inputPaths: string | string[],
+  outputPath: string,
+  opts?: { verbose?: boolean }
+): void {
+  const inputs = Array.isArray(inputPaths) ? inputPaths : [inputPaths];
+  if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
+  execFileSync('tile-join', [
+    '-o', outputPath,
+    '--no-tile-size-limit',
+    '--force',
+    ...(opts?.verbose ? [] : ['-q']),
+    ...contourTierRenameArgs(),
+    ...inputs,
+  ], {
+    cwd: PROJECT_ROOT,
+    stdio: ['ignore', 'inherit', 'inherit'],
+  });
+}
 
 // --- Utility functions ---
 
@@ -359,7 +502,12 @@ export function checkDependencies(opts: {
 
   if (!opts.skipBase) {
     deps.push({ name: 'pmtiles', command: 'pmtiles version' });
-    // tile-join exits non-zero for all flags; just check it exists
+  }
+
+  if (!opts.skipContours || !opts.skipBase) {
+    // tile-join folds the contour tiers into one layer (renameContourTiers)
+    // and unions base tiles; it exits non-zero for all flags, so just check
+    // it exists.
     deps.push({ name: 'tile-join', command: 'which tile-join' });
   }
 
@@ -520,7 +668,11 @@ export function generateContours(
 /**
  * Classify contours and convert to MBTiles vector tiles.
  * Adds is_index field (1 for every 50m contour, 0 otherwise).
- * Uses zoom-dependent filtering for contour density.
+ * Uses zoom-dependent filtering for contour density (CONTOUR_TIERS).
+ *
+ * tippecanoe writes `contours.tiered.mbtiles` beside the output with one layer
+ * per tier, and `renameContourTiers()` folds them into the one `contour` layer
+ * the app's style reads — see `contourTierLayer()` for why two steps.
  */
 export function classifyAndTileContours(
   contoursRawPath: string,
@@ -533,13 +685,12 @@ export function classifyAndTileContours(
   // 4a: Add is_index field
   if (fs.existsSync(contoursClassifiedPath)) fs.unlinkSync(contoursClassifiedPath);
   const rawLayerName = 'contour';
-  const classifiedLayerName = 'contour';
   run([
     'ogr2ogr',
     '-f FlatGeobuf',
     `"${contoursClassifiedPath}"`,
     `"${contoursRawPath}"`,
-    `-nln ${classifiedLayerName}`,
+    `-nln ${CONTOUR_LAYER}`,
     '-dialect sqlite',
     '-sql',
     `"SELECT geometry, elevation, CAST(CASE WHEN (CAST(elevation AS INTEGER) % ${INDEX_CONTOUR_INTERVAL}) = 0 THEN 1 ELSE 0 END AS INTEGER) AS is_index FROM '${rawLayerName}'"`,
@@ -547,64 +698,47 @@ export function classifyAndTileContours(
 
   // 4b: Split into zoom-tier files for density control
   const workDir = path.dirname(contoursMbtilesPath);
-  const tiers = [
-    { suffix: 'z9',  minZoom: CONTOUR_MIN_ZOOM,  sql: `SELECT * FROM '${classifiedLayerName}' WHERE (CAST(elevation AS INTEGER) % 100) = 0` },
-    { suffix: 'z10', minZoom: 10, sql: `SELECT * FROM '${classifiedLayerName}' WHERE (CAST(elevation AS INTEGER) % 50) = 0 AND (CAST(elevation AS INTEGER) % 100) != 0` },
-    { suffix: 'z12', minZoom: 12, sql: `SELECT * FROM '${classifiedLayerName}' WHERE (CAST(elevation AS INTEGER) % 20) = 0 AND (CAST(elevation AS INTEGER) % 50) != 0` },
-    // %50 != 0 as well: odd multiples of 50 (50, 150, ...) have %20 = 10 and
-    // are already emitted by the z10 tier — without it they'd appear twice.
-    { suffix: 'z13', minZoom: 13, sql: `SELECT * FROM '${classifiedLayerName}' WHERE (CAST(elevation AS INTEGER) % 20) != 0 AND (CAST(elevation AS INTEGER) % 50) != 0` },
-  ];
+  const tierPath = (tier: ContourTier): string => path.join(workDir, `contours_${tier.suffix}.fgb`);
 
-  const tierFiles: { path: string; minZoom: number; suffix: string }[] = [];
-  for (const tier of tiers) {
-    const tierPath = path.join(workDir, `contours_${tier.suffix}.fgb`);
-    if (fs.existsSync(tierPath)) fs.unlinkSync(tierPath);
+  const layerArgs: string[] = [];
+  for (const tier of CONTOUR_TIERS) {
+    if (fs.existsSync(tierPath(tier))) fs.unlinkSync(tierPath(tier));
     run([
       'ogr2ogr',
       '-f FlatGeobuf',
-      `"${tierPath}"`,
+      `"${tierPath(tier)}"`,
       `"${contoursClassifiedPath}"`,
       '-dialect sqlite',
       '-sql',
-      `"${tier.sql}"`,
+      `"SELECT * FROM '${CONTOUR_LAYER}' WHERE ${tier.where}"`,
     ].join(' '), { verbose });
 
-    if (fs.existsSync(tierPath) && fileSizeBytes(tierPath) > 0) {
-      tierFiles.push({ path: tierPath, minZoom: tier.minZoom, suffix: tier.suffix });
-      console.log(`    ${tier.suffix}: ${formatBytes(fileSizeBytes(tierPath))}`);
+    if (fs.existsSync(tierPath(tier)) && fileSizeBytes(tierPath(tier)) > 0) {
+      layerArgs.push('-L', contourTierLayerArg(tierPath(tier), tier));
+      console.log(`    ${tier.suffix}: ${formatBytes(fileSizeBytes(tierPath(tier)))}`);
     }
   }
 
-  // 4c: Generate vector tiles with per-tier zoom ranges
-  const layerArgs = tierFiles.map(({ path: filePath, minZoom }) => {
-    const config = JSON.stringify({ file: filePath, layer: 'contour', minzoom: minZoom });
-    return `-L '${config}'`;
+  // 4c: Generate vector tiles, one tippecanoe layer per tier, gated by zoom.
+  //     argv form: the -j filter carries `$zoom`, which a shell would expand.
+  const tieredPath = contoursMbtilesPath.replace(/\.mbtiles$/, '.tiered.mbtiles');
+  if (fs.existsSync(tieredPath)) fs.unlinkSync(tieredPath);
+  execFileSync('tippecanoe', [
+    '-o', tieredPath,
+    ...contourTippecanoeArgs({}, { verbose }),
+    ...layerArgs,
+  ], {
+    cwd: PROJECT_ROOT,
+    stdio: ['ignore', 'inherit', 'inherit'],
   });
 
-  run([
-    'tippecanoe',
-    `-o "${contoursMbtilesPath}"`,
-    `-Z${CONTOUR_MIN_ZOOM}`,
-    `-z${MAX_ZOOM}`,
-    '-P',
-    '-y elevation',
-    '-y is_index',
-    '--drop-smallest-as-needed',
-    '--simplification=14',
-    // Keep full vertex detail at maxzoom: those tiles are what MapLibre
-    // overzooms past z15, so simplifying them makes contours visibly
-    // polygonal exactly where users zoom in. Lower zooms stay simplified.
-    '--simplify-only-low-zooms',
-    '--minimum-detail=4',
-    '--force',
-    ...layerArgs,
-  ].join(' '), { verbose });
+  // 4d: Fold the tier layers into the served `contour` layer.
+  renameContourTiers(tieredPath, contoursMbtilesPath, { verbose });
 
-  // Clean up intermediate tier files
-  for (const tier of tiers) {
-    const tierPath = path.join(workDir, `contours_${tier.suffix}.fgb`);
-    if (fs.existsSync(tierPath)) fs.unlinkSync(tierPath);
+  // Clean up intermediates
+  if (fs.existsSync(tieredPath)) fs.unlinkSync(tieredPath);
+  for (const tier of CONTOUR_TIERS) {
+    if (fs.existsSync(tierPath(tier))) fs.unlinkSync(tierPath(tier));
   }
 
   console.log(`    ✓ Contour tiles: ${contoursMbtilesPath} (${formatBytes(fileSizeBytes(contoursMbtilesPath))})`);

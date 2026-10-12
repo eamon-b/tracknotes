@@ -133,6 +133,10 @@ function scaleOpacity(expression: unknown[], scale: number): unknown[] {
  */
 function getContourLayers(theme: MapTheme): object[] {
   const ink = CONTOUR_INK[theme];
+  // Round joins and caps, as the offline template: MapLibre's default miter
+  // join spikes every sharp vertex of a simplified contour, which reads as a
+  // jagged line at the low zooms where the lines are thinnest.
+  const lineLayout = { 'line-join': 'round', 'line-cap': 'round' };
   return [
     {
       id: 'contour-regular',
@@ -146,6 +150,7 @@ function getContourLayers(theme: MapTheme): object[] {
         ['!=', ['to-number', ['get', 'is_index']], 1],
         ['>', ['to-number', ['get', 'elevation']], 0],
       ],
+      layout: lineLayout,
       paint: {
         'line-color': ink.regular,
         'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.3, 13, 0.4, 14, 0.7, 15, 1.0],
@@ -169,6 +174,7 @@ function getContourLayers(theme: MapTheme): object[] {
         ['!=', ['%', ['to-number', ['get', 'elevation']], 200], 0],
         ['>', ['to-number', ['get', 'elevation']], 0],
       ],
+      layout: lineLayout,
       paint: {
         'line-color': ink.index,
         'line-width': ['interpolate', ['linear'], ['zoom'], 9, 0.5, 11, 0.7, 12, 1.1, 14, 2.0],
@@ -190,6 +196,7 @@ function getContourLayers(theme: MapTheme): object[] {
         ['==', ['%', ['to-number', ['get', 'elevation']], 200], 0],
         ['>', ['to-number', ['get', 'elevation']], 0],
       ],
+      layout: lineLayout,
       paint: {
         'line-color': ink.major,
         'line-width': ['interpolate', ['linear'], ['zoom'], 9, 0.9, 11, 1.5, 13, 1.8, 15, 2.4],

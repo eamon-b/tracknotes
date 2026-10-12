@@ -99,7 +99,11 @@ cubicspline + `-tap`, gdal_contour −i 10, identical 4-tier split and
   the cell is done and no *pending* cell still needs them (keeps peak disk
   ~shard-sized instead of ~1.1 TB world DEM).
 - Merge outputs `world_{shard}.mbtiles` (tippecanoe `-o *.mbtiles`, same
-  quality flags as Australia incl. `--simplify-only-low-zooms`).
+  quality flags as Australia incl. `--simplify-only-low-zooms`). The tiers
+  are tiled as separate layers gated by a `-j` `$zoom` filter and folded into
+  `contour` by tile-join `-R` (2026-10: tippecanoe's `-L` object has no
+  `minzoom`, so the tiers had been ignored by every build — see
+  `scripts/tile-pipeline.ts` `contourTierLayer`).
 - `--join`: tile-join all `world_*.mbtiles` present → `world.mbtiles` →
   `pmtiles convert` → `world.pmtiles`; validates zoom range (z9–15) with the
   existing `validateMbtilesArtifact` before convert.

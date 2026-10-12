@@ -97,6 +97,23 @@ mountainous tiles (z15 unchanged). Only the tippecanoe flags changed, so a
 future re-tune is a `--merge-only` re-run, not a cell rebuild. The experiment's
 `baseline` variant mirrors these flags; `legacy-simp-14` is the old bundle.
 
+**Found 2026-10-12: the zoom tiers were never applied.** tippecanoe's
+`-L {"file","layer"}` object has no `minzoom` key, so every build so far — the
+live `australia.pmtiles`, the live `world.pmtiles` and every offline pack —
+tiled every 10 m contour into every zoom. A z9 tile then held ten times the
+intended bytes; `--drop-smallest-as-needed` raises its threshold for the
+*whole zoom level* from the densest tile, so Mt Sonder's live world z9 tile
+kept one 100 m contour (its Australia tile kept them, quantised to a 16×16
+grid by `--minimum-detail=4`). `scripts/tile-pipeline.ts` now reads each tier
+as its own tippecanoe layer, gates it with a `-j` `$zoom` filter and folds the
+layers back into `contour` with tile-join `-R` (`renameContourTiers`); the
+experiment's `untiered` variant is the old behaviour. It is a tippecanoe-only
+change — `--merge-only` re-runs the shards from their kept tiers, no cell
+rebuild — and the batch/shard joins already run tile-join, so only a
+single-batch shard pays an extra tile-join pass. The re-tiered archives are
+smaller at z9–z12 (Mt Sonder's z9 tile: 543 KB → 55 KB) and identical from
+z13 up.
+
 ---
 
 ## 3. Provision and bootstrap
