@@ -1,4 +1,14 @@
 import {
+  clampEleWindow,
+  defaultEleWindow,
+  eleBounds,
+  eleToY,
+  panEleWindowByPixels,
+  pinchAxes,
+  scaleEleWindow,
+  zoomEleWindowAtFocal,
+  MAX_ELE_ZOOM_OUT,
+  MIN_ELE_SPAN_M,
   buildProfileMarkers,
   clampWindow,
   mirrorWindow,
@@ -357,5 +367,112 @@ describe('mirrorWindow', () => {
 
   it('maps the whole trail to the whole trail', () => {
     expect(mirrorWindow({ startKm: 0, endKm: 100 }, 100)).toEqual({ startKm: 0, endKm: 100 });
+  });
+});
+
+describe('eleBounds', () => {
+  it('floors at 0 m and rounds the high point up', () => {
+    expect(eleBounds([{ ele: 812 }, { ele: 1234 }])).toEqual({ floorM: 0, ceilingM: 1300 });
+    expect(eleBounds([{ ele: 3000 }, { ele: 4401 }])).toEqual({ floorM: 0, ceilingM: 4500 });
+  });
+
+  it('drops the floor below sea level only for a track that goes there', () => {
+    const b = eleBounds([{ ele: -12 }, { ele: 40 }]);
+    expect(b.floorM).toBeLessThanOrEqual(-12);
+    expect(b.ceilingM).toBeGreaterThanOrEqual(40);
+  });
+
+  it('keeps a minimum span for a flat or empty track', () => {
+    expect(eleBounds([{ ele: 0 }, { ele: 0 }])).toEqual({ floorM: 0, ceilingM: MIN_ELE_SPAN_M });
+    expect(eleBounds([])).toEqual({ floorM: 0, ceilingM: MIN_ELE_SPAN_M });
+  });
+});
+
+describe('clampEleWindow', () => {
+  const bounds = { floorM: 0, ceilingM: 1000 };
+
+  it('keeps a valid window untouched', () => {
+    expect(clampEleWindow(200, 600, bounds)).toEqual({ minM: 200, maxM: 600 });
+  });
+
+  it('shifts a zoomed-in window back inside floor and ceiling', () => {
+    expect(clampEleWindow(-100, 300, bounds)).toEqual({ minM: 0, maxM: 400 });
+    expect(clampEleWindow(800, 1200, bounds)).toEqual({ minM: 600, maxM: 1000 });
+  });
+
+  it('enforces the minimum span', () => {
+    const w = clampEleWindow(500, 510, bounds);
+    expect(w.maxM - w.minM).toBeCloseTo(MIN_ELE_SPAN_M, 6);
+  });
+
+  it('sits a zoomed-out window on the floor, up to the zoom-out limit', () => {
+    expect(clampEleWindow(-500, 1500, bounds)).toEqual({ minM: 0, maxM: 2000 });
+    expect(clampEleWindow(0, 100000, bounds)).toEqual({ minM: 0, maxM: 1000 * MAX_ELE_ZOOM_OUT });
+  });
+});
+
+describe('zoomEleWindowAtFocal', () => {
+  const bounds = { floorM: 0, ceilingM: 1000 };
+  const layout = { top: 10, chartHeight: 200 };
+
+  it('keeps the elevation under the focal point fixed', () => {
+    const base = defaultEleWindow(bounds);
+    const focalY = eleToY(750, base, layout);
+    const next = zoomEleWindowAtFocal(base, 2, focalY, layout, bounds);
+    expect(next.maxM - next.minM).toBeCloseTo(500, 6);
+    expect(eleToY(750, next, layout)).toBeCloseTo(focalY, 6);
+  });
+
+  it('zooming out from the default keeps the axis on 0 m', () => {
+    const next = zoomEleWindowAtFocal(defaultEleWindow(bounds), 0.5, 100, layout, bounds);
+    expect(next).toEqual({ minM: 0, maxM: 2000 });
+  });
+});
+
+describe('panEleWindowByPixels', () => {
+  const bounds = { floorM: 0, ceilingM: 1000 };
+
+  it('cannot move the default window', () => {
+    expect(panEleWindowByPixels(defaultEleWindow(bounds), 80, 200, bounds)).toEqual({
+      minM: 0,
+      maxM: 1000,
+    });
+  });
+
+  it('dragging down shows higher ground', () => {
+    expect(panEleWindowByPixels({ minM: 0, maxM: 200 }, 100, 200, bounds)).toEqual({
+      minM: 100,
+      maxM: 300,
+    });
+  });
+});
+
+describe('scaleEleWindow', () => {
+  const bounds = { floorM: 0, ceilingM: 1000 };
+
+  it('keeps the floor and moves the top', () => {
+    expect(scaleEleWindow({ minM: 0, maxM: 1000 }, 2, bounds)).toEqual({ minM: 0, maxM: 500 });
+    expect(scaleEleWindow({ minM: 0, maxM: 1000 }, 0.5, bounds)).toEqual({ minM: 0, maxM: 2000 });
+  });
+
+  it('stops at the minimum span without lifting the floor', () => {
+    expect(scaleEleWindow({ minM: 0, maxM: 60 }, 4, bounds)).toEqual({
+      minM: 0,
+      maxM: MIN_ELE_SPAN_M,
+    });
+  });
+});
+
+describe('pinchAxes', () => {
+  it('zooms distance for fingers side by side', () => {
+    expect(pinchAxes(200, 30)).toEqual({ x: true, y: false });
+  });
+
+  it('zooms elevation for fingers one above the other', () => {
+    expect(pinchAxes(-20, 180)).toEqual({ x: false, y: true });
+  });
+
+  it('zooms both for a diagonal', () => {
+    expect(pinchAxes(100, -100)).toEqual({ x: true, y: true });
   });
 });

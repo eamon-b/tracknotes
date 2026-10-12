@@ -1,9 +1,15 @@
 /**
  * Full-height elevation pane for the guide shell.
  *
- * Owns the visible km window (the profile is controlled), surfaces the scrub
- * readout in a fixed chip, and shows a reset-zoom affordance whenever the user
- * has zoomed in. Fed entirely from `useGuide()`.
+ * Owns the visible km window and elevation window (the profile is
+ * controlled), surfaces the scrub readout in a fixed chip, offers buttons to
+ * stretch or flatten the elevation axis, and shows a reset-zoom affordance
+ * whenever the user has zoomed either axis. Fed entirely from `useGuide()`.
+ *
+ * The elevation axis is the hiker's, not fitted to the stretch on screen: it
+ * opens on 0 m to just above the trail's high point and keeps that while the
+ * km window pans and zooms, so a gentle rise still looks gentle. A vertical
+ * pinch or the buttons change it.
  *
  * That km window doubles as this pane's focus window (see guide-focus): arriving
  * from the map zooms the profile to the section that was on screen, and leaving
@@ -25,6 +31,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useRouter } from 'expo-router';
 import { formatDistance, formatElevation } from '@lib/format-distance';
 import { useTheme } from '../../theme';
@@ -48,11 +55,23 @@ import {
   type RouteTrackPoint,
 } from '../routes/route-geometry';
 import { ElevationProfile, type ProfileReadout, type ProfileWaypoint } from './ElevationProfile';
-import { clampWindow, mirrorWindow, type KmWindow, type ProfileMarkerKind } from './geometry';
+import {
+  clampWindow,
+  defaultEleWindow,
+  eleBounds,
+  mirrorWindow,
+  scaleEleWindow,
+  type EleWindow,
+  type KmWindow,
+  type ProfileMarkerKind,
+} from './geometry';
 import type { ProfilePoint } from './lod';
 import { poiProfileMarkers, POI_PROFILE_MAX_WINDOW_KM } from './poi-profile';
 
 const ZOOM_EPSILON_KM = 0.01;
+const ZOOM_EPSILON_M = 0.5;
+/** How much one tap of a vertical-scale button stretches or flattens the relief. */
+const ELE_SCALE_STEP = 1.5;
 
 export function ElevationPane() {
   const { colors } = useTheme();
@@ -110,6 +129,20 @@ export function ElevationPane() {
   const [window, setWindow] = useState<KmWindow>({ startKm: 0, endKm: totalKm });
   const [readout, setReadout] = useState<ProfileReadout | null>(null);
 
+  // Elevation axis: bounds come from the whole track, so they — and the
+  // default window — move only when the track does.
+  const bounds = useMemo(() => eleBounds(points), [points]);
+  const [eleWindow, setEleWindow] = useState<EleWindow>(() => defaultEleWindow(bounds));
+  // A different track (another trail, or new data) refits the elevation axis.
+  // A direction flip keeps every elevation, so the hiker's scale survives it.
+  const fittedBoundsRef = useRef(bounds);
+  useEffect(() => {
+    const fitted = fittedBoundsRef.current;
+    if (fitted.floorM === bounds.floorM && fitted.ceilingM === bounds.ceilingM) return;
+    fittedBoundsRef.current = bounds;
+    setEleWindow(defaultEleWindow(bounds));
+  }, [bounds]);
+
   // A different (or newly loaded) trail invalidates the km window — refit it to
   // the full new length rather than leaving the zoom parked off the end. A
   // direction flip keeps the trail but renumbers every km, so the window is
@@ -128,11 +161,24 @@ export function ElevationPane() {
     setReadout(null);
   }, [totalKm, direction]);
 
-  const isZoomed = window.startKm > ZOOM_EPSILON_KM || window.endKm < totalKm - ZOOM_EPSILON_KM;
+  const isEleZoomed =
+    Math.abs(eleWindow.minM - bounds.floorM) > ZOOM_EPSILON_M ||
+    Math.abs(eleWindow.maxM - bounds.ceilingM) > ZOOM_EPSILON_M;
+  const isZoomed =
+    window.startKm > ZOOM_EPSILON_KM || window.endKm < totalKm - ZOOM_EPSILON_KM || isEleZoomed;
 
   const resetZoom = useCallback(() => {
     setWindow({ startKm: 0, endKm: totalKm });
-  }, [totalKm]);
+    setEleWindow(defaultEleWindow(bounds));
+  }, [totalKm, bounds]);
+
+  const stretchElevation = useCallback(() => {
+    setEleWindow((w) => scaleEleWindow(w, ELE_SCALE_STEP, bounds));
+  }, [bounds]);
+
+  const flattenElevation = useCallback(() => {
+    setEleWindow((w) => scaleEleWindow(w, 1 / ELE_SCALE_STEP, bounds));
+  }, [bounds]);
 
   // Hollow POI rings only where they can be told apart: on a whole-trail window
   // a few hundred of them bury the trace.
@@ -202,9 +248,38 @@ export function ElevationPane() {
             </Text>
           ) : (
             <Text style={[styles.chipHint, { color: colors.textSecondary }]}>
-              Tap to read off · pinch to zoom · drag to pan
+              Tap to read off · pinch to zoom (up/down for height) · drag to pan
             </Text>
           )}
+        </View>
+
+        <View style={styles.scaleButtons}>
+          <Pressable
+            onPress={stretchElevation}
+            accessibilityRole="button"
+            accessibilityLabel="Stretch elevation"
+            hitSlop={4}
+            style={({ pressed }) => [
+              styles.iconButton,
+              { backgroundColor: colors.surfaceElevated, borderColor: colors.border },
+              pressed && styles.pressed,
+            ]}
+          >
+            <MaterialCommunityIcons name="arrow-expand-vertical" size={18} color={colors.accent} />
+          </Pressable>
+          <Pressable
+            onPress={flattenElevation}
+            accessibilityRole="button"
+            accessibilityLabel="Flatten elevation"
+            hitSlop={4}
+            style={({ pressed }) => [
+              styles.iconButton,
+              { backgroundColor: colors.surfaceElevated, borderColor: colors.border },
+              pressed && styles.pressed,
+            ]}
+          >
+            <MaterialCommunityIcons name="arrow-collapse-vertical" size={18} color={colors.accent} />
+          </Pressable>
         </View>
 
         {isZoomed && (
@@ -234,6 +309,9 @@ export function ElevationPane() {
           currentKm={currentKm}
           window={window}
           onWindowChange={setWindow}
+          eleWindow={eleWindow}
+          eleBounds={bounds}
+          onEleWindowChange={setEleWindow}
           highlightRanges={highlightRanges}
           stopKms={stopKms}
           onWaypointTap={onWaypointTap}
@@ -270,6 +348,17 @@ const styles = StyleSheet.create({
   },
   chipHint: {
     ...typography.caption,
+  },
+  scaleButtons: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    marginLeft: 'auto',
+  },
+  iconButton: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.sm,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   resetButton: {
     paddingHorizontal: spacing.md,

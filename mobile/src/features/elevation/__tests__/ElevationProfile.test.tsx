@@ -119,6 +119,9 @@ describe('ElevationProfile', () => {
     totalKm: 100,
     unit: 'km' as const,
     window: { startKm: 0, endKm: 100 },
+    eleWindow: { minM: 0, maxM: 200 },
+    eleBounds: { floorM: 0, ceilingM: 200 },
+    onEleWindowChange: jest.fn(),
     waypoints: [
       { id: 'w1', type: 'water', totalDistance: 25, elevation: 120 },
       { id: 'w2', type: 'campsite', totalDistance: 60, elevation: 80 },
@@ -191,6 +194,9 @@ describe('ElevationProfile', () => {
           unit="km"
           window={{ startKm: 0, endKm: 0 }}
           onWindowChange={jest.fn()}
+          eleWindow={{ minM: 0, maxM: 50 }}
+          eleBounds={{ floorM: 0, ceilingM: 50 }}
+          onEleWindowChange={jest.fn()}
         />,
       );
     });
@@ -244,6 +250,54 @@ describe('ElevationProfile', () => {
     layoutAll(root);
     expect(root.toJSON()).toBeTruthy();
     act(() => root.unmount());
+  });
+
+  describe('elevation axis', () => {
+    interface CircleProps {
+      cx: number;
+      cy: number;
+    }
+    const circles = (root: ReactTestRenderer): CircleProps[] =>
+      root.root.findAllByType(Circle).map((n) => n.props as unknown as CircleProps);
+
+    it('keeps a marker at the same height when the km window zooms', () => {
+      // The y-axis is the elevation window, not a fit to the visible points:
+      // zooming in on km must not move a waypoint up or down the plot.
+      let root!: ReactTestRenderer;
+      act(() => {
+        root = TestRenderer.create(<ElevationProfile {...baseProps} onWindowChange={jest.fn()} />);
+      });
+      layoutAll(root);
+      const whole = circles(root)[0].cy;
+      act(() => {
+        root.update(
+          <ElevationProfile
+            {...baseProps}
+            window={{ startKm: 20, endKm: 30 }}
+            onWindowChange={jest.fn()}
+          />,
+        );
+      });
+      expect(circles(root)[0].cy).toBeCloseTo(whole, 6);
+      act(() => root.unmount());
+    });
+
+    it('drops markers above a zoomed-in elevation window', () => {
+      let root!: ReactTestRenderer;
+      act(() => {
+        root = TestRenderer.create(
+          <ElevationProfile
+            {...baseProps}
+            eleWindow={{ minM: 0, maxM: 100 }}
+            onWindowChange={jest.fn()}
+          />,
+        );
+      });
+      layoutAll(root);
+      // w1 (120 m) is off the top; w2 (80 m) stays.
+      expect(circles(root)).toHaveLength(1);
+      act(() => root.unmount());
+    });
   });
 
   describe('planned resupply markers', () => {

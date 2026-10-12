@@ -5,8 +5,13 @@
  *  - extreme-preserving LOD (precomputed once; selected per zoom — never
  *    resampled per frame), with the raw track drawn verbatim once a zoomed
  *    window is small enough to afford it,
- *  - pinch-to-zoom on the x-axis (anchored on the pinch focal point) plus
- *    one-finger horizontal pan, committed to the controlled `window` prop,
+ *  - pinch-to-zoom on either axis (anchored on the pinch focal point; fingers
+ *    side by side zoom distance, one above the other zoom elevation, a
+ *    diagonal both) plus one-finger pan, committed to the controlled `window`
+ *    (km) and `eleWindow` (metres) props,
+ *  - a y-axis that never auto-fits the visible stretch: it shows the hiker's
+ *    elevation window — by default 0 m to just above the trail's high point —
+ *    so relief keeps its true proportions while panning and zooming in km,
  *  - waypoint markers on the trace, plus hollow rings for OSM points of
  *    interest (tap → `onWaypointTap`, which is handed the marker's `kind` so
  *    the parent can route a POI to its own screen),
@@ -14,8 +19,9 @@
  *  - tap-to-scrub crosshair snapped to the nearest track point,
  *  - a `currentKm` GPS marker (plumbing only).
  *
- * The component is controlled: the parent owns the visible `window` and the
- * profile reports changes via `onWindowChange`. Colors are theme-resolved so
+ * The component is controlled: the parent owns the visible `window` and
+ * `eleWindow`, and the profile reports changes via `onWindowChange` and
+ * `onEleWindowChange`. Colors are theme-resolved so
  * the Skia canvas adapts to dark mode.
  *
  * Gesture design: recognition happens on the UI thread (gesture-handler
@@ -51,19 +57,27 @@ import { runOnJS } from 'react-native-reanimated';
 import { type DistanceUnit } from '@lib/format-distance';
 import { useReduceMotion, useTheme } from '../../theme';
 import { spacing, typography } from '../../tokens';
-import { distanceAxisTicks, elevationAxis, getMinMax, type AxisTick } from './axis';
+import { distanceAxisTicks, elevationAxis, type AxisTick } from './axis';
 import { buildLodLevels, selectWindowPoints, type ProfilePoint } from './lod';
 import {
   buildProfileMarkers,
+  clampEleWindow,
   clampWindow,
+  eleToY,
   hitTestMarkers,
   kmToX,
   nearestPointByKm,
+  panEleWindowByPixels,
   panWindowByPixels,
+  pinchAxes,
   xToKm,
+  zoomEleWindowAtFocal,
   zoomWindowAtFocal,
   MIN_WINDOW_KM,
+  type EleBounds,
+  type EleWindow,
   type KmWindow,
+  type PinchAxes,
   type ProfileMarkerKind,
 } from './geometry';
 import { poiColor, waypointColor } from './waypoint-category';
@@ -133,6 +147,15 @@ export interface ElevationProfileProps {
   /** Reports a new visible window (pan/zoom). */
   onWindowChange: (window: KmWindow) => void;
   /**
+   * Controlled visible elevation range in metres — the y-axis. Not fitted to
+   * the visible stretch: it changes only when the hiker zooms or pans it.
+   */
+  eleWindow: EleWindow;
+  /** Limits the elevation window is kept inside (`eleBounds(points)`). */
+  eleBounds: EleBounds;
+  /** Reports a new elevation window (vertical pinch / drag). */
+  onEleWindowChange: (window: EleWindow) => void;
+  /**
    * On-trail km ranges to shade as translucent bands (e.g. an active custom
    * route's trail spans). Clipped to the visible window.
    */
@@ -169,6 +192,9 @@ export function ElevationProfile({
   unit,
   window,
   onWindowChange,
+  eleWindow,
+  eleBounds,
+  onEleWindowChange,
   highlightRanges,
   stopKms,
   currentKm,
@@ -214,14 +240,28 @@ export function ElevationProfile({
   // --- Chart metrics + Skia paths (rebuilt only when the window/size change) -
   const metrics = useMemo<PlotMetrics | null>(() => {
     if (windowedPoints.length === 0 || chartWidth <= 0 || chartHeight <= 0) return null;
-    const { min: minEle, max: maxEle } = getMinMax(windowedPoints.map((p) => p.ele));
+    // The y domain is the hiker's elevation window, not the visible points'
+    // min/max: fitting it to each stretch exaggerated every rise to full height.
     // Ticks are nice in the display unit (m / ft, km / mi) but positioned in the
     // chart's native domain (metres / km) so the pixel mapping below is unit-agnostic.
-    const ele = elevationAxis(minEle, maxEle, unit, 4);
+    const ele = elevationAxis(eleWindow.minM, eleWindow.maxM, unit, 4);
     const distTicks = distanceAxisTicks(window.startKm, window.endKm, unit, 5);
     const eleRange = ele.max - ele.min || 1;
     return { eleMin: ele.min, eleRange, eleTicks: ele.ticks, distTicks, chartWidth, chartHeight };
-  }, [windowedPoints, chartWidth, chartHeight, window.startKm, window.endKm, unit]);
+  }, [windowedPoints, chartWidth, chartHeight, window.startKm, window.endKm, eleWindow.minM, eleWindow.maxM, unit]);
+
+  /** metres → plot y (unclamped: the plot is clipped, so the trace can leave it). */
+  const yOf = useCallback(
+    (ele: number) =>
+      metrics
+        ? eleToY(
+            ele,
+            { minM: metrics.eleMin, maxM: metrics.eleMin + metrics.eleRange },
+            { top: PADDING.top, chartHeight },
+          )
+        : PADDING.top + chartHeight,
+    [metrics, chartHeight],
+  );
 
   const clampX = useCallback(
     (x: number) => Math.max(left, Math.min(left + chartWidth, x)),
@@ -239,17 +279,16 @@ export function ElevationProfile({
 
   const elevationPath = useMemo(() => {
     if (!metrics || windowedPoints.length === 0) return null;
-    const { eleMin, eleRange } = metrics;
     const path = Skia.Path.Make();
     for (let i = 0; i < windowedPoints.length; i++) {
       const p = windowedPoints[i];
       const x = xOf(p.dist);
-      const y = PADDING.top + chartHeight - ((p.ele - eleMin) / eleRange) * chartHeight;
+      const y = yOf(p.ele);
       if (i === 0) path.moveTo(x, y);
       else path.lineTo(x, y);
     }
     return path;
-  }, [metrics, windowedPoints, xOf, chartHeight]);
+  }, [metrics, windowedPoints, xOf, yOf]);
 
   const fillPath = useMemo(() => {
     if (!elevationPath) return null;
@@ -299,10 +338,10 @@ export function ElevationProfile({
 
   const gridLines = useMemo(() => {
     if (!metrics) return [];
-    const { eleMin, eleRange, eleTicks, distTicks } = metrics;
+    const { eleTicks, distTicks } = metrics;
     const lines: { x1: number; y1: number; x2: number; y2: number }[] = [];
     for (const tick of eleTicks) {
-      const y = PADDING.top + chartHeight - ((tick.pos - eleMin) / eleRange) * chartHeight;
+      const y = yOf(tick.pos);
       lines.push({ x1: left, y1: y, x2: left + chartWidth, y2: y });
     }
     for (const tick of distTicks) {
@@ -310,7 +349,7 @@ export function ElevationProfile({
       lines.push({ x1: x, y1: PADDING.top, x2: x, y2: PADDING.top + chartHeight });
     }
     return lines;
-  }, [metrics, left, chartWidth, chartHeight, xOf]);
+  }, [metrics, left, chartWidth, chartHeight, xOf, yOf]);
 
   // Translucent bands for highlighted km ranges (active route's trail spans),
   // clipped to the visible window. `xOf` clamps to the plot edges.
@@ -355,8 +394,11 @@ export function ElevationProfile({
   // in flight — gesture-handler cancels an in-progress gesture if the
   // GestureDetector's config is swapped out.
   const windowRef = useRef(window);
-  const layoutRef = useRef({ left, chartWidth });
+  const eleWindowRef = useRef(eleWindow);
+  const eleBoundsRef = useRef(eleBounds);
+  const layoutRef = useRef({ left, chartWidth, top: PADDING.top, chartHeight });
   const onWindowChangeRef = useRef(onWindowChange);
+  const onEleWindowChangeRef = useRef(onEleWindowChange);
   /** Latest render state for tap handling (avoids stale gesture closures). */
   const tapStateRef = useRef({ metrics, markers, points, onWaypointTap, onScrub });
   const lastPushRef = useRef(0);
@@ -369,65 +411,109 @@ export function ElevationProfile({
   // cannot observe a frame-old window, layout or callback.
   useLayoutEffect(() => {
     windowRef.current = window;
-    layoutRef.current = { left, chartWidth };
+    eleWindowRef.current = eleWindow;
+    eleBoundsRef.current = eleBounds;
+    layoutRef.current = { left, chartWidth, top: PADDING.top, chartHeight };
     onWindowChangeRef.current = onWindowChange;
+    onEleWindowChangeRef.current = onEleWindowChange;
     tapStateRef.current = { metrics, markers, points, onWaypointTap, onScrub };
     reduceMotionRef.current = reduceMotion;
     totalKmRef.current = totalKm;
   });
 
-  const pushWindow = useCallback((next: KmWindow, immediate: boolean) => {
-    // Under reduce-motion, skip the continuous mid-gesture updates and only
-    // settle the window when the gesture ends (immediate). The end frame is
-    // recomputed from the gesture's own delta, so nothing is lost.
-    if (!immediate && reduceMotionRef.current) return;
-    const now = Date.now();
-    if (!immediate && now - lastPushRef.current < WINDOW_THROTTLE_MS) return;
-    lastPushRef.current = now;
-    onWindowChangeRef.current(clampWindow(next.startKm, next.endKm, totalKmRef.current));
+  /**
+   * Push the next km and/or elevation window. One throttle covers both, so a
+   * diagonal pinch moves the two axes in the same frame.
+   */
+  const pushView = useCallback(
+    (next: { window?: KmWindow; eleWindow?: EleWindow }, immediate: boolean) => {
+      // Under reduce-motion, skip the continuous mid-gesture updates and only
+      // settle the window when the gesture ends (immediate). The end frame is
+      // recomputed from the gesture's own delta, so nothing is lost.
+      if (!immediate && reduceMotionRef.current) return;
+      const now = Date.now();
+      if (!immediate && now - lastPushRef.current < WINDOW_THROTTLE_MS) return;
+      lastPushRef.current = now;
+      if (next.window) {
+        onWindowChangeRef.current(
+          clampWindow(next.window.startKm, next.window.endKm, totalKmRef.current),
+        );
+      }
+      if (next.eleWindow) {
+        onEleWindowChangeRef.current(
+          clampEleWindow(next.eleWindow.minM, next.eleWindow.maxM, eleBoundsRef.current),
+        );
+      }
+    },
+    [],
+  );
+
+  /** Windows + pinch focal point + pinch axes snapshotted when the gesture started. */
+  const gestureBaseRef = useRef<{
+    window: KmWindow;
+    eleWindow: EleWindow;
+    focalX: number;
+    focalY: number;
+    axes: PinchAxes;
+  } | null>(null);
+  /** Which axes the next pinch zooms, read off where its two fingers landed. */
+  const pinchAxesRef = useRef<PinchAxes>({ x: true, y: false });
+
+  const recordPinchFingers = useCallback((dx: number, dy: number) => {
+    pinchAxesRef.current = pinchAxes(dx, dy);
   }, []);
 
-  /** Window + pinch focal point snapshotted when the gesture started. */
-  const gestureBaseRef = useRef<{ window: KmWindow; focalX: number } | null>(null);
-
-  const beginGesture = useCallback((focalX: number) => {
-    gestureBaseRef.current = { window: windowRef.current, focalX };
+  const beginGesture = useCallback((focalX: number, focalY: number) => {
+    gestureBaseRef.current = {
+      window: windowRef.current,
+      eleWindow: eleWindowRef.current,
+      focalX,
+      focalY,
+      axes: pinchAxesRef.current,
+    };
   }, []);
 
   const applyPan = useCallback(
-    (translationX: number, immediate: boolean) => {
+    (translationX: number, translationY: number, immediate: boolean) => {
       const base = gestureBaseRef.current;
       if (!base) return;
-      pushWindow(
-        panWindowByPixels(
-          base.window,
-          translationX,
-          layoutRef.current.chartWidth,
-          totalKmRef.current,
-        ),
+      const layout = layoutRef.current;
+      pushView(
+        {
+          window: panWindowByPixels(base.window, translationX, layout.chartWidth, totalKmRef.current),
+          // A no-op until the elevation is zoomed in: the default window
+          // already spans floor to ceiling, so there is nowhere to pan it.
+          eleWindow: panEleWindowByPixels(
+            base.eleWindow,
+            translationY,
+            layout.chartHeight,
+            eleBoundsRef.current,
+          ),
+        },
         immediate,
       );
     },
-    [pushWindow],
+    [pushView],
   );
 
   const applyPinch = useCallback(
     (scale: number, immediate: boolean) => {
       const base = gestureBaseRef.current;
       if (!base) return;
-      pushWindow(
-        zoomWindowAtFocal(
-          base.window,
-          scale,
-          base.focalX,
-          layoutRef.current,
-          totalKmRef.current,
-          MIN_WINDOW_KM,
-        ),
+      const layout = layoutRef.current;
+      pushView(
+        {
+          window: base.axes.x
+            ? zoomWindowAtFocal(base.window, scale, base.focalX, layout, totalKmRef.current, MIN_WINDOW_KM)
+            : undefined,
+          eleWindow: base.axes.y
+            ? zoomEleWindowAtFocal(base.eleWindow, scale, base.focalY, layout, eleBoundsRef.current)
+            : undefined,
+        },
         immediate,
       );
     },
-    [pushWindow],
+    [pushView],
   );
 
   const handleTap = useCallback((tapX: number, tapY: number) => {
@@ -448,7 +534,7 @@ export function ElevationProfile({
     s.onScrub?.({ km: nearest.dist, ele: nearest.ele });
   }, []);
 
-  // The seven `react-hooks/refs` suppressions below are all the same false
+  // The eight `react-hooks/refs` suppressions below are all the same false
   // positive, and the only ones in the app. The compiler cannot see inside
   // `Gesture.Pan().onStart(fn)`, so handing it a worklet that (via runOnJS)
   // reaches a ref-backed callback looks like a ref escaping into render. These
@@ -459,29 +545,38 @@ export function ElevationProfile({
   // whether RNGH preserves an in-flight drag across that is a device question
   // this cannot be settled without.
   const gesture = useMemo(() => {
-    // One finger drags the trail along the x-axis; `maxPointers(1)` keeps a
-    // second finger from stealing the pinch.
+    // One finger drags the trail: along the x-axis, and up/down once the
+    // elevation is zoomed in. `maxPointers(1)` keeps a second finger from
+    // stealing the pinch.
     const pan = Gesture.Pan()
       .minDistance(PAN_MIN_DISTANCE)
       .maxPointers(1)
       // eslint-disable-next-line react-hooks/refs -- worklet, runs on touch only
       .onStart(() => {
-        runOnJS(beginGesture)(0);
+        runOnJS(beginGesture)(0, 0);
       })
       // eslint-disable-next-line react-hooks/refs -- worklet, runs on touch only
       .onUpdate((e) => {
-        runOnJS(applyPan)(e.translationX, false);
+        runOnJS(applyPan)(e.translationX, e.translationY, false);
       })
       // eslint-disable-next-line react-hooks/refs -- worklet, runs on touch only
       .onEnd((e) => {
-        runOnJS(applyPan)(e.translationX, true);
+        runOnJS(applyPan)(e.translationX, e.translationY, true);
       });
 
-    // Pinch zooms the x-axis only; the y-axis keeps auto-fitting the window.
+    // Pinch zooms distance, elevation or both, depending on how the two fingers
+    // were placed (`pinchAxes`): their positions are only in the touch events,
+    // so they are recorded as the second finger lands, before the pinch starts.
     const pinch = Gesture.Pinch()
       // eslint-disable-next-line react-hooks/refs -- worklet, runs on touch only
+      .onTouchesDown((e) => {
+        if (e.allTouches.length < 2) return;
+        const [a, b] = e.allTouches;
+        runOnJS(recordPinchFingers)(b.x - a.x, b.y - a.y);
+      })
+      // eslint-disable-next-line react-hooks/refs -- worklet, runs on touch only
       .onStart((e) => {
-        runOnJS(beginGesture)(e.focalX);
+        runOnJS(beginGesture)(e.focalX, e.focalY);
       })
       // eslint-disable-next-line react-hooks/refs -- worklet, runs on touch only
       .onUpdate((e) => {
@@ -502,7 +597,7 @@ export function ElevationProfile({
     return Gesture.Simultaneous(Gesture.Race(pinch, pan), tap);
     // Handlers are ref-backed and stable, so this gesture is built once per
     // mount — never rebuilt (and thus never cancelled) by a window change.
-  }, [beginGesture, applyPan, applyPinch, handleTap]);
+  }, [beginGesture, recordPinchFingers, applyPan, applyPinch, handleTap]);
 
   if (points.length === 0 || !metrics) {
     return (
@@ -540,26 +635,30 @@ export function ElevationProfile({
             />
           ))}
 
-          {fillPath && (
-            <Path path={fillPath}>
-              <LinearGradient
-                start={vec(0, PADDING.top)}
-                end={vec(0, PADDING.top + chartHeight)}
-                colors={[colors.chartFillTop, colors.chartFillBottom]}
-              />
-            </Path>
-          )}
+          {/* Clipped to the plot: with the elevation zoomed in, the trace runs
+              off the top (or bottom) and must not draw over the axis labels. */}
+          <Group clip={{ x: left, y: PADDING.top, width: chartWidth, height: chartHeight }}>
+            {fillPath && (
+              <Path path={fillPath}>
+                <LinearGradient
+                  start={vec(0, PADDING.top)}
+                  end={vec(0, PADDING.top + chartHeight)}
+                  colors={[colors.chartFillTop, colors.chartFillBottom]}
+                />
+              </Path>
+            )}
 
-          {elevationPath && (
-            <Path
-              path={elevationPath}
-              color={colors.chartLine}
-              style="stroke"
-              strokeWidth={2}
-              strokeCap="round"
-              strokeJoin="round"
-            />
-          )}
+            {elevationPath && (
+              <Path
+                path={elevationPath}
+                color={colors.chartLine}
+                style="stroke"
+                strokeWidth={2}
+                strokeCap="round"
+                strokeJoin="round"
+              />
+            )}
+          </Group>
 
           {/* Day boundaries, under the markers: a stop's own waypoint dot sits
               on this line and must stay readable on top of it. */}
@@ -625,8 +724,7 @@ export function ElevationProfile({
       {/* Axis labels as RN Text for legible glyphs. */}
       <View style={styles.yLabels} pointerEvents="none">
         {metrics.eleTicks.map((tick) => {
-          const y =
-            PADDING.top + chartHeight - ((tick.pos - metrics.eleMin) / metrics.eleRange) * chartHeight;
+          const y = yOf(tick.pos);
           return (
             <Text
               key={`y-${tick.pos}`}
