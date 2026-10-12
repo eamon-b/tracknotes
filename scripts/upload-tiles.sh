@@ -33,6 +33,8 @@ CONTOUR_OBJECT_KEY="contours/australia.pmtiles"
 CONTOUR_WORKER_URL="${CONTOUR_WORKER_URL:-https://tiles.contour-map-tiles.net}"
 # Public URL of the same bucket, for checking what is already published.
 TILE_PUBLIC_URL="${TILE_PUBLIC_URL:-https://data.contour-map-tiles.net}"
+# Zone of TILE_PUBLIC_URL, for purging republished manifests (not a secret).
+CLOUDFLARE_ZONE_ID="${CLOUDFLARE_ZONE_ID:-f91f6188a42a5898ba760d129ae3ed74}"
 
 require_command() {
   local command_name="$1"
@@ -196,6 +198,33 @@ is_published() {
   [ "$length" = "$size" ]
 }
 
+# Drop a republished file from Cloudflare's edge cache. The edge keeps
+# manifest.json far past its max-age (on 2026-10-12 larapinta's was 5.5 days
+# old), and the app fetches the plain URL, so without a purge phones go on
+# seeing the previous manifest — and no update — for days. Needs an API token
+# with Cache Purge on the zone (wrangler's CLOUDFLARE_API_TOKEN can have it).
+purge_public_url() {
+  local url="$1"
+  if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
+    echo "  ⚠ Not purged from the edge cache (CLOUDFLARE_API_TOKEN is not set): $url"
+    echo "    Phones keep seeing the previous copy until the edge drops it. Purge it in"
+    echo "    the dashboard (Caching > Configuration > Purge Cache > Custom Purge)."
+    return 0
+  fi
+  local response
+  response=$(curl --silent --show-error -X POST \
+    "https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE_ID/purge_cache" \
+    -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+    -H "Content-Type: application/json" \
+    --data "{\"files\":[\"$url\"]}" || true)
+  if [[ "$response" =~ \"success\"[[:space:]]*:[[:space:]]*true ]]; then
+    echo "  Purged $url from the edge cache"
+  else
+    echo "  ⚠ Purge failed for $url: $response"
+    echo "    Purge it in the dashboard (Caching > Configuration > Purge Cache > Custom Purge)."
+  fi
+}
+
 # Upload every file a manifest lists, then the manifest itself.
 #
 # The manifest is uploaded LAST and is the atomic commit point of the whole
@@ -264,6 +293,7 @@ upload_manifest_dir() {
   upload_file "$manifest_file" "$remote_prefix/manifest.json" \
     "application/json" \
     "public, max-age=3600"
+  purge_public_url "$TILE_PUBLIC_URL/$remote_prefix/manifest.json"
 }
 
 upload_trail() {
