@@ -31,6 +31,8 @@ GRID_DIR="$TILES_DIR/grid"
 CONTOUR_LOCAL_FILENAME="australia-contours.pmtiles"
 CONTOUR_OBJECT_KEY="contours/australia.pmtiles"
 CONTOUR_WORKER_URL="${CONTOUR_WORKER_URL:-https://tiles.contour-map-tiles.net}"
+# Public URL of the same bucket, for checking what is already published.
+TILE_PUBLIC_URL="${TILE_PUBLIC_URL:-https://data.contour-map-tiles.net}"
 
 require_command() {
   local command_name="$1"
@@ -93,7 +95,7 @@ validate_mbtiles() {
   echo "  Validated $(basename "$mbtiles"): $tile_count tiles, integrity ok"
 }
 
-# Print one "<local name>\t<remote key>" line per manifest entry.
+# Print one "<local name>\t<remote key>\t<size>" line per manifest entry.
 #
 # Parsed with node (guaranteed present — the whole build pipeline is Node) so
 # this script does not pick up a jq dependency. Entries without a `key` fall
@@ -129,7 +131,7 @@ read_manifest_entries() {
         console.error(`${manifestPath}: invalid object key ${JSON.stringify(key)}`);
         process.exit(1);
       }
-      process.stdout.write(`${name}\t${key}\n`);
+      process.stdout.write(`${name}\t${key}\t${Number(file.size) || 0}\n`);
     }
   ' "$manifest_file"
 }
@@ -182,6 +184,18 @@ upload_payload_file() {
     "$src" "${RCLONE_REMOTE}:$BUCKET/$dest"
 }
 
+# True when the bucket serves <key> publicly at exactly <size> bytes. Keys are
+# content-addressed, so the right size at the right key is the same file.
+is_published() {
+  local key="$1"
+  local size="$2"
+  [ "${size:-0}" -gt 0 ] || return 1
+  local length
+  length=$(curl --silent --fail --head "$TILE_PUBLIC_URL/$key" \
+    | tr -d '\r' | awk 'tolower($1) == "content-length:" { print $2 }' | tail -n 1)
+  [ "$length" = "$size" ]
+}
+
 # Upload every file a manifest lists, then the manifest itself.
 #
 # The manifest is uploaded LAST and is the atomic commit point of the whole
@@ -216,7 +230,7 @@ upload_manifest_dir() {
 
   # Fail before uploading anything when a file is too big for wrangler and
   # there is no rclone remote to take it.
-  while IFS=$'\t' read -r name key; do
+  while IFS=$'\t' read -r name key size; do
     [ -n "$name" ] && [ -f "$src_dir/$name" ] || continue
     if [ "$(wc -c < "$src_dir/$name")" -gt "$WRANGLER_MAX_BYTES" ] && ! has_rclone_remote; then
       echo "Error: $name is over wrangler's $((WRANGLER_MAX_BYTES / 1024 / 1024))MiB limit."
@@ -226,10 +240,17 @@ upload_manifest_dir() {
   done <<< "$entries"
 
   # Here-string keeps the loop in the current shell so a failure exits the script.
-  while IFS=$'\t' read -r name key; do
+  while IFS=$'\t' read -r name key size; do
     [ -n "$name" ] || continue
     local src="$src_dir/$name"
     if [ ! -f "$src" ]; then
+      # A file the bucket already holds at this content-addressed key needs no
+      # local copy: smooth:packs rewrites only contours.mbtiles and keeps the
+      # published base.mbtiles entry as it was.
+      if is_published "$remote_prefix/$key" "$size"; then
+        echo "  $name already published at $remote_prefix/$key ($size bytes), skipping"
+        continue
+      fi
       echo "Error: manifest lists '$name' but $src does not exist. Rebuild before uploading."
       exit 1
     fi
