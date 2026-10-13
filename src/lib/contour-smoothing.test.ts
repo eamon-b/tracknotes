@@ -277,7 +277,9 @@ describe('smoothLine', () => {
     expect(meanTurn(out)).toBeLessThan(25);
   });
 
-  it('keeps both endpoints exactly, so lines still meet across tile edges', () => {
+  it('keeps both endpoints exactly, so no line ends short of where it did', () => {
+    // Only this line's own endpoints: the neighbouring tile smooths its own
+    // clipped copy, so the two meet closely at the seam, not exactly.
     for (const options of [AUSTRALIA, WORLD]) {
       const out = points(smoothLine(flat(ZIGZAG), options));
       expect(out[0]).toEqual(ZIGZAG[0]);

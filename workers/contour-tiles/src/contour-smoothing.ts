@@ -21,9 +21,14 @@
  * LineString features changes. Layer names, keys, values, feature ids, tags,
  * other geometry types and unknown fields are copied through byte for byte.
  *
- * Line endpoints never move, so a contour that leaves one tile still meets its
- * continuation in the next. Closed rings (first point == last point) are
- * smoothed all the way round and stay closed.
+ * A line's two endpoints never move, so no contour ends short of where it
+ * did. Across a tile edge the match is close but not exact: the archives are
+ * clipped with tippecanoe's default 5-unit buffer, so the two tiles sharing a
+ * seam smooth different vertex sets either side of it. Measured on live tiles
+ * the mismatch at the seam is sub-pixel almost everywhere (z13 median 1.2
+ * units, max 11 of 4096) and up to a 1-2 px jog on the coarsest z9 lines.
+ * Closed rings (first point == last point) are smoothed all the way round and
+ * stay closed.
  */
 
 export interface SmoothingOptions {

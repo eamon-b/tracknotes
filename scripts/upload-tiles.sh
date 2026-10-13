@@ -14,6 +14,7 @@
 #   ./scripts/upload-tiles.sh --grid E114_S34  # Upload one grid cell
 #   ./scripts/upload-tiles.sh --contours       # Upload australia-contours.pmtiles
 #   ./scripts/upload-tiles.sh --verify-contours # Check the Worker can read the archive
+#   ./scripts/upload-tiles.sh --no-purge <...>   # Leave the edge cache alone (see purge_public_url)
 #
 # The script reads from public/data/tiles/ (the build output directory)
 # and uploads to the aus-map-data R2 bucket.
@@ -203,13 +204,25 @@ is_published() {
 # old), and the app fetches the plain URL, so without a purge phones go on
 # seeing the previous manifest — and no update — for days. Needs an API token
 # with Cache Purge on the zone (wrangler's CLOUDFLARE_API_TOKEN can have it).
+#
+# A purge that cannot be done fails the script (after the upload, which is
+# complete and consistent by then) rather than printing a warning that
+# scrolls past: "Upload complete" must not be printed over a manifest no
+# phone will see. `--no-purge` opts out when the purge is being done another
+# way (the dashboard: Caching > Configuration > Purge Cache > Custom Purge).
+PURGE=1
 purge_public_url() {
   local url="$1"
-  if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
-    echo "  ⚠ Not purged from the edge cache (CLOUDFLARE_API_TOKEN is not set): $url"
-    echo "    Phones keep seeing the previous copy until the edge drops it. Purge it in"
-    echo "    the dashboard (Caching > Configuration > Purge Cache > Custom Purge)."
+  if [ "$PURGE" = 0 ]; then
+    echo "  Not purged from the edge cache (--no-purge): $url"
     return 0
+  fi
+  if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
+    echo "Error: $url was uploaded but not purged from the edge cache:"
+    echo "  CLOUDFLARE_API_TOKEN is not set. Phones keep seeing the previous copy until"
+    echo "  the edge drops it. Set a token with Cache Purge on the zone and re-run, purge"
+    echo "  it in the dashboard, or pass --no-purge to accept that."
+    exit 1
   fi
   local response
   response=$(curl --silent --show-error -X POST \
@@ -220,8 +233,10 @@ purge_public_url() {
   if [[ "$response" =~ \"success\"[[:space:]]*:[[:space:]]*true ]]; then
     echo "  Purged $url from the edge cache"
   else
-    echo "  ⚠ Purge failed for $url: $response"
-    echo "    Purge it in the dashboard (Caching > Configuration > Purge Cache > Custom Purge)."
+    echo "Error: $url was uploaded but the edge cache purge failed: $response"
+    echo "  Phones keep seeing the previous copy until it is purged. Re-run, purge it in"
+    echo "  the dashboard, or pass --no-purge to accept that."
+    exit 1
   fi
 }
 
@@ -473,6 +488,13 @@ EOF
 }
 
 # --- Main dispatch ---
+
+# --no-purge may sit anywhere in the arguments.
+args=()
+for arg in "$@"; do
+  if [ "$arg" = "--no-purge" ]; then PURGE=0; else args+=("$arg"); fi
+done
+set -- "${args[@]+"${args[@]}"}"
 
 if [ $# -ge 1 ] && [ "$1" = "--grid" ]; then
   # Grid mode

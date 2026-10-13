@@ -133,7 +133,7 @@ const SMOOTHING: Record<string, { options: SmoothingOptions; maxZoom: number }> 
 const SMOOTHING_VERSION = 'chaikin-1';
 
 function smoothingEnabled(env: Env): boolean {
-  return env.CONTOUR_SMOOTHING !== 'off';
+  return (env.CONTOUR_SMOOTHING ?? '').trim().toLowerCase() !== 'off';
 }
 
 /** The source whose health decides the top-level `ok` of /health. */

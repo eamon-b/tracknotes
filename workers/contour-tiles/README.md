@@ -75,8 +75,11 @@ the archives, the Worker smooths line geometry as it serves a tile
 (`src/contour-smoothing.ts`): Chaikin corner cutting, then Douglas-Peucker at
 a sub-pixel tolerance to drop the points the passes add on straight runs. Only
 LineString geometry changes. Everything else in the tile is copied through byte
-for byte, line endpoints stay exactly where they were (so contours still meet
-across tile edges), and closed rings stay closed.
+for byte, a line's endpoints stay exactly where they were (so no contour ends
+short), and closed rings stay closed. Where a contour crosses a tile edge the
+two tiles smooth different vertex sets either side of the seam (the archives
+carry tippecanoe's 5-unit clip buffer), so the join is close rather than exact:
+sub-pixel at z13, up to a 1-2 px jog on the coarsest z9 lines.
 
 | Source | Zooms smoothed | Passes / tolerance | Compressed size | CPU per tile miss |
 | --- | --- | --- | --- | --- |

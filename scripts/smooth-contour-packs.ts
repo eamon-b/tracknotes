@@ -75,7 +75,11 @@ function bundledTrailIds(): string[] {
 }
 
 async function fetchManifest(id: string): Promise<TileManifest> {
-  const res = await fetch(`${TILE_BASE_URL}/${id}/manifest.json`, { cache: 'no-store' });
+  // A query string the edge has never seen: `cache: 'no-store'` only skips
+  // the local cache, and the edge holds manifest.json for days past its
+  // max-age (why upload-tiles.sh purges it). Smoothing a stale manifest's
+  // contours would republish a pack that was already replaced.
+  const res = await fetch(`${TILE_BASE_URL}/${id}/manifest.json?fresh=${Date.now()}`, { cache: 'no-store' });
   if (!res.ok) throw new Error(`${id}: manifest HTTP ${res.status}`);
   return (await res.json()) as TileManifest;
 }
@@ -117,6 +121,20 @@ async function smoothPack(id: string, dryRun: boolean): Promise<string> {
   const outDir = dryRun ? path.join(PROJECT_ROOT, 'data/tiles/smoothing-dry-run', id) : path.join(TILES_DIR, id);
   ensureDir(outDir);
   const file = path.join(outDir, CONTOURS);
+
+  // Never write over a pack built here and not yet published: its manifest is
+  // not the live one, and replacing it with a smoothed copy of the live pack
+  // would silently throw the build away.
+  const localManifestPath = path.join(outDir, 'manifest.json');
+  if (!dryRun && fs.existsSync(localManifestPath)) {
+    const local = JSON.parse(fs.readFileSync(localManifestPath, 'utf8')) as TileManifest;
+    if (local.version !== manifest.version) {
+      throw new Error(
+        `${id}: ${localManifestPath} is version ${local.version} but the live pack is ${manifest.version}. ` +
+          `Publish or remove the local build first (upload:tiles ${id}), then re-run.`
+      );
+    }
+  }
 
   // Reuse an earlier download of the same live file.
   const reusable = fs.existsSync(file) && fileSizeBytes(file) === entry.size && (!entry.md5 || fileMd5(file) === entry.md5);
