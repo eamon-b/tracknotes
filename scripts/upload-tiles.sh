@@ -14,6 +14,7 @@
 #   ./scripts/upload-tiles.sh --grid E114_S34  # Upload one grid cell
 #   ./scripts/upload-tiles.sh --contours       # Upload australia-contours.pmtiles
 #   ./scripts/upload-tiles.sh --verify-contours # Check the Worker can read the archive
+#   ./scripts/upload-tiles.sh --no-purge <...>   # Leave the edge cache alone (see purge_public_url)
 #
 # The script reads from public/data/tiles/ (the build output directory)
 # and uploads to the aus-map-data R2 bucket.
@@ -31,6 +32,10 @@ GRID_DIR="$TILES_DIR/grid"
 CONTOUR_LOCAL_FILENAME="australia-contours.pmtiles"
 CONTOUR_OBJECT_KEY="contours/australia.pmtiles"
 CONTOUR_WORKER_URL="${CONTOUR_WORKER_URL:-https://tiles.contour-map-tiles.net}"
+# Public URL of the same bucket, for checking what is already published.
+TILE_PUBLIC_URL="${TILE_PUBLIC_URL:-https://data.contour-map-tiles.net}"
+# Zone of TILE_PUBLIC_URL, for purging republished manifests (not a secret).
+CLOUDFLARE_ZONE_ID="${CLOUDFLARE_ZONE_ID:-f91f6188a42a5898ba760d129ae3ed74}"
 
 require_command() {
   local command_name="$1"
@@ -93,7 +98,7 @@ validate_mbtiles() {
   echo "  Validated $(basename "$mbtiles"): $tile_count tiles, integrity ok"
 }
 
-# Print one "<local name>\t<remote key>" line per manifest entry.
+# Print one "<local name>\t<remote key>\t<size>" line per manifest entry.
 #
 # Parsed with node (guaranteed present — the whole build pipeline is Node) so
 # this script does not pick up a jq dependency. Entries without a `key` fall
@@ -129,7 +134,7 @@ read_manifest_entries() {
         console.error(`${manifestPath}: invalid object key ${JSON.stringify(key)}`);
         process.exit(1);
       }
-      process.stdout.write(`${name}\t${key}\n`);
+      process.stdout.write(`${name}\t${key}\t${Number(file.size) || 0}\n`);
     }
   ' "$manifest_file"
 }
@@ -182,6 +187,59 @@ upload_payload_file() {
     "$src" "${RCLONE_REMOTE}:$BUCKET/$dest"
 }
 
+# True when the bucket serves <key> publicly at exactly <size> bytes. Keys are
+# content-addressed, so the right size at the right key is the same file.
+is_published() {
+  local key="$1"
+  local size="$2"
+  [ "${size:-0}" -gt 0 ] || return 1
+  local length
+  length=$(curl --silent --fail --head "$TILE_PUBLIC_URL/$key" \
+    | tr -d '\r' | awk 'tolower($1) == "content-length:" { print $2 }' | tail -n 1)
+  [ "$length" = "$size" ]
+}
+
+# Drop a republished file from Cloudflare's edge cache. The edge keeps
+# manifest.json far past its max-age (on 2026-10-12 larapinta's was 5.5 days
+# old), and the app fetches the plain URL, so without a purge phones go on
+# seeing the previous manifest — and no update — for days. Needs an API token
+# with Cache Purge on the zone (wrangler's CLOUDFLARE_API_TOKEN can have it).
+#
+# A purge that cannot be done fails the script (after the upload, which is
+# complete and consistent by then) rather than printing a warning that
+# scrolls past: "Upload complete" must not be printed over a manifest no
+# phone will see. `--no-purge` opts out when the purge is being done another
+# way (the dashboard: Caching > Configuration > Purge Cache > Custom Purge).
+PURGE=1
+purge_public_url() {
+  local url="$1"
+  if [ "$PURGE" = 0 ]; then
+    echo "  Not purged from the edge cache (--no-purge): $url"
+    return 0
+  fi
+  if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
+    echo "Error: $url was uploaded but not purged from the edge cache:"
+    echo "  CLOUDFLARE_API_TOKEN is not set. Phones keep seeing the previous copy until"
+    echo "  the edge drops it. Set a token with Cache Purge on the zone and re-run, purge"
+    echo "  it in the dashboard, or pass --no-purge to accept that."
+    exit 1
+  fi
+  local response
+  response=$(curl --silent --show-error -X POST \
+    "https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE_ID/purge_cache" \
+    -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+    -H "Content-Type: application/json" \
+    --data "{\"files\":[\"$url\"]}" || true)
+  if [[ "$response" =~ \"success\"[[:space:]]*:[[:space:]]*true ]]; then
+    echo "  Purged $url from the edge cache"
+  else
+    echo "Error: $url was uploaded but the edge cache purge failed: $response"
+    echo "  Phones keep seeing the previous copy until it is purged. Re-run, purge it in"
+    echo "  the dashboard, or pass --no-purge to accept that."
+    exit 1
+  fi
+}
+
 # Upload every file a manifest lists, then the manifest itself.
 #
 # The manifest is uploaded LAST and is the atomic commit point of the whole
@@ -216,7 +274,7 @@ upload_manifest_dir() {
 
   # Fail before uploading anything when a file is too big for wrangler and
   # there is no rclone remote to take it.
-  while IFS=$'\t' read -r name key; do
+  while IFS=$'\t' read -r name key size; do
     [ -n "$name" ] && [ -f "$src_dir/$name" ] || continue
     if [ "$(wc -c < "$src_dir/$name")" -gt "$WRANGLER_MAX_BYTES" ] && ! has_rclone_remote; then
       echo "Error: $name is over wrangler's $((WRANGLER_MAX_BYTES / 1024 / 1024))MiB limit."
@@ -226,10 +284,17 @@ upload_manifest_dir() {
   done <<< "$entries"
 
   # Here-string keeps the loop in the current shell so a failure exits the script.
-  while IFS=$'\t' read -r name key; do
+  while IFS=$'\t' read -r name key size; do
     [ -n "$name" ] || continue
     local src="$src_dir/$name"
     if [ ! -f "$src" ]; then
+      # A file the bucket already holds at this content-addressed key needs no
+      # local copy: a manifest that changes only one of a pack's files can be
+      # republished without downloading the others.
+      if is_published "$remote_prefix/$key" "$size"; then
+        echo "  $name already published at $remote_prefix/$key ($size bytes), skipping"
+        continue
+      fi
       echo "Error: manifest lists '$name' but $src does not exist. Rebuild before uploading."
       exit 1
     fi
@@ -243,6 +308,7 @@ upload_manifest_dir() {
   upload_file "$manifest_file" "$remote_prefix/manifest.json" \
     "application/json" \
     "public, max-age=3600"
+  purge_public_url "$TILE_PUBLIC_URL/$remote_prefix/manifest.json"
 }
 
 upload_trail() {
@@ -422,6 +488,13 @@ EOF
 }
 
 # --- Main dispatch ---
+
+# --no-purge may sit anywhere in the arguments.
+args=()
+for arg in "$@"; do
+  if [ "$arg" = "--no-purge" ]; then PURGE=0; else args+=("$arg"); fi
+done
+set -- "${args[@]+"${args[@]}"}"
 
 if [ $# -ge 1 ] && [ "$1" = "--grid" ]; then
   # Grid mode
