@@ -168,7 +168,7 @@
    this it renders as a default browser link. Same declarations, so the two
    agree wherever both stylesheets happen to load. */
 .section-actions .trail-nav-link {
-  color: var(--accent-color, #2196F3);
+  color: var(--accent-color, #2D6A4F);
   text-decoration: none;
   font-weight: 500;
   white-space: nowrap;
