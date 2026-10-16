@@ -1957,7 +1957,7 @@ function drawElevationProfile(points: TrackPoint[]): void {
 
   // Draw elevation profile line
   ctx.beginPath();
-  ctx.strokeStyle = themeColor('--chart-line', '#2196F3');
+  ctx.strokeStyle = themeColor('--chart-line', '#2D6A4F');
   ctx.lineWidth = 2;
 
   points.forEach((point, i) => {

@@ -11,9 +11,10 @@
 :root {
   color-scheme: light;
 
-  /* Brand */
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
+  /* Brand: the forest-green ramp shared with the Tracknotes app
+     (mobile/src/tokens/colors.ts) and its icon. */
+  --primary: #2D6A4F;
+  --primary-hover: #1B4332;
   --on-primary: #ffffff;
   --success: #16a34a;
   --success-hover: #15803d;
@@ -21,19 +22,19 @@
   --danger: #dc2626;
 
   /* Surfaces and text */
-  --bg: #f8fafc;
+  --bg: #F7FAF8;
   --surface: #ffffff;
-  --bg-subtle: #f1f5f9;
-  --border: #e2e8f0;
-  --text: #1e293b;
-  --text-muted: #64748b;
-  --disabled-bg: #cbd5e1;
-  --shadow-card: 0 4px 12px rgba(15, 23, 42, 0.12);
+  --bg-subtle: #F1F5F3;
+  --border: #E3EAE6;
+  --text: #10241C;
+  --text-muted: #4A5B54;
+  --disabled-bg: #CBD6D0;
+  --shadow-card: 0 4px 12px rgba(8, 28, 21, 0.12);
   --radius: 8px;
 
   /* Tinted states */
-  --tint-accent: #eff6ff;
-  --tint-accent-strong: #dbeafe;
+  --tint-accent: #ECF5F0;
+  --tint-accent-strong: #D8F3DC;
   --tint-success: #dcfce7;
   --tint-success-text: #166534;
   --tint-warn: #fef3c7;
@@ -71,7 +72,7 @@
   --poi-transport: #7c3aed;
   --poi-emergency: #dc2626;
   --poi-other: #64748b;
-  --poi-surface: #f1f5f9;
+  --poi-surface: #F1F5F3;
   /* Waypoint glyph families (@lib/waypoint-glyphs): map-marker rings and the
    * glyphs in tables. The same values as the phone's waypoint* tokens. */
   --wp-water: #1F6FB2;
@@ -85,8 +86,8 @@
   --chart-text: #666666;
   --chart-grid: #dddddd;
   --chart-grid-soft: #eeeeee;
-  --chart-line: #2196f3;
-  --chart-fill: rgba(33, 150, 243, 0.1);
+  --chart-line: #2D6A4F;
+  --chart-fill: rgba(45, 106, 79, 0.12);
   --chart-muted-line: #cccccc;
   --chart-accent: #3b82f6;
 
@@ -113,25 +114,25 @@
   :root:not([data-theme="light"]) {
     color-scheme: dark;
 
-    --primary: #60a5fa;
-    --primary-hover: #93c5fd;
-    --on-primary: #0b1220;
+    --primary: #74C69D;
+    --primary-hover: #95D5B2;
+    --on-primary: #081C15;
     --success: #34d399;
     --success-hover: #6ee7b7;
     --on-success: #052e16;
     --danger: #f87171;
 
-    --bg: #0f172a;
-    --surface: #1a2436;
-    --bg-subtle: #223049;
-    --border: #33415a;
-    --text: #e5ecf5;
-    --text-muted: #94a3b8;
-    --disabled-bg: #374151;
+    --bg: #081C15;
+    --surface: #10352A;
+    --bg-subtle: #1B4332;
+    --border: #2D6A4F;
+    --text: #ECF5F0;
+    --text-muted: #9BBFAF;
+    --disabled-bg: #2E4A3F;
     --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.45);
 
-    --tint-accent: #1c2c47;
-    --tint-accent-strong: #24395c;
+    --tint-accent: #12362A;
+    --tint-accent-strong: #1E4D3A;
     --tint-success: #123524;
     --tint-success-text: #86efac;
     --tint-warn: #3a2c10;
@@ -147,7 +148,7 @@
     --row-selected: #1e3a5f;
     --row-alternate: #382c14;
     --row-side-trip: #3a1f2e;
-    --row-detail: #202b3f;
+    --row-detail: #0F2D23;
 
     --temp-max: #f87171;
     --temp-min: #60a5fa;
@@ -162,7 +163,7 @@
     --poi-transport: #a78bfa;
     --poi-emergency: #f87171;
     --poi-other: #94a3b8;
-    --poi-surface: #223049;
+    --poi-surface: #1B4332;
     --wp-water: #6BB8F0;
     --wp-camp: #74C69D;
     --wp-town: #C79BE8;
@@ -170,12 +171,12 @@
     --wp-hazard: #FF6B6B;
     --wp-neutral: #A9B8B2;
 
-    --chart-text: #94a3b8;
-    --chart-grid: #33415a;
-    --chart-grid-soft: #253148;
-    --chart-line: #60a5fa;
-    --chart-fill: rgba(96, 165, 250, 0.15);
-    --chart-muted-line: #475569;
+    --chart-text: #9BBFAF;
+    --chart-grid: #2D6A4F;
+    --chart-grid-soft: #17392B;
+    --chart-line: #74C69D;
+    --chart-fill: rgba(116, 198, 157, 0.15);
+    --chart-muted-line: #3D5A4E;
     --chart-accent: #60a5fa;
   }
 }
@@ -183,25 +184,25 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  --primary: #60a5fa;
-  --primary-hover: #93c5fd;
-  --on-primary: #0b1220;
+  --primary: #74C69D;
+  --primary-hover: #95D5B2;
+  --on-primary: #081C15;
   --success: #34d399;
   --success-hover: #6ee7b7;
   --on-success: #052e16;
   --danger: #f87171;
 
-  --bg: #0f172a;
-  --surface: #1a2436;
-  --bg-subtle: #223049;
-  --border: #33415a;
-  --text: #e5ecf5;
-  --text-muted: #94a3b8;
-  --disabled-bg: #374151;
+  --bg: #081C15;
+  --surface: #10352A;
+  --bg-subtle: #1B4332;
+  --border: #2D6A4F;
+  --text: #ECF5F0;
+  --text-muted: #9BBFAF;
+  --disabled-bg: #2E4A3F;
   --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.45);
 
-  --tint-accent: #1c2c47;
-  --tint-accent-strong: #24395c;
+  --tint-accent: #12362A;
+  --tint-accent-strong: #1E4D3A;
   --tint-success: #123524;
   --tint-success-text: #86efac;
   --tint-warn: #3a2c10;
@@ -217,7 +218,7 @@
   --row-selected: #1e3a5f;
   --row-alternate: #382c14;
   --row-side-trip: #3a1f2e;
-  --row-detail: #202b3f;
+  --row-detail: #0F2D23;
 
   --temp-max: #f87171;
   --temp-min: #60a5fa;
@@ -232,7 +233,7 @@
   --poi-transport: #a78bfa;
   --poi-emergency: #f87171;
   --poi-other: #94a3b8;
-  --poi-surface: #223049;
+  --poi-surface: #1B4332;
   --wp-water: #6BB8F0;
   --wp-camp: #74C69D;
   --wp-town: #C79BE8;
@@ -240,12 +241,12 @@
   --wp-hazard: #FF6B6B;
   --wp-neutral: #A9B8B2;
 
-  --chart-text: #94a3b8;
-  --chart-grid: #33415a;
-  --chart-grid-soft: #253148;
-  --chart-line: #60a5fa;
-  --chart-fill: rgba(96, 165, 250, 0.15);
-  --chart-muted-line: #475569;
+  --chart-text: #9BBFAF;
+  --chart-grid: #2D6A4F;
+  --chart-grid-soft: #17392B;
+  --chart-line: #74C69D;
+  --chart-fill: rgba(116, 198, 157, 0.15);
+  --chart-muted-line: #3D5A4E;
   --chart-accent: #60a5fa;
 }
 
