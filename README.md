@@ -71,6 +71,20 @@ Anyone can also import their own GPX file, and hikers can share routes with each
 
 The phone half of the project, made for using a guide on the trail with no signal.
 
+The app on the Shikoku Henro, in dark mode:
+
+<p align="center">
+  <img src="docs/screenshots/app-guides.jpg" width="190" alt="My Guides, with the trail being hiked pinned at the top" />
+  <img src="docs/screenshots/app-map.jpg" width="190" alt="Offline topo map with contours, the route, an alternate and waypoint icons" />
+  <img src="docs/screenshots/app-elevation.jpg" width="190" alt="Elevation profile zoomed to a 30 km window, with waypoint markers" />
+  <img src="docs/screenshots/app-plan.jpg" width="190" alt="Planner stops list: overnight options with leg distance, climb, off-trail distance and nearby services" />
+</p>
+<p align="center">
+  <img src="docs/screenshots/app-today.jpg" width="190" alt="Today screen: the day's waypoints and OpenStreetMap places with distance and climb" />
+  <img src="docs/screenshots/app-waypoint.jpg" width="190" alt="Waypoint detail with description, the days either side if you stop here, and comments" />
+  <img src="docs/screenshots/app-add-waypoint.jpg" width="190" alt="Adding a hiker waypoint, kept private or shared with everyone" />
+</p>
+
 - **Offline maps**: download topographic map packs, with contour lines, for each trail. The map follows the system light/dark theme, with a night topo style in dark mode.
 - **Map | Elevation | List**: three views of the guide, one tap apart. The elevation profile can be pinched to zoom distance and height separately.
 - **GPS position on the trail**: your km along the route, distance off trail, and what's next (water, camp, resupply) with ETAs at your own pace.
@@ -81,20 +95,6 @@ The phone half of the project, made for using a guide on the trail with no signa
 - **Import** GPX files or `.tracknotes.json` handoffs from the website, and open shared plans from a link.
 - **Community routes** appear next to the curated guides.
 - **Trail data updates over the air**: corrected trail data downloads in the background without needing a new app release.
-
-<!--
-  App screenshots: add PNGs under docs/screenshots/ (e.g. app-map.png, app-elevation.png,
-  app-plan.png, app-today.png, app-waypoint.png, app-guides.png) and uncomment:
-
-<p align="center">
-  <img src="docs/screenshots/app-guides.png" width="200" alt="My Guides" />
-  <img src="docs/screenshots/app-map.png" width="200" alt="Offline topo map with GPS position" />
-  <img src="docs/screenshots/app-elevation.png" width="200" alt="Elevation profile" />
-  <img src="docs/screenshots/app-plan.png" width="200" alt="Day planner" />
-  <img src="docs/screenshots/app-today.png" width="200" alt="Today's plan" />
-  <img src="docs/screenshots/app-waypoint.png" width="200" alt="Waypoint detail with comments" />
-</p>
--->
 
 ## Where the data comes from
 
