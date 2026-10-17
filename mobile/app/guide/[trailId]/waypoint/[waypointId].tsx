@@ -580,7 +580,11 @@ export default function WaypointDetailScreen() {
             route is shown where it is, not where the route passes it. */}
         <Pressable
           onPress={() => {
-            requestMapTarget(trailId, { lat: waypoint.lat, lon: waypoint.lon });
+            requestMapTarget(trailId, {
+              lat: waypoint.lat,
+              lon: waypoint.lon,
+              accessPath: waypoint.offTrailPath,
+            });
             router.dismissTo({ pathname: '/guide/[trailId]', params: { trailId } });
           }}
           accessibilityRole="button"

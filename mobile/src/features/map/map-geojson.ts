@@ -203,6 +203,27 @@ export function buildRouteBreakCollection(
 }
 
 /**
+ * The walk in to an off-route place (`offTrailPath`: `[lat, lon]` pairs from
+ * the junction to the place) as one line; empty when there is no way to draw.
+ */
+export function buildAccessPathCollection(
+  path: readonly (readonly [number, number])[] | null | undefined,
+): FeatureCollection<LineString> {
+  if (!path || path.length < 2) return { type: 'FeatureCollection', features: [] };
+  return {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        id: 'access-path',
+        geometry: { type: 'LineString', coordinates: path.map(([lat, lon]) => [lon, lat]) },
+        properties: {},
+      },
+    ],
+  };
+}
+
+/**
  * Stable feature id for a variant line. The index is the variant's position in
  * its *own* class list, so the id round-trips a tap back to the source object
  * (`alternates[2]` → "alternate-2") without depending on names being unique.

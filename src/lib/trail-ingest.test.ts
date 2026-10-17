@@ -680,7 +680,18 @@ describe('waypointAccess', () => {
     expect([camp.lat, camp.lon]).toEqual([-34.03, 138.012]);
     expect(camp.offTrailKm).toBe(2.5);
     expect(camp.accessMode).toBe('foot');
+    expect(camp).not.toHaveProperty('offTrailPath');
     expect(trail.offTrailWaypoints.map(w => w.name)).not.toContain('Camp');
+  });
+
+  it('carries the routed walk in for the map to draw', () => {
+    const path: Array<[number, number]> = [[-34.005, 138], [-34.02, 138.006], [-34.03, 138.012]];
+    const trail = buildTrail(climb(), {
+      config: config({ waypointMaxDistance: 3000 }),
+      waypointAccess: new Map([['w_camp', { ...atValley.get('w_camp')!, path }]]),
+    });
+    expect(trail.waypoints.find(w => w.name === 'Camp')!.offTrailPath).toEqual(path);
+    expect(trail.waypoints.find(w => w.name === 'Valley')).not.toHaveProperty('offTrailPath');
   });
 
   it("gives the walk to the main route's row only, not a variant that passes the place", () => {
@@ -701,6 +712,7 @@ describe('waypointAccess', () => {
     expect(trail.waypoints.find(w => w.name === 'Camp')!.offTrailKm).toBe(2.5);
     const onAlternate = trail.alternates[0].waypoints!.find(w => w.name === 'Camp')!;
     expect(onAlternate.offTrailKm).toBeUndefined();
+    expect(onAlternate.offTrailPath).toBeUndefined();
   });
 
   it('never pulls a place beyond the match radius onto the route', () => {

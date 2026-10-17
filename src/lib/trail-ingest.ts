@@ -153,6 +153,7 @@ function waypointAccess(source: WaypointAccess): WaypointAccess {
   if (source.accessName !== undefined) access.accessName = source.accessName;
   if (source.offTrailAscentM !== undefined) access.offTrailAscentM = source.offTrailAscentM;
   if (source.offTrailDescentM !== undefined) access.offTrailDescentM = source.offTrailDescentM;
+  if (source.offTrailPath !== undefined) access.offTrailPath = source.offTrailPath;
   return access;
 }
 
@@ -1005,6 +1006,8 @@ export interface WaypointAccessPlacement {
   /** Climb and descent walking in, from the junction to the place (metres). */
   ascentM?: number;
   descentM?: number;
+  /** The walk in, `[lat, lon]` from the junction to the place, when it was routed. */
+  path?: Array<[number, number]>;
 }
 
 /**
@@ -1064,6 +1067,7 @@ export function matchAtJunctions(
       accessMode: 'foot' as const,
       ...(placement.ascentM !== undefined ? { offTrailAscentM: placement.ascentM } : {}),
       ...(placement.descentM !== undefined ? { offTrailDescentM: placement.descentM } : {}),
+      ...(placement.path !== undefined ? { offTrailPath: placement.path } : {}),
     };
   });
 }

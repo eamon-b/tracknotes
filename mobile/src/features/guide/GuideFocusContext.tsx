@@ -38,6 +38,11 @@ export interface PaneFocusHandlers {
 export interface MapPoint {
   lat: number;
   lon: number;
+  /**
+   * The way walked in to an off-route place, `[lat, lon]` from the junction on
+   * the route to the place (`offTrailPath`). Drawn dotted while the map shows it.
+   */
+  accessPath?: readonly (readonly [number, number])[];
 }
 
 /** Runs `fn` after the pane switch has been laid out. */

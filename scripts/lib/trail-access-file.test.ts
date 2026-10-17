@@ -32,7 +32,13 @@ describe('trail access file', () => {
   it('places only the entries that found a junction', () => {
     const placements = accessPlacements(FILE);
     expect([...placements.keys()].sort()).toEqual(['w_b', 'w_c']);
-    expect(placements.get('w_b')).toEqual({ junction: { lat: 33.93, lon: 134.519 }, offTrailKm: 2.82 });
+    expect(placements.get('w_b')).toEqual({
+      junction: { lat: 33.93, lon: 134.519 },
+      offTrailKm: 2.82,
+      path: [[33.93, 134.519], [33.92, 134.5]],
+    });
+    // A hand-written entry is not a routed walk: nothing to draw.
+    expect(placements.get('w_c')).not.toHaveProperty('path');
     expect(accessPlacements(null).size).toBe(0);
   });
 

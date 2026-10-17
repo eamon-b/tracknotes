@@ -83,6 +83,7 @@ import { contourSourceFor, getOnlineMapStyle } from '../../services/online-style
 import { poiColor, waypointColor } from '../elevation/waypoint-category';
 import {
   accuracyCircleRadiusExpression,
+  buildAccessPathCollection,
   buildPoiCollection,
   buildRouteBreakCollection,
   buildTrailLine,
@@ -335,6 +336,11 @@ export interface GuideMapProps {
    */
   onBackgroundPress?: () => void;
   /**
+   * The way walked in to the off-route place the map was last asked to show
+   * (`[lat, lon]`, junction → place), drawn dotted. Null or omitted draws none.
+   */
+  accessPath?: readonly (readonly [number, number])[] | null;
+  /**
    * Custom-route overlay (the active saved route, or the in-progress builder
    * route). Mixed geometry: LineString features (`straight` property → dashed)
    * for legs, plus optional Point features (route vertices) for the builder.
@@ -477,6 +483,21 @@ function buildTrackStyles(theme: MapTheme) {
     alternateHighlight: variantHighlightStyle(track.alternate, TRACK_WIDTHS.alternate),
     sideTripHighlight: variantHighlightStyle(track.sideTrip, TRACK_WIDTHS.sideTrip),
     terminusHighlight: variantHighlightStyle(track.alternate, TRACK_WIDTHS.terminus),
+    accessCasing: {
+      lineColor: track.mainCasing,
+      lineWidth: trackWidthExpression(TRACK_WIDTHS.accessCasing) as unknown as number,
+      lineOpacity: 0.7,
+      lineCap: 'round' as const,
+      lineJoin: 'round' as const,
+    },
+    access: {
+      lineColor: track.main,
+      lineWidth: trackWidthExpression(TRACK_WIDTHS.access) as unknown as number,
+      lineOpacity: 1,
+      lineCap: 'round' as const,
+      lineJoin: 'round' as const,
+      lineDasharray: TRACK_DASH.access as unknown as number[],
+    },
   };
 }
 
@@ -516,6 +537,7 @@ export const GuideMap = memo(
       onVariantTap,
       selectedVariantId,
       onBackgroundPress,
+      accessPath,
       routeOverlay,
       builderMode,
       onMapPress,
@@ -646,6 +668,7 @@ export const GuideMap = memo(
       () => buildRouteBreakCollection(displayPoints, breaks),
       [displayPoints, breaks],
     );
+    const accessCollection = useMemo(() => buildAccessPathCollection(accessPath), [accessPath]);
     const alternatesCollection = useMemo(
       () => buildVariantCollection(alternates ?? [], 'alternate'),
       [alternates],
@@ -1224,6 +1247,14 @@ export const GuideMap = memo(
             waypoints sit at either end and carry the names. */}
         <GeoJSONSource id="guide-trail-breaks" data={routeBreakCollection}>
           <Layer type="line" id="guide-trail-breaks-layer" style={routeBreakStyle} />
+        </GeoJSONSource>
+
+        {/* The walk in to the place "Show on map" brought us to: red dots from
+            the junction, above the trail line so they visibly leave it, and
+            under the markers so the place's badge sits on the end. */}
+        <GeoJSONSource id="guide-access-path" data={accessCollection}>
+          <Layer type="line" id="guide-access-path-casing" style={trackStyles.accessCasing} />
+          <Layer type="line" id="guide-access-path-layer" style={trackStyles.access} />
         </GeoJSONSource>
 
         {/* Custom route overlay (active route or in-progress builder), above

@@ -1,4 +1,5 @@
 import {
+  buildAccessPathCollection,
   buildPoiCollection,
   buildRouteBreakCollection,
   buildTrailLine,
@@ -369,5 +370,25 @@ describe('buildPoiCollection', () => {
       type: 'FeatureCollection',
       features: [],
     });
+  });
+});
+
+describe('buildAccessPathCollection', () => {
+  it('draws the walk in as one line, swapping [lat, lon] to GeoJSON order', () => {
+    const fc = buildAccessPathCollection([
+      [-36.0897, 148.4658],
+      [-36.0889, 148.4644],
+    ]);
+    expect(fc.features).toHaveLength(1);
+    expect(fc.features[0].geometry.coordinates).toEqual([
+      [148.4658, -36.0897],
+      [148.4644, -36.0889],
+    ]);
+  });
+
+  it('draws nothing without a path of at least two points', () => {
+    expect(buildAccessPathCollection(null).features).toEqual([]);
+    expect(buildAccessPathCollection(undefined).features).toEqual([]);
+    expect(buildAccessPathCollection([[-36, 148]]).features).toEqual([]);
   });
 });

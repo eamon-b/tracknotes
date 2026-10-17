@@ -534,6 +534,7 @@ function applyAccessFields(waypoint: WaypointAccess, value: Record<string, unkno
   delete waypoint.accessName;
   delete waypoint.offTrailAscentM;
   delete waypoint.offTrailDescentM;
+  delete waypoint.offTrailPath;
 
   if (typeof value.offTrailKm === 'number' && Number.isFinite(value.offTrailKm)) {
     waypoint.offTrailKm = value.offTrailKm;
@@ -546,6 +547,25 @@ function applyAccessFields(waypoint: WaypointAccess, value: Record<string, unkno
     const metres = value[key];
     if (typeof metres === 'number' && Number.isFinite(metres) && metres >= 0) waypoint[key] = metres;
   }
+  const path = readAccessPath(value.offTrailPath);
+  if (path !== null) waypoint.offTrailPath = path;
+}
+
+/** The longest walk-in path kept from a file; the build's longest is well under 100 points. */
+const MAX_ACCESS_PATH_POINTS = 2000;
+
+/** A drawable walk-in path, or null — a bad one is dropped, like the other access fields. */
+function readAccessPath(value: unknown): Array<[number, number]> | null {
+  if (!Array.isArray(value) || value.length < 2 || value.length > MAX_ACCESS_PATH_POINTS) return null;
+  const path: Array<[number, number]> = [];
+  for (const pair of value) {
+    if (!Array.isArray(pair) || pair.length !== 2) return null;
+    const [lat, lon] = pair;
+    if (typeof lat !== 'number' || typeof lon !== 'number' || !Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+    if (Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+    path.push([lat, lon]);
+  }
+  return path;
 }
 
 /** Finite, in-range coordinates, or a rejected file. */
