@@ -131,8 +131,8 @@
     --disabled-bg: #2E4A3F;
     --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.45);
 
-    --tint-accent: #12362A;
-    --tint-accent-strong: #1E4D3A;
+    --tint-accent: #1A4A38;
+    --tint-accent-strong: #215441;
     --tint-success: #123524;
     --tint-success-text: #86efac;
     --tint-warn: #3a2c10;
@@ -201,8 +201,8 @@
   --disabled-bg: #2E4A3F;
   --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.45);
 
-  --tint-accent: #12362A;
-  --tint-accent-strong: #1E4D3A;
+  --tint-accent: #1A4A38;
+  --tint-accent-strong: #215441;
   --tint-success: #123524;
   --tint-success-text: #86efac;
   --tint-warn: #3a2c10;
@@ -340,6 +340,7 @@ header h1 {
 .upload-area.has-file {
   border-style: solid;
   border-color: var(--success);
+  background: var(--tint-success);
 }
 
 .upload-icon {
