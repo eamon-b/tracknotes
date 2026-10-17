@@ -93,6 +93,7 @@ export interface WaypointAccessPlacement {
   offTrailKm: number;
   ascentM?: number;
   descentM?: number;
+  path?: Array<[number, number]>;
 }
 
 export function trailAccessPath(trailDir: string): string {
@@ -170,6 +171,9 @@ export function accessPlacements(file: TrailAccessFile | null): Map<string, Wayp
       offTrailKm: entry.offTrailKm,
       ...(entry.ascentM !== undefined ? { ascentM: entry.ascentM } : {}),
       ...(entry.descentM !== undefined ? { descentM: entry.descentM } : {}),
+      // Only a routed walk has a way to draw: a hand-written entry's path,
+      // were one added, would say no more than its junction does.
+      ...(entry.method === 'osm' && entry.path && entry.path.length >= 2 ? { path: entry.path } : {}),
     });
   }
   return placements;

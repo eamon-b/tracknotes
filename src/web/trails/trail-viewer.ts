@@ -78,6 +78,10 @@ interface Waypoint {
   totalDescent?: number;
   description?: string;
   trackIndex?: number;
+  /** One-way walk from the route to the place, km, when it is off the route. */
+  offTrailKm?: number;
+  /** The way walked in, `[lat, lon]` from the junction to the place (`access.json`). */
+  offTrailPath?: Array<[number, number]>;
 }
 
 interface VariantWaypoint {
@@ -226,6 +230,8 @@ function setDisplayPoints(points: TrackPoint[]): void {
 let maxDistance = 0;
 let waypointMarkers: Array<{ marker: L.Marker; waypoint: Waypoint; index: number }> = [];
 let offTrailMarkers: L.Marker[] = [];
+/** The open waypoint's walk in from the route, drawn while its popup is open. */
+let accessPathLine: L.LayerGroup | null = null;
 let expandedWaypointIndex: number | null = null;
 let expandedVariantKey: string | null = null;
 let expandedVariantWaypointIndex: number | null = null;
@@ -1180,12 +1186,41 @@ function waypointPopupHtml(wp: Waypoint, index: number): string {
       ${escapeHtml(wp.type || 'waypoint')}<br>
       ${(wp.totalDistance || 0).toFixed(1)} km along trail
       ${wp.elevation ? `<br>${Math.round(wp.elevation)}m elevation` : ''}
+      ${wp.offTrailKm ? `<br>${wp.offTrailKm.toFixed(1)} km walk from the trail${wp.offTrailPath ? ' (dotted)' : ''}` : ''}
       <br><a href="#" class="popup-show-in-table" data-waypoint-index="${index}">Show in table</a>
     `;
 }
 
+/**
+ * Draw an off-route place's walk in from the route — the way `fetch-access`
+ * found over OSM — as a dotted line in the route's colour. Only one is shown
+ * at a time: it belongs to the open popup.
+ */
+function showAccessPath(path: Array<[number, number]>): void {
+  hideAccessPath();
+  if (!map) return;
+  // A faint white casing under the dots, so they read over busy town tiles.
+  accessPathLine = L.layerGroup([
+    L.polyline(path, { color: '#ffffff', weight: 6, opacity: 0.7, interactive: false }),
+    L.polyline(path, {
+      color: '#2196F3',
+      weight: 4,
+      opacity: 0.9,
+      dashArray: '1 8',
+      lineCap: 'round',
+      interactive: false
+    })
+  ]).addTo(map);
+}
+
+function hideAccessPath(): void {
+  if (accessPathLine && map) map.removeLayer(accessPathLine);
+  accessPathLine = null;
+}
+
 function drawWaypointMarkers(waypoints: Waypoint[]): void {
   waypointMarkers = [];
+  hideAccessPath();
   // Leaflet is a CDN script, and `initMap` already degrades to a "map
   // unavailable" panel when it doesn't arrive. Every other map mutation in
   // `refreshDisplay` is guarded on `map`; these two were not, so reversing
@@ -1198,6 +1233,12 @@ function drawWaypointMarkers(waypoints: Waypoint[]): void {
     const marker = L.marker([wp.lat, wp.lon], {
       icon: createWaypointIcon(wp.type)
     }).addTo(map!).bindPopup(waypointPopupHtml(wp, index));
+
+    const path = wp.offTrailPath;
+    if (path && path.length >= 2) {
+      marker.on('popupopen', () => showAccessPath(path));
+      marker.on('popupclose', hideAccessPath);
+    }
 
     waypointMarkers.push({ marker, waypoint: wp, index });
   });

@@ -416,6 +416,16 @@ describe('parseHandoffJson', () => {
       expect('acceptsBoxes' in wp).toBe(false);
       expect('accessName' in wp).toBe(false);
     });
+
+    it('keeps a well-formed walk-in path and drops a malformed one', () => {
+      const path = [[-34.005, 138], [-34.03, 138.012]];
+      const [kept] = parseHandoffJson(withWaypoint({ ...good, offTrailKm: 2.5, offTrailPath: path })).waypoints;
+      expect(kept.offTrailPath).toEqual(path);
+      for (const bad of [[[-34, 138]], [[-34, 138], [-34, 'x']], [[-34, 138], [95, 138]], 'path', [[-34, 138, 5], [-34, 138]]]) {
+        const [wp] = parseHandoffJson(withWaypoint({ ...good, offTrailPath: bad })).waypoints;
+        expect('offTrailPath' in wp).toBe(false);
+      }
+    });
   });
 });
 

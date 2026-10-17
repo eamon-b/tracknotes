@@ -278,6 +278,11 @@ export const TRACK_DASH = {
    * comes back".
    */
   terminus: [3, 1.5, 0.5, 1.5],
+  /**
+   * The walk in to an off-route place, shown after "Show on map": round dots of
+   * the main track's red — the way off the trail, not a track of its own.
+   */
+  access: [0, 2],
 } as const;
 
 /**
@@ -316,6 +321,9 @@ export const TRACK_WIDTHS = {
   alternate: 3,
   sideTrip: 3,
   terminus: 3,
+  access: 4,
+  /** Solid casing under the access dots, so they read over basemap clutter. */
+  accessCasing: 6,
 } as const;
 
 interface MapLogEvent {

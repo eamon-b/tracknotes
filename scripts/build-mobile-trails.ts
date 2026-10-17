@@ -107,6 +107,13 @@ function truncateWaypoint(wp: Record<string, unknown>): Record<string, unknown> 
   if (typeof result.descent === 'number') result.descent = Math.round(result.descent as number);
   if (typeof result.totalAscent === 'number') result.totalAscent = Math.round(result.totalAscent as number);
   if (typeof result.totalDescent === 'number') result.totalDescent = Math.round(result.totalDescent as number);
+  // The walk in is only drawn, so 1e-5° (about a metre) is plenty.
+  if (Array.isArray(result.offTrailPath)) {
+    result.offTrailPath = (result.offTrailPath as Array<[number, number]>).map(([lat, lon]) => [
+      Math.round(lat * 1e5) / 1e5,
+      Math.round(lon * 1e5) / 1e5,
+    ]);
+  }
   return result;
 }
 

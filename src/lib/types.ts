@@ -45,6 +45,12 @@ export interface WaypointAccess {
   offTrailAscentM?: number;
   /** Descent walking in, from the route to the place, in metres. */
   offTrailDescentM?: number;
+  /**
+   * The way walked in, as `[lat, lon]` pairs from the junction on the route to
+   * the place — the path `fetch-access` found over OSM. Only for drawing: every
+   * figure above is measured already. Absent when the walk was not routed.
+   */
+  offTrailPath?: Array<[number, number]>;
 }
 
 export interface GpxWaypoint extends WaypointAccess {

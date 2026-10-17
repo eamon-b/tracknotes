@@ -44,7 +44,7 @@ import { useGuide } from '../guide/GuideContext';
 import { selectPlan, usePlansStore } from '../../state/plans-store';
 import { planDirectionOf } from '../plan/plan-stops';
 import { plannedStopFeatureIds } from '../plan/plan-overlay';
-import { useGuidePaneFocus } from '../guide/GuideFocusContext';
+import { useGuidePaneFocus, type MapPoint } from '../guide/GuideFocusContext';
 import { useGuidePositionContext } from '../guide/GuidePositionContext';
 import { boundsForKmRange, isSameFocus, kmRangeInBounds } from '../guide/guide-focus';
 import { hasPois, useVisiblePois } from '../guide/use-visible-pois';
@@ -229,6 +229,13 @@ export function MapPane() {
     [],
   );
   const clearVariant = useCallback(() => setSelectedVariantId(null), []);
+  // The walk in to the place "Show on map" last brought us to, drawn until the
+  // next tap on the map itself or the next "Show on map".
+  const [accessPath, setAccessPath] = useState<MapPoint['accessPath'] | null>(null);
+  const onBackgroundPress = useCallback(() => {
+    setSelectedVariantId(null);
+    setAccessPath(null);
+  }, []);
 
   // Switching trails resets this along with every other state here: GuideView
   // mounts the pane with `key={trailId}`, so no effect has to clear it.
@@ -427,7 +434,10 @@ export function MapPane() {
       const box = boundsForKmRange(displayPoints, focus);
       if (box) mapRef.current?.fitBounds(box);
     },
-    showPoint: ({ lat, lon }) => mapRef.current?.showPoint(lat, lon),
+    showPoint: ({ lat, lon, accessPath: path }) => {
+      setAccessPath(path ?? null);
+      mapRef.current?.showPoint(lat, lon);
+    },
   });
 
   return (
@@ -455,7 +465,8 @@ export function MapPane() {
           onPoiTap={onPoiTap}
           onVariantTap={onVariantTap}
           selectedVariantId={selectedVariantId}
-          onBackgroundPress={clearVariant}
+          onBackgroundPress={onBackgroundPress}
+          accessPath={accessPath}
           routeOverlay={routeOverlay}
           builderMode={building}
           onMapPress={onMapPress}
