@@ -1,3 +1,4 @@
+/* global console */
 /**
  * Generates the Tracknotes mark — the app icon, Android adaptive layers,
  * splash image and favicons — from one piece of SVG artwork defined below.
@@ -128,7 +129,7 @@ const TRAIL_D = trailPath();
  */
 const FULL = { every: 1, ringWidth: 16, minArea: 2500, trailWidth: 30, dash: [26, 58], dot: 24, gap: 20 };
 const MID = { every: 2, ringWidth: 24, minArea: 9000, trailWidth: 45, dash: [42, 93], dot: 31, gap: 26 };
-const SMALL = { every: 3, ringWidth: 40, minArea: 40000, trailWidth: 63, dash: null, dot: 41, gap: 30 };
+const SMALL = { every: 3, ringWidth: 48, minArea: 40000, trailWidth: 70, dash: null, dot: 64, gap: 30 };
 const MONO = {
   every: 2, ringWidth: 26, minArea: 6000, trailWidth: 42, dash: [36, 80], dot: 34, gap: 26,
   ink: '#FFFFFF', ringOpacity: 0.5,

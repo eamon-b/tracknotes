@@ -43,7 +43,7 @@ const MIN_AREA = 1500;
 
 type Pt = [number, number];
 
-function blur(a: Float64Array, n: number, s: number): Float64Array<ArrayBuffer> {
+function blur(a: Float64Array, n: number, s: number): Float64Array {
   const r = Math.ceil(s * 3);
   const k: number[] = [];
   let t = 0;
@@ -113,7 +113,7 @@ async function main(): Promise<void> {
     north: PEAK.lat + half / mPerDegLat,
   });
   // Row 0 is north: the grid is the map as drawn.
-  let grid: Float64Array<ArrayBuffer> = new Float64Array(n * n);
+  let grid: Float64Array = new Float64Array(n * n);
   for (let j = 0; j < n; j++)
     for (let i = 0; i < n; i++) {
       const x = -half + (i + 0.5) * CELL_M;
