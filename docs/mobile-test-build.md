@@ -41,19 +41,22 @@ npx eas-cli@latest build --non-interactive --profile preview --platform android
   bucket. A test build therefore talks to **production** data and syncs to the real account of
   whichever device installs it. To point a test build somewhere else, edit those values in
   `eas.json` before building — `.env.local` is only read by Metro, never by EAS.
-- The version is `expo.version` in `app.json` (`0.1.0`) and the Android `versionCode` is `1`
-  (unset in `app.json`, so `eas` uses its default). Neither is bumped automatically: test builds
-  can reuse them freely, but a store upload needs a higher `versionCode` each time — see "Full
-  release".
+- The version is `expo.version` in `app.json` (`0.1.0`). The Android `versionCode` is kept by
+  EAS, not `app.json` (`cli.appVersionSource: "remote"` in `eas.json`; the first build after the
+  switch seeds it from the local value, `1`). Test builds reuse the current `versionCode`; each `production` build bumps
+  it (`autoIncrement`), since Play rejects a reused one — see "Full release".
+  `npx eas-cli@latest build:version:get -p android` shows the current value.
 
 ### From CI
 
-`.github/workflows/mobile-build.yml` runs the same command with `--no-wait`. It is manual
+`.github/workflows/mobile-build.yml` runs the mobile tests and typecheck, then the same command,
+waiting for the build to finish (about 25 minutes, mostly EAS's queue). It is manual
 only, so nothing builds on push: Actions → *Mobile build* → *Run workflow*, with a choice of
 branch and profile (`preview` by default). This works from the GitHub mobile app too.
 
 It needs an `EXPO_TOKEN` repository secret (Settings → Secrets and variables → Actions). The
-job finishes once the build is queued; the build itself, and its install link, are on expo.dev.
+run fails if the tests fail (no build is started) or the EAS build errors or is canceled, and
+its summary links the build page and, once finished, the install file.
 
 ## Install it
 
@@ -85,9 +88,6 @@ because the package name and signing key are the same.
   after that, non-interactive works. Android never needs this.
 - **`app.json is missing ios.infoPlist.ITSAppUsesNonExemptEncryption`** — a warning from the
   iOS path; harmless for Android.
-- **`The field "cli.appVersionSource" is not set`** — a warning; the build still uses the
-  `app.json` version. Setting `"cli": { "appVersionSource": "local" }` in `eas.json` silences
-  it without changing behaviour; `"remote"` would hand version management to EAS.
 - **The build picks up uncommitted changes.** `eas` uploads the working tree (minus
   `.gitignore`/`.easignore`), not `HEAD`, and records `HEAD`'s hash as `gitCommitHash`. Commit
   first if the recorded commit is meant to match what was built.
@@ -116,8 +116,9 @@ be rolled forward without a reinstall. The detailed rationale is under "Deploy" 
    planner is local-only. To confirm a deploy carries it, fetch `my-plan.html`, follow its
    `plan-viewer-*.js` asset and grep for `api.contour-map-tiles.net`.
 
-3. **App, store build.** Bump `expo.version` and set a higher `android.versionCode` in
-   `mobile/app.json` (Play rejects a reused `versionCode`; the first upload used `1`), then:
+3. **App, store build.** Bump `expo.version` in `mobile/app.json`; the `versionCode` is bumped
+   by EAS on every `production` build (the first upload used `1`). Then run (or use the
+   *Mobile build* workflow with the `production` profile):
 
    ```bash
    cd mobile && npx eas-cli@latest build --non-interactive --profile production --platform android
