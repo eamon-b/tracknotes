@@ -1,8 +1,9 @@
 name: Mobile build
 
-# Queues an EAS cloud build of the Tracknotes app (see docs/mobile-test-build.md).
-# The compile happens on EAS, not here: the job uploads the project and returns,
-# and the build page / install link appear on expo.dev.
+# Runs an EAS cloud build of the Tracknotes app (see docs/mobile-test-build.md).
+# The compile happens on EAS, not here: the job uploads the project and waits for
+# the build, so the run fails when the build does. The build page and install link
+# are in the run summary.
 
 # Manual only (Actions → Mobile build → Run workflow), so each EAS build is a choice.
 on:
@@ -21,25 +22,45 @@ concurrency:
 jobs:
   eas-build:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Queue + build is ~20-25 minutes on EAS; the rest is headroom for a long queue
+    timeout-minutes: 75
     defaults:
       run:
         working-directory: mobile
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: mobile/package-lock.json
-      - uses: expo/expo-github-action@v8
+      - uses: expo/expo-github-action@v9
         with:
-          eas-version: latest
+          # Pinned so a new eas-cli release cannot change a build unannounced
+          eas-version: 25.1.1
           token: ${{ secrets.EXPO_TOKEN }}
       # eas resolves app.json through the project's own expo package
       - run: npm ci
-      - name: Queue EAS build
+      # Fail here rather than spend an EAS build on a branch that does not pass
+      - run: npm test -- --ci
+      - run: npm run typecheck
+      - name: EAS build
+        env:
+          PROFILE: ${{ inputs.profile }}
+          MESSAGE: ${{ github.ref_name }} @ ${{ github.sha }}
         run: >
-          eas build --non-interactive --no-wait --platform android
-          --profile ${{ inputs.profile }}
-          --message "${{ github.ref_name }} @ ${{ github.sha }}"
+          eas build --non-interactive --wait --json --platform android
+          --profile "$PROFILE" --message "$MESSAGE"
+          > "$RUNNER_TEMP/eas-build.json"
+      # eas exits 1 for an errored build but 0 for a canceled one, so check the status too
+      - name: Summary
+        if: always()
+        run: |
+          out="$RUNNER_TEMP/eas-build.json"
+          if [ ! -s "$out" ]; then
+            echo "No build was started; see the EAS build step's log." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          jq -r '.[] | "- \(.platform) `\(.buildProfile)` build \(.status): https://expo.dev/accounts/\(.project.ownerAccount.name)/projects/\(.project.slug)/builds/\(.id)\(if .artifacts.buildUrl then "\n- Install file: \(.artifacts.buildUrl)" else "" end)"' \
+            "$out" >> "$GITHUB_STEP_SUMMARY"
+          jq -e 'all(.[]; .status == "FINISHED")' "$out" > /dev/null
