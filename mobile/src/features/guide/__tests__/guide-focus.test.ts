@@ -10,6 +10,7 @@
 
 import {
   boundsForKmRange,
+  boundsForPath,
   firstIndexInFocus,
   focusFromItems,
   isSameFocus,
@@ -250,5 +251,30 @@ describe('mixed waypoint/POI rows', () => {
       startKm: 4,
       endKm: 6,
     });
+  });
+});
+
+describe('boundsForPath', () => {
+  it('boxes every point of a walk in, in [lon, lat] corners', () => {
+    const box = boundsForPath([
+      [-34.0, 138.0],
+      [-34.02, 138.03],
+      [-34.01, 138.05],
+    ]);
+    expect(box).toEqual({ ne: [138.05, -34.0], sw: [138.0, -34.02] });
+  });
+
+  it('pads a path with no height so the camera has a box to fit', () => {
+    const box = boundsForPath([
+      [-34, 138],
+      [-34, 138.02],
+    ])!;
+    expect(box.ne[1] - box.sw[1]).toBeGreaterThan(0);
+    expect(box.ne[0]).toBe(138.02);
+  });
+
+  it('is null for fewer than two points', () => {
+    expect(boundsForPath([])).toBeNull();
+    expect(boundsForPath([[-34, 138]])).toBeNull();
   });
 });

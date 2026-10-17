@@ -254,6 +254,36 @@ export function boundsForKmRange(
 }
 
 /**
+ * The box around a path of `[lat, lon]` points (an off-route place's walk in),
+ * padded like {@link boundsForKmRange} when it has no width or height. Null for
+ * fewer than two points.
+ */
+export function boundsForPath(path: readonly (readonly [number, number])[]): FocusBounds | null {
+  if (path.length < 2) return null;
+  let north = -Infinity;
+  let south = Infinity;
+  let east = -Infinity;
+  let west = Infinity;
+  for (const [lat, lon] of path) {
+    if (lat > north) north = lat;
+    if (lat < south) south = lat;
+    if (lon > east) east = lon;
+    if (lon < west) west = lon;
+  }
+  if (north - south < DEGENERATE_BOX_DEGREES * 2) {
+    const mid = (north + south) / 2;
+    north = mid + DEGENERATE_BOX_DEGREES;
+    south = mid - DEGENERATE_BOX_DEGREES;
+  }
+  if (east - west < DEGENERATE_BOX_DEGREES * 2) {
+    const mid = (east + west) / 2;
+    east = mid + DEGENERATE_BOX_DEGREES;
+    west = mid - DEGENERATE_BOX_DEGREES;
+  }
+  return { ne: [east, north], sw: [west, south] };
+}
+
+/**
  * The km range spanned by a set of visible list rows. Rows without a distance
  * (and an empty set) contribute nothing; null means "nothing to report", which
  * leaves the previous focus standing.

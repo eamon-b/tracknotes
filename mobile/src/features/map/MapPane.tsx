@@ -46,7 +46,7 @@ import { planDirectionOf } from '../plan/plan-stops';
 import { plannedStopFeatureIds } from '../plan/plan-overlay';
 import { useGuidePaneFocus, type MapPoint } from '../guide/GuideFocusContext';
 import { useGuidePositionContext } from '../guide/GuidePositionContext';
-import { boundsForKmRange, isSameFocus, kmRangeInBounds } from '../guide/guide-focus';
+import { boundsForKmRange, boundsForPath, isSameFocus, kmRangeInBounds } from '../guide/guide-focus';
 import { hasPois, useVisiblePois } from '../guide/use-visible-pois';
 import { useWaterStatus } from '../guide/use-water-status';
 import { useRoutesStore } from '../routes/routes-store';
@@ -436,7 +436,11 @@ export function MapPane() {
     },
     showPoint: ({ lat, lon, accessPath: path }) => {
       setAccessPath(path ?? null);
-      mapRef.current?.showPoint(lat, lon);
+      // Frame the whole walk in, junction to place: centring on the place
+      // alone can leave a few-km walk and its junction off screen.
+      const box = path ? boundsForPath(path) : null;
+      if (box) mapRef.current?.fitBounds(box);
+      else mapRef.current?.showPoint(lat, lon);
     },
   });
 
