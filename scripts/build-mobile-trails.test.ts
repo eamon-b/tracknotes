@@ -490,3 +490,28 @@ describe('processTrail list-only config', () => {
     expect(processTrail(trail).config).toBe(trail.config);
   });
 });
+
+describe('processTrail off-route walk in', () => {
+  it('rounds an offTrailPath to 1e-5 degrees', () => {
+    const trail = trailJson();
+    trail.waypoints = [
+      {
+        id: 'w_1',
+        name: 'Hut',
+        type: 'hut',
+        lat: -34.0512345678,
+        lon: 138.0498765432,
+        offTrailKm: 0.4,
+        offTrailPath: [
+          [-34.0500001234, 138.0500004321],
+          [-34.0512345678, 138.0498765432],
+        ],
+      },
+    ];
+    const out = processTrail(trail);
+    expect(out.waypoints[0].offTrailPath).toEqual([
+      [-34.05, 138.05],
+      [-34.05123, 138.04988],
+    ]);
+  });
+});

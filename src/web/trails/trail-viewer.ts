@@ -8,6 +8,8 @@ import { routeBreakCrossings, splitAtRouteBreaks } from '@lib/route-breaks';
 import { buildPointIndex, type PointIndex } from '@lib/point-index';
 import type { RouteBreak } from '@lib/trail-types';
 import { getDirectionLabel as directionLabelFor } from '@lib/plan-direction';
+import { placeWalk } from '@lib/day-calculator';
+import type { WaypointAccess } from '@lib/types';
 import {
   isKnownWaypointType,
   isResupplyWaypoint,
@@ -57,7 +59,7 @@ interface TrackPoint {
   dist: number;
 }
 
-interface Waypoint {
+interface Waypoint extends WaypointAccess {
   /**
    * Stable waypoint id — from the committed registry for a bundled trail,
    * minted as `uw_…` by the importer. It is how the category editor addresses a
@@ -78,10 +80,6 @@ interface Waypoint {
   totalDescent?: number;
   description?: string;
   trackIndex?: number;
-  /** One-way walk from the route to the place, km, when it is off the route. */
-  offTrailKm?: number;
-  /** The way walked in, `[lat, lon]` from the junction to the place (`access.json`). */
-  offTrailPath?: Array<[number, number]>;
 }
 
 interface VariantWaypoint {
@@ -227,6 +225,9 @@ function setDisplayPoints(points: TrackPoint[]): void {
   // would favour a parallel stretch to the north over the one under the cursor.
   displayPointIndex = buildPointIndex(displayPoints, { scaleLongitude: true });
 }
+/** The main route's line colour; an off-route place's dotted walk in shares it. */
+const MAIN_ROUTE_COLOR = '#2196F3';
+
 let maxDistance = 0;
 let waypointMarkers: Array<{ marker: L.Marker; waypoint: Waypoint; index: number }> = [];
 let offTrailMarkers: L.Marker[] = [];
@@ -1046,7 +1047,7 @@ function drawMainRoute(trail: Trail): void {
   // panning, and take the route-break dashes and the hover/click handlers into
   // less well-trodden code for no measured gain.
   mainRoutePolyline = L.polyline(mainRouteLatLngs(trail), {
-    color: '#2196F3',
+    color: MAIN_ROUTE_COLOR,
     weight: 3,
     opacity: 0.9
   }).addTo(map!);
@@ -1186,9 +1187,19 @@ function waypointPopupHtml(wp: Waypoint, index: number): string {
       ${escapeHtml(wp.type || 'waypoint')}<br>
       ${(wp.totalDistance || 0).toFixed(1)} km along trail
       ${wp.elevation ? `<br>${Math.round(wp.elevation)}m elevation` : ''}
-      ${wp.offTrailKm ? `<br>${wp.offTrailKm.toFixed(1)} km walk from the trail${wp.offTrailPath ? ' (dotted)' : ''}` : ''}
+      ${walkInLine(wp)}
       <br><a href="#" class="popup-show-in-table" data-waypoint-index="${index}">Show in table</a>
     `;
+}
+
+/**
+ * The popup's "km walk from the trail" line — only for a place that is walked
+ * to (`placeWalk`): a turn-off's distance, or one ridden, is not a walk.
+ */
+function walkInLine(wp: Waypoint): string {
+  const walk = placeWalk(wp);
+  if (!walk) return '';
+  return `<br>${walk.km.toFixed(1)} km walk from the trail${wp.offTrailPath ? ' (dotted)' : ''}`;
 }
 
 /**
@@ -1203,7 +1214,7 @@ function showAccessPath(path: Array<[number, number]>): void {
   accessPathLine = L.layerGroup([
     L.polyline(path, { color: '#ffffff', weight: 6, opacity: 0.7, interactive: false }),
     L.polyline(path, {
-      color: '#2196F3',
+      color: MAIN_ROUTE_COLOR,
       weight: 4,
       opacity: 0.9,
       dashArray: '1 8',
