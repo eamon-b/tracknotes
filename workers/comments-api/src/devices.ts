@@ -118,7 +118,8 @@ const DELETED_DISPLAY_NAME = 'Deleted user';
  * unique but is permanently unauthenticatable.
  *
  * Reports the user filed are deliberately kept: they are a moderation record and
- * only reference the now-scrubbed row.
+ * only reference the now-scrubbed row. Their free text (`detail`/`note`) is
+ * cleared; the reason stays.
  *
  * Community routes stay up: they were released as CC0, so deleting the account
  * does not take them down, but they are de-attributed — `submitted_by_name` is
@@ -183,6 +184,10 @@ export async function deleteMe(
               deleted_at = COALESCE(deleted_at, ?)
         WHERE user_id = ?`
     ).bind(now, now, user.id),
+    // Reports it filed stay as a moderation record, without its free text.
+    env.DB.prepare(`UPDATE comment_reports SET detail = NULL WHERE user_id = ?`).bind(user.id),
+    env.DB.prepare(`UPDATE shared_waypoint_reports SET detail = NULL WHERE user_id = ?`).bind(user.id),
+    env.DB.prepare(`UPDATE community_route_reports SET note = NULL WHERE user_id = ?`).bind(user.id),
     env.DB.prepare(
       `UPDATE device_tokens SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL`
     ).bind(now, user.id),

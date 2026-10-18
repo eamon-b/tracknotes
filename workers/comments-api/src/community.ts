@@ -1577,9 +1577,12 @@ async function deattributeRoute(env: Env, first: CommunityRouteRow, graceMs: num
     );
     if (!put) {
       // Nothing to rewrite from, now or on a retry: say so and stop retrying.
+      // The uploaded GPX still goes: it may name the account. A failed delete
+      // throws, so the route stays pending and is retried.
       console.error(`De-attributing ${row.id} failed: its private copy is missing`);
+      if (row.gpx_key) await env.PHOTOS.delete(row.gpx_key);
       await env.DB.prepare(
-        `UPDATE community_routes SET deattribute_pending = 0 WHERE id = ? AND updated_at = ?`
+        `UPDATE community_routes SET deattribute_pending = 0, gpx_key = NULL WHERE id = ? AND updated_at = ?`
       )
         .bind(row.id, row.updated_at)
         .run();

@@ -1067,6 +1067,20 @@ describe('account deletion', () => {
     expect(await privateKeys(route.id)).toEqual([r.private_key]);
   });
 
+  it('deletes the uploaded GPX even when the private copy is missing', async () => {
+    const owner = await registerDevice('Gpx Owner Two');
+    const route = await submitOk(owner, { gpxBase64: base64(GPX_TEXT) });
+    const before = await row(route.id);
+    await env.PHOTOS.delete(before.private_key as string);
+    await deattributeStatement(env as unknown as Env, owner.userId).run();
+    await deattributeStoredRoutes(env as unknown as Env, owner.userId);
+
+    const r = await row(route.id);
+    expect(r.deattribute_pending).toBe(0);
+    expect(r.gpx_key).toBeNull();
+    expect(await env.PHOTOS.head(before.gpx_key as string)).toBeNull();
+  });
+
   it('rewrites a route an admin hid mid-way from its new state, leaving it hidden', async () => {
     const owner = await registerDevice('Hidden Walker');
     const admin = await registerDevice();

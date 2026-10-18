@@ -14,6 +14,7 @@ import {
   type UserWaypointVisibility,
 } from '@lib/user-waypoints';
 import type { SqlDatabase } from './sql-database';
+import { withTransaction } from './transaction';
 
 export type UserWaypointSource = 'local' | 'server';
 
@@ -189,19 +190,40 @@ export async function keepAsPrivate(db: SqlDatabase, id: string): Promise<void> 
 }
 
 /**
- * Account deletion: every shared waypoint of this account becomes private (the
- * server has tombstoned them, and an `hw_` id it holds for the deleted account
- * must never be PUT under the next identity). Returns the trails touched.
+ * Account deletion: this account's waypoints on trails the server knows
+ * (`serverKnown`) are made private under a fresh id from `mintId`. The server
+ * keeps their old `hw_` ids for the deleted account and would refuse a PUT of
+ * one from the next identity (409), so a later "Everyone" must share a new id.
+ * Favourites follow the new id. Imports and community routes never share, so
+ * theirs keep their ids. Returns the trails touched.
  */
-export async function keepAllAsPrivate(db: SqlDatabase): Promise<string[]> {
-  const rows = await db.getAllAsync<{ trail_id: string }>(
-    "SELECT DISTINCT trail_id FROM user_waypoints WHERE visibility = 'shared' AND mine = 1",
-  );
-  await db.runAsync(
-    `UPDATE user_waypoints SET visibility = 'private', author_name = NULL, source = 'local'
-      WHERE visibility = 'shared' AND mine = 1`,
-  );
-  return rows.map((r) => r.trail_id);
+export async function rekeyOwnAsPrivate(
+  db: SqlDatabase,
+  mintId: () => string,
+  serverKnown: (trailId: string) => boolean,
+): Promise<string[]> {
+  return withTransaction(db, async () => {
+    const rows = await db.getAllAsync<{ id: string; trail_id: string }>(
+      'SELECT id, trail_id FROM user_waypoints WHERE mine = 1',
+    );
+    const trails = new Set<string>();
+    for (const row of rows) {
+      if (!serverKnown(row.trail_id)) continue;
+      const id = mintId();
+      await db.runAsync(
+        `UPDATE user_waypoints SET id = ?, visibility = 'private', author_name = NULL, source = 'local'
+          WHERE id = ?`,
+        [id, row.id],
+      );
+      await db.runAsync('UPDATE favorites SET waypoint_id = ? WHERE trail_id = ? AND waypoint_id = ?', [
+        id,
+        row.trail_id,
+        row.id,
+      ]);
+      trails.add(row.trail_id);
+    }
+    return [...trails];
+  });
 }
 
 export async function readSyncedAt(db: SqlDatabase, trailId: string): Promise<string | undefined> {

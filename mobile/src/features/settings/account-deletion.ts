@@ -17,6 +17,8 @@
  * this identity, and re-fetching them offline is impossible.
  */
 
+import { userWaypointId } from '@lib/user-waypoints';
+import { uuidv4 } from '../../api/uuid';
 import type { SqlDatabase } from '../../db/sql-database';
 import * as plansRepo from '../../db/plans-repo';
 import * as userWaypointsRepo from '../../db/user-waypoints-repo';
@@ -43,15 +45,16 @@ import { PLANS_SYNC_KEY } from '../../sync/comment-sync';
  * deleting the account must not take it — the same boundary that keeps it out
  * of the outbox in the first place.
  *
- * The account's shared hiker waypoints stay on the phone, as private ones
- * (`keepAllAsPrivate`): the server has tombstoned them, but each may be the
- * only record of a place the hiker marked. Returns the trails whose hiker
- * waypoints changed, for the caller to announce.
+ * The account's hiker waypoints stay on the phone, as private ones under new
+ * ids (`rekeyOwnAsPrivate`): the server has tombstoned the shared ones and
+ * holds their ids for the deleted account, but each may be the only record of
+ * a place the hiker marked. Returns the trails whose hiker waypoints changed,
+ * for the caller to announce.
  */
 export async function purgeLocalAccountData(db: SqlDatabase, userId: string): Promise<string[]> {
   await db.runAsync('DELETE FROM comments WHERE author_id = ?', [userId]);
   await plansRepo.purgeSynced(db, isServerKnown);
   await db.runAsync('DELETE FROM sync_state WHERE trail_id = ?', [PLANS_SYNC_KEY]);
   await db.runAsync('DELETE FROM outbox');
-  return userWaypointsRepo.keepAllAsPrivate(db);
+  return userWaypointsRepo.rekeyOwnAsPrivate(db, () => userWaypointId(uuidv4()), isServerKnown);
 }

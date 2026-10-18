@@ -282,4 +282,20 @@ describe('DELETE /v1/me — photos and reports', () => {
       .first<{ reason: string }>();
     expect(row?.reason).toBe('spam');
   });
+
+  it('clears the free text of the reports the deleted account filed', async () => {
+    const author = await registerDevice('Author');
+    const reporter = await registerDevice('Wordy Reporter');
+    const { id } = await createComment(author, { waypointId: 'delme-report-detail-wp' });
+    expect((await reportComment(reporter, id, { reason: 'other', detail: 'my own words' })).status).toBe(201);
+
+    expect((await deleteMe(reporter)).status).toBe(204);
+
+    const row = await env.DB.prepare(
+      `SELECT reason, detail FROM comment_reports WHERE comment_id = ? AND user_id = ?`
+    )
+      .bind(id, reporter.userId)
+      .first<{ reason: string; detail: string | null }>();
+    expect(row).toEqual({ reason: 'other', detail: null });
+  });
 });

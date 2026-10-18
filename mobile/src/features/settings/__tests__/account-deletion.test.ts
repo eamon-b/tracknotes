@@ -145,7 +145,7 @@ describe('purgeLocalAccountData', () => {
     expect(await ids('routes')).toEqual(['r-1']);
   });
 
-  it('turns the account’s shared waypoints private and leaves other hikers’ alone', async () => {
+  it('re-keys the account’s waypoints as private, and leaves imports and other hikers’ alone', async () => {
     const insert = (id: string, trailId: string, visibility: string, mine: number) =>
       db.runAsync(
         `INSERT INTO user_waypoints (id, trail_id, name, type, lat, lon, visibility, mine, author_name, source, created_at, updated_at)
@@ -153,20 +153,31 @@ describe('purgeLocalAccountData', () => {
         [id, trailId, visibility, mine],
       );
     await insert('hw_mine_shared', 'larapinta', 'shared', 1);
+    // Private now, but it may have been shared once: the server may hold its id.
     await insert('hw_mine_private', 'heysen', 'private', 1);
+    await insert('hw_mine_import', 'u_abc123', 'private', 1);
     await insert('hw_theirs', 'heysen', 'shared', 0);
+    await db.runAsync(
+      `INSERT INTO favorites (trail_id, waypoint_id) VALUES ('larapinta', 'hw_mine_shared')`,
+    );
 
     const trails = await purgeLocalAccountData(db as unknown as SqlDatabase, ME);
 
-    expect(trails).toEqual(['larapinta']);
-    const rows = await db.getAllAsync<{ id: string; visibility: string; author_name: string | null; source: string }>(
-      'SELECT id, visibility, author_name, source FROM user_waypoints ORDER BY id',
+    expect(trails.sort()).toEqual(['heysen', 'larapinta']);
+    const rows = await db.getAllAsync<{ id: string; trail_id: string; visibility: string; author_name: string | null }>(
+      'SELECT id, trail_id, visibility, author_name FROM user_waypoints ORDER BY trail_id, mine',
     );
-    expect(rows).toEqual([
-      { id: 'hw_mine_private', visibility: 'private', author_name: 'Someone', source: 'server' },
-      { id: 'hw_mine_shared', visibility: 'private', author_name: null, source: 'local' },
-      { id: 'hw_theirs', visibility: 'shared', author_name: 'Someone', source: 'server' },
-    ]);
+    const ids = rows.map((r) => r.id);
+    expect(ids).toContain('hw_mine_import');
+    expect(ids).toContain('hw_theirs');
+    expect(ids).not.toContain('hw_mine_shared');
+    expect(ids).not.toContain('hw_mine_private');
+    const larapinta = rows.find((r) => r.trail_id === 'larapinta')!;
+    expect(larapinta.id).toMatch(/^hw_[0-9a-f-]{36}$/);
+    expect(larapinta).toMatchObject({ visibility: 'private', author_name: null });
+    expect(rows.find((r) => r.id === 'hw_theirs')).toMatchObject({ visibility: 'shared' });
+    const favs = await db.getAllAsync<{ waypoint_id: string }>('SELECT waypoint_id FROM favorites');
+    expect(favs).toEqual([{ waypoint_id: larapinta.id }]);
   });
 
   it('is a no-op on a device with nothing cached', async () => {
