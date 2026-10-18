@@ -8,6 +8,7 @@ import type { ReportReason, WaterStatus } from '../../../src/lib/comments-api-ty
 import { PLAN_LIMITS } from '../../../src/lib/plan-types';
 import type { PlanDocument, PlanStop } from '../../../src/lib/plan-types';
 import { KM_EPSILON } from '../../../src/lib/plan-direction';
+import { isUserWaypointId } from '../../../src/lib/user-waypoints';
 import type { PlanDirection } from '../../../src/lib/plan-direction';
 
 /**
@@ -108,6 +109,42 @@ export function validateWaypointId(raw: unknown): string {
     );
   }
   return raw;
+}
+
+/**
+ * The ids a comment may be filed under, one form per kind of place a screen
+ * shows comments for:
+ *
+ * - `w_` + 8 or 12 hex: a curated waypoint (`data/waypoint-ids.json`, minted by
+ *   `scripts/lib/waypoint-ids.ts`; up to 40 hex in case the mint is widened);
+ * - `hw_` + a lowercase v4 uuid: a shared hiker waypoint (`isUserWaypointId`);
+ * - `osm_<node|way|relation>_<id>`: an OSM POI (`poiCommentId`), the id a
+ *   non-negative safe integer written without leading zeros.
+ *
+ * Anything else matched the old catch-all pattern but is shown by no screen,
+ * so a comment filed under it could never be read or moderated.
+ */
+const CURATED_WAYPOINT_ID_RE = /^w_[0-9a-f]{8,40}$/;
+const OSM_COMMENT_ID_RE = /^osm_(?:node|way|relation)_(0|[1-9][0-9]{0,15})$/;
+
+export type CommentTarget =
+  | { kind: 'curated'; id: string }
+  | { kind: 'shared'; id: string }
+  | { kind: 'osm'; id: string };
+
+/** Validate a comment's `waypointId` by its prefix, returning which kind it is. */
+export function validateCommentTarget(raw: unknown): CommentTarget {
+  if (typeof raw === 'string') {
+    if (CURATED_WAYPOINT_ID_RE.test(raw)) return { kind: 'curated', id: raw };
+    if (isUserWaypointId(raw)) return { kind: 'shared', id: raw };
+    const osm = OSM_COMMENT_ID_RE.exec(raw);
+    if (osm && Number.isSafeInteger(Number(osm[1]))) return { kind: 'osm', id: raw };
+  }
+  throw new HttpError(
+    400,
+    'invalid_waypoint',
+    'waypointId must be a waypoint (w_…), a shared hiker waypoint (hw_…) or an OSM place (osm_…)'
+  );
 }
 
 /** Validate optional comment text (<= 2000 chars). Returns trimmed value or null. */

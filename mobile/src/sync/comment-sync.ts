@@ -68,6 +68,7 @@ import {
   isSyncTombstone,
 } from '@lib/comments-api-types';
 import { isPlanDocument } from '@lib/plan-editor';
+import { isUserWaypointId } from '@lib/user-waypoints';
 import type { PlanDocument } from '@lib/plan-types';
 import { getDatabase } from '../db/database';
 import type { SqlDatabase } from '../db/sql-database';
@@ -857,10 +858,11 @@ async function drainOutboxNow(deps: SyncDeps = {}): Promise<DrainResult> {
     }
   };
 
-  // Photos gated on a not-yet-confirmed comment in the first pass. A second
-  // pass re-checks them so a comment+photo composed together lands in ONE
+  // Items gated in the first pass: photos on a not-yet-confirmed comment, and
+  // comments on a hiker waypoint whose share is still queued. A second pass
+  // re-checks them so a waypoint+comment+photo composed together lands in ONE
   // drain, deterministically — regardless of outbox ordering or clock ticks.
-  const gatedPhotos: typeof items = [];
+  const gated: typeof items = [];
 
   const processItems = async (
     list: typeof items,
@@ -881,9 +883,23 @@ async function drainOutboxNow(deps: SyncDeps = {}): Promise<DrainResult> {
         const { commentId } = JSON.parse(item.payloadJson) as PhotoOutboxPayload;
         const comment = await commentsRepo.getById(db, commentId);
         if (!comment || comment.source !== 'server') {
-          if (collectGated) gatedPhotos.push(item);
+          if (collectGated) gated.push(item);
           continue;
         }
+      }
+
+      // The server refuses a comment on a hiker waypoint it does not hold
+      // (404), so one on the hiker's own waypoint waits for its share to land.
+      // A re-queued share (an edit) sorts after the comment, and a share the
+      // server answered 5xx is still pending; sending the comment first would
+      // fail it for good. Gated like a photo: left pending, no attempt charged.
+      if (
+        item.kind === 'comment' &&
+        isUserWaypointId(item.waypointId) &&
+        (await outboxRepo.hasQueued(db, 'waypoint', item.waypointId as string))
+      ) {
+        if (collectGated) gated.push(item);
+        continue;
       }
 
       // A report we can't parse can never succeed — drop it instead of
@@ -1028,8 +1044,8 @@ async function drainOutboxNow(deps: SyncDeps = {}): Promise<DrainResult> {
 
   const early = await processItems(items, true);
   if (early) return early;
-  if (gatedPhotos.length > 0) {
-    const late = await processItems(gatedPhotos, false);
+  if (gated.length > 0) {
+    const late = await processItems(gated, false);
     if (late) return late;
   }
 

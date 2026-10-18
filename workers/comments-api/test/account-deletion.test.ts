@@ -10,6 +10,7 @@ import {
   reportComment,
   uploadPhoto,
   url,
+  wpId,
 } from './helpers';
 import type {
   BulkSyncResponse,
@@ -62,8 +63,8 @@ async function readComment(id: string): Promise<{
 describe('DELETE /v1/me — happy path', () => {
   it('returns 204, tombstones the comments, and scrubs the user row', async () => {
     const device = await registerDevice('Doomed Device');
-    const { id: a } = await createComment(device, { waypointId: 'delme-wp-a', text: 'first' });
-    const { id: b } = await createComment(device, { waypointId: 'delme-wp-b', text: 'second' });
+    const { id: a } = await createComment(device, { waypointId: wpId('delme-wp-a'), text: 'first' });
+    const { id: b } = await createComment(device, { waypointId: wpId('delme-wp-b'), text: 'second' });
 
     const before = await readUser(device.userId);
 
@@ -92,8 +93,8 @@ describe('DELETE /v1/me — happy path', () => {
   it('leaves other users untouched', async () => {
     const doomed = await registerDevice('Doomed');
     const bystander = await registerDevice('Bystander');
-    const { id: mine } = await createComment(doomed, { waypointId: 'delme-shared-wp' });
-    const { id: theirs } = await createComment(bystander, { waypointId: 'delme-shared-wp' });
+    const { id: mine } = await createComment(doomed, { waypointId: wpId('delme-shared-wp') });
+    const { id: theirs } = await createComment(bystander, { waypointId: wpId('delme-shared-wp') });
 
     expect((await deleteMe(doomed)).status).toBe(204);
 
@@ -102,7 +103,7 @@ describe('DELETE /v1/me — happy path', () => {
     expect((await readUser(bystander.userId)).display_name).toBe('Bystander');
 
     const feed = (await (
-      await SELF.fetch(url('/v1/trails/heysen/waypoints/delme-shared-wp/comments'))
+      await SELF.fetch(url(`/v1/trails/heysen/waypoints/${wpId('delme-shared-wp')}/comments`))
     ).json()) as FeedResponse;
     expect(feed.comments.map((c) => c.id)).toEqual([theirs]);
   });
@@ -134,7 +135,7 @@ describe('DELETE /v1/me — token invalidation', () => {
     // The repeat delete, /v1/me, and a write all fail closed.
     expect((await deleteMe(device)).status).toBe(401);
     expect((await SELF.fetch(url('/v1/me'), { headers: authHeaders(device) })).status).toBe(401);
-    const { res } = await createComment(device, { waypointId: 'delme-after-wp' });
+    const { res } = await createComment(device, { waypointId: wpId('delme-after-wp') });
     expect(res.status).toBe(401);
   });
 
@@ -154,7 +155,7 @@ describe('DELETE /v1/me — sync semantics', () => {
   it('emits tombstones in the delta feed and drops the comments from the feed', async () => {
     const device = await registerDevice('Sync Doomed');
     const { id, res } = await createComment(device, {
-      waypointId: 'delme-sync-wp',
+      waypointId: wpId('delme-sync-wp'),
       text: 'will vanish',
     });
     const created = (await res.json()) as { createdAt: string };
@@ -184,14 +185,14 @@ describe('DELETE /v1/me — sync semantics', () => {
     expect(snapshotAfter.comments.some((c) => c.id === id)).toBe(false);
 
     const feed = (await (
-      await SELF.fetch(url('/v1/trails/heysen/waypoints/delme-sync-wp/comments'))
+      await SELF.fetch(url(`/v1/trails/heysen/waypoints/${wpId('delme-sync-wp')}/comments`))
     ).json()) as FeedResponse;
     expect(feed.comments.some((c) => c.id === id)).toBe(false);
   });
 
   it('keeps already-deleted comments as-is rather than re-stamping them', async () => {
     const device = await registerDevice('Pre-deleted');
-    const { id } = await createComment(device, { waypointId: 'delme-predel-wp' });
+    const { id } = await createComment(device, { waypointId: wpId('delme-predel-wp') });
     await SELF.fetch(url(`/v1/comments/${id}`), {
       method: 'DELETE',
       headers: authHeaders(device),
@@ -249,7 +250,7 @@ describe('DELETE /v1/me — content is blanked', () => {
 describe('DELETE /v1/me — photos and reports', () => {
   it('removes the account photos from R2', async () => {
     const device = await registerDevice('Photo Doomed');
-    const { id } = await createComment(device, { waypointId: 'delme-photo-wp' });
+    const { id } = await createComment(device, { waypointId: wpId('delme-photo-wp') });
     const upload = await uploadPhoto(device, id, JPEG_BYTES, 'image/jpeg');
     expect(upload.status).toBe(201);
     const { photoUrl } = (await upload.json()) as { photoUrl: string };
@@ -270,7 +271,7 @@ describe('DELETE /v1/me — photos and reports', () => {
   it('keeps reports the deleted account filed as a moderation record', async () => {
     const author = await registerDevice('Author');
     const reporter = await registerDevice('Doomed Reporter');
-    const { id } = await createComment(author, { waypointId: 'delme-report-wp' });
+    const { id } = await createComment(author, { waypointId: wpId('delme-report-wp') });
     expect((await reportComment(reporter, id, { reason: 'spam' })).status).toBe(201);
 
     expect((await deleteMe(reporter)).status).toBe(204);

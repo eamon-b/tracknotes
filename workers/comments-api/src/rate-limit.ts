@@ -1,12 +1,14 @@
 /**
  * Rolling-window rate limits backed by the `rate_events` log.
  *
- * The comment and report limits count rows in their own tables, which works
- * because every accepted write leaves one. A plan PUT replaces a row rather
- * than adding one, a failed device-link attempt stores nothing at all, and a
- * registration's only trace (`users`) carries no address, so those limits need
- * an explicit event log. `bucket` names the limit and `key` the subject (a user
- * id, or an address via `ipRateKey`).
+ * Every limit counts here rather than in its own table, even where each
+ * accepted write leaves a row (comments, reports): a COUNT of those rows
+ * followed by an INSERT lets a parallel burst all read "one below the limit"
+ * before any of them is stored, which `consumeRateLimit` does not. A plan PUT
+ * replaces a row rather than adding one, a failed device-link attempt stores
+ * nothing at all, and a registration's only trace (`users`) carries no
+ * address, so those could not count their own rows anyway. `bucket` names the
+ * limit and `key` the subject (a user id, or an address via `ipRateKey`).
  */
 
 import { HttpError } from './http';
@@ -16,6 +18,10 @@ import { USER_WAYPOINT_LIMITS } from '../../../src/lib/user-waypoints';
 
 /** Named limits. Add the constant here so every ceiling is in one place. */
 export const RATE_BUCKETS = {
+  /** New comments per user per day; an idempotent replay of a stored one is free. */
+  commentPost: { bucket: 'comment_post', limit: 60, windowMs: 24 * 60 * 60 * 1000 },
+  /** Comment reports per user per day; a repeat of one already filed is free. */
+  commentReport: { bucket: 'comment_report', limit: 20, windowMs: 24 * 60 * 60 * 1000 },
   /** Plan PUTs per user per day — each toggle is a debounced PUT, not a keystroke. */
   planPut: { bucket: 'plan_put', limit: 240, windowMs: 24 * 60 * 60 * 1000 },
   /** Device-link attempts per IP per hour (counted whether or not the code was valid). */

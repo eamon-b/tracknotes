@@ -7,6 +7,7 @@ import {
   registerDevice,
   uploadPhoto,
   url,
+  wpId,
 } from './helpers';
 import type {
   BulkSyncResponse,
@@ -63,7 +64,7 @@ async function readHashes(id: string): Promise<string[]> {
 describe('POST /v1/comments/:id/photos — happy path', () => {
   it('uploads a jpeg then a webp, storing bytes in R2 and returning public URLs', async () => {
     const device = await registerDevice();
-    const { id, res } = await createComment(device, { waypointId: 'photo-happy-wp' });
+    const { id, res } = await createComment(device, { waypointId: wpId('photo-happy-wp') });
     const created = (await res.json()) as { createdAt: string; updatedAt?: string };
 
     // First photo — jpeg → .jpg under a per-upload uuid
@@ -93,7 +94,7 @@ describe('POST /v1/comments/:id/photos — happy path', () => {
 
     // Appears in the per-waypoint feed with photoUrls populated.
     const feed = (await (
-      await SELF.fetch(url('/v1/trails/heysen/waypoints/photo-happy-wp/comments'))
+      await SELF.fetch(url(`/v1/trails/heysen/waypoints/${wpId('photo-happy-wp')}/comments`))
     ).json()) as FeedResponse;
     const feedRow = feed.comments.find((c) => c.id === id);
     expect(feedRow?.photoUrls).toEqual(body2.photoUrls);
@@ -113,9 +114,9 @@ describe('POST /v1/comments/:id/photos — happy path', () => {
 
   it('omits photoUrls for comments without photos', async () => {
     const device = await registerDevice();
-    await createComment(device, { waypointId: 'photo-none-wp', text: 'no pics' });
+    await createComment(device, { waypointId: wpId('photo-none-wp'), text: 'no pics' });
     const feed = (await (
-      await SELF.fetch(url('/v1/trails/heysen/waypoints/photo-none-wp/comments'))
+      await SELF.fetch(url(`/v1/trails/heysen/waypoints/${wpId('photo-none-wp')}/comments`))
     ).json()) as FeedResponse;
     expect(feed.comments[0].photoUrls).toBeUndefined();
   });
@@ -124,7 +125,7 @@ describe('POST /v1/comments/:id/photos — happy path', () => {
 describe('POST /v1/comments/:id/photos — authorization & existence', () => {
   it('401 without a token', async () => {
     const device = await registerDevice();
-    const { id } = await createComment(device, { waypointId: 'photo-auth-wp' });
+    const { id } = await createComment(device, { waypointId: wpId('photo-auth-wp') });
     const res = await SELF.fetch(url(`/v1/comments/${id}/photos`), {
       method: 'POST',
       headers: { 'Content-Type': 'image/jpeg' },
@@ -136,7 +137,7 @@ describe('POST /v1/comments/:id/photos — authorization & existence', () => {
   it('403 when a non-owner tries to attach a photo', async () => {
     const owner = await registerDevice('Owner');
     const stranger = await registerDevice('Stranger');
-    const { id } = await createComment(owner, { waypointId: 'photo-owner-wp' });
+    const { id } = await createComment(owner, { waypointId: wpId('photo-owner-wp') });
     const res = await uploadPhoto(stranger, id, JPEG_BYTES);
     expect(res.status).toBe(403);
     expect(((await res.json()) as { error: { code: string } }).error.code).toBe('forbidden');
@@ -150,7 +151,7 @@ describe('POST /v1/comments/:id/photos — authorization & existence', () => {
 
   it('410 for a soft-deleted comment', async () => {
     const device = await registerDevice();
-    const { id } = await createComment(device, { waypointId: 'photo-del-wp' });
+    const { id } = await createComment(device, { waypointId: wpId('photo-del-wp') });
     await SELF.fetch(url(`/v1/comments/${id}`), {
       method: 'DELETE',
       headers: authHeaders(device),
@@ -164,7 +165,7 @@ describe('POST /v1/comments/:id/photos — authorization & existence', () => {
 describe('POST /v1/comments/:id/photos — banned accounts', () => {
   it('403 banned for a new photo, and nothing lands in R2', async () => {
     const device = await registerDevice('Banned Photographer');
-    const { id } = await createComment(device, { waypointId: 'photo-banned-wp' });
+    const { id } = await createComment(device, { waypointId: wpId('photo-banned-wp') });
     await banUser(device.userId);
 
     const res = await uploadPhoto(device, id, JPEG_BYTES);
@@ -177,7 +178,7 @@ describe('POST /v1/comments/:id/photos — banned accounts', () => {
 
   it('still replays a photo stored before the ban (an outbox retry)', async () => {
     const device = await registerDevice('Banned Retrier');
-    const { id } = await createComment(device, { waypointId: 'photo-banned-replay-wp' });
+    const { id } = await createComment(device, { waypointId: wpId('photo-banned-replay-wp') });
     const first = await uploadPhoto(device, id, JPEG_BYTES);
     expect(first.status).toBe(201);
     await banUser(device.userId);
@@ -190,7 +191,7 @@ describe('POST /v1/comments/:id/photos — banned accounts', () => {
 describe('POST /v1/comments/:id/photos — parallel uploads', () => {
   it('keeps every photo when uploads to one comment race', async () => {
     const device = await registerDevice('Racer');
-    const { id } = await createComment(device, { waypointId: 'photo-race-wp' });
+    const { id } = await createComment(device, { waypointId: wpId('photo-race-wp') });
 
     // Index-keyed objects and a blind UPDATE let the second racer overwrite
     // the first's bytes and drop its URL from the row.
@@ -218,7 +219,7 @@ describe('POST /v1/comments/:id/photos — parallel uploads', () => {
 
   it('refuses the racer that would make a fifth photo, and leaves no orphan object', async () => {
     const device = await registerDevice('Late Racer');
-    const { id } = await createComment(device, { waypointId: 'photo-race-cap-wp' });
+    const { id } = await createComment(device, { waypointId: wpId('photo-race-cap-wp') });
     for (let i = 0; i < 3; i++) {
       expect((await uploadPhoto(device, id, distinctJpeg(60 + i))).status).toBe(201);
     }
@@ -243,7 +244,7 @@ describe('POST /v1/comments/:id/photos — parallel uploads', () => {
 describe('POST /v1/comments/:id/photos — payload limits', () => {
   it('415 for an unsupported content type', async () => {
     const device = await registerDevice();
-    const { id } = await createComment(device, { waypointId: 'photo-ct-wp' });
+    const { id } = await createComment(device, { waypointId: wpId('photo-ct-wp') });
     const res = await uploadPhoto(device, id, JPEG_BYTES, 'image/png');
     expect(res.status).toBe(415);
     expect(((await res.json()) as { error: { code: string } }).error.code).toBe(
@@ -253,7 +254,7 @@ describe('POST /v1/comments/:id/photos — payload limits', () => {
 
   it('413 when the body exceeds 5 MB', async () => {
     const device = await registerDevice();
-    const { id } = await createComment(device, { waypointId: 'photo-big-wp' });
+    const { id } = await createComment(device, { waypointId: wpId('photo-big-wp') });
     const tooBig = new Uint8Array(5 * 1024 * 1024 + 1);
     const res = await uploadPhoto(device, id, tooBig, 'image/jpeg');
     expect(res.status).toBe(413);
@@ -262,7 +263,7 @@ describe('POST /v1/comments/:id/photos — payload limits', () => {
 
   it('409 when a 5th photo is attached', async () => {
     const device = await registerDevice();
-    const { id } = await createComment(device, { waypointId: 'photo-max-wp' });
+    const { id } = await createComment(device, { waypointId: wpId('photo-max-wp') });
     for (let i = 0; i < 4; i++) {
       const ok = await uploadPhoto(device, id, distinctJpeg(i), 'image/jpeg');
       expect(ok.status).toBe(201);
@@ -278,13 +279,13 @@ describe('POST /v1/comments/:id/photos — rate limit', () => {
     const device = await registerDevice();
     // Seed a comment for this user with 40 photo URLs, updated just now, so the
     // daily-count query is already at the cap without 40 real HTTP uploads.
-    const { id: seeded } = await createComment(device, { waypointId: 'photo-rate-seed' });
+    const { id: seeded } = await createComment(device, { waypointId: wpId('photo-rate-seed') });
     const fakeUrls = Array.from({ length: 40 }, (_, i) => `https://photos.test/x/${i}.jpg`);
     await env.DB.prepare(`UPDATE comments SET photo_urls_json = ?, updated_at = ? WHERE id = ?`)
       .bind(JSON.stringify(fakeUrls), new Date().toISOString(), seeded)
       .run();
 
-    const { id: fresh } = await createComment(device, { waypointId: 'photo-rate-fresh' });
+    const { id: fresh } = await createComment(device, { waypointId: wpId('photo-rate-fresh') });
     const res = await uploadPhoto(device, fresh, JPEG_BYTES, 'image/jpeg');
     expect(res.status).toBe(429);
     expect(((await res.json()) as { error: { code: string } }).error.code).toBe('rate_limited');
@@ -294,7 +295,7 @@ describe('POST /v1/comments/:id/photos — rate limit', () => {
 describe('POST /v1/comments/:id/photos — idempotent replay', () => {
   it('re-uploading identical bytes returns 200 with the original URL and stores one object', async () => {
     const device = await registerDevice();
-    const { id } = await createComment(device, { waypointId: 'photo-replay-wp' });
+    const { id } = await createComment(device, { waypointId: wpId('photo-replay-wp') });
 
     const first = await uploadPhoto(device, id, JPEG_BYTES, 'image/jpeg');
     expect(first.status).toBe(201);
@@ -318,7 +319,7 @@ describe('POST /v1/comments/:id/photos — idempotent replay', () => {
 
   it('records one hash per stored photo, index-aligned with the URLs', async () => {
     const device = await registerDevice();
-    const { id } = await createComment(device, { waypointId: 'photo-hashes-wp' });
+    const { id } = await createComment(device, { waypointId: wpId('photo-hashes-wp') });
 
     const first = (await (await uploadPhoto(device, id, JPEG_BYTES, 'image/jpeg')).json()) as UploadCommentPhotoResponse;
     const second = (await (await uploadPhoto(device, id, WEBP_BYTES, 'image/webp')).json()) as UploadCommentPhotoResponse;
@@ -341,7 +342,7 @@ describe('POST /v1/comments/:id/photos — idempotent replay', () => {
 
   it('different bytes still create a new photo', async () => {
     const device = await registerDevice();
-    const { id } = await createComment(device, { waypointId: 'photo-distinct-wp' });
+    const { id } = await createComment(device, { waypointId: wpId('photo-distinct-wp') });
 
     expect((await uploadPhoto(device, id, distinctJpeg(1), 'image/jpeg')).status).toBe(201);
     const second = await uploadPhoto(device, id, distinctJpeg(2), 'image/jpeg');
@@ -351,7 +352,7 @@ describe('POST /v1/comments/:id/photos — idempotent replay', () => {
 
   it('replays a stored photo even at the 4-photo cap', async () => {
     const device = await registerDevice();
-    const { id } = await createComment(device, { waypointId: 'photo-replay-cap-wp' });
+    const { id } = await createComment(device, { waypointId: wpId('photo-replay-cap-wp') });
 
     const urls: string[] = [];
     for (let i = 0; i < 4; i++) {
@@ -374,13 +375,13 @@ describe('POST /v1/comments/:id/photos — idempotent replay', () => {
 
   it('replays a stored photo even at the daily upload cap', async () => {
     const device = await registerDevice();
-    const { id } = await createComment(device, { waypointId: 'photo-replay-rate-wp' });
+    const { id } = await createComment(device, { waypointId: wpId('photo-replay-rate-wp') });
     const first = await uploadPhoto(device, id, JPEG_BYTES, 'image/jpeg');
     expect(first.status).toBe(201);
     const photoUrl = ((await first.json()) as UploadCommentPhotoResponse).photoUrl;
 
     // Seed another comment so the user's 24h photo count is at the cap.
-    const { id: seeded } = await createComment(device, { waypointId: 'photo-replay-rate-seed' });
+    const { id: seeded } = await createComment(device, { waypointId: wpId('photo-replay-rate-seed') });
     const fakeUrls = Array.from({ length: 40 }, (_, i) => `https://photos.test/y/${i}.jpg`);
     await env.DB.prepare(`UPDATE comments SET photo_urls_json = ?, updated_at = ? WHERE id = ?`)
       .bind(JSON.stringify(fakeUrls), new Date().toISOString(), seeded)
@@ -398,8 +399,8 @@ describe('POST /v1/comments/:id/photos — idempotent replay', () => {
 
   it('does not dedupe across comments', async () => {
     const device = await registerDevice();
-    const { id: a } = await createComment(device, { waypointId: 'photo-cross-a-wp' });
-    const { id: b } = await createComment(device, { waypointId: 'photo-cross-b-wp' });
+    const { id: a } = await createComment(device, { waypointId: wpId('photo-cross-a-wp') });
+    const { id: b } = await createComment(device, { waypointId: wpId('photo-cross-b-wp') });
 
     expect((await uploadPhoto(device, a, JPEG_BYTES, 'image/jpeg')).status).toBe(201);
     const onB = await uploadPhoto(device, b, JPEG_BYTES, 'image/jpeg');
@@ -411,7 +412,7 @@ describe('POST /v1/comments/:id/photos — idempotent replay', () => {
 
   it('treats a legacy row with NULL photo_hashes_json as undeduped', async () => {
     const device = await registerDevice();
-    const { id } = await createComment(device, { waypointId: 'photo-legacy-wp' });
+    const { id } = await createComment(device, { waypointId: wpId('photo-legacy-wp') });
 
     // Simulate a row written before the hash column existed.
     const legacyUrl = `https://photos.test/comments/${id}/0.jpg`;
@@ -444,7 +445,7 @@ describe('POST /v1/comments/:id/photos — idempotent replay', () => {
 describe('DELETE /v1/comments/:id — R2 cleanup', () => {
   it('removes the comment photos from R2 on soft delete', async () => {
     const device = await registerDevice();
-    const { id } = await createComment(device, { waypointId: 'photo-cleanup-wp' });
+    const { id } = await createComment(device, { waypointId: wpId('photo-cleanup-wp') });
     const keyA = keyOf(((await (await uploadPhoto(device, id, JPEG_BYTES, 'image/jpeg')).json()) as UploadCommentPhotoResponse).photoUrl);
     const keyB = keyOf(((await (await uploadPhoto(device, id, WEBP_BYTES, 'image/webp')).json()) as UploadCommentPhotoResponse).photoUrl);
 

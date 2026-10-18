@@ -8,6 +8,7 @@ import {
   putComment,
   registerDevice,
   url,
+  wpId,
 } from './helpers';
 import type { FeedComment } from '../../../src/lib/comments-api-types';
 
@@ -15,7 +16,7 @@ describe('PUT /v1/comments/:id — idempotent create', () => {
   it('creates a comment (201) then replays it (200) with one stored row', async () => {
     const device = await registerDevice();
     const id = crypto.randomUUID();
-    const body = { trailId: 'heysen', waypointId: 'creek-crossing', text: 'Flowing well.' };
+    const body = { trailId: 'heysen', waypointId: wpId('creek-crossing'), text: 'Flowing well.' };
 
     const first = await putComment(device, id, body);
     expect(first.status).toBe(201);
@@ -29,7 +30,7 @@ describe('PUT /v1/comments/:id — idempotent create', () => {
 
     // Exactly one row in the feed.
     const feed = await SELF.fetch(
-      url('/v1/trails/heysen/waypoints/creek-crossing/comments')
+      url(`/v1/trails/heysen/waypoints/${wpId('creek-crossing')}/comments`)
     );
     const feedBody = (await feed.json()) as { comments: FeedComment[] };
     expect(feedBody.comments).toHaveLength(1);
@@ -39,7 +40,7 @@ describe('PUT /v1/comments/:id — idempotent create', () => {
     const a = await registerDevice('User A');
     const b = await registerDevice('User B');
     const id = crypto.randomUUID();
-    const body = { trailId: 'heysen', waypointId: 'lookout-hill', text: 'Nice view.' };
+    const body = { trailId: 'heysen', waypointId: wpId('lookout-hill'), text: 'Nice view.' };
 
     expect((await putComment(a, id, body)).status).toBe(201);
     const conflict = await putComment(b, id, body);
@@ -101,7 +102,7 @@ describe('validation', () => {
     const device = await registerDevice();
     const res = await putComment(device, 'not-a-uuid', {
       trailId: 'heysen',
-      waypointId: 'spring-01',
+      waypointId: wpId('spring-01'),
       text: 'hi',
     });
     expect(res.status).toBe(400);
@@ -133,12 +134,12 @@ describe('moderation guards', () => {
     const device = await registerDevice();
     for (let i = 0; i < 60; i++) {
       const { res } = await createComment(device, {
-        waypointId: 'rate-test-wp',
+        waypointId: wpId('rate-test-wp'),
         text: `comment ${i}`,
       });
       expect(res.status).toBe(201);
     }
-    const { res } = await createComment(device, { waypointId: 'rate-test-wp', text: 'one too many' });
+    const { res } = await createComment(device, { waypointId: wpId('rate-test-wp'), text: 'one too many' });
     expect(res.status).toBe(429);
     expect(((await res.json()) as { error: { code: string } }).error.code).toBe('rate_limited');
   });
@@ -147,7 +148,7 @@ describe('moderation guards', () => {
 describe('DELETE /v1/comments/:id — soft delete', () => {
   it('owner can delete (204) and it drops out of the feed; repeat is idempotent', async () => {
     const device = await registerDevice();
-    const { id } = await createComment(device, { waypointId: 'del-wp-owner' });
+    const { id } = await createComment(device, { waypointId: wpId('del-wp-owner') });
 
     const del = await SELF.fetch(url(`/v1/comments/${id}`), {
       method: 'DELETE',
@@ -155,7 +156,7 @@ describe('DELETE /v1/comments/:id — soft delete', () => {
     });
     expect(del.status).toBe(204);
 
-    const feed = await SELF.fetch(url('/v1/trails/heysen/waypoints/del-wp-owner/comments'));
+    const feed = await SELF.fetch(url(`/v1/trails/heysen/waypoints/${wpId('del-wp-owner')}/comments`));
     expect(((await feed.json()) as { comments: unknown[] }).comments).toHaveLength(0);
 
     // Idempotent second delete.
@@ -170,7 +171,7 @@ describe('DELETE /v1/comments/:id — soft delete', () => {
     const author = await registerDevice('Author');
     const admin = await registerDevice('Admin');
     await makeAdmin(admin.userId);
-    const { id } = await createComment(author, { waypointId: 'del-wp-admin' });
+    const { id } = await createComment(author, { waypointId: wpId('del-wp-admin') });
 
     const del = await SELF.fetch(url(`/v1/comments/${id}`), {
       method: 'DELETE',
@@ -190,7 +191,7 @@ describe('DELETE /v1/comments/:id — soft delete', () => {
   it('a stranger cannot delete (403)', async () => {
     const author = await registerDevice('Author');
     const stranger = await registerDevice('Stranger');
-    const { id } = await createComment(author, { waypointId: 'del-wp-stranger' });
+    const { id } = await createComment(author, { waypointId: wpId('del-wp-stranger') });
 
     const del = await SELF.fetch(url(`/v1/comments/${id}`), {
       method: 'DELETE',

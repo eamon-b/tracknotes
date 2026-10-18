@@ -605,7 +605,7 @@ const ROUTE_KEY_TYPES = new Set(['node', 'way', 'relation']);
 
 /**
  * The id a POI's comments are filed under in the comments API: `osm_node_12345`.
- * It sits inside the API's waypoint-id pattern (`^[a-z0-9_-]{4,64}$`) and apart
+ * It is one of the three forms the API accepts as a comment target, apart
  * from curated (`w_`) and hiker (`hw_`) waypoint ids, and it is the OSM element
  * itself, so a comment survives a re-fetch or a rebuild that renumbers nothing
  * else. An element type outside the three OSM ones, or an id that is not a

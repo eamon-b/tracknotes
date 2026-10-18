@@ -47,6 +47,20 @@ export async function banUser(userId: string): Promise<void> {
   await env.DB.prepare(`UPDATE users SET is_banned = 1 WHERE id = ?`).bind(userId).run();
 }
 
+/**
+ * A curated-form waypoint id (`w_` + 8 hex) for a readable test label, so
+ * each test can file its comments under a place of its own and still pass the
+ * comment target validation. Deterministic: FNV-1a over the label.
+ */
+export function wpId(label: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < label.length; i++) {
+    h ^= label.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return `w_${(h >>> 0).toString(16).padStart(8, '0')}`;
+}
+
 export interface PutCommentBody {
   trailId?: string;
   waypointId?: string;
@@ -76,7 +90,7 @@ export async function createComment(
   const id = crypto.randomUUID();
   const res = await putComment(device, id, {
     trailId: 'heysen',
-    waypointId: 'spring-01',
+    waypointId: wpId('spring-01'),
     text: 'Water is running well here.',
     ...overrides,
   });

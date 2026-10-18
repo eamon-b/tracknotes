@@ -8,15 +8,17 @@ import type { Env } from './http';
 import { requireAdmin, requireUser } from './auth';
 import { appendSinceFilter, decodeCursor, encodeCursor } from './cursor';
 import { deleteCommentPhotos, parsePhotoUrls } from './photos';
+import { RATE_BUCKETS, consumeRateLimit } from './rate-limit';
 import {
   assertClientCommentId,
   clampObservedAt,
   parseLimit,
+  validateCommentTarget,
   validateText,
   validateTrailId,
   validateWaterStatus,
-  validateWaypointId,
 } from './validation';
+import type { CommentTarget } from './validation';
 import type {
   AdminComment,
   AdminCommentsResponse,
@@ -26,10 +28,6 @@ import type {
   SyncEntry,
   WaterStatus,
 } from '../../../src/lib/comments-api-types';
-
-/** Max comments a single user may create in a rolling 24h window. */
-const RATE_LIMIT_PER_DAY = 60;
-const RATE_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 const FEED_DEFAULT_LIMIT = 20;
 const FEED_MAX_LIMIT = 100;
@@ -69,6 +67,33 @@ function toFeedComment(row: CommentRow, displayName: string): FeedComment {
   };
 }
 
+/**
+ * Refuse a comment on a place no screen would show it under, where that is
+ * cheap to know. A shared hiker waypoint is one row: it must exist on this
+ * trail and still be shared (an owner's unshare, a report or an admin hide
+ * all tombstone it). Curated and OSM ids are checked by form only — the
+ * worker carries neither the waypoint registry nor the trails' POI lists, and
+ * a registry entry the build has just minted must not need a worker deploy.
+ */
+async function assertCommentTargetExists(
+  env: Env,
+  target: CommentTarget,
+  trailId: string
+): Promise<void> {
+  if (target.kind !== 'shared') return;
+  const row = await env.DB.prepare(
+    `SELECT trail_id, deleted_at FROM shared_waypoints WHERE id = ?`
+  )
+    .bind(target.id)
+    .first<{ trail_id: string; deleted_at: string | null }>();
+  if (!row || row.trail_id !== trailId) {
+    throw new HttpError(404, 'waypoint_not_found', 'No shared waypoint with this id on this trail');
+  }
+  if (row.deleted_at !== null) {
+    throw new HttpError(410, 'waypoint_deleted', 'This shared waypoint is no longer shared');
+  }
+}
+
 // ---------------------------------------------------------------------------
 // PUT /v1/comments/:id — idempotent create
 // ---------------------------------------------------------------------------
@@ -84,7 +109,8 @@ export async function putComment(
 
   const body = await readJson(request);
   const trailId = validateTrailId(body.trailId);
-  const waypointId = validateWaypointId(body.waypointId);
+  const target = validateCommentTarget(body.waypointId);
+  const waypointId = target.id;
   const text = validateText(body.text);
   const waterStatus = validateWaterStatus(body.waterStatus);
   if (text === null && waterStatus === null) {
@@ -115,19 +141,10 @@ export async function putComment(
     throw new HttpError(403, 'banned', 'This account may not post comments');
   }
 
-  const windowStart = new Date(nowMs - RATE_WINDOW_MS).toISOString();
-  const countRow = await env.DB.prepare(
-    `SELECT COUNT(*) AS n FROM comments WHERE user_id = ? AND created_at >= ?`
-  )
-    .bind(user.id, windowStart)
-    .first<{ n: number }>();
-  if ((countRow?.n ?? 0) >= RATE_LIMIT_PER_DAY) {
-    throw new HttpError(
-      429,
-      'rate_limited',
-      `Comment limit of ${RATE_LIMIT_PER_DAY} per day reached`
-    );
-  }
+  await assertCommentTargetExists(env, target, trailId);
+
+  const spec = RATE_BUCKETS.commentPost;
+  await consumeRateLimit(env, spec, user.id, nowMs, `Comment limit of ${spec.limit} per day reached`, ctx);
 
   const nowIso = new Date(nowMs).toISOString();
   const inserted = await env.DB.prepare(

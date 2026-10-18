@@ -9,6 +9,7 @@
 import { HttpError, json, readJson } from './http';
 import type { Env } from './http';
 import { requireAdmin, requireUser } from './auth';
+import { RATE_BUCKETS, consumeRateLimit } from './rate-limit';
 import {
   assertClientCommentId,
   parseLimit,
@@ -21,10 +22,6 @@ import type {
   ReportCommentResponse,
   ReportReason,
 } from '../../../src/lib/comments-api-types';
-
-/** Max reports a single user may file in a rolling 24h window. */
-const REPORT_RATE_LIMIT_PER_DAY = 20;
-const RATE_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 const ADMIN_DEFAULT_LIMIT = 100;
 const ADMIN_MAX_LIMIT = 500;
@@ -70,19 +67,8 @@ export async function reportComment(
   }
 
   const nowMs = Date.now();
-  const windowStart = new Date(nowMs - RATE_WINDOW_MS).toISOString();
-  const countRow = await env.DB.prepare(
-    `SELECT COUNT(*) AS n FROM comment_reports WHERE user_id = ? AND created_at >= ?`
-  )
-    .bind(user.id, windowStart)
-    .first<{ n: number }>();
-  if ((countRow?.n ?? 0) >= REPORT_RATE_LIMIT_PER_DAY) {
-    throw new HttpError(
-      429,
-      'rate_limited',
-      `Report limit of ${REPORT_RATE_LIMIT_PER_DAY} per day reached`
-    );
-  }
+  const spec = RATE_BUCKETS.commentReport;
+  await consumeRateLimit(env, spec, user.id, nowMs, `Report limit of ${spec.limit} per day reached`, ctx);
 
   const reportId = crypto.randomUUID();
   const nowIso = new Date(nowMs).toISOString();

@@ -1,6 +1,6 @@
 import { SELF, env } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
-import { authHeaders, createComment, registerDevice, url } from './helpers';
+import { authHeaders, createComment, registerDevice, url, wpId } from './helpers';
 import type {
   BulkSyncResponse,
   FeedResponse,
@@ -12,7 +12,7 @@ const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 describe('per-waypoint feed pagination', () => {
   it('returns newest-first, excludes deleted, and round-trips the cursor', async () => {
     const device = await registerDevice();
-    const wp = 'feed-page-wp';
+    const wp = wpId('feed-page-wp');
     const created: string[] = [];
     for (let i = 0; i < 5; i++) {
       const { id, res } = await createComment(device, { waypointId: wp, text: `msg ${i}` });
@@ -64,9 +64,9 @@ describe('trail-wide bulk / delta sync', () => {
     const device = await registerDevice();
     const trail = 'larapinta';
 
-    const a = await createComment(device, { trailId: trail, waypointId: 'bulk-wp-a', text: 'A' });
-    const b = await createComment(device, { trailId: trail, waypointId: 'bulk-wp-b', text: 'B' });
-    await createComment(device, { trailId: trail, waypointId: 'bulk-wp-c', text: 'C' });
+    const a = await createComment(device, { trailId: trail, waypointId: wpId('bulk-wp-a'), text: 'A' });
+    const b = await createComment(device, { trailId: trail, waypointId: wpId('bulk-wp-b'), text: 'B' });
+    await createComment(device, { trailId: trail, waypointId: wpId('bulk-wp-c'), text: 'C' });
     // The `since` boundary is inclusive, so keep the writes out of the
     // snapshot's own millisecond for the "unchanged B is absent" check below.
     await delay(5);
@@ -86,7 +86,7 @@ describe('trail-wide bulk / delta sync', () => {
       method: 'DELETE',
       headers: authHeaders(device),
     });
-    const d = await createComment(device, { trailId: trail, waypointId: 'bulk-wp-d', text: 'D' });
+    const d = await createComment(device, { trailId: trail, waypointId: wpId('bulk-wp-d'), text: 'D' });
     expect(d.res.status).toBe(201);
 
     // Delta since snapshot: exactly the tombstone for A and the new row D.
@@ -102,7 +102,7 @@ describe('trail-wide bulk / delta sync', () => {
     expect(tombstone).toBeDefined();
     expect(tombstone).toEqual({
       id: a.id,
-      waypointId: 'bulk-wp-a',
+      waypointId: wpId('bulk-wp-a'),
       deleted: true,
       updatedAt: expect.any(String),
     });
@@ -122,7 +122,7 @@ describe('trail-wide bulk / delta sync', () => {
     // `syncedAt` is taken before the SELECT, so a write that commits in the
     // same millisecond just after it would fall through a strict `>`.
     const device = await registerDevice('Boundary');
-    const { id } = await createComment(device, { trailId: 'aawt', waypointId: 'bulk-edge-wp' });
+    const { id } = await createComment(device, { trailId: 'aawt', waypointId: wpId('bulk-edge-wp') });
     const row = await env.DB.prepare(`SELECT updated_at FROM comments WHERE id = ?`)
       .bind(id)
       .first<{ updated_at: string }>();
@@ -140,7 +140,7 @@ describe('trail-wide bulk / delta sync', () => {
     for (let i = 0; i < 5; i++) {
       const { id } = await createComment(device, {
         trailId: trail,
-        waypointId: 'bulk-page-wp',
+        waypointId: wpId('bulk-page-wp'),
         text: `row ${i}`,
       });
       ids.push(id);

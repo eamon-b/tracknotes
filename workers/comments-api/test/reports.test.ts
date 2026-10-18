@@ -8,6 +8,7 @@ import {
   registerDevice,
   reportComment,
   url,
+  wpId,
 } from './helpers';
 import type {
   AdminReportsResponse,
@@ -40,7 +41,7 @@ async function seedReports(userId: string, count: number): Promise<void> {
     const commentId = crypto.randomUUID();
     await env.DB.prepare(
       `INSERT INTO comments (id, trail_id, waypoint_id, user_id, text, created_at, updated_at)
-       VALUES (?, 'heysen', 'seeded-report-target', ?, 'seed', ?, ?)`
+       VALUES (?, 'heysen', 'w_5eed0000', ?, 'seed', ?, ?)`
     )
       .bind(commentId, userId, now, now)
       .run();
@@ -50,6 +51,12 @@ async function seedReports(userId: string, count: number): Promise<void> {
     )
       .bind(crypto.randomUUID(), commentId, userId, now)
       .run();
+    // The allowance each of those reports spent (`consumeRateLimit`).
+    await env.DB.prepare(
+      `INSERT INTO rate_events (bucket, key, created_at) VALUES ('comment_report', ?, ?)`
+    )
+      .bind(userId, now)
+      .run();
   }
 }
 
@@ -57,7 +64,7 @@ describe('POST /v1/comments/:id/report — happy path', () => {
   it('files a report (201) and returns a server-minted id', async () => {
     const author = await registerDevice('Author');
     const reporter = await registerDevice('Reporter');
-    const { id } = await createComment(author, { waypointId: 'report-happy-wp' });
+    const { id } = await createComment(author, { waypointId: wpId('report-happy-wp') });
 
     const res = await reportComment(reporter, id, { reason: 'spam', detail: '  buy my thing  ' });
     expect(res.status).toBe(201);
@@ -81,7 +88,7 @@ describe('POST /v1/comments/:id/report — happy path', () => {
 
   it('accepts every reason in the enum, and a missing detail', async () => {
     const author = await registerDevice('Author');
-    const { id } = await createComment(author, { waypointId: 'report-reasons-wp' });
+    const { id } = await createComment(author, { waypointId: wpId('report-reasons-wp') });
 
     for (const reason of ['spam', 'offensive', 'inaccurate', 'other']) {
       const reporter = await registerDevice(`Reporter ${reason}`);
@@ -102,7 +109,7 @@ describe('POST /v1/comments/:id/report — happy path', () => {
     const author = await registerDevice('Author');
     const reporter = await registerDevice('Banned Reporter');
     await banUser(reporter.userId);
-    const { id } = await createComment(author, { waypointId: 'report-banned-wp' });
+    const { id } = await createComment(author, { waypointId: wpId('report-banned-wp') });
 
     const res = await reportComment(reporter, id, { reason: 'offensive' });
     expect(res.status).toBe(201);
@@ -110,7 +117,7 @@ describe('POST /v1/comments/:id/report — happy path', () => {
 
   it('lets an author report their own comment', async () => {
     const author = await registerDevice('Author');
-    const { id } = await createComment(author, { waypointId: 'report-self-wp' });
+    const { id } = await createComment(author, { waypointId: wpId('report-self-wp') });
     const res = await reportComment(author, id, { reason: 'other' });
     expect(res.status).toBe(201);
   });
@@ -120,7 +127,7 @@ describe('POST /v1/comments/:id/report — idempotency', () => {
   it('replays the original report id on a repeat submission (200)', async () => {
     const author = await registerDevice('Author');
     const reporter = await registerDevice('Reporter');
-    const { id } = await createComment(author, { waypointId: 'report-replay-wp' });
+    const { id } = await createComment(author, { waypointId: wpId('report-replay-wp') });
 
     const first = await reportComment(reporter, id, { reason: 'spam' });
     expect(first.status).toBe(201);
@@ -144,7 +151,7 @@ describe('POST /v1/comments/:id/report — idempotency', () => {
     const author = await registerDevice('Author');
     const a = await registerDevice('Reporter A');
     const b = await registerDevice('Reporter B');
-    const { id } = await createComment(author, { waypointId: 'report-two-wp' });
+    const { id } = await createComment(author, { waypointId: wpId('report-two-wp') });
 
     const resA = await reportComment(a, id, { reason: 'spam' });
     const resB = await reportComment(b, id, { reason: 'inaccurate' });
@@ -159,7 +166,7 @@ describe('POST /v1/comments/:id/report — idempotency', () => {
 describe('POST /v1/comments/:id/report — auth, existence, validation', () => {
   it('401 without a token', async () => {
     const author = await registerDevice('Author');
-    const { id } = await createComment(author, { waypointId: 'report-noauth-wp' });
+    const { id } = await createComment(author, { waypointId: wpId('report-noauth-wp') });
     const res = await SELF.fetch(url(`/v1/comments/${id}/report`), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -185,7 +192,7 @@ describe('POST /v1/comments/:id/report — auth, existence, validation', () => {
   it('410 for a soft-deleted comment', async () => {
     const author = await registerDevice('Author');
     const reporter = await registerDevice('Reporter');
-    const { id } = await createComment(author, { waypointId: 'report-deleted-wp' });
+    const { id } = await createComment(author, { waypointId: wpId('report-deleted-wp') });
     const del = await SELF.fetch(url(`/v1/comments/${id}`), {
       method: 'DELETE',
       headers: authHeaders(author),
@@ -200,7 +207,7 @@ describe('POST /v1/comments/:id/report — auth, existence, validation', () => {
   it('400 invalid_reason for a missing or unknown reason', async () => {
     const author = await registerDevice('Author');
     const reporter = await registerDevice('Reporter');
-    const { id } = await createComment(author, { waypointId: 'report-reason-bad-wp' });
+    const { id } = await createComment(author, { waypointId: wpId('report-reason-bad-wp') });
 
     const missing = await reportComment(reporter, id, {});
     expect(missing.status).toBe(400);
@@ -218,7 +225,7 @@ describe('POST /v1/comments/:id/report — auth, existence, validation', () => {
   it('400 invalid_detail for an over-long or non-string detail', async () => {
     const author = await registerDevice('Author');
     const reporter = await registerDevice('Reporter');
-    const { id } = await createComment(author, { waypointId: 'report-detail-bad-wp' });
+    const { id } = await createComment(author, { waypointId: wpId('report-detail-bad-wp') });
 
     const tooLong = await reportComment(reporter, id, { reason: 'spam', detail: 'x'.repeat(501) });
     expect(tooLong.status).toBe(400);
@@ -235,7 +242,7 @@ describe('POST /v1/comments/:id/report — auth, existence, validation', () => {
 
   it('405 for a wrong method on the report path', async () => {
     const author = await registerDevice('Author');
-    const { id } = await createComment(author, { waypointId: 'report-method-wp' });
+    const { id } = await createComment(author, { waypointId: wpId('report-method-wp') });
     const res = await SELF.fetch(url(`/v1/comments/${id}/report`), { method: 'GET' });
     expect(res.status).toBe(405);
     expect(errorCode(await res.json())).toBe('method_not_allowed');
@@ -246,7 +253,7 @@ describe('POST /v1/comments/:id/report — rate limit', () => {
   it('429 once 20 reports have been filed in the window', async () => {
     const author = await registerDevice('Author');
     const reporter = await registerDevice('Prolific Reporter');
-    const { id } = await createComment(author, { waypointId: 'report-rate-wp' });
+    const { id } = await createComment(author, { waypointId: wpId('report-rate-wp') });
 
     await seedReports(reporter.userId, 20);
 
@@ -262,7 +269,7 @@ describe('POST /v1/comments/:id/report — rate limit', () => {
   it('does not rate-limit an idempotent replay at the cap', async () => {
     const author = await registerDevice('Author');
     const reporter = await registerDevice('Capped Reporter');
-    const { id } = await createComment(author, { waypointId: 'report-rate-replay-wp' });
+    const { id } = await createComment(author, { waypointId: wpId('report-rate-replay-wp') });
 
     const first = await reportComment(reporter, id, { reason: 'spam' });
     expect(first.status).toBe(201);
@@ -292,11 +299,11 @@ describe('GET /v1/admin/reports', () => {
     const author = await registerDevice('Author');
     const reporter = await registerDevice('Reporter');
     const { id: older } = await createComment(author, {
-      waypointId: 'admin-report-older-wp',
+      waypointId: wpId('admin-report-older-wp'),
       text: 'first comment',
     });
     const { id: newer } = await createComment(author, {
-      waypointId: 'admin-report-newer-wp',
+      waypointId: wpId('admin-report-newer-wp'),
       text: 'second comment',
     });
 
@@ -322,14 +329,14 @@ describe('GET /v1/admin/reports', () => {
 
     expect(mine[0]).toMatchObject({
       trailId: 'heysen',
-      waypointId: 'admin-report-newer-wp',
+      waypointId: wpId('admin-report-newer-wp'),
       reason: 'offensive',
       detail: null,
       commentText: 'second comment',
       commentDeleted: false,
     });
     expect(mine[1]).toMatchObject({
-      waypointId: 'admin-report-older-wp',
+      waypointId: wpId('admin-report-older-wp'),
       reason: 'spam',
       detail: 'ad',
       commentText: 'first comment',
@@ -342,7 +349,7 @@ describe('GET /v1/admin/reports', () => {
     const author = await registerDevice('Author');
     const reporter = await registerDevice('Reporter');
     const { id } = await createComment(author, {
-      waypointId: 'admin-report-gone-wp',
+      waypointId: wpId('admin-report-gone-wp'),
       text: 'offending text',
     });
     expect((await reportComment(reporter, id, { reason: 'offensive' })).status).toBe(201);

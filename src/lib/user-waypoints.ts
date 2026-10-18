@@ -91,7 +91,7 @@ const TURN_OFF_TYPES: ReadonlySet<string> = new Set([
 /** The id prefix every hiker waypoint carries. */
 export const USER_WAYPOINT_ID_PREFIX = 'hw_';
 
-/** `hw_` + a lowercase v4 uuid: inside the comments API's waypoint-id pattern. */
+/** `hw_` + a lowercase v4 uuid: the form the comments API accepts as a shared hiker waypoint. */
 const USER_WAYPOINT_ID_RE =
   /^hw_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 

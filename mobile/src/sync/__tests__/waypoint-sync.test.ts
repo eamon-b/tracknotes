@@ -4,7 +4,8 @@ import * as outboxRepo from '../../db/outbox-repo';
 import * as userWaypointsRepo from '../../db/user-waypoints-repo';
 import * as favoritesRepo from '../../db/favorites-repo';
 import type { Session } from '../../api/auth';
-import { drainOutbox, pullTrail, resetSyncStateForTests } from '../comment-sync';
+import { drainOutbox, pullTrail, resetSyncStateForTests, submitComment } from '../comment-sync';
+import * as commentsRepo from '../../db/comments-repo';
 import { deleteUserWaypoint, reportUserWaypoint, saveUserWaypoint } from '../waypoint-sync';
 import { useIdentityStore } from '../../state/identity-store';
 import { onSyncChange, type SyncChange } from '../sync-events';
@@ -246,6 +247,94 @@ describe('deleteUserWaypoint', () => {
         { db: d },
       ),
     ).rejects.toThrow();
+  });
+});
+
+describe('comments on a hiker waypoint', () => {
+  /**
+   * A server that refuses a comment on a hiker waypoint it does not hold yet
+   * (404, as the worker does) and answers the share with `shareStatus`.
+   */
+  function sharingServer(shareStatus: () => number) {
+    const shared = new Set<string>();
+    return routedFetch((call) => {
+      if (call.method === 'PUT' && call.url.startsWith('/v1/waypoints/')) {
+        const id = call.url.split('/').pop()!;
+        const status = shareStatus();
+        if (status >= 300) return { status, body: { error: { code: 'x', message: 'x' } } };
+        shared.add(id);
+        return { status, body: serverCopy(id) };
+      }
+      if (call.method === 'PUT' && call.url.startsWith('/v1/comments/')) {
+        const body = call.body as { waypointId: string; text: string };
+        if (!shared.has(body.waypointId)) {
+          return { status: 404, body: { error: { code: 'waypoint_not_found', message: 'no' } } };
+        }
+        return {
+          status: 201,
+          body: {
+            id: call.url.split('/').pop(),
+            waypointId: body.waypointId,
+            displayName: 'Me',
+            text: body.text,
+            waterStatus: null,
+            observedAt: null,
+            createdAt: '2026-10-01T00:00:02.000Z',
+            photoUrls: [],
+          },
+        };
+      }
+      return { body: {} };
+    });
+  }
+
+  it('waits for the share to land, even when an edit re-queued it after the comment', async () => {
+    const d = await db();
+    let online = false;
+    const { fetchImpl, calls } = sharingServer(() => 201);
+    const fetchWhenOnline = (async (...args: Parameters<typeof fetch>) => {
+      if (!online) throw new Error('offline');
+      return fetchImpl(...args);
+    }) as unknown as typeof fetch;
+    const deps = { db: d, baseUrl: BASE, fetchImpl: fetchWhenOnline, getSessionFn };
+    const t0 = Date.parse('2026-10-01T00:00:00.000Z');
+
+    const first = await saveUserWaypoint(
+      { trailId: 'heysen', input: INPUT, visibility: 'shared' },
+      { ...deps, now: () => t0 },
+    );
+    await first.drain;
+    const { id: commentId } = await submitComment(
+      { trailId: 'heysen', waypointId: first.waypoint.id, text: 'Pools were full', session: SESSION },
+      { ...deps, now: () => t0 + 1000 },
+    );
+    const edit = await saveUserWaypoint(
+      { trailId: 'heysen', existing: first.waypoint, input: { ...INPUT, name: 'Creek (full)' }, visibility: 'shared' },
+      { ...deps, now: () => t0 + 2000 },
+    );
+    await edit.drain;
+
+    online = true;
+    const result = await drainOutbox({ ...deps, now: () => t0 + 3000 });
+    expect(result).toMatchObject({ sent: 2, failed: 0 });
+    expect(calls.map((c) => c.url.split('/')[2])).toEqual(['waypoints', 'comments']);
+    expect((await commentsRepo.getById(d, commentId))?.source).toBe('server');
+    expect(await outboxRepo.count(d)).toBe(0);
+  });
+
+  it('keeps the comment pending, unsent and uncharged, while the share is retrying', async () => {
+    const d = await db();
+    const { fetchImpl, calls } = sharingServer(() => 503);
+    const deps = { db: d, baseUrl: BASE, fetchImpl, getSessionFn };
+    const saved = await saveUserWaypoint({ trailId: 'heysen', input: INPUT, visibility: 'shared' }, deps);
+    await saved.drain;
+    const { id: commentId } = await submitComment(
+      { trailId: 'heysen', waypointId: saved.waypoint.id, text: 'Dry', session: SESSION },
+      deps,
+    );
+    expect(calls.some((c) => c.url.startsWith('/v1/comments/'))).toBe(false);
+    const row = await outboxRepo.getById(d, commentId);
+    expect(row).toMatchObject({ status: 'pending', attempts: 0 });
   });
 });
 
