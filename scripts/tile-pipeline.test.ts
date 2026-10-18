@@ -34,14 +34,15 @@ import {
 
 // The CLI is not on every machine (it is on GitHub's Ubuntu runners). Without it the
 // fixtures cannot be built and the validator has nothing to shell out to, so the
-// suites that need it are skipped rather than failed.
+// suites that need it are skipped rather than failed — locally only: in CI a missing
+// sqlite3 fails them, so a runner image change cannot quietly skip them.
 let hasSqlite3 = true;
 try {
   execFileSync('sqlite3', ['-version'], { stdio: 'ignore' });
 } catch {
   hasSqlite3 = false;
 }
-const describeWithSqlite3 = describe.skipIf(!hasSqlite3);
+const describeWithSqlite3 = describe.skipIf(!hasSqlite3 && !process.env.CI);
 
 let tmpDir: string;
 

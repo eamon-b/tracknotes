@@ -7,8 +7,8 @@ export default tseslint.config(
   tseslint.configs.recommended,
   {
     rules: {
-      // ignoreRestSiblings: `const { pois: _pois, ...rest } = x` is how a field is left out
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', ignoreRestSiblings: true }],
+      // varsIgnorePattern: `const { pois: _pois, ...rest } = x` is how a field is left out
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     },
   },
   {

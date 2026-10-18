@@ -36,7 +36,8 @@ jobs:
   # pull requests or pushes, which change the data before it is published.
   # Reads the public catalog only, no credentials (docs/trail-data-updates.md).
   published-trail-data:
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    # main only: the live catalog tracks main, so a branch with rebuilt data would differ
+    if: (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

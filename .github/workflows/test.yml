@@ -16,9 +16,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm test -- --run
-      # tsc otherwise runs only inside `npm run build`, which CI never runs
+      # tsc otherwise runs only inside `npm run build`, which CI never runs.
+      # Before the tests, so a failing test cannot hide a type error.
       - run: npx tsc --noEmit
+      - run: npm test -- --run
       - run: npm run lint
 
   # The generated trail data is committed (mobile/assets/trails/, data/waypoint-ids.json),
@@ -40,8 +41,9 @@ jobs:
       - run: npm run build:mobile-trails
       - name: Check the committed trail data is up to date
         run: |
-          if ! git diff --exit-code --stat || [ -n "$(git status --porcelain)" ]; then
+          if [ -n "$(git status --porcelain)" ]; then
             git status --short
+            git diff --stat
             echo "::error::The committed trail data is stale. Run npm run sync:te-araroa, build:trails and build:mobile-trails, and commit the result."
             exit 1
           fi
@@ -61,6 +63,9 @@ jobs:
           cache-dependency-path: workers/comments-api/package-lock.json
       - run: npm ci
       - run: npm test
+      # The pool-workers runner strips types without checking them, and the root tsc
+      # does not include workers/: this is what catches a change to a shared src/lib type
+      - run: npx tsc --noEmit
 
   mobile-tests:
     runs-on: ubuntu-latest

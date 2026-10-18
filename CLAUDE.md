@@ -200,7 +200,7 @@ Cloudflare Worker serving contour vector tiles from PMTiles on R2. URL pattern: 
 
 ## Testing
 
-Tests use Vitest with jsdom. Test files are colocated with source (`*.test.ts` in `src/lib/`). The `tile-pipeline` mbtiles suites need the `sqlite3` CLI and are skipped without it. The comments-api worker has its own suite (`cd workers/comments-api && npm ci && npm test`, vitest-pool-workers). CI (`.github/workflows/test.yml`) also runs `npx tsc --noEmit` and rebuilds the trail data (`sync:te-araroa`, `build:trails`, `build:mobile-trails`), failing when the committed output differs — commit the rebuilt files with any change to the build or the source data. Mobile tests (Jest) live in `__tests__/` subdirectories colocated with source across `mobile/src/` (`api/`, `db/`, `features/*/`, `hooks/`, `services/`, `state/`, `sync/`, `tokens/`).
+Tests use Vitest with jsdom. Test files are colocated with source (`*.test.ts` in `src/lib/`). The `tile-pipeline` mbtiles suites need the `sqlite3` CLI: without it they are skipped locally and fail in CI (`CI` set). The comments-api worker has its own suite (`cd workers/comments-api && npm ci && npm test`, vitest-pool-workers). CI (`.github/workflows/test.yml`) also runs `npx tsc --noEmit` and rebuilds the trail data (`sync:te-araroa`, `build:trails`, `build:mobile-trails`), failing when the committed output differs — commit the rebuilt files with any change to the build or the source data. Mobile tests (Jest) live in `__tests__/` subdirectories colocated with source across `mobile/src/` (`api/`, `db/`, `features/*/`, `hooks/`, `services/`, `state/`, `sync/`, `tokens/`).
 
 ```bash
 # Mobile tests (from mobile/)
