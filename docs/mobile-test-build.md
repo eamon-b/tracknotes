@@ -41,11 +41,15 @@ npx eas-cli@latest build --non-interactive --profile preview --platform android
   bucket. A test build therefore talks to **production** data and syncs to the real account of
   whichever device installs it. To point a test build somewhere else, edit those values in
   `eas.json` before building — `.env.local` is only read by Metro, never by EAS.
-- **Check the worker is current first.** A build that uses an endpoint the deployed worker lacks
-  queues requests that 404 and never settle (shared waypoints shipped this way: #141). Before
-  any build, `npx wrangler d1 migrations list farout-comments --remote` in
-  `workers/comments-api/` must list nothing to apply, and the worker must be deployed from the
-  commit you build; if not, do step 1 of "Full release" first.
+- **Check the worker is current first.** A build that calls a route the deployed worker lacks
+  gets 404s: shared-waypoint shares stay queued, but shared-waypoint deletes and reports are
+  discarded as if they had succeeded (`mobile/src/sync/comment-sync.ts`), and deploying later
+  does not bring them back. Shared waypoints shipped this way (#141). Before any build, with the
+  setup from step 1 of "Full release" (`npm ci` in `workers/comments-api/` and the Cloudflare
+  credentials), check that `npx wrangler d1 migrations list farout-comments --remote` lists
+  nothing to apply and that every probe in that step answers. If not, deploy `main` per that
+  step. Never deploy the worker from an unmerged branch for a test build: test builds use the
+  production API, so that would ship unreviewed worker code to every installed app.
 - The version is `expo.version` in `app.json` (`0.1.0`). The Android `versionCode` is kept by
   EAS, not `app.json` (`cli.appVersionSource: "remote"` in `eas.json`; the first build after the
   switch seeds it from the local value, `1`). Test builds reuse the current `versionCode`; each `production` build bumps
@@ -116,9 +120,16 @@ be rolled forward without a reinstall. The detailed rationale is under "Deploy" 
    curl https://api.contour-map-tiles.net/health              # {"ok":true}
    ```
 
-   Then probe one route from each recent migration, not just `/health` (which answers while a
-   new route 404s), e.g. `curl https://api.contour-map-tiles.net/v1/trails/heysen/waypoints`
-   for 0007. Do this step whenever a merge touches `workers/comments-api/`, not only at release.
+   `/health` answers even while a new route 404s, so also probe a route from each migration
+   that added routes; each must answer 200, not 404:
+
+   ```bash
+   curl -sf -o /dev/null https://api.contour-map-tiles.net/v1/community/routes          # 0005/0006
+   curl -sf -o /dev/null https://api.contour-map-tiles.net/v1/trails/heysen/waypoints   # 0007
+   ```
+
+   Add a line here whenever a new migration adds routes. Deploy (from `main`) after every merge
+   that changes `workers/comments-api/`, not only at release, then run these probes.
 
 2. **Site.** Vercel builds `main` on push. `VITE_API_BASE_URL=https://api.contour-map-tiles.net`
    is set on the Vercel project (Production and Preview, added 2026-09-22); without it the
