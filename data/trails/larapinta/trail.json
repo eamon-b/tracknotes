@@ -34,8 +34,15 @@
     },
     {
       "name": "Standley Chasm",
-      "lat": -23.73,
-      "lon": 133.43
+      "lat": -23.7219,
+      "lon": 133.4699,
+      "elevation": 753
+    },
+    {
+      "name": "Brinkley Bluff",
+      "lat": -23.7107,
+      "lon": 133.3919,
+      "elevation": 1204
     },
     {
       "name": "Ormiston Gorge",

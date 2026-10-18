@@ -28,9 +28,16 @@
       "lon": 148.69
     },
     {
-      "name": "Tumut",
-      "lat": -35.3,
-      "lon": 148.22
+      "name": "Blowering",
+      "lat": -35.4021,
+      "lon": 148.2394,
+      "elevation": 391
+    },
+    {
+      "name": "Paddys River Dam",
+      "lat": -35.7163,
+      "lon": 148.1674,
+      "elevation": 1169
     },
     {
       "name": "Tumbarumba",

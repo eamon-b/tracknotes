@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-01-25T02:25:21.587Z",
+  "generatedAt": "2026-10-18T03:07:59.594Z",
   "dataYears": {
     "start": 1994,
     "end": 2023
@@ -190,94 +190,186 @@
       ]
     },
     {
-      "name": "Tumut",
-      "lat": -35.3,
-      "lon": 148.22,
-      "elevation": 272,
+      "name": "Blowering",
+      "lat": -35.4021,
+      "lon": 148.2394,
+      "elevation": 391,
       "monthly": [
         {
           "month": 1,
-          "avgTempMin": 16.3,
-          "avgTempMax": 29.2,
-          "avgPrecipitation": 54.6,
-          "avgRainyDays": 5.6
+          "avgTempMin": 16,
+          "avgTempMax": 28.8,
+          "avgPrecipitation": 62.4,
+          "avgRainyDays": 7
         },
         {
           "month": 2,
-          "avgTempMin": 15.8,
-          "avgTempMax": 28.1,
-          "avgPrecipitation": 53.4,
-          "avgRainyDays": 5.4
+          "avgTempMin": 15.4,
+          "avgTempMax": 27.6,
+          "avgPrecipitation": 64.8,
+          "avgRainyDays": 6.6
         },
         {
           "month": 3,
-          "avgTempMin": 13.1,
-          "avgTempMax": 25,
-          "avgPrecipitation": 53.9,
-          "avgRainyDays": 5
+          "avgTempMin": 12.9,
+          "avgTempMax": 24.4,
+          "avgPrecipitation": 59.8,
+          "avgRainyDays": 6
         },
         {
           "month": 4,
-          "avgTempMin": 8.9,
-          "avgTempMax": 20.4,
-          "avgPrecipitation": 47,
-          "avgRainyDays": 5.1
+          "avgTempMin": 8.7,
+          "avgTempMax": 19.7,
+          "avgPrecipitation": 53,
+          "avgRainyDays": 5.9
         },
         {
           "month": 5,
           "avgTempMin": 5.4,
-          "avgTempMax": 15.5,
-          "avgPrecipitation": 63.3,
-          "avgRainyDays": 7.1
+          "avgTempMax": 14.8,
+          "avgPrecipitation": 71.5,
+          "avgRainyDays": 7.8
         },
         {
           "month": 6,
           "avgTempMin": 3.4,
-          "avgTempMax": 12.3,
-          "avgPrecipitation": 94.1,
-          "avgRainyDays": 9.9
+          "avgTempMax": 11.6,
+          "avgPrecipitation": 103,
+          "avgRainyDays": 10
         },
         {
           "month": 7,
           "avgTempMin": 2.2,
-          "avgTempMax": 11.2,
-          "avgPrecipitation": 80.5,
-          "avgRainyDays": 10.5
+          "avgTempMax": 10.5,
+          "avgPrecipitation": 92.3,
+          "avgRainyDays": 11
         },
         {
           "month": 8,
-          "avgTempMin": 2.7,
-          "avgTempMax": 12.6,
-          "avgPrecipitation": 88,
-          "avgRainyDays": 10.6
+          "avgTempMin": 2.6,
+          "avgTempMax": 11.9,
+          "avgPrecipitation": 101.5,
+          "avgRainyDays": 11.7
         },
         {
           "month": 9,
           "avgTempMin": 4.9,
-          "avgTempMax": 16,
-          "avgPrecipitation": 90.8,
-          "avgRainyDays": 9.1
+          "avgTempMax": 15.4,
+          "avgPrecipitation": 102.8,
+          "avgRainyDays": 10.5
         },
         {
           "month": 10,
-          "avgTempMin": 7.7,
-          "avgTempMax": 19.6,
-          "avgPrecipitation": 81,
-          "avgRainyDays": 8.7
+          "avgTempMin": 7.6,
+          "avgTempMax": 19.1,
+          "avgPrecipitation": 96.4,
+          "avgRainyDays": 10
         },
         {
           "month": 11,
-          "avgTempMin": 11.1,
-          "avgTempMax": 23.2,
-          "avgPrecipitation": 93.3,
-          "avgRainyDays": 8.7
+          "avgTempMin": 10.9,
+          "avgTempMax": 22.7,
+          "avgPrecipitation": 105.8,
+          "avgRainyDays": 10.1
         },
         {
           "month": 12,
-          "avgTempMin": 13.7,
-          "avgTempMax": 26.4,
-          "avgPrecipitation": 69.3,
-          "avgRainyDays": 6.8
+          "avgTempMin": 13.4,
+          "avgTempMax": 26,
+          "avgPrecipitation": 79.5,
+          "avgRainyDays": 7.8
+        }
+      ]
+    },
+    {
+      "name": "Paddys River Dam",
+      "lat": -35.7163,
+      "lon": 148.1674,
+      "elevation": 1169,
+      "monthly": [
+        {
+          "month": 1,
+          "avgTempMin": 11.6,
+          "avgTempMax": 23.6,
+          "avgPrecipitation": 74.5,
+          "avgRainyDays": 8.6
+        },
+        {
+          "month": 2,
+          "avgTempMin": 11,
+          "avgTempMax": 22.5,
+          "avgPrecipitation": 75.7,
+          "avgRainyDays": 8
+        },
+        {
+          "month": 3,
+          "avgTempMin": 8.7,
+          "avgTempMax": 19.5,
+          "avgPrecipitation": 66.5,
+          "avgRainyDays": 7
+        },
+        {
+          "month": 4,
+          "avgTempMin": 5,
+          "avgTempMax": 15,
+          "avgPrecipitation": 62.6,
+          "avgRainyDays": 7.5
+        },
+        {
+          "month": 5,
+          "avgTempMin": 2,
+          "avgTempMax": 10.4,
+          "avgPrecipitation": 81.2,
+          "avgRainyDays": 9.3
+        },
+        {
+          "month": 6,
+          "avgTempMin": 0.1,
+          "avgTempMax": 7.3,
+          "avgPrecipitation": 112.4,
+          "avgRainyDays": 11.4
+        },
+        {
+          "month": 7,
+          "avgTempMin": -0.9,
+          "avgTempMax": 6.3,
+          "avgPrecipitation": 107.9,
+          "avgRainyDays": 12
+        },
+        {
+          "month": 8,
+          "avgTempMin": -0.8,
+          "avgTempMax": 7.5,
+          "avgPrecipitation": 116.8,
+          "avgRainyDays": 12.9
+        },
+        {
+          "month": 9,
+          "avgTempMin": 1.4,
+          "avgTempMax": 11.1,
+          "avgPrecipitation": 114.8,
+          "avgRainyDays": 11.5
+        },
+        {
+          "month": 10,
+          "avgTempMin": 3.7,
+          "avgTempMax": 14.5,
+          "avgPrecipitation": 111,
+          "avgRainyDays": 11.3
+        },
+        {
+          "month": 11,
+          "avgTempMin": 6.8,
+          "avgTempMax": 17.9,
+          "avgPrecipitation": 120.5,
+          "avgRainyDays": 11.5
+        },
+        {
+          "month": 12,
+          "avgTempMin": 9,
+          "avgTempMax": 20.8,
+          "avgPrecipitation": 91.3,
+          "avgRainyDays": 9.2
         }
       ]
     },

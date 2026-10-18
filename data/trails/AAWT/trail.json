@@ -31,19 +31,27 @@
       "lon": 146.45
     },
     {
+      "name": "Baw Baw Plateau",
+      "lat": -37.8719,
+      "lon": 146.3451,
+      "elevation": 1487
+    },
+    {
       "name": "Mt Hotham",
       "lat": -36.98,
       "lon": 147.13
     },
     {
-      "name": "Thredbo",
-      "lat": -36.5,
-      "lon": 148.3
+      "name": "Kosciuszko Main Range",
+      "lat": -36.3404,
+      "lon": 148.3613,
+      "elevation": 1911
     },
     {
       "name": "Namadgi",
-      "lat": -35.75,
-      "lon": 148.95
+      "lat": -35.6254,
+      "lon": 148.8812,
+      "elevation": 1318
     }
   ],
   "climateFile": "climate.json"

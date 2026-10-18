@@ -21,18 +21,21 @@
   "climateLocations": [
     {
       "name": "Cape Naturaliste",
-      "lat": -33.53,
-      "lon": 115.02
+      "lat": -33.5374,
+      "lon": 115.0188,
+      "elevation": 111
     },
     {
-      "name": "Margaret River",
-      "lat": -33.95,
-      "lon": 115.08
+      "name": "Prevelly",
+      "lat": -33.9773,
+      "lon": 114.9935,
+      "elevation": 61
     },
     {
-      "name": "Augusta",
-      "lat": -34.32,
-      "lon": 115.16
+      "name": "Cape Leeuwin",
+      "lat": -34.3716,
+      "lon": 115.1359,
+      "elevation": 14
     }
   ],
   "climateFile": "climate.json"

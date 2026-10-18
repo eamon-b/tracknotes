@@ -30,9 +30,10 @@
       "lon": 138.1
     },
     {
-      "name": "Mount Barker",
-      "lat": -35.07,
-      "lon": 138.86
+      "name": "Mount Lofty",
+      "lat": -34.9811,
+      "lon": 138.7064,
+      "elevation": 680
     },
     {
       "name": "Tanunda",
@@ -50,9 +51,10 @@
       "lon": 138.04
     },
     {
-      "name": "Parachilna",
-      "lat": -31.13,
-      "lon": 138.4
+      "name": "Parachilna Gorge",
+      "lat": -31.1354,
+      "lon": 138.5298,
+      "elevation": 259
     }
   ],
   "climateFile": "climate.json"

@@ -43,8 +43,9 @@
     },
     {
       "name": "Collie",
-      "lat": -33.36,
-      "lon": 116.16
+      "lat": -33.3591,
+      "lon": 116.1495,
+      "elevation": 197
     },
     {
       "name": "Pemberton",
@@ -58,13 +59,15 @@
     },
     {
       "name": "Denmark",
-      "lat": -34.96,
-      "lon": 117.35
+      "lat": -34.97,
+      "lon": 117.3687,
+      "elevation": 5
     },
     {
       "name": "Albany",
-      "lat": -35.03,
-      "lon": 117.88
+      "lat": -35.0228,
+      "lon": 117.8833,
+      "elevation": 30
     }
   ],
   "climateFile": "climate.json"

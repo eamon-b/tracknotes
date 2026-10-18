@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-01-25T02:26:32.828Z",
+  "generatedAt": "2026-10-18T03:05:30.350Z",
   "dataYears": {
     "start": 1994,
     "end": 2023
@@ -99,93 +99,185 @@
     },
     {
       "name": "Standley Chasm",
-      "lat": -23.73,
-      "lon": 133.43,
-      "elevation": 986,
+      "lat": -23.7219,
+      "lon": 133.4699,
+      "elevation": 753,
       "monthly": [
         {
           "month": 1,
-          "avgTempMin": 20.8,
-          "avgTempMax": 33.7,
-          "avgPrecipitation": 64.6,
-          "avgRainyDays": 5.1
+          "avgTempMin": 22.1,
+          "avgTempMax": 35.2,
+          "avgPrecipitation": 64.7,
+          "avgRainyDays": 5
         },
         {
           "month": 2,
-          "avgTempMin": 19.9,
-          "avgTempMax": 32.5,
+          "avgTempMin": 21.1,
+          "avgTempMax": 34,
           "avgPrecipitation": 40.4,
           "avgRainyDays": 4.2
         },
         {
           "month": 3,
-          "avgTempMin": 17.7,
-          "avgTempMax": 30.5,
+          "avgTempMin": 18.9,
+          "avgTempMax": 31.9,
           "avgPrecipitation": 25,
           "avgRainyDays": 2.4
         },
         {
           "month": 4,
-          "avgTempMin": 13.3,
-          "avgTempMax": 26.4,
+          "avgTempMin": 14.4,
+          "avgTempMax": 27.8,
           "avgPrecipitation": 17.2,
           "avgRainyDays": 1.5
         },
         {
           "month": 5,
-          "avgTempMin": 8.2,
-          "avgTempMax": 20.6,
+          "avgTempMin": 9.3,
+          "avgTempMax": 22.1,
           "avgPrecipitation": 14.2,
           "avgRainyDays": 1.5
         },
         {
           "month": 6,
-          "avgTempMin": 4.8,
-          "avgTempMax": 17,
+          "avgTempMin": 5.9,
+          "avgTempMax": 18.4,
           "avgPrecipitation": 11.6,
-          "avgRainyDays": 1.9
+          "avgRainyDays": 2
         },
         {
           "month": 7,
-          "avgTempMin": 4.3,
-          "avgTempMax": 17.5,
+          "avgTempMin": 5.4,
+          "avgTempMax": 18.9,
           "avgPrecipitation": 8.9,
-          "avgRainyDays": 1.1
+          "avgRainyDays": 1.2
         },
         {
           "month": 8,
-          "avgTempMin": 6.2,
-          "avgTempMax": 20.6,
+          "avgTempMin": 7.3,
+          "avgTempMax": 22,
           "avgPrecipitation": 4.2,
           "avgRainyDays": 0.8
         },
         {
           "month": 9,
-          "avgTempMin": 11,
-          "avgTempMax": 26,
+          "avgTempMin": 12.2,
+          "avgTempMax": 27.5,
           "avgPrecipitation": 10,
           "avgRainyDays": 1.5
         },
         {
           "month": 10,
-          "avgTempMin": 14.4,
-          "avgTempMax": 29.2,
+          "avgTempMin": 15.5,
+          "avgTempMax": 30.7,
           "avgPrecipitation": 19.2,
           "avgRainyDays": 2.6
         },
         {
           "month": 11,
-          "avgTempMin": 17.3,
-          "avgTempMax": 31.3,
+          "avgTempMin": 18.5,
+          "avgTempMax": 32.8,
           "avgPrecipitation": 33.2,
           "avgRainyDays": 4.9
         },
         {
           "month": 12,
-          "avgTempMin": 19.7,
-          "avgTempMax": 32.8,
+          "avgTempMin": 20.9,
+          "avgTempMax": 34.3,
           "avgPrecipitation": 43.6,
-          "avgRainyDays": 5.2
+          "avgRainyDays": 5.3
+        }
+      ]
+    },
+    {
+      "name": "Brinkley Bluff",
+      "lat": -23.7107,
+      "lon": 133.3919,
+      "elevation": 1204,
+      "monthly": [
+        {
+          "month": 1,
+          "avgTempMin": 19.4,
+          "avgTempMax": 32.3,
+          "avgPrecipitation": 65.1,
+          "avgRainyDays": 5.1
+        },
+        {
+          "month": 2,
+          "avgTempMin": 18.5,
+          "avgTempMax": 31.2,
+          "avgPrecipitation": 40.1,
+          "avgRainyDays": 4.2
+        },
+        {
+          "month": 3,
+          "avgTempMin": 16.3,
+          "avgTempMax": 29.1,
+          "avgPrecipitation": 23.2,
+          "avgRainyDays": 2.6
+        },
+        {
+          "month": 4,
+          "avgTempMin": 11.8,
+          "avgTempMax": 25,
+          "avgPrecipitation": 17.2,
+          "avgRainyDays": 1.5
+        },
+        {
+          "month": 5,
+          "avgTempMin": 6.8,
+          "avgTempMax": 19.3,
+          "avgPrecipitation": 14.4,
+          "avgRainyDays": 1.6
+        },
+        {
+          "month": 6,
+          "avgTempMin": 3.4,
+          "avgTempMax": 15.7,
+          "avgPrecipitation": 11.7,
+          "avgRainyDays": 2
+        },
+        {
+          "month": 7,
+          "avgTempMin": 2.9,
+          "avgTempMax": 16.1,
+          "avgPrecipitation": 8.9,
+          "avgRainyDays": 1.3
+        },
+        {
+          "month": 8,
+          "avgTempMin": 4.7,
+          "avgTempMax": 19.2,
+          "avgPrecipitation": 4.1,
+          "avgRainyDays": 0.8
+        },
+        {
+          "month": 9,
+          "avgTempMin": 9.5,
+          "avgTempMax": 24.7,
+          "avgPrecipitation": 9.8,
+          "avgRainyDays": 1.5
+        },
+        {
+          "month": 10,
+          "avgTempMin": 12.9,
+          "avgTempMax": 27.9,
+          "avgPrecipitation": 19.5,
+          "avgRainyDays": 2.8
+        },
+        {
+          "month": 11,
+          "avgTempMin": 15.8,
+          "avgTempMax": 29.9,
+          "avgPrecipitation": 33.8,
+          "avgRainyDays": 4.7
+        },
+        {
+          "month": 12,
+          "avgTempMin": 18.2,
+          "avgTempMax": 31.4,
+          "avgPrecipitation": 44.7,
+          "avgRainyDays": 5.3
         }
       ]
     },
