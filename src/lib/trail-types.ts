@@ -383,11 +383,12 @@ export interface ProcessedTrail {
   /** OSM points of interest near the trail, sorted by `distanceAlongTrail`. Absent when never fetched. */
   pois?: TrailPOI[];
   /**
-   * Web build only: the `updatedAt` the app's trail index
-   * (`mobile/assets/trails/index.json`) gives this trail — the one clock the
-   * web page and the phone share for "which data is newer", stamped on a plan
-   * as `PlanDocument.dataUpdatedAt`. Absent for imports and for a trail the
-   * app does not carry. The mobile build drops it (it would move the md5).
+   * Web build only: when this data was published, on the clock the web page
+   * and the phone share for "which data is newer" — stamped on a plan as
+   * `PlanDocument.dataUpdatedAt`. The app index's `updatedAt` while the app's
+   * committed file is exactly this data, else the build time
+   * (`scripts/lib/web-data-time.ts`). Absent for imports. The mobile build
+   * drops it (it would move the md5).
    */
   dataUpdatedAt?: string;
 }

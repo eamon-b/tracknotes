@@ -254,6 +254,16 @@ export function parseLimit(raw: string | null, fallback: number, max: number): n
 
 const PLAN_DIRECTIONS: readonly PlanDirection[] = ['NOBO', 'SOBO'];
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+/** A UTC ISO-8601 timestamp, as `Date.prototype.toISOString` writes one. */
+const ISO_TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/;
+/**
+ * How far past the server clock a plan's `dataUpdatedAt` may be. It is the
+ * publish time of trail data, which is already in the past when a client
+ * holds it, so this is only clock skew. A far-future stamp would freeze the
+ * plan's stops on every device for good (`refreshStopKms` never moves stops
+ * from data older than the stamp, and no save lowers it), so it is refused.
+ */
+const DATA_UPDATED_AT_FUTURE_TOLERANCE_MS = 60 * 60 * 1000;
 const MAX_STOP_NAME_LEN = 200;
 
 /** Assert `:id` from a plan path is a client-minted UUID v4. */
@@ -504,11 +514,15 @@ export function validatePlanDocument(
 
   // The trail data the plan was last saved against (an ISO time). A client
   // compares it with its own data before moving stops (`refreshStopKms`), so
-  // the server keeps it as sent, normalised, and drops nothing else.
+  // the server keeps it as sent, normalised — and only a real, past time.
   if (body.dataUpdatedAt !== undefined && body.dataUpdatedAt !== null) {
-    const t = typeof body.dataUpdatedAt === 'string' ? Date.parse(body.dataUpdatedAt) : NaN;
-    if (typeof body.dataUpdatedAt !== 'string' || body.dataUpdatedAt.length > 40 || Number.isNaN(t)) {
-      throw planError('invalid_data_updated_at', 'dataUpdatedAt must be an ISO timestamp');
+    const raw = body.dataUpdatedAt;
+    const t = typeof raw === 'string' && ISO_TIMESTAMP_RE.test(raw) ? Date.parse(raw) : NaN;
+    if (Number.isNaN(t)) {
+      throw planError('invalid_data_updated_at', 'dataUpdatedAt must be an ISO 8601 UTC timestamp');
+    }
+    if (t > Date.parse(updatedAt) + DATA_UPDATED_AT_FUTURE_TOLERANCE_MS) {
+      throw planError('invalid_data_updated_at', 'dataUpdatedAt must not be in the future');
     }
     document.dataUpdatedAt = new Date(t).toISOString();
   }

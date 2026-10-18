@@ -18,14 +18,17 @@ import {
   selectPlanError,
   selectResupplyStops,
   setPlanChangedHandler,
-  setPlanDataTime,
   usePlansStore,
 } from '../plans-store';
 import { setPlanName, setResupplyStops, setStartDate, toggleStop } from '@lib/plan-editor';
 import type { PlanDocument } from '@lib/plan-types';
 import type { SqlDatabase } from '../../db/sql-database';
+import { trailDataUpdatedAt } from '../../services/trail-data-updates';
 
 jest.mock('../../db/database', () => ({ getDatabase: jest.fn() }));
+// The publish time of the trail copy the app reads now; null = no published data.
+jest.mock('../../services/trail-data-updates', () => ({ trailDataUpdatedAt: jest.fn(() => null) }));
+const mockTrailDataUpdatedAt = trailDataUpdatedAt as jest.Mock;
 jest.mock('../../api/uuid', () => {
   let n = 0;
   return { uuidv4: () => `uuid-${++n}` };
@@ -44,7 +47,7 @@ beforeEach(async () => {
   mockGetDatabase.mockResolvedValue(db);
   usePlansStore.setState({ byTrail: {}, lastError: {} });
   setPlanChangedHandler(undefined);
-  setPlanDataTime(TRAIL, null);
+  mockTrailDataUpdatedAt.mockReturnValue(null);
 });
 
 afterEach(() => {
@@ -278,22 +281,30 @@ describe('plans-store selectors', () => {
 });
 
 describe('plans-store.apply data stamp', () => {
-  it("stamps every write with the guide's data, and never lowers the stamp", async () => {
-    setPlanDataTime(TRAIL, '2026-10-10T00:00:00.000Z');
+  it("stamps every write with the app's data for the trail, and never lowers the stamp", async () => {
+    mockTrailDataUpdatedAt.mockReturnValue('2026-10-10T00:00:00.000Z');
     const created = await store().apply(TRAIL, (p) => toggleStop(p, CAMP));
+    expect(mockTrailDataUpdatedAt).toHaveBeenCalledWith(TRAIL);
     expect(created?.dataUpdatedAt).toBe('2026-10-10T00:00:00.000Z');
 
-    // A phone on older data edits the plan: the stamp stays.
-    setPlanDataTime(TRAIL, '2026-09-01T00:00:00.000Z');
-    const edited = await store().apply(TRAIL, (p) => setPlanName(p, 'Week one'));
+    // An edit made on older data (a guide still showing the copy it opened
+    // with) names it, and the stamp stays.
+    const edited = await store().apply(TRAIL, (p) => setPlanName(p, 'Week one'), {
+      dataUpdatedAt: '2026-09-01T00:00:00.000Z',
+    });
     expect(edited?.dataUpdatedAt).toBe('2026-10-10T00:00:00.000Z');
     expect((await plansRepo.getByTrail(db, TRAIL))?.dataUpdatedAt).toBe('2026-10-10T00:00:00.000Z');
+  });
+
+  it('leaves a plan on a trail with no published data unstamped', async () => {
+    const created = await store().apply(TRAIL, (p) => toggleStop(p, CAMP));
+    expect(created?.dataUpdatedAt).toBeUndefined();
   });
 
   it('writes nothing for a no-op edit, stamp or not', async () => {
     const created = await store().apply(TRAIL, (p) => toggleStop(p, CAMP));
     expect(created?.dataUpdatedAt).toBeUndefined();
-    setPlanDataTime(TRAIL, '2026-10-10T00:00:00.000Z');
+    mockTrailDataUpdatedAt.mockReturnValue('2026-10-10T00:00:00.000Z');
     const onChanged = jest.fn();
     setPlanChangedHandler(onChanged);
     const same = await store().apply(TRAIL, (p) => p);

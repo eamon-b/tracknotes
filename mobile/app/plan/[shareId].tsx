@@ -109,20 +109,32 @@ export default function SharedPlanScreen() {
   // The guide's trail as this phone has it (a newer download over the bundle,
   // or fetched now for a catalog-only trail). Tagged with the id it belongs to;
   // undefined while it resolves, null when the phone cannot get it.
-  const [rawTrail, setRawTrail] = useState<{ id: string; trail: TrailJson | null } | null>(null);
+  // `dataUpdatedAt` is when the copy read was published, taken just before the
+  // read (as the guide does): a download landing mid-read can only make it
+  // understate the copy, never claim data the screen does not show.
+  const [rawTrail, setRawTrail] = useState<{
+    id: string;
+    trail: TrailJson | null;
+    dataUpdatedAt: string | null;
+  } | null>(null);
   useEffect(() => {
     if (!sharedTrailId) return;
     let cancelled = false;
+    let dataUpdatedAt: string | null = null;
+    const read = () => {
+      dataUpdatedAt = trailDataUpdatedAt(sharedTrailId);
+      return loadTrail(sharedTrailId);
+    };
     (async () => {
-      let found = await loadTrail(sharedTrailId);
+      let found = await read();
       if (!found && isCatalogTrailId(sharedTrailId)) {
-        if (await ensureTrailDownloaded(sharedTrailId)) found = await loadTrail(sharedTrailId);
+        if (await ensureTrailDownloaded(sharedTrailId)) found = await read();
       }
       return found;
     })()
       .catch(() => null)
       .then((found) => {
-        if (!cancelled) setRawTrail({ id: sharedTrailId, trail: found });
+        if (!cancelled) setRawTrail({ id: sharedTrailId, trail: found, dataUpdatedAt });
       });
     return () => {
       cancelled = true;
@@ -135,10 +147,12 @@ export default function SharedPlanScreen() {
   const trailResolved = !!shared && rawTrail?.id === shared.trailId;
   // A stop saved before a data update moved its place is read at the place's
   // km on this phone's data, so its day ends where the walk in leaves the
-  // route (`refreshStopKms`). Only read: the shared plan is not ours to write.
+  // route (`refreshStopKms`) — unless the plan was saved against newer data
+  // than this copy, where moving it would undo the newer correction. The
+  // shared plan itself is never written; "Save as my plan" saves exactly this.
   const shownDocument = useMemo<PlanDocument | null>(() => {
     if (!shared || !trailResolved || !rawTrail?.trail) return null;
-    return refreshStopKms(shared.document, rawTrail.trail);
+    return refreshStopKms(shared.document, rawTrail.trail, { dataUpdatedAt: rawTrail.dataUpdatedAt });
   }, [shared, trailResolved, rawTrail]);
   // Along the route the plan walks: the alternates it takes are spliced in
   // (`@lib/plan-alternates`), and its stops read in that route's km.
@@ -212,16 +226,10 @@ export default function SharedPlanScreen() {
   );
 
   const onSave = useCallback(async () => {
-    if (!shared || !trail || !rawTrail?.trail || saving) return;
+    if (!shared || !trail || !shownDocument || saving) return;
     const { trailId } = shared;
-    // The copy is saved with its stops moved to their places — unless the plan
-    // was saved against newer data than this phone has, where moving them
-    // would undo the newer correction. Stamped with this phone's data.
-    const dataUpdatedAt = trailDataUpdatedAt(trailId);
-    const document = stampPlanData(
-      refreshStopKms(shared.document, rawTrail.trail, { dataUpdatedAt }),
-      dataUpdatedAt,
-    );
+    // The days on screen, stamped with the data they were worked out on.
+    const document = stampPlanData(shownDocument, rawTrail?.dataUpdatedAt);
     // The mount hydrate may not have landed yet (or may have failed), and
     // deciding from an un-read cache is how a plan gets replaced — here AND on
     // the server — without the hiker ever being asked. A key present in
@@ -245,7 +253,7 @@ export default function SharedPlanScreen() {
         { text: 'Replace', style: 'destructive', onPress: () => void save(document, trailId) },
       ],
     );
-  }, [shared, trail, rawTrail, saving, save, hydratePlan]);
+  }, [shared, trail, shownDocument, rawTrail, saving, save, hydratePlan]);
 
   const body = () => {
     if (!baseUrl) {

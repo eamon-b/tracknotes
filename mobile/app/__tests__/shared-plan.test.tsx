@@ -291,8 +291,15 @@ describe('SharedPlanScreen', () => {
       expect(saved.dataUpdatedAt).toBe('2026-10-10T00:00:00.000Z');
     });
 
-    it('saves it as it came when the plan was saved against newer data', async () => {
+    it('shows and saves it as it came when the plan was saved against newer data', async () => {
       const newer = { ...STALE, dataUpdatedAt: '2026-10-15T00:00:00.000Z' };
+      mockFetchShared.mockResolvedValue({ document: newer, trailId: 'heysen', ownerDisplayName: 'T' });
+      const r = await mount();
+      const days = r.root.findAllByType(DaySplitList)[0].props.days as { endKm: number }[];
+      expect(days[0].endKm).toBe(12);
+      act(() => r.unmount());
+      mounted = null;
+
       const saved = await saveCopy(newer);
       expect(saved.stops.map((s) => s.km)).toEqual([12]);
       expect(saved.dataUpdatedAt).toBe('2026-10-15T00:00:00.000Z');

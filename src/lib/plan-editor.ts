@@ -776,11 +776,22 @@ export function computePlanDays(
   });
 }
 
-/** An ISO time as a number, or null when it is absent or not a time. */
+/**
+ * How far past this device's clock a data time may be and still count. Data
+ * times are publish times, already past; a later one is clock skew or a bad
+ * value, and a far-future stamp would block every device from moving stops.
+ */
+const DATA_TIME_FUTURE_TOLERANCE_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * An ISO time as a number, or null when it is absent, not a time, or further
+ * in the future than clock skew explains (so a bad stamp reads as none).
+ */
 function dataTime(value: string | null | undefined): number | null {
   if (typeof value !== 'string') return null;
   const t = Date.parse(value);
-  return Number.isNaN(t) ? null : t;
+  if (Number.isNaN(t) || t > Date.now() + DATA_TIME_FUTURE_TOLERANCE_MS) return null;
+  return t;
 }
 
 /**

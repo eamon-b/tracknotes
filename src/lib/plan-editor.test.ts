@@ -1002,7 +1002,7 @@ describe('plan data stamp', () => {
     expect(stampPlanData(stamped, '2026-10-10T00:00:00.000Z')).toBe(stamped);
     expect(stampPlanData(stamped, null)).toBe(stamped);
     expect(stampPlanData(plan, undefined)).toBe(plan);
-    expect(stampPlanData(stamped, '2026-11-01T00:00:00.000Z').dataUpdatedAt).toBe('2026-11-01T00:00:00.000Z');
+    expect(stampPlanData(stamped, '2026-10-12T00:00:00.000Z').dataUpdatedAt).toBe('2026-10-12T00:00:00.000Z');
     expect(isPlanDocument(stamped)).toBe(true);
     expect(isPlanDocument({ ...stamped, dataUpdatedAt: 5 })).toBe(false);
   });
@@ -1013,5 +1013,13 @@ describe('plan data stamp', () => {
     expect(planDataIsCurrent(plan, '2026-10-09T23:59:59.999Z')).toBe(false);
     expect(planDataIsCurrent(plan, null)).toBe(false);
     expect(planDataIsCurrent({}, null)).toBe(true);
+  });
+
+  it('reads a far-future stamp as none, so it cannot freeze a plan for good', () => {
+    const frozen = { ...emptyPlan(), dataUpdatedAt: '9999-01-01T00:00:00.000Z' };
+    expect(planDataIsCurrent(frozen, '2026-10-10T00:00:00.000Z')).toBe(true);
+    expect(planDataIsCurrent(frozen, null)).toBe(true);
+    // And a save replaces it with a real one.
+    expect(stampPlanData(frozen, '2026-10-10T00:00:00.000Z').dataUpdatedAt).toBe('2026-10-10T00:00:00.000Z');
   });
 });

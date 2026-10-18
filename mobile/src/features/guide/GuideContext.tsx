@@ -99,8 +99,12 @@ export function GuideProvider({
 }) {
   // Read together, synchronously: a bundled hit means no download is active,
   // so the version is the bundle's.
-  const { bundled, bundledVersion } = useMemo(
-    () => ({ bundled: getTrailJson(trailId), bundledVersion: trailDataVersion(trailId) }),
+  const { bundled, bundledVersion, bundledDataUpdatedAt } = useMemo(
+    () => ({
+      bundled: getTrailJson(trailId),
+      bundledVersion: trailDataVersion(trailId),
+      bundledDataUpdatedAt: trailDataUpdatedAt(trailId),
+    }),
     [trailId],
   );
   // The async result carries the id it belongs to. That is what makes a read
@@ -112,6 +116,8 @@ export function GuideProvider({
     trail: TrailJson | null;
     /** `trailDataVersion` when the read started. */
     version: string | null;
+    /** `trailDataUpdatedAt` when the read started, taken with `version`. */
+    dataUpdatedAt: string | null;
     error?: string;
     /** A community route the server says is no longer shared. */
     takenDown?: boolean;
@@ -130,8 +136,10 @@ export function GuideProvider({
     // The version is taken before the read: a download landing mid-read can
     // then only cause a needless Reload offer, never a missed one.
     let version: string | null = null;
+    let dataUpdatedAt: string | null = null;
     const read = () => {
       version = trailDataVersion(trailId);
+      dataUpdatedAt = trailDataUpdatedAt(trailId);
       return loadTrail(trailId).catch(() => null);
     };
     (async () => {
@@ -150,13 +158,15 @@ export function GuideProvider({
       return (await ensureTrailDownloaded(trailId)) ? read() : null;
     })()
       .then((trail) => {
-        if (!cancelled) setLoaded({ id: trailId, trail, version });
+        if (!cancelled) setLoaded({ id: trailId, trail, version, dataUpdatedAt });
       })
       .catch((err: unknown) => {
         if (err instanceof CommunityRouteTakenDownError) {
           // Past the 30-minute throttle: the cached list still offers it.
           void refreshCommunityRoutes({ force: true });
-          if (!cancelled) setLoaded({ id: trailId, trail: null, version: null, takenDown: true });
+          if (!cancelled) {
+            setLoaded({ id: trailId, trail: null, version: null, dataUpdatedAt: null, takenDown: true });
+          }
           return;
         }
         // Only the download can throw here (usually: offline); it gets a retry.
@@ -165,6 +175,7 @@ export function GuideProvider({
             id: trailId,
             trail: null,
             version: null,
+            dataUpdatedAt: null,
             error: err instanceof Error ? err.message : 'The download failed.',
           });
         }
@@ -188,6 +199,7 @@ export function GuideProvider({
     id: string;
     trail: TrailJson;
     version: string | null;
+    dataUpdatedAt: string | null;
   } | null>(null);
   const [reloadingId, setReloadingId] = useState<string | null>(null);
   const reloading = reloadingId === trailId;
@@ -196,11 +208,12 @@ export function GuideProvider({
     const id = trailId;
     setReloadingId(id);
     const version = trailDataVersion(id);
+    const dataUpdatedAt = trailDataUpdatedAt(id);
     loadTrail(id)
       .catch(() => null)
       .then((trail) => {
         // Nothing readable: keep showing what is open rather than nothing.
-        if (trail) setReloaded({ id, trail, version });
+        if (trail) setReloaded({ id, trail, version, dataUpdatedAt });
       })
       .finally(() => setReloadingId((current) => (current === id ? null : current)));
   }, [trailId]);
@@ -217,7 +230,13 @@ export function GuideProvider({
     fresh?.trail ?? bundled ?? (current ? current.trail : undefined);
   const shownVersion = fresh ? fresh.version : bundled ? bundledVersion : (current?.version ?? null);
   const available = shownVersion !== null && latestVersion !== null && latestVersion !== shownVersion;
-  const dataUpdatedAt = shownVersion === null ? null : trailDataUpdatedAt(trailId, shownVersion);
+  // Recorded with the copy as it was read, not looked up by md5 afterwards:
+  // once a newer copy is installed, the one shown is in no index any more.
+  const dataUpdatedAt = fresh
+    ? fresh.dataUpdatedAt
+    : bundled
+      ? bundledDataUpdatedAt
+      : (current?.dataUpdatedAt ?? null);
 
   // The hiker's own waypoints (private and shared) are placed into the trail as
   // stored, before direction: from here on every screen — map, list, profile,

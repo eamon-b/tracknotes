@@ -93,9 +93,10 @@ async function mountWith(plan: PlanDocument | undefined): Promise<void> {
 const storedPlan = () => usePlansStore.getState().byTrail[TRAIL_ID];
 
 describe('GuideView stop refresh', () => {
-  it('moves a stop to where its place now is, once', async () => {
+  it('moves a stop to where its place now is, once, stamped with the data it shows', async () => {
     await mountWith(planWithMaekawaAt(114.52));
     expect(apply).toHaveBeenCalledTimes(1);
+    expect(apply.mock.calls[0][2]).toEqual({ dataUpdatedAt: PHONE_DATA });
     expect(storedPlan()?.stops[0].km).toBe(111.93);
   });
 

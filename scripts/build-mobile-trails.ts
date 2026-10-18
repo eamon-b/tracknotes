@@ -300,6 +300,22 @@ export function processTrail(trail: TrailJson): TrailJson {
   return result;
 }
 
+/**
+ * The app's file for a trail, from the web build's JSON for it: the exact
+ * bytes `main` writes (and `index.json` hashes). `build-trails.ts` uses it to
+ * tell whether the committed app data is the data it has just built.
+ * Applies the name fixes to `trail` in place.
+ */
+export function mobileTrailFile(id: string, trail: TrailJson): { optimized: TrailJson; json: string } {
+  const nameFix = NAME_FIXES[id];
+  if (nameFix) {
+    (trail.config as Record<string, unknown>).name = nameFix.name;
+    (trail.config as Record<string, unknown>).shortName = nameFix.shortName;
+  }
+  const optimized = processTrail(trail);
+  return { optimized, json: JSON.stringify(optimized) };
+}
+
 export function main() {
   // Read the index
   const indexPath = path.join(GENERATED_DIR, 'index.json');
@@ -336,17 +352,10 @@ export function main() {
     const rawJson = fs.readFileSync(inputPath, 'utf-8');
     const trail: TrailJson = JSON.parse(rawJson);
     const originalSize = rawJson.length;
-
-    // Apply name fixes
     const nameFix = NAME_FIXES[entry.id];
-    if (nameFix) {
-      (trail.config as Record<string, unknown>).name = nameFix.name;
-      (trail.config as Record<string, unknown>).shortName = nameFix.shortName;
-    }
 
     const originalPointCount = trail.track.points.length;
-    const optimized = processTrail(trail);
-    const optimizedJson = JSON.stringify(optimized);
+    const { optimized, json: optimizedJson } = mobileTrailFile(entry.id, trail);
     const optimizedSize = optimizedJson.length;
 
     const outputPath = path.join(MOBILE_TRAILS_DIR, `${entry.id}.json`);

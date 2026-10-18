@@ -141,6 +141,19 @@ describe('putPlan', () => {
     expect(result.updatedAt).toBe('2026-05-05T05:05:05.000Z');
   });
 
+  it('sends the trail data time the plan was saved against, when it has one', async () => {
+    const { impl, calls } = mockFetch([
+      { status: 200, body: entry(doc()) },
+      { status: 200, body: entry(doc()) },
+    ]);
+
+    await putPlan(SESSION, doc({ dataUpdatedAt: '2026-10-10T00:00:00.000Z' }), { fetchImpl: impl });
+    await putPlan(SESSION, doc(), { fetchImpl: impl });
+
+    expect(JSON.parse(String(calls[0].init.body)).dataUpdatedAt).toBe('2026-10-10T00:00:00.000Z');
+    expect(JSON.parse(String(calls[1].init.body))).not.toHaveProperty('dataUpdatedAt');
+  });
+
   it('raises the 409 with the id the server already holds', async () => {
     const { impl } = mockFetch([
       {

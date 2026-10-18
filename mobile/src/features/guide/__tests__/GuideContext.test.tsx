@@ -71,8 +71,7 @@ jest.mock('../../../services/trail-loader', () => {
 jest.mock('../../../services/trail-data-updates', () => ({
   ensureTrailDownloaded: jest.fn(async () => false),
   trailDataVersion: jest.fn(() => null),
-  // Each copy's publish time, named after its md5.
-  trailDataUpdatedAt: jest.fn((_id: string, md5: string | null) => (md5 ? `time-of-${md5}` : null)),
+  trailDataUpdatedAt: jest.fn(() => null),
 }));
 
 jest.mock('../../../services/community-routes', () => {
@@ -96,6 +95,9 @@ const mockLoadTrail = loadTrail as jest.Mock;
 const mockTrailDataVersion = (
   jest.requireMock('../../../services/trail-data-updates') as { trailDataVersion: jest.Mock }
 ).trailDataVersion;
+const mockTrailDataUpdatedAt = (
+  jest.requireMock('../../../services/trail-data-updates') as { trailDataUpdatedAt: jest.Mock }
+).trailDataUpdatedAt;
 const BUNDLED_TRAIL = (jest.requireMock('../../../services/trail-loader') as { __trail: unknown })
   .__trail;
 
@@ -610,6 +612,9 @@ describe('GuideProvider newer data while open', () => {
     mounts = 0;
     mockTrailDataVersion.mockReset();
     mockTrailDataVersion.mockImplementation(() => version);
+    // The installed copy's publish time, named after its md5.
+    mockTrailDataUpdatedAt.mockReset();
+    mockTrailDataUpdatedAt.mockImplementation(() => (version ? `time-of-${version}` : null));
     mockGetTrailJson.mockReturnValue(BUNDLED_TRAIL);
     mockLoadTrail.mockReset();
     mockLoadTrail.mockResolvedValue(null);
@@ -633,7 +638,8 @@ describe('GuideProvider newer data while open', () => {
     expect(seen.available).toBe(true);
     expect(seen.firstName).toBe('Start');
     expect(mockLoadTrail).not.toHaveBeenCalled();
-    // A plan is saved against the copy shown, not the one installed.
+    // A plan is measured against the copy shown, not the one installed —
+    // which the guide still knows while it waits on Reload.
     expect(seen.dataUpdatedAt).toBe('time-of-bundle-md5');
   });
 
@@ -718,9 +724,11 @@ describe('GuideProvider newer data while open', () => {
       );
     });
     expect(seen.available).toBe(false);
+    expect(seen.dataUpdatedAt).toBe('time-of-download-md5');
 
     installNewer('newer-md5');
     expect(seen.available).toBe(true);
+    expect(seen.dataUpdatedAt).toBe('time-of-download-md5');
   });
 
   it('never offers a reload for a trail with no catalog version', async () => {

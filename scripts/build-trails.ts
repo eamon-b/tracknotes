@@ -30,6 +30,7 @@ import { readTrailPOIsForBuild } from './lib/trail-pois-file.js';
 import { accessPlacements, readTrailAccessFile } from './lib/trail-access-file.js';
 import { BUNDLED_PLAN_FILLS, inlinePlanShell } from './lib/plan-shell.js';
 import { fillTemplate } from './lib/fill-template.js';
+import { readAppIndex, webDataTime } from './lib/web-data-time.js';
 
 /** Calculate haversine distance in km */
 function haversineDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -296,23 +297,6 @@ function validateTrailDirectory(trailDir: string): { errors: string[]; needsAuto
  * Waypoint-id warnings from this build, repeated at the end: one fires only on
  * the build that mints the id, so it must not scroll past unseen.
  */
-/** Each trail's `updatedAt` in the app's committed trail index, by id. Empty when it is unreadable. */
-function readAppDataTimes(): Map<string, string> {
-  const times = new Map<string, string>();
-  try {
-    const index = JSON.parse(fs.readFileSync(MOBILE_INDEX_PATH, 'utf-8')) as unknown;
-    if (!Array.isArray(index)) return times;
-    for (const entry of index as Array<{ id?: unknown; updatedAt?: unknown }>) {
-      if (typeof entry?.id === 'string' && typeof entry.updatedAt === 'string') {
-        times.set(entry.id, entry.updatedAt);
-      }
-    }
-  } catch {
-    // No app index (a checkout without mobile/): plans are not stamped.
-  }
-  return times;
-}
-
 const waypointIdWarnings: string[] = [];
 
 async function processTrail(trailDir: string, registry: WaypointRegistry, autoGenConfig: boolean = false): Promise<ProcessedTrail> {
@@ -673,13 +657,10 @@ async function main() {
     }
   }
 
-  // The app's trail index gives each trail's data time (`updatedAt`), the clock
-  // a plan records the data it was saved against by (`PlanDocument.dataUpdatedAt`).
-  // The web page stamps plans with the same one, so a phone and the page can
-  // tell whose data is newer. The committed index trails this build's data
-  // or matches it, so the stamp can understate the page's data, never
-  // overstate it.
-  const appDataTimes = readAppDataTimes();
+  // Each trail's data time comes from the app's committed index when the app's
+  // copy is this build's data, else from the build time (`webDataTime`).
+  const appIndex = readAppIndex(MOBILE_INDEX_PATH);
+  const buildTime = new Date().toISOString();
 
   const trailIndex: TrailIndexEntry[] = [];
   const failedTrails: string[] = [];
@@ -718,8 +699,7 @@ async function main() {
         processed.pois = pois;
       }
 
-      const dataUpdatedAt = appDataTimes.get(processed.config.id);
-      if (dataUpdatedAt) processed.dataUpdatedAt = dataUpdatedAt;
+      processed.dataUpdatedAt = webDataTime(processed, appIndex.get(processed.config.id), buildTime);
 
       // Write processed data
       const outputPath = path.join(OUTPUT_DIR, `${processed.config.id}.json`);

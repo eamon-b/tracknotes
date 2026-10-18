@@ -24,7 +24,7 @@ import { spacing } from '../../tokens';
 import { useFavoritesStore } from '../../state/favorites-store';
 import { refreshStopKms } from '@lib/plan-editor';
 import type { PlanDocument } from '@lib/plan-types';
-import { selectPlan, setPlanDataTime, usePlansStore } from '../../state/plans-store';
+import { selectPlan, usePlansStore } from '../../state/plans-store';
 import { useCommentSync } from '../../sync/connectivity';
 import { ElevationPane } from '../elevation/ElevationPane';
 import { MapPane } from '../map/MapPane';
@@ -85,15 +85,12 @@ function GuidePanes() {
   // every stop sits at its place.
   // Not from data older than the plan was last saved against, though: that
   // would move the stops back and sync it over the newer device's correction.
-  // Every plan write is stamped with the data this guide shows.
+  // The write is stamped with the data this guide shows.
   const plan = usePlansStore(selectPlan(trailId));
-  useEffect(() => {
-    setPlanDataTime(trailId, dataUpdatedAt);
-  }, [trailId, dataUpdatedAt]);
   useEffect(() => {
     const refresh = (p: PlanDocument) => refreshStopKms(p, baseTrail, { dataUpdatedAt });
     if (!plan || refresh(plan) === plan) return;
-    void usePlansStore.getState().apply(trailId, refresh);
+    void usePlansStore.getState().apply(trailId, refresh, { dataUpdatedAt });
   }, [plan, baseTrail, trailId, dataUpdatedAt]);
 
   return (

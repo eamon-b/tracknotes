@@ -47,6 +47,7 @@ import type { PlanDirection } from '@lib/plan-direction';
 import type { PlanDocument } from '@lib/plan-types';
 import { uuidv4 } from '../api/uuid';
 import { getDatabase } from '../db/database';
+import { trailDataUpdatedAt } from '../services/trail-data-updates';
 import * as plansRepo from '../db/plans-repo';
 
 /** What a lazily-minted plan is created with, when `apply` has to mint one. */
@@ -55,6 +56,12 @@ export interface PlanDefaults {
   name?: string;
   /** The direction the hiker is viewing the guide in. Default 'NOBO'. */
   direction?: PlanDirection;
+  /**
+   * When the trail data the edit was made on was published. Default: the copy
+   * the app reads now (`trailDataUpdatedAt`). An open guide keeps the copy it
+   * opened with until Reload, so its edits pass the guide's own.
+   */
+  dataUpdatedAt?: string | null;
 }
 
 /**
@@ -72,19 +79,6 @@ let onPlanChanged: ((doc: PlanDocument) => void) | undefined;
 /** Install (or clear, with `undefined`) the post-write hook described above. */
 export function setPlanChangedHandler(handler?: (doc: PlanDocument) => void): void {
   onPlanChanged = handler;
-}
-
-/**
- * trailId → when the trail data the open guide shows was published
- * (`GuideContext` `dataUpdatedAt`). Every write raises the plan's
- * `dataUpdatedAt` to it (`stampPlanData`), so another device on older data
- * leaves the stops where this data has them (`refreshStopKms`).
- */
-const dataTimes = new Map<string, string | null>();
-
-/** Record the data the guide for `trailId` shows; set by `GuideView`. */
-export function setPlanDataTime(trailId: string, dataUpdatedAt: string | null): void {
-  dataTimes.set(trailId, dataUpdatedAt);
 }
 
 export interface PlansState {
@@ -195,7 +189,12 @@ export const usePlansStore = create<PlansState>((set, get) => {
         return current ?? null;
       }
 
-      const next = stampPlanData(edited, dataTimes.get(trailId));
+      // Every write raises the plan's data stamp to the data it was made on, so
+      // a device on older data leaves the stops where this data has them
+      // (`refreshStopKms`). Resolved here, not left behind by a screen.
+      const dataUpdatedAt =
+        defaults?.dataUpdatedAt !== undefined ? defaults.dataUpdatedAt : trailDataUpdatedAt(trailId);
+      const next = stampPlanData(edited, dataUpdatedAt);
       assertPlanDocumentWithinLimits(next);
       await plansRepo.upsertLocal(db, next);
       bumpGeneration(trailId);

@@ -243,17 +243,15 @@ export function trailDataVersion(id: string): string | null {
 }
 
 /**
- * When the copy of a trail with this md5 (default: the one the app reads now)
- * was published: its `updatedAt`, the clock a plan records the data it was
- * saved against by (`PlanDocument.dataUpdatedAt`). Null when the phone holds
- * no such copy, or for an import or community route.
+ * When the copy of a trail the app reads now (`trailDataVersion`) was
+ * published: its `updatedAt`, the clock a plan records the data it was saved
+ * against by (`PlanDocument.dataUpdatedAt`). Null for an id neither the bundle
+ * nor a download knows (an import, a community route).
  */
-export function trailDataUpdatedAt(id: string, md5: string | null = trailDataVersion(id)): string | null {
-  if (!md5) return null;
-  const installed = getState().installed[id];
-  if (installed?.md5 === md5) return installed.updatedAt ?? null;
-  const bundled = bundledVersions().get(id);
-  return bundled?.md5 === md5 ? (bundled.updatedAt ?? null) : null;
+export function trailDataUpdatedAt(id: string): string | null {
+  const download = activeDownload(id);
+  if (download) return download.updatedAt ?? null;
+  return bundledVersions().get(id)?.updatedAt ?? null;
 }
 
 /**

@@ -413,12 +413,17 @@ describe('PUT /v1/plans/:id', () => {
     expect(res.status).toBe(201);
     expect(((await res.json()) as PlanSyncEntry).document.dataUpdatedAt).toBe('2026-10-17T00:01:47.265Z');
 
-    const bad = crypto.randomUUID();
-    const refused = await putPlan(device, bad, planBody(bad, { dataUpdatedAt: 'yesterday' }));
-    expect(refused.status).toBe(400);
-    expect(((await refused.json()) as { error: { code: string } }).error.code).toBe(
-      'invalid_data_updated_at'
-    );
+    // Not a strict ISO time, or one in the future: a far-future stamp would
+    // stop every device ever moving this plan's stops.
+    const future = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+    for (const bad of ['yesterday', '2026', '1', '2026-10-17', '9999-01-01T00:00:00.000Z', future]) {
+      const badId = crypto.randomUUID();
+      const refused = await putPlan(device, badId, planBody(badId, { dataUpdatedAt: bad }));
+      expect(refused.status, bad).toBe(400);
+      expect(((await refused.json()) as { error: { code: string } }).error.code).toBe(
+        'invalid_data_updated_at'
+      );
+    }
   });
 
   it('accepts an empty plan name — the mobile client mints plans unnamed', async () => {
