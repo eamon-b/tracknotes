@@ -24,7 +24,7 @@
 
 import type { PlanDirection } from '@lib/plan-direction';
 import type { Pace, PlanDocument, PlanState, PlanWaypoint } from '@lib/plan-types';
-import { isPace, usablePlanThreshold, type PlanThresholds } from '@lib/plan-types';
+import { PLAN_THRESHOLD_KEYS, isPace, usablePlanThreshold } from '@lib/plan-types';
 import { isSuggestPrefs, type SuggestPrefs } from '@lib/plan-suggest';
 import {
   assertPlanDocumentWithinLimits,
@@ -302,8 +302,6 @@ export interface PlanUiPrefs {
 }
 
 const DEFAULT_UI_PREFS: PlanUiPrefs = { showAllWaypoints: false };
-
-const PLAN_THRESHOLD_KEYS: readonly (keyof PlanThresholds)[] = ['dryStretchKm', 'foodGramsPerDay', 'longCarryDays'];
 
 /** A pace or hours figure the header inputs could have produced, or undefined. */
 function usablePace(value: unknown): Pace | undefined {

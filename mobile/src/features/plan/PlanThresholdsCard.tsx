@@ -5,27 +5,52 @@
  * `plan-inputs-store`, beside pace and hours) and the calculators require them.
  *
  * Each value is stored in the calculators' unit (km, grams, days); the stepper
- * moves in the hiker's display unit, so a miles user steps a mile at a time and
- * sees "9.3 mi" for the initial 15 km rather than a rounded figure.
+ * moves on a grid in the hiker's display unit — whole km or miles, 20 g (the
+ * web input's step) or whole ounces, whole days — snapping an off-grid value
+ * (an initial 15 km read in miles, or a figure set in the other unit) onto it
+ * first. The stored value is rounded to what the card can show (0.1 km, 1 g),
+ * so the figure on screen and in the badge is the one the flags use.
  */
 
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { convertDistance } from '@lib/format-distance';
-import { PLAN_THRESHOLD_BOUNDS, type PlanThresholds } from '@lib/plan-types';
+import { PLAN_THRESHOLD_BOUNDS, PLAN_THRESHOLD_STEPS, type PlanThresholds } from '@lib/plan-types';
 import { useTheme } from '../../theme';
 import { radii, spacing, typography } from '../../tokens';
 import type { Units } from '../../state/settings-store';
 import { StepButton } from './PlanInputsCard';
 import { G_PER_OZ, formatDryStretch, formatFoodPerDay } from './plan-format';
 
-/** One stepper tap, in the stored unit, for the hiker's display unit. */
-function steps(units: Units): Record<keyof PlanThresholds, number> {
-  return {
-    dryStretchKm: units === 'mi' ? 1 / convertDistance(1, 'mi') : 1,
-    foodGramsPerDay: units === 'mi' ? 2 * G_PER_OZ : 50,
-    longCarryDays: 1,
-  };
+/** How many stored units (km, g, days) one step of the hiker's display unit is. */
+function stepSize(key: keyof PlanThresholds, units: Units): number {
+  if (units === 'mi' && key === 'dryStretchKm') return 1 / convertDistance(1, 'mi');
+  if (units === 'mi' && key === 'foodGramsPerDay') return G_PER_OZ;
+  return PLAN_THRESHOLD_STEPS[key];
+}
+
+/** The stored precision: 0.1 km, whole grams, whole days. */
+const STORED_DECIMALS: Record<keyof PlanThresholds, number> = {
+  dryStretchKm: 1,
+  foodGramsPerDay: 0,
+  longCarryDays: 0,
+};
+
+/**
+ * The value one step up (`direction` 1) or down (-1) from `current`, on the
+ * display unit's grid: snap to the nearest grid point, step, convert back, and
+ * round to the stored precision. Exported for tests.
+ */
+export function stepThreshold(
+  key: keyof PlanThresholds,
+  current: number,
+  direction: 1 | -1,
+  units: Units,
+): number {
+  const size = stepSize(key, units);
+  const next = (Math.round(current / size) + direction) * size;
+  const factor = 10 ** STORED_DECIMALS[key];
+  return Math.round(next * factor) / factor;
 }
 
 export interface PlanThresholdsCardProps extends PlanThresholds {
@@ -36,7 +61,6 @@ export interface PlanThresholdsCardProps extends PlanThresholds {
 
 export function PlanThresholdsCard(props: PlanThresholdsCardProps) {
   const { colors } = useTheme();
-  const step = steps(props.units);
   const days = props.longCarryDays;
 
   const row = (key: keyof PlanThresholds, label: string, value: string, noun: string) => {
@@ -50,14 +74,14 @@ export function PlanThresholdsCard(props: PlanThresholdsCardProps) {
             label="−"
             accessibilityLabel={`Less ${noun}`}
             disabled={current <= min}
-            onPress={() => props.onChange(key, current - step[key])}
+            onPress={() => props.onChange(key, stepThreshold(key, current, -1, props.units))}
           />
           <Text style={[styles.value, { color: colors.textPrimary }]}>{value}</Text>
           <StepButton
             label="+"
             accessibilityLabel={`More ${noun}`}
             disabled={current >= max}
-            onPress={() => props.onChange(key, current + step[key])}
+            onPress={() => props.onChange(key, stepThreshold(key, current, 1, props.units))}
           />
         </View>
       </View>

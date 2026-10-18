@@ -22,6 +22,7 @@ import {
   PACE_KMH,
   PLAN_LIMITS,
   PLAN_THRESHOLD_BOUNDS,
+  PLAN_THRESHOLD_STEPS,
   clampPlanThreshold,
   isPace,
   type PlanThresholds,
@@ -1924,7 +1925,8 @@ function setDailyHours(raw: string): void {
  * A threshold input's change. Ignores a blank or non-numeric entry, clamps the
  * rest into the shared range; rounding is to the input's own step.
  */
-function setThreshold(key: keyof PlanThresholds, raw: string, step: number): void {
+function setThreshold(key: keyof PlanThresholds, raw: string): void {
+  const step = PLAN_THRESHOLD_STEPS[key];
   if (raw.trim() === '') return;
   const parsed = Number(raw);
   if (!Number.isFinite(parsed)) return;
@@ -1935,14 +1937,15 @@ function setThreshold(key: keyof PlanThresholds, raw: string, step: number): voi
 }
 
 /** Wire one threshold input to its pref; a rejected entry shows what is in force. */
-function initThresholdInput(id: string, key: keyof PlanThresholds, step: number): void {
+function initThresholdInput(id: string, key: keyof PlanThresholds): void {
   const input = document.getElementById(id) as HTMLInputElement | null;
   if (!input) return;
   input.min = String(PLAN_THRESHOLD_BOUNDS[key].min);
   input.max = String(PLAN_THRESHOLD_BOUNDS[key].max);
+  input.step = String(PLAN_THRESHOLD_STEPS[key]);
   input.value = String(threshold(key));
   input.addEventListener('change', () => {
-    setThreshold(key, input.value, step);
+    setThreshold(key, input.value);
     input.value = String(threshold(key));
   });
 }
@@ -2176,9 +2179,9 @@ function initHeader(): void {
     });
   }
 
-  initThresholdInput('plan-dry-stretch', 'dryStretchKm', 1);
-  initThresholdInput('plan-food-grams', 'foodGramsPerDay', 10);
-  initThresholdInput('plan-long-carry', 'longCarryDays', 1);
+  initThresholdInput('plan-dry-stretch', 'dryStretchKm');
+  initThresholdInput('plan-food-grams', 'foodGramsPerDay');
+  initThresholdInput('plan-long-carry', 'longCarryDays');
 
   if (directionBtn) {
     updateDirectionButton();

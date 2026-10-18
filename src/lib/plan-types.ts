@@ -71,6 +71,21 @@ export const PLAN_THRESHOLD_BOUNDS: Readonly<Record<keyof PlanThresholds, { min:
   longCarryDays: { min: 1, max: 30 },
 };
 
+/** Every threshold, once, so a store's loader and scrubber cannot miss a new one. */
+export const PLAN_THRESHOLD_KEYS = Object.keys(PLAN_THRESHOLD_BOUNDS) as readonly (keyof PlanThresholds)[];
+
+/**
+ * One step of each threshold input, in metric (km, grams, days) — the web's
+ * number inputs and the phone's metric steppers both move on this grid, and
+ * each initial value sits on it. The phone's imperial steppers move a mile or
+ * an ounce instead.
+ */
+export const PLAN_THRESHOLD_STEPS: Readonly<Record<keyof PlanThresholds, number>> = {
+  dryStretchKm: 1,
+  foodGramsPerDay: 20,
+  longCarryDays: 1,
+};
+
 /** Clamp a threshold into its input's range; NaN/±Infinity give its initial value. */
 export function clampPlanThreshold(key: keyof PlanThresholds, value: number): number {
   if (!Number.isFinite(value)) return DEFAULT_PLAN_THRESHOLDS[key];

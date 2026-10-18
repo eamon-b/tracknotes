@@ -7,7 +7,7 @@
 import React from 'react';
 import TestRenderer, { act, type ReactTestRenderer } from 'react-test-renderer';
 import { DEFAULT_PLAN_THRESHOLDS, PLAN_THRESHOLD_BOUNDS } from '@lib/plan-types';
-import { PlanThresholdsCard } from '../PlanThresholdsCard';
+import { PlanThresholdsCard, stepThreshold } from '../PlanThresholdsCard';
 
 jest.mock('../../../theme', () => ({
   useTheme: () => ({ colors: new Proxy({}, { get: () => '#123456' }) }),
@@ -67,7 +67,7 @@ describe('PlanThresholdsCard', () => {
     press(tree, 'More long-carry days');
     expect(onChange.mock.calls).toEqual([
       ['dryStretchKm', 16],
-      ['foodGramsPerDay', 630],
+      ['foodGramsPerDay', 660],
       ['longCarryDays', 6],
     ]);
   });
@@ -75,7 +75,22 @@ describe('PlanThresholdsCard', () => {
   it('steps a mile at a time for an imperial hiker', () => {
     const { tree, onChange } = render({ units: 'mi' });
     press(tree, 'More dry-stretch distance');
-    expect(onChange.mock.calls[0][1]).toBeCloseTo(15 + 1.609344, 6);
+    // 15 km is 9.3 mi: snapped to 9, stepped to 10 mi, stored as 16.1 km.
+    expect(onChange.mock.calls[0][1]).toBe(16.1);
+  });
+
+  it('keeps every step on the grid, so a figure stepped away from can be stepped back to', () => {
+    // Down to the floor and back up returns to 680 g.
+    let grams = DEFAULT_PLAN_THRESHOLDS.foodGramsPerDay;
+    for (let i = 0; i < 30; i++) grams = Math.max(200, stepThreshold('foodGramsPerDay', grams, -1, 'km'));
+    expect(grams).toBe(200);
+    for (let i = 0; i < 24; i++) grams = stepThreshold('foodGramsPerDay', grams, 1, 'km');
+    expect(grams).toBe(680);
+
+    // A threshold set in miles snaps back onto whole km when stepped in km.
+    expect(stepThreshold('dryStretchKm', 16.1, 1, 'km')).toBe(17);
+    // Ounces store whole grams.
+    expect(stepThreshold('foodGramsPerDay', 680, 1, 'mi')).toBe(709);
   });
 
   it('disables a stepper at its bound', () => {

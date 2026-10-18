@@ -53,14 +53,18 @@ export function formatFoodPerDay(grams: number, units: Units): string {
 }
 
 /**
- * A dry-stretch threshold in the hiker's unit. Miles keep a decimal: 15 km is
- * 9.3 mi, and "9 mi" would understate it.
+ * A dry-stretch threshold in the hiker's unit, never rounded past the figure
+ * the flags use. Miles keep a decimal: 15 km is 9.3 mi, and "9 mi" would
+ * understate it. Kilometres keep one when the threshold has one — 10 mi set on
+ * the miles grid is 16.1 km, and "16 km" would be a figure the flag was not
+ * computed from.
  *
  * @example formatDryStretch(15, 'km') // "15 km"
  * @example formatDryStretch(15, 'mi') // "9.3 mi"
+ * @example formatDryStretch(16.1, 'km') // "16.1 km"
  */
 export function formatDryStretch(km: number, units: Units): string {
-  const decimals = units === 'mi' ? 1 : 0;
+  const decimals = units === 'mi' || Math.round(km * 10) % 10 !== 0 ? 1 : 0;
   return formatDistance(km, units, { decimals });
 }
 

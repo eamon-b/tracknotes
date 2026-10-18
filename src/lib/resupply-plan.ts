@@ -61,6 +61,7 @@ import {
   calculateFoodWeight,
   computeResupplyGaps,
   correlateResupplyWithDays,
+  requirePositive,
 } from './resupply-calculator';
 
 /** Re-exported so a consumer of this module needs one import, not two. */
@@ -286,14 +287,6 @@ const TRAIL_END_NAME = 'Trail End';
 
 /** Floating-point slack, so a km difference of exactly the threshold still joins. */
 const KM_EPSILON = 1e-9;
-
-/** Reject a pace, hours or threshold figure this module would otherwise have to invent. */
-function requirePositive(value: number, option: string): number {
-  if (!Number.isFinite(value) || value <= 0) {
-    throw new RangeError(`computeResupplyLegs: ${option} must be a positive number, got ${String(value)}`);
-  }
-  return value;
-}
 
 /**
  * Every waypoint that could be a resupply option: the main route's, plus the
@@ -682,10 +675,10 @@ export function computeResupplyLegs(
   stops: readonly ResupplyStop[],
   opts: ComputeResupplyLegsOptions
 ): ResupplyLeg[] {
-  const dailyHours = requirePositive(opts.dailyHours, 'dailyHours');
-  const baseKmh = requirePositive(opts.baseKmh, 'baseKmh');
-  const longThresholdDays = requirePositive(opts.longThresholdDays, 'longThresholdDays');
-  const gramsPerDay = requirePositive(opts.gramsPerDay, 'gramsPerDay');
+  const dailyHours = requirePositive(opts.dailyHours, 'dailyHours', 'computeResupplyLegs');
+  const baseKmh = requirePositive(opts.baseKmh, 'baseKmh', 'computeResupplyLegs');
+  const longThresholdDays = requirePositive(opts.longThresholdDays, 'longThresholdDays', 'computeResupplyLegs');
+  const gramsPerDay = requirePositive(opts.gramsPerDay, 'gramsPerDay', 'computeResupplyLegs');
 
   const section = opts.section;
   const rangeStartKm = section ? section.startKm : 0;
@@ -702,7 +695,7 @@ export function computeResupplyLegs(
     .map(stop => ({ name: stop.name, km: stop.km, type: 'resupply' }))
     .sort((a, b) => a.km - b.km);
 
-  const gaps = computeResupplyGaps(points, rangeStartKm, rangeEndKm, longThresholdDays);
+  const gaps = computeResupplyGaps(points, rangeStartKm, rangeEndKm, { longThresholdDays });
   if (gaps.length === 0) return [];
 
   const trackPoints = trail.track.points;

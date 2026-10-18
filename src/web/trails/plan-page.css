@@ -521,7 +521,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
 #plan-shell.is-readonly .resupply-btn {
   display: none;
 }
-#resupply-controls input {
+#resupply-filter {
   width: 100%;
   padding: 0.4rem 0.6rem;
   border: 1px solid var(--border-color);

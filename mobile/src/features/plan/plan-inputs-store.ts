@@ -27,6 +27,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { PACE_KMH, type Pace } from './plan-adapters';
 import {
   DEFAULT_PLAN_THRESHOLDS,
+  PLAN_THRESHOLD_KEYS,
   clampPlanThreshold,
   usablePlanThreshold,
   type PlanThresholds,
@@ -63,8 +64,6 @@ export const DEFAULT_PREFS: PlanPrefs = {
   pace: 'average',
   ...DEFAULT_PLAN_THRESHOLDS,
 };
-
-const THRESHOLD_KEYS: readonly (keyof PlanThresholds)[] = ['dryStretchKm', 'foodGramsPerDay', 'longCarryDays'];
 
 /** Daily-hours bounds for the stepper. */
 export const MIN_DAILY_HOURS = 3;
@@ -227,7 +226,7 @@ export function selectPrefs(trailId: string) {
       }
       // A threshold the calculators would refuse goes back to the input's
       // initial value rather than reaching them.
-      for (const key of THRESHOLD_KEYS) {
+      for (const key of PLAN_THRESHOLD_KEYS) {
         if (usablePlanThreshold(key, merged[key]) === undefined) merged[key] = DEFAULT_PREFS[key];
       }
       mergedPrefsCache.set(stored, merged);

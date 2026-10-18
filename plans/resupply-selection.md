@@ -197,8 +197,8 @@ export interface ResupplyLeg extends ResupplyGap {
 export function listResupplyOptions(waypoints, opts?: { groupWithinKm?: number }): ResupplyOptionGroup[];
 export function resolveResupplyStops(groups, selectedIds: readonly string[] | undefined): ResupplyStop[];
 export function computeResupplyLegs(trail: PlanTrail, stops: ResupplyStop[], opts: {
-  dailyHours: number; baseKmh?: number; section?: SectionConfig | null;
-  longThresholdDays?: number; gramsPerDay?: number; days?: ComputedDay[];
+  dailyHours: number; baseKmh: number; section?: SectionConfig | null;
+  longThresholdDays: number; gramsPerDay: number; days?: ComputedDay[];  // all four required since #153
 }): ResupplyLeg[];
 export function summariseResupplyLegs(legs): { stops: number; longestKm; longestDays; totalFoodKg; hasData };
 ```

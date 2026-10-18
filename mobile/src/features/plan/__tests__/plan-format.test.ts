@@ -37,6 +37,10 @@ describe('dryStretchBadge', () => {
   it('names the hiker\'s own threshold, not a fixed one', () => {
     expect(dryStretchBadge(25, 'km')).toBe('Dry ≥ 25 km');
   });
+
+  it('keeps the decimal of a threshold set in miles, so it names the figure flagged against', () => {
+    expect(dryStretchBadge(16.1, 'km')).toBe('Dry ≥ 16.1 km');
+  });
 });
 
 describe('formatFoodPerDay', () => {
