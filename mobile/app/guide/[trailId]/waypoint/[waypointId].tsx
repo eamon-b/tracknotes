@@ -54,8 +54,8 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { formatDistance, formatElevation } from '@lib/format-distance';
 import { accessSummary } from '@lib/resupply-display';
 import { isAccessMode } from '@lib/types';
-import { baseWaypointType, isWaterWaypoint, waypointTypeLabel } from '@lib/waypoint-taxonomy';
-import { isUnverifiedHikerWaypoint, userWaypointInfo } from '@lib/user-waypoints';
+import { waypointTypeLabel } from '@lib/waypoint-taxonomy';
+import { userWaypointInfo } from '@lib/user-waypoints';
 import { OSM_ATTRIBUTION, poiOsmUrl, summarisePoiTags } from '@lib/poi-display';
 import type { TrailPOI } from '@lib/trail-types';
 import { useTheme } from '../../../../src/theme';
@@ -71,6 +71,7 @@ import { useCheckInShare } from '../../../../src/features/share/use-check-in-sha
 import { waypointColor } from '../../../../src/features/elevation/waypoint-category';
 import {
   duplicatePoisFor,
+  hikerReportLine,
   isPlaceOffTrail,
   waypointOffTrailMeters,
 } from '../../../../src/features/guide/waypoint-detail';
@@ -159,6 +160,8 @@ export default function WaypointDetailScreen() {
   // A hiker's private waypoint is invisible to everyone else, so a comment on
   // it would be a public note on a place nobody can find.
   const hikerWaypoint = waypoint ? userWaypointInfo(waypoint) : null;
+  // Day precision is all the "Reported by" date needs: read the clock once.
+  const [openedAtMs] = useState(() => Date.now());
   const userWaypoint = useUserWaypointsStore(selectUserWaypoint(trailId, waypoint?.id));
   const commentWaypointId =
     serverKnown && hikerWaypoint?.visibility !== 'private' ? (waypoint?.id ?? null) : null;
@@ -483,7 +486,7 @@ export default function WaypointDetailScreen() {
                   ? hikerWaypoint.visibility === 'shared'
                     ? 'Added by you · shared with everyone'
                     : 'Added by you · only on this phone'
-                  : `Added by ${hikerWaypoint.authorName ?? 'a hiker'} · not checked by Tracknotes`}
+                  : hikerReportLine(waypoint, openedAtMs)}
               </Text>
               {hikerWaypoint.mine ? (
                 <Pressable
@@ -515,14 +518,6 @@ export default function WaypointDetailScreen() {
               ) : null}
             </View>
           )}
-          {/* Another hiker's water is left out of every carry (§8.2 of the
-              content posture): say so where the hiker reads about it. */}
-          {isUnverifiedHikerWaypoint(waypoint) && isWaterWaypoint(baseWaypointType(waypoint.type)) ? (
-            <Text style={[styles.accessLine, { color: colors.warning }]}>
-              Unverified water, not counted in water carries. Conditions change; always
-              carry contingency water.
-            </Text>
-          ) : null}
           {watchShare && shareFailure ? (
             <Text style={[styles.accessLine, { color: colors.danger }]} accessibilityRole="alert">
               {`Not shared yet: ${shareFailure}`}

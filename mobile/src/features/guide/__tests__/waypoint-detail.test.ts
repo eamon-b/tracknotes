@@ -2,6 +2,7 @@ import {
   WATER_STATUS_OPTIONS,
   duplicatePoisFor,
   distanceToLineMeters,
+  hikerReportLine,
   isPlaceOffTrail,
   isWaterFamily,
   relativeDate,
@@ -10,6 +11,37 @@ import {
   waypointOffTrailMeters,
 } from '../waypoint-detail';
 import type { TrailPOI } from '@lib/trail-types';
+
+describe('hikerReportLine', () => {
+  const now = Date.parse('2026-10-18T12:00:00Z');
+  const pin = (info: object) => ({
+    id: 'hw_1',
+    name: 'Creek',
+    type: 'water',
+    userWaypoint: {
+      visibility: 'shared',
+      mine: false,
+      authorName: 'Jo',
+      createdAt: '2026-10-01T09:00:00Z',
+      updatedAt: '2026-10-12T09:00:00Z',
+      metresFromTrail: 20,
+      ...info,
+    },
+  });
+
+  it("names another hiker and the date they last saved it", () => {
+    expect(hikerReportLine(pin({}), now)).toBe('Reported by Jo · 12 Oct');
+    expect(hikerReportLine(pin({ authorName: null }), now)).toBe('Reported by a hiker · 12 Oct');
+    expect(hikerReportLine(pin({ updatedAt: '2025-12-30T09:00:00Z' }), now)).toBe(
+      'Reported by Jo · 30 Dec 2025',
+    );
+  });
+
+  it("is null for the hiker's own pins and curated places", () => {
+    expect(hikerReportLine(pin({ mine: true }), now)).toBeNull();
+    expect(hikerReportLine({ id: 'w_1', name: 'Hut', type: 'hut' }, now)).toBeNull();
+  });
+});
 
 describe('relativeDate', () => {
   const now = Date.parse('2026-07-29T12:00:00Z');

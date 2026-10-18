@@ -21,9 +21,8 @@ import {
 import type { ElevationPoint } from './track-geometry';
 import { routeBreakStarts } from './route-breaks';
 import type { RouteBreak } from './trail-types';
-import { isAccessWaypoint } from './waypoint-taxonomy';
+import { isAccessWaypoint, isWaterWaypoint } from './waypoint-taxonomy';
 import type { WaypointAccess } from './types';
-import { countsAsWater } from './user-waypoints';
 
 /** Trail shape accepted by computeDays (subset of the full Trail interfaces). */
 export interface PlanTrail {
@@ -332,8 +331,7 @@ export function kmAtHours(
 
 /**
  * Count water sources between two km positions on the trail.
- * Membership is `countsAsWater`: the water family, less other hikers' shared
- * pins, as in the water-carry calculator.
+ * Membership is the water family in `waypoint-taxonomy`.
  */
 export function countWaterSources(
   startKm: number,
@@ -342,7 +340,7 @@ export function countWaterSources(
 ): number {
   return waypoints.filter(wp => {
     const km = wp.totalDistance ?? 0;
-    return countsAsWater(wp) && km > startKm && km <= endKm;
+    return isWaterWaypoint(wp.type) && km > startKm && km <= endKm;
   }).length;
 }
 

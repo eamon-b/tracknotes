@@ -1,6 +1,6 @@
 /**
  * Pure, React-free helpers for the waypoint detail screen: relative-date
- * formatting for the comment feed, the water-status chip registry, the
+ * formatting for the comment feed, who reported another hiker's waypoint, the water-status chip registry, the
  * water-family test that decides whether the composer offers flow chips, the
  * walk from the hiker to a place, and the lookup behind the "From OpenStreetMap"
  * section. Kept here so they are unit-tested without the screen.
@@ -13,6 +13,7 @@ import { categoryToken } from '../elevation/waypoint-category';
 import type { TrailJson } from '../../services/trail-assets';
 import { tripAlongTrail, type TrailTrip } from '../../services/distance-calculator';
 import { snapToTrail, type SnapPoint } from '@lib/position-on-trail';
+import { isOtherHikersWaypoint, userWaypointInfo } from '@lib/user-waypoints';
 
 const MONTHS = [
   'Jan',
@@ -46,12 +47,31 @@ export function relativeDate(iso: string, nowMs: number): string {
   if (diff < HOUR) return `${Math.floor(diff / MINUTE)} min ago`;
   if (diff < DAY) return `${Math.floor(diff / HOUR)} h ago`;
   if (diff < WEEK) return `${Math.floor(diff / DAY)} d ago`;
+  return shortDate(iso, nowMs);
+}
 
+/** "3 Jul", with the year when it is not this year's; '' for a bad timestamp. */
+export function shortDate(iso: string, nowMs: number): string {
+  const then = Date.parse(iso);
+  if (Number.isNaN(then)) return '';
   const d = new Date(then);
   const day = d.getDate();
   const month = MONTHS[d.getMonth()];
   const sameYear = new Date(nowMs).getFullYear() === d.getFullYear();
   return sameYear ? `${day} ${month}` : `${day} ${month} ${d.getFullYear()}`;
+}
+
+/**
+ * Who reported another hiker's shared waypoint, and when: "Reported by Jo ·
+ * 12 Oct". It counts like any other place, so this line is what lets the hiker
+ * judge it. Null for curated places and the hiker's own pins. The date is the
+ * last time its author saved it.
+ */
+export function hikerReportLine(waypoint: object, nowMs: number): string | null {
+  if (!isOtherHikersWaypoint(waypoint)) return null;
+  const info = userWaypointInfo(waypoint)!;
+  const date = shortDate(info.updatedAt || info.createdAt, nowMs);
+  return `Reported by ${info.authorName ?? 'a hiker'}${date ? ` · ${date}` : ''}`;
 }
 
 /** Theme color token key + label for a water status. */

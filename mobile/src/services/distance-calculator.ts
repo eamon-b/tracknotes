@@ -19,7 +19,6 @@ import {
   type ElevationPoint,
 } from '@lib/track-geometry';
 import { estimateHikingTime } from '@lib/day-calculator';
-import { isUnverifiedHikerWaypoint } from '@lib/user-waypoints';
 
 /** Minimal waypoint shape needed to rank the next-of-type cards. */
 export interface DistanceWaypoint {
@@ -156,9 +155,7 @@ export function tripAlongTrail(
  * next shelter or camp — the bed is down a side track, and the plan screen
  * will not end a day there either (`overnightWaypoints`). And a future
  * `water-access` must not read as the next water: the water is off the route,
- * and over-promising water is the dangerous direction to be wrong in. For the
- * same reason another hiker's shared water pin is never the next water
- * (`isUnverifiedHikerWaypoint`, as `@lib/user-waypoints`' `countsAsWater`).
+ * and over-promising water is the dangerous direction to be wrong in.
  */
 const TYPE_MAPPING: Record<string, keyof NextWaypointsByType> = {
   campsite: 'campsite',
@@ -205,7 +202,6 @@ export function getNextWaypointsByType<W extends DistanceWaypoint>(
   for (const wd of distances) {
     const key = TYPE_MAPPING[wd.waypoint.type];
     if (!key || result[key]) continue;
-    if (key === 'water' && isUnverifiedHikerWaypoint(wd.waypoint)) continue;
     if (key === 'town' && plannedIds && !(wd.waypoint.id && plannedIds.has(wd.waypoint.id))) {
       continue;
     }

@@ -68,6 +68,7 @@ import { useVisiblePois } from './use-visible-pois';
 import { useGuidePositionContext } from './GuidePositionContext';
 import { useWaterStatus } from './use-water-status';
 import {
+  hikerReportLine,
   isPlaceOffTrail,
   isWaterFamily,
   waterStatusMeta,
@@ -86,9 +87,14 @@ import {
   type WaypointFamily,
 } from './waypoint-filters';
 import { waypointTypeLabel } from '@lib/waypoint-taxonomy';
-import { isUnverifiedHikerWaypoint } from '@lib/user-waypoints';
 
 type Waypoint = TrailJson['waypoints'][number];
+
+/** ", reported by Jo · 12 Oct" for a screen reader, on another hiker's pin. */
+function reportedA11y(waypoint: Waypoint, nowMs: number): string {
+  const line = hikerReportLine(waypoint, nowMs);
+  return line ? `, ${line.toLowerCase().replace(' · ', ', ')}` : '';
+}
 
 export function WaypointListPane({ trail }: { trail: TrailJson }) {
   const { colors } = useTheme();
@@ -258,9 +264,10 @@ export function WaypointListPane({ trail }: { trail: TrailJson }) {
         <Pressable
           onPress={() => openWaypoint(row.key)}
           accessibilityRole="button"
-          accessibilityLabel={`Open ${waypoint.name}${
-            isUnverifiedHikerWaypoint(waypoint) ? ', unverified, added by a hiker' : ''
-          }${offTrailA11y(placeOffTrailM.get(waypoint), units)}`}
+          accessibilityLabel={`Open ${waypoint.name}${reportedA11y(waypoint, Date.now())}${offTrailA11y(
+            placeOffTrailM.get(waypoint),
+            units,
+          )}`}
           style={({ pressed }) => pressed && styles.pressed}
         >
           <WaypointRow
@@ -271,7 +278,7 @@ export function WaypointListPane({ trail }: { trail: TrailJson }) {
             offTrailM={placeOffTrailM.get(waypoint)}
             favorite={favoriteSet.has(row.key)}
             planned={plannedIds?.has(row.key) ?? false}
-            unverified={isUnverifiedHikerWaypoint(waypoint)}
+            reportedBy={hikerReportLine(waypoint, Date.now())}
             water={
               waypoint.id && isWaterFamily(waypoint.type)
                 ? waterByWaypoint.get(waypoint.id) ?? null
@@ -424,7 +431,7 @@ function WaypointRow({
   offTrailM,
   favorite,
   planned,
-  unverified,
+  reportedBy,
   water,
 }: {
   waypoint: Waypoint;
@@ -437,11 +444,8 @@ function WaypointRow({
   favorite: boolean;
   /** A ticked resupply stop — only ever true once a plan exists. */
   planned: boolean;
-  /**
-   * Another hiker's shared waypoint: nobody has checked it, and its water is
-   * left out of the carry calculators (`isUnverifiedHikerWaypoint`).
-   */
-  unverified: boolean;
+  /** "Reported by Jo · 12 Oct" on another hiker's shared waypoint, else null. */
+  reportedBy: string | null;
   /** Aggregated water verdict, for water waypoints with recent reports. */
   water?: WaterAggregate | null;
 }) {
@@ -477,13 +481,13 @@ function WaypointRow({
               </Text>
             </View>
           )}
-          {unverified && (
-            <View style={[styles.plannedPill, { borderColor: colors.warning }]}>
-              <Text style={[styles.plannedPillText, { color: colors.warning }]}>Unverified</Text>
-            </View>
-          )}
           {water && <WaterStatusChip aggregate={water} />}
         </View>
+        {reportedBy && (
+          <Text style={[styles.reportedBy, { color: colors.textSecondary }]} numberOfLines={1}>
+            {reportedBy}
+          </Text>
+        )}
       </View>
       <View style={styles.rowMeta}>
         {signed ? (
@@ -599,6 +603,9 @@ const styles = StyleSheet.create({
   },
   favoriteBadge: {
     fontSize: glyphSizes.xs,
+  },
+  reportedBy: {
+    ...typography.caption,
   },
   plannedPill: {
     flexShrink: 0,

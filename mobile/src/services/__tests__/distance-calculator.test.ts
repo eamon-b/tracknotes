@@ -64,20 +64,6 @@ describe('calculateDistancesToWaypoints', () => {
 });
 
 describe('getNextWaypointsByType', () => {
-  it("never takes another hiker's shared water pin as the next water", () => {
-    const pin = (mine: boolean) => ({
-      id: 'hw_pin',
-      name: 'Pin',
-      type: 'water',
-      totalDistance: 1.5,
-      userWaypoint: { visibility: 'shared', mine },
-    }) as DistanceWaypoint;
-    // A stranger's pin before the curated Spring: the strip still says Spring.
-    expect(getNextWaypointsByType(1, [pin(false), ...WAYPOINTS], TRACK, undefined, 4).water?.waypoint.name).toBe('Spring');
-    // The hiker's own pin still counts.
-    expect(getNextWaypointsByType(1, [pin(true), ...WAYPOINTS], TRACK, undefined, 4).water?.waypoint.name).toBe('Pin');
-  });
-
   it('picks the next of each important type ahead', () => {
     const next = getNextWaypointsByType(1, WAYPOINTS, TRACK, undefined, 4);
     expect(next.water?.waypoint.name).toBe('Spring');

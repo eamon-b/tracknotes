@@ -38,9 +38,11 @@
    a license term.
 2. **Safety-critical water-data disclaimer.** Water status is the one datum where a
    wrong value can hurt someone. Required: a one-time acknowledgement before community
-   water data is first displayed, persistent "reported <date> by hikers — conditions
-   change, always carry contingency water" phrasing on `waterStatus` UI (the existing
-   `unknown`-when-stale rule in Section 2.3 is itself a safety control), and a ToS
+   water data is first displayed, persistent "Reported by <name> · <date>"
+   attribution on hiker-reported water, with no hedging or advice: the hiker
+   judges it, and another hiker's shared water still counts in the carry
+   calculators (decided 2026-10-18). The existing
+   `unknown`-when-stale rule in Section 2.3 is itself a safety control. Also a ToS
    clause disclaiming reliance on user-submitted data to the extent permitted by the
    Australian Consumer Law (blanket disclaimers can't exclude ACL consumer guarantees,
    so the wording must be "to the maximum extent permitted by law" and reviewed once
