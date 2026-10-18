@@ -102,6 +102,7 @@ Each check yields `{ id, level: 'pass' | 'warn' | 'fail', message }`. Any
 | `gaps` | — | any jump between consecutive points > 2 km (a community route has no route breaks; any the client declares are ignored) |
 | `metadata` | name < 3 or > 80 chars; description < 20 or > 2,000 chars | description, or the waypoint descriptions taken together, mostly URLs |
 | `waypoints` | > 2,000 waypoints, counting main-route, off-trail and every variant's | none at all (fine, but the route will have no datasheet) |
+| `region` | — | the country/state chosen is not where the coordinates are (`@lib/region-detect`; worker only, on submit and on an edit that changes the region). The forms prefill the detected region; the hiker's choice is stored as given. |
 | `duplicate` | identical content hash already submitted (worker only, 409; `existingId` only when it is the caller's own route) | start and end within 200 m and length within 5 % of a live community route (worker only; names that route by id) |
 
 Density of OSM POIs is deliberately **not** a check: it varies by trail.
@@ -243,4 +244,4 @@ deleted.
 - Comments and plan sync on community routes.
 - Server-side OSM POI enrichment for community routes.
 - Map overview of all trails on the landing page.
-- Auto-detecting country/state from coordinates (the AI review suggests one today).
+- ~~Auto-detecting country/state from coordinates~~: done — `@lib/region-detect` prefills both share forms and backs the worker's `region` check.

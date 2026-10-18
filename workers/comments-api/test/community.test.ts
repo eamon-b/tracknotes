@@ -314,6 +314,23 @@ describe('POST /v1/community/routes', () => {
     expect(route.state).toBe('SI');
   });
 
+  it("stores the hiker's region as given, warning when the coordinates disagree", async () => {
+    const device = await registerDevice();
+    const melbourne = makeTrail({ start: { lat: -37.7, lon: 145.1 } });
+    const matching = await submitOk(device, { trail: melbourne, country: 'AU', state: 'VIC' });
+    expect(matching.checks.find((c) => c.id === 'region')?.level).toBe('pass');
+
+    const wrong = await submitOk(device, {
+      trail: makeTrail({ start: { lat: -37.75, lon: 145.15 } }),
+      country: 'AU',
+      state: 'NSW',
+    });
+    expect(wrong.state).toBe('NSW');
+    const region = wrong.checks.find((c) => c.id === 'region');
+    expect(region?.level).toBe('warn');
+    expect(region?.message).toContain('Victoria');
+  });
+
   it('422s with the checks when a check fails', async () => {
     const device = await registerDevice();
     const res = await submitRoute(device, submitBody({ trail: makeTrail({ count: 10 }) }));
@@ -566,6 +583,18 @@ describe('PATCH /v1/community/routes/:id', () => {
     const privateKey = (await row(route.id)).private_key as string;
     await eventually(async () => (await privateKeys(route.id)).length === 1);
     expect(await privateKeys(route.id)).toEqual([privateKey]);
+  });
+
+  it('re-runs the region check when the region changes', async () => {
+    const owner = await registerDevice();
+    const route = await submitOk(owner, { trail: makeTrail({ start: { lat: -37.8, lon: 145.2 } }) });
+    expect(route.checks.find((c) => c.id === 'region')?.level).toBe('pass');
+    const moved = (await (await patch(owner, route.id, { country: 'NZ', state: 'SI' })).json()) as CommunityRouteDetail;
+    expect(moved.country).toBe('NZ');
+    expect(moved.checks.find((c) => c.id === 'region')?.level).toBe('warn');
+    expect(moved.checks.filter((c) => c.id === 'region')).toHaveLength(1);
+    const back = (await (await patch(owner, route.id, { country: 'AU', state: 'VIC' })).json()) as CommunityRouteDetail;
+    expect(back.checks.find((c) => c.id === 'region')?.level).toBe('pass');
   });
 
   it('drops a verified route back to unverified', async () => {

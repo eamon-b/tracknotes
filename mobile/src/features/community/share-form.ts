@@ -43,13 +43,23 @@ export type ShareField = 'name' | 'description' | 'credit' | 'country' | 'state'
 
 export type ShareFormErrors = Partial<Record<ShareField, string>>;
 
-export function initialShareForm(trailName: string): ShareForm {
+/**
+ * A fresh form for a trail. `region` is the prefill (`@lib/region-detect` on
+ * the trail's points): the hiker can change it, and what they leave is sent.
+ * A detected state the country does not list is dropped.
+ */
+export function initialShareForm(
+  trailName: string,
+  region: { country: string | null; state: string | null } | null = null,
+): ShareForm {
+  const country = region?.country && isValidCountry(region.country) ? region.country.toUpperCase() : null;
+  const state = country && region?.state && isValidState(country, region.state) ? region.state : null;
   return {
     name: trailName.trim().slice(0, COMMUNITY_LIMITS.nameMax),
     description: '',
     credit: '',
-    country: null,
-    state: null,
+    country,
+    state,
     rightsConfirmed: false,
   };
 }

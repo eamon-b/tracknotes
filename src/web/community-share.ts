@@ -21,6 +21,7 @@
  */
 
 import { runCommunityChecks } from '@lib/community-checks';
+import { detectRegion } from '@lib/region-detect';
 import {
   COMMUNITY_LIMITS,
   type CommunityCheck,
@@ -81,6 +82,7 @@ export function initCommunityShare(): CommunityShareController {
   const countrySelect = byId<HTMLSelectElement>('community-country');
   const otherInput = byId<HTMLInputElement>('community-country-other');
   const otherWrapper = byId('community-country-other-field');
+  const regionNote = byId('community-region-note');
   const stateSelect = byId<HTMLSelectElement>('community-state');
   const stateWrapper = byId('community-state-field');
   const rightsBox = byId<HTMLInputElement>('community-rights');
@@ -336,7 +338,10 @@ export function initCommunityShare(): CommunityShareController {
       descInput.value = '';
       creditInput.value = '';
       rightsBox.checked = false;
-      picker.set(null, null);
+      // Prefilled from the coordinates; the hiker's pick is what is sent.
+      const detected = detectRegion(next.trail.track.points);
+      picker.set(detected.country, detected.state);
+      regionNote.hidden = detected.country === null;
       checksBox.innerHTML = '';
       checksSource.textContent = '';
       localChecks = [];

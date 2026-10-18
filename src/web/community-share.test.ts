@@ -269,6 +269,29 @@ describe('initCommunityShare', () => {
     vi.restoreAllMocks();
   });
 
+  it("prefills the region from the coordinates and sends the hiker's choice", async () => {
+    const calls = stubSubmit(201, { id: 'c_abcdefghijklmnop' });
+    await openPanel();
+    expect($<HTMLSelectElement>('community-country').value).toBe('AU');
+    expect($<HTMLSelectElement>('community-state').value).toBe('WA');
+    expect($('community-region-note').hidden).toBe(false);
+
+    const desc = $<HTMLTextAreaElement>('community-description');
+    desc.value = 'Coastal walk from Cape Naturaliste to Cape Leeuwin along the ridge.';
+    desc.dispatchEvent(new Event('input'));
+    const state = $<HTMLSelectElement>('community-state');
+    state.value = 'SA';
+    state.dispatchEvent(new Event('change'));
+    const rights = $<HTMLInputElement>('community-rights');
+    rights.checked = true;
+    rights.dispatchEvent(new Event('change'));
+    await new Promise(resolve => setTimeout(resolve, 300)); // the debounced checks
+    submitForm();
+    await flush();
+    const sent = JSON.parse(String(calls[0].init.body)) as { country: string; state: string | null };
+    expect(sent).toMatchObject({ country: 'AU', state: 'SA' });
+  });
+
   it('opens blank for the next route after sharing one', async () => {
     stubSubmit(201, { id: 'c_abcdefghijklmnop' });
     const { share, trail } = await openPanel();
@@ -284,8 +307,10 @@ describe('initCommunityShare', () => {
     expect($<HTMLTextAreaElement>('community-description').value).toBe('');
     expect($<HTMLInputElement>('community-credit').value).toBe('');
     expect($<HTMLInputElement>('community-rights').checked).toBe(false);
-    expect($<HTMLSelectElement>('community-country').value).toBe('');
-    expect($('community-state-field').hidden).toBe(true);
+    // The region is the new route's, prefilled from its coordinates.
+    expect($<HTMLSelectElement>('community-country').value).toBe('AU');
+    expect($<HTMLSelectElement>('community-state').value).toBe('WA');
+    expect($('community-region-note').hidden).toBe(false);
     expect($<HTMLInputElement>('community-include-gpx').checked).toBe(true);
     expect($('community-done').hidden).toBe(true);
     expect($('community-form').hidden).toBe(false);

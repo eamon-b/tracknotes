@@ -67,7 +67,12 @@ import {
   readStoredTrail,
 } from './community-storage';
 import type { StoredTrail } from './community-storage';
-import { checkCommunityMetadata, hasFailures, runCommunityChecks } from '../../../src/lib/community-checks';
+import {
+  checkCommunityMetadata,
+  checkCommunityRegion,
+  hasFailures,
+  runCommunityChecks,
+} from '../../../src/lib/community-checks';
 import type { CommunityRouteStats } from '../../../src/lib/community-checks';
 import {
   COMMUNITY_LIMITS,
@@ -562,10 +567,11 @@ async function republish(
   row: CommunityRouteRow,
   meta: Omit<StoredMeta, 'id'>,
   publish: boolean
-): Promise<StoredTrail | null> {
+): Promise<(StoredTrail & { trail: ProcessedTrail }) | null> {
   const trail = await readStoredTrail(env, row.private_key);
   if (!trail) return null;
-  return putTrail(env, row.id, await encodeTrail(withServerConfig(trail, { ...meta, id: row.id })), publish);
+  const put = await putTrail(env, row.id, await encodeTrail(withServerConfig(trail, { ...meta, id: row.id })), publish);
+  return { ...put, trail };
 }
 
 /**
@@ -743,6 +749,14 @@ function metadataChecksAfterEdit(row: CommunityRouteRow, name: string, descripti
   return stored.map((c, i) => (i === index ? entry : c));
 }
 
+/** `checks` with the entry of `entry.id` replaced, or `entry` added before `duplicate`. */
+function withCheck(checks: CommunityCheck[], entry: CommunityCheck): CommunityCheck[] {
+  const index = checks.findIndex((c) => c.id === entry.id);
+  if (index !== -1) return checks.map((c, i) => (i === index ? entry : c));
+  const duplicate = checks.findIndex((c) => c.id === 'duplicate');
+  return duplicate === -1 ? [...checks, entry] : [...checks.slice(0, duplicate), entry, ...checks.slice(duplicate)];
+}
+
 function checksFailed(checks: CommunityCheck[], message: string): Response {
   const body: CommunityChecksFailedBody = {
     error: { code: 'checks_failed', message },
@@ -809,7 +823,13 @@ export async function submitCommunityRoute(
   if (!result.ok || !result.trail || !result.stats) {
     return checksFailed(result.checks, 'The route did not pass the automatic checks');
   }
-  const checks = [...result.checks, await nearDuplicateCheck(env, result.stats)];
+  // The region the hiker chose is stored as given; a `region` warning is the
+  // most the coordinates can say against it.
+  const checks = [
+    ...result.checks,
+    checkCommunityRegion(result.trail.track.points, country, state),
+    await nearDuplicateCheck(env, result.stats),
+  ];
 
   const hash = await contentHash(result.trail);
   const blocked = await env.DB.prepare(
@@ -1111,7 +1131,7 @@ export async function patchCommunityRoute(
 
   // The text is checked as on submit: the same `metadata` check, refused with
   // the same 422 when it fails, and its entry in the stored checks replaced.
-  const checks = metadataChecksAfterEdit(row, name, description);
+  let checks = metadataChecksAfterEdit(row, name, description);
   if (hasFailures(checks)) {
     return checksFailed(checks, 'The route did not pass the automatic checks');
   }
@@ -1140,6 +1160,9 @@ export async function patchCommunityRoute(
     isLive(row.status)
   );
   if (!put) throw new HttpError(500, 'trail_missing', 'The stored route could not be read');
+  if (region.country !== row.country || region.state !== row.state) {
+    checks = withCheck(checks, checkCommunityRegion(put.trail.track.points, region.country, region.state));
+  }
 
   // The admin verified the old text: an edit sends it back to unverified.
   const status: CommunityRouteStatus = row.status === 'verified' ? 'unverified' : row.status;

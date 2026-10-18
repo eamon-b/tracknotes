@@ -35,6 +35,7 @@
     "lint": "eslint src scripts",
     "build:mobile-trails": "tsx scripts/build-mobile-trails.ts",
     "publish:trail-data": "tsx scripts/publish-trail-data.ts",
+    "build:region-shapes": "tsx scripts/build-region-shapes.ts",
     "trace:mark-contours": "tsx scripts/trace-mark-contours.ts"
   },
   "dependencies": {

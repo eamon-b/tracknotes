@@ -168,3 +168,20 @@ describe('validateReport', () => {
     });
   });
 });
+
+describe('initialShareForm region prefill', () => {
+  it('takes the detected country and state', () => {
+    expect(initialShareForm('Loop', { country: 'au', state: 'VIC' })).toMatchObject({ country: 'AU', state: 'VIC' });
+  });
+
+  it('starts empty without a detection, and drops a state the country does not list', () => {
+    expect(initialShareForm('Loop')).toMatchObject({ country: null, state: null });
+    expect(initialShareForm('Loop', { country: null, state: null })).toMatchObject({ country: null, state: null });
+    expect(initialShareForm('Loop', { country: 'JP', state: 'VIC' })).toMatchObject({ country: 'JP', state: null });
+  });
+
+  it('prefills a valid form once the text is filled in', () => {
+    const form = { ...initialShareForm('Lake Loop', { country: 'NZ', state: 'SI' }), description: VALID.description };
+    expect(validateShareForm({ ...form, rightsConfirmed: true })).toEqual({});
+  });
+});

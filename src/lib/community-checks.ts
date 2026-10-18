@@ -73,6 +73,8 @@ import { ACCESS_MODES } from './types';
 import type { AccessMode } from './types';
 import type { CommunityCheck, CommunityCheckLevel } from './community-types';
 import { COMMUNITY_LIMITS } from './community-types';
+import { detectRegion } from './region-detect';
+import { countryName, stateName } from './trail-regions';
 import type {
   DirectionConfig,
   EnrichedWaypoint,
@@ -177,6 +179,42 @@ export interface ClaimedDistances {
 /** The `metadata` check on its own, for a form that re-checks text as it is typed. */
 export function checkCommunityMetadata(meta: CommunityChecksMeta): CommunityCheck {
   return metadataCheck(meta);
+}
+
+/**
+ * The `region` check: whether the country and state the hiker chose match
+ * where the route's coordinates are (`@lib/region-detect`). It only ever
+ * warns — the hiker's choice is stored as given, never replaced — and passes
+ * when the route is outside the countries the detector knows. Added by the
+ * worker on submit and on an edit that changes the region; the share forms
+ * prefill the detected region instead.
+ */
+export function checkCommunityRegion(
+  points: readonly { lat: number; lon: number }[],
+  country: string,
+  state: string | null
+): CommunityCheck {
+  const detected = detectRegion(points);
+  const chosen = country.toUpperCase();
+  if (detected.country === null) {
+    return check('region', 'pass', 'The route is outside the regions the app can recognise, so the region was not checked.');
+  }
+  if (detected.country !== chosen) {
+    return check(
+      'region',
+      'warn',
+      `The route's coordinates are in ${countryName(detected.country)}, but it is filed under ${countryName(chosen)}.`
+    );
+  }
+  if (state !== null && detected.states.length > 0 && !detected.states.includes(state)) {
+    const where = detected.states.map((code) => stateName(chosen, code)).join(', ');
+    return check(
+      'region',
+      'warn',
+      `The route's coordinates are in ${where}, but it is filed under ${stateName(chosen, state)}.`
+    );
+  }
+  return check('region', 'pass', `The route's coordinates match the region it is filed under.`);
 }
 
 /** True when any check failed (a submission with one is rejected). */

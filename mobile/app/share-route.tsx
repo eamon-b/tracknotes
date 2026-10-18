@@ -39,6 +39,7 @@ import {
   runCommunityChecks,
   type CommunityChecksResult,
 } from '@lib/community-checks';
+import { detectRegion } from '@lib/region-detect';
 import { COUNTRIES, findCountry } from '@lib/trail-regions';
 import { useTheme } from '../src/theme';
 import { KeyboardAwareScrollView } from '../src/navigation/KeyboardAwareScrollView';
@@ -125,7 +126,8 @@ export default function ShareRouteScreen() {
       .then((result) => {
         if (cancelled) return;
         setLoaded({ id: shareableId, trail: result });
-        if (result) setForm(initialShareForm(result.config.name));
+        // The region is prefilled from the coordinates; the hiker can change it.
+        if (result) setForm(initialShareForm(result.config.name, detectRegion(result.track.points)));
       })
       .catch(() => {
         if (!cancelled) setLoaded({ id: shareableId, trail: null });
@@ -158,6 +160,8 @@ export default function ShareRouteScreen() {
   const nameCheck = needsName ? validateDisplayName(displayName) : null;
   const displayNameError = nameCheck && !nameCheck.ok ? nameCheck.message : null;
   const country = findCountry(form.country);
+  // Whether the region was prefilled from the coordinates (`initialShareForm`).
+  const regionDetected = useMemo(() => (trail ? detectRegion(trail.track.points).country !== null : false), [trail]);
 
   const onSubmit = useCallback(async () => {
     if (submittingRef.current) return;
@@ -290,6 +294,11 @@ export default function ShareRouteScreen() {
           onSelect={(code) => setForm((f) => ({ ...f, country: code, state: null }))}
           accessibilityLabel="Country"
         />
+        {regionDetected && (
+          <Text style={[styles.error, { color: colors.textSecondary }]}>
+            {"Filled in from the route's coordinates. Change it if it is wrong."}
+          </Text>
+        )}
         {fieldError(errors.country)}
       </View>
 
