@@ -48,6 +48,8 @@ import { orderedWaypoints } from '../guide/guide-trail';
 import { useVisiblePois } from '../guide/use-visible-pois';
 import { planDirectionOf } from '../plan/plan-stops';
 import { plannedStopKms } from '../plan/plan-overlay';
+import { plannableTrail } from '../plan/use-plan-route';
+import { plannedRouteFor } from '@lib/plan-alternates';
 import { useRoutesStore } from '../routes/routes-store';
 import {
   routeHighlightRanges,
@@ -75,7 +77,7 @@ const ELE_SCALE_STEP = 1.5;
 
 export function ElevationPane() {
   const { colors } = useTheme();
-  const { trail, trailId, direction } = useGuide();
+  const { trail, baseTrail, trailId, direction } = useGuide();
   const { currentKm } = useGuidePositionContext();
   const units = useSettingsStore((s) => s.units);
   const favoriteIds = useFavoritesStore((s) => s.byTrail[trailId]);
@@ -105,11 +107,13 @@ export function ElevationPane() {
 
   // The plan's day boundaries as ticks. Stops are stored NOBO-absolute and this
   // trail is direction-applied, so the conversion goes through the same
-  // `plan-overlay` module the map's stop rings use.
+  // `plan-overlay` module the map's stop rings use. A stop on an alternate the
+  // plan takes is ticked along the main stretch that alternate replaces.
   const plan = usePlansStore(selectPlan(trailId));
+  const plannedRoute = plannedRouteFor(plannableTrail(baseTrail), plan);
   const stopKms = useMemo(
-    () => plannedStopKms(plan, planDirectionOf(direction), totalKm),
-    [plan, direction, totalKm],
+    () => plannedStopKms(plan, planDirectionOf(direction), totalKm, plannedRoute),
+    [plan, direction, totalKm, plannedRoute],
   );
 
   // Active custom route → shade its on-trail spans on the profile. Saved route

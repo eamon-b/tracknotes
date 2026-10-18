@@ -1,5 +1,6 @@
 import {
   buildAccessPathCollection,
+  buildPlannedTrailLines,
   buildPoiCollection,
   buildRouteBreakCollection,
   buildTrailLine,
@@ -111,6 +112,38 @@ describe('buildRouteBreakCollection', () => {
   });
 });
 
+describe('buildPlannedTrailLines', () => {
+  // A straight line north, one point per km.
+  const points = [0, 1, 2, 3, 4, 5].map((km) => ({ lat: km / 100, lon: 0, dist: km }));
+
+  it('splits the line at the bypassed range, meeting exactly at the junctions', () => {
+    const { walked, bypassed } = buildPlannedTrailLines(points, undefined, [[1.5, 3.5]]);
+    expect(walked!.geometry.coordinates).toEqual([
+      [[0, 0], [0, 0.01], [0, 0.015]],
+      [[0, 0.035], [0, 0.04], [0, 0.05]],
+    ]);
+    expect(bypassed!.geometry.coordinates).toEqual([
+      [[0, 0.015], [0, 0.02], [0, 0.03], [0, 0.035]],
+    ]);
+  });
+
+  it('handles a range that runs to the end of the line', () => {
+    const { walked, bypassed } = buildPlannedTrailLines(points, undefined, [[3, 5]]);
+    expect(walked!.geometry.coordinates).toEqual([[[0, 0], [0, 0.01], [0, 0.02], [0, 0.03]]]);
+    expect(bypassed!.geometry.coordinates).toEqual([[[0, 0.03], [0, 0.04], [0, 0.05]]]);
+  });
+
+  it('still splits at route breaks', () => {
+    const { walked, bypassed } = buildPlannedTrailLines(
+      points,
+      [{ index: 3, displayIndex: 3 } as never],
+      [[0.5, 1.5]],
+    );
+    expect(walked!.geometry.coordinates).toHaveLength(3);
+    expect(bypassed!.geometry.coordinates).toHaveLength(1);
+  });
+});
+
 describe('buildVariantCollection', () => {
   const variants: MapVariant[] = [
     { name: 'Alt A', type: 'alternate', points: [{ lat: -35, lon: 138 }, { lat: -35.1, lon: 138.1 }] },
@@ -126,7 +159,13 @@ describe('buildVariantCollection', () => {
       kind: 'alternate',
       name: 'Alt A',
       type: 'alternate',
+      taken: false,
     });
+  });
+
+  it('flags the alternates the plan takes', () => {
+    const fc = buildVariantCollection(variants, 'alternate', new Set(['alternate-0']));
+    expect(fc.features[0].properties!.taken).toBe(true);
   });
 
   it('returns an empty collection for no variants', () => {

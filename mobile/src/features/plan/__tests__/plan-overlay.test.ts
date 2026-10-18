@@ -7,7 +7,14 @@
  */
 
 import type { PlanDocument } from '@lib/plan-types';
-import { plannedStopFeatureIds, plannedStopKms } from '../plan-overlay';
+import type { PlannedRoute } from '@lib/plan-alternates';
+import {
+  plannedAlternateWaypoints,
+  plannedRouteLines,
+  plannedStopFeatureIds,
+  plannedStopKms,
+} from '../plan-overlay';
+
 
 const TOTAL = 100;
 
@@ -90,5 +97,103 @@ describe('plannedStopKms', () => {
       ],
     });
     expect(plannedStopKms(withAlternate, 'NOBO', TOTAL)).toEqual([20]);
+  });
+});
+
+describe('alternates the plan takes', () => {
+  const withAlternate = plan({
+    alternates: ['Alt: Ridge'],
+    stops: [
+      { waypointId: 'w_1', km: 20, name: 'Hut', nights: 1 },
+      // 5 km along the 20 km alternate.
+      { waypointId: 'w_ridge', km: 35, name: 'Ridge Camp', nights: 1, alternate: 'Alt: Ridge' },
+      { km: 60, name: 'Spare', nights: 1, alternate: 'Alt: Gone' },
+    ],
+  });
+
+  // Main km 30-40 replaced by a 20 km ridge alternate (the trail's alternates[1]).
+  const ridge = {
+    name: 'Alt: Ridge',
+    index: 1,
+    startKm: 30,
+    endKm: 40,
+    distanceKm: 20,
+    mainDistanceKm: 10,
+    ascentM: 500,
+    descentM: 500,
+  };
+  const route: PlannedRoute = {
+    alternates: [ridge],
+    segments: [
+      { kind: 'main', fromKm: 0, toKm: 30, routeFromKm: 0 },
+      { kind: 'alternate', alternate: ridge, routeFromKm: 30 },
+      { kind: 'main', fromKm: 40, toKm: 100, routeFromKm: 50 },
+    ],
+    totalDistance: 110,
+    mainTotalDistance: TOTAL,
+  };
+
+  it('ticks a stop on a taken alternate along the main stretch it replaces', () => {
+    // 5 of 20 km along → a quarter of the way through main km 30-40.
+    expect(plannedStopKms(withAlternate, 'NOBO', TOTAL, route)).toEqual([20, 32.5]);
+    expect(plannedStopKms(withAlternate, 'SOBO', TOTAL, route)).toEqual([67.5, 80]);
+  });
+
+  it('drops a main-route stop the taken alternate bypasses', () => {
+    const bypassed = plan({
+      alternates: ['Alt: Ridge'],
+      stops: [{ waypointId: 'w_x', km: 35, name: 'Valley Hut', nights: 1 }],
+    });
+    expect(plannedStopKms(bypassed, 'NOBO', TOTAL, route)).toEqual([]);
+  });
+
+  it('rings a place on the alternate, never a main place at the same km', () => {
+    const waypoints = [
+      { name: 'Valley camp', totalDistance: 35 },
+      { id: 'w_ridge', name: 'Ridge Camp', totalDistance: 35, alternate: 'Alt: Ridge' },
+    ];
+    expect([...plannedStopFeatureIds(withAlternate, waypoints, 'NOBO', TOTAL)]).toEqual([
+      'w_ridge',
+    ]);
+    const kmOnly = plan({
+      stops: [{ km: 35, name: 'Ridge Camp', nights: 1, alternate: 'Alt: Ridge' }],
+    });
+    const noIds = [
+      { name: 'Valley camp', totalDistance: 35 },
+      { name: 'Ridge Camp', totalDistance: 35, alternate: 'Alt: Ridge' },
+    ];
+    expect([...plannedStopFeatureIds(kmOnly, noIds, 'NOBO', TOTAL)]).toEqual(['Ridge Camp-1']);
+  });
+
+  it('rings a shared place by id whichever line its stop is on', () => {
+    const shared = plan({
+      stops: [{ waypointId: 'w_1', km: 30, name: 'Hut', nights: 1, alternate: 'Alt: Ridge' }],
+    });
+    expect([...plannedStopFeatureIds(shared, WAYPOINTS, 'NOBO', TOTAL)]).toEqual(['w_1']);
+  });
+
+  it('describes the lines to draw, in the walking direction', () => {
+    expect(plannedRouteLines({ ...route, alternates: [] }, 'NOBO', TOTAL)).toBeNull();
+    const lines = plannedRouteLines(route, 'SOBO', TOTAL)!;
+    expect([...lines.takenAlternateIndices]).toEqual([1]);
+    expect(lines.bypassedKm).toEqual([[60, 70]]);
+  });
+
+  it('lists the taken alternates’ places, tagged, without repeating a main place', () => {
+    const alternates = [
+      { name: 'Alt: Other', waypoints: [{ id: 'w_o', name: 'Other' }] },
+      {
+        name: 'Alt: Ridge',
+        waypoints: [
+          { id: 'w_1', name: 'Hut' },
+          { id: 'w_ridge', name: 'Ridge Camp' },
+        ],
+      },
+    ];
+    const lines = plannedRouteLines(route, 'NOBO', TOTAL);
+    expect(plannedAlternateWaypoints(alternates, lines, WAYPOINTS)).toEqual([
+      { id: 'w_ridge', name: 'Ridge Camp', alternate: 'Alt: Ridge' },
+    ]);
+    expect(plannedAlternateWaypoints(alternates, null, WAYPOINTS)).toEqual([]);
   });
 });

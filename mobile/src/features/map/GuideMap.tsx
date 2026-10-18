@@ -86,12 +86,14 @@ import {
   buildAccessPathCollection,
   buildPoiCollection,
   buildRouteBreakCollection,
+  buildPlannedTrailLines,
   buildTrailLine,
   buildUserLocationGeoJSON,
   buildTerminusEndCollection,
   buildVariantCollection,
   buildWaypointCollection,
   trailCameraBounds,
+  type KmLatLon,
   type LatLon,
   type MapPoi,
   type MapVariant,
@@ -276,6 +278,16 @@ export interface GuideMapProps {
   breaks?: RouteBreak[];
   /** Alternate routes (dashed overlay). */
   alternates?: MapVariant[];
+  /**
+   * Feature ids (`variantFeatureId`) of the alternates the hiker's plan takes:
+   * drawn solid as the trail rather than dashed. Absent when it takes none.
+   */
+  takenAlternateIds?: ReadonlySet<string>;
+  /**
+   * The main route those alternates bypass, as km ranges along
+   * `displayPoints`: drawn dashed rather than as the trail.
+   */
+  bypassedKm?: readonly (readonly [number, number])[];
   /** Side trips (dashed overlay). */
   sideTrips?: MapVariant[];
   /**
@@ -387,6 +399,9 @@ const ROUTE_STRAIGHT_FILTER = [
   ['==', ['get', 'straight'], true],
 ] as FilterSpecification;
 const ROUTE_VERTEX_FILTER = ['==', ['geometry-type'], 'Point'] as FilterSpecification;
+/** Alternates the plan takes (`buildVariantCollection`'s `taken`), and the rest. */
+const TAKEN_FILTER = ['==', ['get', 'taken'], true] as FilterSpecification;
+const UNTAKEN_FILTER = ['!=', ['get', 'taken'], true] as FilterSpecification;
 
 // --- Track paint --------------------------------------------------------------
 // The three track classes: main = solid red over a casing, alternates =
@@ -480,6 +495,15 @@ function buildTrackStyles(theme: MapTheme) {
       lineJoin: 'round' as const,
       lineDasharray: TRACK_DASH.terminus as unknown as number[],
     },
+    /** Main route bypassed by an alternate the plan takes. */
+    bypassed: {
+      lineColor: track.main,
+      lineWidth: trackWidthExpression(TRACK_WIDTHS.alternate) as unknown as number,
+      lineOpacity: 0.6,
+      lineCap: 'butt' as const,
+      lineJoin: 'round' as const,
+      lineDasharray: TRACK_DASH.alternate as unknown as number[],
+    },
     alternateHighlight: variantHighlightStyle(track.alternate, TRACK_WIDTHS.alternate),
     sideTripHighlight: variantHighlightStyle(track.sideTrip, TRACK_WIDTHS.sideTrip),
     terminusHighlight: variantHighlightStyle(track.alternate, TRACK_WIDTHS.terminus),
@@ -522,6 +546,8 @@ export const GuideMap = memo(
       displayPoints,
       breaks,
       alternates,
+      takenAlternateIds,
+      bypassedKm,
       sideTrips,
       termini,
       waypoints,
@@ -660,9 +686,18 @@ export const GuideMap = memo(
     const labelFont = useMemo(() => labelFontForSource(resolvedSource), [resolvedSource]);
 
     // --- GeoJSON sources ---------------------------------------------------
+    // A plan that takes an alternate walks only part of the main line: the
+    // rest is drawn dashed, as the web plan page does.
+    const plannedLines = useMemo(
+      () =>
+        bypassedKm && bypassedKm.length > 0
+          ? buildPlannedTrailLines(displayPoints as KmLatLon[], breaks, bypassedKm)
+          : null,
+      [displayPoints, breaks, bypassedKm],
+    );
     const trailLine = useMemo(
-      () => buildTrailLine(displayPoints, breaks),
-      [displayPoints, breaks],
+      () => (plannedLines ? plannedLines.walked : buildTrailLine(displayPoints, breaks)),
+      [plannedLines, displayPoints, breaks],
     );
     const routeBreakCollection = useMemo(
       () => buildRouteBreakCollection(displayPoints, breaks),
@@ -670,8 +705,8 @@ export const GuideMap = memo(
     );
     const accessCollection = useMemo(() => buildAccessPathCollection(accessPath), [accessPath]);
     const alternatesCollection = useMemo(
-      () => buildVariantCollection(alternates ?? [], 'alternate'),
-      [alternates],
+      () => buildVariantCollection(alternates ?? [], 'alternate', takenAlternateIds),
+      [alternates, takenAlternateIds],
     );
     const sideTripsCollection = useMemo(
       () => buildVariantCollection(sideTrips ?? [], 'side-trip'),
@@ -1181,7 +1216,32 @@ export const GuideMap = memo(
             filter={highlightFilter}
             style={trackStyles.alternateHighlight}
           />
-          <Layer type="line" id="guide-alternates-layer" style={trackStyles.alternate} />
+          <Layer
+            type="line"
+            id="guide-alternates-layer"
+            filter={UNTAKEN_FILTER}
+            style={trackStyles.alternate}
+          />
+          {/* An alternate the plan takes is the route: drawn as the trail. */}
+          <Layer
+            type="line"
+            id="guide-alternates-taken-casing"
+            filter={TAKEN_FILTER}
+            style={trackStyles.mainCasing}
+          />
+          <Layer
+            type="line"
+            id="guide-alternates-taken-layer"
+            filter={TAKEN_FILTER}
+            style={trackStyles.main}
+          />
+        </GeoJSONSource>
+
+        {/* The main route a taken alternate bypasses: dashed in the trail's
+            red, so the way "Stay on the main route" goes back to stays on the
+            map without reading as the route walked. */}
+        <GeoJSONSource id="guide-trail-bypassed" data={plannedLines?.bypassed ?? EMPTY_COLLECTION}>
+          <Layer type="line" id="guide-trail-bypassed-layer" style={trackStyles.bypassed} />
         </GeoJSONSource>
 
         {/* Side trips: finely dotted teal, under the main track */}

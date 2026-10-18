@@ -25,7 +25,7 @@ jest.mock('expo-router', () => ({
 }));
 
 jest.mock('../../guide/GuideContext', () => ({
-  useGuide: () => ({ trailId: 'heysen', trail: mockTrail, direction: mockDirection }),
+  useGuide: () => ({ trailId: 'heysen', trail: mockTrail, baseTrail: mockTrail, direction: mockDirection }),
 }));
 
 jest.mock('../../guide/GuidePositionContext', () => ({

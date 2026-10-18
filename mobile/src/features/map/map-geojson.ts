@@ -173,6 +173,93 @@ export function buildTrailLine(
   };
 }
 
+/** A display point with its km along the line, for cutting it by km. */
+export interface KmLatLon extends LatLon {
+  dist: number;
+}
+
+/** The main line of a plan that takes alternates, split by what the plan walks. */
+export interface PlannedTrailLines {
+  /** The main route the plan walks: drawn as the trail. */
+  walked: Feature<MultiLineString> | null;
+  /** The main route a taken alternate bypasses: drawn dashed. */
+  bypassed: Feature<MultiLineString> | null;
+}
+
+function lerpAtKm(a: KmLatLon, b: KmLatLon, km: number): KmLatLon {
+  const span = b.dist - a.dist;
+  const t = span > 0 ? (km - a.dist) / span : 0;
+  return { lat: a.lat + (b.lat - a.lat) * t, lon: a.lon + (b.lon - a.lon) * t, dist: km };
+}
+
+/**
+ * Cut one stretch at the km ranges, interpolating a point at every boundary so
+ * the walked and bypassed pieces meet exactly at the junction even where the
+ * thinned line has no vertex there.
+ */
+function cutStretch(
+  stretch: KmLatLon[],
+  ranges: readonly (readonly [number, number])[],
+): { inside: KmLatLon[][]; outside: KmLatLon[][] } {
+  const inRange = (km: number) => ranges.some(([from, to]) => km > from && km < to);
+  const inside: KmLatLon[][] = [];
+  const outside: KmLatLon[][] = [];
+  let current: KmLatLon[] = [];
+  let currentInside: boolean | null = null;
+  const flush = () => {
+    if (current.length >= 2) (currentInside ? inside : outside).push(current);
+  };
+  for (let i = 1; i < stretch.length; i++) {
+    const prev = stretch[i - 1];
+    const point = stretch[i];
+    const lo = Math.min(prev.dist, point.dist);
+    const hi = Math.max(prev.dist, point.dist);
+    // The segment's pieces between every range boundary inside it, in
+    // walking order; each piece is wholly inside a range or wholly outside.
+    const kms = ranges
+      .flatMap(([from, to]) => [from, to])
+      .filter((km) => km > lo && km < hi)
+      .sort((x, y) => (point.dist >= prev.dist ? x - y : y - x));
+    const stops = [prev, ...kms.map((km) => lerpAtKm(prev, point, km)), point];
+    for (let j = 1; j < stops.length; j++) {
+      const isInside = inRange((stops[j - 1].dist + stops[j].dist) / 2);
+      if (isInside !== currentInside) {
+        flush();
+        current = [stops[j - 1]];
+        currentInside = isInside;
+      }
+      current.push(stops[j]);
+    }
+  }
+  flush();
+  return { inside, outside };
+}
+
+/**
+ * The main line split where a plan's alternates leave it: the stretches the
+ * plan walks, and the ones a taken alternate bypasses (`bypassedKm`, ranges in
+ * the points' own km). Route breaks still split both, as in `buildTrailLine`.
+ */
+export function buildPlannedTrailLines(
+  points: KmLatLon[],
+  breaks: RouteBreak[] | undefined,
+  bypassedKm: readonly (readonly [number, number])[],
+): PlannedTrailLines {
+  const walked: number[][][] = [];
+  const bypassed: number[][][] = [];
+  const toCoords = (line: KmLatLon[]) => line.map((p) => [p.lon, p.lat]);
+  for (const stretch of splitAtRouteBreaks(points, breaks, 'displayPoints')) {
+    const { inside, outside } = cutStretch(stretch, bypassedKm);
+    walked.push(...outside.map(toCoords));
+    bypassed.push(...inside.map(toCoords));
+  }
+  const feature = (lines: number[][][]): Feature<MultiLineString> | null =>
+    lines.length === 0
+      ? null
+      : { type: 'Feature', geometry: { type: 'MultiLineString', coordinates: lines }, properties: {} };
+  return { walked: feature(walked), bypassed: feature(bypassed) };
+}
+
 /**
  * The crossings between stretches, as straight two-point lines to be drawn
  * dashed — a ferry or a river is a link, not trail. Empty for every trail whose
@@ -240,10 +327,14 @@ export function variantFeatureId(kind: VariantKind, index: number): string {
  * Ids are assigned from the *unfiltered* index so a dropped degenerate variant
  * never shifts the ids of the ones after it — the id is how a tap finds its
  * variant again.
+ *
+ * `takenIds` names the alternates the hiker's plan takes; they stay in the
+ * collection (still tappable) but are flagged so the map draws them solid.
  */
 export function buildVariantCollection(
   variants: MapVariant[],
   kind: VariantKind,
+  takenIds?: ReadonlySet<string>,
 ): FeatureCollection<LineString> {
   const features: Feature<LineString>[] = variants
     .map((v, index) => ({ v, index }))
@@ -260,7 +351,14 @@ export function buildVariantCollection(
         // Only identity travels through the map: the tap handler resolves `id`
         // back to the variant object, so the numeric read-out never has to
         // survive a round trip through native feature properties.
-        properties: { id, kind, name: v.name ?? '', type: v.type ?? '' },
+        // `taken`: an alternate the plan walks, drawn as the trail itself.
+        properties: {
+          id,
+          kind,
+          name: v.name ?? '',
+          type: v.type ?? '',
+          taken: takenIds?.has(id) ?? false,
+        },
       };
     });
   return { type: 'FeatureCollection', features };

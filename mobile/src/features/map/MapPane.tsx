@@ -41,9 +41,8 @@ import { useFavoritesStore } from '../../state/favorites-store';
 import { usePlannedResupplyIds } from '../plan/use-planned-resupply';
 import { useSettingsStore } from '../../state/settings-store';
 import { useGuide } from '../guide/GuideContext';
-import { selectPlan, usePlansStore } from '../../state/plans-store';
 import { planDirectionOf } from '../plan/plan-stops';
-import { plannedStopFeatureIds } from '../plan/plan-overlay';
+import { usePlannedRouteMap } from '../plan/use-planned-route-map';
 import { useGuidePaneFocus, type MapPoint } from '../guide/GuideFocusContext';
 import { useGuidePositionContext } from '../guide/GuidePositionContext';
 import { boundsForKmRange, boundsForPath, isSameFocus, kmRangeInBounds } from '../guide/guide-focus';
@@ -142,21 +141,6 @@ export function MapPane() {
 
   const favoriteIds = useFavoritesStore((s) => s.byTrail[trailId]);
   const favoriteSet = useMemo(() => new Set(favoriteIds ?? []), [favoriteIds]);
-  // Stops of the hiker's plan get a ring on their marker. The plan stores km
-  // NOBO-absolute while this trail is direction-applied, so the conversion goes
-  // through `plan-overlay` — the same module the elevation profile uses, so the
-  // two panes can never disagree about which hut tonight is.
-  const plan = usePlansStore(selectPlan(trailId));
-  const plannedStopIds = useMemo(
-    () =>
-      plannedStopFeatureIds(
-        plan,
-        trail.waypoints,
-        planDirectionOf(direction),
-        trail.track.totalDistance,
-      ),
-    [plan, trail, direction],
-  );
   const units = useSettingsStore((s) => s.units);
   // Freshness-ranked water verdicts — tint the ring of water markers that have
   // recent reports (see GuideMap's waypointCircleStyle).
@@ -184,7 +168,20 @@ export function MapPane() {
     () => (allSideTrips ?? []).filter((v) => v.type === 'terminus'),
     [allSideTrips],
   );
-  const waypoints = trail.waypoints as MapWaypoint[];
+  // The plan's stops get a ring on their marker; an alternate it takes is
+  // drawn as the route, with its places, and the main route it bypasses dashed.
+  const {
+    waypoints,
+    plannedStopIds,
+    lines: plannedLines,
+  } = usePlannedRouteMap(trail.waypoints as MapWaypoint[], alternates);
+  const takenAlternateIds = useMemo(
+    () =>
+      plannedLines
+        ? new Set([...plannedLines.takenAlternateIndices].map((i) => variantFeatureId('alternate', i)))
+        : undefined,
+    [plannedLines],
+  );
   // OSM points of interest, already filtered by the global settings-store
   // filter (duplicates of curated waypoints and switched-off categories gone).
   // `TrailPOI` satisfies the map's structural `MapPoi`, so it goes straight in.
@@ -455,6 +452,8 @@ export function MapPane() {
           displayPoints={displayPoints}
           breaks={routeBreaks}
           alternates={alternates}
+          takenAlternateIds={takenAlternateIds}
+          bypassedKm={plannedLines?.bypassedKm}
           sideTrips={sideTrips}
           termini={termini}
           waypoints={waypoints}

@@ -527,8 +527,15 @@ the document field by field and would drop both.
 The phone's GPS km is snapped again to the planned route on the Plan screen, and the waypoint
 detail screen's "Stop here" edits in route km (no stop is offered on a bypassed stretch).
 
-Not yet: the phone's map rings and elevation-profile ticks still work on the main route (a stop
-on an alternate gets no tick); nested alternates.
+The phone's map draws the route as planned (`features/plan/plan-overlay.ts`): a taken alternate
+is drawn as the trail, solid, with its places as markers and their stop rings, and the main route
+it bypasses is dashed (the web plan page's base line and dashed main route); the other alternates
+stay dashed. The elevation profile stays the main route's: a stop on a taken alternate is ticked
+at the same fraction of the main stretch the alternate replaces, so the day boundary falls between
+the branch and the rejoin, and a stop on a bypassed stretch gets no tick.
+
+Not yet: the phone's elevation profile along the route as planned (the web's plots it); nested
+alternates.
 
 ## Out of scope (recorded so they are not lost)
 
