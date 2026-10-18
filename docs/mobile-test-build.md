@@ -41,6 +41,11 @@ npx eas-cli@latest build --non-interactive --profile preview --platform android
   bucket. A test build therefore talks to **production** data and syncs to the real account of
   whichever device installs it. To point a test build somewhere else, edit those values in
   `eas.json` before building — `.env.local` is only read by Metro, never by EAS.
+- **Check the worker is current first.** A build that uses an endpoint the deployed worker lacks
+  queues requests that 404 and never settle (shared waypoints shipped this way: #141). Before
+  any build, `npx wrangler d1 migrations list farout-comments --remote` in
+  `workers/comments-api/` must list nothing to apply, and the worker must be deployed from the
+  commit you build; if not, do step 1 of "Full release" first.
 - The version is `expo.version` in `app.json` (`0.1.0`). The Android `versionCode` is kept by
   EAS, not `app.json` (`cli.appVersionSource: "remote"` in `eas.json`; the first build after the
   switch seeds it from the local value, `1`). Test builds reuse the current `versionCode`; each `production` build bumps
@@ -110,6 +115,10 @@ be rolled forward without a reinstall. The detailed rationale is under "Deploy" 
    npm run migrate:remote && npm run deploy
    curl https://api.contour-map-tiles.net/health              # {"ok":true}
    ```
+
+   Then probe one route from each recent migration, not just `/health` (which answers while a
+   new route 404s), e.g. `curl https://api.contour-map-tiles.net/v1/trails/heysen/waypoints`
+   for 0007. Do this step whenever a merge touches `workers/comments-api/`, not only at release.
 
 2. **Site.** Vercel builds `main` on push. `VITE_API_BASE_URL=https://api.contour-map-tiles.net`
    is set on the Vercel project (Production and Preview, added 2026-09-22); without it the
