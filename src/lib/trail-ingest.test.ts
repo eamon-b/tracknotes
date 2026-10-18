@@ -640,19 +640,38 @@ describe('knownRetraces', () => {
   });
 
   it('logs the note instead for a retrace the config lists', () => {
-    const { warnings, logs } = build([{ turnaroundKm: 3.4, note: 'Into town and back' }]);
+    const { warnings, logs } = build([{ turnaroundKm: 3.4, lengthKm: 3, note: 'Into town and back' }]);
 
     expect(warnings).toEqual([]);
     expect(logs).toContainEqual(expect.stringMatching(/\(known\): Into town and back$/));
   });
 
   it('warns about an entry the route no longer has', () => {
-    const { warnings } = build([{ turnaroundKm: 6, note: 'Moved' }]);
+    const { warnings } = build([{ turnaroundKm: 6, lengthKm: 3, note: 'Moved' }]);
 
     expect(warnings).toEqual([
-      expect.stringMatching(/knownRetraces lists a retrace at km 6/),
+      expect.stringMatching(/knownRetraces lists a 3 km retrace at km 6/),
       expect.stringMatching(/retraces 3\.0 km around km 3\.0/),
     ]);
+  });
+
+  it('does not take a retrace of a different length turning at the same km for the known one', () => {
+    const { warnings } = build([{ turnaroundKm: 3, lengthKm: 7, note: 'A longer walk-in' }]);
+
+    expect(warnings).toEqual([
+      expect.stringMatching(/knownRetraces lists a 7 km retrace at km 3/),
+      expect.stringMatching(/retraces 3\.0 km around km 3\.0/),
+    ]);
+  });
+
+  it('pairs one entry with one retrace, so a duplicate entry is stale', () => {
+    const { warnings, logs } = build([
+      { turnaroundKm: 3.2, lengthKm: 3, note: 'Second' },
+      { turnaroundKm: 3, lengthKm: 3, note: 'First' },
+    ]);
+
+    expect(logs).toContainEqual(expect.stringMatching(/\(known\): First$/));
+    expect(warnings).toEqual([expect.stringMatching(/knownRetraces lists a 3 km retrace at km 3\.2/)]);
   });
 });
 
@@ -836,12 +855,31 @@ describe('waypointAccess', () => {
     expect(onAlternate.offTrailPath).toBeUndefined();
   });
 
-  it('never pulls a place beyond the match radius onto the route', () => {
+  it('never pulls a place beyond the match radius onto the route when its walk falls short of it', () => {
+    // The camp is 2.99 km from the valley in a straight line: a 2.5 km walk
+    // in cannot reach it, so the place has moved since the entry was written.
     const warnings: string[] = [];
     const trail = buildTrail(climb(), { config: config(), waypointAccess: atValley, warn: m => warnings.push(m) });
     expect(trail.waypoints.map(w => w.name)).not.toContain('Camp');
     expect(trail.offTrailWaypoints.map(w => w.name)).toContain('Camp');
-    expect(warnings.join('\n')).toMatch(/access for "Camp" \(w_camp\) ignored: the place is \d+m from the route/);
+    expect(warnings.join('\n')).toMatch(
+      /access for "Camp" \(w_camp\) ignored: the place is \d+m from the route and 299\dm from its junction, beyond its 2.5 km walk/
+    );
+  });
+
+  it('places a place beyond the match radius that its walk does reach, without widening the radius', () => {
+    const warnings: string[] = [];
+    const trail = buildTrail(climb(), {
+      config: config(),
+      waypointAccess: new Map([['w_camp', { junction: { lat: -34.005, lon: 138 }, offTrailKm: 3.2 }]]),
+      warn: m => warnings.push(m),
+    });
+    const camp = trail.waypoints.find(w => w.name === 'Camp')!;
+    expect(camp.trackIndex).toBe(1);
+    expect(camp.offTrailKm).toBe(3.2);
+    expect([camp.lat, camp.lon]).toEqual([-34.03, 138.012]);
+    expect(trail.offTrailWaypoints.map(w => w.name)).not.toContain('Camp');
+    expect(warnings).toEqual([]);
   });
 
   it('ignores a junction the route no longer passes', () => {

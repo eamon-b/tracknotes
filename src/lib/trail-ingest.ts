@@ -82,9 +82,48 @@ const MAX_TOLERANCE_METERS = 25;
 // that have no retrace at all.
 const SELF_RETRACE_WARN_KM = 2;
 
-// How near a `knownRetraces` entry's km must be to the retrace it names. Wide
-// enough that a small edit upstream of it does not re-raise the warning.
+// How near a `knownRetraces` entry's km and length must be to the retrace it
+// names: loose enough that a small edit upstream of it does not re-raise the
+// warning, tight enough that a different retrace turning nearby is not taken
+// for it.
 const KNOWN_RETRACE_MATCH_KM = 1;
+const KNOWN_RETRACE_LENGTH_TOLERANCE = 0.15;
+const KNOWN_RETRACE_MIN_LENGTH_TOLERANCE_KM = 0.5;
+
+/**
+ * Pair the retraces the route has with the `knownRetraces` entries that name
+ * them, one to one: an entry matches a retrace turning within
+ * `KNOWN_RETRACE_MATCH_KM` of its km whose length is within 15% (at least
+ * 0.5 km) of its own, the nearest pairs first. A retrace left unpaired is
+ * warned about; an entry left unpaired is `stale`.
+ */
+export function pairKnownRetraces(
+  retraces: readonly SelfRetrace[],
+  entries: readonly KnownRetraceConfig[]
+): { known: Map<SelfRetrace, KnownRetraceConfig>; stale: KnownRetraceConfig[] } {
+  const candidates: { retrace: SelfRetrace; entry: KnownRetraceConfig; offKm: number }[] = [];
+  for (const retrace of retraces) {
+    for (const entry of entries) {
+      const offKm = Math.abs(entry.turnaroundKm - retrace.turnaroundKm);
+      const lengthToleranceKm = Math.max(
+        KNOWN_RETRACE_MIN_LENGTH_TOLERANCE_KM,
+        entry.lengthKm * KNOWN_RETRACE_LENGTH_TOLERANCE
+      );
+      if (offKm <= KNOWN_RETRACE_MATCH_KM && Math.abs(entry.lengthKm - retrace.retraceLengthKm) <= lengthToleranceKm) {
+        candidates.push({ retrace, entry, offKm });
+      }
+    }
+  }
+  candidates.sort((a, b) => a.offKm - b.offKm);
+  const known = new Map<SelfRetrace, KnownRetraceConfig>();
+  const used = new Set<KnownRetraceConfig>();
+  for (const { retrace, entry } of candidates) {
+    if (known.has(retrace) || used.has(entry)) continue;
+    known.set(retrace, entry);
+    used.add(entry);
+  }
+  return { known, stale: entries.filter(entry => !used.has(entry)) };
+}
 
 // Distance (metres) from a variant's track within which a waypoint counts as
 // being on that variant. Deliberately tighter than the main route's
@@ -1038,6 +1077,13 @@ export interface WaypointAccessPlacement {
 const STALE_JUNCTION_METERS = 100;
 
 /**
+ * How far a place beyond the match radius may sit past the end of its entry's
+ * walk in, measured straight from the junction, and still be placed (metres).
+ * Covers rounding in a hand-written `offTrailKm`.
+ */
+const WALK_REACH_SLACK_METERS = 50;
+
+/**
  * The waypoints as the main route should match them: each one with a
  * placement stands at its junction, so `enrichWaypoints` attaches it to the
  * route point nearest the junction rather than nearest the place, and gets the
@@ -1045,8 +1091,11 @@ const STALE_JUNCTION_METERS = 100;
  * source waypoint the variants match. Pair with {@link restoreJunctionPositions}.
  *
  * A placement is skipped, with a warning, when the place is beyond the match
- * radius (it would not be on the route without one — a stale entry must not
- * pull an off-trail place onto it) or the junction is no longer on the route.
+ * radius and further from the junction than its walk in (the place moved, and
+ * a stale entry must not pull an off-trail place onto the route), or when the
+ * junction is no longer on the route. An entry whose walk does reach the place
+ * places it however far off the route it is, so one long walk-in (the
+ * Bibbulmun's Collie) does not need the radius widened for every waypoint.
  * A skipped waypoint is returned as the same object, an applied one as a new
  * one: {@link appliedAccessIds} reads which is which.
  */
@@ -1065,8 +1114,16 @@ export function matchAtJunctions(
     const placement = wp.id === undefined ? undefined : placements.get(wp.id);
     if (!placement) return wp;
     const place = findNearestTrackPoint(wp, trackPoints);
-    if (place.distanceFromTrack > maxDistanceMeters) {
-      warn(`access for "${wp.name}" (${wp.id}) ignored: the place is ${Math.round(place.distanceFromTrack)}m from the route`);
+    // Beyond the match radius, only an entry whose own walk reaches the place
+    // counts: a place now further from its junction than the walk in has
+    // moved since the entry was written, and stays off the route.
+    const fromJunctionM = haversineDistanceMeters(placement.junction.lat, placement.junction.lon, wp.lat, wp.lon);
+    const walkReaches = fromJunctionM <= placement.offTrailKm * 1000 + WALK_REACH_SLACK_METERS;
+    if (place.distanceFromTrack > maxDistanceMeters && !walkReaches) {
+      warn(
+        `access for "${wp.name}" (${wp.id}) ignored: the place is ${Math.round(place.distanceFromTrack)}m ` +
+          `from the route and ${Math.round(fromJunctionM)}m from its junction, beyond its ${placement.offTrailKm} km walk`
+      );
       return wp;
     }
     const junctionOffM = snapToTrail(placement.junction.lat, placement.junction.lon, line)?.offTrailMeters ?? Infinity;
@@ -1530,19 +1587,15 @@ export function buildTrail(gpx: ParsedGpxResult, options: BuildTrailOptions): Pr
 
   const selfRetraceWarnings: string[] = [];
   const selfRetraces = detectSelfRetraces(mainRoutePoints, { minRetraceKm: SELF_RETRACE_WARN_KM });
-  const knownRetraces = config.knownRetraces ?? [];
-  const isKnownRetrace = (known: KnownRetraceConfig, retrace: SelfRetrace) =>
-    Math.abs(known.turnaroundKm - retrace.turnaroundKm) <= KNOWN_RETRACE_MATCH_KM;
-  for (const known of knownRetraces) {
-    if (!selfRetraces.some(retrace => isKnownRetrace(known, retrace))) {
-      warn(
-        `  Warning: knownRetraces lists a retrace at km ${known.turnaroundKm} that the route no longer has. ` +
-          'Remove or move the entry in trail.json.'
-      );
-    }
+  const { known: knownByRetrace, stale: staleRetraces } = pairKnownRetraces(selfRetraces, config.knownRetraces ?? []);
+  for (const entry of staleRetraces) {
+    warn(
+      `  Warning: knownRetraces lists a ${entry.lengthKm} km retrace at km ${entry.turnaroundKm} that the route ` +
+        'no longer has. Remove or correct the entry in trail.json.'
+    );
   }
   for (const retrace of selfRetraces) {
-    const known = knownRetraces.find(k => isKnownRetrace(k, retrace));
+    const known = knownByRetrace.get(retrace);
     if (known) {
       log(
         `  ✓ Main route retraces ${retrace.retraceLengthKm.toFixed(1)} km around km ` +

@@ -33,15 +33,15 @@
     "id": "bibbulmun",
     "name": "Bibbulmun Track",
     "shortName": "Bibb",
-    "lengthKm": 976.2,
+    "lengthKm": 976.3,
     "country": "AU",
     "states": [
       "WA"
     ],
     "dataVersion": "2026-10-19",
-    "updatedAt": "2026-10-19T02:14:24.261Z",
-    "md5": "2f3a8a816e0231bbf4fcab6201faca0c",
-    "bytes": 1088601
+    "updatedAt": "2026-10-19T02:16:49.183Z",
+    "md5": "4dbd5bed098ecaa3dd23fe5f0aea8ab5",
+    "bytes": 1087943
   },
   {
     "id": "cape_to_cape",

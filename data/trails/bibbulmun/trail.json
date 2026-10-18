@@ -5,23 +5,23 @@
   "region": "South West WA",
   "country": "AU",
   "states": ["WA"],
-  "lengthKm": 976.2,
+  "lengthKm": 976.3,
   "gpxFile": "Bibbulmun_Track.gpx",
   "geojsonFile": "Bibbulmun_Track.json",
   "extractSpurs": [
     {
       "name": "Collie town (return)",
-      "fromKm": 324.57,
-      "toKm": 330.18
+      "fromKm": 324.69,
+      "toKm": 330.01
     }
   ],
   "knownRetraces": [
     {
-      "turnaroundKm": 880.0,
+      "turnaroundKm": 880.1,
+      "lengthKm": 6.9,
       "note": "Denmark: the official track runs into town to the Wilson Inlet ferry; this route walks back out to wade the inlet mouth instead"
     }
   ],
-  "waypointMaxDistance": 2500,
   "description": "Trail data auto-generated from Bibbulmun_Track.gpx. Edit trail.json to customize.",
   "dataSource": {
     "text": "Track and waypoints mapped for this site."
@@ -43,9 +43,9 @@
     },
     {
       "name": "Collie",
-      "lat": -33.3591,
-      "lon": 116.1495,
-      "elevation": 197
+      "lat": -33.3577,
+      "lon": 116.1258,
+      "elevation": 236
     },
     {
       "name": "Pemberton",

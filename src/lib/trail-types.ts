@@ -41,12 +41,14 @@ export interface SpurExtractionConfig {
 
 /**
  * A retrace that is the route as drawn, not a spur to lift out: the build logs
- * `note` in place of the self-retrace warning. `turnaroundKm` is in the km
- * space the warning reports (after `reverseTrack` and `extractSpurs`), matched
- * to within 1 km.
+ * `note` in place of the self-retrace warning. `turnaroundKm` and `lengthKm`
+ * are the figures the warning reports (km after `reverseTrack` and
+ * `extractSpurs`), matched to within 1 km and 15% (at least 0.5 km), one entry
+ * per retrace.
  */
 export interface KnownRetraceConfig {
   turnaroundKm: number;
+  lengthKm: number;
   note: string;
 }
 

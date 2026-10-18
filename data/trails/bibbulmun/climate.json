@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-18T03:05:13.827Z",
+  "generatedAt": "2026-10-18T07:28:20.157Z",
   "dataYears": {
     "start": 1994,
     "end": 2023
@@ -191,91 +191,91 @@
     },
     {
       "name": "Collie",
-      "lat": -33.3591,
-      "lon": 116.1495,
-      "elevation": 197,
+      "lat": -33.3577,
+      "lon": 116.1258,
+      "elevation": 236,
       "monthly": [
         {
           "month": 1,
-          "avgTempMin": 15,
-          "avgTempMax": 29.7,
+          "avgTempMin": 14.9,
+          "avgTempMax": 29.5,
           "avgPrecipitation": 14.5,
           "avgRainyDays": 2.2
         },
         {
           "month": 2,
-          "avgTempMin": 15.5,
-          "avgTempMax": 29.5,
+          "avgTempMin": 15.3,
+          "avgTempMax": 29.3,
           "avgPrecipitation": 14.8,
           "avgRainyDays": 1.8
         },
         {
           "month": 3,
-          "avgTempMin": 14.5,
-          "avgTempMax": 26.7,
+          "avgTempMin": 14.3,
+          "avgTempMax": 26.5,
           "avgPrecipitation": 24.9,
           "avgRainyDays": 3.3
         },
         {
           "month": 4,
-          "avgTempMin": 12.4,
-          "avgTempMax": 22.5,
+          "avgTempMin": 12.2,
+          "avgTempMax": 22.3,
           "avgPrecipitation": 29.9,
           "avgRainyDays": 4.6
         },
         {
           "month": 5,
-          "avgTempMin": 10.1,
-          "avgTempMax": 18.6,
+          "avgTempMin": 9.9,
+          "avgTempMax": 18.4,
           "avgPrecipitation": 70.2,
           "avgRainyDays": 7.7
         },
         {
           "month": 6,
-          "avgTempMin": 8.4,
-          "avgTempMax": 15.6,
+          "avgTempMin": 8.3,
+          "avgTempMax": 15.4,
           "avgPrecipitation": 92.3,
           "avgRainyDays": 9.9
         },
         {
           "month": 7,
-          "avgTempMin": 7.5,
-          "avgTempMax": 14.6,
+          "avgTempMin": 7.4,
+          "avgTempMax": 14.4,
           "avgPrecipitation": 110.2,
           "avgRainyDays": 12.6
         },
         {
           "month": 8,
-          "avgTempMin": 7.4,
-          "avgTempMax": 15.2,
+          "avgTempMin": 7.2,
+          "avgTempMax": 15.1,
           "avgPrecipitation": 92.3,
           "avgRainyDays": 10.8
         },
         {
           "month": 9,
-          "avgTempMin": 7.9,
-          "avgTempMax": 16.6,
+          "avgTempMin": 7.8,
+          "avgTempMax": 16.4,
           "avgPrecipitation": 70,
           "avgRainyDays": 9.1
         },
         {
           "month": 10,
-          "avgTempMin": 9.2,
-          "avgTempMax": 19.6,
+          "avgTempMin": 9,
+          "avgTempMax": 19.4,
           "avgPrecipitation": 36.4,
           "avgRainyDays": 5.8
         },
         {
           "month": 11,
-          "avgTempMin": 11.5,
-          "avgTempMax": 23.8,
+          "avgTempMin": 11.3,
+          "avgTempMax": 23.6,
           "avgPrecipitation": 25.9,
           "avgRainyDays": 4.3
         },
         {
           "month": 12,
-          "avgTempMin": 13.4,
-          "avgTempMax": 27.4,
+          "avgTempMin": 13.2,
+          "avgTempMax": 27.2,
           "avgPrecipitation": 16.8,
           "avgRainyDays": 2.4
         }
