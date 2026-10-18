@@ -62,7 +62,9 @@ RCLONE_REMOTE="${RCLONE_REMOTE:-r2}"
 R2_BUCKET="${R2_BUCKET:-aus-map-data}"
 PMTILES_FILE="${PMTILES_FILE:-$PROJECT_ROOT/public/data/tiles/world.pmtiles}"
 OBJECT_KEY="${OBJECT_KEY:-contours/world.pmtiles}"
-CONTOUR_WORKER_URL="${CONTOUR_WORKER_URL:-https://contour-tiles.aus-map-data.workers.dev}"
+# The custom domain, not workers.dev: only it goes through the edge cache, so
+# the check sees what phones and the web viewer see.
+CONTOUR_WORKER_URL="${CONTOUR_WORKER_URL:-https://tiles.contour-map-tiles.net}"
 WORLD_SOURCE="${WORLD_SOURCE:-world}"
 
 DRY_RUN=false

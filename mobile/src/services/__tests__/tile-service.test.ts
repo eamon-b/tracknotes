@@ -19,6 +19,7 @@ import {
   validateMbtiles,
   validateMbtilesCached,
   clearMbtilesValidationCache,
+  manifestUrl,
 } from '../tile-service';
 import { isTileFileName, nextTileFileName, type TileFileName } from '../tile-paths';
 import { Directory, File } from 'expo-file-system';
@@ -1432,5 +1433,21 @@ describe('offline pack generations (#45)', () => {
       'contours.mbtiles': 'contours-1.mbtiles',
     });
     expect(getTrailTileStatus(TRAIL_ID).state).toBe('complete');
+  });
+});
+
+describe('manifestUrl', () => {
+  it('adds a per-minute query string, so the edge cannot keep serving an old manifest', () => {
+    const t = Date.UTC(2026, 9, 18, 3, 0, 15);
+    expect(manifestUrl('https://data.example.com/', 'larapinta', t)).toBe(
+      `https://data.example.com/larapinta/manifest.json?m=${Math.floor(t / 60_000)}`,
+    );
+    // The same minute shares one cache entry; the next is a fresh one.
+    expect(manifestUrl('https://data.example.com', 'larapinta', t + 30_000)).toBe(
+      manifestUrl('https://data.example.com', 'larapinta', t),
+    );
+    expect(manifestUrl('https://data.example.com', 'larapinta', t + 60_000)).not.toBe(
+      manifestUrl('https://data.example.com', 'larapinta', t),
+    );
   });
 });

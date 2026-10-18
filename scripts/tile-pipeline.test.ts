@@ -24,6 +24,11 @@ import {
   contourTierFilter,
   contourTierRenameArgs,
   contourTippecanoeArgs,
+  contourSettingsHash,
+  TIPPECANOE_VERSION,
+  parseTippecanoeVersion,
+  compareVersions,
+  checkTippecanoeVersion,
 } from './tile-pipeline';
 
 /**
@@ -215,6 +220,51 @@ describe('contour tiers', () => {
   it('is quiet unless verbose', () => {
     expect(contourTippecanoeArgs()).toContain('-q');
     expect(contourTippecanoeArgs({}, { verbose: true })).not.toContain('-q');
+  });
+});
+
+describe('contourSettingsHash', () => {
+  it('is stable and ignores verbosity', () => {
+    expect(contourSettingsHash()).toMatch(/^[0-9a-f]{12}$/);
+    expect(contourSettingsHash()).toBe(contourSettingsHash({}));
+  });
+
+  it('changes with any setting that changes the tiles', () => {
+    const base = contourSettingsHash();
+    expect(contourSettingsHash({ tiered: false })).not.toBe(base);
+    expect(contourSettingsHash({ simplification: 14 })).not.toBe(base);
+    expect(contourSettingsHash({ minimumDetail: 4 })).not.toBe(base);
+  });
+});
+
+describe('tippecanoe version pin', () => {
+  it('parses the version tippecanoe prints', () => {
+    expect(parseTippecanoeVersion('tippecanoe v2.79.0\n')).toBe('2.79.0');
+    expect(parseTippecanoeVersion('2.78.0')).toBe('2.78.0');
+    expect(parseTippecanoeVersion('command not found')).toBeNull();
+  });
+
+  it('compares versions numerically', () => {
+    expect(compareVersions('2.79.0', '2.8.1')).toBeGreaterThan(0);
+    expect(compareVersions('1.27.13', '1.27.9')).toBeGreaterThan(0);
+    expect(compareVersions('2.79.0', '2.79.0')).toBe(0);
+  });
+
+  it('fails a release too old for the $zoom tier filter', () => {
+    expect(checkTippecanoeVersion('1.26.2', false).status).toBe('fail');
+    expect(checkTippecanoeVersion(null, false).status).toBe('fail');
+  });
+
+  it('warns on another capable release, and fails it when the pin is required', () => {
+    expect(checkTippecanoeVersion(TIPPECANOE_VERSION, true).status).toBe('ok');
+    expect(checkTippecanoeVersion('2.82.0', false).status).toBe('warn');
+    expect(checkTippecanoeVersion('2.82.0', true).status).toBe('fail');
+  });
+
+  it('is the release scripts/remote/bootstrap.sh builds', () => {
+    const bootstrap = fs.readFileSync(path.join(__dirname, 'remote/bootstrap.sh'), 'utf8');
+    const m = bootstrap.match(/^TIPPECANOE_REF="\$\{TIPPECANOE_REF:-([^}]+)\}"$/m);
+    expect(m?.[1]).toBe(TIPPECANOE_VERSION);
   });
 });
 

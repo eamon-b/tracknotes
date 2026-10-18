@@ -217,6 +217,8 @@ purge_public_url() {
     echo "  Not purged from the edge cache (--no-purge): $url"
     return 0
   fi
+  # require_purge_token has normally refused to start without one; this is
+  # the backstop for a caller that skipped it.
   if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
     echo "Error: $url was uploaded but not purged from the edge cache:"
     echo "  CLOUDFLARE_API_TOKEN is not set. Phones keep seeing the previous copy until"
@@ -240,6 +242,22 @@ purge_public_url() {
   fi
 }
 
+# Refuse to start a manifest upload that could not purge. Checked once, before
+# anything is uploaded: purge_public_url runs after each manifest, so without
+# this an all-trails upload with no token published the first trail unpurged
+# and exited, leaving the rest not uploaded at all.
+require_purge_token() {
+  [ "$PURGE" = 1 ] || return 0
+  if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
+    echo "Error: CLOUDFLARE_API_TOKEN is not set, so the manifests this uploads could not"
+    echo "  be purged from the edge cache, and phones would keep seeing the previous ones"
+    echo "  for days. Set a token with Cache Purge on the zone, or pass --no-purge to purge"
+    echo "  by hand (dashboard: Caching > Configuration > Purge Cache > Custom Purge)."
+    echo "  Nothing was uploaded."
+    exit 1
+  fi
+}
+
 # Upload every file a manifest lists, then the manifest itself.
 #
 # The manifest is uploaded LAST and is the atomic commit point of the whole
@@ -253,8 +271,9 @@ purge_public_url() {
 # and the app writes downloads to `name` on device.
 #
 # Superseded objects at old keys are deliberately left in the bucket: older
-# manifests still reference them. Cleanup is manual for now (list the bucket,
-# keep whatever any live manifest references, delete the rest).
+# manifests still reference them (a phone mid-download, an edge-cached copy).
+# `npm run cleanup:tiles` lists what no live manifest references and, with
+# --delete, removes it (scripts/cleanup-superseded-tiles.ts).
 upload_manifest_dir() {
   local src_dir="$1"
   local remote_prefix="$2"
@@ -495,6 +514,12 @@ for arg in "$@"; do
   if [ "$arg" = "--no-purge" ]; then PURGE=0; else args+=("$arg"); fi
 done
 set -- "${args[@]+"${args[@]}"}"
+
+# Every mode but the contour archive publishes manifests, and so purges.
+case "${1:-}" in
+  --contours|--verify-contours) ;;
+  *) require_purge_token ;;
+esac
 
 if [ $# -ge 1 ] && [ "$1" = "--grid" ]; then
   # Grid mode

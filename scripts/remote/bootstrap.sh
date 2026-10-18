@@ -7,7 +7,7 @@
 #
 #   build essentials, git, curl, sqlite3, unzip, jq, rclone
 #   GDAL >= 3.6 (gdal-bin)               — warp + contour
-#   tippecanoe (built from source, felt/tippecanoe latest release)
+#   tippecanoe (built from source, the pinned felt/tippecanoe release)
 #   Node 22 (NodeSource apt repo)        — the build scripts run under tsx
 #   pmtiles CLI (protomaps/go-pmtiles)   — convert/verify/show the archive
 #
@@ -26,7 +26,7 @@
 #   REPO_REF      branch/tag to check out (default main)
 #   CHECKOUT_DIR  where to clone        (default $HOME/trail-maps)
 #   NODE_MAJOR    Node major version    (default 22)
-#   TIPPECANOE_REF  tippecanoe tag to build (default: latest release)
+#   TIPPECANOE_REF  tippecanoe tag to build (default: the pinned release below)
 #
 # NOTE on the git remote: the default is SSH, which needs a key on the box
 # (ssh-keygen -t ed25519 && add the public key as a GitHub deploy key). For a
@@ -39,7 +39,11 @@ REPO_URL="${REPO_URL:-git@github.com:eamon-b/trail-maps.git}"
 REPO_REF="${REPO_REF:-main}"
 CHECKOUT_DIR="${CHECKOUT_DIR:-$HOME/trail-maps}"
 NODE_MAJOR="${NODE_MAJOR:-22}"
-TIPPECANOE_REF="${TIPPECANOE_REF:-}"
+# Pinned: the contour builds are verified against this release, and
+# checkDependencies() refuses any other for the world build. Keep it equal to
+# TIPPECANOE_VERSION in scripts/tile-pipeline.ts (a test checks), which says
+# why this release.
+TIPPECANOE_REF="${TIPPECANOE_REF:-2.79.0}"
 TIPPECANOE_SRC_DIR="${TIPPECANOE_SRC_DIR:-$HOME/src/tippecanoe}"
 MIN_GDAL_VERSION="3.6"
 
@@ -169,14 +173,6 @@ fi
 # --- 3. tippecanoe (from source) ---
 
 log "tippecanoe"
-if [ -z "$TIPPECANOE_REF" ]; then
-  TIPPECANOE_REF="$(curl -fsSL https://api.github.com/repos/felt/tippecanoe/releases/latest | jq -r '.tag_name')"
-  if [ -z "$TIPPECANOE_REF" ] || [ "$TIPPECANOE_REF" = "null" ]; then
-    echo "Error: could not resolve the latest felt/tippecanoe release tag." >&2
-    echo "Set TIPPECANOE_REF=<tag> and re-run (GitHub API rate limit?)." >&2
-    exit 1
-  fi
-fi
 # Release tags are "2.78.0" or "v2.78.0"; `tippecanoe --version` prints
 # "tippecanoe v2.78.0" on stderr. Compare on the bare number.
 want_tippecanoe="${TIPPECANOE_REF#v}"

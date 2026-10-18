@@ -94,7 +94,9 @@ rebuilding them.
 --maximum-tile-bytes=1000000`. The previous `--simplification=14` left z12–z14
 contours visibly polygonal; 2 is smooth at every zoom for ~+35% archive size in
 mountainous tiles (z15 unchanged). Only the tippecanoe flags changed, so a
-future re-tune is a `--merge-only` re-run, not a cell rebuild. The experiment's
+future re-tune is a `--merge-only` re-run, not a cell rebuild — *if* the
+shard's tier files are still on disk. A world build normally deletes them
+(`--clean-work`), and then a re-tune is a full rebuild from the DEM. The experiment's
 `baseline` variant mirrors these flags; `legacy-simp-14` is the old bundle.
 
 **Found 2026-10-12: the zoom tiers were never applied.** tippecanoe's
@@ -108,8 +110,12 @@ grid by `--minimum-detail=4`). `scripts/tile-pipeline.ts` now reads each tier
 as its own tippecanoe layer, gates it with a `-j` `$zoom` filter and folds the
 layers back into `contour` with tile-join `-R` (`renameContourTiers`); the
 experiment's `untiered` variant is the old behaviour. It is a tippecanoe-only
-change — `--merge-only` re-runs the shards from their kept tiers, no cell
-rebuild — and the batch/shard joins already run tile-join, so only a
+change, so where a build's tier files survive (Australia's, on the laptop)
+`--merge-only` re-tiers it with no cell rebuild. **The world's do not**: the
+September 2026 build deleted them with `--clean-work`, and its kept batches
+and shards would not help (tippecanoe had already dropped the low-zoom lines
+inside them), so re-tiering the world archive is a full rebuild from the DEM
+(issue #135). The batch/shard joins already run tile-join, so only a
 single-batch shard pays an extra tile-join pass. The re-tiered archives are
 smaller at z9–z12 (Mt Sonder's z9 tile: 543 KB → 55 KB) and identical from
 z13 up.
@@ -137,8 +143,10 @@ bash bootstrap.sh
 the script updates an existing checkout in place.)
 
 `bootstrap.sh` installs build essentials, GDAL ≥ 3.6 (it hard-fails on older),
-sqlite3, git, rclone, Node 22 from NodeSource, tippecanoe built from the latest
-`felt/tippecanoe` release, the `pmtiles` CLI from `protomaps/go-pmtiles`, then
+sqlite3, git, rclone, Node 22 from NodeSource, tippecanoe built from the pinned
+`felt/tippecanoe` release (`TIPPECANOE_REF`, 2.79.0 — the world build refuses
+any other; why that release is in `TIPPECANOE_VERSION`,
+`scripts/tile-pipeline.ts`), the `pmtiles` CLI from `protomaps/go-pmtiles`, then
 clones the repo and runs `npm ci`. It prints every version at the end — paste
 that block into the build notes for the record. Re-running it is safe.
 
@@ -344,7 +352,9 @@ Then on a box with ≥ 3 TB of NVMe (core count barely matters — tile-join and
 
 `--join-batches` removes a shard's batches only after its join succeeded, so a
 killed join re-runs from the same inputs. Delete the `contours/world-build/`
-prefix from R2 once `world.pmtiles` is verified there.
+prefix from R2 once `world.pmtiles` is verified there:
+`npm run cleanup:tiles -- --world-build` lists it, `--world-build --delete`
+deletes it.
 
 ### What the September 2026 run measured
 
@@ -458,7 +468,7 @@ Everything is resumable; nothing needs to start over.
 | Build died during the cell phase (OOM, disk, reboot) | Re-run the exact same `./scripts/remote/run-shard.sh <shard>`. Cells with a `.done` marker in `data/tiles/contours-world/{shard}/` are skipped; only pending cells rebuild. |
 | Build died during the tippecanoe merge | `./scripts/remote/run-shard.sh <shard> --merge-only` — redoes only the merge from the staged `*_z*.fgb` tiers (no GDAL work). |
 | A cell looks wrong / settings changed | Delete that cell's `.done` marker and `{cellId}_z*.fgb`, then re-run the shard. Or `--force` to rebuild everything. |
-| Batched merge died during tippecanoe | Re-run the same `--merge-only` (or `--batches-only`) command: batches with a `.done` marker whose recorded cell list matches are reused; the one that died re-tiles. |
+| Batched merge died during tippecanoe | Re-run the same `--merge-only` (or `--batches-only`) command: a batch is reused only when its `.done` marker records the same cell list *and* the same tippecanoe settings hash (`contourSettingsHash`); the one that died re-tiles. A batch tiled with other settings — any batch from before the 2026-10 tier fix — is re-tiled, and `--join-batches` refuses it. This is crash recovery, not a way to re-tune: changing the settings re-tiles every batch from the tiers. |
 | Batched merge died during tile-join | `--join-batches` re-joins the kept batches; on a spinning disk consider section 6a instead. |
 | Join died | Re-run `--join`. Delete any partial `world.mbtiles` / `world.pmtiles` first — a killed run leaves a headerless file. |
 | Upload died | Re-run `upload-world.sh`; rclone restarts the multipart upload. Verify byte counts afterwards (`--verify-only`). |
@@ -495,6 +505,13 @@ world tileset is proven on real trails.
 - Point the public demo/docs site at the `world` source.
 - Decide later whether `contours` becomes an alias of `world` and the SRTM
   Australia archive is retired (see `plans/world-contour-tiles.md` §Rollout).
+- Check the tiers are live: `npm run check:tiered` (the Mt Sonder z9 tile on
+  both worker sources, and every pack's z9). Once it passes, add `--tiered` to
+  `check:tile-packs` so the weekly workflow keeps checking it.
+- Delete `contours/world-build/` (`npm run cleanup:tiles -- --world-build
+  --delete`) and, once every live pack manifest points at the rebuilt packs and
+  a week has passed, the superseded pack objects (`npm run cleanup:tiles`, then
+  `-- --delete`).
 - Destroy the build box, revoke the R2 token and any deploy key.
 - Record the actual timings/sizes in `plans/world-contour-tiles.md` so the next
   rebuild's estimates are real numbers instead of these guesses.

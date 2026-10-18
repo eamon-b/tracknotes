@@ -190,6 +190,18 @@ export function contourTippecanoeArgs(
 }
 
 /**
+ * A short digest of the contour tippecanoe settings, for markers that let a
+ * later run reuse tippecanoe output (the world build's batch `.done`). Taken
+ * over the argv with the verbosity flag left out, since `-q` changes only the
+ * terminal output: two runs that differ by anything else produce different
+ * tiles, and must not reuse each other's.
+ */
+export function contourSettingsHash(options: ContourTippecanoeOptions = {}): string {
+  const args = contourTippecanoeArgs(options, { verbose: true });
+  return crypto.createHash('sha256').update(JSON.stringify(args)).digest('hex').slice(0, 12);
+}
+
+/**
  * Fold a tippecanoe output's tier layers (`contour_z9`…) into the one served
  * `contour` layer with tile-join. `outputPath` may be `.mbtiles` or
  * `.pmtiles`. `--no-tile-size-limit` is mandatory: tile-join re-encodes every
@@ -475,6 +487,74 @@ export function demFilesForCell(cell: CellDef): string[] {
 
 // --- Dependency checking ---
 
+/**
+ * The felt/tippecanoe release the contour builds are verified against, and
+ * the one `scripts/remote/bootstrap.sh` builds (`TIPPECANOE_REF`; a test
+ * keeps the two equal). The tier fix needs `$zoom` in `-j` feature filters
+ * (tippecanoe 1.27.13) and tile-join `-R` (1.26.1), which every 2.x release
+ * has; the pin is about everything else. 2.79.0 is felt's latest *release*
+ * (2025-07-24) and the version the bootstrap's "latest release" lookup
+ * installed on the September 2026 box: the tier fix was checked against its
+ * behaviour (2.78.0 changed how `--drop-smallest-as-needed` gives up), while
+ * felt's main branch has since rewritten the JSON parser that reads `-L` and
+ * `-j` and changed how pyramids drop features (2.80–2.82, untagged).
+ */
+export const TIPPECANOE_VERSION = '2.79.0';
+
+/** The oldest tippecanoe whose `-j` filters can test `$zoom` (the tiers). */
+export const TIPPECANOE_MIN_VERSION = '1.27.13';
+
+/** `tippecanoe v2.79.0` → `2.79.0`; null when no version is in the text. */
+export function parseTippecanoeVersion(text: string): string | null {
+  const m = text.match(/(\d+)\.(\d+)\.(\d+)/);
+  return m ? `${m[1]}.${m[2]}.${m[3]}` : null;
+}
+
+/** Numeric comparison of two `x.y.z` versions: negative when a < b. */
+export function compareVersions(a: string, b: string): number {
+  const pa = a.split('.').map(Number);
+  const pb = b.split('.').map(Number);
+  for (let i = 0; i < 3; i++) {
+    const d = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (d !== 0) return d;
+  }
+  return 0;
+}
+
+/**
+ * What to do about the installed tippecanoe: `ok`, `warn` (a different but
+ * capable release) or `fail` (too old for the tiers, unreadable, or — when
+ * the pin is required — anything but the pin).
+ */
+export function checkTippecanoeVersion(
+  installed: string | null,
+  requirePinned: boolean
+): { status: 'ok' | 'warn' | 'fail'; message?: string } {
+  if (!installed) {
+    return { status: 'fail', message: 'could not read the tippecanoe version (`tippecanoe --version`)' };
+  }
+  if (compareVersions(installed, TIPPECANOE_MIN_VERSION) < 0) {
+    return {
+      status: 'fail',
+      message: `tippecanoe ${installed} is older than ${TIPPECANOE_MIN_VERSION}: its -j filters cannot test $zoom, so the contour tiers would not apply`,
+    };
+  }
+  if (installed === TIPPECANOE_VERSION) return { status: 'ok' };
+  const message = `tippecanoe ${installed} is installed; the contour builds are verified against ${TIPPECANOE_VERSION}` +
+    ' (scripts/remote/bootstrap.sh builds it)';
+  return requirePinned ? { status: 'fail', message } : { status: 'warn', message };
+}
+
+function installedTippecanoeVersion(): string | null {
+  try {
+    // Prints to stderr, and exits 0 or 1 depending on the release.
+    const out = execSync('tippecanoe --version 2>&1 || true', { encoding: 'utf-8', stdio: 'pipe' });
+    return parseTippecanoeVersion(out);
+  } catch {
+    return null;
+  }
+}
+
 interface DependencyCheck {
   name: string;
   command: string;
@@ -483,6 +563,13 @@ interface DependencyCheck {
 export function checkDependencies(opts: {
   skipContours?: boolean;
   skipBase?: boolean;
+  /**
+   * Refuse any tippecanoe but TIPPECANOE_VERSION, for builds too long to
+   * gamble on another release (the world archive: days of box time).
+   * `TIPPECANOE_ANY_VERSION=1` overrides it. Without it a different capable
+   * release only warns.
+   */
+  requirePinnedTippecanoe?: boolean;
 }): void {
   const deps: DependencyCheck[] = [];
 
@@ -525,6 +612,19 @@ export function checkDependencies(opts: {
     missing.forEach(d => console.error(`  - ${d}`));
     console.error('\nInstall them before running this script.');
     process.exit(1);
+  }
+
+  if (!opts.skipContours) {
+    const requirePinned = !!opts.requirePinnedTippecanoe && process.env.TIPPECANOE_ANY_VERSION !== '1';
+    const check = checkTippecanoeVersion(installedTippecanoeVersion(), requirePinned);
+    if (check.status === 'fail') {
+      console.error(`\n${check.message}.`);
+      if (requirePinned) {
+        console.error(`Build tippecanoe ${TIPPECANOE_VERSION} (scripts/remote/bootstrap.sh), or set TIPPECANOE_ANY_VERSION=1 to run anyway.`);
+      }
+      process.exit(1);
+    }
+    if (check.status === 'warn') console.warn(`  ⚠ ${check.message}`);
   }
 }
 

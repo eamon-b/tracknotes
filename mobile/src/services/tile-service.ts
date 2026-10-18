@@ -445,15 +445,29 @@ export interface DownloadOptions {
 }
 
 /**
+ * A trail's pack manifest URL, with a per-minute query string. The edge in
+ * front of the bucket has served a manifest days past its max-age, and the
+ * plain URL is one cache entry for every phone, so a republished pack reached
+ * no phone until `upload-tiles.sh` purged it. The query string is part of the
+ * cache key: each minute is a fresh entry (requests within it still share
+ * one), and the purge becomes a backup rather than the only way an update
+ * gets out. The same scheme as the trail catalog (`catalogUrl`).
+ */
+export function manifestUrl(baseUrl: string, trailId: string, now: number = Date.now()): string {
+  return `${baseUrl.replace(/\/$/, '')}/${trailId}/manifest.json?m=${Math.floor(now / 60_000)}`;
+}
+
+/**
  * Fetch the manifest for a trail. Returns null if not available.
  */
 async function fetchManifest(
   baseUrl: string,
   trailId: string,
 ): Promise<TileManifest | null> {
-  const url = `${baseUrl.replace(/\/$/, '')}/${trailId}/manifest.json`;
   try {
-    const response = await fetch(url);
+    const response = await fetch(manifestUrl(baseUrl, trailId), {
+      headers: { 'Cache-Control': 'no-cache' },
+    });
     if (!response.ok) return null;
     return (await response.json()) as TileManifest;
   } catch {

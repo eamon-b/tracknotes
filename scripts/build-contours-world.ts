@@ -61,6 +61,7 @@ import {
   contourTierLayerArg,
   contourTierRenameArgs,
   contourTippecanoeArgs,
+  contourSettingsHash,
   renameContourTiers,
   run,
   ensureDir,
@@ -338,6 +339,16 @@ function cellDoneMarker(workDir: string, cellId: string): string {
 /** Written after a batch's tippecanoe exits 0; a killed run leaves a headerless mbtiles and no marker. */
 function batchDoneMarker(batchPath: string): string {
   return `${batchPath}.done`;
+}
+
+/**
+ * The tail of a batch `.done` label naming the tippecanoe settings it was
+ * tiled with. A batch is reused only when its whole label matches, so one
+ * built with other settings (the untiered archives before 2026-10, or any
+ * later change to the quality bundle) is re-tiled rather than shipped.
+ */
+function batchSettingsLabel(): string {
+  return `tippecanoe settings ${contourSettingsHash()}`;
 }
 
 function mosaicVrtPath(workDir: string): string {
@@ -781,11 +792,14 @@ function mergeToMbtiles(workDir: string, outputPath: string, verbose: boolean, m
     batches.forEach((cells, i) => {
       const batchPath = path.join(workDir, `batch-${String(i).padStart(2, '0')}.mbtiles`);
       const batchBytes = cells.reduce((a, id) => a + (bytesByCell.get(id) ?? 0), 0);
-      const label = `${cells.length} cells, ${formatBytes(batchBytes)} (${cells[0]}…${cells[cells.length - 1]})`;
-      console.log(`    batch ${i + 1}/${batches.length}: ${label}`);
+      const cellsLabel = `${cells.length} cells, ${formatBytes(batchBytes)} (${cells[0]}…${cells[cells.length - 1]})`;
+      const label = `${cellsLabel}, ${batchSettingsLabel()}`;
+      console.log(`    batch ${i + 1}/${batches.length}: ${cellsLabel}`);
       // A batch is hours of single-threaded tippecanoe. Its marker records what
-      // went in, so a re-run after a crash (or a --batches-only run followed by
-      // a full one) reuses it rather than tiling the same cells again.
+      // went in — the cells and the tippecanoe settings — so a re-run after a
+      // crash (or a --batches-only run followed by a full one) reuses it rather
+      // than tiling the same cells again, and never reuses one tiled with
+      // other settings.
       const marker = batchDoneMarker(batchPath);
       if (fs.existsSync(batchPath) && fs.existsSync(marker) && fs.readFileSync(marker, 'utf8') === label) {
         console.log(`      ↺ ${path.basename(batchPath)} already built (${formatBytes(fileSizeBytes(batchPath))})`);
@@ -851,6 +865,15 @@ function joinKeptBatches(workDir: string, outputPath: string, verbose: boolean):
     throw new Error(
       `--join-batches: ${unfinished.map(p => path.basename(p)).join(', ')} ` +
       'have no .done marker (tippecanoe was killed mid-write?); re-run --merge-only --batches-only'
+    );
+  }
+  const settings = batchSettingsLabel();
+  const stale = batchPaths.filter(p => !fs.readFileSync(batchDoneMarker(p), 'utf8').endsWith(`, ${settings}`));
+  if (stale.length > 0) {
+    throw new Error(
+      `--join-batches: ${stale.map(p => path.basename(p)).join(', ')} ` +
+      `were tiled with other tippecanoe settings than this checkout's (${settings}); ` +
+      'delete them and re-run --merge-only --batches-only from the tiers'
     );
   }
   const totalBytes = batchPaths.reduce((a, p) => a + fileSizeBytes(p), 0);
@@ -1022,7 +1045,8 @@ async function main(): Promise<void> {
   console.log('=============================\n');
 
   console.log('Checking dependencies...');
-  checkDependencies({ skipBase: true });
+  // Days of box time: refuse any tippecanoe but the verified release.
+  checkDependencies({ skipBase: true, requirePinnedTippecanoe: true });
   console.log('  ✓ All dependencies found\n');
 
   ensureDir(workDir);

@@ -40,6 +40,15 @@
  *                           starts with the SQLite magic, and is not a
  *                           suspiciously small stub. (An empty/corrupt
  *                           mbtiles crashes the app natively on device.)
+ *   6. Tiered contours    — the contour zoom tiers (scripts/tile-pipeline.ts
+ *                           CONTOUR_TIERS, issue #135) are live: the Mt
+ *                           Sonder z9 tile from the worker's `world` and
+ *                           `contours` sources holds only 100 m lines, at
+ *                           a sane density, and so does every z9 tile of
+ *                           every pack's contours.mbtiles (read with Range
+ *                           requests: scripts/lib/http-mbtiles.mjs). An
+ *                           untiered archive fails here while passing every
+ *                           other check.
  *
  * No build state or external npm deps required — reads only the committed
  * trail index, hits public URLs, uses Node's built-in fetch + zlib. Exits
@@ -47,6 +56,8 @@
  *
  * Usage:  node scripts/e2e-tile-check.mjs            # every check
  *         node scripts/e2e-tile-check.mjs --packs    # trail offline sets only
+ *         node scripts/e2e-tile-check.mjs --tiered   # tiered contours only
+ *         node scripts/e2e-tile-check.mjs --packs --tiered  # packs, and each pack tiered
  * Env:    CONTOUR_TILE_URL   (default: the worker the app's builds use)
  *         TILE_BASE_URL      (default: the pack host the app's builds use)
  *
@@ -56,6 +67,8 @@
 
 import { readFileSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
+import { httpRangeReader, readZoomTiles } from './lib/http-mbtiles.mjs';
+import { checkZ9Tiered } from './lib/mvt-contours.mjs';
 
 const CONTOUR_URL = (
   process.env.CONTOUR_TILE_URL || 'https://tiles.contour-map-tiles.net'
@@ -552,6 +565,113 @@ async function checkTrailOfflineArtifacts() {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Tiered contours. Only the 100 m tier starts at z9 (CONTOUR_TIERS), so every
+// feature of a tiered z9 tile is a 100 m line. Before the tier fix every
+// archive tiled every 10 m contour into every zoom: Mt Sonder's z9 tile held
+// ~14,000 features (543 KB) and tippecanoe dropped and coarsened them — the
+// live world tile kept one line. Built tiered it holds about 1,500 (55 KB).
+// ---------------------------------------------------------------------------
+
+/** Mt Sonder (Larapinta Trail), 9/444/290: the tile issue #135 measured. */
+const TIERED_SPOT_TILE = { name: 'Mt Sonder', z: 9, x: 444, y: 290 };
+const TIERED_SOURCES = ['world', 'contours'];
+/** A tiered Mt Sonder z9 holds ~1,500 features; untiered ~14,000, or 1 once dropped. */
+const TIERED_SPOT_MIN_FEATURES = 300;
+const TIERED_SPOT_MAX_FEATURES = 5_000;
+
+async function checkTieredSpotTiles() {
+  const { name, z, x, y } = TIERED_SPOT_TILE;
+  console.log(`\n[tiered] Worker z9 contours tiered (${name}, ${z}/${x}/${y})`);
+  for (const source of TIERED_SOURCES) {
+    const label = `${source}/${z}/${x}/${y}`;
+    let res;
+    try {
+      res = await fetch(`${CONTOUR_URL}/${label}.pbf`, { headers: { 'Accept-Encoding': 'gzip' } });
+    } catch (e) {
+      failures.push(`[tiered] ${label} fetch failed: ${e.message}`);
+      continue;
+    }
+    if (res.status !== 200) {
+      failures.push(`[tiered] ${label} → HTTP ${res.status} (expected 200: ${name} has contours at z9)`);
+      continue;
+    }
+    const bytes = decodeTileBody(Buffer.from(await res.arrayBuffer()), `[tiered] ${label}`);
+    if (!bytes) continue;
+    let result;
+    try {
+      result = checkZ9Tiered(bytes);
+    } catch (e) {
+      failures.push(`[tiered] ${label} does not decode: ${e.message}`);
+      continue;
+    }
+    if (!result.ok) {
+      failures.push(`[tiered] ${label} is not tiered: ${result.reason}`);
+    } else if (result.features < TIERED_SPOT_MIN_FEATURES || result.features > TIERED_SPOT_MAX_FEATURES) {
+      failures.push(
+        `[tiered] ${label} holds ${result.features} contour features, expected ` +
+          `${TIERED_SPOT_MIN_FEATURES}–${TIERED_SPOT_MAX_FEATURES} (~1,500 built tiered): ` +
+          'too few means tippecanoe dropped lines, too many means the tiers did not apply'
+      );
+    } else {
+      console.log(`      ✓ ${label}: ${result.features} features, all 100 m lines (${bytes.length} bytes)`);
+    }
+  }
+}
+
+/** The manifest of each bundled trail, or null where it cannot be had. */
+async function fetchPackManifest(trailId) {
+  try {
+    const res = await fetch(`${TILE_BASE_URL}/${trailId}/manifest.json?m=${Math.floor(Date.now() / 60_000)}`);
+    return res.status === 200 ? await res.json() : null;
+  } catch {
+    return null;
+  }
+}
+
+async function checkTieredPacks() {
+  console.log(`\n[tiered] z9 of each pack's contours.mbtiles tiered`);
+  for (const trailId of TRAIL_IDS) {
+    const manifest = await fetchPackManifest(trailId);
+    const file = Array.isArray(manifest?.files) && manifest.files.find((f) => f?.name === 'contours.mbtiles');
+    if (!file) {
+      // The pack check reports a missing manifest or file; don't count it twice.
+      console.log(`      - ${trailId}: no contours.mbtiles to read (see the pack check)`);
+      continue;
+    }
+    const url = `${TILE_BASE_URL}/${trailId}/${file.key ?? file.name}`;
+    let tiles;
+    try {
+      tiles = await readZoomTiles(httpRangeReader(url), 9);
+    } catch (e) {
+      failures.push(`[tiered] [${trailId}] could not read contours.mbtiles z9: ${e.message}`);
+      continue;
+    }
+    if (tiles.length === 0) {
+      failures.push(`[tiered] [${trailId}] contours.mbtiles has no z9 tiles (contours start at z9)`);
+      continue;
+    }
+    let features = 0;
+    const bad = [];
+    for (const tile of tiles) {
+      try {
+        const result = checkZ9Tiered(tile.data);
+        features += result.features;
+        // A z9 tile over flat country can hold no 100 m line at all: an empty
+        // contour layer is not a failure, a 10 m line is.
+        if (!result.ok && result.reason !== 'no contour layer') bad.push(`9/${tile.x}/${tile.y} (TMS): ${result.reason}`);
+      } catch (e) {
+        bad.push(`9/${tile.x}/${tile.y} (TMS): does not decode: ${e.message}`);
+      }
+    }
+    if (bad.length > 0) {
+      failures.push(`[tiered] [${trailId}] ${bad.length} of ${tiles.length} z9 tiles not tiered (v${manifest.version}); first: ${bad[0]}`);
+    } else {
+      console.log(`      ✓ ${trailId}: ${tiles.length} z9 tiles, ${features} features, all 100 m lines (v${manifest.version})`);
+    }
+  }
+}
+
 async function checkGridBaseReachable() {
   // Light reachability check on the R2 map-tile bucket (grid index).
   const url = `${TILE_BASE_URL}/grid/index.json`;
@@ -577,19 +697,25 @@ async function main() {
   console.log('E2E tile pipeline check —', new Date().toISOString());
   console.log('='.repeat(70));
 
-  if (process.argv.includes('--packs')) {
-    await checkTrailOfflineArtifacts();
+  const packs = process.argv.includes('--packs');
+  const tiered = process.argv.includes('--tiered');
+  if (packs || tiered) {
+    if (packs) await checkTrailOfflineArtifacts();
+    if (tiered && !packs) await checkTieredSpotTiles();
+    if (tiered) await checkTieredPacks();
   } else {
     await checkContourHealth();
     await checkContourWorker();
     await checkHighZoomTiles();
     await checkTrailOfflineArtifacts();
+    await checkTieredSpotTiles();
+    await checkTieredPacks();
     await checkGridBaseReachable();
   }
 
   console.log('\n' + '='.repeat(70));
   if (failures.length === 0) {
-    console.log('RESULT: PASS — all contour/health/gzip/offline checks succeeded.');
+    console.log('RESULT: PASS — every check run succeeded.');
     console.log('='.repeat(70));
     process.exit(0);
   } else {
