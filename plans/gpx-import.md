@@ -1,6 +1,6 @@
 # Implementation Plan: User GPX Import (Web + Mobile)
 
-> **Status (2026-08-22):** implemented on branch `worktree-plan-gpx-import` — Phases 1–3 and all Phase 4 items except the on-demand bbox tile-pack server (explicitly out of v1 scope). Known follow-ups: Android `ACTION_SEND` payload (`EXTRA_STREAM`) needs a native reader; the My Guides badge does not reflect a borrowed offline pack.
+> **Status (2026-08-22):** implemented on branch `worktree-plan-gpx-import` — Phases 1–3 and all Phase 4 items except the on-demand bbox tile-pack server (explicitly out of v1 scope). Follow-ups closed in #162: Android `ACTION_SEND` is read through the `mobile/plugins/with-share-intent.js` config plugin, and My Guides shows a borrowed offline pack's badge.
 
 ## Summary
 

@@ -1,6 +1,10 @@
 /**
  * Small pill showing a trail's offline-tile status:
  * absent / partial / complete, or a live percentage while downloading.
+ *
+ * `packName` is for a guide that borrows another trail's pack (an import or
+ * community route inside a bundled trail's coverage): `trailId` is then the
+ * pack's trail, and the label says whose pack it is.
  */
 
 import React from 'react';
@@ -11,7 +15,7 @@ import { useDownloadsStore, type TrailDownload } from '../../state/downloads-sto
 
 const IDLE: TrailDownload = { state: 'absent', downloading: false, progress: 0 };
 
-export function DownloadBadge({ trailId }: { trailId: string }) {
+export function DownloadBadge({ trailId, packName }: { trailId: string; packName?: string }) {
   const { colors } = useTheme();
   const download = useDownloadsStore((s) => s.byTrail[trailId]) ?? IDLE;
 
@@ -34,6 +38,8 @@ export function DownloadBadge({ trailId }: { trailId: string }) {
     label = 'Not downloaded';
     color = colors.downloadIdle;
   }
+
+  if (packName) label = `${label} · ${packName} pack`;
 
   return (
     <View style={[styles.pill, { borderColor: color }]}>

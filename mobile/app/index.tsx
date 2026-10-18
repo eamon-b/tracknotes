@@ -51,6 +51,7 @@ import { deleteImportedTrailEverywhere } from '../src/services/imported-trail-st
 import { useSettingsStore } from '../src/state/settings-store';
 import { useDownloadsStore } from '../src/state/downloads-store';
 import { DownloadBadge } from '../src/features/guide/DownloadBadge';
+import { useBorrowedPacks } from '../src/features/guide/borrowed-packs';
 import { checkForTrailDataUpdates } from '../src/services/trail-data-updates';
 import { useTrailDataStore } from '../src/state/trail-data-store';
 import { launchTrailId } from '../src/features/guide/current-hike';
@@ -185,15 +186,17 @@ export default function GuideListScreen() {
   // a pointless probe.
   //
   // An import or community route can still *borrow* a bundled pack when its
-  // track sits inside that trail's coverage (`services/offline-pack-resolver`)
-  // — but the borrowed pack's status is hydrated under the bundled id, which is
-  // already in this list. Known gap: those cards show a pill instead of a
-  // DownloadBadge, so a borrowed pack is not reflected here.
+  // track sits inside that trail's coverage (`services/offline-pack-resolver`).
+  // The borrowed pack's status is hydrated under the bundled id, which is
+  // already in this list, and `useBorrowedPacks` says which pack each card
+  // shows.
   useEffect(() => {
     hydrate(
       trails.filter((t) => t.source === 'bundled' || t.source === 'remote').map((t) => t.id),
     );
   }, [hydrate, trails]);
+
+  const borrowedPacks = useBorrowedPacks(trails);
 
   const confirmDelete = (trail: TrailIndexEntry) => {
     if (trail.source !== 'imported') return;
@@ -337,6 +340,10 @@ export default function GuideListScreen() {
         const subtitle = regionSubtitle(item);
         const verified = item.communityStatus === 'verified';
         const takenDown = community && item.communityTakenDown === true;
+        const borrowed = borrowedPacks[item.id];
+        const borrowedBadge = borrowed ? (
+          <DownloadBadge trailId={borrowed.packTrailId} packName={borrowed.packName} />
+        ) : null;
         return (
           <Pressable
             onPress={() =>
@@ -429,8 +436,13 @@ export default function GuideListScreen() {
               </Pressable>
             </View>
             {imported ? (
-              <View style={[styles.importedPill, { borderColor: colors.accentMuted }]}>
-                <Text style={[styles.importedLabel, { color: colors.accentMuted }]}>Imported</Text>
+              <View style={styles.pillRow}>
+                <View style={[styles.importedPill, { borderColor: colors.accentMuted }]}>
+                  <Text style={[styles.importedLabel, { color: colors.accentMuted }]}>
+                    Imported
+                  </Text>
+                </View>
+                {borrowedBadge}
               </View>
             ) : community ? (
               <View style={styles.pillRow}>
@@ -445,6 +457,7 @@ export default function GuideListScreen() {
                     </Text>
                   </View>
                 )}
+                {borrowedBadge}
               </View>
             ) : item.source === 'remote' && !item.downloaded ? (
               // Published after this build: the guide itself is fetched on

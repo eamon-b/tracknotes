@@ -48,13 +48,13 @@
  * `host="*"` cannot match an authority-less `file:///…` URI — which is moot in
  * practice, since Android N+ blocks `file://` URIs in intents anyway.
  *
- * **Known gap — `ACTION_SEND`.** The Android share sheet delivers the payload in
- * `Intent.EXTRA_STREAM`, not in the intent's data URI, and `expo-linking` only
- * surfaces the latter. The SEND filters in `app.json` therefore put Tracknotes
- * in the share sheet, but the file will not arrive here until something reads
- * `EXTRA_STREAM` (a small config plugin or native module). `ACTION_VIEW` — the
- * "open with" path from a file manager, Downloads, or Gmail's attachment
- * preview — is fully wired.
+ * **`ACTION_SEND` — "Share to Tracknotes".** The Android share sheet delivers
+ * the payload in `Intent.EXTRA_STREAM`, not in the intent's data URI, and
+ * React Native's Linking only surfaces the data URI of an `ACTION_VIEW`. The
+ * `plugins/with-share-intent.js` config plugin closes that gap natively:
+ * `MainActivity` rewrites a SEND carrying a stream into the VIEW of that URI
+ * before React Native reads the intent, so a share arrives here exactly like
+ * "Open with" — from a file manager, Downloads, or Gmail's attachment preview.
  */
 
 import { useEffect, useRef } from 'react';
