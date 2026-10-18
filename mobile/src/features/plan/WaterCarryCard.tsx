@@ -1,7 +1,7 @@
 /**
  * Water carries — the longest dry stretches in the section, from the shared
  * `analyzeWaterCarryForSection` (top ~5 gaps, biggest first). Carries at/over
- * the calculator's 15 km dry-stretch threshold (`isDryStretch`) are flagged.
+ * the hiker's dry-stretch threshold (`isDryStretch`) are flagged.
  * Safety-critical for Australian trails, so the flag is loud.
  */
 
@@ -17,10 +17,13 @@ import type { WaterGap } from '@lib/plan-types';
 export function WaterCarryCard({
   carries,
   hasData,
+  dryStretchKm,
   units,
 }: {
   carries: WaterGap[];
   hasData: boolean;
+  /** The threshold the carries were flagged against, named in the badge. */
+  dryStretchKm: number;
   units: Units;
 }) {
   const { colors } = useTheme();
@@ -52,7 +55,7 @@ export function WaterCarryCard({
             </Text>
             {gap.isDryStretch && (
               <View style={[styles.badge, { backgroundColor: colors.danger }]}>
-                <Text style={[styles.badgeText, { color: colors.dangerText }]}>{dryStretchBadge(units)}</Text>
+                <Text style={[styles.badgeText, { color: colors.dangerText }]}>{dryStretchBadge(dryStretchKm, units)}</Text>
               </View>
             )}
           </View>

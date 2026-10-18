@@ -43,7 +43,8 @@
  * hiker's decisions"). `computeResupplyLegs` therefore *requires* `dailyHours`
  * and `baseKmh` and throws on a figure it cannot walk at, rather than
  * substituting one — a silent fallback is how a fixed 4 km/h reached the web
- * page in the first place.
+ * page in the first place. The long-carry threshold and the food per day
+ * (`PlanThresholds` in plan-types) are required on the same footing.
  */
 
 import type { ComputedDay, SectionConfig } from './plan-types';
@@ -60,8 +61,6 @@ import {
   calculateFoodWeight,
   computeResupplyGaps,
   correlateResupplyWithDays,
-  DEFAULT_GRAMS_PER_DAY,
-  DEFAULT_LONG_THRESHOLD_DAYS,
 } from './resupply-calculator';
 
 /** Re-exported so a consumer of this module needs one import, not two. */
@@ -248,8 +247,10 @@ export interface ComputeResupplyLegsOptions {
   baseKmh: number;
   /** Scope the legs to a section: only stops inside it, ends at its bounds. */
   section?: SectionConfig | null;
-  longThresholdDays?: number;
-  gramsPerDay?: number;
+  /** The hiker's long-carry threshold: a leg of more days is `isLong`. */
+  longThresholdDays: number;
+  /** The hiker's food per day (grams), for each leg's food weight. */
+  gramsPerDay: number;
   /** The camp plan, when there is one, to report which day each leg lands on. */
   days?: ComputedDay[];
 }
@@ -286,7 +287,7 @@ const TRAIL_END_NAME = 'Trail End';
 /** Floating-point slack, so a km difference of exactly the threshold still joins. */
 const KM_EPSILON = 1e-9;
 
-/** Reject a pace or hours figure this module would otherwise have to invent. */
+/** Reject a pace, hours or threshold figure this module would otherwise have to invent. */
 function requirePositive(value: number, option: string): number {
   if (!Number.isFinite(value) || value <= 0) {
     throw new RangeError(`computeResupplyLegs: ${option} must be a positive number, got ${String(value)}`);
@@ -671,9 +672,10 @@ function offTrailKmOf(option: Pick<ResupplyOption, 'offTrailKm'>): number {
  * Legs come out in the order of the trail passed in. Callers hand over the
  * direction-applied trail, as they do to `computeDays`.
  *
- * @throws RangeError if `dailyHours` or `baseKmh` is not a positive finite
- *   number. Both are the hiker's figures; a caller without one is a bug, not a
- *   case to paper over with a default.
+ * @throws RangeError if `dailyHours`, `baseKmh`, `longThresholdDays` or
+ *   `gramsPerDay` is not a positive finite number. All four are the hiker's
+ *   figures; a caller without one is a bug, not a case to paper over with a
+ *   default.
  */
 export function computeResupplyLegs(
   trail: PlanTrail,
@@ -682,8 +684,8 @@ export function computeResupplyLegs(
 ): ResupplyLeg[] {
   const dailyHours = requirePositive(opts.dailyHours, 'dailyHours');
   const baseKmh = requirePositive(opts.baseKmh, 'baseKmh');
-  const longThresholdDays = opts.longThresholdDays ?? DEFAULT_LONG_THRESHOLD_DAYS;
-  const gramsPerDay = opts.gramsPerDay ?? DEFAULT_GRAMS_PER_DAY;
+  const longThresholdDays = requirePositive(opts.longThresholdDays, 'longThresholdDays');
+  const gramsPerDay = requirePositive(opts.gramsPerDay, 'gramsPerDay');
 
   const section = opts.section;
   const rangeStartKm = section ? section.startKm : 0;
@@ -700,7 +702,7 @@ export function computeResupplyLegs(
     .map(stop => ({ name: stop.name, km: stop.km, type: 'resupply' }))
     .sort((a, b) => a.km - b.km);
 
-  const gaps = computeResupplyGaps(points, rangeStartKm, rangeEndKm, undefined, longThresholdDays);
+  const gaps = computeResupplyGaps(points, rangeStartKm, rangeEndKm, longThresholdDays);
   if (gaps.length === 0) return [];
 
   const trackPoints = trail.track.points;

@@ -128,7 +128,8 @@ first of the mobile PR if #74 has merged by then).
 - **Not in this phase, same rule**: `computeDays`' and `estimateHikingTime`'s `baseKmh = 4`
   parameter defaults in `src/lib/day-calculator.ts`, `distance-calculator.ts`'s `baseKmh = 4`,
   `waypoint-detail.ts`'s `DEFAULT_PACE_KMH`, and the 15 km dry-stretch / 5-day long-carry /
-  680 g-per-day thresholds. Every one is a figure the hiker might reasonably set. They are
+  680 g-per-day thresholds (all since done — see Follow-ups). Every one is a figure the hiker
+  might reasonably set. They are
   listed in the follow-ups so the sweep is a tracked item, not a surprise in this PR; the two
   the review named are the two that were *fixed in a UI module with no input at all*, which is
   the sharper problem.
@@ -488,11 +489,20 @@ needs the calculator and the regenerated assets from #74. 1b touches web code, s
 
 ## Follow-ups (recorded, not in this PR)
 
-- The rest of the hard-coded-figure sweep the CLAUDE.md rule implies (Phase 0 lists them):
+- ~~The rest of the hard-coded-figure sweep the CLAUDE.md rule implies (Phase 0 lists them):
   `baseKmh = 4` parameter defaults in `day-calculator.ts` and `distance-calculator.ts`,
   `DEFAULT_PACE_KMH` in `waypoint-detail.ts`, and the dry-stretch (15 km), long-carry (5 days)
   and food (680 g/day) thresholds — each should be an input the hiker sees, with today's value
-  as its initial setting.
+  as its initial setting.~~ Done. The `baseKmh` defaults and `DEFAULT_PACE_KMH` are gone (pace is
+  required). The three thresholds are inputs since issue #153: `PlanThresholds` in
+  `src/lib/plan-types.ts` (initial values `DEFAULT_PLAN_THRESHOLDS`, ranges
+  `PLAN_THRESHOLD_BOUNDS`), required by `water-carry-calculator`, `resupply-calculator` and
+  `computeResupplyLegs`, and kept per device beside pace and hours — the web's `PlanUiPrefs`
+  (inputs beside the water carries and in the Resupply tab), the phone's `plan-inputs-store`
+  (`PlanThresholdsCard` in the Plan settings sheet). Not in the synced `PlanDocument`, for the
+  reason pace is not: they describe the hiker, and a shared plan is read against the reader's.
+  Left: `DEFAULT_DAILY_KM = 20` in `resupply-calculator.ts`, a flat km/day that only the unused
+  `analyzeResupply` relies on (`computeResupplyLegs` replaces its days with Naismith hours).
 - A text filter over the picker, if the CDT proves unusable without one.
 - Leg polylines or a per-leg colour band on the map, if the ringed markers alone do not read as a
   plan.

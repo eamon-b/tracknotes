@@ -17,7 +17,15 @@ import type {
   PlanStop,
   Pace,
 } from '@lib/plan-types';
-import { PACE_KMH, PLAN_LIMITS, isPace } from '@lib/plan-types';
+import {
+  DEFAULT_PLAN_THRESHOLDS,
+  PACE_KMH,
+  PLAN_LIMITS,
+  PLAN_THRESHOLD_BOUNDS,
+  clampPlanThreshold,
+  isPace,
+  type PlanThresholds,
+} from '@lib/plan-types';
 import {
   computePlanDays,
   overnightCandidates,
@@ -394,6 +402,16 @@ function dailyHours(): number {
   return uiPrefs.dailyHours ?? DEFAULT_DAILY_HOURS;
 }
 
+/**
+ * One of the hiker's planning thresholds — the dry-stretch km beside the water
+ * carries, the food per day and long-carry days in the Resupply tab. Inputs on
+ * the same footing as pace and hours: per browser, with the shared initial
+ * value until the hiker changes it.
+ */
+function threshold(key: keyof PlanThresholds): number {
+  return uiPrefs[key] ?? DEFAULT_PLAN_THRESHOLDS[key];
+}
+
 /** The planned route oriented in the active direction. */
 function activeTrail(): Trail {
   return direction() === 'SOBO' ? (reversedTrail ??= createReversedTrail(routeTrail)) : routeTrail;
@@ -598,6 +616,8 @@ function resupplyLegs(): ResupplyLeg[] {
     plan.startDate ?? '',
     pace(),
     dailyHours(),
+    threshold('longCarryDays'),
+    threshold('foodGramsPerDay'),
     currentDays.map(day => day.endKm).join(','),
   ].join('|');
 
@@ -606,6 +626,8 @@ function resupplyLegs(): ResupplyLeg[] {
     cachedResupplyLegs = computeResupplyLegs(activeTrail(), stops, {
       dailyHours: dailyHours(),
       baseKmh: baseKmh(),
+      longThresholdDays: threshold('longCarryDays'),
+      gramsPerDay: threshold('foodGramsPerDay'),
       days: currentDays,
     });
     cachedResupplyLegsKey = key;
@@ -1206,11 +1228,11 @@ function renderResupplySection(): void {
 
 function renderWaterCarrySection(): void {
   const section = document.getElementById('water-section');
-  const body = document.getElementById('water-body');
+  const body = document.getElementById('water-gaps');
   if (!section || !body) return;
 
   const waypoints = activeTrail().waypoints ?? [];
-  const analysis = analyzeWaterCarry(waypoints, activeTrail().track.totalDistance);
+  const analysis = analyzeWaterCarry(waypoints, activeTrail().track.totalDistance, threshold('dryStretchKm'));
 
   if (!analysis.hasWaterData) {
     section.hidden = true;
@@ -1898,6 +1920,33 @@ function setDailyHours(raw: string): void {
   renderAll();
 }
 
+/**
+ * A threshold input's change. Ignores a blank or non-numeric entry, clamps the
+ * rest into the shared range; rounding is to the input's own step.
+ */
+function setThreshold(key: keyof PlanThresholds, raw: string, step: number): void {
+  if (raw.trim() === '') return;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) return;
+  const value = clampPlanThreshold(key, Math.round(parsed / step) * step);
+  if (threshold(key) === value) return;
+  setUiPrefs({ [key]: value });
+  renderAll();
+}
+
+/** Wire one threshold input to its pref; a rejected entry shows what is in force. */
+function initThresholdInput(id: string, key: keyof PlanThresholds, step: number): void {
+  const input = document.getElementById(id) as HTMLInputElement | null;
+  if (!input) return;
+  input.min = String(PLAN_THRESHOLD_BOUNDS[key].min);
+  input.max = String(PLAN_THRESHOLD_BOUNDS[key].max);
+  input.value = String(threshold(key));
+  input.addEventListener('change', () => {
+    setThreshold(key, input.value, step);
+    input.value = String(threshold(key));
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Persistence
 // ---------------------------------------------------------------------------
@@ -2126,6 +2175,10 @@ function initHeader(): void {
       hoursInput.value = String(dailyHours());
     });
   }
+
+  initThresholdInput('plan-dry-stretch', 'dryStretchKm', 1);
+  initThresholdInput('plan-food-grams', 'foodGramsPerDay', 10);
+  initThresholdInput('plan-long-carry', 'longCarryDays', 1);
 
   if (directionBtn) {
     updateDirectionButton();

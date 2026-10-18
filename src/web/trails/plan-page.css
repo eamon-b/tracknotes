@@ -292,6 +292,23 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
   gap: 0.4rem;
 }
 .gap-item:last-child { border-bottom: none; }
+/* The hiker's planning thresholds, beside the carries they judge. */
+.plan-thresholds {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.4rem;
+  font-size: 0.78rem;
+  padding: 0.3rem 0.25rem;
+  color: var(--text-secondary);
+}
+.plan-thresholds input {
+  width: 4.5rem;
+  padding: 0.2rem 0.35rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 0.78rem;
+}
 .gap-warn { color: var(--danger); font-weight: 600; }
 .gap-ok { color: var(--text-secondary); }
 

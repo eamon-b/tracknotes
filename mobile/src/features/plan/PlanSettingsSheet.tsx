@@ -1,14 +1,14 @@
 /**
- * The plan's settings — name, start date, section, daily hours and pace — kept
- * out of the way of the plan itself.
+ * The plan's settings — name, start date, section, daily hours, pace and the
+ * carry thresholds — kept out of the way of the plan itself.
  *
  * They are set once and then rarely touched, but they used to sit at the top
  * of the Plan screen, so every visit started with a scroll past them to reach
  * the days and stops. Now the screen shows one summary row
  * (`PlanSettingsSummary`); tapping it, or the ⚙ in the header, opens this
  * sheet with the same two cards as before (`PlanHeaderCard`,
- * `PlanInputsCard`). The screen still owns every value, so nothing about how
- * the plan is computed changed.
+ * `PlanInputsCard`) and the carry thresholds under them
+ * (`PlanThresholdsCard`). The screen still owns every value.
  *
  * A bottom-anchored `Modal`, like the app's other sheets, lifted over the
  * keyboard because the name and start date are text fields.
@@ -49,7 +49,7 @@ export function PlanSettingsSummary(props: PlanSettingsSummaryProps) {
       onPress={props.onPress}
       accessibilityRole="button"
       accessibilityLabel="Plan settings"
-      accessibilityHint="Name, start date, section, daily hours and pace"
+      accessibilityHint="Name, start date, section, daily hours, pace and carry thresholds"
       style={({ pressed }) => [
         styles.summary,
         { backgroundColor: colors.surface, borderColor: colors.border },

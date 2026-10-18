@@ -4,9 +4,11 @@ import {
   computeWaterGaps,
   analyzeWaterCarry,
   analyzeWaterCarryForSection,
-  DEFAULT_DRY_STRETCH_KM,
 } from './water-carry-calculator';
-import type { PlanWaypoint } from './plan-types';
+import { DEFAULT_PLAN_THRESHOLDS, type PlanWaypoint } from './plan-types';
+
+/** The dry-stretch input's initial value, which these cases were written against. */
+const DRY = DEFAULT_PLAN_THRESHOLDS.dryStretchKm;
 
 const waypoints: PlanWaypoint[] = [
   { name: 'Spring', type: 'water', totalDistance: 10 },
@@ -47,7 +49,7 @@ describe('extractWaterSources', () => {
 describe('computeWaterGaps', () => {
   it('computes gaps between water sources', () => {
     const sources = extractWaterSources(waypoints);
-    const gaps = computeWaterGaps(sources, 0, 80);
+    const gaps = computeWaterGaps(sources, 0, 80, DRY);
     // start→Spring (10km), Spring→TownCreek (20km), TownCreek→Bore (30km), Bore→end (20km)
     expect(gaps).toHaveLength(4);
     expect(gaps[0].fromName).toBe('Trail Start');
@@ -58,7 +60,7 @@ describe('computeWaterGaps', () => {
 
   it('marks gap as dry stretch when >= 15km', () => {
     const sources = extractWaterSources(waypoints);
-    const gaps = computeWaterGaps(sources, 0, 80);
+    const gaps = computeWaterGaps(sources, 0, 80, DRY);
     // Spring→TownCreek = 20km → dry stretch
     expect(gaps[1].isDryStretch).toBe(true);
     // start→Spring = 10km → not dry
@@ -77,38 +79,38 @@ describe('computeWaterGaps', () => {
   });
 
   it('makes the whole range one gap when there are no sources', () => {
-    expect(computeWaterGaps([], 10, 40)).toEqual([
+    expect(computeWaterGaps([], 10, 40, DRY)).toEqual([
       { fromName: 'Trail Start', toName: 'Trail End', fromKm: 10, toKm: 40, distanceKm: 30, isDryStretch: true },
     ]);
-    expect(computeWaterGaps([], 10, 20)[0].isDryStretch).toBe(false);
-    expect(computeWaterGaps([], 10, 10)).toEqual([]);
+    expect(computeWaterGaps([], 10, 20, DRY)[0].isDryStretch).toBe(false);
+    expect(computeWaterGaps([], 10, 10, DRY)).toEqual([]);
   });
 
-  it('DEFAULT_DRY_STRETCH_KM is 15', () => {
-    expect(DEFAULT_DRY_STRETCH_KM).toBe(15);
+  it('requires a threshold rather than flagging nothing', () => {
+    expect(() => computeWaterGaps([], 0, 30, NaN)).toThrow(RangeError);
   });
 });
 
 describe('analyzeWaterCarry', () => {
   it('returns hasWaterData=false when no water waypoints', () => {
-    const result = analyzeWaterCarry([{ name: 'Town', type: 'town', totalDistance: 20 }], 100);
+    const result = analyzeWaterCarry([{ name: 'Town', type: 'town', totalDistance: 20 }], 100, DRY);
     expect(result.hasWaterData).toBe(false);
     expect(result.sources).toHaveLength(0);
   });
 
   it('computes dry stretch count', () => {
-    const result = analyzeWaterCarry(waypoints, 80);
+    const result = analyzeWaterCarry(waypoints, 80, DRY);
     // Dry stretches: Spring→TownCreek (20km), TownCreek→Bore (30km), Bore→end (20km)
     expect(result.dryStretchCount).toBeGreaterThanOrEqual(2);
   });
 
   it('computes longest gap km', () => {
-    const result = analyzeWaterCarry(waypoints, 80);
+    const result = analyzeWaterCarry(waypoints, 80, DRY);
     expect(result.longestGapKm).toBe(30); // TownCreek→Bore
   });
 
   it('returns sources array', () => {
-    const result = analyzeWaterCarry(waypoints, 80);
+    const result = analyzeWaterCarry(waypoints, 80, DRY);
     expect(result.sources).toHaveLength(3);
     expect(result.hasWaterData).toBe(true);
   });
@@ -123,7 +125,7 @@ describe('computeWaterGaps edge cases', () => {
       { name: 'Spring B', km: 20, type: 'water' },
       { name: 'Creek', km: 50, type: 'water' },
     ];
-    const gaps = computeWaterGaps(sources, 0, 80);
+    const gaps = computeWaterGaps(sources, 0, 80, DRY);
     // No gap should have distanceKm <= 0
     for (const gap of gaps) {
       expect(gap.distanceKm).toBeGreaterThan(0);
@@ -173,7 +175,7 @@ describe('extractWaterSources seasonal keyword variants', () => {
 describe('analyzeWaterCarryForSection', () => {
   it('reports a waterless section as one dry stretch, not as no dry stretches', () => {
     // The trail maps water at 10, 30 and 60 km; nothing between 32 and 58.
-    const result = analyzeWaterCarryForSection(waypoints, 32, 58);
+    const result = analyzeWaterCarryForSection(waypoints, 32, 58, DRY);
     expect(result.hasWaterData).toBe(true);
     expect(result.sources).toEqual([]);
     expect(result.gaps).toEqual([
@@ -184,7 +186,7 @@ describe('analyzeWaterCarryForSection', () => {
   });
 
   it('says there is no water data when the trail maps no water at all', () => {
-    const result = analyzeWaterCarryForSection([{ name: 'Hut', type: 'hut', totalDistance: 5 }], 0, 50);
+    const result = analyzeWaterCarryForSection([{ name: 'Hut', type: 'hut', totalDistance: 5 }], 0, 50, DRY);
     expect(result).toEqual({ sources: [], gaps: [], longestGapKm: 0, dryStretchCount: 0, hasWaterData: false });
   });
 });
@@ -197,6 +199,7 @@ describe('water off the route', () => {
     const analysis = analyzeWaterCarry(
       [water('Tank', 10), water('Creek', 20, { offTrailKm: 2.3, accessMode: 'foot' }), water('Spring', 30)],
       40,
+      DRY,
     );
     const [, toCreek, fromCreek] = analysis.gaps;
     expect(toCreek).toMatchObject({ fromName: 'Tank', toName: 'Creek', distanceKm: 12.3, toOffTrailKm: 2.3 });
@@ -213,6 +216,7 @@ describe('water off the route', () => {
     const { gaps } = analyzeWaterCarry(
       [water('Far tank', 10, { offTrailKm: 2, accessMode: 'foot' }), water('Tap', 10), water('End', 20)],
       20,
+      DRY,
     );
     expect(gaps.map(g => g.toName)).toEqual(['Tap', 'End']);
     expect(gaps[1].distanceKm).toBe(10);
@@ -222,12 +226,13 @@ describe('water off the route', () => {
     const { gaps } = analyzeWaterCarry(
       [water('Tap', 11), water('Far creek', 11.4, { offTrailKm: 2.4, accessMode: 'foot' }), water('End', 20)],
       20,
+      DRY,
     );
     expect(gaps.map(g => g.toName)).toEqual(['Tap', 'End']);
   });
 
   it('does not walk to water reached by a ride', () => {
-    const { gaps } = analyzeWaterCarry([water('A', 0), water('Town tap', 10, { offTrailKm: 8, accessMode: 'hitch' })], 20);
+    const { gaps } = analyzeWaterCarry([water('A', 0), water('Town tap', 10, { offTrailKm: 8, accessMode: 'hitch' })], 20, DRY);
     expect(gaps[0].distanceKm).toBe(10);
   });
 });

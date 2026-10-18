@@ -11,8 +11,9 @@
  *   day planner. Read once, by `loadOrMigratePlan`, and then left alone: it is
  *   a few hundred bytes, and leaving it means a user who opens an older build
  *   of the site (a cached tab, a rollback) still finds their stops.
- * - `trail-plan-ui-<trailId>` — view preferences that are NOT part of the plan
- *   (currently just "show all waypoints"). Deliberately outside the document:
+ * - `trail-plan-ui-<trailId>` — preferences that are NOT part of the plan:
+ *   "show all waypoints", pace and hours per day, the planning thresholds and
+ *   the next-days inputs. Deliberately outside the document:
  *   the document is size-capped and travels between devices, and which rows a
  *   browser lists is not something the phone should inherit.
  *
@@ -23,7 +24,7 @@
 
 import type { PlanDirection } from '@lib/plan-direction';
 import type { Pace, PlanDocument, PlanState, PlanWaypoint } from '@lib/plan-types';
-import { isPace } from '@lib/plan-types';
+import { isPace, usablePlanThreshold, type PlanThresholds } from '@lib/plan-types';
 import { isSuggestPrefs, type SuggestPrefs } from '@lib/plan-suggest';
 import {
   assertPlanDocumentWithinLimits,
@@ -283,6 +284,16 @@ export interface PlanUiPrefs {
   pace?: Pace;
   dailyHours?: number;
   /**
+   * The hiker's planning thresholds (`@lib/plan-types` `PlanThresholds`): the
+   * dry-stretch km, the food per day and the long-carry days. Absent = the
+   * input's initial value (`DEFAULT_PLAN_THRESHOLDS`). Per browser, like pace
+   * and hours: they describe the hiker, not the route, and the phone keeps its
+   * own beside its pace and hours.
+   */
+  dryStretchKm?: number;
+  foodGramsPerDay?: number;
+  longCarryDays?: number;
+  /**
    * The "Plan the next few days" inputs (`@lib/plan-suggest`). Absent until
    * the hiker changes one; the section starts from values derived from the
    * pace and hours above. Per browser, like pace and hours.
@@ -291,6 +302,8 @@ export interface PlanUiPrefs {
 }
 
 const DEFAULT_UI_PREFS: PlanUiPrefs = { showAllWaypoints: false };
+
+const PLAN_THRESHOLD_KEYS: readonly (keyof PlanThresholds)[] = ['dryStretchKm', 'foodGramsPerDay', 'longCarryDays'];
 
 /** A pace or hours figure the header inputs could have produced, or undefined. */
 function usablePace(value: unknown): Pace | undefined {
@@ -318,6 +331,10 @@ export function loadPlanUiPrefs(trailId: string): PlanUiPrefs {
     if (pace !== undefined) prefs.pace = pace;
     const hours = usableHours(obj.dailyHours);
     if (hours !== undefined) prefs.dailyHours = hours;
+    for (const key of PLAN_THRESHOLD_KEYS) {
+      const value = usablePlanThreshold(key, obj[key]);
+      if (value !== undefined) prefs[key] = value;
+    }
     if (isSuggestPrefs(obj.suggest)) prefs.suggest = obj.suggest;
     return prefs;
   } catch {

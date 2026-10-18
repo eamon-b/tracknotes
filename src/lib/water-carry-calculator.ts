@@ -34,8 +34,8 @@ export interface WaterCarryAnalysis {
   hasWaterData: boolean;
 }
 
-/** Default threshold for a "dry stretch" warning in km */
-export const DEFAULT_DRY_STRETCH_KM = 15;
+// The dry-stretch threshold is the hiker's (`PlanThresholds.dryStretchKm` in
+// plan-types), so the functions below require it rather than defaulting.
 
 const SEASONAL_KEYWORDS = ['seasonal', 'dry in summer', 'dries up', 'unreliable', 'not reliable', 'intermittent', 'may be dry', 'often dry'];
 
@@ -83,8 +83,12 @@ export function computeWaterGaps(
   sources: WaterSource[],
   trailStartKm: number,
   trailEndKm: number,
-  dryStretchThreshold: number = DEFAULT_DRY_STRETCH_KM,
+  dryStretchThreshold: number,
 ): WaterGap[] {
+  // NaN would flag nothing, which is the dangerous way to be wrong.
+  if (!Number.isFinite(dryStretchThreshold)) {
+    throw new RangeError(`computeWaterGaps: dryStretchThreshold must be a number, got ${String(dryStretchThreshold)}`);
+  }
   const effectiveThreshold = Math.max(0, dryStretchThreshold);
   const gaps: WaterGap[] = [];
 
@@ -161,7 +165,7 @@ export function computeWaterGaps(
 export function analyzeWaterCarry(
   waypoints: PlanWaypoint[],
   totalDistanceKm: number,
-  dryStretchThreshold: number = DEFAULT_DRY_STRETCH_KM,
+  dryStretchThreshold: number,
 ): WaterCarryAnalysis {
   const sources = extractWaterSources(waypoints);
   const hasWaterData = sources.length > 0;
@@ -191,7 +195,7 @@ export function analyzeWaterCarryForSection(
   waypoints: PlanWaypoint[],
   startKm: number,
   endKm: number,
-  dryStretchThreshold: number = DEFAULT_DRY_STRETCH_KM,
+  dryStretchThreshold: number,
 ): WaterCarryAnalysis {
   const allSources = extractWaterSources(waypoints);
   const sectionSources = allSources.filter(s => s.km >= startKm && s.km <= endKm);

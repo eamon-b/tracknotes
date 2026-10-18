@@ -14,7 +14,7 @@ import TestRenderer, {
   type TestInstance,
 } from 'react-test-renderer';
 import { WaypointListPane } from '../WaypointListPane';
-import { usePlanInputsStore } from '../../plan/plan-inputs-store';
+import { DEFAULT_PREFS, usePlanInputsStore } from '../../plan/plan-inputs-store';
 import { usePlansStore } from '../../../state/plans-store';
 import type { PlanDocument } from '@lib/plan-types';
 import type { TrailJson } from '../../../services/trail-loader';
@@ -215,7 +215,7 @@ describe('WaypointListPane planned resupply', () => {
   it('still reads a selection made before the plan document carried one', () => {
     // No document at all — only what an older build persisted on this device.
     usePlanInputsStore.setState({
-      byTrail: { heysen: { dailyHours: 8, pace: 'average', resupplyStops: ['w_town'] } },
+      byTrail: { heysen: { ...DEFAULT_PREFS, resupplyStops: ['w_town'] } },
     });
     const tree = render();
     expect(chipLabels(tree)).toContain('Planned');
@@ -223,7 +223,7 @@ describe('WaypointListPane planned resupply', () => {
 
   it('prefers the document over the device-local leftovers', () => {
     usePlanInputsStore.setState({
-      byTrail: { heysen: { dailyHours: 8, pace: 'average', resupplyStops: ['w_town'] } },
+      byTrail: { heysen: { ...DEFAULT_PREFS, resupplyStops: ['w_town'] } },
     });
     usePlansStore.setState({ byTrail: { heysen: planWith([]) } });
     const tree = render();

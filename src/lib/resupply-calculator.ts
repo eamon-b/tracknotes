@@ -38,11 +38,8 @@ export interface ResupplyAnalysis {
 /** Default daily hiking distance for estimating days between resupply */
 export const DEFAULT_DAILY_KM = 20;
 
-/** Default threshold for a "long" resupply gap in days */
-export const DEFAULT_LONG_THRESHOLD_DAYS = 5;
-
-/** Default grams of food per day for weight calculations */
-export const DEFAULT_GRAMS_PER_DAY = 680;
+// The long-carry threshold and the food per day are the hiker's (`PlanThresholds`
+// in plan-types), so every function below requires them rather than defaulting.
 
 /**
  * Extract resupply points from trail waypoints, sorted by km.
@@ -64,11 +61,14 @@ export function extractResupplyPoints(waypoints: PlanWaypoint[]): ResupplyPoint[
 
 /**
  * Calculate food carry weight for a given number of days.
+ *
+ * @throws RangeError if `gramsPerDay` is not a positive finite number.
  */
 export function calculateFoodWeight(
   days: number,
-  gramsPerDay: number = DEFAULT_GRAMS_PER_DAY,
+  gramsPerDay: number,
 ): FoodCarryEstimate {
+  requirePositive(gramsPerDay, 'gramsPerDay');
   const weightGrams = Math.round(days * gramsPerDay);
   return {
     weightGrams,
@@ -88,9 +88,10 @@ export function computeResupplyGaps(
   points: ResupplyPoint[],
   trailStartKm: number,
   trailEndKm: number,
+  longThresholdDays: number,
   dailyKm: number = DEFAULT_DAILY_KM,
-  longThresholdDays: number = DEFAULT_LONG_THRESHOLD_DAYS,
 ): ResupplyGap[] {
+  requirePositive(longThresholdDays, 'longThresholdDays');
   const effectiveDailyKm = Math.max(1, dailyKm);
   const gaps: ResupplyGap[] = [];
 
@@ -171,6 +172,7 @@ export function computeResupplyGaps(
 export function analyzeResupply(
   waypoints: PlanWaypoint[],
   totalDistanceKm: number,
+  longThresholdDays: number,
   dailyKm: number = DEFAULT_DAILY_KM,
 ): ResupplyAnalysis {
   const points = extractResupplyPoints(waypoints);
@@ -180,7 +182,7 @@ export function analyzeResupply(
     return { points: [], gaps: [], longestGapKm: 0, longestGapDays: 0, hasResupplyData: false };
   }
 
-  const gaps = computeResupplyGaps(points, 0, totalDistanceKm, dailyKm);
+  const gaps = computeResupplyGaps(points, 0, totalDistanceKm, longThresholdDays, dailyKm);
   const longestGapKm = gaps.reduce((max, g) => Math.max(max, g.distanceKm), 0);
   const longestGapDays = gaps.reduce((max, g) => Math.max(max, g.estimatedDays), 0);
 
@@ -227,7 +229,14 @@ export function findNextResupply(
  */
 export function foodCarryForGap(
   gap: ResupplyGap,
-  gramsPerDay: number = DEFAULT_GRAMS_PER_DAY,
+  gramsPerDay: number,
 ): FoodCarryEstimate {
   return calculateFoodWeight(gap.estimatedDays, gramsPerDay);
+}
+
+/** Reject a threshold this module would otherwise have to invent. */
+function requirePositive(value: number, name: string): void {
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new RangeError(`resupply-calculator: ${name} must be a positive number, got ${String(value)}`);
+  }
 }

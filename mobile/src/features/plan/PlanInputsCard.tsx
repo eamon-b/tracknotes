@@ -153,7 +153,7 @@ function BoundaryRow({
   );
 }
 
-function StepButton({
+export function StepButton({
   label,
   accessibilityLabel,
   disabled,

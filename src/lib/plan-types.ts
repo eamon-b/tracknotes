@@ -34,6 +34,61 @@ export function isPace(value: unknown): value is Pace {
   return value === 'slow' || value === 'average' || value === 'fast';
 }
 
+/**
+ * The hiker's planning thresholds: the figures that turn a carry into a
+ * judgement ("dry stretch", "long carry") or a weight. Like pace and hours they
+ * are the hiker's inputs, never constants the calculators decide — the water
+ * and resupply calculators require them — and like pace and hours they are kept
+ * per device, beside them (the web's `PlanUiPrefs`, the phone's
+ * `plan-inputs-store`), not in the synced `PlanDocument`: they say how much one
+ * hiker eats and how far they are happy to carry water, and a shared plan is
+ * read against the reader's own figures, not its author's.
+ */
+export interface PlanThresholds {
+  /** A water carry at least this long is flagged a dry stretch (km). */
+  dryStretchKm: number;
+  /** Food carried per day, for each resupply leg's food weight (grams). */
+  foodGramsPerDay: number;
+  /** A resupply leg of more than this many days is flagged a long carry. */
+  longCarryDays: number;
+}
+
+/**
+ * The initial value of each threshold input — what the calculators used to
+ * hard-code. A starting point the hiker sees and can change, not a fallback the
+ * calculators reach for.
+ */
+export const DEFAULT_PLAN_THRESHOLDS: Readonly<PlanThresholds> = {
+  dryStretchKm: 15,
+  foodGramsPerDay: 680,
+  longCarryDays: 5,
+};
+
+/** The range each threshold input accepts, shared so web and phone agree. */
+export const PLAN_THRESHOLD_BOUNDS: Readonly<Record<keyof PlanThresholds, { min: number; max: number }>> = {
+  dryStretchKm: { min: 1, max: 100 },
+  foodGramsPerDay: { min: 200, max: 2000 },
+  longCarryDays: { min: 1, max: 30 },
+};
+
+/** Clamp a threshold into its input's range; NaN/±Infinity give its initial value. */
+export function clampPlanThreshold(key: keyof PlanThresholds, value: number): number {
+  if (!Number.isFinite(value)) return DEFAULT_PLAN_THRESHOLDS[key];
+  const { min, max } = PLAN_THRESHOLD_BOUNDS[key];
+  return Math.min(max, Math.max(min, value));
+}
+
+/**
+ * A stored threshold an input could have produced, or undefined — the
+ * persistence guard, so a hand-edited or corrupt value falls back to the
+ * input's initial value instead of reaching a calculator that would refuse it.
+ */
+export function usablePlanThreshold(key: keyof PlanThresholds, value: unknown): number | undefined {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return undefined;
+  const { min, max } = PLAN_THRESHOLD_BOUNDS[key];
+  return value >= min && value <= max ? value : undefined;
+}
+
 /** A planned overnight stop for the web planner. Ordered by km. */
 export interface StopData {
   km: number;              // totalDistance position on trail

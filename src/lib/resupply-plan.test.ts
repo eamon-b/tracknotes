@@ -25,7 +25,15 @@ import {
   type ResupplyTrail,
 } from './resupply-plan';
 import type { PlanTrail } from './day-calculator';
-import type { ComputedDay } from './plan-types';
+import { DEFAULT_PLAN_THRESHOLDS, type ComputedDay } from './plan-types';
+
+/** The hiker these cases were written for: 8 h a day at 4 km/h, the inputs' initial thresholds. */
+const HIKER = {
+  dailyHours: 8,
+  baseKmh: 4,
+  longThresholdDays: DEFAULT_PLAN_THRESHOLDS.longCarryDays,
+  gramsPerDay: DEFAULT_PLAN_THRESHOLDS.foodGramsPerDay,
+};
 
 /** A dead-flat track, one point per km. Naismith reduces to distance / baseKmh. */
 function flatTrail(totalKm: number): PlanTrail {
@@ -406,6 +414,16 @@ describe('computeResupplyLegs', () => {
     expect(call({ dailyHours: 8, baseKmh: Number.POSITIVE_INFINITY })).toThrow(/baseKmh/);
   });
 
+  it('refuses a long-carry or food figure it would otherwise have to invent', () => {
+    const call = (opts: Record<string, unknown>) =>
+      () => computeResupplyLegs(flatTrail(100), [], { ...HIKER, ...opts } as never);
+
+    expect(call({ longThresholdDays: undefined })).toThrow(/longThresholdDays/);
+    expect(call({ longThresholdDays: 0 })).toThrow(/longThresholdDays/);
+    expect(call({ gramsPerDay: undefined })).toThrow(/gramsPerDay/);
+    expect(call({ gramsPerDay: Number.NaN })).toThrow(/gramsPerDay/);
+  });
+
 
   it('splits a flat trail into start/stop/end legs with days from hours', () => {
     const stops = resolveResupplyStops(
@@ -413,7 +431,7 @@ describe('computeResupplyLegs', () => {
       undefined
     );
 
-    const legs = computeResupplyLegs(flatTrail(100), stops, { dailyHours: 8, baseKmh: 4 });
+    const legs = computeResupplyLegs(flatTrail(100), stops, HIKER);
 
     expect(legs).toHaveLength(2);
     // 40 km flat at 4 km/h = 10.0 h; ceil(10 / 8) = 2 days; 2 x 680 g = 1360 g.
@@ -447,7 +465,7 @@ describe('computeResupplyLegs', () => {
       undefined
     );
 
-    const legs = computeResupplyLegs(flatTrail(10), stops, { dailyHours: 8, baseKmh: 4 });
+    const legs = computeResupplyLegs(flatTrail(10), stops, HIKER);
 
     // 2 km = 0.5 h, which is a fifteenth of a day and still one day of food.
     expect(legs[0].estimatedHours).toBe(0.5);
@@ -461,8 +479,7 @@ describe('computeResupplyLegs', () => {
     );
 
     const legs = computeResupplyLegs(flatTrail(100), stops, {
-      dailyHours: 8,
-      baseKmh: 4,
+      ...HIKER,
       longThresholdDays: 1,
     });
 
@@ -476,7 +493,7 @@ describe('computeResupplyLegs', () => {
     );
 
     const legs = computeResupplyLegs(flatTrail(100), stops, {
-      dailyHours: 8,
+      ...HIKER,
       baseKmh: 5,
       gramsPerDay: 700,
     });
@@ -488,7 +505,7 @@ describe('computeResupplyLegs', () => {
   });
 
   it('is one full carry, start to end, when no stop is selected', () => {
-    const legs = computeResupplyLegs(flatTrail(100), [], { dailyHours: 8, baseKmh: 4 });
+    const legs = computeResupplyLegs(flatTrail(100), [], HIKER);
     // 100 flat km at 4 km/h = 25 h; ceil(25 / 8) = 4 days.
     expect(legs).toHaveLength(1);
     expect(legs[0]).toMatchObject({
@@ -520,7 +537,7 @@ describe('computeResupplyLegs', () => {
     );
 
     it('does not climb the gap, and does not count it as distance', () => {
-      const legs = computeResupplyLegs(brokenTrail(true), stops, { dailyHours: 8, baseKmh: 4 });
+      const legs = computeResupplyLegs(brokenTrail(true), stops, HIKER);
 
       expect(legs).toHaveLength(2);
       expect(legs.map(l => l.distanceKm)).toEqual([2, 2]);
@@ -535,7 +552,7 @@ describe('computeResupplyLegs', () => {
     });
 
     it('climbs the gap when the trail does not declare the break', () => {
-      const legs = computeResupplyLegs(brokenTrail(false), stops, { dailyHours: 8, baseKmh: 4 });
+      const legs = computeResupplyLegs(brokenTrail(false), stops, HIKER);
 
       expect(legs[1].ascentM).toBe(1000);
     });
@@ -553,7 +570,7 @@ describe('computeResupplyLegs', () => {
     );
 
     it('keeps only the stops inside the section and bounds the legs to it', () => {
-      const legs = computeResupplyLegs(flatTrail(100), stops, { dailyHours: 8, baseKmh: 4, section });
+      const legs = computeResupplyLegs(flatTrail(100), stops, { ...HIKER, section });
 
       expect(legs).toHaveLength(2);
       expect(legs[0]).toMatchObject({
@@ -577,8 +594,7 @@ describe('computeResupplyLegs', () => {
 
     it('is one full carry across the section when it holds no stop', () => {
       const legs = computeResupplyLegs(flatTrail(100), stops, {
-        dailyHours: 8,
-        baseKmh: 4,
+        ...HIKER,
         section: { startKm: 50, endKm: 70, startName: 'A', endName: 'B' },
       });
 
@@ -623,7 +639,7 @@ describe('computeResupplyLegs', () => {
     );
 
     it('reports the day each leg lands on', () => {
-      const legs = computeResupplyLegs(flatTrail(100), stops, { dailyHours: 8, baseKmh: 4, days });
+      const legs = computeResupplyLegs(flatTrail(100), stops, { ...HIKER, days });
 
       expect(legs[0].arrival).toEqual({ day: 1, date: '2026-01-01' });
       expect(legs[1].arrival).toEqual({ day: 2, date: '2026-01-05' });
@@ -631,15 +647,14 @@ describe('computeResupplyLegs', () => {
 
     it('omits the date when the camp plan has no start date', () => {
       const undated = days.map(day => ({ ...day, date: undefined }));
-      const legs = computeResupplyLegs(flatTrail(100), stops, { dailyHours: 8, baseKmh: 4, days: undated });
+      const legs = computeResupplyLegs(flatTrail(100), stops, { ...HIKER, days: undated });
 
       expect(legs[0].arrival).toEqual({ day: 1 });
     });
 
     it('omits arrival entirely for a leg no day covers', () => {
       const legs = computeResupplyLegs(flatTrail(100), stops, {
-        dailyHours: 8,
-        baseKmh: 4,
+        ...HIKER,
         days: [days[0]],
       });
 
@@ -659,7 +674,7 @@ describe('summariseResupplyLegs', () => {
       undefined
     );
 
-    const legs = computeResupplyLegs(flatTrail(100), stops, { dailyHours: 8, baseKmh: 4 });
+    const legs = computeResupplyLegs(flatTrail(100), stops, HIKER);
     // 40 km (10.0 h, 2 d), 30 km (7.5 h, 1 d), 30 km (7.5 h, 1 d).
     expect(legs.map(l => l.estimatedDays)).toEqual([2, 1, 1]);
 
@@ -678,7 +693,7 @@ describe('summariseResupplyLegs', () => {
       undefined
     );
 
-    const legs = computeResupplyLegs(flatTrail(100), stops, { dailyHours: 8, baseKmh: 4 });
+    const legs = computeResupplyLegs(flatTrail(100), stops, HIKER);
 
     expect(legs).toHaveLength(1);
     expect(summariseResupplyLegs(legs).stops).toBe(1);
@@ -855,7 +870,7 @@ describe('stops and legs off the route', () => {
     computeResupplyLegs(
       trail,
       resolveResupplyStops(listResupplyOptions(candidates), selected),
-      { dailyHours: 8, baseKmh: 4 }
+      HIKER
     );
 
   it('walks in to a side-trip town and back out, climb and all', () => {

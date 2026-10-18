@@ -17,6 +17,7 @@ import {
   waypointOptions,
   type PlanInputs,
 } from '../plan-adapters';
+import { DEFAULT_PLAN_THRESHOLDS } from '@lib/plan-types';
 import { buildTimeIndex, hoursBetweenIndexed, type TimeIndex } from '@lib/day-calculator';
 import { resolveGuideTrail } from '../../guide/guide-trail';
 import type { TrailJson } from '../../../services/trail-assets';
@@ -239,7 +240,7 @@ describe('generateDayStops (hours-space)', () => {
 });
 
 describe('computePlan over the real trail', () => {
-  const inputs: PlanInputs = { startKm: 0, endKm: cape.track.totalDistance, dailyHours: 8, pace: 'average' };
+  const inputs: PlanInputs = { startKm: 0, endKm: cape.track.totalDistance, dailyHours: 8, pace: 'average', thresholds: DEFAULT_PLAN_THRESHOLDS };
 
   it('splits into multiple days that cover the whole distance', () => {
     const plan = computePlan(cape, inputs);
@@ -281,7 +282,7 @@ describe('computePlan over the real trail', () => {
   it('marks the final day as a finish, not a wild camp (Fix 1)', () => {
     // Synthetic trail so we get deterministic camp snaps + a clear finish.
     const trail = syntheticTrail();
-    const plan = computePlan(trail, { startKm: 0, endKm: 100, dailyHours: 5, pace: 'average' });
+    const plan = computePlan(trail, { startKm: 0, endKm: 100, dailyHours: 5, pace: 'average', thresholds: DEFAULT_PLAN_THRESHOLDS });
     const last = plan.days[plan.days.length - 1];
     // The last day ends at the section end (a trailhead) — a finish, never wild.
     expect(last.endKind).toBe('finish');
@@ -310,7 +311,7 @@ describe('computePlan over the real trail', () => {
       startKm: 0,
       endKm: 100,
       dailyHours: 5,
-      pace: 'average',
+      pace: 'average', thresholds: DEFAULT_PLAN_THRESHOLDS,
       startName: 'Chosen Start',
       endName: 'Chosen End',
     });
@@ -318,14 +319,14 @@ describe('computePlan over the real trail', () => {
     expect(preferred.days[preferred.days.length - 1].endName).toBe('Chosen End');
 
     // Fallback: without names, it resolves via nameAtKm (the trail's waypoints).
-    const fallback = computePlan(trail, { startKm: 0, endKm: 100, dailyHours: 5, pace: 'average' });
+    const fallback = computePlan(trail, { startKm: 0, endKm: 100, dailyHours: 5, pace: 'average', thresholds: DEFAULT_PLAN_THRESHOLDS });
     expect(fallback.days[0].startName).toBe('Start');
     expect(fallback.days[fallback.days.length - 1].endName).toBe('Finish');
   });
 
   it('surfaces water carries and the dry-stretch flag on a watered trail', () => {
     const trail = syntheticTrail(); // has a water-tank at 55 km
-    const plan = computePlan(trail, { startKm: 0, endKm: 100, dailyHours: 8, pace: 'average' });
+    const plan = computePlan(trail, { startKm: 0, endKm: 100, dailyHours: 8, pace: 'average', thresholds: DEFAULT_PLAN_THRESHOLDS });
     expect(plan.water.hasWaterData).toBe(true);
     expect(plan.topWaterCarries.length).toBeGreaterThan(0);
     // Biggest carry first.
@@ -345,7 +346,7 @@ describe('hours-based regression (the point of the change)', () => {
       startKm: 0,
       endKm: aawt.track.totalDistance,
       dailyHours: 8,
-      pace: 'average',
+      pace: 'average', thresholds: DEFAULT_PLAN_THRESHOLDS,
     });
     const windowH = Math.min(2.5, Math.max(0.75, 8 * 0.35)); // 2.5
     for (const d of plan.days) {
@@ -358,8 +359,8 @@ describe('hours-based regression (the point of the change)', () => {
 
   it('a slower pace yields more days than a faster pace at the same hours', () => {
     const base = { startKm: 0, endKm: aawt.track.totalDistance, dailyHours: 8 };
-    const slow = computePlan(aawt, { ...base, pace: 'slow' });
-    const fast = computePlan(aawt, { ...base, pace: 'fast' });
+    const slow = computePlan(aawt, { ...base, pace: 'slow', thresholds: DEFAULT_PLAN_THRESHOLDS });
+    const fast = computePlan(aawt, { ...base, pace: 'fast', thresholds: DEFAULT_PLAN_THRESHOLDS });
     // Slow base speed (3 km/h) covers fewer km per 8 h → more days than fast (5).
     expect(slow.days.length).toBeGreaterThan(fast.days.length);
     // Pace only scales the base speed constant.
@@ -377,7 +378,7 @@ describe('section scoping', () => {
       startKm: section.startKm,
       endKm: section.endKm,
       dailyHours: 8,
-      pace: 'average',
+      pace: 'average', thresholds: DEFAULT_PLAN_THRESHOLDS,
     });
     expect(plan.days[0].startKm).toBe(prevelly.km);
     expect(plan.days[plan.days.length - 1].endKm).toBe(yallingup.km);
@@ -396,14 +397,14 @@ describe('direction-flip recompute', () => {
       startKm: 0,
       endKm: cape.track.totalDistance,
       dailyHours: 8,
-      pace: 'average',
+      pace: 'average', thresholds: DEFAULT_PLAN_THRESHOLDS,
     });
     const reversed = resolveGuideTrail(cape, 'reversed');
     const back = computePlan(reversed, {
       startKm: 0,
       endKm: reversed.track.totalDistance,
       dailyHours: 8,
-      pace: 'average',
+      pace: 'average', thresholds: DEFAULT_PLAN_THRESHOLDS,
     });
 
     // Same total distance either way.
@@ -417,7 +418,7 @@ describe('direction-flip recompute', () => {
 });
 
 describe('resupply selection', () => {
-  const full: PlanInputs = { startKm: 0, endKm: 100, dailyHours: 8, pace: 'average' };
+  const full: PlanInputs = { startKm: 0, endKm: 100, dailyHours: 8, pace: 'average', thresholds: DEFAULT_PLAN_THRESHOLDS };
 
   /**
    * The synthetic trail on a steady 2 m/km climb plus a second, separate town,
@@ -517,6 +518,19 @@ describe('resupply selection', () => {
     expect(computePlan(trail, { ...full, dailyHours: 16 }).resupplyLegs[0].estimatedDays).toBe(1);
   });
 
+  it('weighs food and flags long carries at the hiker’s thresholds', () => {
+    const trail = syntheticTrail();
+    const plan = computePlan(trail, {
+      ...full,
+      thresholds: { ...DEFAULT_PLAN_THRESHOLDS, foodGramsPerDay: 1000, longCarryDays: 1 },
+    });
+    // The first leg is two days either way; only its weight and flag move.
+    expect(plan.resupplyLegs[0].estimatedDays).toBe(2);
+    expect(plan.resupplyLegs[0].food.weightGrams).toBe(2000);
+    expect(plan.resupplyLegs[0].isLong).toBe(true);
+    expect(computePlan(trail, full).resupplyLegs[0].isLong).toBe(false);
+  });
+
   it('drops a ticked stop outside the section, keeping the list trail-wide', () => {
     const plan = computePlan(twoTownTrail(), { ...full, endKm: 50 });
     // Creede (70 km) is ticked but out of range: no leg reaches it.
@@ -531,7 +545,7 @@ describe('resupply selection', () => {
       startKm: 0,
       endKm: cdt.track.totalDistance,
       dailyHours: 8,
-      pace: 'average',
+      pace: 'average', thresholds: DEFAULT_PLAN_THRESHOLDS,
     });
     const options = plan.resupplyGroups.reduce((n, g) => n + g.options.length, 0);
     expect(options).toBeGreaterThanOrEqual(60);

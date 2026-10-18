@@ -1,4 +1,10 @@
-import { dryStretchBadge, formatHours, formatDays, formatFoodWeight } from '../plan-format';
+import {
+  dryStretchBadge,
+  formatDays,
+  formatFoodPerDay,
+  formatFoodWeight,
+  formatHours,
+} from '../plan-format';
 
 describe('plan-format', () => {
   it('formats hours to one decimal with a unit', () => {
@@ -24,7 +30,18 @@ describe('plan-format', () => {
 
 describe('dryStretchBadge', () => {
   it('names the threshold in the hiker\'s unit', () => {
-    expect(dryStretchBadge('km')).toBe('Dry ≥ 15 km');
-    expect(dryStretchBadge('mi')).toBe('Dry ≥ 9.3 mi');
+    expect(dryStretchBadge(15, 'km')).toBe('Dry ≥ 15 km');
+    expect(dryStretchBadge(15, 'mi')).toBe('Dry ≥ 9.3 mi');
+  });
+
+  it('names the hiker\'s own threshold, not a fixed one', () => {
+    expect(dryStretchBadge(25, 'km')).toBe('Dry ≥ 25 km');
+  });
+});
+
+describe('formatFoodPerDay', () => {
+  it('shows grams for metric and ounces for imperial', () => {
+    expect(formatFoodPerDay(680, 'km')).toBe('680 g');
+    expect(formatFoodPerDay(680, 'mi')).toBe('24.0 oz');
   });
 });

@@ -9,6 +9,7 @@ import {
   MAX_DAILY_HOURS,
 } from '../plan-inputs-store';
 import { defaultSuggestPrefs } from '../plan-suggest';
+import { DEFAULT_PLAN_THRESHOLDS, PLAN_THRESHOLD_BOUNDS } from '@lib/plan-types';
 
 /**
  * Seed a legacy selection the way a build before the plan document wrote one.
@@ -38,7 +39,7 @@ describe('plan-inputs-store', () => {
 
     const aawt = selectPrefs('aawt')(usePlanInputsStore.getState());
     const heysen = selectPrefs('heysen')(usePlanInputsStore.getState());
-    expect(aawt).toEqual({ pace: 'fast', dailyHours: 10 });
+    expect(aawt).toEqual({ ...DEFAULT_PREFS, pace: 'fast', dailyHours: 10 });
     expect(heysen.pace).toBe('slow');
     // heysen keeps default hours (independent).
     expect(heysen.dailyHours).toBe(DEFAULT_PREFS.dailyHours);
@@ -238,6 +239,45 @@ describe('plan-inputs-store', () => {
     it('preserves a well-formed byTrail map', () => {
       const byTrail = { aawt: { dailyHours: 10, pace: 'fast' as const } };
       expect(migratePlanInputs({ byTrail }, 0)).toEqual({ byTrail });
+    });
+  });
+  describe('planning thresholds', () => {
+    it('start from the shared initial values', () => {
+      const prefs = selectPrefs('aawt')(usePlanInputsStore.getState());
+      expect(prefs.dryStretchKm).toBe(DEFAULT_PLAN_THRESHOLDS.dryStretchKm);
+      expect(prefs.foodGramsPerDay).toBe(DEFAULT_PLAN_THRESHOLDS.foodGramsPerDay);
+      expect(prefs.longCarryDays).toBe(DEFAULT_PLAN_THRESHOLDS.longCarryDays);
+    });
+
+    it('are set per trail, clamped into range, and keep pace and hours', () => {
+      const { setThreshold, setPace } = usePlanInputsStore.getState();
+      setPace('aawt', 'fast');
+      setThreshold('aawt', 'dryStretchKm', 25);
+      setThreshold('aawt', 'foodGramsPerDay', 99999);
+      setThreshold('aawt', 'longCarryDays', 0);
+
+      const aawt = selectPrefs('aawt')(usePlanInputsStore.getState());
+      expect(aawt.pace).toBe('fast');
+      expect(aawt.dryStretchKm).toBe(25);
+      expect(aawt.foodGramsPerDay).toBe(PLAN_THRESHOLD_BOUNDS.foodGramsPerDay.max);
+      expect(aawt.longCarryDays).toBe(PLAN_THRESHOLD_BOUNDS.longCarryDays.min);
+      expect(selectPrefs('heysen')(usePlanInputsStore.getState()).dryStretchKm).toBe(
+        DEFAULT_PLAN_THRESHOLDS.dryStretchKm,
+      );
+    });
+
+    it('back-fills an entry persisted before they existed, and scrubs an unusable one', () => {
+      usePlanInputsStore.setState({
+        byTrail: {
+          old: { dailyHours: 6, pace: 'slow' } as never,
+          bad: { ...DEFAULT_PREFS, dryStretchKm: -3, foodGramsPerDay: 'lots' } as never,
+        },
+      });
+      const old = selectPrefs('old')(usePlanInputsStore.getState());
+      expect(old).toMatchObject({ dailyHours: 6, pace: 'slow', ...DEFAULT_PLAN_THRESHOLDS });
+      const bad = selectPrefs('bad')(usePlanInputsStore.getState());
+      expect(bad.dryStretchKm).toBe(DEFAULT_PLAN_THRESHOLDS.dryStretchKm);
+      expect(bad.foodGramsPerDay).toBe(DEFAULT_PLAN_THRESHOLDS.foodGramsPerDay);
     });
   });
 });

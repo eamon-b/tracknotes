@@ -1,8 +1,11 @@
 /**
- * Remembers the hiker's plan *preferences* per trail: daily hours and pace.
+ * Remembers the hiker's plan *preferences* per trail: daily hours, pace and the
+ * planning thresholds (dry stretch, food per day, long carry).
  *
- * These two are device-local by design — they are how fast this hiker walks,
- * not part of the plan a browser and a phone share — which is exactly why the
+ * These are device-local by design — they are how fast this hiker walks, how
+ * much they eat and how far they will carry water, not part of the plan a
+ * browser and a phone share (the web keeps its own in `PlanUiPrefs`, and a
+ * shared plan is read against the reader's figures) — which is exactly why the
  * resupply selection is no longer among them: it is the same choice the web
  * writes into the synced `PlanDocument`, so it lives there now
  * (`use-planned-resupply.ts`). `resupplyStops` survives here READ-ONLY, as the
@@ -12,8 +15,8 @@
  * direction-applied km space, which flips meaning when the guide direction is
  * reversed — persisting them would silently mis-restore a section after a flip.
  * The section is therefore local component state that defaults to the full
- * trail on every open (and recomputes correctly on a direction flip). Pace +
- * hours are direction-independent, so they persist safely.
+ * trail on every open (and recomputes correctly on a direction flip). Pace,
+ * hours and thresholds are direction-independent, so they persist safely.
  *
  * Same zustand + AsyncStorage idiom as the settings store.
  */
@@ -22,10 +25,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { PACE_KMH, type Pace } from './plan-adapters';
+import {
+  DEFAULT_PLAN_THRESHOLDS,
+  clampPlanThreshold,
+  usablePlanThreshold,
+  type PlanThresholds,
+} from '@lib/plan-types';
 import { isSuggestPrefs, type SuggestPrefs } from './plan-suggest';
 
 /** Persisted, direction-independent plan preferences. */
-export interface PlanPrefs {
+export interface PlanPrefs extends PlanThresholds {
   dailyHours: number;
   pace: Pace;
   /**
@@ -49,7 +58,13 @@ export interface PlanPrefs {
   suggest?: SuggestPrefs;
 }
 
-export const DEFAULT_PREFS: PlanPrefs = { dailyHours: 8, pace: 'average' };
+export const DEFAULT_PREFS: PlanPrefs = {
+  dailyHours: 8,
+  pace: 'average',
+  ...DEFAULT_PLAN_THRESHOLDS,
+};
+
+const THRESHOLD_KEYS: readonly (keyof PlanThresholds)[] = ['dryStretchKm', 'foodGramsPerDay', 'longCarryDays'];
 
 /** Daily-hours bounds for the stepper. */
 export const MIN_DAILY_HOURS = 3;
@@ -60,6 +75,8 @@ export interface PlanInputsState {
   byTrail: Record<string, PlanPrefs>;
   setDailyHours: (trailId: string, hours: number) => void;
   setPace: (trailId: string, pace: Pace) => void;
+  /** Set one planning threshold, clamped into its input's range. */
+  setThreshold: (trailId: string, key: keyof PlanThresholds, value: number) => void;
   /** Store the "Next days" card's inputs (the whole object — the card owns its shape). */
   setSuggestPrefs: (trailId: string, suggest: SuggestPrefs) => void;
   /**
@@ -112,6 +129,16 @@ export const usePlanInputsStore = create<PlanInputsState>()(
           byTrail: {
             ...s.byTrail,
             [trailId]: { ...(s.byTrail[trailId] ?? DEFAULT_PREFS), pace },
+          },
+        })),
+      setThreshold: (trailId, key, value) =>
+        set((s) => ({
+          byTrail: {
+            ...s.byTrail,
+            [trailId]: {
+              ...(s.byTrail[trailId] ?? DEFAULT_PREFS),
+              [key]: clampPlanThreshold(key, value),
+            },
           },
         })),
       setSuggestPrefs: (trailId, suggest) =>
@@ -181,7 +208,9 @@ const mergedPrefsCache = new WeakMap<PlanPrefs, PlanPrefs>();
  * `resupplyStops` is the one field that needs scrubbing here rather than in
  * `migrate`: it is optional, so a hand-edited or corrupt blob would otherwise
  * reach the selection surfaces as garbage. Anything that is not an array of
- * strings collapses to `undefined` — "no plan made", the safe reading.
+ * strings collapses to `undefined` — "no plan made", the safe reading. A
+ * planning threshold outside its input's range falls back to DEFAULT_PREFS',
+ * since the calculators throw on a figure they cannot use.
  */
 export function selectPrefs(trailId: string) {
   return (s: PlanInputsState): PlanPrefs => {
@@ -195,6 +224,11 @@ export function selectPrefs(trailId: string) {
       }
       if (merged.suggest !== undefined && !isSuggestPrefs(merged.suggest)) {
         delete merged.suggest;
+      }
+      // A threshold the calculators would refuse goes back to the input's
+      // initial value rather than reaching them.
+      for (const key of THRESHOLD_KEYS) {
+        if (usablePlanThreshold(key, merged[key]) === undefined) merged[key] = DEFAULT_PREFS[key];
       }
       mergedPrefsCache.set(stored, merged);
     }

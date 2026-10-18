@@ -122,6 +122,7 @@ import { placeOffTrailMeters } from '../../../src/features/guide/waypoint-detail
 import { StopsSection } from '../../../src/features/plan/StopsSection';
 import { ResupplyCard } from '../../../src/features/plan/ResupplyCard';
 import { WaterCarryCard } from '../../../src/features/plan/WaterCarryCard';
+import { PlanThresholdsCard } from '../../../src/features/plan/PlanThresholdsCard';
 import { formatFoodWeight } from '../../../src/features/plan/plan-format';
 
 export default function PlanScreen() {
@@ -147,6 +148,7 @@ export default function PlanScreen() {
   const prefs = usePlanInputsStore(selectPrefs(trailId));
   const setDailyHours = usePlanInputsStore((s) => s.setDailyHours);
   const setPace = usePlanInputsStore((s) => s.setPace);
+  const setThreshold = usePlanInputsStore((s) => s.setThreshold);
   const setSuggestPrefs = usePlanInputsStore((s) => s.setSuggestPrefs);
   const position = useGuidePositionContext();
   // Only an on-trail fix is a place to plan from; off-trail km is the nearest
@@ -308,6 +310,11 @@ export default function PlanScreen() {
       computePlanExtras(trail, sectionConfig, {
         dailyHours: prefs.dailyHours,
         baseKmh,
+        thresholds: {
+          dryStretchKm: prefs.dryStretchKm,
+          foodGramsPerDay: prefs.foodGramsPerDay,
+          longCarryDays: prefs.longCarryDays,
+        },
         days: plannedDays,
         resupplyStops,
       }),
@@ -320,6 +327,9 @@ export default function PlanScreen() {
       sectionConfig.endName,
       prefs.dailyHours,
       baseKmh,
+      prefs.dryStretchKm,
+      prefs.foodGramsPerDay,
+      prefs.longCarryDays,
       plannedDays,
       resupplyStops,
     ],
@@ -497,6 +507,13 @@ export default function PlanScreen() {
             onPace={(p) => setPace(trailId, p)}
             onResetSection={resetSection}
           />
+          <PlanThresholdsCard
+            dryStretchKm={prefs.dryStretchKm}
+            foodGramsPerDay={prefs.foodGramsPerDay}
+            longCarryDays={prefs.longCarryDays}
+            units={units}
+            onChange={(key, value) => setThreshold(trailId, key, value)}
+          />
         </PlanSettingsSheet>
 
         {!validSection ? (
@@ -646,6 +663,7 @@ export default function PlanScreen() {
               <WaterCarryCard
                 carries={extras.topWaterCarries}
                 hasData={extras.water.hasWaterData}
+                dryStretchKm={prefs.dryStretchKm}
                 units={units}
               />
             </Section>

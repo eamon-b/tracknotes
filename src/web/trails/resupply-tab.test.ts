@@ -31,7 +31,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { PACE_KMH } from '@lib/plan-types';
+import { DEFAULT_PLAN_THRESHOLDS, PACE_KMH, PLAN_THRESHOLD_BOUNDS } from '@lib/plan-types';
 import { BUNDLED_PLAN_FILLS, inlinePlanShell } from '../../../scripts/lib/plan-shell';
 
 const ROOT = path.resolve(__dirname, '../../..');
@@ -151,7 +151,7 @@ function makeTrail() {
 }
 
 /** Boot the shipped plan markup with a preloaded trail, on the Resupply tab. */
-async function boot(openResupply = true): Promise<void> {
+async function boot(openResupply = true, trail: unknown = makeTrail()): Promise<void> {
   const html = bundledPlanPageHtml();
   document.documentElement.innerHTML = html
     .replace(/<!DOCTYPE html>/i, '')
@@ -159,7 +159,7 @@ async function boot(openResupply = true): Promise<void> {
 
   vi.resetModules();
   const { initPlanViewer } = await import('./plan-viewer');
-  await initPlanViewer(TRAIL_ID, makeTrail() as never);
+  await initPlanViewer(TRAIL_ID, trail as never);
   if (openResupply) tabButton('resupply').click();
 }
 
@@ -549,5 +549,93 @@ describe('the pace and hours inputs', () => {
 
     setDailyHours('0');
     expect(hoursInput().value).toBe('1');
+  });
+});
+
+describe('the planning thresholds', () => {
+  const input = (id: string): HTMLInputElement => $(id) as HTMLInputElement;
+  const setInput = (id: string, value: string): void => {
+    input(id).value = value;
+    input(id).dispatchEvent(new Event('change'));
+  };
+
+  /** The fixture with water at km 10 and 35: carries of 10, 25 and 15 km. */
+  function wateredTrail() {
+    const trail = makeTrail();
+    const water = (id: string, name: string, km: number) => ({
+      id, name, type: 'water', lat: -34 - km / 1000, lon: 138 + km / 1000, totalDistance: km,
+    });
+    trail.waypoints.push(water('w_tank', 'Tank', 10) as never, water('w_creek', 'Creek', 35) as never);
+    return trail;
+  }
+  const dryFlags = (): boolean[] =>
+    [...$('water-gaps').querySelectorAll('.gap-item')].map(item => item.querySelector('.gap-warn') !== null);
+
+  it('start on the shared initial values', async () => {
+    await boot(false);
+    expect(input('plan-dry-stretch').value).toBe(String(DEFAULT_PLAN_THRESHOLDS.dryStretchKm));
+    expect(input('plan-food-grams').value).toBe(String(DEFAULT_PLAN_THRESHOLDS.foodGramsPerDay));
+    expect(input('plan-long-carry').value).toBe(String(DEFAULT_PLAN_THRESHOLDS.longCarryDays));
+  });
+
+  it('weighs each leg\u2019s food at the hiker\u2019s grams per day', async () => {
+    await boot();
+    check('w_001').click();
+    check('w_002').click();
+    check('w_003').click();
+    // Trail Start → Delta is one day: 680 g.
+    expect(legRows()[0][6]).toBe('0.7 kg');
+
+    setInput('plan-food-grams', '1000');
+    expect(legRows()[0][6]).toBe('1.0 kg');
+  });
+
+  it('flags a long carry against the hiker\u2019s threshold', async () => {
+    await boot();
+    check('w_004').click();
+    check('w_005').click();
+    // Bravo / Charlie → Trail End is two days: under 5, so no flag.
+    expect(legRows()[2][5]).toBe('2');
+
+    setInput('plan-long-carry', '1');
+    expect(legRows()[2][5]).toBe('2 \u26a0\ufe0f');
+  });
+
+  it('flags a water carry as dry from the hiker\u2019s km', async () => {
+    await boot(false, wateredTrail());
+    // 10, 25, 15 km against 15 km: the last two are dry.
+    expect(dryFlags()).toEqual([false, true, true]);
+
+    setInput('plan-dry-stretch', '20');
+    expect(dryFlags()).toEqual([false, true, false]);
+  });
+
+  it('persist for this browser, outside the synced plan document', async () => {
+    await boot(false);
+    setInput('plan-dry-stretch', '25');
+    setInput('plan-food-grams', '900');
+    setInput('plan-long-carry', '7');
+    flushSave();
+
+    const prefs = JSON.parse(localStorage.getItem(`trail-plan-ui-${TRAIL_ID}`)!);
+    expect(prefs).toMatchObject({ dryStretchKm: 25, foodGramsPerDay: 900, longCarryDays: 7 });
+    const doc = JSON.parse(localStorage.getItem(`trail-plan-doc-${TRAIL_ID}`) ?? 'null');
+    expect(doc?.dryStretchKm).toBeUndefined();
+    expect(doc?.foodGramsPerDay).toBeUndefined();
+
+    await boot(false);
+    expect(input('plan-dry-stretch').value).toBe('25');
+    expect(input('plan-food-grams').value).toBe('900');
+    expect(input('plan-long-carry').value).toBe('7');
+  });
+
+  it('ignores a blank entry and clamps the rest into range', async () => {
+    await boot(false);
+    setInput('plan-long-carry', '');
+    expect(input('plan-long-carry').value).toBe('5');
+    setInput('plan-long-carry', '0');
+    expect(input('plan-long-carry').value).toBe(String(PLAN_THRESHOLD_BOUNDS.longCarryDays.min));
+    setInput('plan-food-grams', '99999');
+    expect(input('plan-food-grams').value).toBe(String(PLAN_THRESHOLD_BOUNDS.foodGramsPerDay.max));
   });
 });

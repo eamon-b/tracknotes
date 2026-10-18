@@ -5,11 +5,13 @@
  */
 
 import { formatDistance } from '@lib/format-distance';
-import { DEFAULT_DRY_STRETCH_KM } from '@lib/water-carry-calculator';
 import type { Units } from '../../state/settings-store';
 
 /** Pounds per kilogram. */
 const LB_PER_KG = 2.20462;
+
+/** Grams per ounce. */
+export const G_PER_OZ = 28.3495;
 
 /** "8.0 h" — one decimal, always a unit. */
 export function formatHours(hours: number): string {
@@ -37,15 +39,39 @@ export function formatFoodWeight(weightKg: number, units: Units): string {
 }
 
 /**
- * The dry-stretch badge, in the hiker's unit. The threshold is the one the
- * carries were flagged against (`plan-adapters` passes the same constant), so
- * the badge never names a figure the flag was not computed from. Miles keep a
- * decimal: 15 km is 9.3 mi, and "≥ 9 mi" would understate it.
+ * Food per day, the input's value: grams for metric, ounces (one decimal) for
+ * imperial, as `formatFoodWeight` uses pounds.
  *
- * @example dryStretchBadge('km') // "Dry ≥ 15 km"
- * @example dryStretchBadge('mi') // "Dry ≥ 9.3 mi"
+ * @example formatFoodPerDay(680, 'km') // "680 g"
+ * @example formatFoodPerDay(680, 'mi') // "24.0 oz"
  */
-export function dryStretchBadge(units: Units): string {
+export function formatFoodPerDay(grams: number, units: Units): string {
+  if (units === 'mi') {
+    return `${(grams / G_PER_OZ).toFixed(1)} oz`;
+  }
+  return `${Math.round(grams)} g`;
+}
+
+/**
+ * A dry-stretch threshold in the hiker's unit. Miles keep a decimal: 15 km is
+ * 9.3 mi, and "9 mi" would understate it.
+ *
+ * @example formatDryStretch(15, 'km') // "15 km"
+ * @example formatDryStretch(15, 'mi') // "9.3 mi"
+ */
+export function formatDryStretch(km: number, units: Units): string {
   const decimals = units === 'mi' ? 1 : 0;
-  return `Dry ≥ ${formatDistance(DEFAULT_DRY_STRETCH_KM, units, { decimals })}`;
+  return formatDistance(km, units, { decimals });
+}
+
+/**
+ * The dry-stretch badge, in the hiker's unit. The caller passes the threshold
+ * the carries were flagged against (the hiker's, from `plan-inputs-store`), so
+ * the badge never names a figure the flag was not computed from.
+ *
+ * @example dryStretchBadge(15, 'km') // "Dry ≥ 15 km"
+ * @example dryStretchBadge(15, 'mi') // "Dry ≥ 9.3 mi"
+ */
+export function dryStretchBadge(dryStretchKm: number, units: Units): string {
+  return `Dry ≥ ${formatDryStretch(dryStretchKm, units)}`;
 }

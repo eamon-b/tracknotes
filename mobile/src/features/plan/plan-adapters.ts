@@ -42,13 +42,13 @@ import {
 } from '@lib/resupply-plan';
 import {
   analyzeWaterCarryForSection,
-  DEFAULT_DRY_STRETCH_KM,
   type WaterCarryAnalysis,
 } from '@lib/water-carry-calculator';
 import {
   PACE_KMH,
   type ComputedDay,
   type Pace,
+  type PlanThresholds,
   type SectionConfig,
   type WaterGap,
 } from '@lib/plan-types';
@@ -74,6 +74,8 @@ export interface PlanInputs {
   dailyHours: number;
   /** Pace preset. */
   pace: Pace;
+  /** The hiker's dry-stretch, food-per-day and long-carry figures. */
+  thresholds: PlanThresholds;
   /**
    * Optional display name for the section start. When set, it is preferred over
    * `nameAtKm(startKm)` — this lets the caller resolve duplicate-km waypoints by
@@ -352,6 +354,7 @@ export function computePlan(trail: TrailJson, inputs: PlanInputs): PlanResult {
     ...computePlanExtras(trail, section, {
       dailyHours: targetH,
       baseKmh,
+      thresholds: inputs.thresholds,
       days,
       resupplyStops: inputs.resupplyStops,
     }),
@@ -369,10 +372,12 @@ export type PlanExtras = Pick<
   | 'topWaterCarries'
 >;
 
-/** What the resupply legs need beyond the section: the hiker's pace, hours, days and ticks. */
+/** What the cards need beyond the section: the hiker's pace, hours, thresholds, days and ticks. */
 export interface PlanExtrasInputs {
   dailyHours: number;
   baseKmh: number;
+  /** Dry stretch, food per day and long carry — the hiker's, from `plan-inputs-store`. */
+  thresholds: PlanThresholds;
   /** The day boundaries the legs report arrival days against. */
   days: ComputedDay[];
   /** The ticked resupply option ids; `undefined` resolves to every option. */
@@ -401,6 +406,8 @@ export function computePlanExtras(
   const resupplyLegs = computeResupplyLegs(trail as unknown as PlanTrail, resupplyStops, {
     dailyHours: inputs.dailyHours,
     baseKmh: inputs.baseKmh,
+    longThresholdDays: inputs.thresholds.longCarryDays,
+    gramsPerDay: inputs.thresholds.foodGramsPerDay,
     section,
     days: inputs.days,
   });
@@ -410,7 +417,7 @@ export function computePlanExtras(
     trail.waypoints,
     section.startKm,
     section.endKm,
-    DEFAULT_DRY_STRETCH_KM,
+    inputs.thresholds.dryStretchKm,
   );
   const topWaterCarries = [...water.gaps].sort((a, b) => b.distanceKm - a.distanceKm).slice(0, 5);
 
