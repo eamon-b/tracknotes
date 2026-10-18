@@ -15,11 +15,21 @@ npm run sync:te-araroa # Copy the Te Araroa route out of the te-araroa-data pack
 npm run fetch:climate  # Fetch climate data for trail locations
 npm run fetch:access <trail-id> # Find where off-route waypoints are walked to from (OSM + DEM → access.json)
 npm run fetch:elevation # Fetch elevation data
+npm run fetch:pois [trail-id] # Fetch OSM POIs into data/trails/<dir>/pois.json (Overpass mirrors: docs/architecture/build-scripts.md)
 npm run build:tiles    # Build map tiles
 npm run fetch:fonts    # Fetch font glyphs for map labels
+npm run upload:tiles [id...] # Publish built tile packs to R2 and purge their manifests
+npm run check:tile-packs # Check every bundled trail has an offline pack deployed
+npm run build:contours-australia # Build the Australia contour PMTiles
+npm run experiment:contours # Contour quality experiment harness
+npm run upload:descriptions # PUT curated waypoint descriptions to the comments API ($TRACKNOTES_ADMIN_TOKEN; --dry-run)
+npm run sync:style     # Copy scripts/topo-style*.json into mobile/assets/
+npm run trace:mark-contours # Re-trace the app icon's contours from the DEM
 npm test               # Run all tests with Vitest
 npm test -- --watch    # Watch mode
 npm run lint           # Run ESLint
+npm run check          # Web tests + lint, then mobile tests + typecheck + lint
+npm run phone          # Start Metro for the mobile app (phone:android:usb over adb reverse)
 npm run preview        # Preview production build locally
 ```
 
@@ -42,7 +52,7 @@ Per-module notes live in `docs/architecture/`. Read the file for the area you ar
 - [`docs/architecture/workers.md`](docs/architecture/workers.md) - `workers/comments-api/` (community routes, shared hiker waypoints) and `workers/contour-tiles/`
 - [`docs/architecture/mobile.md`](docs/architecture/mobile.md) - Tracknotes: app architecture (map, theme, storage, over-the-air trail data, hiker waypoints, community routes, POIs), the `mobile/app/` route structure and the `mobile/src/` source structure
 
-Runbooks and specs: `docs/` (`gpx-import.md`, `trail-data-updates.md`, `mobile-test-build.md`, `world-contours-remote-build.md`) and `plans/`.
+Runbooks and specs: `docs/` (`gpx-import.md`, `trail-data-updates.md`, `mobile-test-build.md`, `world-contours-remote-build.md`) and `plans/`. Read `docs/privacy-policy.md`, `docs/data-residency.md` and `docs/content-legal-posture.md` before changing what the comments API or community routes store.
 
 ### Hard rules
 

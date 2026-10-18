@@ -12,4 +12,4 @@ Moved out of `CLAUDE.md` (issue #160) so the per-module detail is read on demand
 
 ## Contour Tile Worker (`workers/contour-tiles/`)
 
-Cloudflare Worker serving contour vector tiles from PMTiles on R2. URL pattern: `/{source}/{z}/{x}/{y}.pbf`. Uses R2 bucket `aus-map-data` with PMTiles at `contours/australia.pmtiles`. Built with `wrangler`.
+Cloudflare Worker serving contour vector tiles from PMTiles on R2. URL pattern: `/{source}/{z}/{x}/{y}.pbf`. Uses R2 bucket `aus-map-data` with PMTiles at `contours/australia.pmtiles` (source `contours`) and `contours/world.pmtiles` (source `world`, used for trails outside Australia). Built with `wrangler`.
