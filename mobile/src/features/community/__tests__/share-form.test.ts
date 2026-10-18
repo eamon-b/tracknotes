@@ -178,6 +178,8 @@ describe('initialShareForm region prefill', () => {
     expect(initialShareForm('Loop')).toMatchObject({ country: null, state: null });
     expect(initialShareForm('Loop', { country: null, state: null })).toMatchObject({ country: null, state: null });
     expect(initialShareForm('Loop', { country: 'JP', state: 'VIC' })).toMatchObject({ country: 'JP', state: null });
+    // A detected country the form does not offer (Lesotho) is not prefilled.
+    expect(initialShareForm('Loop', { country: 'LS', state: null })).toMatchObject({ country: null, state: null });
   });
 
   it('prefills a valid form once the text is filled in', () => {

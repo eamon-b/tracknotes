@@ -199,15 +199,19 @@ export function checkCommunityRegion(
   if (detected.country === null) {
     return check('region', 'pass', 'The route is outside the regions the app can recognise, so the region was not checked.');
   }
-  if (detected.country !== chosen) {
+  // Checked against every region any sampled point is in, not the majority:
+  // a route along a border, or with a short real stretch over one, is never
+  // reported as filed wrongly for naming the smaller side.
+  if (!detected.seen.countries.includes(chosen)) {
     return check(
       'region',
       'warn',
       `The route's coordinates are in ${countryName(detected.country)}, but it is filed under ${countryName(chosen)}.`
     );
   }
-  if (state !== null && detected.states.length > 0 && !detected.states.includes(state)) {
-    const where = detected.states.map((code) => stateName(chosen, code)).join(', ');
+  const statesSeen = detected.seen.states.filter((s) => s.startsWith(`${chosen}:`));
+  if (state !== null && statesSeen.length > 0 && !statesSeen.includes(`${chosen}:${state}`)) {
+    const where = statesSeen.map((s) => stateName(chosen, s.slice(chosen.length + 1))).join(', ');
     return check(
       'region',
       'warn',

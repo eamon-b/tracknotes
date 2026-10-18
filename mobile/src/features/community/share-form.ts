@@ -15,7 +15,7 @@ import {
   type CommunityCheck,
   type CommunitySubmitRequest,
 } from '@lib/community-types';
-import { isValidCountry, isValidState } from '@lib/trail-regions';
+import { findCountry, isValidCountry, isValidState } from '@lib/trail-regions';
 import { failedChecks } from '../../api/community';
 import { ApiError } from '../../api/client';
 import { apiErrorMessage } from '../../api/error-message';
@@ -46,13 +46,15 @@ export type ShareFormErrors = Partial<Record<ShareField, string>>;
 /**
  * A fresh form for a trail. `region` is the prefill (`@lib/region-detect` on
  * the trail's points): the hiker can change it, and what they leave is sent.
- * A detected state the country does not list is dropped.
+ * A country the form does not list, or a state the country does not list, is
+ * not prefilled.
  */
 export function initialShareForm(
   trailName: string,
   region: { country: string | null; state: string | null } | null = null,
 ): ShareForm {
-  const country = region?.country && isValidCountry(region.country) ? region.country.toUpperCase() : null;
+  // Only a listed country: the form offers no other, so it could not show one it prefilled.
+  const country = region?.country && findCountry(region.country) ? region.country.toUpperCase() : null;
   const state = country && region?.state && isValidState(country, region.state) ? region.state : null;
   return {
     name: trailName.trim().slice(0, COMMUNITY_LIMITS.nameMax),

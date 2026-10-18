@@ -6,22 +6,35 @@
  * hiker's choice is never overridden. Spec: `plans/community-routes.md`.
  *
  * The shapes (`region-shapes.ts`) are Natural Earth outlines simplified to a
- * few km, so a sample point is matched inside a shape first and, failing that,
- * to the nearest shape within `NEAR_KM` (a coastal walk whose line runs just
- * seaward of a coarse coastline). A route in a country `trail-regions.ts`
- * does not list detects as no country.
+ * few km on coasts (land borders are kept to ~500 m and shared by both
+ * neighbours), so a sample point is matched inside a shape first and, failing
+ * that, to the nearest shape within `NEAR_KM` (a coastal walk whose line runs
+ * just seaward of a coarse coastline). The unlisted countries bordering a
+ * listed one have shapes too, so a route in Lesotho or Andorra detects as LS
+ * or AD rather than as its neighbour; a route anywhere else unlisted detects
+ * as no country.
  */
 
 import { REGION_SHAPES, REGION_SHAPE_SCALE } from './region-shapes';
 import type { RegionShape } from './region-shapes';
 
 export interface DetectedRegion {
-  /** ISO 3166-1 alpha-2, or null when no sampled point is in a listed country. */
+  /**
+   * ISO 3166-1 alpha-2 of the country most of the route is in, or null when no
+   * sampled point is in a known shape. May be a country `trail-regions.ts`
+   * does not list (one bordering a listed country).
+   */
   country: string | null;
   /** The country's states the route passes through, in route order. Empty when it lists none. */
   states: string[];
   /** The state most of the route is in (the one to prefill), or null. */
   state: string | null;
+  /**
+   * Every country and every `COUNTRY:STATE` any sampled point is in, however
+   * few: what a chosen region is checked against, so a short real stretch in
+   * a state is never reported as wrong.
+   */
+  seen: { countries: string[]; states: string[] };
 }
 
 /** How many points of a route are tested, evenly spaced, first and last included. */
@@ -44,29 +57,43 @@ interface PreparedShape {
   state: string | null;
   /** Rings in degrees, flat `[lon, lat, …]`. */
   rings: Float64Array[];
+  /** [minLon, minLat, maxLon, maxLat] of each ring. */
+  ringBoxes: [number, number, number, number][];
   /** [minLon, minLat, maxLon, maxLat] over every ring. */
   bbox: [number, number, number, number];
 }
 
 let prepared: PreparedShape[] | null = null;
 
+/** Decode the stored rings (a first vertex, then steps) into degrees, with a box per ring. */
 function prepare(shape: RegionShape): PreparedShape {
   const bbox: [number, number, number, number] = [Infinity, Infinity, -Infinity, -Infinity];
+  const ringBoxes: [number, number, number, number][] = [];
   const rings = shape.rings.map((ring) => {
     const out = new Float64Array(ring.length);
+    const box: [number, number, number, number] = [Infinity, Infinity, -Infinity, -Infinity];
+    let x = 0;
+    let y = 0;
     for (let i = 0; i < ring.length; i += 2) {
-      const lon = ring[i] / REGION_SHAPE_SCALE;
-      const lat = ring[i + 1] / REGION_SHAPE_SCALE;
+      x += ring[i];
+      y += ring[i + 1];
+      const lon = x / REGION_SHAPE_SCALE;
+      const lat = y / REGION_SHAPE_SCALE;
       out[i] = lon;
       out[i + 1] = lat;
-      if (lon < bbox[0]) bbox[0] = lon;
-      if (lat < bbox[1]) bbox[1] = lat;
-      if (lon > bbox[2]) bbox[2] = lon;
-      if (lat > bbox[3]) bbox[3] = lat;
+      if (lon < box[0]) box[0] = lon;
+      if (lat < box[1]) box[1] = lat;
+      if (lon > box[2]) box[2] = lon;
+      if (lat > box[3]) box[3] = lat;
     }
+    ringBoxes.push(box);
+    bbox[0] = Math.min(bbox[0], box[0]);
+    bbox[1] = Math.min(bbox[1], box[1]);
+    bbox[2] = Math.max(bbox[2], box[2]);
+    bbox[3] = Math.max(bbox[3], box[3]);
     return out;
   });
-  return { country: shape.country, state: shape.state, rings, bbox };
+  return { country: shape.country, state: shape.state, rings, ringBoxes, bbox };
 }
 
 function shapes(): PreparedShape[] {
@@ -79,7 +106,11 @@ function contains(shape: PreparedShape, lon: number, lat: number): boolean {
   const [minLon, minLat, maxLon, maxLat] = shape.bbox;
   if (lon < minLon || lon > maxLon || lat < minLat || lat > maxLat) return false;
   let inside = false;
-  for (const ring of shape.rings) {
+  for (let r = 0; r < shape.rings.length; r++) {
+    // A ring whose box misses the point cannot flip the even-odd count.
+    const box = shape.ringBoxes[r];
+    if (lon < box[0] || lon > box[2] || lat < box[1] || lat > box[3]) continue;
+    const ring = shape.rings[r];
     const n = ring.length;
     for (let i = 0, j = n - 2; i < n; j = i, i += 2) {
       const yi = ring[i + 1];
@@ -104,7 +135,10 @@ function distanceKm(shape: PreparedShape, lon: number, lat: number, limitKm: num
     return Infinity;
   }
   let best = Infinity;
-  for (const ring of shape.rings) {
+  for (let r = 0; r < shape.rings.length; r++) {
+    const box = shape.ringBoxes[r];
+    if (lon < box[0] - padLon || lon > box[2] + padLon || lat < box[1] - padLat || lat > box[3] + padLat) continue;
+    const ring = shape.rings[r];
     const n = ring.length;
     for (let i = 0, j = n - 2; i < n; j = i, i += 2) {
       const ax = (ring[j] - lon) * kmPerLon;
@@ -158,7 +192,7 @@ function sampleIndices(length: number, count: number): number[] {
  * finite numbers are skipped.
  */
 export function detectRegion(points: readonly LatLon[]): DetectedRegion {
-  const none: DetectedRegion = { country: null, states: [], state: null };
+  const none: DetectedRegion = { country: null, states: [], state: null, seen: { countries: [], states: [] } };
   if (!Array.isArray(points) || points.length === 0) return none;
 
   const hits: { country: string; state: string | null }[] = [];
@@ -188,5 +222,9 @@ export function detectRegion(points: readonly LatLon[]): DetectedRegion {
   for (const code of states) {
     if (state === null || stateCounts.get(code)! > stateCounts.get(state)!) state = code;
   }
-  return { country, states, state };
+  const seen = {
+    countries: [...countryCounts.keys()],
+    states: [...new Set(hits.filter((h) => h.state !== null).map((h) => `${h.country}:${h.state}`))],
+  };
+  return { country, states, state, seen };
 }

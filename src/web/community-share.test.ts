@@ -282,6 +282,8 @@ describe('initCommunityShare', () => {
     const state = $<HTMLSelectElement>('community-state');
     state.value = 'SA';
     state.dispatchEvent(new Event('change'));
+    // The hiker's own pick now: the note no longer says it came from the coordinates.
+    expect($('community-region-note').hidden).toBe(true);
     const rights = $<HTMLInputElement>('community-rights');
     rights.checked = true;
     rights.dispatchEvent(new Event('change'));

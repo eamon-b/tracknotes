@@ -68,6 +68,25 @@ describe('regionAt', () => {
     ['Torres del Paine', -50.94, -73.41, 'CL', null],
     ['El Chaltén', -49.33, -72.89, 'AR', null],
     ['Cape Town', -33.92, 18.42, 'ZA', null],
+    // Islands smaller than the Arctic ones that are dropped.
+    ['Kalalau, Kauai', 22.17, -159.63, 'US', null],
+    ['Diamond Head, Oahu', 21.26, -157.8, 'US', null],
+    ['Haleakalā, Maui', 20.72, -156.17, 'US', null],
+    ['Reine, Lofoten', 67.93, 13.09, 'NO', null],
+    // Both sides of a border, simplified once for both neighbours.
+    ['Glacier National Park', 48.99, -114.0, 'US', null],
+    ['Waterton', 49.05, -113.91, 'CA', null],
+    ['Moama', -36.11, 144.76, 'AU', 'NSW'],
+    ['Echuca', -36.13, 144.75, 'AU', 'VIC'],
+    ['Albury', -36.08, 146.92, 'AU', 'NSW'],
+    ['Wodonga', -36.12, 146.89, 'AU', 'VIC'],
+    // Unlisted countries bordering a listed one are themselves.
+    ['Andorra la Vella', 42.55, 1.6, 'AD', null],
+    ['Vaduz', 47.14, 9.55, 'LI', null],
+    ['Sani Top, Lesotho', -29.58, 29.28, 'LS', null],
+    ['Maseru, a hole in South Africa', -29.31, 27.48, 'LS', null],
+    ['Tijuana', 32.45, -116.95, 'MX', null],
+    ['Lima', -12.05, -77.04, 'PE', null],
   ])('%s', (_, lat, lon, country, state) => {
     expect(regionAt(lat, lon)).toEqual({ country, state });
   });
@@ -77,10 +96,9 @@ describe('regionAt', () => {
     expect(regionAt(-34.375, 115.136)).toEqual({ country: 'AU', state: 'WA' });
   });
 
-  it('finds nothing far out at sea, in an unlisted country, or in a hole', () => {
+  it('finds nothing far out at sea or in an unlisted country with no listed neighbour', () => {
     expect(regionAt(-30, -140)).toBeNull();
-    expect(regionAt(-12.05, -77.04)).toBeNull(); // Lima
-    expect(regionAt(-29.6, 28.2)).toBeNull(); // Lesotho, a hole in South Africa
+    expect(regionAt(-1.29, 36.82)).toBeNull(); // Nairobi
     expect(regionAt(Number.NaN, 0)).toBeNull();
   });
 });
@@ -104,21 +122,32 @@ describe('detectRegion', () => {
       ...Array.from({ length: 10 }, (_, i) => ({ lat: -37.8, lon: 144.9 + i * 0.01 })),
       ...Array.from({ length: 30 }, (_, i) => ({ lat: -33.8, lon: 150.9 + i * 0.001 })),
     ];
-    expect(detectRegion(points)).toEqual({ country: 'AU', states: ['VIC', 'NSW'], state: 'NSW' });
+    expect(detectRegion(points)).toMatchObject({ country: 'AU', states: ['VIC', 'NSW'], state: 'NSW' });
   });
 
-  it('ignores a state the route only strays into', () => {
+  it('lists only the states a route spends some time in, but has seen every one', () => {
     const points = [
       { lat: -35.28, lon: 149.13 }, // one point in the ACT
       ...Array.from({ length: 99 }, () => ({ lat: -33.8, lon: 150.9 })),
     ];
-    expect(detectRegion(points).states).toEqual(['NSW']);
+    const detected = detectRegion(points);
+    expect(detected.states).toEqual(['NSW']);
+    expect(detected.seen).toEqual({ countries: ['AU'], states: ['AU:ACT', 'AU:NSW'] });
+  });
+
+  it('is quick on a long route beside a large many-ringed country', () => {
+    // 5,000 points through Mexico, inside the US's Aleutian-wide box.
+    const points = Array.from({ length: 5000 }, (_, i) => ({ lat: 19 + i * 0.001, lon: -99 + i * 0.001 }));
+    detectRegion(points); // warm-up: decodes the shapes
+    const start = performance.now();
+    expect(detectRegion(points).country).toBe('MX');
+    expect(performance.now() - start).toBeLessThan(50);
   });
 
   it('returns no region for no usable points', () => {
-    const none = { country: null, states: [], state: null };
+    const none = { country: null, states: [], state: null, seen: { countries: [], states: [] } };
     expect(detectRegion([])).toEqual(none);
-    expect(detectRegion([{ lat: -12.05, lon: -77.04 }])).toEqual(none);
+    expect(detectRegion([{ lat: -1.29, lon: 36.82 }])).toEqual(none);
     expect(detectRegion(null as unknown as [])).toEqual(none);
     expect(detectRegion([{ lat: 'x', lon: 1 } as unknown as { lat: number; lon: number }])).toEqual(none);
   });
@@ -144,6 +173,28 @@ describe('checkCommunityRegion', () => {
   });
 
   it('passes when the route is outside every known region', () => {
-    expect(checkCommunityRegion([{ lat: -12.05, lon: -77.04 }], 'PE', null).level).toBe('pass');
+    expect(checkCommunityRegion([{ lat: -1.29, lon: 36.82 }], 'KE', null).level).toBe('pass');
+  });
+
+  it('never contradicts a state a short real stretch of the route is in', () => {
+    // Mostly NSW, with a stretch in the ACT too short to be listed.
+    const points = [
+      ...Array.from({ length: 3 }, () => ({ lat: -35.28, lon: 149.13 })),
+      ...Array.from({ length: 253 }, () => ({ lat: -33.8, lon: 150.9 })),
+    ];
+    expect(checkCommunityRegion(points, 'AU', 'ACT').level).toBe('pass');
+    expect(checkCommunityRegion(points, 'AU', 'VIC').level).toBe('warn');
+  });
+
+  it('never contradicts the right unlisted country, nor the smaller side of a border', () => {
+    const lesotho = [{ lat: -29.58, lon: 29.28 }];
+    expect(checkCommunityRegion(lesotho, 'LS', null).level).toBe('pass');
+    expect(checkCommunityRegion(lesotho, 'ZA', null).level).toBe('warn');
+    // Glacier to Waterton: mostly in the US, filed under Canada.
+    const crossing = [
+      ...Array.from({ length: 8 }, (_, i) => ({ lat: 48.7 + i * 0.03, lon: -113.95 })),
+      { lat: 49.05, lon: -113.91 },
+    ];
+    expect(checkCommunityRegion(crossing, 'CA', null).level).toBe('pass');
   });
 });

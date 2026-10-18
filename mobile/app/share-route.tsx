@@ -97,7 +97,12 @@ export default function ShareRouteScreen() {
 
   // Only an import can be shared: anything else reads as "nothing to share".
   const shareableId = trailId && trailId.startsWith('u_') ? trailId : null;
-  const [loaded, setLoaded] = useState<{ id: string; trail: TrailJson | null } | null>(null);
+  // `prefill` is the region the coordinates gave (`initialShareForm`), detected once per trail.
+  const [loaded, setLoaded] = useState<{
+    id: string;
+    trail: TrailJson | null;
+    prefill?: { country: string | null; state: string | null };
+  } | null>(null);
   // undefined = still loading; null = nothing to share.
   const trail: TrailJson | null | undefined = !shareableId
     ? null
@@ -125,9 +130,14 @@ export default function ShareRouteScreen() {
     loadTrail(shareableId)
       .then((result) => {
         if (cancelled) return;
-        setLoaded({ id: shareableId, trail: result });
+        if (!result) {
+          setLoaded({ id: shareableId, trail: null });
+          return;
+        }
         // The region is prefilled from the coordinates; the hiker can change it.
-        if (result) setForm(initialShareForm(result.config.name, detectRegion(result.track.points)));
+        const initial = initialShareForm(result.config.name, detectRegion(result.track.points));
+        setLoaded({ id: shareableId, trail: result, prefill: { country: initial.country, state: initial.state } });
+        setForm(initial);
       })
       .catch(() => {
         if (!cancelled) setLoaded({ id: shareableId, trail: null });
@@ -160,8 +170,10 @@ export default function ShareRouteScreen() {
   const nameCheck = needsName ? validateDisplayName(displayName) : null;
   const displayNameError = nameCheck && !nameCheck.ok ? nameCheck.message : null;
   const country = findCountry(form.country);
-  // Whether the region was prefilled from the coordinates (`initialShareForm`).
-  const regionDetected = useMemo(() => (trail ? detectRegion(trail.track.points).country !== null : false), [trail]);
+  // The form still shows the region the coordinates gave: the hint says so until the hiker changes it.
+  const prefill = loaded?.id === shareableId ? loaded.prefill : undefined;
+  const regionDetected =
+    !!prefill?.country && form.country === prefill.country && form.state === prefill.state;
 
   const onSubmit = useCallback(async () => {
     if (submittingRef.current) return;
@@ -295,7 +307,7 @@ export default function ShareRouteScreen() {
           accessibilityLabel="Country"
         />
         {regionDetected && (
-          <Text style={[styles.error, { color: colors.textSecondary }]}>
+          <Text style={[styles.hint, { color: colors.textSecondary }]}>
             {"Filled in from the route's coordinates. Change it if it is wrong."}
           </Text>
         )}
@@ -420,6 +432,7 @@ const styles = StyleSheet.create({
   },
   multiline: { minHeight: 120 },
   error: { ...typography.caption },
+  hint: { ...typography.caption },
   checkboxRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
   checkboxText: { ...typography.bodySmall, flex: 1 },
   card: {

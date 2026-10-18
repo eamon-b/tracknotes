@@ -136,8 +136,21 @@ export function initCommunityShare(): CommunityShareController {
     stateSelect,
     stateWrapper,
     otherWrapper,
-    () => updateSubmit(),
+    () => {
+      updateSubmit();
+      updateRegionNote();
+    },
   );
+
+  // The region the coordinates gave, while the form still shows it: the note
+  // says so only until the hiker picks something else.
+  let detectedRegion: { country: string | null; state: string | null } = { country: null, state: null };
+  const updateRegionNote = (): void => {
+    regionNote.hidden =
+      detectedRegion.country === null ||
+      picker.country() !== detectedRegion.country ||
+      picker.state() !== detectedRegion.state;
+  };
 
   const updateCounter = (): void => {
     const len = descInput.value.trim().length;
@@ -341,7 +354,9 @@ export function initCommunityShare(): CommunityShareController {
       // Prefilled from the coordinates; the hiker's pick is what is sent.
       const detected = detectRegion(next.trail.track.points);
       picker.set(detected.country, detected.state);
-      regionNote.hidden = detected.country === null;
+      detectedRegion = { country: picker.country(), state: picker.state() };
+      if (detected.country === null) detectedRegion = { country: null, state: null };
+      updateRegionNote();
       checksBox.innerHTML = '';
       checksSource.textContent = '';
       localChecks = [];
