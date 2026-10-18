@@ -1,36 +1,29 @@
 # TODO
 
-## Bigger ideas
+Reconciled 2026-10-18 (issue #160). Each open item below is proposed as a GitHub issue in the
+PR that closed #160; delete this file once those issues exist.
 
-- efficiency
+## Shipped
 
-quality control on the waypoints and GPX
-    - simple things like spelling
-    - hard things like 'does it still exist'
+- [x] Credit where the GPX data is from — `trail.json` `dataSource` (text + link), rendered on
+      the trail page by `build-trails.ts`, and in the app's map credits. Every trail has one.
+- [x] Add your own GPX files with waypoints, make the datasheet and see the trail in the app
+      pages — user GPX import on web (`upload.html` → My trails) and mobile, `.tracknotes.json`
+      handoff, community routes.
+- [x] Crowd sourcing: comments, shared hiker waypoints (add new points), reports to hide
+      bad ones; curated descriptions through `descriptions.json` and the comments API.
+- [x] Measure distance between two points — mobile custom route builder (`features/routes/`).
+- [x] Select campsites for the next few days and get stats per day, editing one stop at a
+      time — the day planner on both platforms (Stops list, Next days suggestions).
+- [x] The offline mobile app (Tracknotes) and the web planner.
 
-other trails to add:
+## Open
 
-ask about using theadventuregene's GPX files for this
-
-check that all the recently added features work
-
-## Very Big changes
-
-The offline mobile app shipped (Tracknotes): map, elevation profile, waypoint list/datasheet,
-offline tiles, distance + gain from location to upcoming points, day splits / resupply / water
-carry planning, and comments. The web planner shipped too. What's still missing from the
-original idea:
-
-    - ability to add your own GPX files with waypoints, make the datasheet (functionality already exists as a standalone tool, it is now in a different repo `gpx-tools`), and create the pages to see your trail in the app pages
-    - ability to crowd source - add new points, remove old points, update descriptions
-    - measure distance etc between two points
-    - select campsites for next few days, automatically make stats for each day. Able to edit and move points one at a time and auto update stats (web planner only; mobile auto-splits)
-
-    - need very strong UX
-    - need very strong reliability. No gaps or missing points, considerations overlooked
-
-ask for feedback about what people want from a trail nav app - what is missing from current options, what I see as missing
-    - ability to add your own GPX files
-    - ability to crowd source - add new points, remove old points, update descriptions, add comments
-    - free and accessible
-what is the end goal? a catalogue of hiking trails in aus with (somewhat) curated (maybe by users) trails?
+- [ ] Waypoint and GPX quality control: spelling, and whether a place still exists.
+- [ ] Hikers removing or correcting old points and descriptions (today only reports hide
+      shared hiker waypoints; curated descriptions are admin-only).
+- [ ] Ask The Adventure Gene about using their GPX files (Cape to Cape credits their guide).
+- [ ] Manual test pass of recently added features — needs a written checklist first.
+- [ ] Ask hikers what they want from a trail nav app (own GPX, crowd sourcing, free and
+      accessible) and decide the end goal: a catalogue of Australian trails curated by users?
+- [ ] Efficiency (no detail recorded; needs scoping before it can be an issue).
