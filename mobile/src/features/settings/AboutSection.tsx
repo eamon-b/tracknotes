@@ -14,7 +14,7 @@
  * type it in — instead of silently doing nothing.
  *
  * Below it, the app-wide data credits (OpenStreetMap, base maps, contours,
- * climate). A trail's own source is credited behind the ⓘ on its map.
+ * climate). A trail's own source is credited on its map (tap the credit label).
  */
 
 import { useCallback, useState } from 'react';
@@ -23,8 +23,8 @@ import { openURL } from 'expo-linking';
 import { PRIVACY_POLICY_URL, TERMS_URL } from '@lib/contribution-licence';
 import { useTheme } from '../../theme';
 import { radii, spacing, touchTarget, typography } from '../../tokens';
-import { CreditList } from '../map/CreditList';
-import { appCredits } from '../map/map-credits';
+import { CreditList } from '../../credits/CreditList';
+import { appCredits } from '../../credits/credits';
 
 const APP_CREDITS = appCredits();
 
@@ -120,7 +120,7 @@ export function AboutSection() {
         <Text style={[styles.rowLabel, { color: colors.textSecondary }]}>Data credits</Text>
         <CreditList lines={APP_CREDITS} />
         <Text style={[styles.hint, { color: colors.textSecondary }]}>
-          Each trail’s own source is on its map, behind the ⓘ.
+          Each trail’s own source is on its map: tap the credit in the bottom corner.
         </Text>
       </View>
     </View>

@@ -1,15 +1,20 @@
 /**
- * Who the map and the guide's data come from — the lines behind the map's ⓘ.
+ * Who the map and the guides' data come from: the label on the map, the lines
+ * behind its ⓘ, and the app-wide list in Settings → About.
  *
  * OpenStreetMap's ODbL and the CC BY sources (trail data, contours) require a
  * visible credit. MapLibre's own attribution control is off (it reads the
  * style's `attribution` strings, which the offline style does not carry), so
  * the credit is ours to draw: one list for the base map that actually mounted,
  * the contours, and the trail's own `config.dataSource`.
+ *
+ * Outside the feature slices because the map and Settings both use it.
  */
 
 import { safeHttpUrl } from '@lib/poi-display';
-import type { MapStyleSource } from './map-style';
+
+/** The base map that mounted (`map-style`'s `MapStyleSource`), or null for the bare fallback. */
+export type CreditBasemap = 'online' | 'offline' | null;
 
 export interface CreditLine {
   /** What the line credits ("Base map", "Trail data"). */
@@ -81,10 +86,7 @@ export function trailDataCredit(dataSource: unknown): CreditLine | null {
  * Every credit for the map as it is drawn: the base map that mounted (none for
  * the bare fallback style), OpenStreetMap, contours, then the trail's data.
  */
-export function mapCredits(
-  basemap: MapStyleSource | null,
-  dataSource: unknown,
-): CreditLine[] {
+export function mapCredits(basemap: CreditBasemap, dataSource: unknown): CreditLine[] {
   const lines: CreditLine[] = [];
   if (basemap === 'online') lines.push(ONLINE_BASEMAP_LINE);
   if (basemap === 'offline') lines.push(OFFLINE_BASEMAP_LINE);
@@ -92,6 +94,16 @@ export function mapCredits(
   const trail = trailDataCredit(dataSource);
   if (trail) lines.push(trail);
   return lines;
+}
+
+/**
+ * The short credit drawn on the map itself, which the OSMF and OpenMapTiles
+ * licences ask to be visible there rather than only behind a button.
+ */
+export function mapCreditLabel(basemap: CreditBasemap): string {
+  if (basemap === 'online') return '© OpenMapTiles © OpenStreetMap';
+  if (basemap === 'offline') return 'Protomaps © OpenStreetMap';
+  return '© OpenStreetMap';
 }
 
 /** The app-wide credits Settings → About lists (no trail, no particular base map). */

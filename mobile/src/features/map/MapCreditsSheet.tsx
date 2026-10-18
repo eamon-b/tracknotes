@@ -1,6 +1,6 @@
 /**
- * The sheet behind the map's ⓘ: who the base map, contours and this trail's
- * data come from (`map-credits.ts`). A plain bottom-anchored `Modal`, like the
+ * The sheet behind the map's credit label: who the base map, contours and this trail's
+ * data come from (`credits/credits.ts`). A plain bottom-anchored `Modal`, like the
  * layers sheet beside it.
  */
 
@@ -9,8 +9,8 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
 import { radii, spacing, touchTarget, typography } from '../../tokens';
-import { CreditList } from './CreditList';
-import type { CreditLine } from './map-credits';
+import { CreditList } from '../../credits/CreditList';
+import type { CreditLine } from '../../credits/credits';
 
 export interface MapCreditsSheetProps {
   visible: boolean;

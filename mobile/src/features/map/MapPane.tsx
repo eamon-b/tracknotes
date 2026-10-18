@@ -63,7 +63,7 @@ import { GuideMap, type GuideMapHandle, type ViewportBounds } from './GuideMap';
 import { MapErrorBoundary } from './MapErrorBoundary';
 import { PoiLayersSheet } from './PoiLayersSheet';
 import { MapCreditsSheet } from './MapCreditsSheet';
-import { mapCredits } from './map-credits';
+import { mapCreditLabel, mapCredits, type CreditBasemap } from '../../credits/credits';
 import { PlanGlanceSheet } from '../plan/PlanGlanceSheet';
 import { usePlanGlance } from '../plan/use-plan-glance';
 import { ScaleBar, type ScaleBarHandle } from './ScaleBar';
@@ -255,12 +255,19 @@ export function MapPane() {
   const openLayers = useCallback(() => setLayersOpen(true), []);
   const closeLayers = useCallback(() => setLayersOpen(false), []);
 
-  // Map and data credits behind the ⓘ: the base map that actually mounted
-  // (none for the bare fallback), contours, and the trail's own source.
+  // Map and data credits: the base map that actually mounted (none for the
+  // bare fallback), contours, and the trail's own source. `resolution` is the
+  // last mount's; once `source` has moved on it names the old base map, so it
+  // is only believed while it answers the source asked for now.
   const [creditsOpen, setCreditsOpen] = useState(false);
   const openCredits = useCallback(() => setCreditsOpen(true), []);
   const closeCredits = useCallback(() => setCreditsOpen(false), []);
-  const creditBasemap = resolution ? (resolution.fallback ? null : resolution.resolved) : source;
+  const creditBasemap: CreditBasemap =
+    resolution && resolution.requested === source
+      ? resolution.fallback
+        ? null
+        : resolution.resolved
+      : source;
   const credits = useMemo(
     () => mapCredits(creditBasemap, trail.config.dataSource),
     [creditBasemap, trail.config.dataSource],
@@ -510,23 +517,6 @@ export function MapPane() {
         />
       </MapErrorBoundary>
 
-      {/* Credits: OSM's ODbL and the CC BY sources need a visible credit, and
-          MapLibre's own control is off. Under the top chrome, so a degraded-map
-          banner covers it until dismissed. */}
-      <Pressable
-        onPress={openCredits}
-        accessibilityRole="button"
-        accessibilityLabel="Map and data credits"
-        hitSlop={spacing.sm}
-        style={({ pressed }) => [
-          styles.credits,
-          { backgroundColor: colors.surfaceElevated, borderColor: colors.border },
-          pressed && styles.pressed,
-        ]}
-      >
-        <MaterialCommunityIcons name="information-variant" size={18} color={colors.textSecondary} />
-      </Pressable>
-
       {/* Top chrome: degraded-map banner over the base-map status pill. */}
       <View style={styles.topStack} pointerEvents="box-none">
         {showBanner && (
@@ -719,6 +709,27 @@ export function MapPane() {
         onOpenPlanner={openPlanner}
       />
 
+      {/* The map's credit, visible on the map as the OSMF and OpenMapTiles
+          licences ask. It sits in the strip under the bottom controls (the
+          legend, builder bar, variant card and FABs all stop at spacing.xl), so
+          nothing covers it. Tapping it opens the full credits. */}
+      <Pressable
+        onPress={openCredits}
+        accessibilityRole="button"
+        accessibilityLabel="Map and data credits"
+        hitSlop={{ top: spacing.sm, bottom: spacing.sm, left: spacing.sm, right: spacing.sm }}
+        style={({ pressed }) => [
+          styles.credits,
+          { backgroundColor: colors.surfaceElevated },
+          pressed && styles.pressed,
+        ]}
+      >
+        <MaterialCommunityIcons name="information-outline" size={12} color={colors.textSecondary} />
+        <Text style={[styles.creditsText, { color: colors.textSecondary }]} numberOfLines={1}>
+          {mapCreditLabel(creditBasemap)}
+        </Text>
+      </Pressable>
+
       <MapCreditsSheet visible={creditsOpen} onClose={closeCredits} lines={credits} />
 
       {trailHasPois && (
@@ -839,14 +850,17 @@ const styles = StyleSheet.create({
   },
   credits: {
     position: 'absolute',
-    top: spacing.md,
-    left: spacing.md,
-    width: 28,
-    height: 28,
-    borderRadius: radii.full,
-    borderWidth: StyleSheet.hairlineWidth,
+    bottom: 2,
+    left: spacing.lg,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 2,
+    paddingHorizontal: spacing.xs,
+    borderRadius: radii.sm,
+    opacity: 0.85,
+  },
+  creditsText: {
+    ...typography.caption,
   },
   recenter: {
     position: 'absolute',

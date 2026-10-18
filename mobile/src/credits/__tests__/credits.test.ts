@@ -1,5 +1,5 @@
-import { appCredits, mapCredits, trailDataCredit } from '../map-credits';
-import { TRAIL_DATA } from '../../../services/trail-assets';
+import { appCredits, mapCreditLabel, mapCredits, trailDataCredit } from '../credits';
+import { TRAIL_DATA } from '../../services/trail-assets';
 
 describe('trailDataCredit', () => {
   it('reads a dataSource with its link', () => {
@@ -52,6 +52,12 @@ describe('mapCredits', () => {
     expect(labels(null)).toEqual(['Map data', 'Contours']);
     expect(mapCredits(null, undefined)[0].text).toMatch(/OpenStreetMap contributors/);
   });
+});
+
+it('the on-map label always credits OpenStreetMap, and the base map that mounted', () => {
+  expect(mapCreditLabel('online')).toBe('© OpenMapTiles © OpenStreetMap');
+  expect(mapCreditLabel('offline')).toBe('Protomaps © OpenStreetMap');
+  expect(mapCreditLabel(null)).toBe('© OpenStreetMap');
 });
 
 it('app credits include Open-Meteo for the climate data', () => {
