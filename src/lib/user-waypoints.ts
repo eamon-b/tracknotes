@@ -32,8 +32,9 @@ export type UserWaypointVisibility = 'private' | 'shared';
  * subset of `WAYPOINT_TYPES`: the turn-off (`-access`) and structural types
  * (`gap`, `endpoint`, `milestone`) describe how a curated route is built, not a
  * place someone found. Each is a type the rest of the app already understands,
- * so a shared water source counts in the water-carry calculator and a campsite
- * is offered as a night's stop.
+ * so a hiker's own water source counts in the water-carry calculator and a
+ * campsite is offered as a night's stop. (Another hiker's shared water does
+ * not count: `isUnverifiedHikerWaypoint`.)
  */
 export const USER_WAYPOINT_TYPES = [
   'water',
@@ -376,4 +377,17 @@ export function placeUserWaypoints<T extends PlaceableTrail>(
 export function userWaypointInfo(waypoint: object): UserWaypointInfo | null {
   const info = (waypoint as { userWaypoint?: UserWaypointInfo }).userWaypoint;
   return info && typeof info === 'object' ? info : null;
+}
+
+/**
+ * Whether a waypoint is another hiker's shared one: a place nobody here has
+ * checked, put on the map by a stranger. The safety calculators leave these
+ * out — one wrong (or malicious) "water" pin would split a dry stretch and
+ * shorten the carry, which is the dangerous way to be wrong
+ * (`docs/content-legal-posture.md` §8.2). The hiker's own pins, private or
+ * shared, still count: they put them there.
+ */
+export function isUnverifiedHikerWaypoint(waypoint: object): boolean {
+  const info = userWaypointInfo(waypoint);
+  return info !== null && !info.mine;
 }

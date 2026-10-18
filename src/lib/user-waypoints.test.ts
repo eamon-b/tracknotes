@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   checkUserWaypointInput,
+  isUnverifiedHikerWaypoint,
   isUserWaypointId,
   placeOnTrack,
   placeUserWaypoints,
@@ -11,6 +12,8 @@ import {
 import { createReversedTrail } from './trail-reverse';
 import { isResupplyWaypoint, isWaterWaypoint } from './waypoint-taxonomy';
 import { snapToTrail } from './position-on-trail';
+import { analyzeWaterCarry } from './water-carry-calculator';
+import { countWaterSources } from './day-calculator';
 
 // A straight line due north along lon 138, ~1.11 km per 0.01° of latitude,
 // climbing 10 m per point.
@@ -154,5 +157,41 @@ describe('placeUserWaypoints', () => {
     const creek = reversed.waypoints.find((w) => w.name === 'Creek')!;
     expect(creek.totalDistance).toBeCloseTo(points[10].dist - placed.waypoints[1].totalDistance!, 2);
     expect(userWaypointInfo(creek)).not.toBeNull();
+  });
+});
+
+describe('other hikers\' shared water and the carry calculators', () => {
+  // Curated water at the trailhead only: one carry the length of the trail.
+  function wateredTrail() {
+    const t = trail();
+    return { ...t, waypoints: [{ ...t.waypoints[0], type: 'water' }, t.waypoints[1]] };
+  }
+  const end = points[10].dist;
+  const midway = { lat: -34.95, lon: 138.001 }; // ~km 5.56, ~91 m off the line
+  const longest = (wps: object[]) => analyzeWaterCarry(wps as never, end).longestGapKm;
+
+  it('a shared water pin from another device does not change the longest carry', () => {
+    const before = longest(wateredTrail().waypoints);
+    expect(before).toBeCloseTo(end, 1);
+    const theirs = placeUserWaypoints(wateredTrail(), [
+      uw({ ...midway, visibility: 'shared', mine: false, authorName: 'Someone' }),
+    ]);
+    // It is still on the trail, shown and labelled — just not counted.
+    expect(theirs.waypoints.some((w) => isUnverifiedHikerWaypoint(w))).toBe(true);
+    expect(longest(theirs.waypoints)).toBe(before);
+    expect(countWaterSources(0.1, end, theirs.waypoints as never)).toBe(0);
+  });
+
+  it('the hiker\'s own pins still count, private or shared', () => {
+    for (const visibility of ['private', 'shared'] as const) {
+      const mine = placeUserWaypoints(wateredTrail(), [uw({ ...midway, visibility, mine: true })]);
+      expect(mine.waypoints.some((w) => isUnverifiedHikerWaypoint(w))).toBe(false);
+      expect(longest(mine.waypoints)).toBeCloseTo(end / 2, 0);
+      expect(countWaterSources(0.1, end, mine.waypoints as never)).toBe(1);
+    }
+  });
+
+  it('a curated waypoint is never an unverified hiker waypoint', () => {
+    expect(isUnverifiedHikerWaypoint(trail().waypoints[0])).toBe(false);
   });
 });

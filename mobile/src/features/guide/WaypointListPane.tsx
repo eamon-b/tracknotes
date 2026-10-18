@@ -86,6 +86,7 @@ import {
   type WaypointFamily,
 } from './waypoint-filters';
 import { waypointTypeLabel } from '@lib/waypoint-taxonomy';
+import { isUnverifiedHikerWaypoint } from '@lib/user-waypoints';
 
 type Waypoint = TrailJson['waypoints'][number];
 
@@ -257,7 +258,9 @@ export function WaypointListPane({ trail }: { trail: TrailJson }) {
         <Pressable
           onPress={() => openWaypoint(row.key)}
           accessibilityRole="button"
-          accessibilityLabel={`Open ${waypoint.name}${offTrailA11y(placeOffTrailM.get(waypoint), units)}`}
+          accessibilityLabel={`Open ${waypoint.name}${
+            isUnverifiedHikerWaypoint(waypoint) ? ', unverified, added by a hiker' : ''
+          }${offTrailA11y(placeOffTrailM.get(waypoint), units)}`}
           style={({ pressed }) => pressed && styles.pressed}
         >
           <WaypointRow
@@ -268,6 +271,7 @@ export function WaypointListPane({ trail }: { trail: TrailJson }) {
             offTrailM={placeOffTrailM.get(waypoint)}
             favorite={favoriteSet.has(row.key)}
             planned={plannedIds?.has(row.key) ?? false}
+            unverified={isUnverifiedHikerWaypoint(waypoint)}
             water={
               waypoint.id && isWaterFamily(waypoint.type)
                 ? waterByWaypoint.get(waypoint.id) ?? null
@@ -420,6 +424,7 @@ function WaypointRow({
   offTrailM,
   favorite,
   planned,
+  unverified,
   water,
 }: {
   waypoint: Waypoint;
@@ -432,6 +437,11 @@ function WaypointRow({
   favorite: boolean;
   /** A ticked resupply stop — only ever true once a plan exists. */
   planned: boolean;
+  /**
+   * Another hiker's shared waypoint: nobody has checked it, and its water is
+   * left out of the carry calculators (`isUnverifiedHikerWaypoint`).
+   */
+  unverified: boolean;
   /** Aggregated water verdict, for water waypoints with recent reports. */
   water?: WaterAggregate | null;
 }) {
@@ -465,6 +475,11 @@ function WaypointRow({
               <Text style={[styles.plannedPillText, { color: colors.resupplyPlanned }]}>
                 Resupply
               </Text>
+            </View>
+          )}
+          {unverified && (
+            <View style={[styles.plannedPill, { borderColor: colors.warning }]}>
+              <Text style={[styles.plannedPillText, { color: colors.warning }]}>Unverified</Text>
             </View>
           )}
           {water && <WaterStatusChip aggregate={water} />}
