@@ -16,6 +16,7 @@ import {
 } from '../../api/auth';
 import { getDatabase } from '../../db/database';
 import { purgeLocalAccountData } from '../../features/settings/account-deletion';
+import { onSyncChange, type SyncChange } from '../../sync/sync-events';
 
 jest.mock('../../api/auth', () => ({
   getSession: jest.fn(),
@@ -29,7 +30,7 @@ jest.mock('../../db/database', () => ({
 }));
 
 jest.mock('../../features/settings/account-deletion', () => ({
-  purgeLocalAccountData: jest.fn(async () => undefined),
+  purgeLocalAccountData: jest.fn(async (): Promise<string[]> => []),
 }));
 
 const mockGetSession = getSession as jest.Mock;
@@ -131,6 +132,24 @@ describe('deleteAccount', () => {
       session: null,
       authError: false,
     });
+  });
+
+  it('tells each trail whose shared waypoints went private to re-read them', async () => {
+    useIdentityStore.setState({ status: 'registered', session: SESSION });
+    mockDeleteAccount.mockResolvedValue(undefined);
+    mockPurge.mockResolvedValueOnce(['heysen', 'larapinta']);
+    const seen: SyncChange[] = [];
+    const off = onSyncChange((change) => seen.push(change));
+
+    await useIdentityStore.getState().deleteAccount();
+    off();
+
+    expect(seen).toEqual(
+      expect.arrayContaining([
+        { trailId: 'heysen', userWaypoints: true },
+        { trailId: 'larapinta', userWaypoints: true },
+      ]),
+    );
   });
 
   it('falls back to the keystore for the user id when the store is not hydrated', async () => {

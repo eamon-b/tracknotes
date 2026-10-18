@@ -38,7 +38,7 @@ jest.mock('../../../db/database', () => ({
 }));
 
 jest.mock('../account-deletion', () => ({
-  purgeLocalAccountData: jest.fn(async () => undefined),
+  purgeLocalAccountData: jest.fn(async (): Promise<string[]> => []),
 }));
 
 const mockGetSession = getSession as jest.Mock;

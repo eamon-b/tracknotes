@@ -19,6 +19,7 @@
 
 import type { SqlDatabase } from '../../db/sql-database';
 import * as plansRepo from '../../db/plans-repo';
+import * as userWaypointsRepo from '../../db/user-waypoints-repo';
 import { isServerKnown } from '../../services/server-trails';
 import { PLANS_SYNC_KEY } from '../../sync/comment-sync';
 
@@ -41,10 +42,16 @@ import { PLANS_SYNC_KEY } from '../../sync/comment-sync';
  * was never on the server and belongs to the import, not to the identity, so
  * deleting the account must not take it — the same boundary that keeps it out
  * of the outbox in the first place.
+ *
+ * The account's shared hiker waypoints stay on the phone, as private ones
+ * (`keepAllAsPrivate`): the server has tombstoned them, but each may be the
+ * only record of a place the hiker marked. Returns the trails whose hiker
+ * waypoints changed, for the caller to announce.
  */
-export async function purgeLocalAccountData(db: SqlDatabase, userId: string): Promise<void> {
+export async function purgeLocalAccountData(db: SqlDatabase, userId: string): Promise<string[]> {
   await db.runAsync('DELETE FROM comments WHERE author_id = ?', [userId]);
   await plansRepo.purgeSynced(db, isServerKnown);
   await db.runAsync('DELETE FROM sync_state WHERE trail_id = ?', [PLANS_SYNC_KEY]);
   await db.runAsync('DELETE FROM outbox');
+  return userWaypointsRepo.keepAllAsPrivate(db);
 }

@@ -37,6 +37,7 @@
  *   removing it purges both prefixes;
  * - the optional raw GPX at `community/private/<id>/<32 random hex>.gpx`
  *   (`gpx_key`), kept for re-processing and never returned in any response.
+ *   Deleting the account that shared it deletes it (the de-attribution).
  *
  * The bucket has no private area: all of `aus-map-data` is served at
  * `PHOTOS_PUBLIC_BASE`. What keeps the private objects private is that their
@@ -1586,21 +1587,22 @@ async function deattributeRoute(env: Env, first: CommunityRouteRow, graceMs: num
     }
     const written = await env.DB.prepare(
       `UPDATE community_routes
-          SET md5 = ?, bytes = ?, r2_key = ?, private_key = ?, updated_at = ?
+          SET md5 = ?, bytes = ?, r2_key = ?, private_key = ?, gpx_key = NULL, updated_at = ?
         WHERE id = ? AND status = ? AND updated_at = ?`
     )
       .bind(put.md5, put.bytes, put.publicKey, put.privateKey, stampAfter(row.updated_at), row.id, row.status, row.updated_at)
       .run();
     if (written.meta.changes > 0) {
-      // Every older copy names the account: drop the old private one, any
-      // private JSON an earlier, interrupted attempt left behind, and all
-      // public versions but the new one. Only then is the route done; if a
+      // Every older copy names the account: drop the old private one, the
+      // uploaded GPX (a device's file can carry a name, a device and
+      // timestamps), any private JSON an earlier, interrupted attempt left
+      // behind, and all public versions but the new one. Only then is the route done; if a
       // delete throws, it stays pending and the next retry rewrites it again
       // (the same bytes, so the same public key) and purges again. The sweep
       // spares objects younger than `graceMs`: a concurrent attempt (the
       // cron beside the account deletion's own run) may be writing one.
-      await env.PHOTOS.delete(row.private_key);
-      await purgePrivateOrThrow(env, row.id, [put.privateKey, row.gpx_key], new Date(Date.now() - graceMs));
+      await env.PHOTOS.delete(row.gpx_key ? [row.private_key, row.gpx_key] : row.private_key);
+      await purgePrivateOrThrow(env, row.id, [put.privateKey], new Date(Date.now() - graceMs));
       await purgePublicOrThrow(env, row.id, put.publicKey);
       // Guarded by the private copy written here: whatever changed the row
       // since, the copy it names is this de-attributed one.

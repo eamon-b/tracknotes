@@ -188,6 +188,22 @@ export async function keepAsPrivate(db: SqlDatabase, id: string): Promise<void> 
   );
 }
 
+/**
+ * Account deletion: every shared waypoint of this account becomes private (the
+ * server has tombstoned them, and an `hw_` id it holds for the deleted account
+ * must never be PUT under the next identity). Returns the trails touched.
+ */
+export async function keepAllAsPrivate(db: SqlDatabase): Promise<string[]> {
+  const rows = await db.getAllAsync<{ trail_id: string }>(
+    "SELECT DISTINCT trail_id FROM user_waypoints WHERE visibility = 'shared' AND mine = 1",
+  );
+  await db.runAsync(
+    `UPDATE user_waypoints SET visibility = 'private', author_name = NULL, source = 'local'
+      WHERE visibility = 'shared' AND mine = 1`,
+  );
+  return rows.map((r) => r.trail_id);
+}
+
 export async function readSyncedAt(db: SqlDatabase, trailId: string): Promise<string | undefined> {
   const row = await db.getFirstAsync<{ waypoints_synced_at: string | null }>(
     'SELECT waypoints_synced_at FROM sync_state WHERE trail_id = ?',

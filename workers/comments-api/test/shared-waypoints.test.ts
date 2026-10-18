@@ -254,6 +254,37 @@ describe('DELETE /v1/waypoints/:id', () => {
       .first<{ deleted_at: string | null }>();
     expect(row?.deleted_at).not.toBeNull();
   });
+
+  it('blanks them on account deletion, and a report hide becomes unrestorable', async () => {
+    const device = await registerDevice();
+    const admin = await registerDevice();
+    await makeAdmin(admin.userId);
+    const live = newId();
+    const hidden = newId();
+    await put(device, live, WATER);
+    await put(device, hidden, WATER);
+    for (let i = 0; i < 3; i++) await report(await registerAgedDevice(), hidden);
+    const hiddenBefore = await env.DB.prepare(`SELECT updated_at FROM shared_waypoints WHERE id = ?`)
+      .bind(hidden)
+      .first<{ updated_at: string }>();
+
+    expect((await deleteMe(device)).status).toBe(204);
+    for (const id of [live, hidden]) {
+      const row = await env.DB.prepare(
+        `SELECT name, description, lat, lon, deleted_at, deleted_by, updated_at FROM shared_waypoints WHERE id = ?`
+      )
+        .bind(id)
+        .first<Record<string, unknown>>();
+      expect(row).toMatchObject({ name: '', description: '', lat: 0, lon: 0, deleted_by: 'owner' });
+      expect(row?.deleted_at).not.toBeNull();
+      if (id === hidden) expect(row?.updated_at).toBe(hiddenBefore?.updated_at);
+    }
+    const res = await SELF.fetch(url(`/v1/admin/waypoints/${hidden}/restore`), {
+      method: 'POST',
+      headers: authHeaders(admin),
+    });
+    expect(res.status).toBe(409);
+  });
 });
 
 describe('POST /v1/waypoints/:id/report', () => {

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   authHeaders,
   createComment,
+  createPlan,
   deleteMe,
   makeAdmin,
   registerDevice,
@@ -202,6 +203,46 @@ describe('DELETE /v1/me — sync semantics', () => {
     const afterAccountDelete = await readComment(id);
     expect(afterAccountDelete.updated_at).toBe(afterFirstDelete.updated_at);
     expect(afterAccountDelete.deleted_at).toBe(afterFirstDelete.deleted_at);
+  });
+});
+
+describe('DELETE /v1/me — content is blanked', () => {
+  it('blanks comment content, live and already deleted', async () => {
+    const device = await registerDevice('Blanked');
+    const { id: live } = await createComment(device, { waypointId: 'delme-blank-wp', text: 'my secret' });
+    const { id: gone } = await createComment(device, { waypointId: 'delme-blank-wp', text: 'old secret' });
+    await SELF.fetch(url(`/v1/comments/${gone}`), { method: 'DELETE', headers: authHeaders(device) });
+
+    expect((await deleteMe(device)).status).toBe(204);
+
+    for (const id of [live, gone]) {
+      const row = await env.DB.prepare(
+        `SELECT text, water_status, observed_at, deleted_at FROM comments WHERE id = ?`
+      )
+        .bind(id)
+        .first<Record<string, unknown>>();
+      expect(row).toMatchObject({ text: '', water_status: null, observed_at: null });
+      expect(row?.deleted_at).not.toBeNull();
+    }
+  });
+
+  it('blanks plan documents and drops their share links', async () => {
+    const device = await registerDevice('Planner');
+    const { id, res } = await createPlan(device, { name: 'My private trip' });
+    expect(res.status).toBe(201);
+    const shared = await SELF.fetch(url(`/v1/plans/${id}/share`), {
+      method: 'POST',
+      headers: authHeaders(device),
+    });
+    expect(shared.ok).toBe(true);
+
+    expect((await deleteMe(device)).status).toBe(204);
+
+    const row = await env.DB.prepare(`SELECT document_json, share_id, deleted_at FROM plans WHERE id = ?`)
+      .bind(id)
+      .first<Record<string, unknown>>();
+    expect(row).toMatchObject({ document_json: '{}', share_id: null });
+    expect(row?.deleted_at).not.toBeNull();
   });
 });
 

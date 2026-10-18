@@ -127,7 +127,10 @@ const DELETED_DISPLAY_NAME = 'Deleted user';
  * moderation record (and an admin's ability to remove them) is intact.
  *
  * Plans and shared waypoints are soft-deleted the same way comments are (their
- * tombstones flow through `GET /v1/plans` and `GET /v1/trails/:id/waypoints`), and every device token — the phone's and any linked
+ * tombstones flow through `GET /v1/plans` and `GET /v1/trails/:id/waypoints`).
+ * The content of all three is blanked, not just hidden: comment text, water
+ * status and observed time, the plan document and its share link, a
+ * waypoint's name, note and position. Every device token — the phone's and any linked
  * browser's — is revoked, so no second device outlives the account. Only the
  * phone may ask: a linked browser is a window onto the account, not the account.
  */
@@ -149,19 +152,36 @@ export async function deleteMe(
   const deadTokenHash = await sha256Hex(generateToken());
 
   await env.DB.batch([
+    // Every row the account wrote is blanked, including ones already deleted
+    // (by its owner, an admin or reports): a tombstone keeps only its id,
+    // where it was filed and when. A row already deleted keeps its stamps,
+    // so it is not sent to phones as a second tombstone. (SQLite evaluates
+    // every SET expression against the row as it was.)
     env.DB.prepare(
       `UPDATE comments
-          SET deleted_at = ?, deleted_by = 'owner', updated_at = ?,
-              photo_urls_json = NULL, photo_hashes_json = NULL
-        WHERE user_id = ? AND deleted_at IS NULL`
+          SET text = '', water_status = NULL, observed_at = NULL,
+              photo_urls_json = NULL, photo_hashes_json = NULL,
+              deleted_by = CASE WHEN deleted_at IS NULL THEN 'owner' ELSE deleted_by END,
+              updated_at = CASE WHEN deleted_at IS NULL THEN ? ELSE updated_at END,
+              deleted_at = COALESCE(deleted_at, ?)
+        WHERE user_id = ?`
     ).bind(now, now, user.id),
     env.DB.prepare(
-      `UPDATE plans SET deleted_at = ?, updated_at = ? WHERE user_id = ? AND deleted_at IS NULL`
+      `UPDATE plans
+          SET document_json = '{}', share_id = NULL,
+              updated_at = CASE WHEN deleted_at IS NULL THEN ? ELSE updated_at END,
+              deleted_at = COALESCE(deleted_at, ?)
+        WHERE user_id = ?`
     ).bind(now, now, user.id),
     // Shared waypoints go the way of comments: tombstoned, so phones drop them.
+    // One an admin or reports hid becomes the owner's delete too, so a
+    // restore (which refuses an owner's delete) cannot republish it blank.
     env.DB.prepare(
-      `UPDATE shared_waypoints SET deleted_at = ?, deleted_by = 'owner', updated_at = ?
-        WHERE user_id = ? AND deleted_at IS NULL`
+      `UPDATE shared_waypoints
+          SET name = '', description = '', lat = 0, lon = 0, deleted_by = 'owner',
+              updated_at = CASE WHEN deleted_at IS NULL THEN ? ELSE updated_at END,
+              deleted_at = COALESCE(deleted_at, ?)
+        WHERE user_id = ?`
     ).bind(now, now, user.id),
     env.DB.prepare(
       `UPDATE device_tokens SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL`

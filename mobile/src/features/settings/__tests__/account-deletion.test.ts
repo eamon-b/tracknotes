@@ -145,6 +145,30 @@ describe('purgeLocalAccountData', () => {
     expect(await ids('routes')).toEqual(['r-1']);
   });
 
+  it('turns the account’s shared waypoints private and leaves other hikers’ alone', async () => {
+    const insert = (id: string, trailId: string, visibility: string, mine: number) =>
+      db.runAsync(
+        `INSERT INTO user_waypoints (id, trail_id, name, type, lat, lon, visibility, mine, author_name, source, created_at, updated_at)
+         VALUES (?, ?, 'Spring', 'water', -23.7, 133.8, ?, ?, 'Someone', 'server', 'T', 'T')`,
+        [id, trailId, visibility, mine],
+      );
+    await insert('hw_mine_shared', 'larapinta', 'shared', 1);
+    await insert('hw_mine_private', 'heysen', 'private', 1);
+    await insert('hw_theirs', 'heysen', 'shared', 0);
+
+    const trails = await purgeLocalAccountData(db as unknown as SqlDatabase, ME);
+
+    expect(trails).toEqual(['larapinta']);
+    const rows = await db.getAllAsync<{ id: string; visibility: string; author_name: string | null; source: string }>(
+      'SELECT id, visibility, author_name, source FROM user_waypoints ORDER BY id',
+    );
+    expect(rows).toEqual([
+      { id: 'hw_mine_private', visibility: 'private', author_name: 'Someone', source: 'server' },
+      { id: 'hw_mine_shared', visibility: 'private', author_name: null, source: 'local' },
+      { id: 'hw_theirs', visibility: 'shared', author_name: 'Someone', source: 'server' },
+    ]);
+  });
+
   it('is a no-op on a device with nothing cached', async () => {
     await purgeLocalAccountData(db as unknown as SqlDatabase, ME);
     expect(await ids('comments')).toEqual([]);

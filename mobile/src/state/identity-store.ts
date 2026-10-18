@@ -83,7 +83,7 @@ export const useIdentityStore = create<IdentityState>((set, get) => ({
     await deleteAccountRequest();
     if (userId) {
       const db = await getDatabase();
-      await purgeLocalAccountData(db, userId);
+      const waypointTrails = await purgeLocalAccountData(db, userId);
       // The plan cache is in memory and would otherwise outlive the rows the
       // purge just dropped, re-showing a deleted account's plans until remount.
       usePlansStore.getState().clearAll();
@@ -92,6 +92,8 @@ export const useIdentityStore = create<IdentityState>((set, get) => ({
       // user again), so nudge subscribers to re-read instead of leaving the
       // deleted comments on screen until the next remount.
       emitSyncChange();
+      // Its shared waypoints are private now: re-read each trail's.
+      for (const trailId of waypointTrails) emitSyncChange({ trailId, userWaypoints: true });
     }
     set({ session: null, status: 'anonymous', authError: false });
   },
