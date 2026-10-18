@@ -20,8 +20,8 @@ to collect as little personal information as possible.
 ## What we collect
 
 **No account, no email, no password.** Tracknotes has no sign-up. The first
-time you post a comment or share something, the app registers an anonymous
-device identity: a random device ID and the display name you choose. The
+time you post a comment, share something or report something, the app
+registers an anonymous device identity: a random device ID and the display name you choose. The
 display name is the only identity shown to other users.
 
 **Content you post.** Comments, water reports, and photos you attach to
@@ -32,24 +32,34 @@ other users of the app alongside your display name and the time of posting.
 **Waypoints you share (optional).** You can add your own waypoints to a trail
 on the phone. A waypoint you keep to yourself ("Only me") stays on your device
 and is never sent to us. A waypoint you share with everyone is stored on our
-servers and shown publicly, on that trail, to every user of the app: its
-position, name, type and note, your display name, and when it was added and
-last edited. You can edit it, make it private again, or delete it at any time.
+servers and published: every user of the app sees it on that trail, and anyone
+can read it through our public API. What is published is its position, name,
+type and note, your display name, and when it was added and last edited. You
+can edit it, make it private again, or delete it at any time; either of the
+last two takes it off the app and the public API, but our copy is kept, marked
+deleted, and our admins can still see it for moderation. A private waypoint can
+still reach us inside a plan, if you choose it as a stop (see **Plans**).
 
 **Location.** Your GPS position is used on-device to show where you are on the
 trail and estimate arrival times. It is **never sent to our servers** on its
-own. The only way a position of yours reaches us is one you choose to publish:
-if you place a shared waypoint with "Use my location", the waypoint is stored
-at that position. Background location tracking is off by default and only runs
+own. Places you have been or plan to be do reach us when you choose to send
+them: a shared waypoint placed with "Use my location" is stored at that
+position; a community route you share is a track you may have walked and
+recorded, and its original GPX file, if you include it, can hold the times you
+walked it; and a synced plan names the places you plan to stop at and how far
+along the trail they are. Background location tracking is off by default and only runs
 if you turn it on in Settings. Check-in sharing composes a message with your
 position that is sent only through apps *you* choose in the system share sheet.
 
-**Plans.** Once the app has a device identity, the day plans you make for the
-built-in trails are copied to our servers so they survive a reinstall and can
+**Plans.** Once the app has a device identity (however it was created,
+including by filing a report), the day plans you make for the built-in trails
+are copied to our servers so they survive a reinstall and can
 be opened in a linked browser. A plan holds its name, direction, start date,
 the stops you chose with their nights, notes and "booked" ticks, the resupply
-points and alternate routes you picked, and when it was last changed. It is
-private to your account. Your walking pace and hours per day are not part of
+points and alternate routes you picked, and when it was last changed. A stop
+carries the place's name and its distance along the trail, and that includes a
+private waypoint of your own if you choose it as a stop. A plan is private to
+your account unless you share it (below). Your walking pace and hours per day are not part of
 it and stay on the device. Plans for trails you imported yourself, and for
 community routes, stay on your device.
 
@@ -65,7 +75,9 @@ we keep a sign-in token (stored on our side only as a one-way hash), the label
 it was linked under (prefilled from the browser and operating system, such as
 "Chrome on macOS", and editable), and when it was linked and last used. A
 linked browser stays signed in for 180 days after it was last used, and you can
-unlink it from the phone or from the browser at any time. On the website, the
+unlink it from the phone or from the browser at any time. An unlinked or lapsed
+browser can no longer sign in, but its record (the label and those times) is
+kept, marked revoked. On the website, the
 sign-in token, your plans and any trails you import are kept in that browser's
 own storage.
 
@@ -130,19 +142,23 @@ may result in a device being blocked from posting.
 
 ## Deleting your data
 
-Settings → Account → **Delete account** (on the phone) anonymises your device
+Settings → **Delete account** (on the phone) anonymises your device
 identity on our servers: your display name is replaced with "Deleted user", and
 the phone and every linked browser are signed out for good. It also hides every
 comment you posted, every waypoint you shared and every plan you saved (they
 disappear from all devices on their next sync, and any shared plan link stops
 working), and deletes your uploaded photos. The hidden comments, shared
-waypoints and plans are kept in our database, marked deleted, and are no longer
-shown to anyone. Reports you filed are kept as a moderation record. This is
+waypoints and plans are kept in our database, marked deleted. They are no
+longer shown in the app, on the website or through the public API; our admins
+can still see the hidden comments and shared waypoints for moderation. Reports you filed are kept as a moderation record. This is
 immediate and irreversible.
 
 A community route you shared can be deleted at any time from its page
 (**Delete**); this removes it from the public list and deletes the stored route
-and GPX file. Because shared routes are released as CC0, copies others have
+and GPX file. We keep a record of the route, marked removed: its name,
+description, credit line, the display name it was shared under, its summary
+statistics and a fingerprint of its track, which lets moderation stop a removed
+route from being shared again. Because shared routes are released as CC0, copies others have
 already downloaded or saved may remain on their devices. Deleting your account
 leaves the routes you shared public but removes your display name from them;
 the description and credit line you wrote stay published, and the original GPX

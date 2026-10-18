@@ -50,6 +50,7 @@ import {
   runCommunityMaintenance,
   submitCommunityRoute,
 } from './community';
+import { pruneStaleRateEvents } from './rate-limit';
 
 /**
  * Split a pathname into decoded, non-empty segments. A malformed escape
@@ -326,9 +327,12 @@ export default {
    * The Cron Trigger (`[triggers] crons` in wrangler.toml): retries the
    * community-route work that runs from `waitUntil` and may not have
    * finished — de-attributions after an account deletion, and AI reviews
-   * left `pending` — a bounded batch per run.
+   * left `pending` — a bounded batch per run. It also deletes `rate_events`
+   * rows past the longest window, so the address-keyed ones never outlive a
+   * quiet spell.
    */
   async scheduled(_controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     ctx.waitUntil(runCommunityMaintenance(env));
+    ctx.waitUntil(pruneStaleRateEvents(env, Date.now()));
   },
 };

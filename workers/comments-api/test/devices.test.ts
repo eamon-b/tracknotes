@@ -1,9 +1,16 @@
-import { SELF, env } from 'cloudflare:test';
+import {
+  SELF,
+  createExecutionContext,
+  createScheduledController,
+  env,
+  waitOnExecutionContext,
+} from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
 import { authHeaders, banUser, registerDevice, url } from './helpers';
+import worker from '../src/index';
 import { getUser } from '../src/auth';
 import type { Env } from '../src/http';
-import { RATE_BUCKETS, ipRateKey } from '../src/rate-limit';
+import { MAX_RATE_WINDOW_MS, RATE_BUCKETS, ipRateKey } from '../src/rate-limit';
 import type { MeResponse } from '../../../src/lib/comments-api-types';
 
 function errorCode(body: unknown): string {
@@ -125,6 +132,28 @@ describe('POST /v1/devices rate limit', () => {
       .bind(new Date(Date.now() - 61 * 60 * 1000).toISOString(), 'device_register', ip)
       .run();
     expect((await register(ip)).status).toBe(201);
+  });
+
+  it('has the scheduled handler delete address rows past the longest window', async () => {
+    const stale = '198.51.100.90';
+    const fresh = '198.51.100.91';
+    expect((await register(stale)).status).toBe(201);
+    expect((await register(fresh)).status).toBe(201);
+    // A quiet spell: no rate-limited request has come along to prune it.
+    await env.DB.prepare(`UPDATE rate_events SET created_at = ? WHERE key = ?`)
+      .bind(new Date(Date.now() - MAX_RATE_WINDOW_MS - 60_000).toISOString(), stale)
+      .run();
+
+    const ctx = createExecutionContext();
+    await worker.scheduled(createScheduledController({ cron: '*/15 * * * *' }), env as unknown as Env, ctx);
+    await waitOnExecutionContext(ctx);
+
+    const count = async (key: string) =>
+      (await env.DB.prepare(`SELECT COUNT(*) AS n FROM rate_events WHERE key = ?`)
+        .bind(key)
+        .first<{ n: number }>())?.n;
+    expect(await count(stale)).toBe(0);
+    expect(await count(fresh)).toBe(1);
   });
 
   it('counts a whole IPv6 /64 as one address', async () => {

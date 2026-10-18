@@ -136,6 +136,19 @@ export function ipRateKey(raw: string | null): string {
 }
 
 /**
+ * Delete every row older than the longest window, whatever its bucket or key.
+ *
+ * Run by the Cron Trigger as well as after each spent allowance: the rows keyed
+ * by address are personal data, and the privacy policy promises they go soon
+ * after 24 hours, which a quiet spell with no rate-limited requests would
+ * otherwise break.
+ */
+export async function pruneStaleRateEvents(env: Env, nowMs: number): Promise<void> {
+  const staleEverywhere = new Date(nowMs - MAX_RATE_WINDOW_MS).toISOString();
+  await env.DB.prepare(`DELETE FROM rate_events WHERE created_at < ?`).bind(staleEverywhere).run();
+}
+
+/**
  * Prune expired rows off the response path.
  *
  * Two sweeps, both cheap: this subject's own rows outside its window (the
