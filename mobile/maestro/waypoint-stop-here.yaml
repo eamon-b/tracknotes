@@ -1,0 +1,62 @@
+appId: com.tracknotes.app
+---
+# Waypoint detail's plan and map actions — List pane → a campsite → "Stop here"
+# round-trip (the plans store, through `toggleStop`), then "Show on map" back
+# to the guide's Map pane.
+#
+# Deepdene Campsite (km 15.8) is the first campsite on the Cape to Cape and is
+# not a trail end, so the ⛺ toggle renders. The toggle is a glyph; its words
+# are the accessibility label ("Stop here" / "Remove stop"). Asserts no day or
+# km figures, which move with the calculators.
+- runFlow: shared/launch-dev.yaml
+- scrollUntilVisible:
+    element:
+      text: "Cape to Cape Track"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Cape to Cape Track"
+- extendedWaitUntil:
+    visible: "Elevation"
+    timeout: 30000
+
+# Datasheet pane; rows are buttons labelled "Open <waypoint name>".
+- tapOn: "List"
+- extendedWaitUntil:
+    visible: "Cape Leeuwin Lighthouse"
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "Open Deepdene Campsite"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Open Deepdene Campsite"
+- waitForAnimationToEnd
+
+# --- Stop here round-trip ----------------------------------------------------
+- extendedWaitUntil:
+    visible: "Stop here"
+    timeout: 20000
+- tapOn: "Stop here"
+- extendedWaitUntil:
+    visible: "Remove stop"
+    timeout: 10000
+- tapOn: "Remove stop"
+- extendedWaitUntil:
+    visible: "Stop here"
+    timeout: 10000
+
+# --- Show on map ---------------------------------------------------------------
+# Dismisses to the guide and switches it to the Map pane; the map canvas is
+# native, so assert on the React chrome over it. All three panes stay mounted
+# (see README "Known caveats"), so this proves the dismissal landed on the
+# guide without a crash rather than which pane is showing.
+- scrollUntilVisible:
+    element:
+      text: "Show on map"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Show on map"
+- extendedWaitUntil:
+    visible: "Map key"
+    timeout: 20000
+- assertVisible: "Elevation"

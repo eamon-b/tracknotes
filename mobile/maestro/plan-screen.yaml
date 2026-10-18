@@ -1,10 +1,15 @@
 appId: com.tracknotes.app
 ---
 # Plan screen — the live per-trail planner reached from a guide's header.
-# Opens a guide, taps the "Plan" header action, and verifies the inputs card,
-# summary, and day splits render and survive a pace-driven recompute.
+# Opens a guide, taps the "Plan" header action, opens the plan settings sheet,
+# and verifies the inputs, summary, and day splits render and survive a
+# pace-driven recompute.
 #
-# Asserts only on stable text: the header/input labels, pace control, summary
+# The inputs (section, daily hours, pace) live in `PlanSettingsSheet`, a modal
+# that stays closed until "Plan settings" is tapped — both the header ⚙ and the
+# summary row at the top of the screen carry that accessibility label.
+#
+# Asserts only on stable text: the input labels, pace control, summary
 # labels, "Day 1", the three section headers, and the resupply picker's chips. Deliberately avoids specific
 # km values, waypoint names, and day-card footer text (all in flux).
 - runFlow: shared/launch-dev.yaml
@@ -28,22 +33,30 @@ appId: com.tracknotes.app
 # accessibilityLabel "Plan").
 - tapOn: "Plan"
 
-# Inputs card renders: section controls, daily-hours stepper, pace control.
+# The screen opens on the summary and the days, not the inputs.
+- extendedWaitUntil:
+    visible: "Day splits"
+    timeout: 15000
+# Live summary renders (full trail is the default, valid section).
+- assertVisible: "Days"
+- assertVisible: "Day 1"
+
+# Open the settings sheet: section controls, daily-hours stepper, pace control.
+- tapOn: "Plan settings"
 - extendedWaitUntil:
     visible: "Daily hours"
     timeout: 15000
 - assertVisible: "Pace"
 - assertVisible: "Fast"
 
-# Live summary renders (full trail is the default, valid section).
-- assertVisible: "Days"
-
-# Day splits section + at least the first day card.
-- assertVisible: "Day splits"
-- assertVisible: "Day 1"
-
-# Change pace and confirm the plan recomputes without crashing.
+# Change pace, close the sheet (the modal's onRequestClose), and confirm the
+# plan recomputed without crashing.
 - tapOn: "Fast"
+- pressKey: back
+- extendedWaitUntil:
+    visible: "Day splits"
+    timeout: 10000
+- assertVisible: ".*Fast pace.*"
 - assertVisible: "Day 1"
 
 # The remaining sections live further down the scroll view.

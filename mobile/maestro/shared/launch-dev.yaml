@@ -15,6 +15,11 @@ appId: com.tracknotes.app
 # to the build-time default `10.0.2.2:8081` — which may be a different Metro than
 # the one you are testing. That was the state of the emulator build before issue
 # #32; see mobile/maestro/README.md if you ever hit it again.
+#
+# Flows assume a clean device, and `clearState` is what gives them one. Without
+# it (e.g. a launcher reduced to a bare `launchApp` for a plain RN build) a
+# guide pinned as "Hiking now" (`currentTrailId`, `features/guide/current-hike.ts`)
+# is pushed over My Guides on launch, and the "My Guides" wait below times out.
 - clearState
 - openLink: "tracknotes://expo-development-client/?url=http%3A%2F%2F10.0.2.2%3A8081"
 

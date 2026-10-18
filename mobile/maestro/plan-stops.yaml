@@ -28,8 +28,10 @@ appId: com.tracknotes.app
 # accessibilityLabel "Plan").
 - tapOn: "Plan"
 
+# The inputs are behind the "Plan settings" sheet; the screen itself opens on
+# the summary row and the days.
 - extendedWaitUntil:
-    visible: "Daily hours"
+    visible: "Day splits"
     timeout: 15000
 
 # An untouched plan is one day: start to finish.
@@ -58,6 +60,19 @@ appId: com.tracknotes.app
     timeout: 20000
 - assertVisible: "Day 2"
 - assertVisible: "Day 3"
+
+# A day card opens that day waypoint by waypoint (`day.tsx`). Day 1 ends at
+# the first stop, not the finish, and the plan has no start date, so its last
+# row is led "Overnight".
+- tapOn: "Day 1"
+- extendedWaitUntil:
+    visible: "Overnight"
+    timeout: 15000
+- assertVisible: "Deepdene Campsite"
+- pressKey: back
+- extendedWaitUntil:
+    visible: "Day splits"
+    timeout: 15000
 
 # Suggesting stops is off once the list has some.
 - scrollUntilVisible:

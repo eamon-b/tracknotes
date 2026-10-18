@@ -64,6 +64,10 @@ therefore starts from a genuinely fresh install, and flows that need one
 (`guide-list.yaml` asserts every badge reads "Not downloaded";
 `add-comment-offline.yaml` wants no device identity) need no external reset.
 
+Flows assume that clean device. Without `clearState`, a guide pinned as
+"Hiking now" (the pinned-guide feature, `features/guide/current-hike.ts`) is
+pushed over My Guides on launch and the launcher's "My Guides" wait times out.
+
 If Metro is on a port other than 8081, edit the URL in the launcher (percent-
 encoded, e.g. `http%3A%2F%2F10.0.2.2%3A8082`).
 
@@ -107,11 +111,13 @@ adb reverse tcp:8787 tcp:8787   # after
 | Flow | Purpose | Verified |
 | --- | --- | --- |
 | `app-launch.yaml` | Launch → "My Guides" renders. | **Green** — 2026-08-19, Pixel 7 emulator |
-| `plan-screen.yaml` | Guide → Plan: inputs card, summary, day splits, water carries. | **Green** — 2026-08-19 |
+| `plan-screen.yaml` | Guide → Plan: summary, day splits, the plan settings sheet (inputs, pace change), water carries, resupply picker. | **Updated, not yet re-run** — 2026-10-18 (issue #145: inputs moved into `PlanSettingsSheet`; last green 2026-08-19 before that) |
+| `plan-stops.yaml` | Guide → Plan: tick two Stops, the day cards split, a day card opens the day view. | **Updated, not yet re-run** — 2026-10-18 (issue #145) |
 | `guide-list.yaml` | My Guides lists the bundled trails in their sections, badges read "Not downloaded", list scrolls. | **Green** — 2026-08-19 |
 | `view-map.yaml` | Open a guide → map pane chrome (status pill, map key, FABs) mounts and survives pans + recenter. | **Green** — 2026-08-19 |
 | `toggle-views.yaml` | Map → Elevation → List segmented switching, plus the List filter chips. | **Green** — 2026-08-19 |
 | `waypoint-detail.yaml` | List → waypoint row → detail: name, stats, favorite round-trip, comments area. | **Green** — 2026-08-19 |
+| `waypoint-stop-here.yaml` | List → Deepdene Campsite → "Stop here" / "Remove stop" round-trip, then "Show on map" back to the guide. | **New, not yet run** — 2026-10-18 (issue #145) |
 | `add-comment-offline.yaml` | Post a comment with the API unreachable; assert the queued/failed affordance. | **Green** — 2026-08-19, took branch A (registration NetworkError → "Try again") |
 | `shared/launch-dev.yaml` | Launcher fragment — `clearState` + dev-client deep link. Not standalone. | — |
 
