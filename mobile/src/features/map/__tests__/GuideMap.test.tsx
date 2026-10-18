@@ -745,8 +745,58 @@ describe('GuideMap', () => {
 
     const filterOf = (id: string) => nodeById(tree, 'line', id).props.filter;
     expect(filterOf('guide-side-trips-highlight')).toEqual(['==', ['get', 'id'], 'side-trip-0']);
-    // The other class's highlight filter matches nothing.
-    expect(filterOf('guide-alternates-highlight')).toEqual(['==', ['get', 'id'], 'side-trip-0']);
+    // The other class's highlight filter matches nothing. (The alternates'
+    // one also skips a taken alternate, which highlights over its own line.)
+    expect(filterOf('guide-alternates-highlight')).toEqual([
+      'all',
+      ['==', ['get', 'id'], 'side-trip-0'],
+      ['!=', ['get', 'taken'], true],
+    ]);
+  });
+
+  it('draws a taken alternate as the trail, above the bypassed line, side trips and termini', async () => {
+    getOnline.mockResolvedValue(ONLINE_STYLE);
+    let tree!: ReactTestRenderer;
+    act(() => {
+      tree = TestRenderer.create(
+        <GuideMap
+          trailId="heysen"
+          styleSource="online"
+          displayPoints={points}
+          alternates={[
+            { name: 'Taken', type: 'alternate', points },
+            { name: 'Other', type: 'alternate', points },
+          ]}
+          sideTrips={[{ name: 'Spur', type: 'side-trip', points }]}
+          takenAlternateIds={new Set(['alternate-0'])}
+          bypassedKm={[[0.5, 1.5]]}
+          selectedVariantId="alternate-0"
+        />,
+      );
+    });
+    await flush();
+
+    const taken = sourceById(tree, 'guide-alternates-taken');
+    const takenShape = taken.props.data as GeoJSON.FeatureCollection;
+    expect(takenShape.features.map((f) => f.id)).toEqual(['alternate-0']);
+    // The dashed layer still has both features, filtered to the untaken one.
+    expect(nodeById(tree, 'line', 'guide-alternates-layer').props.filter).toEqual([
+      '!=',
+      ['get', 'taken'],
+      true,
+    ]);
+    expect(nodeById(tree, 'line', 'guide-alternates-taken-highlight').props.filter).toEqual([
+      '==',
+      ['get', 'id'],
+      'alternate-0',
+    ]);
+
+    const order = sources(tree).map((n) => n.props.id);
+    const at = (id: string) => order.indexOf(id);
+    expect(at('guide-alternates-taken')).toBeGreaterThan(at('guide-trail-bypassed'));
+    expect(at('guide-alternates-taken')).toBeGreaterThan(at('guide-side-trips'));
+    expect(at('guide-alternates-taken')).toBeGreaterThan(at('guide-termini'));
+    expect(at('guide-alternates-taken')).toBeLessThan(at('guide-trail-line'));
   });
 
   it('matches no variant when nothing is selected', async () => {
@@ -765,7 +815,11 @@ describe('GuideMap', () => {
     await flush();
     const layer = nodeById(tree, 'line', 'guide-alternates-highlight');
     // '' can never equal a variant id (which is always "<kind>-<index>").
-    expect(layer.props.filter).toEqual(['==', ['get', 'id'], '']);
+    expect(layer.props.filter).toEqual([
+      'all',
+      ['==', ['get', 'id'], ''],
+      ['!=', ['get', 'taken'], true],
+    ]);
   });
 
   it('reports a tap that hit no overlay so the pane can clear its selection', async () => {

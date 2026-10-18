@@ -27,8 +27,13 @@ type Stroke = 'solid' | 'dashed' | 'dotted';
 const SEGMENTS: Record<Stroke, number> = { solid: 1, dashed: 3, dotted: 5 };
 
 export interface TrackLegendProps {
-  /** Show the alternates row (trail has at least one drawn alternate). */
+  /** Show the alternates row (at least one alternate drawn dashed). */
   hasAlternates?: boolean;
+  /**
+   * Show the row for the main route a taken alternate bypasses (the plan takes
+   * one; the alternate itself is then drawn as the trail).
+   */
+  hasBypassed?: boolean;
   /** Show the side-trips row (trail has at least one drawn side trip). */
   hasSideTrips?: boolean;
   /** Show the alternative-termini row (trail has at least one drawn terminus). */
@@ -39,6 +44,7 @@ export interface TrackLegendProps {
 
 export function TrackLegend({
   hasAlternates,
+  hasBypassed,
   hasSideTrips,
   hasTermini,
   hasPois,
@@ -48,7 +54,7 @@ export function TrackLegend({
 
   // With no variant class and no POIs there is nothing to disambiguate — the
   // only thing on the map is the trail, so the key would be noise.
-  if (!hasAlternates && !hasSideTrips && !hasTermini && !hasPois) return null;
+  if (!hasAlternates && !hasBypassed && !hasSideTrips && !hasTermini && !hasPois) return null;
 
   return (
     <View
@@ -61,6 +67,9 @@ export function TrackLegend({
       accessibilityLabel="Map key"
     >
       <LegendRow color={track.main} stroke="solid" label="Trail" />
+      {hasBypassed && (
+        <LegendRow color={track.main} stroke="dashed" label="Main route (not taken)" />
+      )}
       {hasAlternates && (
         <LegendRow color={track.alternate} stroke="dashed" label="Alternate" />
       )}

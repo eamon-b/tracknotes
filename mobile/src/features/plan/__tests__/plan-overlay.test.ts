@@ -9,6 +9,7 @@
 import type { PlanDocument } from '@lib/plan-types';
 import type { PlannedRoute } from '@lib/plan-alternates';
 import {
+  alternatePlaceNoboKm,
   plannedAlternateWaypoints,
   plannedRouteLines,
   plannedStopFeatureIds,
@@ -181,19 +182,45 @@ describe('alternates the plan takes', () => {
 
   it('lists the taken alternates’ places, tagged, without repeating a main place', () => {
     const alternates = [
-      { name: 'Alt: Other', waypoints: [{ id: 'w_o', name: 'Other' }] },
+      { name: 'Alt: Other', waypoints: [{ id: 'w_o', name: 'Other', totalDistance: 12 }] },
       {
         name: 'Alt: Ridge',
         waypoints: [
-          { id: 'w_1', name: 'Hut' },
-          { id: 'w_ridge', name: 'Ridge Camp' },
+          { id: 'w_1', name: 'Hut', totalDistance: 30 },
+          { id: 'w_ridge', name: 'Ridge Camp', totalDistance: 35 },
         ],
       },
     ];
     const lines = plannedRouteLines(route, 'NOBO', TOTAL);
-    expect(plannedAlternateWaypoints(alternates, lines, WAYPOINTS)).toEqual([
-      { id: 'w_ridge', name: 'Ridge Camp', alternate: 'Alt: Ridge' },
+    expect(plannedAlternateWaypoints(alternates, lines, WAYPOINTS, 'NOBO', TOTAL)).toEqual([
+      { id: 'w_ridge', name: 'Ridge Camp', totalDistance: 35, alternate: 'Alt: Ridge', noboKm: 35 },
     ]);
-    expect(plannedAlternateWaypoints(alternates, null, WAYPOINTS)).toEqual([]);
+    expect(plannedAlternateWaypoints(alternates, null, WAYPOINTS, 'NOBO', TOTAL)).toEqual([]);
+  });
+
+  it('turns a reversed alternate’s place back to its stored km, not the main mirror', () => {
+    // The ridge is 20 km against 10 km of main route. Reversed, it starts at
+    // active km 60 and is walked from its far end: the place 5 km along it
+    // NOBO (stored km 35) is 15 km along it, at active km 75. The main
+    // route's mirror would say 25.
+    expect(alternatePlaceNoboKm(ridge, 75, 'SOBO', TOTAL)).toBe(35);
+    expect(alternatePlaceNoboKm(ridge, 35, 'NOBO', TOTAL)).toBe(35);
+  });
+
+  it('rings a km-only stop on a reversed alternate', () => {
+    const kmOnly = plan({
+      alternates: ['Alt: Ridge'],
+      stops: [{ km: 35, name: 'Ridge Camp', nights: 1, alternate: 'Alt: Ridge' }],
+    });
+    // Direction applied: the guide trail's alternates[1] after reversal.
+    const reversedAlternates = [
+      { name: 'Alt: Other', waypoints: [] },
+      { name: 'Alt: Ridge', waypoints: [{ name: 'Ridge Camp', totalDistance: 75 }] },
+    ];
+    const lines = plannedRouteLines(route, 'SOBO', TOTAL);
+    const onAlternate = plannedAlternateWaypoints(reversedAlternates, lines, [], 'SOBO', TOTAL);
+    expect([...plannedStopFeatureIds(kmOnly, onAlternate, 'SOBO', TOTAL)]).toEqual([
+      'Ridge Camp-0',
+    ]);
   });
 });

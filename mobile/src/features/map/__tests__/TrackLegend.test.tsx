@@ -61,6 +61,7 @@ describe('TrackLegend', () => {
 
   it('lists only the classes present on the trail', () => {
     expect(labels(render({ hasAlternates: true }))).toEqual(['Trail', 'Alternate']);
+    expect(labels(render({ hasBypassed: true }))).toEqual(['Trail', 'Main route (not taken)']);
     expect(labels(render({ hasSideTrips: true }))).toEqual(['Trail', 'Side trip']);
     expect(labels(render({ hasAlternates: true, hasSideTrips: true }))).toEqual([
       'Trail',

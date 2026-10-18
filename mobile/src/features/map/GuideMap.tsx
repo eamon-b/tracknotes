@@ -399,8 +399,7 @@ const ROUTE_STRAIGHT_FILTER = [
   ['==', ['get', 'straight'], true],
 ] as FilterSpecification;
 const ROUTE_VERTEX_FILTER = ['==', ['geometry-type'], 'Point'] as FilterSpecification;
-/** Alternates the plan takes (`buildVariantCollection`'s `taken`), and the rest. */
-const TAKEN_FILTER = ['==', ['get', 'taken'], true] as FilterSpecification;
+/** Alternates the plan does not take (`buildVariantCollection`'s `taken`). */
 const UNTAKEN_FILTER = ['!=', ['get', 'taken'], true] as FilterSpecification;
 
 // --- Track paint --------------------------------------------------------------
@@ -720,9 +719,20 @@ export const GuideMap = memo(
       () => buildTerminusEndCollection(termini ?? []),
       [termini],
     );
+    const takenAlternatesCollection = useMemo(
+      () => ({
+        ...alternatesCollection,
+        features: alternatesCollection.features.filter((f) => f.properties?.taken === true),
+      }),
+      [alternatesCollection],
+    );
     const highlightFilter = useMemo(
       () => selectedVariantFilter(selectedVariantId),
       [selectedVariantId],
+    );
+    const untakenHighlightFilter = useMemo(
+      () => ['all', highlightFilter, UNTAKEN_FILTER] as FilterSpecification,
+      [highlightFilter],
     );
     const waypointCollection = useMemo(
       () =>
@@ -1213,35 +1223,17 @@ export const GuideMap = memo(
           <Layer
             type="line"
             id="guide-alternates-highlight"
-            filter={highlightFilter}
+            filter={untakenHighlightFilter}
             style={trackStyles.alternateHighlight}
           />
+          {/* A taken alternate stays in this source, so its hit line still
+              opens its card, but is drawn with the main track below. */}
           <Layer
             type="line"
             id="guide-alternates-layer"
             filter={UNTAKEN_FILTER}
             style={trackStyles.alternate}
           />
-          {/* An alternate the plan takes is the route: drawn as the trail. */}
-          <Layer
-            type="line"
-            id="guide-alternates-taken-casing"
-            filter={TAKEN_FILTER}
-            style={trackStyles.mainCasing}
-          />
-          <Layer
-            type="line"
-            id="guide-alternates-taken-layer"
-            filter={TAKEN_FILTER}
-            style={trackStyles.main}
-          />
-        </GeoJSONSource>
-
-        {/* The main route a taken alternate bypasses: dashed in the trail's
-            red, so the way "Stay on the main route" goes back to stays on the
-            map without reading as the route walked. */}
-        <GeoJSONSource id="guide-trail-bypassed" data={plannedLines?.bypassed ?? EMPTY_COLLECTION}>
-          <Layer type="line" id="guide-trail-bypassed-layer" style={trackStyles.bypassed} />
         </GeoJSONSource>
 
         {/* Side trips: finely dotted teal, under the main track */}
@@ -1293,6 +1285,32 @@ export const GuideMap = memo(
             minzoom={WAYPOINT_LABEL_MIN_ZOOM}
             style={labelStyle}
           />
+        </GeoJSONSource>
+
+        {/* The main route a taken alternate bypasses: dashed in the trail's
+            red, so the way "Stay on the main route" goes back to stays on the
+            map without reading as the route walked. */}
+        <GeoJSONSource id="guide-trail-bypassed" data={plannedLines?.bypassed ?? EMPTY_COLLECTION}>
+          <Layer type="line" id="guide-trail-bypassed-layer" style={trackStyles.bypassed} />
+        </GeoJSONSource>
+
+        {/* An alternate the plan takes is the route: drawn as the trail, over
+            the bypassed line, side trips and termini as the main track is.
+            Its tap highlight sits between the casing and the core, where it
+            shows as a halo. */}
+        <GeoJSONSource id="guide-alternates-taken" data={takenAlternatesCollection}>
+          <Layer
+            type="line"
+            id="guide-alternates-taken-casing"
+            style={trackStyles.mainCasing}
+          />
+          <Layer
+            type="line"
+            id="guide-alternates-taken-highlight"
+            filter={highlightFilter}
+            style={trackStyles.alternateHighlight}
+          />
+          <Layer type="line" id="guide-alternates-taken-layer" style={trackStyles.main} />
         </GeoJSONSource>
 
         {/* Main trail line: white casing + solid red core, drawn last so the

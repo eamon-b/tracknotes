@@ -20,7 +20,7 @@
  */
 
 import { findStopIndex } from '@lib/plan-editor';
-import { mainKmToRoute, type PlannedRoute } from '@lib/plan-alternates';
+import { mainKmToRoute, type PlanAlternate, type PlannedRoute } from '@lib/plan-alternates';
 import { stopsToActive, toActiveKm, toNoboKm, type PlanDirection } from '@lib/plan-direction';
 import type { PlanDocument, PlanStop } from '@lib/plan-types';
 
@@ -34,6 +34,11 @@ export interface OverlayWaypoint {
    * alternate's own scale), or absent for the main route.
    */
   alternate?: string;
+  /**
+   * Its stored (NOBO) km, when the main route's mirror does not give it: a
+   * place on an alternate (`plannedAlternateWaypoints`).
+   */
+  noboKm?: number;
 }
 
 /**
@@ -77,7 +82,7 @@ export function plannedStopFeatureIds(
       (wp.id !== undefined && byId.has(wp.id)) ||
       findStopIndex(lineOf(wp.alternate), {
         waypointId: wp.id,
-        km: toNoboKm(wp.totalDistance ?? 0, direction, totalKm),
+        km: wp.noboKm ?? toNoboKm(wp.totalDistance ?? 0, direction, totalKm),
       }) !== -1;
     if (matched) ids.add(wp.id ?? `${wp.name}-${i}`);
   });
@@ -137,6 +142,8 @@ export function profileKmOfStop(
 export interface PlannedRouteLines {
   /** Indices into the trail's `alternates` of the ones the plan takes. */
   takenAlternateIndices: ReadonlySet<number>;
+  /** The alternates the plan takes (NOBO junctions and length). */
+  taken: readonly PlanAlternate[];
   /** The main route those alternates bypass, as km ranges in the ACTIVE direction. */
   bypassedKm: [number, number][];
 }
@@ -156,6 +163,7 @@ export function plannedRouteLines(
   if (route.alternates.length === 0) return null;
   return {
     takenAlternateIndices: new Set(route.alternates.map((a) => a.index)),
+    taken: route.alternates,
     bypassedKm: route.alternates.map((a) => {
       const from = toActiveKm(a.startKm, direction, totalKm);
       const to = toActiveKm(a.endKm, direction, totalKm);
@@ -171,28 +179,55 @@ export interface OverlayAlternate<W> {
 }
 
 /**
- * The places on the alternates the plan takes, tagged with the alternate, to
- * draw beside the main route's markers. A place the main route already has
- * (same id) is left out: it is one marker, and `plannedStopFeatureIds` rings it
- * whichever line its stop is on.
+ * The stored (NOBO) km of a place on an alternate, from its km in the active
+ * direction.
+ *
+ * Reversal does not mirror an alternate's places the way it mirrors the main
+ * route's: it turns the alternate round, so a place `along` km into it going
+ * NOBO sits at `(total - endKm) + (length - along)` going SOBO. Mirroring that
+ * by the main route's `total - km` is right only when the alternate is exactly
+ * as long as the stretch it replaces.
  */
-export function plannedAlternateWaypoints<W extends { id?: string }>(
+export function alternatePlaceNoboKm(
+  alternate: Pick<PlanAlternate, 'startKm' | 'endKm' | 'distanceKm'>,
+  activeKm: number,
+  direction: PlanDirection,
+  totalKm: number,
+): number {
+  if (direction === 'NOBO') return activeKm;
+  const along = activeKm - (totalKm - alternate.endKm);
+  return alternate.startKm + (alternate.distanceKm - along);
+}
+
+/**
+ * The places on the alternates the plan takes, tagged with the alternate and
+ * their stored km, to draw beside the main route's markers. A place the main
+ * route already has (same id) is left out: it is one marker, and
+ * `plannedStopFeatureIds` rings it whichever line its stop is on.
+ *
+ * `alternates` is the guide trail's (direction applied).
+ */
+export function plannedAlternateWaypoints<W extends { id?: string; totalDistance?: number }>(
   alternates: readonly OverlayAlternate<W>[] | undefined,
   lines: PlannedRouteLines | null,
   mainWaypoints: readonly { id?: string }[],
-): (W & { alternate: string })[] {
+  direction: PlanDirection,
+  totalKm: number,
+): (W & { alternate: string; noboKm: number })[] {
   if (!lines || !alternates) return [];
   const seen = new Set(mainWaypoints.map((wp) => wp.id).filter(Boolean));
-  const out: (W & { alternate: string })[] = [];
-  alternates.forEach((alternate, index) => {
-    if (!lines.takenAlternateIndices.has(index) || !alternate.name) return;
+  const out: (W & { alternate: string; noboKm: number })[] = [];
+  for (const taken of lines.taken) {
+    const alternate = alternates[taken.index];
+    if (!alternate) continue;
     for (const wp of alternate.waypoints ?? []) {
       if (wp.id !== undefined) {
         if (seen.has(wp.id)) continue;
         seen.add(wp.id);
       }
-      out.push({ ...wp, alternate: alternate.name });
+      const noboKm = alternatePlaceNoboKm(taken, wp.totalDistance ?? 0, direction, totalKm);
+      out.push({ ...wp, alternate: taken.name, noboKm });
     }
-  });
+  }
   return out;
 }

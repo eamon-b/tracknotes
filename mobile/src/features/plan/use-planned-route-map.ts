@@ -49,9 +49,11 @@ export function usePlannedRouteMap<W extends Omit<OverlayWaypoint, 'alternate'>>
       alternates as { name?: string; waypoints?: W[] }[] | undefined,
       lines,
       mainWaypoints,
+      planDirection,
+      totalKm,
     );
     return onAlternates.length === 0 ? mainWaypoints : [...mainWaypoints, ...onAlternates];
-  }, [mainWaypoints, alternates, lines]);
+  }, [mainWaypoints, alternates, lines, planDirection, totalKm]);
   // Stops of the hiker's plan get a ring on their marker. The plan stores km
   // NOBO-absolute while this trail is direction-applied, so the conversion goes
   // through `plan-overlay` — the same module the elevation profile uses, so the

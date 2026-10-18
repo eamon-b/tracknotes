@@ -536,7 +536,10 @@ export function MapPane() {
           class it describes anyway). */}
       {!building && !selectedVariant && (
         <TrackLegend
-          hasAlternates={hasDrawableVariant(alternates)}
+          hasAlternates={hasDrawableVariant(
+            alternates?.filter((_, i) => !plannedLines?.takenAlternateIndices.has(i)),
+          )}
+          hasBypassed={plannedLines !== null}
           hasSideTrips={hasDrawableVariant(sideTrips)}
           hasTermini={hasDrawableVariant(termini)}
           hasPois={pois.length > 0}
