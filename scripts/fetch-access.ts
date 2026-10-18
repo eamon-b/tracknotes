@@ -51,6 +51,7 @@ import {
   ACCESS_SOURCE,
   mergeTrailAccess,
   readTrailAccessFile,
+  trailAccessPath,
   writeTrailAccessFile,
   type TrailAccessEntry,
   type TrailAccessFile,
@@ -526,12 +527,13 @@ async function main(): Promise<void> {
           args.maxCacheAgeDays * 86_400_000
         );
         ways = answer.ways;
-        answeredAt.push(answer.answeredAt);
         // Overpass returns each way whole, running past the query box: load
         // heights for everything it returned, or the far ends read as unknown.
         // A height that cannot be read fails the query like the ways would:
         // routing without it would take every climb as flat.
         await dem.load(waysBbox(ways, cluster.bbox));
+        // Only an answer the entries are routed over dates the file.
+        answeredAt.push(answer.answeredAt);
       } catch (error) {
         console.warn(`  ${label}: failed: ${(error as Error).message}`);
         failed.push({ cluster, n });
@@ -557,10 +559,24 @@ async function main(): Promise<void> {
   for (const { cluster } of pending) for (const member of cluster.members) failedIds.add(member.id);
 
   const places = accessAfterRun(previous, fetched, args.only, failedIds);
-  // No file says "no candidates" (see `trail-access-file.ts`): an empty one
-  // would say the same thing with a date on it.
-  if (!previous && Object.keys(places).length === 0) {
-    console.log('\nNo waypoint to route; no file written');
+  // No file means "no candidates" (see `trail-access-file.ts`), so a run whose
+  // queries failed never leaves the trail without one by writing nothing, and
+  // a run that found nothing to route leaves no file rather than an empty one.
+  if (Object.keys(places).length === 0) {
+    if (failedIds.size > 0) {
+      console.warn(
+        `WARNING: every query failed; no file written. Re-run with\n  --only ${[...failedIds].sort().join(',')}`
+      );
+      process.exitCode = 1;
+      return;
+    }
+    const existing = trailAccessPath(trailDir);
+    if (fs.existsSync(existing)) {
+      fs.rmSync(existing);
+      console.log(`\nNo waypoint to route; removed ${path.relative(PROJECT_ROOT, existing)}`);
+    } else {
+      console.log('\nNo waypoint to route; no file written');
+    }
     return;
   }
   const filePath = writeTrailAccessFile(trailDir, {

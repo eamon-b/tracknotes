@@ -41,13 +41,15 @@
  *   so a correction to OSM survives a refresh.
  * - `none` — the fetch found no way to the route (`reason` says why). The
  *   waypoint stays at the route point nearest it, and its walk is the straight
- *   line to the route (`offTrailKm`, no `accessMode`), not nothing.
+ *   line to the route (`offTrailKm`, no `accessMode`), not nothing. So is an
+ *   `osm`/`manual` entry's the build ignores as stale.
  *
  * A trail with no file has had no waypoint worth routing: `fetch-access`
  * found none at least `--min-distance` off the route (or every one is a
  * turn-off, on a side trip, or already given a distance by its source — the
- * CDT's). It writes no file then, so an absent file means "no candidates",
- * never "not fetched yet".
+ * CDT's). It writes no file then (and removes an old one), and a run whose
+ * every query failed writes none and exits 1, so an absent file means "no
+ * candidates", never "not fetched yet".
  *
  * `straightLineM`/`nearestKm` record what the build would do without the
  * entry, so a reviewer can see what moved and how far.

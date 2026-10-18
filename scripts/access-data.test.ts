@@ -63,7 +63,10 @@ describe('access.json', () => {
     // its own; fetch-access gave it its survivor's entry, so a twin with the
     // same junction and walk stands for it.
     const sameWalk = (a: TrailAccessEntry, b: TrailAccessEntry) =>
-      a.method === b.method && a.offTrailKm === b.offTrailKm && String(a.junction) === String(b.junction);
+      a.junction !== undefined &&
+      a.method === b.method &&
+      a.offTrailKm === b.offTrailKm &&
+      String(a.junction) === String(b.junction);
     const rowFor = (id: string, entry: TrailAccessEntry) =>
       rows.get(id) ?? places.filter(([other, e]) => other !== id && sameWalk(e, entry)).map(([other]) => rows.get(other)).find(Boolean);
 

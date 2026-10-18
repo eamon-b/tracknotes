@@ -564,6 +564,15 @@ describe('a loop that ends where it started', () => {
     expect(town.offTrailKm).toBe(0.4);
   });
 
+  it('keeps a start waypoint at km 0 when the loop ends nearer it than it began', () => {
+    // A recorded loop that finishes a few metres past its start.
+    const gpx = loopRoute();
+    gpx.tracks[0].points.push({ lat: -34.0001, lon: 138.0001, ele: 100, time: null });
+    const trail = buildTrail(gpx, { config: config() });
+    expect(trail.waypoints.map(w => w.name)).toEqual(['Trailhead', 'Far corner']);
+    expect(trail.waypoints[0].totalDistance).toBe(0);
+  });
+
   it('still lists the junction again at the end of an out-and-back side trip', () => {
     // 2 km of main route, and a side trip that leaves at its start, goes 1 km
     // east and comes back. The return to the junction is a datasheet row on
@@ -792,9 +801,44 @@ describe('waypointAccess', () => {
       warn: m => warnings.push(m),
     });
     const camp = trail.waypoints.find(w => w.name === 'Camp')!;
+    const plain = buildTrail(climb(), { config: config({ waypointMaxDistance: 3000 }) });
+    // Where it would be with no entry at all: not moved onto the stale junction's km.
     expect(camp.elevation).toBe(550);
-    expect(camp.offTrailKm).toBeUndefined();
+    expect(camp.totalDistance).toBe(plain.waypoints.find(w => w.name === 'Camp')!.totalDistance);
+    // Walked as the straight line, like a place no way was found to.
+    expect(camp.offTrailKm).toBeCloseTo(1.11, 2);
+    expect(camp).not.toHaveProperty('accessMode');
     expect(warnings.join('\n')).toMatch(/re-run fetch-access/);
+  });
+
+  it('never climbs a negative leg when a junction projects back past another row', () => {
+    // A hairpin: up the road from the trailhead, across, and back down beside
+    // it. The camp's junction is beside the first leg (25 m off it), but the
+    // vertex nearest it is on the way back down, past the Saddle.
+    const m = (x: number, y: number, ele: number) => ({ lat: -34 + y / 111_320, lon: 138 + x / 92_288, ele, time: null });
+    const points = [m(0, -1000, 0), m(0, 0, 0), m(60, 0, 100), m(60, -480, 200), m(60, -1000, 200)];
+    const junction = m(25, -500, 0);
+    const trail = buildTrail(
+      {
+        tracks: [{ name: 'Main', points }],
+        waypoints: [
+          { id: 'w_saddle', name: 'Saddle', lat: points[2].lat, lon: points[2].lon, type: 'waypoint' },
+          { id: 'w_camp', name: 'Camp', lat: m(-400, -500, 0).lat, lon: m(-400, -500, 0).lon, type: 'campsite' },
+        ],
+        name: null,
+      },
+      {
+        config: config({ waypointMaxDistance: 3000 }),
+        waypointAccess: new Map([['w_camp', { junction: { lat: junction.lat, lon: junction.lon }, offTrailKm: 0.4 }]]),
+      }
+    );
+    expect(trail.waypoints.map(w => w.name)).toEqual(['Camp', 'Saddle']);
+    const [camp, saddle] = trail.waypoints;
+    expect(camp.totalDistance).toBeCloseTo(0.5, 2);
+    expect(camp.trackIndex).toBeLessThanOrEqual(saddle.trackIndex);
+    expect(camp.totalAscent).toBe(0);
+    expect(saddle.ascent).toBe(100);
+    for (const w of trail.waypoints) expect(Math.min(w.ascent, w.descent, w.distance)).toBeGreaterThanOrEqual(0);
   });
 });
 
