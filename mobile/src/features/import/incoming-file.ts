@@ -55,6 +55,10 @@
  * `MainActivity` rewrites a SEND carrying a stream into the VIEW of that URI
  * before React Native reads the intent, so a share arrives here exactly like
  * "Open with" — from a file manager, Downloads, or Gmail's attachment preview.
+ * A SEND has no path for a filter to gate on, so the plugin applies the gate
+ * the VIEW filters' path patterns do: a generic type (octet-stream, JSON, XML)
+ * is promoted only when the provider's display name ends in `.gpx` or
+ * `.tracknotes.json`, and anything else opens the app without importing.
  */
 
 import { useEffect, useRef } from 'react';

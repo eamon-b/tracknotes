@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import TestRenderer, { act } from 'react-test-renderer';
+import TestRenderer, { act, type ReactTestRenderer } from 'react-test-renderer';
 
 import {
   needsBorrowedPack,
@@ -61,23 +61,33 @@ describe('resolveBorrowedPack', () => {
     expect(await resolveBorrowedPack(entry({}), async () => outsideTrail)).toBeNull();
   });
 
-  it('reads a guide once, and again when a community route changes', async () => {
+  it('reads a guide once, and again when the copy on the phone changes', async () => {
     const load = jest.fn(async () => insideTrail);
-    const route = entry({ id: 'c_1', source: 'community', downloaded: true, updatedAt: 'a' });
+    const route = entry({ id: 'c_1', source: 'community', downloaded: true, installedMd5: 'a' });
     await resolveBorrowedPack(route, load);
-    await resolveBorrowedPack(route, load);
+    await resolveBorrowedPack({ ...route, updatedAt: 'status change' }, load);
     expect(load).toHaveBeenCalledTimes(1);
-    await resolveBorrowedPack({ ...route, updatedAt: 'b' }, load);
+    await resolveBorrowedPack({ ...route, installedMd5: 'b' }, load);
     expect(load).toHaveBeenCalledTimes(2);
   });
 
-  it('does not remember a guide it could not read', async () => {
+  it('shares a read already under way', async () => {
+    let finish: (t: typeof insideTrail) => void = () => {};
+    const load = jest.fn(() => new Promise<typeof insideTrail>((r) => (finish = r)));
+    const first = resolveBorrowedPack(entry({}), load);
+    const second = resolveBorrowedPack(entry({}), load);
+    finish(insideTrail);
+    expect(await first).toEqual(await second);
+    expect(load).toHaveBeenCalledTimes(1);
+  });
+
+  it('remembers a guide it could not read as having no pack', async () => {
     const load = jest.fn(async () => {
       throw new Error('torn');
     });
     expect(await resolveBorrowedPack(entry({}), load)).toBeNull();
     expect(await resolveBorrowedPack(entry({}), load)).toBeNull();
-    expect(load).toHaveBeenCalledTimes(2);
+    expect(load).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -101,5 +111,28 @@ describe('useBorrowedPacks', () => {
       u_in: { packTrailId: bundled.id, packName: bundled.name },
     });
     expect(load).not.toHaveBeenCalledWith(bundled.id);
+  });
+
+  it('shows an answer a cancelled pass stored, when the list re-renders', async () => {
+    let finish: (t: typeof insideTrail) => void = () => {};
+    const load = jest.fn(() => new Promise<typeof insideTrail>((r) => (finish = r)));
+    let packs: ReturnType<typeof useBorrowedPacks> = {};
+    function Probe({ trails }: { trails: TrailIndexEntry[] }) {
+      packs = useBorrowedPacks(trails, load);
+      return null;
+    }
+    let renderer!: ReactTestRenderer;
+    await act(async () => {
+      renderer = TestRenderer.create(<Probe trails={[entry({ id: 'u_in' })]} />);
+    });
+    // A new list array (a focus refresh) cancels the first pass mid-read.
+    await act(async () => {
+      renderer.update(<Probe trails={[entry({ id: 'u_in' })]} />);
+    });
+    await act(async () => {
+      finish(insideTrail);
+    });
+    expect(packs).toEqual({ u_in: { packTrailId: bundled.id, packName: bundled.name } });
+    expect(load).toHaveBeenCalledTimes(1);
   });
 });

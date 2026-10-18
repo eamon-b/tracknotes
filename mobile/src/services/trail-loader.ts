@@ -83,6 +83,8 @@ export interface TrailIndexEntry {
    * longer shared ("No longer shared"). The copy stays until the hiker removes it.
    */
   communityTakenDown?: boolean;
+  /** Community routes only: MD5 of the copy on this phone, when downloaded. */
+  installedMd5?: string;
 }
 
 interface BundledIndexEntry {
@@ -140,6 +142,7 @@ function communityIndexEntry(route: CommunityRouteInfo): TrailIndexEntry {
     ...(route.state ? { states: [route.state] } : {}),
     communityStatus: route.status,
     ...(route.takenDown ? { communityTakenDown: true } : {}),
+    ...(route.installedMd5 ? { installedMd5: route.installedMd5 } : {}),
   };
 }
 

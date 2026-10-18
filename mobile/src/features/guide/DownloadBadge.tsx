@@ -4,7 +4,8 @@
  *
  * `packName` is for a guide that borrows another trail's pack (an import or
  * community route inside a bundled trail's coverage): `trailId` is then the
- * pack's trail, and the label says whose pack it is.
+ * pack's trail, and the label says whose pack it is — a full trail name, so the
+ * label truncates rather than overflow a narrow card.
  */
 
 import React from 'react';
@@ -44,7 +45,9 @@ export function DownloadBadge({ trailId, packName }: { trailId: string; packName
   return (
     <View style={[styles.pill, { borderColor: color }]}>
       <View style={[styles.dot, { backgroundColor: color }]} />
-      <Text style={[styles.label, { color }]}>{label}</Text>
+      <Text style={[styles.label, { color }]} numberOfLines={1}>
+        {label}
+      </Text>
     </View>
   );
 }
@@ -58,6 +61,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     borderRadius: radii.full,
     borderWidth: StyleSheet.hairlineWidth,
+    flexShrink: 1,
+    maxWidth: '100%',
   },
   dot: {
     width: spacing.sm,
@@ -66,5 +71,6 @@ const styles = StyleSheet.create({
   },
   label: {
     ...typography.caption,
+    flexShrink: 1,
   },
 });

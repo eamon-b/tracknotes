@@ -143,6 +143,12 @@ export type CommunityRouteListing = CommunityRouteSummary & {
   downloaded: boolean;
   /** Downloaded, and the server has said it is no longer shared. */
   takenDown: boolean;
+  /**
+   * MD5 of the copy on this phone, when downloaded. It can trail the list's
+   * `md5` until a re-download lands, so anything derived from the copy keys on
+   * this, not on the list's fields.
+   */
+  installedMd5?: string;
 };
 
 /**
@@ -161,11 +167,22 @@ export function mergeCommunityRoutes(
   const seen = new Set<string>();
   for (const route of list ?? []) {
     seen.add(route.id);
-    out.push({ ...route, downloaded: !!installed[route.id], takenDown: false });
+    const copy = installed[route.id];
+    out.push({
+      ...route,
+      downloaded: !!copy,
+      takenDown: false,
+      ...(copy ? { installedMd5: copy.summary.md5 } : {}),
+    });
   }
   for (const [id, copy] of Object.entries(installed)) {
     if (seen.has(id)) continue;
-    out.push({ ...copy.summary, downloaded: true, takenDown: copy.takenDown === true });
+    out.push({
+      ...copy.summary,
+      downloaded: true,
+      takenDown: copy.takenDown === true,
+      installedMd5: copy.summary.md5,
+    });
   }
   return out;
 }

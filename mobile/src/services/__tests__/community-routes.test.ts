@@ -316,6 +316,17 @@ describe('mergeCommunityRoutes', () => {
       [ID2, true],
     ]);
   });
+
+  it('carries the MD5 of the copy on the phone, which can trail the list', () => {
+    const listed = { ...parseCommunitySummary(publish(ID))!, md5: 'b'.repeat(32) };
+    const old = { ...listed, md5: 'a'.repeat(32) };
+    const [route] = mergeCommunityRoutes([listed], {
+      [ID]: { summary: old, file: communityFileName(ID, old.md5) },
+    });
+    expect(route.md5).toBe('b'.repeat(32));
+    expect(route.installedMd5).toBe('a'.repeat(32));
+    expect(mergeCommunityRoutes([listed], {})[0].installedMd5).toBeUndefined();
+  });
 });
 
 describe('planCommunitySync', () => {
