@@ -858,15 +858,14 @@ async function drainOutboxNow(deps: SyncDeps = {}): Promise<DrainResult> {
     }
   };
 
-  // Items gated in the first pass: photos on a not-yet-confirmed comment, and
-  // comments on a hiker waypoint whose share is still queued. A second pass
-  // re-checks them so a waypoint+comment+photo composed together lands in ONE
-  // drain, deterministically — regardless of outbox ordering or clock ticks.
-  const gated: typeof items = [];
-
+  // Items gated in a pass: photos on a not-yet-confirmed comment, and comments
+  // on a hiker waypoint whose share is still on its way. Later passes re-check
+  // them until one sends nothing new, so a waypoint+comment+photo composed
+  // together lands in ONE drain, deterministically — regardless of outbox
+  // ordering or clock ticks.
   const processItems = async (
     list: typeof items,
-    collectGated: boolean,
+    gated: typeof items,
   ): Promise<DrainResult | null> => {
   for (const item of list) {
     if (!deps.force && !isDrainable(item, nowMs)) continue;
@@ -883,7 +882,7 @@ async function drainOutboxNow(deps: SyncDeps = {}): Promise<DrainResult> {
         const { commentId } = JSON.parse(item.payloadJson) as PhotoOutboxPayload;
         const comment = await commentsRepo.getById(db, commentId);
         if (!comment || comment.source !== 'server') {
-          if (collectGated) gated.push(item);
+          gated.push(item);
           continue;
         }
       }
@@ -893,12 +892,15 @@ async function drainOutboxNow(deps: SyncDeps = {}): Promise<DrainResult> {
       // A re-queued share (an edit) sorts after the comment, and a share the
       // server answered 5xx is still pending; sending the comment first would
       // fail it for good. Gated like a photo: left pending, no attempt charged.
+      // A share that FAILED (a 4xx) is not waited on — it will not be sent
+      // again unless the hiker retries it — so the comment goes and takes the
+      // server's 404, which shows it as not sent rather than pending forever.
       if (
         item.kind === 'comment' &&
         isUserWaypointId(item.waypointId) &&
-        (await outboxRepo.hasQueued(db, 'waypoint', item.waypointId as string))
+        (await outboxRepo.hasPending(db, 'waypoint', item.waypointId as string))
       ) {
-        if (collectGated) gated.push(item);
+        gated.push(item);
         continue;
       }
 
@@ -1042,11 +1044,20 @@ async function drainOutboxNow(deps: SyncDeps = {}): Promise<DrainResult> {
   return null;
   };
 
-  const early = await processItems(items, true);
+  // Each pass after the first only revisits what the last one gated, and runs
+  // only while the last one sent something, so it ends within one pass per
+  // item: a chain gated in the worst order (photo, comment, waypoint) lands in
+  // three.
+  let gated: typeof items = [];
+  const early = await processItems(items, gated);
   if (early) return early;
-  if (gated.length > 0) {
-    const late = await processItems(gated, false);
+  while (gated.length > 0) {
+    const sentBefore = sent + failed;
+    const next: typeof items = [];
+    const late = await processItems(gated, next);
     if (late) return late;
+    if (sent + failed === sentBefore) break;
+    gated = next;
   }
 
   if (retrying > 0) return finish('server-error');

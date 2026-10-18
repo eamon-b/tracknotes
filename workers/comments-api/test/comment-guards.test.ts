@@ -230,3 +230,53 @@ describe('comment report limit under load', () => {
     expect(await countRateEvents('comment_report', reporter.userId)).toBe(20);
   });
 });
+
+describe('comment replays', () => {
+  it('replays a comment stored under an id the target rules now refuse', async () => {
+    const device = await registerDevice('Old Outbox');
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    // Stored before the per-prefix rules, under the old catch-all pattern.
+    await env.DB.prepare(
+      `INSERT INTO comments (id, trail_id, waypoint_id, user_id, text, created_at, updated_at)
+       VALUES (?, 'heysen', 'spring-01', ?, 'Old note', ?, ?)`
+    )
+      .bind(id, device.userId, now, now)
+      .run();
+
+    const res = await putComment(device, id, {
+      trailId: 'heysen',
+      waypointId: 'spring-01',
+      text: 'Old note',
+    });
+    expect(res.status).toBe(200);
+  });
+
+  it('charges a comment once however many copies of its PUT race', async () => {
+    const device = await registerDevice('Racing Outbox');
+    const id = crypto.randomUUID();
+    const body = { trailId: 'heysen', waypointId: wpId('race-wp'), text: 'Once' };
+    const results = await Promise.all(Array.from({ length: 5 }, () => putComment(device, id, body)));
+    const statuses = results.map((r) => r.status).sort();
+    expect(statuses).toEqual([200, 200, 200, 200, 201]);
+    expect(await countRateEvents('comment_post', device.userId)).toBe(1);
+  });
+
+  it('charges a report once however many copies of it race', async () => {
+    const author = await registerDevice('Author');
+    const reporter = await registerDevice('Racing Reporter');
+    const { id } = await createComment(author, { waypointId: wpId('report-race-wp') });
+    const results = await Promise.all(
+      Array.from({ length: 5 }, () =>
+        SELF.fetch(url(`/v1/comments/${id}/report`), {
+          method: 'POST',
+          headers: authHeaders(reporter),
+          body: JSON.stringify({ reason: 'spam' }),
+        })
+      )
+    );
+    const statuses = results.map((r) => r.status).sort();
+    expect(statuses).toEqual([200, 200, 200, 200, 201]);
+    expect(await countRateEvents('comment_report', reporter.userId)).toBe(1);
+  });
+});

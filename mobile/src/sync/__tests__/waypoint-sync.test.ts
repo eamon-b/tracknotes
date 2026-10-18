@@ -37,11 +37,12 @@ interface Call {
 /** A fetch that answers by route, recording every call. */
 function routedFetch(answer: (call: Call) => { status?: number; body?: unknown } | 'offline') {
   const calls: Call[] = [];
-  const fn = jest.fn(async (url: string, init?: { method?: string; body?: string }) => {
+  const fn = jest.fn(async (url: string, init?: { method?: string; body?: unknown }) => {
     const call = {
       url: url.replace(BASE, ''),
       method: init?.method ?? 'GET',
-      body: init?.body ? JSON.parse(init.body) : undefined,
+      // A photo upload's body is bytes, not JSON.
+      body: typeof init?.body === 'string' ? JSON.parse(init.body) : undefined,
     };
     calls.push(call);
     const a = answer(call);
@@ -265,6 +266,9 @@ describe('comments on a hiker waypoint', () => {
         shared.add(id);
         return { status, body: serverCopy(id) };
       }
+      if (call.method === 'POST' && call.url.endsWith('/photos')) {
+        return { status: 201, body: { photoUrl: 'https://cdn/p.jpg', photoUrls: ['https://cdn/p.jpg'] } };
+      }
       if (call.method === 'PUT' && call.url.startsWith('/v1/comments/')) {
         const body = call.body as { waypointId: string; text: string };
         if (!shared.has(body.waypointId)) {
@@ -335,6 +339,89 @@ describe('comments on a hiker waypoint', () => {
     expect(calls.some((c) => c.url.startsWith('/v1/comments/'))).toBe(false);
     const row = await outboxRepo.getById(d, commentId);
     expect(row).toMatchObject({ status: 'pending', attempts: 0 });
+  });
+
+  it('does not wait on a share that failed for good: the comment goes and fails visibly', async () => {
+    const d = await db();
+    const { fetchImpl, calls } = sharingServer(() => 429);
+    const deps = { db: d, baseUrl: BASE, fetchImpl, getSessionFn };
+    const saved = await saveUserWaypoint({ trailId: 'heysen', input: INPUT, visibility: 'shared' }, deps);
+    await saved.drain;
+    const shareRow = (await outboxRepo.listPending(d)).find((r) => r.kind === 'waypoint');
+    expect(shareRow?.status).toBe('failed');
+
+    const { id: commentId, drain } = await submitComment(
+      { trailId: 'heysen', waypointId: saved.waypoint.id, text: 'Dry', session: SESSION },
+      deps,
+    );
+    expect(drain.failed).toBe(1);
+    expect(calls.filter((c) => c.url.startsWith('/v1/comments/'))).toHaveLength(1);
+    const row = await outboxRepo.getById(d, commentId);
+    expect(row?.status).toBe('failed');
+    expect(row?.lastError).toContain('waypoint_not_found');
+  });
+
+  it('lands a photo, its comment and the share in one drain, queued in the worst order', async () => {
+    const d = await db();
+    let online = false;
+    const { fetchImpl, calls } = sharingServer(() => 201);
+    const fetchWhenOnline = (async (...args: Parameters<typeof fetch>) => {
+      if (!online) throw new Error('offline');
+      return fetchImpl(...args);
+    }) as unknown as typeof fetch;
+    const deps = { db: d, baseUrl: BASE, fetchImpl: fetchWhenOnline, getSessionFn };
+    const t0 = Date.parse('2026-10-01T00:00:00.000Z');
+    const at = (ms: number) => new Date(t0 + ms).toISOString();
+
+    // The share is queued last; the comment and its photo before it, photo first.
+    const saved = await saveUserWaypoint(
+      { trailId: 'heysen', input: INPUT, visibility: 'shared' },
+      { ...deps, now: () => t0 + 2000 },
+    );
+    await saved.drain;
+    const commentId = 'c-chain';
+    await commentsRepo.insertLocalComment(d, {
+      id: commentId,
+      trailId: 'heysen',
+      waypointId: saved.waypoint.id,
+      authorId: SESSION.userId,
+      authorName: SESSION.displayName,
+      body: 'Tank full',
+      waterStatus: null,
+      observedAt: null,
+      createdAt: at(1000),
+    });
+    await outboxRepo.enqueue(d, {
+      id: commentId,
+      kind: 'comment',
+      trailId: 'heysen',
+      waypointId: saved.waypoint.id,
+      payload: { trailId: 'heysen', waypointId: saved.waypoint.id, text: 'Tank full', waterStatus: null, observedAt: null },
+      createdAt: at(1000),
+    });
+    await outboxRepo.enqueue(d, {
+      id: 'p-chain',
+      kind: 'photo',
+      trailId: 'heysen',
+      waypointId: saved.waypoint.id,
+      payload: { commentId, localUri: 'file:///p.jpg', contentType: 'image/jpeg' },
+      createdAt: at(0),
+    });
+    expect((await outboxRepo.listPending(d)).map((r) => r.kind)).toEqual(['photo', 'comment', 'waypoint']);
+
+    online = true;
+    const result = await drainOutbox({
+      ...deps,
+      now: () => t0 + 3000,
+      readBytes: async () => new Uint8Array([1, 2, 3]),
+    });
+    expect(result).toMatchObject({ sent: 3, failed: 0 });
+    expect(calls.map((c) => `${c.method} ${c.url.split('/')[2]}`)).toEqual([
+      'PUT waypoints',
+      'PUT comments',
+      'POST comments',
+    ]);
+    expect(await outboxRepo.count(d)).toBe(0);
   });
 });
 

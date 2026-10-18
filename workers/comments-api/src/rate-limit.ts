@@ -195,6 +195,9 @@ function pruneRateEvents(
  * see a count within the allowance. A refused request deletes its own row
  * again: the log records allowance spent, and a client retrying through a 429
  * must not keep pushing its own window forward.
+ *
+ * Returns the id of the event it logged, for `refundRateLimit` when the
+ * request turns out to store nothing new after all (a lost idempotency race).
  */
 export async function consumeRateLimit(
   env: Env,
@@ -203,7 +206,7 @@ export async function consumeRateLimit(
   nowMs: number,
   message: string,
   ctx?: ExecutionContext
-): Promise<void> {
+): Promise<number | undefined> {
   const windowStart = new Date(nowMs - spec.windowMs).toISOString();
   const [inserted, counted] = await env.DB.batch<{ id?: number; n?: number }>([
     env.DB.prepare(
@@ -222,4 +225,11 @@ export async function consumeRateLimit(
     throw new HttpError(429, 'rate_limited', message);
   }
   pruneRateEvents(env, spec, key, nowMs, ctx);
+  return inserted.results[0]?.id;
+}
+
+/** Hand back a unit `consumeRateLimit` spent, by the event id it returned. */
+export async function refundRateLimit(env: Env, eventId: number | undefined): Promise<void> {
+  if (eventId === undefined) return;
+  await env.DB.prepare(`DELETE FROM rate_events WHERE id = ?`).bind(eventId).run();
 }

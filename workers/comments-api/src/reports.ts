@@ -9,7 +9,7 @@
 import { HttpError, json, readJson } from './http';
 import type { Env } from './http';
 import { requireAdmin, requireUser } from './auth';
-import { RATE_BUCKETS, consumeRateLimit } from './rate-limit';
+import { RATE_BUCKETS, consumeRateLimit, refundRateLimit } from './rate-limit';
 import {
   assertClientCommentId,
   parseLimit,
@@ -68,7 +68,14 @@ export async function reportComment(
 
   const nowMs = Date.now();
   const spec = RATE_BUCKETS.commentReport;
-  await consumeRateLimit(env, spec, user.id, nowMs, `Report limit of ${spec.limit} per day reached`, ctx);
+  const rateEvent = await consumeRateLimit(
+    env,
+    spec,
+    user.id,
+    nowMs,
+    `Report limit of ${spec.limit} per day reached`,
+    ctx
+  );
 
   const reportId = crypto.randomUUID();
   const nowIso = new Date(nowMs).toISOString();
@@ -82,7 +89,9 @@ export async function reportComment(
     .first<{ id: string }>();
 
   if (!inserted) {
-    // Lost a race with a concurrent report of the same comment. Re-read + replay.
+    // Lost a race with a concurrent report of the same comment: a repeat is
+    // free, so the allowance goes back. Re-read + replay.
+    await refundRateLimit(env, rateEvent);
     const row = await env.DB.prepare(
       `SELECT id FROM comment_reports WHERE comment_id = ? AND user_id = ?`
     )

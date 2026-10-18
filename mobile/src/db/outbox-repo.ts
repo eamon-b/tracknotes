@@ -216,6 +216,19 @@ export async function hasQueued(db: SqlDatabase, kind: OutboxKind, key: string):
 }
 
 /**
+ * Whether a row of `kind` for one entity key is still on its way — pending or
+ * in flight. Unlike {@link hasQueued} a `failed` row does not count: it will
+ * not be sent again unless the hiker retries it.
+ */
+export async function hasPending(db: SqlDatabase, kind: OutboxKind, key: string): Promise<boolean> {
+  const row = await db.getFirstAsync<{ n: number }>(
+    "SELECT COUNT(*) AS n FROM outbox WHERE kind = ? AND waypoint_id = ? AND status IN ('pending', 'sending')",
+    [kind, key],
+  );
+  return (row?.n ?? 0) > 0;
+}
+
+/**
  * Drop the not-in-flight photo uploads queued for one comment.
  *
  * A photo row is keyed by its own id, with the comment it attaches to in the

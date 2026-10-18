@@ -8,7 +8,7 @@ import type { Env } from './http';
 import { requireAdmin, requireUser } from './auth';
 import { appendSinceFilter, decodeCursor, encodeCursor } from './cursor';
 import { deleteCommentPhotos, parsePhotoUrls } from './photos';
-import { RATE_BUCKETS, consumeRateLimit } from './rate-limit';
+import { RATE_BUCKETS, consumeRateLimit, refundRateLimit } from './rate-limit';
 import {
   assertClientCommentId,
   clampObservedAt,
@@ -108,6 +108,22 @@ export async function putComment(
   const user = await requireUser(request, env, ctx);
 
   const body = await readJson(request);
+
+  // Idempotency: if this client id already exists, replay it (or 409 if it
+  // belongs to someone else). Ahead of validating the body, and skipping the
+  // ban and rate-limit checks, because the row is already stored — a byte-safe
+  // outbox retry must always succeed, even of a comment stored under rules
+  // that have since been tightened.
+  const existing = await env.DB.prepare(`SELECT * FROM comments WHERE id = ?`)
+    .bind(id)
+    .first<CommentRow>();
+  if (existing) {
+    if (existing.user_id !== user.id) {
+      throw new HttpError(409, 'id_conflict', 'This comment id belongs to another user');
+    }
+    return json(toFeedComment(existing, user.display_name), 200);
+  }
+
   const trailId = validateTrailId(body.trailId);
   const target = validateCommentTarget(body.waypointId);
   const waypointId = target.id;
@@ -123,19 +139,6 @@ export async function putComment(
   const nowMs = Date.now();
   const observedAt = clampObservedAt(body.observedAt, nowMs);
 
-  // Idempotency: if this client id already exists, replay it (or 409 if it
-  // belongs to someone else). This path skips ban/rate-limit checks because the
-  // row is already stored — a byte-safe outbox retry must always succeed.
-  const existing = await env.DB.prepare(`SELECT * FROM comments WHERE id = ?`)
-    .bind(id)
-    .first<CommentRow>();
-  if (existing) {
-    if (existing.user_id !== user.id) {
-      throw new HttpError(409, 'id_conflict', 'This comment id belongs to another user');
-    }
-    return json(toFeedComment(existing, user.display_name), 200);
-  }
-
   // New comment — enforce moderation guards.
   if (user.is_banned === 1) {
     throw new HttpError(403, 'banned', 'This account may not post comments');
@@ -144,7 +147,14 @@ export async function putComment(
   await assertCommentTargetExists(env, target, trailId);
 
   const spec = RATE_BUCKETS.commentPost;
-  await consumeRateLimit(env, spec, user.id, nowMs, `Comment limit of ${spec.limit} per day reached`, ctx);
+  const rateEvent = await consumeRateLimit(
+    env,
+    spec,
+    user.id,
+    nowMs,
+    `Comment limit of ${spec.limit} per day reached`,
+    ctx
+  );
 
   const nowIso = new Date(nowMs).toISOString();
   const inserted = await env.DB.prepare(
@@ -158,7 +168,9 @@ export async function putComment(
     .first<CommentRow>();
 
   if (!inserted) {
-    // Lost a race with a concurrent insert of the same id. Re-read and replay.
+    // Lost a race with a concurrent insert of the same id: nothing new was
+    // stored, so the allowance goes back. Re-read and replay.
+    await refundRateLimit(env, rateEvent);
     const row = await env.DB.prepare(`SELECT * FROM comments WHERE id = ?`)
       .bind(id)
       .first<CommentRow>();
