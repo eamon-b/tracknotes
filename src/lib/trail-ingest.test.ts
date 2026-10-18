@@ -548,6 +548,22 @@ describe('a loop that ends where it started', () => {
     expect(trail.waypoints[0].totalDistance).toBe(0);
   });
 
+  it('lists a place walked to from just before the finish at the finish, not at km 0', () => {
+    // Portland on the Great South West Walk: in range of both ends of the
+    // loop, and its junction is on the last side, 330 m before the finish.
+    const gpx = loopRoute();
+    gpx.waypoints.push({ id: 'w_town', name: 'Town', lat: -34.002, lon: 137.998, type: 'town' });
+    const trail = buildTrail(gpx, {
+      config: config(),
+      waypointAccess: new Map([['w_town', { junction: { lat: -34.003, lon: 138.0 }, offTrailKm: 0.4 }]]),
+    });
+
+    expect(trail.waypoints.map(w => w.name)).toEqual(['Trailhead', 'Far corner', 'Town']);
+    const town = trail.waypoints[2];
+    expect(trail.track.totalDistance - town.totalDistance).toBeCloseTo(0.33, 1);
+    expect(town.offTrailKm).toBe(0.4);
+  });
+
   it('still lists the junction again at the end of an out-and-back side trip', () => {
     // 2 km of main route, and a side trip that leaves at its start, goes 1 km
     // east and comes back. The return to the junction is a datasheet row on
@@ -682,6 +698,51 @@ describe('waypointAccess', () => {
     expect(camp.accessMode).toBe('foot');
     expect(camp).not.toHaveProperty('offTrailPath');
     expect(trail.offTrailWaypoints.map(w => w.name)).not.toContain('Camp');
+  });
+
+  it('measures the junction along the line, not at the nearest vertex', () => {
+    // Halfway along the 556 m from the valley to the next point: the vertex
+    // snap put it at one end of the segment or the other.
+    const trail = buildTrail(climb(), {
+      config: config({ waypointMaxDistance: 3000 }),
+      waypointAccess: new Map([['w_camp', { junction: { lat: -34.0075, lon: 138 }, offTrailKm: 2.5 }]]),
+    });
+    const valley = trail.waypoints.find(w => w.name === 'Valley')!;
+    const camp = trail.waypoints.find(w => w.name === 'Camp')!;
+    const segment = trail.track.points[2].dist - trail.track.points[1].dist;
+    expect(camp.totalDistance).toBeCloseTo(valley.totalDistance + segment / 2, 1);
+    expect(camp.distance).toBeCloseTo(camp.totalDistance - valley.totalDistance, 2);
+  });
+
+  it('keeps the rows in km order when a junction falls just before a vertex', () => {
+    const gpx = climb();
+    // At the vertex 556 m on from the valley, listed first in the source.
+    gpx.waypoints.unshift({ id: 'w_saddle', name: 'Saddle', lat: -34.01, lon: 138, type: 'waypoint' });
+    const trail = buildTrail(gpx, {
+      config: config({ waypointMaxDistance: 3000 }),
+      // 55 m before that vertex, and nearest it.
+      waypointAccess: new Map([['w_camp', { junction: { lat: -34.0095, lon: 138 }, offTrailKm: 2.5 }]]),
+    });
+    expect(trail.waypoints.map(w => w.name)).toEqual(['Valley', 'Camp', 'Saddle']);
+    const [valley, camp, saddle] = trail.waypoints;
+    expect(saddle.totalDistance - camp.totalDistance).toBeCloseTo(0.06, 1);
+    expect(camp.distance).toBeCloseTo(camp.totalDistance - valley.totalDistance, 2);
+    expect(saddle.distance).toBeCloseTo(saddle.totalDistance - camp.totalDistance, 2);
+    // The climb to the vertex is charged to whichever row now comes first.
+    expect(camp.ascent + saddle.ascent).toBe(100);
+    expect(camp.ascent).toBe(camp.totalAscent - valley.totalAscent);
+  });
+
+  it('walks a place no way was found to as the straight line to the route', () => {
+    const trail = buildTrail(climb(), {
+      config: config({ waypointMaxDistance: 3000 }),
+      waypointAccessUnrouted: new Set(['w_camp']),
+    });
+    const camp = trail.waypoints.find(w => w.name === 'Camp')!;
+    // 0.012 deg of longitude at 34 deg S, from the summit at the end of the route.
+    expect(camp.offTrailKm).toBeCloseTo(1.11, 2);
+    expect(camp).not.toHaveProperty('accessMode');
+    expect(trail.waypoints.find(w => w.name === 'Valley')).not.toHaveProperty('offTrailKm');
   });
 
   it('carries the routed walk in for the map to draw', () => {

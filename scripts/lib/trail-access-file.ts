@@ -39,8 +39,15 @@
  * - `manual` — written by hand (`junction` and `offTrailKm` required; the rest
  *   optional). Applied the same way, and a re-fetch carries it over unchanged,
  *   so a correction to OSM survives a refresh.
- * - `none` — the fetch found no way to the route (`reason` says why). Nothing
- *   is applied: the waypoint stays at the route point nearest it, as before.
+ * - `none` — the fetch found no way to the route (`reason` says why). The
+ *   waypoint stays at the route point nearest it, and its walk is the straight
+ *   line to the route (`offTrailKm`, no `accessMode`), not nothing.
+ *
+ * A trail with no file has had no waypoint worth routing: `fetch-access`
+ * found none at least `--min-distance` off the route (or every one is a
+ * turn-off, on a side trip, or already given a distance by its source — the
+ * CDT's). It writes no file then, so an absent file means "no candidates",
+ * never "not fetched yet".
  *
  * `straightLineM`/`nearestKm` record what the build would do without the
  * entry, so a reviewer can see what moved and how far.
@@ -80,6 +87,11 @@ export interface TrailAccessEntry {
 export interface TrailAccessFile {
   source: string;
   attribution: string;
+  /**
+   * The oldest Overpass answer the entries rest on: a box served from the way
+   * cache counts from when it was downloaded, and an entry kept from the
+   * previous file from that file's date.
+   */
   fetchedAt: string;
   endpoint: string;
   /** Waypoints nearer the route than this were not looked at (metres). */
@@ -177,6 +189,14 @@ export function accessPlacements(file: TrailAccessFile | null): Map<string, Wayp
     });
   }
   return placements;
+}
+
+/**
+ * The waypoints the fetch found no way to (`none` entries), by id: the build
+ * gives them the straight line to the route as their walk.
+ */
+export function unroutedAccessIds(file: TrailAccessFile | null): Set<string> {
+  return new Set(Object.entries(file?.places ?? {}).filter(([, entry]) => entry.method === 'none').map(([id]) => id));
 }
 
 /**

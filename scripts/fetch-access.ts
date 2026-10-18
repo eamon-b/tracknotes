@@ -23,6 +23,7 @@
  *   - --min-distance <m>  waypoints nearer the route are left alone (default 150)
  *   - --only <id,…>       only these waypoints (a run that lost queries prints the list)
  *   - --refresh           query Overpass even for boxes in the way cache
+ *   - --max-cache-age <d> re-query a box whose cached answer is older than this many days (default 90)
  *   - --dry-run           list the candidates and queries, fetch nothing
  *
  * Behind a proxy, Node's fetch needs `NODE_USE_ENV_PROXY=1` (Node ≥ 22.21).
@@ -52,6 +53,7 @@ import {
   readTrailAccessFile,
   writeTrailAccessFile,
   type TrailAccessEntry,
+  type TrailAccessFile,
 } from './lib/trail-access-file.js';
 import { trailDirsById } from './fetch-pois.js';
 
@@ -73,6 +75,15 @@ const MAX_CLUSTER_KM = 10;
 /** Passes over the queries that failed, and the pause before each repeat. */
 const PASSES = 4;
 const PASS_PAUSE_S = 60;
+
+/** Pause after a failed query, and after a 429 that does not say how long to wait. */
+const FAIL_PAUSE_S = 5;
+const RATE_LIMIT_PAUSE_S = 30;
+/** The longest a `Retry-After` is honoured for; past it the query fails into the next pass. */
+const MAX_RETRY_AFTER_S = 300;
+
+/** A cached Overpass answer older than this is fetched again (days). */
+const DEFAULT_MAX_CACHE_AGE_DAYS = 90;
 
 /** Highways nobody walks on, or that are not there yet. */
 const UNWALKABLE_HIGHWAYS = new Set([
@@ -224,10 +235,50 @@ interface OverpassWay {
  */
 const CACHE_DIR = path.join(PROJECT_ROOT, 'data/osm-ways-cache');
 
-async function fetchWays(endpoint: string, bbox: Bbox, timeoutS: number, refresh: boolean): Promise<WalkWay[]> {
+/**
+ * Seconds a `Retry-After` header asks for (delta-seconds or an HTTP date), or
+ * null when there is none or it cannot be read.
+ */
+export function retryAfterSeconds(header: string | null, now = Date.now()): number | null {
+  if (header === null || header.trim() === '') return null;
+  const value = header.trim();
+  if (/^\d+$/.test(value)) return Number(value);
+  const at = Date.parse(value);
+  return Number.isNaN(at) ? null : Math.max(0, Math.ceil((at - now) / 1000));
+}
+
+/** A query the mirror refused for now: wait this long before the next one. */
+export class RateLimitedError extends Error {
+  constructor(
+    message: string,
+    readonly retryAfterS: number
+  ) {
+    super(message);
+  }
+}
+
+/** How long to pause after a failed query (seconds). */
+export function pauseAfterFailure(error: unknown): number {
+  if (error instanceof RateLimitedError) return Math.min(MAX_RETRY_AFTER_S, Math.max(FAIL_PAUSE_S, error.retryAfterS));
+  return FAIL_PAUSE_S;
+}
+
+/** Ways for a box, and when Overpass answered for it (the cache's age, or now). */
+async function fetchWays(
+  endpoint: string,
+  bbox: Bbox,
+  timeoutS: number,
+  refresh: boolean,
+  maxCacheAgeMs: number
+): Promise<{ ways: WalkWay[]; answeredAt: Date }> {
   const box = `${bbox.south.toFixed(5)},${bbox.west.toFixed(5)},${bbox.north.toFixed(5)},${bbox.east.toFixed(5)}`;
   const cacheFile = path.join(CACHE_DIR, `${createHash('sha1').update(box).digest('hex')}.json`);
-  if (!refresh && fs.existsSync(cacheFile)) return parseWays(fs.readFileSync(cacheFile, 'utf-8'));
+  if (!refresh && fs.existsSync(cacheFile)) {
+    const answeredAt = fs.statSync(cacheFile).mtime;
+    if (Date.now() - answeredAt.getTime() <= maxCacheAgeMs) {
+      return { ways: parseWays(fs.readFileSync(cacheFile, 'utf-8')), answeredAt };
+    }
+  }
   const query = `[out:json][timeout:${timeoutS}];way["highway"](${box});out body geom;`;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), (timeoutS + 10) * 1000);
@@ -239,11 +290,19 @@ async function fetchWays(endpoint: string, bbox: Bbox, timeoutS: number, refresh
       signal: controller.signal,
     });
     const text = await response.text();
+    if (response.status === 429 || response.status === 503) {
+      const wait = retryAfterSeconds(response.headers.get('retry-after'));
+      // Overpass answers a busy slot with 429 and no header; a 503 without one
+      // is an ordinary failure.
+      if (wait !== null || response.status === 429) {
+        throw new RateLimitedError(`HTTP ${response.status}, retry after ${wait ?? RATE_LIMIT_PAUSE_S} s`, wait ?? RATE_LIMIT_PAUSE_S);
+      }
+    }
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const ways = parseWays(text);
     fs.mkdirSync(CACHE_DIR, { recursive: true });
     fs.writeFileSync(cacheFile, text);
-    return ways;
+    return { ways, answeredAt: new Date() };
   } finally {
     clearTimeout(timer);
   }
@@ -323,6 +382,48 @@ function entryFor(candidate: Candidate, result: ReturnType<typeof findAccess>): 
   };
 }
 
+/**
+ * The file's places after a run: what it fetched over the previous file. A
+ * run limited by `--only` says nothing about the places it left out, and a
+ * query that failed says nothing about the places it covered, so the previous
+ * entries for both are kept (as are `manual` ones, always).
+ */
+export function accessAfterRun(
+  previous: TrailAccessFile | null,
+  fetched: Record<string, TrailAccessEntry>,
+  only: ReadonlySet<string> | null,
+  failedIds: ReadonlySet<string>
+): Record<string, TrailAccessEntry> {
+  const keep = new Set(failedIds);
+  if (only) for (const id of Object.keys(previous?.places ?? {})) if (!only.has(id)) keep.add(id);
+  return mergeTrailAccess(previous, fetched, keep);
+}
+
+/**
+ * `fetchedAt`: the oldest OpenStreetMap answer the file's entries rest on —
+ * a cached box counts from when Overpass answered it, and a kept entry from
+ * the previous file's own `fetchedAt` — so the date never claims fresher data
+ * than the file has.
+ */
+export function oldestAnswer(
+  answeredAt: readonly Date[],
+  previous: TrailAccessFile | null,
+  places: Record<string, TrailAccessEntry>,
+  fetched: Record<string, TrailAccessEntry>,
+  now = new Date()
+): Date {
+  let oldest = now;
+  for (const at of answeredAt) if (at < oldest) oldest = at;
+  const keptPrevious = Object.entries(places).some(
+    ([id, entry]) => !(id in fetched) && entry.method !== 'manual' && previous?.places[id] === entry
+  );
+  if (keptPrevious && previous) {
+    const at = new Date(previous.fetchedAt);
+    if (!Number.isNaN(at.getTime()) && at < oldest) oldest = at;
+  }
+  return oldest;
+}
+
 interface Args {
   trailId: string;
   endpoint: string;
@@ -331,6 +432,8 @@ interface Args {
   dryRun: boolean;
   /** Fetch from Overpass even when the cache has the box. */
   refresh: boolean;
+  /** Fetch from Overpass when the cached answer is older than this (days). */
+  maxCacheAgeDays: number;
   /** Only these waypoint ids (what a run that lost queries prints). */
   only: Set<string> | null;
 }
@@ -343,6 +446,7 @@ function parseArgs(argv: string[]): Args {
     minDistanceM: 150,
     dryRun: false,
     refresh: false,
+    maxCacheAgeDays: DEFAULT_MAX_CACHE_AGE_DAYS,
     only: null,
   };
   for (let i = 0; i < argv.length; i++) {
@@ -357,12 +461,15 @@ function parseArgs(argv: string[]): Args {
     else if (arg === '--min-distance') args.minDistanceM = Number(value());
     else if (arg === '--dry-run') args.dryRun = true;
     else if (arg === '--refresh') args.refresh = true;
+    else if (arg === '--max-cache-age') args.maxCacheAgeDays = Number(value());
     else if (arg === '--only') args.only = new Set(value().split(',').map(id => id.trim()).filter(Boolean));
     else if (arg.startsWith('--')) throw new Error(`unknown option ${arg}`);
     else args.trailId = arg;
   }
   if (!args.trailId) throw new Error('usage: tsx scripts/fetch-access.ts <trail-id> [options]');
-  if (!(args.timeoutS > 0) || !(args.minDistanceM >= 0)) throw new Error('--timeout and --min-distance must be numbers');
+  if (!(args.timeoutS > 0) || !(args.minDistanceM >= 0) || !(args.maxCacheAgeDays >= 0)) {
+    throw new Error('--timeout, --min-distance and --max-cache-age must be numbers');
+  }
   return args;
 }
 
@@ -395,6 +502,7 @@ async function main(): Promise<void> {
   const dem = new CopernicusDem();
   const fetched: Record<string, TrailAccessEntry> = {};
   const failedIds = new Set<string>();
+  const answeredAt: Date[] = [];
 
   // Public mirrors fail queries in bursts (2026-10-11: a third of them 504'd
   // in one pass, and most of those answered minutes later), so failed queries
@@ -410,7 +518,15 @@ async function main(): Promise<void> {
       const label = `[${n + 1}/${clusters.length}] ${widthKm(cluster.bbox).toFixed(1)} km box, ${cluster.members.length} place(s)`;
       let ways: WalkWay[];
       try {
-        ways = await fetchWays(args.endpoint, cluster.bbox, args.timeoutS, args.refresh);
+        const answer = await fetchWays(
+          args.endpoint,
+          cluster.bbox,
+          args.timeoutS,
+          args.refresh,
+          args.maxCacheAgeDays * 86_400_000
+        );
+        ways = answer.ways;
+        answeredAt.push(answer.answeredAt);
         // Overpass returns each way whole, running past the query box: load
         // heights for everything it returned, or the far ends read as unknown.
         // A height that cannot be read fails the query like the ways would:
@@ -419,7 +535,7 @@ async function main(): Promise<void> {
       } catch (error) {
         console.warn(`  ${label}: failed: ${(error as Error).message}`);
         failed.push({ cluster, n });
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        await new Promise(resolve => setTimeout(resolve, pauseAfterFailure(error) * 1000));
         continue;
       }
       const network = buildWalkNetwork(ways);
@@ -440,16 +556,17 @@ async function main(): Promise<void> {
   }
   for (const { cluster } of pending) for (const member of cluster.members) failedIds.add(member.id);
 
-  // A run limited by --only says nothing about the places it left out.
-  const keep = args.only
-    ? new Set(Object.keys(previous?.places ?? {}).filter(id => !args.only!.has(id)))
-    : new Set<string>();
-  for (const id of failedIds) keep.add(id);
-  const places = mergeTrailAccess(previous, fetched, keep);
+  const places = accessAfterRun(previous, fetched, args.only, failedIds);
+  // No file says "no candidates" (see `trail-access-file.ts`): an empty one
+  // would say the same thing with a date on it.
+  if (!previous && Object.keys(places).length === 0) {
+    console.log('\nNo waypoint to route; no file written');
+    return;
+  }
   const filePath = writeTrailAccessFile(trailDir, {
     source: ACCESS_SOURCE,
     attribution: ACCESS_ATTRIBUTION,
-    fetchedAt: new Date().toISOString(),
+    fetchedAt: oldestAnswer(answeredAt, previous, places, fetched).toISOString(),
     endpoint: args.endpoint,
     minDistanceM: args.minDistanceM,
     places,

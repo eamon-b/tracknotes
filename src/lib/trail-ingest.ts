@@ -868,6 +868,13 @@ export function findWaypointVisits(
       recorded.has(waypoint) &&
       haversineDistanceMeters(waypoint.lat, waypoint.lon, first.lat, first.lon) <= maxDistanceMeters
     ) {
+      // One visit, at whichever end is nearer: a place whose junction is just
+      // before the finish (Portland, walked to from km 253.5 of 253.7) belongs
+      // there, not at km 0 with the junction a few hundred metres away.
+      const atStart = visits.findIndex(v => v.waypoint === waypoint);
+      if (data.bestDistance < visits[atStart].distanceFromTrack) {
+        visits[atStart] = { waypoint, trackIndex: data.bestTrackIndex, distanceFromTrack: data.bestDistance };
+      }
       continue;
     }
     visits.push({
@@ -1072,6 +1079,117 @@ export function matchAtJunctions(
   });
 }
 
+/** Segments either side of the matched vertex {@link snapBesideVertex} looks at. */
+const SNAP_BESIDE_SEGMENTS = 20;
+
+/**
+ * Project a position onto the route segments near vertex `index`, never
+ * across a route break: where the enrichment matched a waypoint, measured
+ * along the line rather than at the vertex. Near, not adjacent: a junction may
+ * sit up to 35 m off the line (`access-routing`), and the nearest segment to
+ * it need not touch the nearest vertex (Great North Walk's Cowan: five vertices
+ * on). Kept to a window so the other leg of an out-and-back, as close to the
+ * junction, never wins; of two segments equally near, the one nearer `index`.
+ */
+function snapBesideVertex(
+  lat: number,
+  lon: number,
+  points: readonly { lat: number; lon: number; dist: number }[],
+  index: number,
+  breakStarts: ReadonlySet<number>
+): { km: number; offTrailMeters: number } | null {
+  if (points.length < 2) return null;
+  let best: { km: number; offTrailMeters: number; reach: number } | null = null;
+  const first = Math.max(0, index - SNAP_BESIDE_SEGMENTS);
+  const last = Math.min(points.length - 2, index + SNAP_BESIDE_SEGMENTS - 1);
+  for (let k = first; k <= last; k++) {
+    if (breakStarts.has(k + 1)) continue;
+    const snap = snapToTrail(lat, lon, points.slice(k, k + 2));
+    if (!snap) continue;
+    const reach = Math.min(Math.abs(k - index), Math.abs(k + 1 - index));
+    if (
+      best === null ||
+      snap.offTrailMeters < best.offTrailMeters - 0.5 ||
+      (snap.offTrailMeters <= best.offTrailMeters + 0.5 && reach < best.reach)
+    ) {
+      best = { km: snap.currentKm, offTrailMeters: snap.offTrailMeters, reach };
+    }
+  }
+  return best && { km: best.km, offTrailMeters: best.offTrailMeters };
+}
+
+/**
+ * Put each row {@link matchAtJunctions} placed at the km of its junction on the
+ * route *line*. `enrichWaypoints` attaches a waypoint to the nearest vertex,
+ * and on a road walk the vertices can be hundreds of metres apart: Heysen's
+ * Goat Square Cottages, walked to from km 325.17 of an 856 m straight, was
+ * built at the vertex at km 325.53. Only the km moves (the row keeps its
+ * vertex for `trackIndex`, elevation and climb), the legs either side are
+ * re-measured, and rows that pass each other are put back in km order. Run
+ * while the rows still stand at their junctions.
+ */
+export function placeAtJunctionKm(
+  enriched: EnrichedWaypoint[],
+  placements: ReadonlyMap<string, WaypointAccessPlacement>,
+  points: readonly { lat: number; lon: number; dist: number }[],
+  breakStarts: ReadonlySet<number> = NO_BREAK_STARTS
+): EnrichedWaypoint[] {
+  if (placements.size === 0) return enriched;
+  const moved = new Set<EnrichedWaypoint>();
+  const rows = enriched.map(row => {
+    if (row.id === undefined || !placements.has(row.id)) return row;
+    const snap = snapBesideVertex(row.lat, row.lon, points, row.trackIndex, breakStarts);
+    const km = snap === null ? row.totalDistance : Math.round(snap.km * 100) / 100;
+    if (km === row.totalDistance) return row;
+    const placed = { ...row, totalDistance: km };
+    moved.add(placed);
+    return placed;
+  });
+  if (moved.size === 0) return enriched;
+  // By km, then as enriched: rows the move did not touch keep their order.
+  const ordered = rows
+    .map((row, i) => ({ row, i }))
+    .sort((a, b) => a.row.totalDistance - b.row.totalDistance || a.row.trackIndex - b.row.trackIndex || a.i - b.i)
+    .map(({ row }) => row);
+  const enrichedPrev = new Map(rows.map((row, i) => [row, rows[i - 1]]));
+  return ordered.map((row, i) => {
+    const prev = ordered[i - 1];
+    // A leg into or out of a moved row is re-measured between the rows' own
+    // totals; every other leg stays as enriched.
+    const reordered = enrichedPrev.get(row) !== prev;
+    if (!reordered && !moved.has(row) && !(prev !== undefined && moved.has(prev))) return row;
+    const distance = Math.round((row.totalDistance - (prev?.totalDistance ?? 0)) * 100) / 100;
+    // Climb stays at the vertex, so only a row with a new neighbour needs it again.
+    if (!reordered) return { ...row, distance };
+    return {
+      ...row,
+      distance,
+      ascent: row.totalAscent - (prev?.totalAscent ?? 0),
+      descent: row.totalDescent - (prev?.totalDescent ?? 0),
+    };
+  });
+}
+
+/**
+ * The walk to a place `fetch-access` found no way to (`method: 'none'`): the
+ * straight line to the route, as a hiker waypoint gets (`placeUserWaypoints`),
+ * rather than no walk at all. A row whose source already gives `offTrailKm`
+ * keeps it.
+ */
+export function straightLineAccess(
+  enriched: EnrichedWaypoint[],
+  ids: ReadonlySet<string>,
+  points: readonly { lat: number; lon: number; dist: number }[],
+  breakStarts: ReadonlySet<number> = NO_BREAK_STARTS
+): EnrichedWaypoint[] {
+  if (ids.size === 0) return enriched;
+  return enriched.map(row => {
+    if (row.id === undefined || !ids.has(row.id) || row.offTrailKm !== undefined) return row;
+    const snap = snapBesideVertex(row.lat, row.lon, points, row.trackIndex, breakStarts);
+    return snap ? { ...row, offTrailKm: Math.round(snap.offTrailMeters / 10) / 100 } : row;
+  });
+}
+
 /** Undo {@link matchAtJunctions} on the enriched rows: the place stays where it is. */
 export function restoreJunctionPositions(
   enriched: EnrichedWaypoint[],
@@ -1216,6 +1334,11 @@ export interface BuildTrailOptions {
    * reads them from `data/trails/<dir>/access.json`; see `fetch-access.ts`).
    */
   waypointAccess?: ReadonlyMap<string, WaypointAccessPlacement>;
+  /**
+   * Off-route waypoints `fetch-access` found no way to (`method: 'none'`), by
+   * id: walked as the straight line to the route ({@link straightLineAccess}).
+   */
+  waypointAccessUnrouted?: ReadonlySet<string>;
   /**
    * What to do when the route passes one waypoint twice, fanning a single
    * source waypoint into several output rows that share an id. The build script
@@ -1581,16 +1704,26 @@ export function buildTrail(gpx: ParsedGpxResult, options: BuildTrailOptions): Pr
   // Enrich waypoints with distance and elevation data
   const waypointMaxDist = config.waypointMaxDistance ?? DEFAULT_WAYPOINT_MAX_DISTANCE_METERS;
   const placements = options.waypointAccess ?? new Map<string, WaypointAccessPlacement>();
-  const enrichedWaypoints = restoreJunctionPositions(
-    enrichWaypoints(
-      matchAtJunctions(waypoints, placements, mainRoutePoints, waypointMaxDist, message => warn(`  Warning: ${message}`)),
-      mainRoutePoints,
-      waypointMaxDist,
-      breakStarts,
-      climb
+  const enrichedWaypoints = straightLineAccess(
+    restoreJunctionPositions(
+      placeAtJunctionKm(
+        enrichWaypoints(
+          matchAtJunctions(waypoints, placements, mainRoutePoints, waypointMaxDist, message => warn(`  Warning: ${message}`)),
+          mainRoutePoints,
+          waypointMaxDist,
+          breakStarts,
+          climb
+        ),
+        placements,
+        points,
+        breakStarts
+      ),
+      waypoints,
+      placements
     ),
-    waypoints,
-    placements
+    options.waypointAccessUnrouted ?? new Set<string>(),
+    points,
+    breakStarts
   );
 
   // Output invariant: every enriched waypoint carries a distinct stable id.
