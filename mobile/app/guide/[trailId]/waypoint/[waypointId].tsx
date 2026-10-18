@@ -55,7 +55,7 @@ import { formatDistance, formatElevation } from '@lib/format-distance';
 import { accessSummary } from '@lib/resupply-display';
 import { isAccessMode } from '@lib/types';
 import { baseWaypointType, isWaterWaypoint, waypointTypeLabel } from '@lib/waypoint-taxonomy';
-import { userWaypointInfo } from '@lib/user-waypoints';
+import { isUnverifiedHikerWaypoint, userWaypointInfo } from '@lib/user-waypoints';
 import { OSM_ATTRIBUTION, poiOsmUrl, summarisePoiTags } from '@lib/poi-display';
 import type { TrailPOI } from '@lib/trail-types';
 import { useTheme } from '../../../../src/theme';
@@ -517,7 +517,7 @@ export default function WaypointDetailScreen() {
           )}
           {/* Another hiker's water is left out of every carry (§8.2 of the
               content posture): say so where the hiker reads about it. */}
-          {hikerWaypoint && !hikerWaypoint.mine && isWaterWaypoint(baseWaypointType(waypoint.type)) ? (
+          {isUnverifiedHikerWaypoint(waypoint) && isWaterWaypoint(baseWaypointType(waypoint.type)) ? (
             <Text style={[styles.accessLine, { color: colors.warning }]}>
               Unverified water, not counted in water carries. Conditions change; always
               carry contingency water.

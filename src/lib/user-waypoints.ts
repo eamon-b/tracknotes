@@ -23,6 +23,7 @@ import { snapToTrail } from './position-on-trail';
 import { calculateElevationBetween, type ElevationPoint } from './track-geometry';
 import { routeBreakStarts } from './route-breaks';
 import type { RouteBreak } from './trail-types';
+import { isWaterWaypoint } from './waypoint-taxonomy';
 
 /** Who can see a hiker waypoint. */
 export type UserWaypointVisibility = 'private' | 'shared';
@@ -390,4 +391,14 @@ export function userWaypointInfo(waypoint: object): UserWaypointInfo | null {
 export function isUnverifiedHikerWaypoint(waypoint: object): boolean {
   const info = userWaypointInfo(waypoint);
   return info !== null && !info.mine;
+}
+
+/**
+ * Whether a waypoint is water a hiker may count on: the water family
+ * (`isWaterWaypoint`), and not another hiker's shared pin. The one rule the
+ * water-carry calculator, the per-day water count and the phone's "next water"
+ * all use, so they can never disagree.
+ */
+export function countsAsWater(waypoint: { type?: string | null }): boolean {
+  return isWaterWaypoint(waypoint.type) && !isUnverifiedHikerWaypoint(waypoint);
 }

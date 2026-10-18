@@ -9,8 +9,7 @@
 
 import type { PlanWaypoint, WaterGap } from './plan-types';
 import { placeWalk } from './day-calculator';
-import { isWaterWaypoint } from './waypoint-taxonomy';
-import { isUnverifiedHikerWaypoint } from './user-waypoints';
+import { countsAsWater } from './user-waypoints';
 
 export type { WaterGap };
 
@@ -41,21 +40,13 @@ export const DEFAULT_DRY_STRETCH_KM = 15;
 const SEASONAL_KEYWORDS = ['seasonal', 'dry in summer', 'dries up', 'unreliable', 'not reliable', 'intermittent', 'may be dry', 'often dry'];
 
 /**
- * Whether a waypoint is water a carry may be planned to: the water family, and
- * not another hiker's shared pin (`isUnverifiedHikerWaypoint`). A stranger's
- * unchecked "water" must never shorten a carry; it stays on the map, labelled.
- */
-export function countsAsWaterSource(wp: PlanWaypoint): boolean {
-  return isWaterWaypoint(wp.type) && !isUnverifiedHikerWaypoint(wp);
-}
-
-/**
  * Extract water sources from trail waypoints, sorted by km. Other hikers'
- * shared water pins are left out (`countsAsWaterSource`).
+ * shared water pins are left out (`countsAsWater`): a stranger's unchecked
+ * "water" must never shorten a carry; it stays on the map, labelled.
  */
 export function extractWaterSources(waypoints: PlanWaypoint[]): WaterSource[] {
   return waypoints
-    .filter(countsAsWaterSource)
+    .filter(countsAsWater)
     .map(wp => {
       let seasonalNote: string | undefined;
       if (wp.description) {
