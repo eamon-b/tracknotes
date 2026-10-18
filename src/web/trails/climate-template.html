@@ -25,6 +25,14 @@
   <script type="module" src="../../theme.ts"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha512-CQBWl4fJHWbryGE+Pc7UAxWMUMNMWzWxF4SQo9CgkJIN1kx6djDQZjh3Y8SZ1d+6I+1zze6Z7kHXO7q3UyZAWw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <style>
+    .climate-source {
+      margin-top: 1.5rem;
+      font-size: 0.85rem;
+      opacity: 0.8;
+    }
+    .climate-source a {
+      color: var(--accent-color);
+    }
     .climate-header {
       margin-bottom: 2rem;
     }
@@ -197,6 +205,12 @@
       <div id="climate-content">
         <p>Loading climate data...</p>
       </div>
+
+      <p class="climate-source">
+        Climate data from the <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a>
+        historical weather API
+        (<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>).
+      </p>
 
       <div class="nav-links">
         <a href="./">Back to Trail Overview</a>

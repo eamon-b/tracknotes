@@ -12,8 +12,6 @@ other trails to add:
 
 ask about using theadventuregene's GPX files for this
 
-add a brief description of where the GPX data is from (with link if using one someone else made)
-
 check that all the recently added features work
 
 ## Very Big changes

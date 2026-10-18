@@ -62,6 +62,8 @@ import {
 import { GuideMap, type GuideMapHandle, type ViewportBounds } from './GuideMap';
 import { MapErrorBoundary } from './MapErrorBoundary';
 import { PoiLayersSheet } from './PoiLayersSheet';
+import { MapCreditsSheet } from './MapCreditsSheet';
+import { mapCredits } from './map-credits';
 import { PlanGlanceSheet } from '../plan/PlanGlanceSheet';
 import { usePlanGlance } from '../plan/use-plan-glance';
 import { ScaleBar, type ScaleBarHandle } from './ScaleBar';
@@ -252,6 +254,17 @@ export function MapPane() {
   const [layersOpen, setLayersOpen] = useState(false);
   const openLayers = useCallback(() => setLayersOpen(true), []);
   const closeLayers = useCallback(() => setLayersOpen(false), []);
+
+  // Map and data credits behind the ⓘ: the base map that actually mounted
+  // (none for the bare fallback), contours, and the trail's own source.
+  const [creditsOpen, setCreditsOpen] = useState(false);
+  const openCredits = useCallback(() => setCreditsOpen(true), []);
+  const closeCredits = useCallback(() => setCreditsOpen(false), []);
+  const creditBasemap = resolution ? (resolution.fallback ? null : resolution.resolved) : source;
+  const credits = useMemo(
+    () => mapCredits(creditBasemap, trail.config.dataSource),
+    [creditBasemap, trail.config.dataSource],
+  );
 
   const planGlance = usePlanGlance();
   const [planOpen, setPlanOpen] = useState(false);
@@ -497,6 +510,23 @@ export function MapPane() {
         />
       </MapErrorBoundary>
 
+      {/* Credits: OSM's ODbL and the CC BY sources need a visible credit, and
+          MapLibre's own control is off. Under the top chrome, so a degraded-map
+          banner covers it until dismissed. */}
+      <Pressable
+        onPress={openCredits}
+        accessibilityRole="button"
+        accessibilityLabel="Map and data credits"
+        hitSlop={spacing.sm}
+        style={({ pressed }) => [
+          styles.credits,
+          { backgroundColor: colors.surfaceElevated, borderColor: colors.border },
+          pressed && styles.pressed,
+        ]}
+      >
+        <MaterialCommunityIcons name="information-variant" size={18} color={colors.textSecondary} />
+      </Pressable>
+
       {/* Top chrome: degraded-map banner over the base-map status pill. */}
       <View style={styles.topStack} pointerEvents="box-none">
         {showBanner && (
@@ -689,6 +719,8 @@ export function MapPane() {
         onOpenPlanner={openPlanner}
       />
 
+      <MapCreditsSheet visible={creditsOpen} onClose={closeCredits} lines={credits} />
+
       {trailHasPois && (
         <PoiLayersSheet visible={layersOpen} onClose={closeLayers} pois={trail.pois ?? []} />
       )}
@@ -804,6 +836,17 @@ const styles = StyleSheet.create({
   pillText: {
     ...typography.caption,
     fontWeight: '600',
+  },
+  credits: {
+    position: 'absolute',
+    top: spacing.md,
+    left: spacing.md,
+    width: 28,
+    height: 28,
+    borderRadius: radii.full,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   recenter: {
     position: 'absolute',

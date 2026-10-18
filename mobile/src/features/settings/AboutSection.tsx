@@ -12,6 +12,9 @@
  * Opening leaves the app, so a failure (no browser, unhandled scheme) is
  * reported inline with the URL spelled out — a hiker with no browser can still
  * type it in — instead of silently doing nothing.
+ *
+ * Below it, the app-wide data credits (OpenStreetMap, base maps, contours,
+ * climate). A trail's own source is credited behind the ⓘ on its map.
  */
 
 import { useCallback, useState } from 'react';
@@ -20,6 +23,10 @@ import { openURL } from 'expo-linking';
 import { PRIVACY_POLICY_URL, TERMS_URL } from '@lib/contribution-licence';
 import { useTheme } from '../../theme';
 import { radii, spacing, touchTarget, typography } from '../../tokens';
+import { CreditList } from '../map/CreditList';
+import { appCredits } from '../map/map-credits';
+
+const APP_CREDITS = appCredits();
 
 /**
  * Canonical privacy policy URL — the Vercel deploy of `public/privacy.html`,
@@ -102,6 +109,19 @@ export function AboutSection() {
             {error}
           </Text>
         ) : null}
+      </View>
+
+      <View
+        style={[
+          styles.panel,
+          { backgroundColor: colors.surfaceElevated, borderColor: colors.border },
+        ]}
+      >
+        <Text style={[styles.rowLabel, { color: colors.textSecondary }]}>Data credits</Text>
+        <CreditList lines={APP_CREDITS} />
+        <Text style={[styles.hint, { color: colors.textSecondary }]}>
+          Each trail’s own source is on its map, behind the ⓘ.
+        </Text>
       </View>
     </View>
   );

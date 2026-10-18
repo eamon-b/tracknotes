@@ -52,7 +52,9 @@ function mount(): ReactTestRenderer {
 function renderedText(r: ReactTestRenderer): string {
   return r.root
     .findAllByType(Text)
-    .map((n) => JSON.stringify(n.props.children))
+    .flatMap((n) => [n.props.children].flat())
+    // Nested <Text> links are elements; their own strings are found separately.
+    .filter((c): c is string => typeof c === 'string')
     .join(' ');
 }
 
@@ -80,6 +82,13 @@ describe('AboutSection', () => {
     const text = renderedText(r);
     expect(text).toContain('About');
     expect(text).toContain('Privacy policy');
+  });
+
+  it('credits the app-wide data sources, climate included', () => {
+    const text = renderedText(mount());
+    expect(text).toContain('Data credits');
+    expect(text).toContain('© OpenStreetMap contributors');
+    expect(text).toContain('Open-Meteo');
   });
 
   it('opens the policy URL when the link is pressed', async () => {

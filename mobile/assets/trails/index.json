@@ -64,10 +64,10 @@
     "lengthKm": 4823.2,
     "country": "US",
     "states": [],
-    "dataVersion": "2026-10-06",
-    "updatedAt": "2026-10-06T19:34:08.401Z",
-    "md5": "8fb03ebcf596123c2b83b7268e21e8d5",
-    "bytes": 2525330
+    "dataVersion": "2026-10-18",
+    "updatedAt": "2026-10-18T02:52:45.104Z",
+    "md5": "02c6bcbe1927a460ad29a20eb1910513",
+    "bytes": 2525678
   },
   {
     "id": "grampians_peaks",
@@ -245,10 +245,10 @@
       "NI",
       "SI"
     ],
-    "dataVersion": "2026-10-17",
-    "updatedAt": "2026-10-17T00:01:47.265Z",
-    "md5": "c9b2984629ced24539358b9cac2f5a40",
-    "bytes": 1924842
+    "dataVersion": "2026-10-18",
+    "updatedAt": "2026-10-18T02:52:45.104Z",
+    "md5": "5c82ec3ab91d067e7d5a09492c1a068f",
+    "bytes": 1925115
   },
   {
     "id": "thorsborne",
