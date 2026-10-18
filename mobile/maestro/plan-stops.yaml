@@ -9,20 +9,7 @@ appId: com.tracknotes.app
 # assert on distances or day-card footers, which move with the calculators.
 - runFlow: shared/launch-dev.yaml
 
-# From the guide list, open the smallest/fastest trail.
-# My Guides is grouped (Hiking now → countries → Community → Imported), and
-# within Australia by state: Cape to Cape (WA) sits below the fold.
-- scrollUntilVisible:
-    element:
-      text: "Cape to Cape Track"
-    direction: DOWN
-    timeout: 20000
-- tapOn: "Cape to Cape Track"
-
-# Wait for the guide three-pane shell (Map | Elevation | List) to load.
-- extendedWaitUntil:
-    visible: "Elevation"
-    timeout: 30000
+- runFlow: shared/open-cape-to-cape.yaml
 
 # Open the planner from the header action (icon-only — selected by its
 # accessibilityLabel "Plan").
@@ -73,13 +60,6 @@ appId: com.tracknotes.app
 - extendedWaitUntil:
     visible: "Day splits"
     timeout: 15000
-
-# Suggesting stops is off once the list has some.
-- scrollUntilVisible:
-    element:
-      text: "Clear your stops to suggest a fresh set."
-    direction: UP
-    timeout: 20000
 
 # Back returns to the guide shell.
 - pressKey: back

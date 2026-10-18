@@ -120,6 +120,12 @@ adb reverse tcp:8787 tcp:8787   # after
 | `waypoint-stop-here.yaml` | List → Deepdene Campsite → "Stop here" / "Remove stop" round-trip, then "Show on map" back to the guide. | **New, not yet run** — 2026-10-18 (issue #145) |
 | `add-comment-offline.yaml` | Post a comment with the API unreachable; assert the queued/failed affordance. | **Green** — 2026-08-19, took branch A (registration NetworkError → "Try again") |
 | `shared/launch-dev.yaml` | Launcher fragment — `clearState` + dev-client deep link. Not standalone. | — |
+| `shared/open-cape-to-cape.yaml` | Fragment — scroll My Guides to Cape to Cape, open it, wait for the guide shell. Not standalone. | — |
+
+On 2026-10-18 (issue #145) the guide-opening steps of `view-map`,
+`toggle-views`, `waypoint-detail` and `add-comment-offline` moved into
+`shared/open-cape-to-cape.yaml` (which waits for the "Elevation" tab rather
+than the "Cape to Cape" header). Their green status predates that change.
 
 All seven passed on their first run (2026-08-19) against a plain RN debug client,
 with the launcher temporarily reduced to a bare `launchApp`; no selector drift
@@ -148,7 +154,8 @@ themselves are unchanged, but they have not been re-run against it yet.
   one section per country (Australia first, grouped by state in
   `@lib/trail-regions` order, then by name), then Community, then Imported.
   Cape to Cape (WA) is below the fold on a fresh install, so every flow
-  `scrollUntilVisible`s to it before tapping it.
+  opens it through `shared/open-cape-to-cape.yaml`, which scrolls to it before
+  tapping it. A change to My Guides' layout is fixed there, once.
 
 ## Known caveats
 

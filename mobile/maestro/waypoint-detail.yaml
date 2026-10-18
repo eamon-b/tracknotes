@@ -13,15 +13,7 @@ appId: com.tracknotes.app
 # Deliberately avoids the comment-row action links (Delete / Retry / report),
 # which move around as the comments UI evolves.
 - runFlow: shared/launch-dev.yaml
-- scrollUntilVisible:
-    element:
-      text: "Cape to Cape Track"
-    direction: DOWN
-    timeout: 20000
-- tapOn: "Cape to Cape Track"
-- extendedWaitUntil:
-    visible: "Cape to Cape"
-    timeout: 30000
+- runFlow: shared/open-cape-to-cape.yaml
 
 # Switch to the datasheet pane and open the km-0 waypoint (always the first
 # row, so no scrolling is needed).

@@ -14,20 +14,7 @@ appId: com.tracknotes.app
 # km values, waypoint names, and day-card footer text (all in flux).
 - runFlow: shared/launch-dev.yaml
 
-# From the guide list, open the smallest/fastest trail.
-# My Guides is grouped (Hiking now → countries → Community → Imported), and
-# within Australia by state: Cape to Cape (WA) sits below the fold.
-- scrollUntilVisible:
-    element:
-      text: "Cape to Cape Track"
-    direction: DOWN
-    timeout: 20000
-- tapOn: "Cape to Cape Track"
-
-# Wait for the guide three-pane shell (Map | Elevation | List) to load.
-- extendedWaitUntil:
-    visible: "Elevation"
-    timeout: 30000
+- runFlow: shared/open-cape-to-cape.yaml
 
 # Open the planner from the header action (icon-only — selected by its
 # accessibilityLabel "Plan").
@@ -43,11 +30,24 @@ appId: com.tracknotes.app
 
 # Open the settings sheet: section controls, daily-hours stepper, pace control.
 - tapOn: "Plan settings"
+# The sheet's "Done" button is labelled "Close plan settings" (as is its
+# backdrop); neither exists until the sheet is open.
 - extendedWaitUntil:
-    visible: "Daily hours"
+    visible: "Close plan settings"
+    timeout: 15000
+# The sheet is a ScrollView capped at 90% of the screen, with the name and
+# start date above the inputs and pace last, so scroll each row into view.
+- scrollUntilVisible:
+    element:
+      text: "Daily hours"
+    direction: DOWN
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      text: "Fast"
+    direction: DOWN
     timeout: 15000
 - assertVisible: "Pace"
-- assertVisible: "Fast"
 
 # Change pace, close the sheet (the modal's onRequestClose), and confirm the
 # plan recomputed without crashing.
