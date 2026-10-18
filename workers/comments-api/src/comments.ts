@@ -1,6 +1,7 @@
 /**
  * Comment endpoints: idempotent create, soft delete, per-waypoint feed,
- * trail-wide bulk/delta sync, and the admin listing.
+ * trail-wide bulk/delta sync, the admin listing and the admin restore of a
+ * comment hidden by reports (`reports.ts`).
  */
 
 import { HttpError, json, noContent, readJson } from './http';
@@ -21,6 +22,7 @@ import {
 import type { CommentTarget } from './validation';
 import type {
   AdminComment,
+  AdminCommentReport,
   AdminCommentsResponse,
   BulkSyncResponse,
   FeedComment,
@@ -48,10 +50,12 @@ export interface CommentRow {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
-  deleted_by: 'owner' | 'admin' | null;
+  deleted_by: 'owner' | 'admin' | 'reports' | null;
   photo_urls_json: string | null;
   /** JSON array of sha-256 hex digests, index-aligned with `photo_urls_json`. */
   photo_hashes_json: string | null;
+  /** Last admin restore of a report hide; only reports after it count. */
+  restored_at: string | null;
 }
 
 function toFeedComment(row: CommentRow, displayName: string): FeedComment {
@@ -211,13 +215,26 @@ export async function deleteComment(
     throw new HttpError(403, 'forbidden', 'You may only delete your own comments');
   }
 
-  // Idempotent: already tombstoned → 204 without touching anything.
+  const deletedBy = isOwner ? 'owner' : 'admin';
   if (row.deleted_at !== null) {
+    // Idempotent: already tombstoned → 204 without touching anything. A hide
+    // by reports is provisional (it keeps the photos so an admin can restore
+    // it), so the owner's or an admin's delete makes it final.
+    if (row.deleted_by !== 'reports') return noContent();
+    const finalised = await env.DB.prepare(
+      `UPDATE comments SET deleted_by = ?, updated_at = ?
+        WHERE id = ? AND deleted_by = 'reports'
+        RETURNING id`
+    )
+      .bind(deletedBy, new Date().toISOString(), id)
+      .first<{ id: string }>();
+    if (finalised && row.photo_urls_json !== null) {
+      ctx.waitUntil(deleteCommentPhotos(env, id));
+    }
     return noContent();
   }
 
   const now = new Date().toISOString();
-  const deletedBy = isOwner ? 'owner' : 'admin';
   await env.DB.prepare(
     `UPDATE comments SET deleted_at = ?, deleted_by = ?, updated_at = ? WHERE id = ?`
   )
@@ -358,6 +375,12 @@ export async function getBulkSync(request: Request, env: Env, trailId: string): 
 // GET /v1/admin/comments — admin listing (newest across all trails)
 // ---------------------------------------------------------------------------
 
+/**
+ * Every comment, newest first; with `?reported=1` only the reported ones, those
+ * hidden by reports first, then by report count. Each carries its reports
+ * (reason and detail) and whether its author is banned, which is what the
+ * moderation page (`src/web/admin-moderation.ts`) acts on.
+ */
 export async function getAdminComments(
   request: Request,
   env: Env,
@@ -366,31 +389,104 @@ export async function getAdminComments(
   await requireAdmin(request, env, ctx);
   const url = new URL(request.url);
   const limit = parseLimit(url.searchParams.get('limit'), ADMIN_DEFAULT_LIMIT, ADMIN_MAX_LIMIT);
+  const reportedOnly = url.searchParams.get('reported') === '1';
 
+  const where = reportedOnly
+    ? 'WHERE EXISTS (SELECT 1 FROM comment_reports r WHERE r.comment_id = c.id)'
+    : '';
+  const order = reportedOnly
+    ? `(c.deleted_by IS 'reports') DESC, report_count DESC, c.created_at DESC, c.id DESC`
+    : 'c.created_at DESC, c.id DESC';
   const { results } = await env.DB.prepare(
-    `SELECT c.*, u.display_name AS display_name
+    `SELECT c.*, u.display_name AS display_name, u.is_banned AS user_banned,
+            (SELECT COUNT(*) FROM comment_reports r WHERE r.comment_id = c.id) AS report_count,
+            (SELECT json_group_array(json_object(
+                      'id', r.id, 'reporterUserId', r.user_id,
+                      'reporterDisplayName', ru.display_name, 'reason', r.reason,
+                      'detail', r.detail, 'createdAt', r.created_at))
+               FROM (SELECT * FROM comment_reports WHERE comment_id = c.id
+                      ORDER BY created_at DESC) r
+               JOIN users ru ON ru.id = r.user_id) AS reports_json
        FROM comments c JOIN users u ON u.id = c.user_id
-      ORDER BY c.created_at DESC, c.id DESC
+      ${where}
+      ORDER BY ${order}
       LIMIT ?`
   )
     .bind(limit)
-    .all<CommentRow & { display_name: string }>();
+    .all<
+      CommentRow & {
+        display_name: string;
+        user_banned: number;
+        report_count: number;
+        reports_json: string | null;
+      }
+    >();
 
-  const comments: AdminComment[] = results.map((row) => ({
-    id: row.id,
-    trailId: row.trail_id,
-    waypointId: row.waypoint_id,
-    userId: row.user_id,
-    displayName: row.display_name,
-    text: row.text,
-    waterStatus: row.water_status,
-    observedAt: row.observed_at,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-    deletedAt: row.deleted_at,
-    deletedBy: row.deleted_by,
-  }));
+  const comments: AdminComment[] = results.map((row) => {
+    const reports = row.reports_json ? (JSON.parse(row.reports_json) as AdminCommentReport[]) : [];
+    return {
+      id: row.id,
+      trailId: row.trail_id,
+      waypointId: row.waypoint_id,
+      userId: row.user_id,
+      displayName: row.display_name,
+      userBanned: row.user_banned === 1,
+      text: row.text,
+      waterStatus: row.water_status,
+      observedAt: row.observed_at,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      deletedAt: row.deleted_at,
+      deletedBy: row.deleted_by,
+      restoredAt: row.restored_at,
+      photoUrls: parsePhotoUrls(row.photo_urls_json) ?? [],
+      reportCount: row.report_count,
+      reports,
+    };
+  });
 
   const payload: AdminCommentsResponse = { comments };
   return json(payload);
+}
+
+// ---------------------------------------------------------------------------
+// POST /v1/admin/comments/:id/restore — undo a report hide
+// ---------------------------------------------------------------------------
+
+/**
+ * Undo a hide by reports. Reports filed before the restore no longer count
+ * towards hiding it again. An owner's or admin's delete is final — it has
+ * already removed the photos — so it is refused.
+ */
+export async function adminRestoreComment(
+  request: Request,
+  env: Env,
+  ctx: ExecutionContext,
+  id: string
+): Promise<Response> {
+  assertClientCommentId(id);
+  await requireAdmin(request, env, ctx);
+  const row = await env.DB.prepare(`SELECT deleted_at, deleted_by FROM comments WHERE id = ?`)
+    .bind(id)
+    .first<Pick<CommentRow, 'deleted_at' | 'deleted_by'>>();
+  if (!row) throw new HttpError(404, 'not_found', 'Comment not found');
+  if (row.deleted_at === null) return noContent();
+  if (row.deleted_by !== 'reports') {
+    throw new HttpError(
+      409,
+      row.deleted_by === 'owner' ? 'owner_deleted' : 'admin_deleted',
+      row.deleted_by === 'owner'
+        ? 'Its author deleted this comment'
+        : 'An admin deleted this comment; that cannot be undone'
+    );
+  }
+  const now = new Date().toISOString();
+  await env.DB.prepare(
+    `UPDATE comments
+        SET deleted_at = NULL, deleted_by = NULL, restored_at = ?, updated_at = ?
+      WHERE id = ? AND deleted_by = 'reports'`
+  )
+    .bind(now, now, id)
+    .run();
+  return noContent();
 }

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="./favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png">
+  <title>Moderation - Trail Maps</title>
+  <!-- Admin tool: not linked from any public page, never indexed. -->
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./my-trails.css">
+  <link rel="stylesheet" href="./community.css">
+</head>
+<body>
+  <div class="container community-page">
+    <nav class="breadcrumb">
+      <a href="./">Home</a> / <span>Moderation</span>
+    </nav>
+
+    <header>
+      <h1>Moderation</h1>
+      <p class="subtitle">
+        Reported comments, hidden-by-reports first, and every shared hiker waypoint, reported first.
+        Community routes are reviewed on <a href="./admin-community.html">their own page</a>.
+      </p>
+    </header>
+
+    <p class="loading" id="admin-status">Loading…</p>
+    <div id="admin-link" hidden></div>
+    <p class="import-error" id="admin-error" role="alert" hidden></p>
+
+    <div id="admin-toolbar" class="community-actions" hidden>
+      <span class="import-note" id="admin-identity"></span>
+      <button type="button" id="admin-reload" class="community-btn">Reload</button>
+    </div>
+
+    <section id="admin-comments-section" hidden>
+      <h2>Reported comments</h2>
+      <div id="admin-comments"></div>
+    </section>
+
+    <section id="admin-waypoints-section" hidden>
+      <h2>Shared waypoints</h2>
+      <div id="admin-waypoints"></div>
+    </section>
+  </div>
+
+  <script type="module" src="./admin-moderation.ts"></script>
+</body>
+</html>

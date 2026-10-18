@@ -13,8 +13,12 @@ import type { PlanDocument } from './plan-types';
 /** Structured water report status for a waypoint comment. */
 export type WaterStatus = 'flowing' | 'low' | 'dry';
 
-/** Who soft-deleted a comment. */
-export type DeletedBy = 'owner' | 'admin';
+/**
+ * Who soft-deleted a comment. `reports` is a hide by enough distinct reporters
+ * (`COMMENT_REPORTS_TO_HIDE` in the worker): provisional until an admin
+ * restores it or deletes it.
+ */
+export type DeletedBy = 'owner' | 'admin' | 'reports';
 
 /** Standard error envelope returned by every non-2xx response. */
 export interface ApiError {
@@ -190,6 +194,44 @@ export interface ReportSharedWaypointRequest {
   detail?: string | null;
 }
 
+/** A shared waypoint as the admin listing returns it. */
+export interface AdminSharedWaypoint extends SharedWaypoint {
+  userId: string;
+  /** The owner's account is banned. */
+  userBanned: boolean;
+  deletedAt: string | null;
+  deletedBy: 'owner' | 'admin' | 'reports' | null;
+  restoredAt: string | null;
+  reportCount: number;
+  /** Every report filed against it, newest first. */
+  reports: AdminCommentReport[];
+}
+
+/** GET /v1/admin/waypoints response. */
+export interface AdminSharedWaypointsResponse {
+  waypoints: AdminSharedWaypoint[];
+}
+
+/** POST /v1/admin/users/:id/ban request body. */
+export interface BanUserRequest {
+  /** true bans, false lifts the ban. */
+  banned: boolean;
+  /**
+   * With a ban: also take down every live comment and shared waypoint of the
+   * account, as an admin delete. Ignored when lifting a ban.
+   */
+  removeContent?: boolean;
+}
+
+/** POST /v1/admin/users/:id/ban response. */
+export interface BanUserResponse {
+  userId: string;
+  banned: boolean;
+  /** What `removeContent` took down (0 and 0 without it). */
+  removedComments: number;
+  removedWaypoints: number;
+}
+
 /** Narrowing helper: is a shared-waypoint entry a tombstone? */
 export function isSharedWaypointTombstone(
   entry: SharedWaypointEntry,
@@ -323,9 +365,27 @@ export interface AdminComment {
   updatedAt: string;
   deletedAt: string | null;
   deletedBy: DeletedBy | null;
+  /** The author's account is banned. */
+  userBanned: boolean;
+  /** Last admin restore of a report hide (reports before it no longer count). */
+  restoredAt: string | null;
+  photoUrls: string[];
+  reportCount: number;
+  /** Every report filed against it, newest first. */
+  reports: AdminCommentReport[];
 }
 
-/** GET /v1/admin/comments response. */
+/** One report, as the admin comment and waypoint listings carry it. */
+export interface AdminCommentReport {
+  id: string;
+  reporterUserId: string;
+  reporterDisplayName: string;
+  reason: ReportReason;
+  detail: string | null;
+  createdAt: string;
+}
+
+/** GET /v1/admin/comments response (`?reported=1`: reported ones only). */
 export interface AdminCommentsResponse {
   comments: AdminComment[];
 }

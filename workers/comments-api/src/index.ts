@@ -13,6 +13,7 @@ import { deleteMe, getMe, registerDevice, updateMe } from './devices';
 import { getTrailDescriptions, upsertTrailDescription } from './descriptions';
 import { getAdminReports, reportComment } from './reports';
 import {
+  adminRestoreComment,
   deleteComment,
   getAdminComments,
   getBulkSync,
@@ -20,6 +21,7 @@ import {
   putComment,
 } from './comments';
 import { uploadCommentPhoto } from './photos';
+import { adminBanUser } from './moderation';
 import {
   adminListSharedWaypoints,
   adminRestoreSharedWaypoint,
@@ -246,6 +248,18 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
     // /v1/admin/comments
     if (rest.length === 2 && rest[0] === 'admin' && rest[1] === 'comments') {
       if (method === 'GET') return await getAdminComments(request, env, ctx);
+      return methodNotAllowed();
+    }
+
+    // /v1/admin/comments/:id/restore
+    if (rest.length === 4 && rest[0] === 'admin' && rest[1] === 'comments' && rest[3] === 'restore') {
+      if (method === 'POST') return await adminRestoreComment(request, env, ctx, rest[2]);
+      return methodNotAllowed();
+    }
+
+    // /v1/admin/users/:id/ban
+    if (rest.length === 4 && rest[0] === 'admin' && rest[1] === 'users' && rest[3] === 'ban') {
+      if (method === 'POST') return await adminBanUser(request, env, ctx, rest[2]);
       return methodNotAllowed();
     }
 

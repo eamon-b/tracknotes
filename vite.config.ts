@@ -127,6 +127,8 @@ export default defineConfig({
         // queue (unlinked, noindex). Spec: plans/community-routes.md.
         'community-route': resolve(__dirname, 'src/web/community-route.html'),
         'admin-community': resolve(__dirname, 'src/web/admin-community.html'),
+        // Reported comments and shared hiker waypoints (unlinked, noindex).
+        'admin-moderation': resolve(__dirname, 'src/web/admin-moderation.html'),
         // Dynamically include all generated trail pages
         ...getTrailInputs(),
       },

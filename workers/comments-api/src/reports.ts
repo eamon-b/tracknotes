@@ -4,12 +4,20 @@
  * Reporting is a safety action, so banned accounts may still report (unlike
  * posting). One report per (comment, reporter): a repeat submission replays the
  * original id so a retried outbox flush never creates duplicates.
+ *
+ * `COMMENT_REPORTS_TO_HIDE` distinct reporters hide a comment, as they hide a
+ * shared waypoint: counting only accounts that were a day old when they
+ * reported (`REPORTER_MIN_ACCOUNT_AGE_MS`), never the comment's own author, and
+ * only reports filed since an admin last restored it (`restored_at`). A report
+ * hide keeps the comment's photos, so an admin can restore it whole; an admin
+ * or owner delete of it is final.
  */
 
 import { HttpError, json, readJson } from './http';
 import type { Env } from './http';
 import { requireAdmin, requireUser } from './auth';
 import { RATE_BUCKETS, consumeRateLimit, refundRateLimit } from './rate-limit';
+import { REPORTER_MIN_ACCOUNT_AGE_MS } from './community';
 import {
   assertClientCommentId,
   parseLimit,
@@ -104,8 +112,38 @@ export async function reportComment(
     return json(replay, 200);
   }
 
+  await hideIfReported(env, id);
+
   const payload: ReportCommentResponse = { reportId: inserted.id };
   return json(payload, 201);
+}
+
+/** Distinct qualifying reporters that hide a comment (as for shared waypoints). */
+export const COMMENT_REPORTS_TO_HIDE = 3;
+
+/**
+ * Hide the comment once enough distinct reporters count. One statement, so two
+ * reports landing together cannot both miss the threshold. Registering is free,
+ * so only accounts that were a day old when they reported count; the author
+ * reporting their own comment never does; and reports from before an admin's
+ * last restore have already been weighed.
+ */
+async function hideIfReported(env: Env, id: string): Promise<void> {
+  // Stamped just before the statement that commits it, so a concurrent delta
+  // read cannot get ahead of it.
+  const stamp = new Date().toISOString();
+  await env.DB.prepare(
+    `UPDATE comments SET deleted_at = ?, deleted_by = 'reports', updated_at = ?
+      WHERE id = ? AND deleted_at IS NULL
+        AND (SELECT COUNT(*) FROM comment_reports r
+               JOIN users u ON u.id = r.user_id
+              WHERE r.comment_id = comments.id
+                AND r.user_id != comments.user_id
+                AND (comments.restored_at IS NULL OR r.created_at > comments.restored_at)
+                AND (julianday(r.created_at) - julianday(u.created_at)) * 86400000.0 >= ?) >= ?`
+  )
+    .bind(stamp, stamp, id, REPORTER_MIN_ACCOUNT_AGE_MS, COMMENT_REPORTS_TO_HIDE)
+    .run();
 }
 
 // ---------------------------------------------------------------------------

@@ -38,6 +38,8 @@ import {
   isUserWaypointId,
 } from '../../../src/lib/user-waypoints';
 import type {
+  AdminCommentReport,
+  AdminSharedWaypointsResponse,
   SharedWaypoint,
   SharedWaypointEntry,
   SharedWaypointsResponse,
@@ -428,23 +430,41 @@ export async function adminListSharedWaypoints(
   const url = new URL(request.url);
   const limit = parseLimit(url.searchParams.get('limit'), ADMIN_DEFAULT_LIMIT, ADMIN_MAX_LIMIT);
   const { results } = await env.DB.prepare(
-    `SELECT w.*, u.display_name AS display_name,
-            (SELECT COUNT(*) FROM shared_waypoint_reports r WHERE r.waypoint_id = w.id) AS report_count
+    `SELECT w.*, u.display_name AS display_name, u.is_banned AS user_banned,
+            (SELECT COUNT(*) FROM shared_waypoint_reports r WHERE r.waypoint_id = w.id) AS report_count,
+            (SELECT json_group_array(json_object(
+                      'id', r.id, 'reporterUserId', r.user_id,
+                      'reporterDisplayName', ru.display_name, 'reason', r.reason,
+                      'detail', r.detail, 'createdAt', r.created_at))
+               FROM (SELECT * FROM shared_waypoint_reports WHERE waypoint_id = w.id
+                      ORDER BY created_at DESC) r
+               JOIN users ru ON ru.id = r.user_id) AS reports_json
        FROM shared_waypoints w JOIN users u ON u.id = w.user_id
       ORDER BY report_count DESC, w.created_at DESC
       LIMIT ?`
   )
     .bind(limit)
-    .all<SharedWaypointRow & { display_name: string; report_count: number }>();
-  return json({
+    .all<
+      SharedWaypointRow & {
+        display_name: string;
+        user_banned: number;
+        report_count: number;
+        reports_json: string | null;
+      }
+    >();
+  const payload: AdminSharedWaypointsResponse = {
     waypoints: results.map((row) => ({
       ...toSharedWaypoint(row, row.display_name, null),
       userId: row.user_id,
+      userBanned: row.user_banned === 1,
       deletedAt: row.deleted_at,
       deletedBy: row.deleted_by,
+      restoredAt: row.restored_at,
       reportCount: row.report_count,
+      reports: row.reports_json ? (JSON.parse(row.reports_json) as AdminCommentReport[]) : [],
     })),
-  });
+  };
+  return json(payload);
 }
 
 // ---------------------------------------------------------------------------

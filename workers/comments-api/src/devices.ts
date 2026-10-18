@@ -162,7 +162,7 @@ export async function deleteMe(
       `UPDATE comments
           SET text = '', water_status = NULL, observed_at = NULL,
               photo_urls_json = NULL, photo_hashes_json = NULL,
-              deleted_by = CASE WHEN deleted_at IS NULL THEN 'owner' ELSE deleted_by END,
+              deleted_by = CASE WHEN deleted_at IS NULL OR deleted_by = 'reports' THEN 'owner' ELSE deleted_by END,
               updated_at = CASE WHEN deleted_at IS NULL THEN ? ELSE updated_at END,
               deleted_at = COALESCE(deleted_at, ?)
         WHERE user_id = ?`
@@ -197,7 +197,7 @@ export async function deleteMe(
     ),
     env.DB.prepare(
       `UPDATE users
-          SET display_name = ?, token_hash = ?, is_admin = 0, is_banned = 1
+          SET display_name = ?, token_hash = ?, is_admin = 0, is_banned = 1, banned_at = NULL
         WHERE id = ?`
     ).bind(DELETED_DISPLAY_NAME, deadTokenHash, user.id),
     deattributeStatement(env, user.id),
