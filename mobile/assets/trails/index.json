@@ -11,9 +11,9 @@
       "ACT"
     ],
     "dataVersion": "2026-10-19",
-    "updatedAt": "2026-10-19T02:12:08.032Z",
-    "md5": "fceafe0cd3d0d96d0680eff739b9a3c2",
-    "bytes": 1152345
+    "updatedAt": "2026-10-19T02:14:24.261Z",
+    "md5": "ba3c4163a045a86194494753380912a1",
+    "bytes": 1153812
   },
   {
     "id": "hume-and-hovell",
@@ -25,23 +25,23 @@
       "NSW"
     ],
     "dataVersion": "2026-10-19",
-    "updatedAt": "2026-10-19T02:09:55.926Z",
-    "md5": "42e2786e2af2d7162cbfeb191e70ec22",
-    "bytes": 719372
+    "updatedAt": "2026-10-19T02:14:24.261Z",
+    "md5": "40fcbeb081a27879efd119e0217b2013",
+    "bytes": 720748
   },
   {
     "id": "bibbulmun",
     "name": "Bibbulmun Track",
     "shortName": "Bibb",
-    "lengthKm": 981.6,
+    "lengthKm": 976.2,
     "country": "AU",
     "states": [
       "WA"
     ],
-    "dataVersion": "2026-10-06",
-    "updatedAt": "2026-10-06T19:38:35.939Z",
-    "md5": "4acce8d8051a0d2c7b8c76764adaa67d",
-    "bytes": 1069044
+    "dataVersion": "2026-10-19",
+    "updatedAt": "2026-10-19T02:14:24.261Z",
+    "md5": "2f3a8a816e0231bbf4fcab6201faca0c",
+    "bytes": 1088601
   },
   {
     "id": "cape_to_cape",
@@ -53,9 +53,9 @@
       "WA"
     ],
     "dataVersion": "2026-10-19",
-    "updatedAt": "2026-10-19T02:12:08.032Z",
-    "md5": "33b1917134e3ec6986cac2c15e53600c",
-    "bytes": 571977
+    "updatedAt": "2026-10-19T02:14:24.261Z",
+    "md5": "321ad96a415fe98236b854024b3194ba",
+    "bytes": 572106
   },
   {
     "id": "cdt",
@@ -135,9 +135,9 @@
       "SA"
     ],
     "dataVersion": "2026-10-19",
-    "updatedAt": "2026-10-19T02:09:55.926Z",
-    "md5": "1b5246f2b6a2de11278f8272c7edf0ea",
-    "bytes": 1234259
+    "updatedAt": "2026-10-19T02:14:24.261Z",
+    "md5": "0004b28278a685cf387a4197ac83a077",
+    "bytes": 1234369
   },
   {
     "id": "kep_track",
@@ -162,10 +162,10 @@
     "states": [
       "NT"
     ],
-    "dataVersion": "2026-10-17",
-    "updatedAt": "2026-10-17T00:01:47.265Z",
-    "md5": "4f9b110ef8acd5136b06048d74ee368d",
-    "bytes": 771802
+    "dataVersion": "2026-10-19",
+    "updatedAt": "2026-10-19T02:14:24.261Z",
+    "md5": "dcd4596e81c6bfe7c0ef59c473f48693",
+    "bytes": 773158
   },
   {
     "id": "overland",
