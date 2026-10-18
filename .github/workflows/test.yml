@@ -10,14 +10,57 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - run: npm ci
       - run: npm test -- --run
+      # tsc otherwise runs only inside `npm run build`, which CI never runs
+      - run: npx tsc --noEmit
       - run: npm run lint
+
+  # The generated trail data is committed (mobile/assets/trails/, data/waypoint-ids.json),
+  # so a change to the build or the source data must ship with its rebuilt output.
+  # No network: build:trails reads the committed climate.json and pois.json.
+  trail-data:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Te Araroa's GPX is gitignored and copied out of the te-araroa-data package
+      - run: npm run sync:te-araroa
+      - run: npm run build:trails
+      - run: npm run build:mobile-trails
+      - name: Check the committed trail data is up to date
+        run: |
+          if ! git diff --exit-code --stat || [ -n "$(git status --porcelain)" ]; then
+            git status --short
+            echo "::error::The committed trail data is stale. Run npm run sync:te-araroa, build:trails and build:mobile-trails, and commit the result."
+            exit 1
+          fi
+
+  comments-api-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: workers/comments-api
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: workers/comments-api/package-lock.json
+      - run: npm ci
+      - run: npm test
 
   mobile-tests:
     runs-on: ubuntu-latest
@@ -26,8 +69,8 @@ jobs:
       run:
         working-directory: mobile
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           # React Native 0.86 (Expo SDK 57) declares
           # node ^20.19.4 || ^22.13.0 || ^24.3.0 || >= 25. Plain "20" floats to

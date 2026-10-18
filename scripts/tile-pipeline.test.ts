@@ -32,6 +32,17 @@ import {
  * tippecanoe — the fixtures are hand-built tile tables.
  */
 
+// The CLI is not on every machine (it is on GitHub's Ubuntu runners). Without it the
+// fixtures cannot be built and the validator has nothing to shell out to, so the
+// suites that need it are skipped rather than failed.
+let hasSqlite3 = true;
+try {
+  execFileSync('sqlite3', ['-version'], { stdio: 'ignore' });
+} catch {
+  hasSqlite3 = false;
+}
+const describeWithSqlite3 = describe.skipIf(!hasSqlite3);
+
 let tmpDir: string;
 
 beforeAll(() => {
@@ -206,7 +217,7 @@ describe('contour tiers', () => {
   });
 });
 
-describe('validateMbtilesArtifact', () => {
+describeWithSqlite3('validateMbtilesArtifact (needs the sqlite3 CLI)', () => {
   it('accepts a well-formed contour artifact against the contour expectation', () => {
     const file = makeMbtiles('contours', { zooms: contourZooms });
     expect(() => validateMbtilesArtifact(file, CONTOUR_ZOOM_EXPECTATION)).not.toThrow();
@@ -313,7 +324,7 @@ describe('file hashing helpers', () => {
   });
 });
 
-describe('writeManifest', () => {
+describeWithSqlite3('writeManifest (needs the sqlite3 CLI)', () => {
   function outDir(name: string): string {
     const dir = path.join(tmpDir, `out-${name}-${fixtureCounter++}`);
     fs.mkdirSync(dir, { recursive: true });

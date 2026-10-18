@@ -3,7 +3,8 @@ name: Offline tile packs
 # Every trail the app bundles gets a Download button, so every one must have a
 # pack on the tile host. Runs when the bundled trail list changes (a new trail
 # fails here until its pack is built and uploaded: build:tiles, upload:tiles)
-# and weekly, to catch a pack that goes missing or bad on the server.
+# and weekly, to catch a pack that goes missing or bad on the server. The weekly
+# run also checks the published over-the-air trail data matches main.
 
 on:
   pull_request:
@@ -24,9 +25,25 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
       # No npm ci: the check uses only Node built-ins.
       - run: npm run check:tile-packs
+
+  # Did a trail data change reach main without `npm run publish:trail-data`? Not run on
+  # pull requests or pushes, which change the data before it is published.
+  # Reads the public catalog only, no credentials (docs/trail-data-updates.md).
+  published-trail-data:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run publish:trail-data -- --check
