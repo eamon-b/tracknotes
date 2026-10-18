@@ -31,6 +31,7 @@ import {
   setStopNote as editStopNote,
   refreshStopKms,
   splitUnplannedTail,
+  stampPlanData,
   toggleStop as editToggleStop,
   findStop,
   isStopSelected,
@@ -130,6 +131,11 @@ interface Trail {
    * the same as "nothing near this stop", and the Stops tab says so.
    */
   pois?: TrailPOI[];
+  /**
+   * When this trail's data was published (`ProcessedTrail.dataUpdatedAt`).
+   * Stamped on every save, and checked before moving a stop (`refreshStopKms`).
+   */
+  dataUpdatedAt?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -1893,6 +1899,10 @@ function commitSave(): void {
   // is what `flushPendingSave` reads.
   saveDebounceTimer = null;
   if (readOnly) return;
+  // Saved against this page's data: a device on older data then leaves the
+  // stops where this data has the places (`refreshStopKms`).
+  const stamped = stampPlanData(storedPlan, trail.dataUpdatedAt);
+  if (stamped !== storedPlan) adoptStoredPlan(stamped);
   const ok = savePlanDocument(trail.config.id, storedPlan);
   setSaveStatus(ok ? 'saved' : 'error');
   syncController?.onLocalSave();
@@ -2263,8 +2273,9 @@ function planSyncHost(trailId: string): PlanSyncHost {
       // already flushed and weighed it before deciding to adopt).
       cancelPendingSave();
       // Unless it was saved before a data update moved one of its places: the
-      // corrected copy is ours to save and send back.
-      const refreshed = refreshStopKms(next, trail);
+      // corrected copy is ours to save and send back — but only when this
+      // page's data is at least as new as the data the copy was saved against.
+      const refreshed = refreshStopKms(next, trail, { dataUpdatedAt: trail.dataUpdatedAt ?? null });
       adoptStoredPlan(refreshed);
       savePlanDocument(trail.config.id, storedPlan);
       setSaveStatus('saved');
@@ -2412,8 +2423,10 @@ export async function initPlanViewer(
   // plan. A newer server copy replaces it a moment after the first render —
   // see `plan-sync.ts`; the page is drawn first and never waits on the network.
   const loaded = options.preloadedPlan ?? loadOrMigratePlan(trailId, trail).plan;
-  // A stop saved before a data update moved its place is moved with it.
-  const stored = refreshStopKms(loaded, trail);
+  // A stop saved before a data update moved its place is moved with it — and
+  // saved, unless the plan was saved against newer data than this page has. A
+  // shared plan is only read, so it is corrected for reading whatever it says.
+  const stored = refreshStopKms(loaded, trail, readOnly ? undefined : { dataUpdatedAt: trail.dataUpdatedAt ?? null });
   // Read in read-only mode too, so a shared plan's days are timed at the
   // reader's own pace and hours; `setUiPrefs` never writes them back there.
   uiPrefs = loadPlanUiPrefs(trailId);

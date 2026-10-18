@@ -71,6 +71,8 @@ jest.mock('../../../services/trail-loader', () => {
 jest.mock('../../../services/trail-data-updates', () => ({
   ensureTrailDownloaded: jest.fn(async () => false),
   trailDataVersion: jest.fn(() => null),
+  // Each copy's publish time, named after its md5.
+  trailDataUpdatedAt: jest.fn((_id: string, md5: string | null) => (md5 ? `time-of-${md5}` : null)),
 }));
 
 jest.mock('../../../services/community-routes', () => {
@@ -571,7 +573,13 @@ describe('GuideProvider newer data while open', () => {
   };
 
   let version: string | null;
-  let seen: { firstName: string; available: boolean; reloading: boolean; reload: () => void };
+  let seen: {
+    firstName: string;
+    available: boolean;
+    reloading: boolean;
+    reload: () => void;
+    dataUpdatedAt: string | null;
+  };
   let mounts: number;
 
   function Probe() {
@@ -584,6 +592,7 @@ describe('GuideProvider newer data while open', () => {
       available: g.dataUpdate.available,
       reloading: g.dataUpdate.reloading,
       reload: g.dataUpdate.reload,
+      dataUpdatedAt: g.dataUpdatedAt,
     };
     return null;
   }
@@ -624,6 +633,8 @@ describe('GuideProvider newer data while open', () => {
     expect(seen.available).toBe(true);
     expect(seen.firstName).toBe('Start');
     expect(mockLoadTrail).not.toHaveBeenCalled();
+    // A plan is saved against the copy shown, not the one installed.
+    expect(seen.dataUpdatedAt).toBe('time-of-bundle-md5');
   });
 
   it('does not report a bump that leaves the installed copy unchanged', () => {
@@ -666,6 +677,7 @@ describe('GuideProvider newer data while open', () => {
     expect(seen.firstName).toBe('New start');
     expect(seen.available).toBe(false);
     expect(seen.reloading).toBe(false);
+    expect(seen.dataUpdatedAt).toBe('time-of-download-md5');
     expect(mounts).toBe(1);
 
     // A second update after the reload is offered again.

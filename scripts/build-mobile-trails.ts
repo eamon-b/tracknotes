@@ -274,7 +274,7 @@ export function processTrail(trail: TrailJson): TrailJson {
     };
   });
 
-  return {
+  const result: TrailJson = {
     ...trail,
     config: stripListOnlyConfig(trail.config),
     track: {
@@ -294,6 +294,10 @@ export function processTrail(trail: TrailJson): TrailJson {
     // "never fetched", which the app reads differently from "found nothing".
     ...(trail.pois ? { pois: trail.pois.map(slimPoi) } : {}),
   };
+  // The web build's data time is read from this script's own index: kept, it
+  // would move the md5, and with it `updatedAt`, on every build.
+  delete result.dataUpdatedAt;
+  return result;
 }
 
 export function main() {

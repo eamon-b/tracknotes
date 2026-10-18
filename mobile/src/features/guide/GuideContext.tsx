@@ -44,7 +44,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { useTheme } from '../../theme';
 import { radii, spacing, typography } from '../../tokens';
 import { getTrailJson, loadTrail, type TrailJson } from '../../services/trail-loader';
-import { ensureTrailDownloaded, trailDataVersion } from '../../services/trail-data-updates';
+import { ensureTrailDownloaded, trailDataUpdatedAt, trailDataVersion } from '../../services/trail-data-updates';
 import { useTrailDataStore } from '../../state/trail-data-store';
 import { isCatalogTrailId } from '../../services/trail-catalog';
 import {
@@ -68,6 +68,11 @@ export interface GuideContextValue {
    */
   baseTrail: TrailJson;
   direction: Direction;
+  /**
+   * When the copy the guide shows was published (`trailDataUpdatedAt`); null
+   * for an import or community route. A plan is saved against it.
+   */
+  dataUpdatedAt: string | null;
   /** A newer copy of this trail is on the phone than the one the guide shows. */
   dataUpdate: GuideDataUpdate;
 }
@@ -212,6 +217,7 @@ export function GuideProvider({
     fresh?.trail ?? bundled ?? (current ? current.trail : undefined);
   const shownVersion = fresh ? fresh.version : bundled ? bundledVersion : (current?.version ?? null);
   const available = shownVersion !== null && latestVersion !== null && latestVersion !== shownVersion;
+  const dataUpdatedAt = shownVersion === null ? null : trailDataUpdatedAt(trailId, shownVersion);
 
   // The hiker's own waypoints (private and shared) are placed into the trail as
   // stored, before direction: from here on every screen — map, list, profile,
@@ -239,9 +245,10 @@ export function GuideProvider({
       trail,
       baseTrail: placed,
       direction,
+      dataUpdatedAt,
       dataUpdate: { available, version: latestVersion, reloading, reload },
     };
-  }, [trail, raw, placed, trailId, direction, available, latestVersion, reloading, reload]);
+  }, [trail, raw, placed, trailId, direction, dataUpdatedAt, available, latestVersion, reloading, reload]);
 
   if (raw === undefined) return <GuideLoading downloading={downloading} />;
   if (!value && current?.takenDown) return <GuideTakenDown />;

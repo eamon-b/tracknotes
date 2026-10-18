@@ -40,6 +40,7 @@ import {
   assertPlanDocumentWithinLimits,
   isStopSelected,
   newPlan,
+  stampPlanData,
   type StopKey,
 } from '@lib/plan-editor';
 import type { PlanDirection } from '@lib/plan-direction';
@@ -71,6 +72,19 @@ let onPlanChanged: ((doc: PlanDocument) => void) | undefined;
 /** Install (or clear, with `undefined`) the post-write hook described above. */
 export function setPlanChangedHandler(handler?: (doc: PlanDocument) => void): void {
   onPlanChanged = handler;
+}
+
+/**
+ * trailId → when the trail data the open guide shows was published
+ * (`GuideContext` `dataUpdatedAt`). Every write raises the plan's
+ * `dataUpdatedAt` to it (`stampPlanData`), so another device on older data
+ * leaves the stops where this data has them (`refreshStopKms`).
+ */
+const dataTimes = new Map<string, string | null>();
+
+/** Record the data the guide for `trailId` shows; set by `GuideView`. */
+export function setPlanDataTime(trailId: string, dataUpdatedAt: string | null): void {
+  dataTimes.set(trailId, dataUpdatedAt);
 }
 
 export interface PlansState {
@@ -167,12 +181,12 @@ export const usePlansStore = create<PlansState>((set, get) => {
           idFactory: uuidv4,
         });
 
-      const next = edit(base);
+      const edited = edit(base);
       // Unchanged: either a genuine no-op on a stored plan, or an edit that did
       // nothing to a plan we just minted — in which case there is nothing worth
       // persisting either. A read-through that found a plan the cache did not
       // have still lands in the cache.
-      if (next === base) {
+      if (edited === base) {
         if (current !== cached) {
           bumpGeneration(trailId);
           set((s) => ({ byTrail: { ...s.byTrail, [trailId]: current } }));
@@ -181,6 +195,7 @@ export const usePlansStore = create<PlansState>((set, get) => {
         return current ?? null;
       }
 
+      const next = stampPlanData(edited, dataTimes.get(trailId));
       assertPlanDocumentWithinLimits(next);
       await plansRepo.upsertLocal(db, next);
       bumpGeneration(trailId);

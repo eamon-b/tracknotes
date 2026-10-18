@@ -16,6 +16,9 @@ import { beforeAll, describe, it, expect } from 'vitest';
 import { processTrail, type TrailJson } from './build-mobile-trails.js';
 import { calculateElevationBetween } from '../src/lib/track-geometry.js';
 import { routeBreakStarts } from '../src/lib/route-breaks.js';
+import { stopWalk } from '../src/lib/day-calculator.js';
+import { refreshStopKms } from '../src/lib/plan-editor.js';
+import type { PlanDocument } from '../src/lib/plan-types.js';
 import type { RouteBreak, TrackPoint, TrailPOI } from '../src/lib/trail-types.js';
 
 /** Seeded LCG in [0, 1), so every run sees the same track. */
@@ -513,5 +516,61 @@ describe('processTrail off-route walk in', () => {
       [-34.05, 138.05],
       [-34.05123, 138.04988],
     ]);
+  });
+});
+
+describe('plan stops across the web and the phone (issue 142)', () => {
+  // Every km ending in 5 in the second decimal: the web keeps it, the phone's
+  // 0.1 rounding moves it by exactly 0.05 — the edge of `STOP_AT_PLACE_KM`.
+  const kms = Array.from({ length: 100 }, (_, i) => Math.round((i * 0.1 + 0.05) * 100) / 100);
+  const web = trailJson();
+  web.waypoints = kms.map((km, i) => ({
+    id: `w_${i}`,
+    name: `Place ${i}`,
+    type: 'campsite',
+    lat: -34,
+    lon: 138,
+    totalDistance: km,
+    offTrailKm: 0.4,
+    accessMode: 'foot',
+  }));
+  const phone = processTrail(web);
+
+  const planAt = (km: number, waypointId: string): PlanDocument => ({
+    id: 'p',
+    trailId: 'test',
+    name: '',
+    direction: 'NOBO',
+    startDate: null,
+    stops: [{ km, name: 'Stop', nights: 1, waypointId }],
+    updatedAt: '2026-10-01T00:00:00.000Z',
+    version: 1,
+  });
+  const places = (trail: TrailJson) => trail.waypoints as Array<{ id: string; totalDistance: number }>;
+
+  it('rounds the phone copy to 0.1 km, up to 0.05 km from the web', () => {
+    const gaps = places(web).map((wp, i) => Math.abs(wp.totalDistance - places(phone)[i].totalDistance));
+    expect(Math.max(...gaps)).toBeGreaterThan(0.05 - 1e-9);
+  });
+
+  it('leaves a stop saved on either platform where it is on the other', () => {
+    for (let i = 0; i < kms.length; i++) {
+      const webPlace = places(web)[i];
+      const phonePlace = places(phone)[i];
+      const savedOnWeb = planAt(webPlace.totalDistance, webPlace.id);
+      const savedOnPhone = planAt(phonePlace.totalDistance, phonePlace.id);
+      expect(refreshStopKms(savedOnWeb, { waypoints: places(phone) }), `web stop at ${webPlace.totalDistance}`).toBe(savedOnWeb);
+      expect(refreshStopKms(savedOnPhone, { waypoints: places(web) }), `phone stop at ${phonePlace.totalDistance}`).toBe(savedOnPhone);
+      // And both count the walk in to it.
+      expect(stopWalk(phone.waypoints[i], webPlace.totalDistance)).not.toBeNull();
+      expect(stopWalk(web.waypoints[i], phonePlace.totalDistance)).not.toBeNull();
+    }
+  });
+});
+
+describe('processTrail web-only fields', () => {
+  it("drops the web build's data time, which would move the md5 on every build", () => {
+    const out = processTrail({ ...trailJson(), dataUpdatedAt: '2026-10-17T00:01:47.265Z' });
+    expect(out).not.toHaveProperty('dataUpdatedAt');
   });
 });

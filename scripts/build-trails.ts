@@ -52,6 +52,7 @@ const PROJECT_ROOT = path.resolve(SCRIPTS_DIR, '..');
 const DATA_DIR = path.join(PROJECT_ROOT, 'data/trails');
 const WAYPOINT_IDS_PATH = path.join(PROJECT_ROOT, 'data/waypoint-ids.json');
 const OUTPUT_DIR = path.join(PROJECT_ROOT, 'public/data/generated');
+const MOBILE_INDEX_PATH = path.join(PROJECT_ROOT, 'mobile/assets/trails/index.json');
 const TRAIL_PAGES_DIR = path.join(PROJECT_ROOT, 'src/web/trails');
 const TRAIL_TEMPLATE_PATH = path.join(TRAIL_PAGES_DIR, 'trail-template.html');
 const CLIMATE_TEMPLATE_PATH = path.join(TRAIL_PAGES_DIR, 'climate-template.html');
@@ -295,6 +296,23 @@ function validateTrailDirectory(trailDir: string): { errors: string[]; needsAuto
  * Waypoint-id warnings from this build, repeated at the end: one fires only on
  * the build that mints the id, so it must not scroll past unseen.
  */
+/** Each trail's `updatedAt` in the app's committed trail index, by id. Empty when it is unreadable. */
+function readAppDataTimes(): Map<string, string> {
+  const times = new Map<string, string>();
+  try {
+    const index = JSON.parse(fs.readFileSync(MOBILE_INDEX_PATH, 'utf-8')) as unknown;
+    if (!Array.isArray(index)) return times;
+    for (const entry of index as Array<{ id?: unknown; updatedAt?: unknown }>) {
+      if (typeof entry?.id === 'string' && typeof entry.updatedAt === 'string') {
+        times.set(entry.id, entry.updatedAt);
+      }
+    }
+  } catch {
+    // No app index (a checkout without mobile/): plans are not stamped.
+  }
+  return times;
+}
+
 const waypointIdWarnings: string[] = [];
 
 async function processTrail(trailDir: string, registry: WaypointRegistry, autoGenConfig: boolean = false): Promise<ProcessedTrail> {
@@ -655,6 +673,14 @@ async function main() {
     }
   }
 
+  // The app's trail index gives each trail's data time (`updatedAt`), the clock
+  // a plan records the data it was saved against by (`PlanDocument.dataUpdatedAt`).
+  // The web page stamps plans with the same one, so a phone and the page can
+  // tell whose data is newer. The committed index trails this build's data
+  // or matches it, so the stamp can understate the page's data, never
+  // overstate it.
+  const appDataTimes = readAppDataTimes();
+
   const trailIndex: TrailIndexEntry[] = [];
   const failedTrails: string[] = [];
 
@@ -691,6 +717,9 @@ async function main() {
       if (pois) {
         processed.pois = pois;
       }
+
+      const dataUpdatedAt = appDataTimes.get(processed.config.id);
+      if (dataUpdatedAt) processed.dataUpdatedAt = dataUpdatedAt;
 
       // Write processed data
       const outputPath = path.join(OUTPUT_DIR, `${processed.config.id}.json`);

@@ -18,6 +18,7 @@ import {
   selectPlanError,
   selectResupplyStops,
   setPlanChangedHandler,
+  setPlanDataTime,
   usePlansStore,
 } from '../plans-store';
 import { setPlanName, setResupplyStops, setStartDate, toggleStop } from '@lib/plan-editor';
@@ -43,6 +44,7 @@ beforeEach(async () => {
   mockGetDatabase.mockResolvedValue(db);
   usePlansStore.setState({ byTrail: {}, lastError: {} });
   setPlanChangedHandler(undefined);
+  setPlanDataTime(TRAIL, null);
 });
 
 afterEach(() => {
@@ -272,5 +274,30 @@ describe('plans-store selectors', () => {
     expect(selectPlan(TRAIL)(usePlansStore.getState())).toBeUndefined();
     // Still in SQLite — clear is a cache eviction, not a delete.
     expect(await plansRepo.getByTrail(db, TRAIL)).not.toBeNull();
+  });
+});
+
+describe('plans-store.apply data stamp', () => {
+  it("stamps every write with the guide's data, and never lowers the stamp", async () => {
+    setPlanDataTime(TRAIL, '2026-10-10T00:00:00.000Z');
+    const created = await store().apply(TRAIL, (p) => toggleStop(p, CAMP));
+    expect(created?.dataUpdatedAt).toBe('2026-10-10T00:00:00.000Z');
+
+    // A phone on older data edits the plan: the stamp stays.
+    setPlanDataTime(TRAIL, '2026-09-01T00:00:00.000Z');
+    const edited = await store().apply(TRAIL, (p) => setPlanName(p, 'Week one'));
+    expect(edited?.dataUpdatedAt).toBe('2026-10-10T00:00:00.000Z');
+    expect((await plansRepo.getByTrail(db, TRAIL))?.dataUpdatedAt).toBe('2026-10-10T00:00:00.000Z');
+  });
+
+  it('writes nothing for a no-op edit, stamp or not', async () => {
+    const created = await store().apply(TRAIL, (p) => toggleStop(p, CAMP));
+    expect(created?.dataUpdatedAt).toBeUndefined();
+    setPlanDataTime(TRAIL, '2026-10-10T00:00:00.000Z');
+    const onChanged = jest.fn();
+    setPlanChangedHandler(onChanged);
+    const same = await store().apply(TRAIL, (p) => p);
+    expect(same).toBe(created);
+    expect(onChanged).not.toHaveBeenCalled();
   });
 });

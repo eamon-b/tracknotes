@@ -155,6 +155,15 @@ export interface PlanDocument {
   alternates?: string[];
   /** Server clock on the copy that last came from or went to the server; the client's own clock before that. */
   updatedAt: string;
+  /**
+   * The newest trail data (`updatedAt` of the trail's published copy, ISO
+   * time) the plan has been saved against. Every save raises it to the saving
+   * device's data and never lowers it, so a device whose data is older can
+   * tell, and does not move stops back to where its data has the places
+   * (`refreshStopKms`). Absent on plans saved before it existed, and on
+   * trails with no published data (imports).
+   */
+  dataUpdatedAt?: string;
   version: 1;
 }
 

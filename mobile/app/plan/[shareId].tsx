@@ -29,7 +29,7 @@ import {
   View,
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { computePlanDays, splitUnplannedTail } from '@lib/plan-editor';
+import { computePlanDays, refreshStopKms, splitUnplannedTail, stampPlanData } from '@lib/plan-editor';
 import { finalDayMaxHours } from '@lib/plan-suggest';
 import type { PlanTrail } from '@lib/day-calculator';
 import type { PlanDocument } from '@lib/plan-types';
@@ -40,7 +40,7 @@ import { apiErrorMessage } from '../../src/api/error-message';
 import { fetchSharedPlan } from '../../src/api/plans';
 import { uuidv4 } from '../../src/api/uuid';
 import { getTrailIndexEntry, loadTrail, type TrailJson } from '../../src/services/trail-loader';
-import { ensureTrailDownloaded } from '../../src/services/trail-data-updates';
+import { ensureTrailDownloaded, trailDataUpdatedAt } from '../../src/services/trail-data-updates';
 import { isCatalogTrailId } from '../../src/services/trail-catalog';
 import { ScreenScrollView } from '../../src/navigation/ScreenScrollView';
 import { resolveGuideTrail } from '../../src/features/guide/guide-trail';
@@ -133,24 +133,31 @@ export default function SharedPlanScreen() {
   // out of their NOBO-absolute storage, but it cannot reverse a track, so a
   // SOBO plan needs the reversed guide trail.
   const trailResolved = !!shared && rawTrail?.id === shared.trailId;
+  // A stop saved before a data update moved its place is read at the place's
+  // km on this phone's data, so its day ends where the walk in leaves the
+  // route (`refreshStopKms`). Only read: the shared plan is not ours to write.
+  const shownDocument = useMemo<PlanDocument | null>(() => {
+    if (!shared || !trailResolved || !rawTrail?.trail) return null;
+    return refreshStopKms(shared.document, rawTrail.trail);
+  }, [shared, trailResolved, rawTrail]);
   // Along the route the plan walks: the alternates it takes are spliced in
   // (`@lib/plan-alternates`), and its stops read in that route's km.
   const routed = useMemo<{ trail: TrailJson; plan: PlanDocument } | null>(() => {
-    if (!shared || !trailResolved || !rawTrail?.trail) return null;
-    const route = plannedRouteFor(plannableTrail(rawTrail.trail), shared.document);
+    if (!shownDocument || !rawTrail?.trail) return null;
+    const route = plannedRouteFor(plannableTrail(rawTrail.trail), shownDocument);
     return {
       trail: planRouteOf(
         rawTrail.trail,
         resolveGuideTrail(
           rawTrail.trail,
-          shared.document.direction === 'SOBO' ? 'reversed' : 'default',
+          shownDocument.direction === 'SOBO' ? 'reversed' : 'default',
         ),
-        shared.document.direction === 'SOBO' ? 'reversed' : 'default',
+        shownDocument.direction === 'SOBO' ? 'reversed' : 'default',
         route,
       ),
-      plan: planToRoute(shared.document, route),
+      plan: planToRoute(shownDocument, route),
     };
-  }, [shared, trailResolved, rawTrail]);
+  }, [shownDocument, rawTrail]);
   const trail = routed?.trail ?? null;
 
   // Estimated at the reader's own pace and hours for this trail (defaults
@@ -205,8 +212,16 @@ export default function SharedPlanScreen() {
   );
 
   const onSave = useCallback(async () => {
-    if (!shared || !trail || saving) return;
-    const { document, trailId } = shared;
+    if (!shared || !trail || !rawTrail?.trail || saving) return;
+    const { trailId } = shared;
+    // The copy is saved with its stops moved to their places — unless the plan
+    // was saved against newer data than this phone has, where moving them
+    // would undo the newer correction. Stamped with this phone's data.
+    const dataUpdatedAt = trailDataUpdatedAt(trailId);
+    const document = stampPlanData(
+      refreshStopKms(shared.document, rawTrail.trail, { dataUpdatedAt }),
+      dataUpdatedAt,
+    );
     // The mount hydrate may not have landed yet (or may have failed), and
     // deciding from an un-read cache is how a plan gets replaced — here AND on
     // the server — without the hiker ever being asked. A key present in
@@ -230,7 +245,7 @@ export default function SharedPlanScreen() {
         { text: 'Replace', style: 'destructive', onPress: () => void save(document, trailId) },
       ],
     );
-  }, [shared, trail, saving, save, hydratePlan]);
+  }, [shared, trail, rawTrail, saving, save, hydratePlan]);
 
   const body = () => {
     if (!baseUrl) {

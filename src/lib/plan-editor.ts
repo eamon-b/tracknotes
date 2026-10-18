@@ -39,7 +39,7 @@ import type {
   SectionConfig,
 } from './plan-types';
 import { PLAN_LIMITS, PLAN_WAYPOINT_ID_PATTERN } from './plan-types';
-import { computeDays, STOP_AT_PLACE_KM, stopWalk, type PlanStopInput, type PlanTrail } from './day-calculator';
+import { computeDays, isStopAtPlace, stopWalk, type PlanStopInput, type PlanTrail } from './day-calculator';
 import type { TrailPOI } from './trail-types';
 import { baseWaypointType, isAccessWaypoint } from './waypoint-taxonomy';
 
@@ -776,6 +776,58 @@ export function computePlanDays(
   });
 }
 
+/** An ISO time as a number, or null when it is absent or not a time. */
+function dataTime(value: string | null | undefined): number | null {
+  if (typeof value !== 'string') return null;
+  const t = Date.parse(value);
+  return Number.isNaN(t) ? null : t;
+}
+
+/**
+ * Whether trail data published at `dataUpdatedAt` is at least as new as the
+ * data `plan` was last saved against (`PlanDocument.dataUpdatedAt`). A plan
+ * with no stamp is current for anyone; a device that does not know its data's
+ * time (null) is current only for such a plan.
+ */
+export function planDataIsCurrent(
+  plan: Pick<PlanDocument, 'dataUpdatedAt'>,
+  dataUpdatedAt: string | null | undefined,
+): boolean {
+  const saved = dataTime(plan.dataUpdatedAt);
+  if (saved === null) return true;
+  const mine = dataTime(dataUpdatedAt);
+  return mine !== null && mine >= saved;
+}
+
+/**
+ * Raise `plan.dataUpdatedAt` to `dataUpdatedAt`, the data the saving device
+ * holds. Never lowers it: an edit made on older data does not make the plan
+ * look older. Returns the same document when the stamp stays as it is.
+ * Leaves `updatedAt` alone — call it on a document that is being saved anyway.
+ */
+export function stampPlanData(
+  plan: PlanDocument,
+  dataUpdatedAt: string | null | undefined,
+): PlanDocument {
+  const mine = dataTime(dataUpdatedAt);
+  if (mine === null) return plan;
+  const saved = dataTime(plan.dataUpdatedAt);
+  if (saved !== null && saved >= mine) return plan;
+  return { ...plan, dataUpdatedAt: dataUpdatedAt as string };
+}
+
+/** `refreshStopKms`'s options. */
+export interface RefreshStopKmsOptions extends PlanEditOptions {
+  /**
+   * The publish time (`updatedAt`) of the trail data `trail` was read from;
+   * null when the device does not know it. Given, a plan last saved against
+   * newer data than this is returned unchanged (`planDataIsCurrent`): older
+   * data must not move a stop back. Every caller that saves the result passes
+   * it; leave it out only to read a plan without saving it.
+   */
+  dataUpdatedAt?: string | null;
+}
+
 /** A place a stop can be measured against: its id and its km as stored. */
 interface StopPlace {
   id?: string;
@@ -801,12 +853,17 @@ export interface StopPlacesTrail {
  * absolute scale the stop keeps. A stop whose waypoint is gone, or that would
  * land on another stop's km on its line, is left where it is. Returns the same
  * document when nothing moved, so a caller can save only a real change.
+ *
+ * A device still on older data than the plan was saved against would move the
+ * stops back to where that data has the places, and sync it over the newer
+ * device's correction; `opts.dataUpdatedAt` stops it (issue 143).
  */
 export function refreshStopKms(
   plan: PlanDocument,
   trail: StopPlacesTrail,
-  opts?: PlanEditOptions,
+  opts?: RefreshStopKmsOptions,
 ): PlanDocument {
+  if (opts?.dataUpdatedAt !== undefined && !planDataIsCurrent(plan, opts.dataUpdatedAt)) return plan;
   const index = (places: readonly StopPlace[] | undefined) => {
     const byId = new Map<string, number>();
     for (const place of places ?? []) {
@@ -828,7 +885,7 @@ export function refreshStopKms(
     if (!stop.waypointId) continue;
     const places = stop.alternate === undefined ? main : onAlternate.get(stop.alternate);
     const km = places?.get(stop.waypointId);
-    if (km === undefined || Math.abs(km - stop.km) <= STOP_AT_PLACE_KM) continue;
+    if (km === undefined || isStopAtPlace(km, stop.km)) continue;
     const line = stop.alternate ?? '';
     const taken = stops.some(
       (other, j) => j !== i && (other.alternate ?? '') === line && Math.abs(other.km - km) < KM_EPSILON,
@@ -1182,6 +1239,7 @@ export function isPlanDocument(value: unknown): value is PlanDocument {
     return false;
   }
   if (typeof value.updatedAt !== 'string') return false;
+  if (value.dataUpdatedAt !== undefined && typeof value.dataUpdatedAt !== 'string') return false;
   if (value.version !== 1) return false;
   return true;
 }

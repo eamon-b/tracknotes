@@ -22,6 +22,7 @@ import { createHash } from 'crypto';
 
 import {
   activeDownload,
+  trailDataUpdatedAt,
   trailDataVersion,
   checkForTrailDataUpdates,
   ensureTrailDownloaded,
@@ -439,6 +440,26 @@ describe('trailDataVersion', () => {
   it('is null for an id neither the bundle nor a download knows', () => {
     expect(trailDataVersion('gamma')).toBeNull();
     expect(trailDataVersion('u_imported')).toBeNull();
+  });
+});
+
+describe('trailDataUpdatedAt', () => {
+  it("is the publish time of the copy with that md5: the bundle's, then the download's", async () => {
+    const bundleMd5 = 'a'.repeat(32);
+    expect(trailDataUpdatedAt('alpha')).toBe('2026-09-01T00:00:00.000Z');
+
+    const entry = publish('alpha', '2026-10-01T00:00:00.000Z');
+    serveCatalog([entry]);
+    await checkForTrailDataUpdates({ now: T0 });
+
+    expect(trailDataUpdatedAt('alpha')).toBe('2026-10-01T00:00:00.000Z');
+    // A guide still showing the bundle it opened with.
+    expect(trailDataUpdatedAt('alpha', bundleMd5)).toBe('2026-09-01T00:00:00.000Z');
+    expect(trailDataUpdatedAt('alpha', 'f'.repeat(32))).toBeNull();
+  });
+
+  it('is null for an id neither the bundle nor a download knows', () => {
+    expect(trailDataUpdatedAt('u_imported')).toBeNull();
   });
 });
 

@@ -7,6 +7,7 @@ import {
   migratePlanState,
   newPlan,
   overnightCandidates,
+  planDataIsCurrent,
   planDocumentBytes,
   refreshStopKms,
   replaceStopsInRange,
@@ -19,6 +20,7 @@ import {
   setStopBooked,
   setStopNote,
   splitUnplannedTail,
+  stampPlanData,
   toggleStop,
   isTrailEnd,
 } from './plan-editor';
@@ -958,6 +960,24 @@ describe('refreshStopKms', () => {
     expect(isPlanDocument(next)).toBe(true);
   });
 
+  it('leaves the stops alone on a device whose data is older than the plan was saved against', () => {
+    // The web moved Camp A to its new junction (km 18) on data published
+    // 2026-10-10; a phone still on 2026-09-01 data has Camp A at km 20.
+    const corrected: PlanDocument = {
+      ...toggleStop(emptyPlan(), { id: 'w_a', km: 18, name: 'Camp A' }, opts),
+      dataUpdatedAt: '2026-10-10T00:00:00.000Z',
+    };
+    expect(refreshStopKms(corrected, flatTrail(), { dataUpdatedAt: '2026-09-01T00:00:00.000Z' })).toBe(corrected);
+    // A device that does not know its data's time cannot show it is new enough.
+    expect(refreshStopKms(corrected, flatTrail(), { dataUpdatedAt: null })).toBe(corrected);
+    // Data as new, or newer, moves it.
+    expect(refreshStopKms(corrected, flatTrail(), { dataUpdatedAt: '2026-10-10T00:00:00.000Z' }).stops[0].km).toBe(20);
+    expect(refreshStopKms(corrected, flatTrail(), { dataUpdatedAt: '2026-10-11T00:00:00.000Z' }).stops[0].km).toBe(20);
+    // A plan saved before the stamp existed is refreshed by anyone.
+    const unstamped = { ...corrected, dataUpdatedAt: undefined };
+    expect(refreshStopKms(unstamped, flatTrail(), { dataUpdatedAt: null }).stops[0].km).toBe(20);
+  });
+
   it("measures a stop on an alternate against that alternate's waypoints", () => {
     const plan: PlanDocument = {
       ...emptyPlan(),
@@ -969,5 +989,29 @@ describe('refreshStopKms', () => {
       alternates: [{ name: 'Ridge', waypoints: [{ id: 'w_r', totalDistance: 33 }] }],
     };
     expect(refreshStopKms(plan, trail).stops[0].km).toBe(33);
+  });
+});
+
+describe('plan data stamp', () => {
+  it('raises dataUpdatedAt to newer data and never lowers it', () => {
+    const plan = emptyPlan();
+    const stamped = stampPlanData(plan, '2026-10-10T00:00:00.000Z');
+    expect(stamped.dataUpdatedAt).toBe('2026-10-10T00:00:00.000Z');
+    expect(stamped.updatedAt).toBe(plan.updatedAt);
+    expect(stampPlanData(stamped, '2026-09-01T00:00:00.000Z')).toBe(stamped);
+    expect(stampPlanData(stamped, '2026-10-10T00:00:00.000Z')).toBe(stamped);
+    expect(stampPlanData(stamped, null)).toBe(stamped);
+    expect(stampPlanData(plan, undefined)).toBe(plan);
+    expect(stampPlanData(stamped, '2026-11-01T00:00:00.000Z').dataUpdatedAt).toBe('2026-11-01T00:00:00.000Z');
+    expect(isPlanDocument(stamped)).toBe(true);
+    expect(isPlanDocument({ ...stamped, dataUpdatedAt: 5 })).toBe(false);
+  });
+
+  it('tells whether data is at least as new as the plan was saved against', () => {
+    const plan = { dataUpdatedAt: '2026-10-10T00:00:00.000Z' };
+    expect(planDataIsCurrent(plan, '2026-10-10T00:00:00.000Z')).toBe(true);
+    expect(planDataIsCurrent(plan, '2026-10-09T23:59:59.999Z')).toBe(false);
+    expect(planDataIsCurrent(plan, null)).toBe(false);
+    expect(planDataIsCurrent({}, null)).toBe(true);
   });
 });

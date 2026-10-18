@@ -23,7 +23,8 @@ import { useTheme } from '../../theme';
 import { spacing } from '../../tokens';
 import { useFavoritesStore } from '../../state/favorites-store';
 import { refreshStopKms } from '@lib/plan-editor';
-import { selectPlan, usePlansStore } from '../../state/plans-store';
+import type { PlanDocument } from '@lib/plan-types';
+import { selectPlan, setPlanDataTime, usePlansStore } from '../../state/plans-store';
 import { useCommentSync } from '../../sync/connectivity';
 import { ElevationPane } from '../elevation/ElevationPane';
 import { MapPane } from '../map/MapPane';
@@ -51,7 +52,7 @@ export function GuideView() {
 
 function GuidePanes() {
   const { colors } = useTheme();
-  const { trail, trailId, baseTrail } = useGuide();
+  const { trail, trailId, baseTrail, dataUpdatedAt } = useGuide();
   const { pane, switchPane, showOnMap } = useGuideFocus();
 
   // "Show on map" from the waypoint screen: it leaves the place here and
@@ -82,11 +83,18 @@ function GuidePanes() {
   // route. A saved plan from another device or an older build is caught the
   // same way when it arrives. The edit is a no-op, and writes nothing, once
   // every stop sits at its place.
+  // Not from data older than the plan was last saved against, though: that
+  // would move the stops back and sync it over the newer device's correction.
+  // Every plan write is stamped with the data this guide shows.
   const plan = usePlansStore(selectPlan(trailId));
   useEffect(() => {
-    if (!plan || refreshStopKms(plan, baseTrail) === plan) return;
-    void usePlansStore.getState().apply(trailId, (p) => refreshStopKms(p, baseTrail));
-  }, [plan, baseTrail, trailId]);
+    setPlanDataTime(trailId, dataUpdatedAt);
+  }, [trailId, dataUpdatedAt]);
+  useEffect(() => {
+    const refresh = (p: PlanDocument) => refreshStopKms(p, baseTrail, { dataUpdatedAt });
+    if (!plan || refresh(plan) === plan) return;
+    void usePlansStore.getState().apply(trailId, refresh);
+  }, [plan, baseTrail, trailId, dataUpdatedAt]);
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>

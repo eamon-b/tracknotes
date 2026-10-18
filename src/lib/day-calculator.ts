@@ -96,6 +96,19 @@ export function placeWalk(
 export const STOP_AT_PLACE_KM = 0.05;
 
 /**
+ * Whether a stop at `stopKm` is at a place at `placeKm` (`STOP_AT_PLACE_KM`).
+ *
+ * The tolerance is a hair over 0.05: the web's waypoint km is rounded to
+ * 0.01 and the phone's bundled copy to 0.1, so the two can differ by exactly
+ * 0.05 — and in floating point `Math.abs(12.3 - 12.25)` is a little more than
+ * that. A strict `> 0.05` let the web and the phone each move the stop to its
+ * own km, saving and syncing every time (issue 142).
+ */
+export function isStopAtPlace(placeKm: number, stopKm: number): boolean {
+  return Math.abs(placeKm - stopKm) <= STOP_AT_PLACE_KM + 1e-9;
+}
+
+/**
  * The walk for a plan stop at `stopKm` (the same km space as `place`) whose
  * waypoint is `place`: `placeWalk`, but only while the stop still sits at the
  * place's km. A stop saved before a data update moved its place (to a junction
@@ -107,7 +120,7 @@ export function stopWalk(
   stopKm: number
 ): PlaceWalk | null {
   if (!place || typeof place.totalDistance !== 'number') return null;
-  if (Math.abs(place.totalDistance - stopKm) > STOP_AT_PLACE_KM) return null;
+  if (!isStopAtPlace(place.totalDistance, stopKm)) return null;
   return placeWalk(place);
 }
 

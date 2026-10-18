@@ -17,6 +17,8 @@ import { fetchSharedPlan } from '../../src/api/plans';
 import { getTrailJson } from '../../src/services/trail-loader';
 import { usePlansStore } from '../../src/state/plans-store';
 import { ApiError } from '../../src/api/client';
+import { DaySplitList } from '../../src/features/plan/DaySplitList';
+import { trailDataUpdatedAt } from '../../src/services/trail-data-updates';
 
 jest.mock('../../src/theme', () => ({
   useTheme: () => ({ colors: new Proxy({}, { get: () => '#123456' }) }),
@@ -48,6 +50,12 @@ jest.mock('../../src/services/trail-loader', () => {
 });
 
 jest.mock('../../src/api/uuid', () => ({ uuidv4: () => 'new-plan-id' }));
+
+// When this phone's copy of the trail was published (`PlanDocument.dataUpdatedAt`).
+jest.mock('../../src/services/trail-data-updates', () => ({
+  ...jest.requireActual('../../src/services/trail-data-updates'),
+  trailDataUpdatedAt: jest.fn(() => '2026-10-10T00:00:00.000Z'),
+}));
 
 const mockFetchShared = fetchSharedPlan as jest.Mock;
 const mockGetTrailJson = getTrailJson as jest.Mock;
@@ -96,6 +104,7 @@ beforeEach(() => {
     ownerDisplayName: 'Trail Ghost',
   });
   usePlansStore.setState({ byTrail: {}, hydrate: noopHydrate as never });
+  (trailDataUpdatedAt as jest.Mock).mockReturnValue('2026-10-10T00:00:00.000Z');
 });
 
 afterEach(() => {
@@ -253,5 +262,40 @@ describe('SharedPlanScreen', () => {
     expect(alert).not.toHaveBeenCalled();
     expect(apply).toHaveBeenCalledTimes(1);
     alert.mockRestore();
+  });
+
+  describe('a stop saved before a data update moved its place', () => {
+    // Mount Hut is at km 10 on this phone's data; the plan has its stop at km 12.
+    const STALE: PlanDocument = { ...DOC, stops: [{ ...DOC.stops[0], km: 12 }] };
+    const saveCopy = async (shared: PlanDocument): Promise<PlanDocument> => {
+      mockFetchShared.mockResolvedValue({ document: shared, trailId: 'heysen', ownerDisplayName: 'T' });
+      const apply = jest.fn(async (_trailId: string, edit: (p: PlanDocument) => PlanDocument) =>
+        edit(DOC),
+      );
+      usePlansStore.setState({ apply: apply as never });
+      const r = await mount();
+      await pressSave(r);
+      return apply.mock.results[0].value as Promise<PlanDocument>;
+    };
+
+    it('reads it at the place', async () => {
+      mockFetchShared.mockResolvedValue({ document: STALE, trailId: 'heysen', ownerDisplayName: 'T' });
+      const r = await mount();
+      const days = r.root.findAllByType(DaySplitList)[0].props.days as { endKm: number }[];
+      expect(days[0].endKm).toBe(10);
+    });
+
+    it('saves the copy at the place, stamped with this phone’s data', async () => {
+      const saved = await saveCopy(STALE);
+      expect(saved.stops.map((s) => s.km)).toEqual([10]);
+      expect(saved.dataUpdatedAt).toBe('2026-10-10T00:00:00.000Z');
+    });
+
+    it('saves it as it came when the plan was saved against newer data', async () => {
+      const newer = { ...STALE, dataUpdatedAt: '2026-10-15T00:00:00.000Z' };
+      const saved = await saveCopy(newer);
+      expect(saved.stops.map((s) => s.km)).toEqual([12]);
+      expect(saved.dataUpdatedAt).toBe('2026-10-15T00:00:00.000Z');
+    });
   });
 });

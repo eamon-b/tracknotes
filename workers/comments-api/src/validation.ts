@@ -502,6 +502,17 @@ export function validatePlanDocument(
     document.alternates = alternates;
   }
 
+  // The trail data the plan was last saved against (an ISO time). A client
+  // compares it with its own data before moving stops (`refreshStopKms`), so
+  // the server keeps it as sent, normalised, and drops nothing else.
+  if (body.dataUpdatedAt !== undefined && body.dataUpdatedAt !== null) {
+    const t = typeof body.dataUpdatedAt === 'string' ? Date.parse(body.dataUpdatedAt) : NaN;
+    if (typeof body.dataUpdatedAt !== 'string' || body.dataUpdatedAt.length > 40 || Number.isNaN(t)) {
+      throw planError('invalid_data_updated_at', 'dataUpdatedAt must be an ISO timestamp');
+    }
+    document.dataUpdatedAt = new Date(t).toISOString();
+  }
+
   return document;
 }
 

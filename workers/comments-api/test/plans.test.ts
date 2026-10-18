@@ -406,6 +406,21 @@ describe('PUT /v1/plans/:id', () => {
     }
   });
 
+  it('keeps the trail data time a plan was saved against, and refuses a bad one', async () => {
+    const device = await registerDevice('Data time');
+    const id = crypto.randomUUID();
+    const res = await putPlan(device, id, planBody(id, { dataUpdatedAt: '2026-10-17T00:01:47.265Z' }));
+    expect(res.status).toBe(201);
+    expect(((await res.json()) as PlanSyncEntry).document.dataUpdatedAt).toBe('2026-10-17T00:01:47.265Z');
+
+    const bad = crypto.randomUUID();
+    const refused = await putPlan(device, bad, planBody(bad, { dataUpdatedAt: 'yesterday' }));
+    expect(refused.status).toBe(400);
+    expect(((await refused.json()) as { error: { code: string } }).error.code).toBe(
+      'invalid_data_updated_at'
+    );
+  });
+
   it('accepts an empty plan name — the mobile client mints plans unnamed', async () => {
     const device = await registerDevice('Unnamed');
     const id = crypto.randomUUID();

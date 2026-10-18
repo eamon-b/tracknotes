@@ -243,6 +243,20 @@ export function trailDataVersion(id: string): string | null {
 }
 
 /**
+ * When the copy of a trail with this md5 (default: the one the app reads now)
+ * was published: its `updatedAt`, the clock a plan records the data it was
+ * saved against by (`PlanDocument.dataUpdatedAt`). Null when the phone holds
+ * no such copy, or for an import or community route.
+ */
+export function trailDataUpdatedAt(id: string, md5: string | null = trailDataVersion(id)): string | null {
+  if (!md5) return null;
+  const installed = getState().installed[id];
+  if (installed?.md5 === md5) return installed.updatedAt ?? null;
+  const bundled = bundledVersions().get(id);
+  return bundled?.md5 === md5 ? (bundled.updatedAt ?? null) : null;
+}
+
+/**
  * Read the active downloaded copy. Null when there is none or it is unreadable.
  *
  * An unreadable copy is forgotten as well: the catalog's md5 would otherwise
