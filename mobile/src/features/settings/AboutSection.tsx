@@ -17,16 +17,17 @@
 import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { openURL } from 'expo-linking';
-import { TERMS_URL } from '@lib/contribution-licence';
+import { PRIVACY_POLICY_URL, TERMS_URL } from '@lib/contribution-licence';
 import { useTheme } from '../../theme';
 import { radii, spacing, touchTarget, typography } from '../../tokens';
 
 /**
- * Canonical privacy policy URL — the Vercel deploy of `public/privacy.html` in
- * this repo (the repo's homepage URL). Keep this in sync with the URL used on
- * the App Store / Play Store listings; store review flags a mismatch.
+ * Canonical privacy policy URL — the Vercel deploy of `public/privacy.html`,
+ * defined beside the terms in `@lib/contribution-licence` so the deploy origin
+ * is spelled out once. Keep it in sync with the App Store / Play Store
+ * listings; store review flags a mismatch.
  */
-export const PRIVACY_POLICY_URL = 'https://trail-maps.vercel.app/privacy.html';
+export { PRIVACY_POLICY_URL };
 
 /** Shown when the OS refuses to open the policy (no browser, blocked scheme). */
 export const PRIVACY_OPEN_FAILED_MESSAGE = `Couldn't open the privacy policy. You can read it at ${PRIVACY_POLICY_URL}`;

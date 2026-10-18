@@ -7,11 +7,17 @@
  * waypoint form and any web form say the same thing.
  */
 
-/** The Vercel deploy of `public/terms.html`, beside the privacy policy. */
-export const TERMS_URL = 'https://trail-maps.vercel.app/terms.html';
+/**
+ * The Vercel deploy of `public/`. The store listings link these pages, so the
+ * origin must match theirs; store review flags a mismatch.
+ */
+const SITE_ORIGIN = 'https://trail-maps.vercel.app';
 
-/** The licence's own page, for a link on the "CC0" in the line. */
-export const CC0_URL = 'https://creativecommons.org/publicdomain/zero/1.0/';
+/** `public/privacy.html`, linked from the phone's Settings → About. */
+export const PRIVACY_POLICY_URL = `${SITE_ORIGIN}/privacy.html`;
+
+/** `public/terms.html`, beside the privacy policy. */
+export const TERMS_URL = `${SITE_ORIGIN}/terms.html`;
 
 /**
  * "By posting, you release your comment into the public domain (CC0) and

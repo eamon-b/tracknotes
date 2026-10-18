@@ -89,7 +89,7 @@ from land managers are honoured by default.
 
 Tracknotes has no sign-up: posting registers an anonymous device identity with
 the display name you choose. You can delete it at any time from Settings →
-Account → **Delete account**; what that removes is described in the
+**Delete account** (shown once you have posted); what that removes is described in the
 [privacy policy](https://trail-maps.vercel.app/privacy.html). Content already
 released under CC0 may remain in copies others have made.
 

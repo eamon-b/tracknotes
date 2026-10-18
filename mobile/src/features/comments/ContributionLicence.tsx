@@ -1,18 +1,26 @@
 /**
  * The licence line under anything a hiker makes public: the comment composer
  * and the waypoint form when "Everyone" is chosen. The words come from
- * `@lib/contribution-licence`, so the phone and the web say the same thing;
- * "terms of service" opens the published terms in the browser.
+ * `@lib/contribution-licence`, so the phone and the web say the same thing.
+ *
+ * The whole line is the link to the terms, with "terms of service" inked as
+ * one: a nested pressable <Text> is invisible to TalkBack, which reads the
+ * outer <Text> as a single node, and this is the one control that leads to
+ * the terms being agreed to.
  *
  * A failure to open the browser is spelled out with the URL, as Settings'
  * About section does, rather than a tap that does nothing.
  */
 
 import { useCallback, useState } from 'react';
-import { Linking, StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { openURL } from 'expo-linking';
 import { TERMS_URL, contributionLicenceLine } from '@lib/contribution-licence';
 import { useTheme } from '../../theme';
-import { typography } from '../../tokens';
+import { spacing, typography } from '../../tokens';
+
+/** Shown when the OS refuses to open the terms (no browser, blocked scheme). */
+export const TERMS_OPEN_FAILED_MESSAGE = `Couldn't open the terms of service. You can read them at ${TERMS_URL}`;
 
 export function ContributionLicence({
   verb,
@@ -28,29 +36,34 @@ export function ContributionLicence({
   const openTerms = useCallback(async () => {
     setFailed(false);
     try {
-      await Linking.openURL(TERMS_URL);
+      await openURL(TERMS_URL);
     } catch {
       setFailed(true);
     }
   }, []);
 
   return (
-    <Text style={[styles.line, { color: colors.textSecondary }]}>
-      {line.before}
+    <View style={styles.wrap}>
       <Text
         onPress={() => void openTerms()}
         accessibilityRole="link"
-        accessibilityLabel="Open terms of service"
-        style={{ color: colors.accent }}
+        accessibilityHint="Opens the Tracknotes terms of service in your browser"
+        style={[styles.line, { color: colors.textSecondary }]}
       >
-        {line.link}
+        {line.before}
+        <Text style={{ color: colors.accent }}>{line.link}</Text>
+        {line.after}
       </Text>
-      {line.after}
-      {failed ? ` Couldn’t open them; they are at ${TERMS_URL}` : null}
-    </Text>
+      {failed ? (
+        <Text style={[styles.line, { color: colors.danger }]} accessibilityRole="alert">
+          {TERMS_OPEN_FAILED_MESSAGE}
+        </Text>
+      ) : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  wrap: { gap: spacing.xs },
   line: { ...typography.caption },
 });

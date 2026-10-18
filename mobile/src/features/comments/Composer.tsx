@@ -254,7 +254,7 @@ export function Composer({
           is repeated inside the modal, which is what the user is looking at. */}
       {!promptOpen && errorText}
 
-      <ContributionLicence verb="posting" what="your comment and photo" />
+      <ContributionLicence verb="posting" what={photo ? 'your comment and photo' : 'your comment'} />
 
       <Pressable
         onPress={handleSubmit}

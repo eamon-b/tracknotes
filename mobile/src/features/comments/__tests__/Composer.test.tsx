@@ -12,7 +12,12 @@ import React from 'react';
 import { Text, TextInput } from 'react-native';
 import TestRenderer, { act, type ReactTestRenderer } from 'react-test-renderer';
 import * as ImagePicker from 'expo-image-picker';
+import { openURL } from 'expo-linking';
+import { TERMS_URL } from '@lib/contribution-licence';
 import { Composer, PHOTO_FAILED_MESSAGE, POST_FAILED_MESSAGE } from '../Composer';
+import { TERMS_OPEN_FAILED_MESSAGE } from '../ContributionLicence';
+
+const mockOpenURL = openURL as jest.Mock;
 import { NETWORK_ERROR_MESSAGE } from '../../../api/error-message';
 import { NetworkError } from '../../../api/client';
 import { KeyboardAvoidingModalContent } from '../../../navigation/KeyboardAwareScrollView';
@@ -22,6 +27,8 @@ jest.mock('../../../theme', () => ({
 }));
 
 jest.mock('expo-image', () => ({ Image: 'Image' }));
+
+jest.mock('expo-linking', () => ({ openURL: jest.fn(() => Promise.resolve(true)) }));
 
 jest.mock('expo-image-picker', () => ({
   launchImageLibraryAsync: jest.fn(),
@@ -93,11 +100,41 @@ function inputValue(r: ReactTestRenderer, index = 0): string {
 }
 
 describe('Composer', () => {
-  it('says what a post is released under, with a link to the terms', () => {
+  it('says what a post is released under, naming a photo only when one is attached', () => {
     const r = mount({ registered: true, onSubmit: jest.fn() });
-    expect(renderedText(r)).toContain('public domain (CC0)');
-    const link = r.root.findAll((n) => n.props?.accessibilityLabel === 'Open terms of service')[0];
-    expect(link.props.accessibilityRole).toBe('link');
+    const text = renderedText(r);
+    expect(text).toContain('public domain (CC0)');
+    expect(text).toContain('your comment into');
+    expect(text).not.toContain('photo into');
+  });
+
+  it('makes the whole licence line one link, so a screen reader can open the terms', async () => {
+    const r = mount({ registered: true, onSubmit: jest.fn() });
+    // Only the outer line presses: a nested pressable <Text> is one TalkBack
+    // node with its parent, so a link inside it could never be reached.
+    const links = r.root
+      .findAllByType(Text)
+      .filter((n) => typeof n.props.onPress === 'function');
+    expect(links).toHaveLength(1);
+    expect(links[0].props.accessibilityRole).toBe('link');
+    await act(async () => {
+      (links[0].props.onPress as () => void)();
+      await new Promise((resolve) => setImmediate(resolve));
+    });
+    expect(mockOpenURL).toHaveBeenCalledWith(TERMS_URL);
+  });
+
+  it('spells out the terms URL when the browser cannot open', async () => {
+    mockOpenURL.mockRejectedValueOnce(new Error('no activity found'));
+    const r = mount({ registered: true, onSubmit: jest.fn() });
+    const link = r.root.findAll(
+      (n) => n.props?.accessibilityRole === 'link' && typeof n.props?.onPress === 'function',
+    )[0];
+    await act(async () => {
+      (link.props.onPress as () => void)();
+      await new Promise((resolve) => setImmediate(resolve));
+    });
+    expect(renderedText(r)).toContain(TERMS_OPEN_FAILED_MESSAGE);
   });
 
   it('surfaces a network failure inline and keeps the draft', async () => {
