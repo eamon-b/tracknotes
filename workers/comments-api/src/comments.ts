@@ -222,7 +222,8 @@ export async function deleteComment(
     // it), so the owner's or an admin's delete makes it final.
     if (row.deleted_by !== 'reports') return noContent();
     const finalised = await env.DB.prepare(
-      `UPDATE comments SET deleted_by = ?, updated_at = ?
+      `UPDATE comments
+          SET deleted_by = ?, updated_at = ?, photo_urls_json = NULL, photo_hashes_json = NULL
         WHERE id = ? AND deleted_by = 'reports'
         RETURNING id`
     )
@@ -236,7 +237,10 @@ export async function deleteComment(
 
   const now = new Date().toISOString();
   await env.DB.prepare(
-    `UPDATE comments SET deleted_at = ?, deleted_by = ?, updated_at = ? WHERE id = ?`
+    `UPDATE comments
+        SET deleted_at = ?, deleted_by = ?, updated_at = ?,
+            photo_urls_json = NULL, photo_hashes_json = NULL
+      WHERE id = ?`
   )
     .bind(now, deletedBy, now, id)
     .run();
@@ -376,6 +380,15 @@ export async function getBulkSync(request: Request, env: Env, trailId: string): 
 // ---------------------------------------------------------------------------
 
 /**
+ * The `json_group_array` of a row's reports, newest first. SQLite does not
+ * promise an aggregate keeps a subquery's order, so the sort is done here.
+ */
+export function parseAdminReports(raw: string | null): AdminCommentReport[] {
+  const reports = raw ? (JSON.parse(raw) as AdminCommentReport[]) : [];
+  return reports.sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id));
+}
+
+/**
  * Every comment, newest first; with `?reported=1` only the reported ones, those
  * hidden by reports first, then by report count. Each carries its reports
  * (reason and detail) and whether its author is banned, which is what the
@@ -391,22 +404,21 @@ export async function getAdminComments(
   const limit = parseLimit(url.searchParams.get('limit'), ADMIN_DEFAULT_LIMIT, ADMIN_MAX_LIMIT);
   const reportedOnly = url.searchParams.get('reported') === '1';
 
-  const where = reportedOnly
-    ? 'WHERE EXISTS (SELECT 1 FROM comment_reports r WHERE r.comment_id = c.id)'
-    : '';
+  // Driven from the reports' own index, so it scales with what was reported.
+  const where = reportedOnly ? 'WHERE c.id IN (SELECT comment_id FROM comment_reports)' : '';
   const order = reportedOnly
     ? `(c.deleted_by IS 'reports') DESC, report_count DESC, c.created_at DESC, c.id DESC`
     : 'c.created_at DESC, c.id DESC';
   const { results } = await env.DB.prepare(
     `SELECT c.*, u.display_name AS display_name, u.is_banned AS user_banned,
+            u.is_admin AS user_admin, u.deleted_at AS user_deleted_at,
             (SELECT COUNT(*) FROM comment_reports r WHERE r.comment_id = c.id) AS report_count,
             (SELECT json_group_array(json_object(
                       'id', r.id, 'reporterUserId', r.user_id,
                       'reporterDisplayName', ru.display_name, 'reason', r.reason,
                       'detail', r.detail, 'createdAt', r.created_at))
-               FROM (SELECT * FROM comment_reports WHERE comment_id = c.id
-                      ORDER BY created_at DESC) r
-               JOIN users ru ON ru.id = r.user_id) AS reports_json
+               FROM comment_reports r JOIN users ru ON ru.id = r.user_id
+              WHERE r.comment_id = c.id) AS reports_json
        FROM comments c JOIN users u ON u.id = c.user_id
       ${where}
       ORDER BY ${order}
@@ -417,13 +429,15 @@ export async function getAdminComments(
       CommentRow & {
         display_name: string;
         user_banned: number;
+        user_admin: number;
+        user_deleted_at: string | null;
         report_count: number;
         reports_json: string | null;
       }
     >();
 
   const comments: AdminComment[] = results.map((row) => {
-    const reports = row.reports_json ? (JSON.parse(row.reports_json) as AdminCommentReport[]) : [];
+    const reports = parseAdminReports(row.reports_json);
     return {
       id: row.id,
       trailId: row.trail_id,
@@ -431,6 +445,8 @@ export async function getAdminComments(
       userId: row.user_id,
       displayName: row.display_name,
       userBanned: row.user_banned === 1,
+      userAdmin: row.user_admin === 1,
+      userDeleted: row.user_deleted_at !== null,
       text: row.text,
       waterStatus: row.water_status,
       observedAt: row.observed_at,

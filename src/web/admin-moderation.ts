@@ -66,9 +66,24 @@ function button(kind: string, id: string, action: string, label: string, enabled
   )}"${userId ? ` data-user="${escapeHtml(userId)}"` : ''}${enabled ? '' : ' disabled'}>${label}</button>`;
 }
 
-/** The ban controls for an author: ban, ban and remove everything, or unban. */
-function banButtons(kind: string, id: string, userId: string, banned: boolean): string {
-  return banned
+/** Who posted it, as far as the ban controls go. */
+interface Author {
+  userId: string;
+  userBanned: boolean;
+  userAdmin: boolean;
+  userDeleted: boolean;
+}
+
+/**
+ * The ban controls for an author: ban, ban and remove everything, or unban.
+ * None for an admin (who cannot be banned) or a deleted account (which can
+ * never be unbanned, and whose posts are already gone).
+ */
+function banButtons(kind: string, id: string, author: Author): string {
+  const { userId } = author;
+  if (author.userDeleted) return '<span class="community-hint">Account deleted</span>';
+  if (author.userAdmin) return '<span class="community-hint">Posted by an admin</span>';
+  return author.userBanned
     ? button(kind, id, 'unban', 'Unban author', true, '', userId)
     : `${button(kind, id, 'ban', 'Ban author', true, 'is-danger', userId)}${button(
         kind,
@@ -92,7 +107,7 @@ export function commentRowHtml(comment: AdminComment): string {
   return `
     <article class="admin-row${comment.deletedBy === 'reports' ? ' admin-row-attention' : ''}" data-row="${escapeHtml(id)}">
       <h3>${escapeHtml(comment.displayName)} · ${escapeHtml(stateLabel(comment.deletedBy, comment.deletedAt))}${
-        comment.userBanned ? ' · <span class="community-hint">author banned</span>' : ''
+        comment.userBanned && !comment.userDeleted ? ' · <span class="community-hint">author banned</span>' : ''
       }</h3>
       <p class="community-description">${comment.text ? escapeHtml(comment.text).replace(/\r?\n/g, '<br>') : '<em>(no text)</em>'}</p>
       <dl>
@@ -107,7 +122,7 @@ export function commentRowHtml(comment: AdminComment): string {
       <div class="admin-row-actions">
         ${button('comment', id, 'restore', 'Restore', comment.deletedBy === 'reports', 'is-primary')}
         ${button('comment', id, 'delete', hidden ? 'Delete for good' : 'Delete', comment.deletedBy === null || comment.deletedBy === 'reports', 'is-danger')}
-        ${banButtons('comment', id, comment.userId, comment.userBanned)}
+        ${banButtons('comment', id, comment)}
       </div>
       <p class="import-error" data-error="${escapeHtml(id)}" hidden></p>
     </article>`;
@@ -120,7 +135,7 @@ export function waypointRowHtml(waypoint: AdminSharedWaypoint): string {
     <article class="admin-row${waypoint.deletedBy === 'reports' ? ' admin-row-attention' : ''}" data-row="${escapeHtml(id)}">
       <h3>${escapeHtml(waypoint.name)} <span class="community-hint">(${escapeHtml(waypoint.type)})</span> · ${escapeHtml(
         stateLabel(waypoint.deletedBy, waypoint.deletedAt),
-      )}${waypoint.userBanned ? ' · <span class="community-hint">owner banned</span>' : ''}</h3>
+      )}${waypoint.userBanned && !waypoint.userDeleted ? ' · <span class="community-hint">owner banned</span>' : ''}</h3>
       ${waypoint.description ? `<p class="community-description">${escapeHtml(waypoint.description).replace(/\r?\n/g, '<br>')}</p>` : ''}
       <dl>
         <dt>Id</dt><dd><code>${escapeHtml(id)}</code></dd>
@@ -139,7 +154,7 @@ export function waypointRowHtml(waypoint: AdminSharedWaypoint): string {
       <div class="admin-row-actions">
         ${button('waypoint', id, 'restore', 'Restore', waypoint.deletedBy === 'reports' || waypoint.deletedBy === 'admin', 'is-primary')}
         ${button('waypoint', id, 'delete', 'Delete', !hidden, 'is-danger')}
-        ${banButtons('waypoint', id, waypoint.userId, waypoint.userBanned)}
+        ${banButtons('waypoint', id, waypoint)}
       </div>
       <p class="import-error" data-error="${escapeHtml(id)}" hidden></p>
     </article>`;

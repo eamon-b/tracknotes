@@ -2,6 +2,7 @@ import { SELF, env } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
 import {
   authHeaders,
+  banUser,
   createComment,
   deleteMe,
   makeAdmin,
@@ -107,8 +108,16 @@ describe('POST /v1/admin/comments/:id/restore', () => {
     expect(res.status).toBe(409);
 
     const { id: hidden } = await reportedComment(3);
+    await env.DB.prepare(`UPDATE comments SET photo_urls_json = ?, photo_hashes_json = ? WHERE id = ?`)
+      .bind('["https://photos.test/a.jpg"]', '["00"]', hidden)
+      .run();
     expect((await SELF.fetch(url(`/v1/comments/${hidden}`), { method: 'DELETE', headers: authHeaders(admin) })).status).toBe(204);
     expect((await commentState(hidden))?.deleted_by).toBe('admin');
+    // The photos are purged, so the row no longer names them.
+    const photos = await env.DB.prepare(`SELECT photo_urls_json, photo_hashes_json FROM comments WHERE id = ?`)
+      .bind(hidden)
+      .first<{ photo_urls_json: string | null; photo_hashes_json: string | null }>();
+    expect(photos).toEqual({ photo_urls_json: null, photo_hashes_json: null });
     expect((await restore(admin, hidden)).status).toBe(409);
   });
 
@@ -135,6 +144,10 @@ describe('GET /v1/admin/comments?reported=1', () => {
     const row = comments[first];
     expect(row.deletedBy).toBe('reports');
     expect(row.userBanned).toBe(false);
+    expect(row.userAdmin).toBe(false);
+    expect(row.userDeleted).toBe(false);
+    const dates = row.reports.map((r) => r.createdAt);
+    expect(dates).toEqual([...dates].sort().reverse());
     expect(row.reports).toHaveLength(3);
     expect(row.reports.map((r) => r.detail).sort()).toEqual(['r0', 'r1', 'r2']);
     expect(row.reports[0]).toEqual(
@@ -165,6 +178,23 @@ describe('GET /v1/admin/waypoints', () => {
       expect.objectContaining({ reason: 'inaccurate', detail: 'No tank here', reporterDisplayName: 'Reporter' }),
     ]);
     expect(row?.userBanned).toBe(false);
+  });
+
+  it('marks an owner who deleted their account apart from a banned one', async () => {
+    const admin = await newAdmin();
+    const owner = await registerDevice();
+    const id = `hw_${crypto.randomUUID()}`;
+    await SELF.fetch(url(`/v1/waypoints/${id}`), {
+      method: 'PUT',
+      headers: authHeaders(owner),
+      body: JSON.stringify({ trailId: 'heysen', name: 'Tank', type: 'water', lat: -34, lon: 138 }),
+    });
+    await deleteMe(owner);
+    const res = await SELF.fetch(url('/v1/admin/waypoints?limit=500'), { headers: authHeaders(admin) });
+    const { waypoints } = (await res.json()) as AdminSharedWaypointsResponse;
+    expect(waypoints.find((w) => w.id === id)).toEqual(
+      expect.objectContaining({ userBanned: true, userDeleted: true, userAdmin: false })
+    );
   });
 });
 
@@ -221,6 +251,18 @@ describe('POST /v1/admin/users/:id/ban', () => {
       .bind(wp)
       .first<{ deleted_by: string }>();
     expect(row?.deleted_by).toBe('admin');
+  });
+
+  it('lifts, and removes the posts of, an account banned by hand in D1', async () => {
+    const admin = await newAdmin();
+    const user = await registerDevice();
+    const { id } = await createComment(user);
+    await banUser(user.userId); // is_banned = 1, no banned_at or deleted_at
+    const res = await ban(admin, user.userId, { banned: true, removeContent: true });
+    expect(((await res.json()) as BanUserResponse).removedComments).toBe(1);
+    expect((await commentState(id))?.deleted_by).toBe('admin');
+    expect((await ban(admin, user.userId, { banned: false })).status).toBe(200);
+    expect((await createComment(user)).res.status).toBe(201);
   });
 
   it('never lifts the ban on a deleted account', async () => {

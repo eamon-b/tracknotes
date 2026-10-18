@@ -6,10 +6,14 @@
 --      A report hide is provisional: an admin restores it or deletes it.
 --   2. comments.restored_at: the last admin restore. Only reports filed after
 --      it count towards hiding the comment again.
---   3. users.banned_at: set by an admin ban (POST /v1/admin/users/:id/ban).
---      `is_banned` alone is also what account deletion sets, and a deleted
---      account must never be unbanned, so only a ban with `banned_at` can be
---      lifted.
+--   3. users.banned_at: when an admin banned the account
+--      (POST /v1/admin/users/:id/ban), and users.deleted_at: when it was
+--      deleted (DELETE /v1/me). Both set `is_banned`, and a deleted account
+--      must never be unbanned, so the two are told apart by `deleted_at`.
+--      Deleted accounts are backfilled from what DELETE /v1/me leaves behind
+--      (the fixed display name and every token revoked); every other banned
+--      account was banned by hand in D1 and gets `banned_at`, so it can be
+--      lifted. Both backfilled stamps are approximate.
 --
 -- SQLite cannot alter a CHECK constraint, so the table is rebuilt. Dropping a
 -- parent table counts every row that references it as a foreign-key violation,
@@ -19,6 +23,14 @@
 -- the rename carries the reference over to `comments`.
 
 ALTER TABLE users ADD COLUMN banned_at TEXT;
+ALTER TABLE users ADD COLUMN deleted_at TEXT;
+
+UPDATE users SET deleted_at = COALESCE(last_seen_at, created_at)
+ WHERE is_banned = 1 AND display_name = 'Deleted user'
+   AND NOT EXISTS (SELECT 1 FROM device_tokens t
+                    WHERE t.user_id = users.id AND t.revoked_at IS NULL);
+UPDATE users SET banned_at = COALESCE(last_seen_at, created_at)
+ WHERE is_banned = 1 AND deleted_at IS NULL;
 
 CREATE TABLE comments_new (
   id TEXT PRIMARY KEY,                -- uuid v4, CLIENT-minted = idempotency key

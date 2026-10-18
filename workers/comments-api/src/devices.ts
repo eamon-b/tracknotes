@@ -197,9 +197,9 @@ export async function deleteMe(
     ),
     env.DB.prepare(
       `UPDATE users
-          SET display_name = ?, token_hash = ?, is_admin = 0, is_banned = 1, banned_at = NULL
+          SET display_name = ?, token_hash = ?, is_admin = 0, is_banned = 1, deleted_at = ?
         WHERE id = ?`
-    ).bind(DELETED_DISPLAY_NAME, deadTokenHash, user.id),
+    ).bind(DELETED_DISPLAY_NAME, deadTokenHash, now, user.id),
     deattributeStatement(env, user.id),
   ]);
 

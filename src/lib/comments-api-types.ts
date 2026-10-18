@@ -197,8 +197,12 @@ export interface ReportSharedWaypointRequest {
 /** A shared waypoint as the admin listing returns it. */
 export interface AdminSharedWaypoint extends SharedWaypoint {
   userId: string;
-  /** The owner's account is banned. */
+  /** The owner's account is banned (deleted accounts are too: see `userDeleted`). */
   userBanned: boolean;
+  /** The owner is an admin, who cannot be banned. */
+  userAdmin: boolean;
+  /** The owner deleted their account, which can never be unbanned. */
+  userDeleted: boolean;
   deletedAt: string | null;
   deletedBy: 'owner' | 'admin' | 'reports' | null;
   restoredAt: string | null;
@@ -365,8 +369,12 @@ export interface AdminComment {
   updatedAt: string;
   deletedAt: string | null;
   deletedBy: DeletedBy | null;
-  /** The author's account is banned. */
+  /** The author's account is banned (deleted accounts are too: see `userDeleted`). */
   userBanned: boolean;
+  /** The author is an admin, who cannot be banned. */
+  userAdmin: boolean;
+  /** The author deleted their account, which can never be unbanned. */
+  userDeleted: boolean;
   /** Last admin restore of a report hide (reports before it no longer count). */
   restoredAt: string | null;
   photoUrls: string[];

@@ -37,8 +37,8 @@ import {
   checkUserWaypointInput,
   isUserWaypointId,
 } from '../../../src/lib/user-waypoints';
+import { parseAdminReports } from './comments';
 import type {
-  AdminCommentReport,
   AdminSharedWaypointsResponse,
   SharedWaypoint,
   SharedWaypointEntry,
@@ -431,14 +431,14 @@ export async function adminListSharedWaypoints(
   const limit = parseLimit(url.searchParams.get('limit'), ADMIN_DEFAULT_LIMIT, ADMIN_MAX_LIMIT);
   const { results } = await env.DB.prepare(
     `SELECT w.*, u.display_name AS display_name, u.is_banned AS user_banned,
+            u.is_admin AS user_admin, u.deleted_at AS user_deleted_at,
             (SELECT COUNT(*) FROM shared_waypoint_reports r WHERE r.waypoint_id = w.id) AS report_count,
             (SELECT json_group_array(json_object(
                       'id', r.id, 'reporterUserId', r.user_id,
                       'reporterDisplayName', ru.display_name, 'reason', r.reason,
                       'detail', r.detail, 'createdAt', r.created_at))
-               FROM (SELECT * FROM shared_waypoint_reports WHERE waypoint_id = w.id
-                      ORDER BY created_at DESC) r
-               JOIN users ru ON ru.id = r.user_id) AS reports_json
+               FROM shared_waypoint_reports r JOIN users ru ON ru.id = r.user_id
+              WHERE r.waypoint_id = w.id) AS reports_json
        FROM shared_waypoints w JOIN users u ON u.id = w.user_id
       ORDER BY report_count DESC, w.created_at DESC
       LIMIT ?`
@@ -448,6 +448,8 @@ export async function adminListSharedWaypoints(
       SharedWaypointRow & {
         display_name: string;
         user_banned: number;
+        user_admin: number;
+        user_deleted_at: string | null;
         report_count: number;
         reports_json: string | null;
       }
@@ -457,11 +459,13 @@ export async function adminListSharedWaypoints(
       ...toSharedWaypoint(row, row.display_name, null),
       userId: row.user_id,
       userBanned: row.user_banned === 1,
+      userAdmin: row.user_admin === 1,
+      userDeleted: row.user_deleted_at !== null,
       deletedAt: row.deleted_at,
       deletedBy: row.deleted_by,
       restoredAt: row.restored_at,
       reportCount: row.report_count,
-      reports: row.reports_json ? (JSON.parse(row.reports_json) as AdminCommentReport[]) : [],
+      reports: parseAdminReports(row.reports_json),
     })),
   };
   return json(payload);

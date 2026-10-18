@@ -36,6 +36,8 @@ const comment = {
   userId: '22222222-2222-4222-8222-222222222222',
   displayName: `Author ${XSS}`,
   userBanned: false,
+  userAdmin: false,
+  userDeleted: false,
   text: `Text ${XSS}`,
   waterStatus: null,
   observedAt: null,
@@ -62,6 +64,8 @@ const waypoint = {
   updatedAt: '2026-10-01T00:00:00Z',
   userId: '44444444-4444-4444-8444-444444444444',
   userBanned: true,
+  userAdmin: false,
+  userDeleted: false,
   deletedAt: null,
   deletedBy: null,
   restoredAt: null,
@@ -114,6 +118,17 @@ describe('admin-moderation.html', () => {
     expect(links).toEqual(['https://photos.example.test/a.jpg']);
     expect(text).toContain('Hidden by reports');
     expect(text).toContain('owner banned');
+  });
+
+  it('offers no ban controls for a deleted account or an admin', async () => {
+    const { commentRowHtml, waypointRowHtml } = await import('./admin-moderation');
+    const deleted = document.createElement('div');
+    deleted.innerHTML = commentRowHtml({ ...comment, userBanned: true, userDeleted: true } as never);
+    expect(deleted.querySelector('[data-action="unban"], [data-action="ban"], [data-action="ban-remove"]')).toBeNull();
+    expect(deleted.textContent).toContain('Account deleted');
+    const admin = document.createElement('div');
+    admin.innerHTML = waypointRowHtml({ ...waypoint, userBanned: false, userAdmin: true } as never);
+    expect(admin.querySelector('[data-action="ban"], [data-action="ban-remove"]')).toBeNull();
   });
 
   it('restores a hidden comment and bans with content removal after confirming', async () => {

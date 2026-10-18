@@ -11,9 +11,9 @@
  * waypoints, plus any a report hide is holding. Its community routes are left
  * to the community review page, where hiding one is a choice per route.
  *
- * `is_banned` is also what deleting an account sets, so a ban records
- * `banned_at`, and only a ban that has one can be lifted: a deleted account
- * stays deleted. Admin accounts cannot be banned; demote one in D1 first.
+ * `is_banned` is also what deleting an account sets; `deleted_at` tells the
+ * two apart, and a deleted account stays banned. A ban records `banned_at`.
+ * Admin accounts cannot be banned; demote one in D1 first.
  */
 
 import { HttpError, json, readJson } from './http';
@@ -28,7 +28,7 @@ interface UserBanRow {
   id: string;
   is_admin: number;
   is_banned: number;
-  banned_at: string | null;
+  deleted_at: string | null;
 }
 
 export async function adminBanUser(
@@ -50,7 +50,7 @@ export async function adminBanUser(
   const removeContent = banned && body.removeContent === true;
 
   const user = await env.DB.prepare(
-    `SELECT id, is_admin, is_banned, banned_at FROM users WHERE id = ?`
+    `SELECT id, is_admin, is_banned, deleted_at FROM users WHERE id = ?`
   )
     .bind(userId)
     .first<UserBanRow>();
@@ -59,13 +59,12 @@ export async function adminBanUser(
     throw new HttpError(400, 'cannot_ban_admin', 'An admin account cannot be banned');
   }
 
-  const now = new Date().toISOString();
   if (!banned) {
-    if (user.is_banned === 1 && user.banned_at === null) {
+    if (user.deleted_at !== null) {
       throw new HttpError(409, 'account_deleted', 'This account was deleted, not banned');
     }
     await env.DB.prepare(
-      `UPDATE users SET is_banned = 0, banned_at = NULL WHERE id = ? AND banned_at IS NOT NULL`
+      `UPDATE users SET is_banned = 0, banned_at = NULL WHERE id = ? AND deleted_at IS NULL`
     )
       .bind(userId)
       .run();
@@ -73,18 +72,12 @@ export async function adminBanUser(
     return json(payload);
   }
 
-  if (user.is_banned === 1 && user.banned_at === null) {
+  if (user.deleted_at !== null) {
     // Deleted: already banned for good, and its content already tombstoned.
     const payload: BanUserResponse = { userId, banned: true, removedComments: 0, removedWaypoints: 0 };
     return json(payload);
   }
 
-  // A repeat ban keeps the first `banned_at`.
-  const statements = [
-    env.DB.prepare(
-      `UPDATE users SET is_banned = 1, banned_at = COALESCE(banned_at, ?) WHERE id = ?`
-    ).bind(now, userId),
-  ];
   let withPhotos: { id: string }[] = [];
   if (removeContent) {
     // Snapshot which comments have photos before the update clears the column.
@@ -95,6 +88,19 @@ export async function adminBanUser(
     )
       .bind(userId)
       .all<{ id: string }>());
+  }
+
+  // Stamped after every read, just before the batch that commits it: a
+  // tombstone stamped earlier could predate a concurrent delta read's
+  // `syncedAt`, and that phone would never be sent it.
+  const now = new Date().toISOString();
+  // A repeat ban keeps the first `banned_at`.
+  const statements = [
+    env.DB.prepare(
+      `UPDATE users SET is_banned = 1, banned_at = COALESCE(banned_at, ?) WHERE id = ?`
+    ).bind(now, userId),
+  ];
+  if (removeContent) {
     statements.push(
       env.DB.prepare(
         `UPDATE comments
