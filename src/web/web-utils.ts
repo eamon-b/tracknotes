@@ -8,6 +8,8 @@
  * before the document exists.
  */
 
+import { splitTextLinks } from '@lib/text-links';
+
 const HTML_ESCAPES: Record<string, string> = {
   '&': '&amp;',
   '<': '&lt;',
@@ -29,6 +31,23 @@ const HTML_ESCAPES: Record<string, string> = {
 export function escapeHtml(value: unknown): string {
   if (value == null) return '';
   return String(value).replace(/[&<>"']/g, ch => HTML_ESCAPES[ch]);
+}
+
+/**
+ * Free text as HTML with its links made clickable: URLs, email addresses and
+ * phone numbers, found by the same `splitTextLinks` the app uses, so the two
+ * agree on what is a link and which hrefs are allowed (http(s) through
+ * `safeHttpUrl`, `mailto:`, `tel:` through `safeTelUrl`). Every piece, href
+ * included, is escaped; a web page opens in a new tab.
+ */
+export function linkifyText(text: string): string {
+  return splitTextLinks(text)
+    .map(({ text: part, href, kind }) => {
+      if (!href) return escapeHtml(part);
+      const newTab = kind === 'url' ? ' target="_blank" rel="noopener noreferrer"' : '';
+      return `<a href="${escapeHtml(href)}"${newTab}>${escapeHtml(part)}</a>`;
+    })
+    .join('');
 }
 
 /**

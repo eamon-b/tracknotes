@@ -589,7 +589,7 @@ export default function PlanScreen() {
                 onDayPress={(day) =>
                   router.push({
                     pathname: '/guide/[trailId]/day',
-                    params: { trailId, ...dayRouteParams(day) },
+                    params: { trailId, ...dayRouteParams(day, sectionConfig) },
                   })
                 }
               />

@@ -5,14 +5,17 @@
 import { newPlan, setNights, setStartDate, toggleStop } from '@lib/plan-editor';
 import type { PlanDocument } from '@lib/plan-types';
 import type { TrailJson } from '../../../services/trail-assets';
-import { planGlance, type PlanGlanceOptions } from '../plan-glance';
+import { planDays, planGlance, type PlanGlanceOptions } from '../plan-glance';
 import { stopCandidateOf, toggleTargetOf } from '../plan-stops';
 import type { TrailPOI } from '@lib/trail-types';
 import {
+  currentPlanDay,
   dayFromRouteParams,
   dayRouteParams,
   emptyMessage,
   localIsoDate,
+  msUntilLocalMidnight,
+  sectionFromRouteParams,
   todayEntries,
   todayPlan,
   todayPois,
@@ -61,6 +64,15 @@ function plan(t: TrailJson, ids: string[], startDate: string | null): PlanDocume
 describe('localIsoDate', () => {
   it('formats the local calendar date', () => {
     expect(localIsoDate(new Date(2026, 0, 5, 23, 30))).toBe('2026-01-05');
+  });
+});
+
+describe('msUntilLocalMidnight', () => {
+  it('counts down to the start of the next local day', () => {
+    expect(msUntilLocalMidnight(new Date(2026, 0, 5, 23, 30))).toBe(30 * 60_000);
+    expect(msUntilLocalMidnight(new Date(2026, 0, 31, 0, 0))).toBe(24 * 3_600_000);
+    const now = new Date(2026, 11, 31, 12, 0);
+    expect(localIsoDate(new Date(now.getTime() + msUntilLocalMidnight(now)))).toBe('2027-01-01');
   });
 });
 
@@ -247,5 +259,71 @@ describe('dayRouteParams / dayFromRouteParams', () => {
     const { endName: _end, ...noEnd } = params;
     expect(dayFromRouteParams(noEnd)).toBeNull();
     expect(dayFromRouteParams({ ...params, startName: ['a', 'b'] })).toBeNull();
+  });
+});
+
+describe('sectionFromRouteParams', () => {
+  const section = { startKm: 20, endKm: 80, startName: 'Camp A', endName: 'Camp C' };
+  const day = {
+    dayNumber: 1,
+    startName: 'Camp A',
+    endName: 'Camp B',
+    startKm: 20,
+    endKm: 60,
+    distanceKm: 40,
+    ascentM: 0,
+    descentM: 0,
+    estimatedHours: 9,
+    waterSources: 0,
+  };
+
+  it('round-trips the section beside the day', () => {
+    const params = dayRouteParams(day, section);
+    expect(sectionFromRouteParams(params)).toEqual(section);
+    expect(dayFromRouteParams(params)).toEqual(day);
+  });
+
+  it('is undefined without one, or with an unusable one', () => {
+    expect(sectionFromRouteParams(dayRouteParams(day))).toBeUndefined();
+    const params = dayRouteParams(day, section);
+    expect(sectionFromRouteParams({ ...params, sectionEndKm: '10' })).toBeUndefined();
+    expect(sectionFromRouteParams({ ...params, sectionStartKm: '' })).toBeUndefined();
+    expect(sectionFromRouteParams({ ...params, sectionEndName: ['a'] })).toBeUndefined();
+  });
+});
+
+describe('currentPlanDay', () => {
+  it('follows an edit: the same date after a stop is added before it', () => {
+    const t = trail();
+    const before = planDays(t, plan(t, ['c2'], '2026-10-10'), OPTS);
+    const opened = before[1]; // Camp B → end, 2026-10-11
+    expect(opened.date).toBe('2026-10-11');
+    const after = planDays(t, plan(t, ['c1', 'c2'], '2026-10-10'), OPTS);
+    const day = currentPlanDay(after, opened);
+    expect(day).toBe(after[1]);
+    expect(day).toMatchObject({ dayNumber: 2, startName: 'Camp A', endName: 'Camp B' });
+  });
+
+  it('matches by number on an undated plan', () => {
+    const t = trail();
+    const opened = planDays(t, plan(t, ['c2'], null), OPTS)[0];
+    const after = planDays(t, plan(t, ['c1', 'c2'], null), OPTS);
+    expect(currentPlanDay(after, opened)).toMatchObject({ dayNumber: 1, endName: 'Camp A' });
+  });
+
+  it('keeps the day it was opened with when the plan no longer has it', () => {
+    const t = trail();
+    const opened = planDays(t, plan(t, ['c1', 'c2', 'c3'], null), OPTS)[3];
+    expect(currentPlanDay(planDays(t, plan(t, [], null), OPTS), opened)).toBe(opened);
+  });
+
+  it('measures over the section it is given', () => {
+    const t = trail();
+    const section = { startKm: 20, endKm: 80, startName: 'Camp A', endName: 'Camp C' };
+    const days = planDays(t, plan(t, ['c2'], null), OPTS, section);
+    expect(days.map((d) => [d.startKm, d.endKm])).toEqual([
+      [20, 60],
+      [60, 80],
+    ]);
   });
 });

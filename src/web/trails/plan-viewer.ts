@@ -102,6 +102,7 @@ import {
 } from './plan-state';
 import { initPlanSync, type PlanSyncController, type PlanSyncHost } from './plan-sync';
 import { finalDayMaxHours } from '@lib/plan-suggest';
+import { eleBounds } from '@lib/elevation-axis';
 import { hereLabel, initNextDays, type NextDaysController, type NextDaysPlan, type NextDaysTrail } from './plan-next-days';
 // Escapes quotes as well as angle brackets, unlike a `textContent` round trip
 // through a detached div — this file interpolates waypoint names and types into
@@ -290,16 +291,6 @@ function servicesStripHtml(services: StopServices | undefined): string {
 // Helpers
 // ---------------------------------------------------------------------------
 
-
-function getMinMax(arr: number[]): { min: number; max: number } {
-  if (arr.length === 0) return { min: 0, max: 0 };
-  let min = arr[0], max = arr[0];
-  for (let i = 1; i < arr.length; i++) {
-    if (arr[i] < min) min = arr[i];
-    if (arr[i] > max) max = arr[i];
-  }
-  return { min, max };
-}
 
 function niceAxisTicks(min: number, max: number, maxTicks: number): number[] {
   const range = max - min;
@@ -938,11 +929,12 @@ function drawElevationProfile(): void {
   const pts = activeTrail().track.points;
   if (pts.length === 0) return;
 
-  const elevations = pts.map(p => p.ele);
-  const { min: minEle, max: maxEle } = getMinMax(elevations);
   const maxDist = activeTrail().track.totalDistance;
 
-  const eleTicks = niceAxisTicks(minEle, maxEle, 4);
+  // The phone's axis, as on the trail page: 0 m to just above the high point.
+  const { floorM: eleMin, ceilingM: eleMax } = eleBounds(pts);
+  const eleRange = eleMax - eleMin || 1;
+  const eleTicks = niceAxisTicks(eleMin, eleMax, 4);
   const distTicks = niceAxisTicks(0, maxDist, 5);
 
   ctx.font = '11px system-ui, sans-serif';
@@ -955,10 +947,6 @@ function drawElevationProfile(): void {
 
   const width = rect.width - PAD.left - PAD.right;
   const height = rect.height - PAD.top - PAD.bottom;
-
-  const eleMin = eleTicks.length > 0 ? Math.min(minEle, eleTicks[0]) : minEle;
-  const eleMax = eleTicks.length > 0 ? Math.max(maxEle, eleTicks[eleTicks.length - 1]) : maxEle;
-  const eleRange = eleMax - eleMin || 1;
 
   // Cache max distance for hover calculation
   elevMaxDist = maxDist;

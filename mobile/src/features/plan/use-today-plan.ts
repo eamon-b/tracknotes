@@ -3,8 +3,8 @@
  *
  * Reads the plan at a glance (`use-plan-glance`: the saved plan's days over the
  * route it walks) and picks out the day dated today. The date is the phone's
- * local one, re-read whenever the app comes back to the foreground, so a guide
- * left open overnight moves on to the next day.
+ * local one, re-read at local midnight and whenever the app comes back to the
+ * foreground, so a guide left open overnight moves on to the next day.
  *
  * The day's OSM points of interest come through the guide's one POI filter
  * (`usePoiFilter`, the map's layers sheet and the Today screen's chips edit
@@ -20,6 +20,7 @@ import type { TrailJson } from '../../services/trail-assets';
 import { usePoiFilter } from '../guide/use-visible-pois';
 import {
   localIsoDate,
+  msUntilLocalMidnight,
   todayEntries,
   todayPlan,
   todayPois,
@@ -49,7 +50,11 @@ export interface TodayPlanState {
   hasStops: boolean;
 }
 
-/** The local date, refreshed on every return to the foreground. */
+/**
+ * The local date, refreshed at local midnight and on every return to the
+ * foreground (a timer can fire late, or not at all, while the app is in the
+ * background).
+ */
 export function useLocalDate(): string {
   const [date, setDate] = useState(() => localIsoDate(new Date()));
   useEffect(() => {
@@ -58,6 +63,19 @@ export function useLocalDate(): string {
     });
     return () => sub.remove();
   }, []);
+  // Bumped by every firing, so a timer that fires early (the date has not
+  // changed yet) still arms the next one.
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const timer = setTimeout(
+      () => {
+        setDate(localIsoDate(new Date()));
+        setTick((t) => t + 1);
+      },
+      msUntilLocalMidnight(new Date()) + 1000,
+    );
+    return () => clearTimeout(timer);
+  }, [date, tick]);
   return date;
 }
 

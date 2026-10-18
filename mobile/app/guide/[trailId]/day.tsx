@@ -5,10 +5,13 @@
  * The same list as the Today screen (`DayWaypointList`): from the stop slept
  * at to the night's stop, every waypoint between with the distance, climb and
  * descent from the row before, and among them the OpenStreetMap points of
- * interest the guide's POI filter shows. The day arrives whole in the route
- * params (`dayRouteParams`): the Plan screen's days are scoped to its section,
- * so the card's own figures are the ones to repeat. The rows are measured on
- * the route the plan walks (`use-plan-route`), as the Plan screen's are.
+ * interest the guide's POI filter shows. The route params (`dayRouteParams`)
+ * carry the day as the card showed it and the Plan screen's section, and the
+ * day is rebuilt from the plan over that section (`currentPlanDay`: by date,
+ * else by number), so an edit made from a waypoint pushed over this screen,
+ * or a data reload, shows here; the params are the fallback when the plan no
+ * longer has the day. The rows are measured on the route the plan walks
+ * (`use-plan-route`), as the Plan screen's are.
  *
  * Read-only, like Today: stops are made and changed on the Plan screen.
  */
@@ -20,9 +23,13 @@ import { KM_EPSILON } from '@lib/plan-direction';
 import { useTheme } from '../../../src/theme';
 import { spacing, typography } from '../../../src/tokens';
 import { useGuide } from '../../../src/features/guide/GuideContext';
-import { selectPlan, usePlansStore } from '../../../src/state/plans-store';
-import { usePlanRoute } from '../../../src/features/plan/use-plan-route';
-import { dayFromRouteParams } from '../../../src/features/plan/today-plan';
+import { usePlanGlance } from '../../../src/features/plan/use-plan-glance';
+import { planDays } from '../../../src/features/plan/plan-glance';
+import {
+  currentPlanDay,
+  dayFromRouteParams,
+  sectionFromRouteParams,
+} from '../../../src/features/plan/today-plan';
 import { useDayEntries, useLocalDate } from '../../../src/features/plan/use-today-plan';
 import { DayWaypointList } from '../../../src/features/plan/DayWaypointList';
 
@@ -30,13 +37,19 @@ export default function DayScreen() {
   const params = useLocalSearchParams<Record<string, string>>();
   const { trailId } = useGuide();
   const { colors } = useTheme();
-  const saved = usePlansStore(selectPlan(trailId));
-  const { trail } = usePlanRoute(saved);
+  const { trail, plan, options } = usePlanGlance();
   const today = useLocalDate();
   // Params are strings re-made on every render; key the parse on their values.
   const paramsKey = JSON.stringify(params);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const day = useMemo(() => dayFromRouteParams(params), [paramsKey]);
+  const opened = useMemo(
+    () => ({ day: dayFromRouteParams(params), section: sectionFromRouteParams(params) }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [paramsKey],
+  );
+  const day = useMemo(
+    () => opened.day && currentPlanDay(planDays(trail, plan, options, opened.section), opened.day),
+    [trail, plan, options, opened],
+  );
   const { entries, pois } = useDayEntries(trail, day);
 
   if (!day) {

@@ -3,6 +3,7 @@
 
 import type * as Leaflet from 'leaflet';
 import { findNearestByDistance } from '@lib/track-geometry';
+import { eleBounds } from '@lib/elevation-axis';
 import { createReversedTrail } from '@lib/trail-reverse';
 import { routeBreakCrossings, splitAtRouteBreaks } from '@lib/route-breaks';
 import { buildPointIndex, type PointIndex } from '@lib/point-index';
@@ -23,10 +24,10 @@ import {
 } from '@lib/waypoint-taxonomy';
 // Shared with the upload/my-trail pages, and — unlike a `textContent` round
 // trip through a detached div — it escapes quotes, so the same helper is safe
-// in an attribute value as in a text node. That matters here: `autoLinkUrls`
-// puts its result inside `href="…"`, and imported GPX supplies every waypoint
-// name, type and description on this page.
-import { SITE_ROOT, escapeHtml, generatedDataUrl } from '../web-utils';
+// in an attribute value as in a text node. That matters here: `linkifyText`
+// puts a description's links inside `href="…"`, and imported GPX supplies
+// every waypoint name, type and description on this page.
+import { SITE_ROOT, escapeHtml, generatedDataUrl, linkifyText } from '../web-utils';
 import { buildGpx, csvQuote } from './trail-export';
 import { waypointFamilyClass, waypointIcon } from './waypoint-icons';
 import { accessPathLayer, hasAccessPath } from './access-path';
@@ -971,16 +972,6 @@ function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): (.
 }
 
 
-// Convert plain-text URLs to clickable links (after HTML escaping)
-function autoLinkUrls(text: string): string {
-  const escaped = escapeHtml(text);
-  // Match URLs, avoiding trailing punctuation that's likely not part of the URL
-  return escaped.replace(
-    /https?:\/\/[^\s<]+[^\s<.,;:!?)\]]/g,
-    url => `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`
-  );
-}
-
 function initMap(trail: Trail): void {
   if (typeof L === 'undefined') {
     const mapContainer = document.getElementById('trail-map');
@@ -1408,7 +1399,7 @@ function expandWaypointDetail(waypointIndex: number, wp: Waypoint): void {
   // Build detail panel HTML
   const hasDesc = !!wp.description;
   const descHtml = hasDesc
-    ? `<div class="waypoint-detail-description">${autoLinkUrls(wp.description!)}</div>`
+    ? `<div class="waypoint-detail-description">${linkifyText(wp.description!)}</div>`
     : '';
   const coordsHtml = `<span class="waypoint-detail-coords">${wp.lat.toFixed(5)}, ${wp.lon.toFixed(5)} · <a href="https://www.google.com/maps?q=${wp.lat},${wp.lon}" target="_blank" rel="noopener noreferrer">Google Maps</a></span>`;
 
@@ -1678,7 +1669,7 @@ function expandVariantWaypointDetail(variantKey: string, wpIndex: number, wp: Va
   const colspan = 7; // variant waypoints table has 7 columns
   const hasDesc = !!wp.description;
   const descHtml = hasDesc
-    ? `<div class="waypoint-detail-description">${autoLinkUrls(wp.description!)}</div>`
+    ? `<div class="waypoint-detail-description">${linkifyText(wp.description!)}</div>`
     : '';
   const coordsHtml = `<span class="waypoint-detail-coords">${wp.lat.toFixed(5)}, ${wp.lon.toFixed(5)} · <a href="https://www.google.com/maps?q=${wp.lat},${wp.lon}" target="_blank" rel="noopener noreferrer">Google Maps</a></span>`;
 
@@ -1758,7 +1749,7 @@ function expandOffTrailDetail(index: number, wp: OffTrailWaypoint): void {
 
   const hasDesc = !!wp.description;
   const descHtml = hasDesc
-    ? `<div class="waypoint-detail-description">${autoLinkUrls(wp.description!)}</div>`
+    ? `<div class="waypoint-detail-description">${linkifyText(wp.description!)}</div>`
     : '';
   const coordsHtml = `<span class="waypoint-detail-coords">${wp.lat.toFixed(5)}, ${wp.lon.toFixed(5)} · <a href="https://www.google.com/maps?q=${wp.lat},${wp.lon}" target="_blank" rel="noopener noreferrer">Google Maps</a></span>`;
 
@@ -1937,12 +1928,14 @@ function drawElevationProfile(points: TrackPoint[]): void {
 
   if (points.length === 0) return;
 
-  const elevations = points.map(p => p.ele);
   const distances = points.map(p => p.dist);
-  const { min: minEle, max: maxEle } = getMinMax(elevations);
   const { max: maxDist } = getMinMax(distances);
 
-  const eleTicks = niceAxisTicks(minEle, maxEle, 4);
+  // The phone's axis: from 0 m to just above the trail's high point, not
+  // fitted to its low and high points, so a climb looks the same on both.
+  const { floorM: eleMin, ceilingM: eleMax } = eleBounds(points);
+  const eleRange = eleMax - eleMin || 1;
+  const eleTicks = niceAxisTicks(eleMin, eleMax, 4);
   const distTicks = niceAxisTicks(0, maxDist, 5);
 
   // Measure the widest elevation label to size left padding
@@ -1957,11 +1950,6 @@ function drawElevationProfile(points: TrackPoint[]): void {
   const padding = chartPadding;
   const width = rect.width - padding.left - padding.right;
   const height = rect.height - padding.top - padding.bottom;
-
-  // Expand elevation range to encompass the tick boundaries
-  const eleMin = eleTicks.length > 0 ? Math.min(minEle, eleTicks[0]) : minEle;
-  const eleMax = eleTicks.length > 0 ? Math.max(maxEle, eleTicks[eleTicks.length - 1]) : maxEle;
-  const eleRange = eleMax - eleMin || 1;
 
   const axisColor = themeColor('--chart-text', '#666');
   const gridColor = themeColor('--chart-grid', '#ddd');

@@ -23,7 +23,7 @@
 import { addPlaceWalks } from '@lib/day-calculator';
 import { KM_EPSILON } from '@lib/plan-direction';
 import { interleavePoisByDistance, poisBetween } from '@lib/poi-display';
-import type { ComputedDay } from '@lib/plan-types';
+import type { ComputedDay, SectionConfig } from '@lib/plan-types';
 import { routeBreakStarts } from '@lib/route-breaks';
 import { calculateElevationBetween } from '@lib/track-geometry';
 import type { TrailPOI } from '@lib/trail-types';
@@ -47,6 +47,12 @@ export function localIsoDate(now: Date): string {
   const m = String(now.getMonth() + 1).padStart(2, '0');
   const d = String(now.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
+}
+
+/** Milliseconds from `now` to the next local midnight, when today's date changes. */
+export function msUntilLocalMidnight(now: Date): number {
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  return midnight.getTime() - now.getTime();
 }
 
 /** Whole days from `a` to `b`, both `YYYY-MM-DD`. */
@@ -258,13 +264,22 @@ export function todayEntries(
 /**
  * A day as Expo Router params, for the Day screen a Plan screen day card opens.
  *
- * The day travels whole rather than by number: the Plan screen's days are
- * scoped to its section (a local choice the Day screen cannot see), so "day 3"
- * there need not be day 3 of the whole plan. The rows are rebuilt from the km
- * on the same route; the figures shown are the card's own.
+ * The day travels whole, with the section it was computed over: the Plan
+ * screen's days are scoped to its section (a local choice the Day screen
+ * cannot see), so "day 3" there need not be day 3 of the whole plan. The Day
+ * screen rebuilds the day from the plan over that section (`currentPlanDay`),
+ * and shows the day as it travelled only when the plan no longer has it.
  */
-export function dayRouteParams(day: ComputedDay): Record<string, string> {
+export function dayRouteParams(day: ComputedDay, section?: SectionConfig): Record<string, string> {
   return {
+    ...(section
+      ? {
+          sectionStartKm: String(section.startKm),
+          sectionEndKm: String(section.endKm),
+          sectionStartName: section.startName,
+          sectionEndName: section.endName,
+        }
+      : {}),
     dayNumber: String(day.dayNumber),
     ...(day.date !== undefined ? { date: day.date } : {}),
     startName: day.startName,
@@ -333,4 +348,40 @@ export function dayFromRouteParams(
     waterSources: num('waterSources') ?? 0,
     ...(restDays !== null ? { restDays } : {}),
   };
+}
+
+/** The Plan screen's section out of `dayRouteParams`; undefined when absent or unusable. */
+export function sectionFromRouteParams(
+  params: Partial<Record<string, string | string[]>>,
+): SectionConfig | undefined {
+  const { sectionStartKm, sectionEndKm, sectionStartName, sectionEndName } = params;
+  if (
+    typeof sectionStartKm !== 'string' ||
+    typeof sectionEndKm !== 'string' ||
+    typeof sectionStartName !== 'string' ||
+    typeof sectionEndName !== 'string' ||
+    sectionStartKm.trim() === '' ||
+    sectionEndKm.trim() === ''
+  ) {
+    return undefined;
+  }
+  const startKm = Number(sectionStartKm);
+  const endKm = Number(sectionEndKm);
+  if (!Number.isFinite(startKm) || !Number.isFinite(endKm) || !(endKm > startKm)) return undefined;
+  return { startKm, endKm, startName: sectionStartName, endName: sectionEndName };
+}
+
+/**
+ * The plan's current version of `opened`, the day a screen was opened with:
+ * the day with its date when it has one (a stop added before it renumbers the
+ * days, but the hiker opened the day of that date), else the day with its
+ * number, else `opened` itself — the plan no longer has that day, and the
+ * day as it was beats a blank screen.
+ */
+export function currentPlanDay(days: ComputedDay[], opened: ComputedDay): ComputedDay {
+  if (opened.date !== undefined) {
+    const dated = days.find((d) => d.date === opened.date);
+    if (dated) return dated;
+  }
+  return days.find((d) => d.dayNumber === opened.dayNumber) ?? opened;
 }

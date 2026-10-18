@@ -422,14 +422,13 @@ describe('hostile input never becomes markup', () => {
     first?.click();
     await flush(20);
     expectNoInjection();
-    // The auto-linker puts its match inside `href="…"`. A quote in the URL must
-    // survive as part of the attribute *value* rather than closing it — which
-    // is what `expectNoInjection` above proves, since a breakout would have
-    // produced a real `onmouseover` attribute. Here we just confirm the whole
-    // hostile string stayed in one attribute.
+    // The auto-linker puts its match inside `href="…"`. A quote ends the URL
+    // (`splitTextLinks`), so the link is the host alone and the rest stays
+    // text — `expectNoInjection` above proves no real `onmouseover` attribute
+    // came of it.
     const autoLinked = [...document.querySelectorAll('a[href^="http://evil.test"]')];
     expect(autoLinked).toHaveLength(1);
-    expect(autoLinked[0].getAttribute('href')).toContain('"onmouseover=');
+    expect(autoLinked[0].getAttribute('href')).toBe('http://evil.test/');
 
     vi.resetModules();
     loadPage('my-plan.html', `?id=${encodeURIComponent(id)}`);

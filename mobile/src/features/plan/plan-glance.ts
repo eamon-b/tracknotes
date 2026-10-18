@@ -22,7 +22,7 @@ import type { PlanTrail } from '@lib/day-calculator';
 import { KM_EPSILON, type PlanDirection } from '@lib/plan-direction';
 import { computePlanDays, splitUnplannedTail, toggleStop } from '@lib/plan-editor';
 import { finalDayMaxHours } from '@lib/plan-suggest';
-import type { ComputedDay, PlanDocument } from '@lib/plan-types';
+import type { ComputedDay, PlanDocument, SectionConfig } from '@lib/plan-types';
 import type { TrailJson } from '../../services/trail-assets';
 import type { StopCandidate } from './plan-stops';
 import { toggleTargetOf } from './plan-stops';
@@ -71,19 +71,37 @@ export function planGlance(
   plan: PlanDocument,
   opts: PlanGlanceOptions,
 ): PlanGlance {
+  const days = planDays(trail, plan, opts);
+  if (days.length === 0) return { days: [], unplanned: null };
+  return splitUnplannedTail(days, finalDayMaxHours(opts.dailyHours));
+}
+
+/**
+ * Every day `plan` makes over `section` (the whole trail by default), the
+ * stretch after the last stop included as the final day — what the Plan
+ * screen computes before it splits off "not planned yet". Empty for a trail
+ * or section with no length.
+ */
+export function planDays(
+  trail: TrailJson,
+  plan: PlanDocument,
+  opts: Pick<PlanGlanceOptions, 'direction' | 'baseKmh'>,
+  section?: SectionConfig,
+): ComputedDay[] {
   const doc = plan.direction === opts.direction ? plan : { ...plan, direction: opts.direction };
   const total = trail.track.totalDistance;
-  if (!(total > 0)) return { days: [], unplanned: null };
-  const days = computePlanDays(trail as unknown as PlanTrail, doc, {
+  if (!(total > 0)) return [];
+  const scope = section ?? {
+    startKm: 0,
+    endKm: total,
+    startName: `${trail.config.name} Start`,
+    endName: `${trail.config.name} End`,
+  };
+  if (!(scope.endKm > scope.startKm)) return [];
+  return computePlanDays(trail as unknown as PlanTrail, doc, {
     baseKmh: opts.baseKmh,
-    section: {
-      startKm: 0,
-      endKm: total,
-      startName: `${trail.config.name} Start`,
-      endName: `${trail.config.name} End`,
-    },
+    section: scope,
   });
-  return splitUnplannedTail(days, finalDayMaxHours(opts.dailyHours));
 }
 
 /** Where one place sits among the plan's days. */
