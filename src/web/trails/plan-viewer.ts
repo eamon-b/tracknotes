@@ -102,7 +102,7 @@ import {
 } from './plan-state';
 import { initPlanSync, type PlanSyncController, type PlanSyncHost } from './plan-sync';
 import { finalDayMaxHours } from '@lib/plan-suggest';
-import { eleBounds } from '@lib/elevation-axis';
+import { eleAxis, eleBounds } from '@lib/elevation-axis';
 import { hereLabel, initNextDays, type NextDaysController, type NextDaysPlan, type NextDaysTrail } from './plan-next-days';
 // Escapes quotes as well as angle brackets, unlike a `textContent` round trip
 // through a detached div — this file interpolates waypoint names and types into
@@ -931,10 +931,9 @@ function drawElevationProfile(): void {
 
   const maxDist = activeTrail().track.totalDistance;
 
-  // The phone's axis, as on the trail page: 0 m to just above the high point.
-  const { floorM: eleMin, ceilingM: eleMax } = eleBounds(pts);
+  // The phone's axis, as on the trail page: 0 m to the first line above the high point.
+  const { minM: eleMin, maxM: eleMax, ticks: eleTicks } = eleAxis(eleBounds(pts), 4);
   const eleRange = eleMax - eleMin || 1;
-  const eleTicks = niceAxisTicks(eleMin, eleMax, 4);
   const distTicks = niceAxisTicks(0, maxDist, 5);
 
   ctx.font = '11px system-ui, sans-serif';

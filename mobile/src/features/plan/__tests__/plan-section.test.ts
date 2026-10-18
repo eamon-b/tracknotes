@@ -3,7 +3,7 @@
  * section is always the whole track and both trail ends are reachable.
  */
 
-import { sectionOptions, TERMINUS_EPSILON_KM } from '../plan-section';
+import { kmRangeFromParams, sectionOptions, TERMINUS_EPSILON_KM } from '../plan-section';
 import type { TrailJson } from '../../../services/trail-assets';
 
 function makeTrail(waypointKms: number[], totalDistance: number): TrailJson {
@@ -71,5 +71,21 @@ describe('sectionOptions', () => {
     expect(opts).toHaveLength(2);
     expect(opts[0].km).toBe(0);
     expect(opts[1].km).toBe(42);
+  });
+});
+
+describe('kmRangeFromParams', () => {
+  it('reads a range out of string params, the first of a repeated key', () => {
+    expect(kmRangeFromParams('12.5', '40')).toEqual({ startKm: 12.5, endKm: 40 });
+    expect(kmRangeFromParams(['0', '9'], ['30'])).toEqual({ startKm: 0, endKm: 30 });
+  });
+
+  it('refuses a missing, blank, malformed or empty range', () => {
+    expect(kmRangeFromParams(undefined, '40')).toBeNull();
+    // Number('') is 0: a blank end must not read as km 0.
+    expect(kmRangeFromParams('', '40')).toBeNull();
+    expect(kmRangeFromParams('x', '40')).toBeNull();
+    expect(kmRangeFromParams('40', '40')).toBeNull();
+    expect(kmRangeFromParams('40', '10')).toBeNull();
   });
 });

@@ -5,7 +5,7 @@
 import { newPlan, setNights, setStartDate, toggleStop } from '@lib/plan-editor';
 import type { PlanDocument } from '@lib/plan-types';
 import type { TrailJson } from '../../../services/trail-assets';
-import { planDays, planGlance, type PlanGlanceOptions } from '../plan-glance';
+import { planGlance, type PlanGlanceOptions } from '../plan-glance';
 import { stopCandidateOf, toggleTargetOf } from '../plan-stops';
 import type { TrailPOI } from '@lib/trail-types';
 import {
@@ -16,6 +16,7 @@ import {
   localIsoDate,
   msUntilLocalMidnight,
   sectionFromRouteParams,
+  sectionOnRoute,
   todayEntries,
   todayPlan,
   todayPois,
@@ -292,35 +293,53 @@ describe('sectionFromRouteParams', () => {
   });
 });
 
+describe('sectionOnRoute', () => {
+  const section = { startKm: 20, endKm: 80, startName: 'Camp A', endName: 'Camp C' };
+
+  it('keeps a section that fits the route, and drops one past its end', () => {
+    expect(sectionOnRoute(section, 100)).toBe(section);
+    expect(sectionOnRoute(section, 80)).toBe(section);
+    // An alternate taken since: the route is now 75 km.
+    expect(sectionOnRoute(section, 75)).toBeUndefined();
+    expect(sectionOnRoute(undefined, 100)).toBeUndefined();
+  });
+});
+
 describe('currentPlanDay', () => {
-  it('follows an edit: the same date after a stop is added before it', () => {
+  it('follows the day from the same stop when a stop is added before it', () => {
     const t = trail();
-    const before = planDays(t, plan(t, ['c2'], '2026-10-10'), OPTS);
-    const opened = before[1]; // Camp B → end, 2026-10-11
-    expect(opened.date).toBe('2026-10-11');
-    const after = planDays(t, plan(t, ['c1', 'c2'], '2026-10-10'), OPTS);
-    const day = currentPlanDay(after, opened);
-    expect(day).toBe(after[1]);
-    expect(day).toMatchObject({ dayNumber: 2, startName: 'Camp A', endName: 'Camp B' });
+    const opened = planGlance(t, plan(t, ['c2', 'c3'], '2026-10-10'), OPTS).days[1];
+    expect(opened).toMatchObject({ startName: 'Camp B', date: '2026-10-11' });
+    const after = planGlance(t, plan(t, ['c1', 'c2', 'c3'], '2026-10-10'), OPTS);
+    const current = currentPlanDay(after, opened);
+    expect(current).toEqual({ kind: 'day', day: after.days[2] });
+    expect(after.days[2]).toMatchObject({ dayNumber: 3, startName: 'Camp B', date: '2026-10-12' });
   });
 
-  it('matches by number on an undated plan', () => {
+  it('does not land on another stretch under the same date or number', () => {
     const t = trail();
-    const opened = planDays(t, plan(t, ['c2'], null), OPTS)[0];
-    const after = planDays(t, plan(t, ['c1', 'c2'], null), OPTS);
-    expect(currentPlanDay(after, opened)).toMatchObject({ dayNumber: 1, endName: 'Camp A' });
+    const opened = planGlance(t, plan(t, ['c1', 'c2'], '2026-10-10'), OPTS).days[1];
+    expect(opened).toMatchObject({ dayNumber: 2, startName: 'Camp A', date: '2026-10-11' });
+    // Camp A taken out: day 2 and the 11th are now Camp B onwards.
+    const after = planGlance(t, plan(t, ['c2', 'c3'], '2026-10-10'), OPTS);
+    expect(after.days[1]).toMatchObject({ dayNumber: 2, startName: 'Camp B' });
+    expect(currentPlanDay(after, opened)).toEqual({ kind: 'gone' });
   });
 
-  it('keeps the day it was opened with when the plan no longer has it', () => {
+  it('says so when the stretch from that stop is now "not planned yet"', () => {
     const t = trail();
-    const opened = planDays(t, plan(t, ['c1', 'c2', 'c3'], null), OPTS)[3];
-    expect(currentPlanDay(planDays(t, plan(t, [], null), OPTS), opened)).toBe(opened);
+    const before = planGlance(t, plan(t, ['c1', 'c2'], null), OPTS);
+    const opened = before.days[1]; // Camp A → Camp B
+    // Camp B taken out: from Camp A it is 80 km to the end, too long for a day.
+    const after = planGlance(t, plan(t, ['c1'], null), OPTS);
+    expect(after.unplanned).toMatchObject({ startName: 'Camp A' });
+    expect(currentPlanDay(after, opened)).toEqual({ kind: 'unplanned', day: after.unplanned });
   });
 
   it('measures over the section it is given', () => {
     const t = trail();
     const section = { startKm: 20, endKm: 80, startName: 'Camp A', endName: 'Camp C' };
-    const days = planDays(t, plan(t, ['c2'], null), OPTS, section);
+    const { days } = planGlance(t, plan(t, ['c2'], null), OPTS, section);
     expect(days.map((d) => [d.startKm, d.endKm])).toEqual([
       [20, 60],
       [60, 80],

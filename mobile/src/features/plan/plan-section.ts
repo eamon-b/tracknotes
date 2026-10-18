@@ -55,3 +55,22 @@ export function sectionOptions(trail: TrailJson): WaypointOption[] {
 
   return result;
 }
+
+/**
+ * A km range out of Expo Router params, which are strings (or arrays, from a
+ * repeated key: the first is taken). Null when either end is missing, blank,
+ * not a number, or the range is empty.
+ */
+export function kmRangeFromParams(
+  startKm: string | string[] | undefined,
+  endKm: string | string[] | undefined,
+): { startKm: number; endKm: number } | null {
+  const num = (value: string | string[] | undefined): number => {
+    const raw = Array.isArray(value) ? value[0] : value;
+    return raw === undefined || raw.trim() === '' ? NaN : Number(raw);
+  };
+  const start = num(startKm);
+  const end = num(endKm);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return null;
+  return { startKm: start, endKm: end };
+}

@@ -45,3 +45,34 @@ export function eleBounds(points: readonly { ele: number }[]): EleBounds {
   const ceilingM = Math.max(hi > 0 ? niceCeil(hi) : 0, floorM + MIN_ELE_SPAN_M);
   return { floorM, ceilingM };
 }
+
+/** The step of an axis of about `maxTicks` labelled lines over `span`: 1, 2 or 5 × 10^n. */
+function niceStep(span: number, maxTicks: number): number {
+  const rough = span / maxTicks;
+  const magnitude = Math.pow(10, Math.floor(Math.log10(rough)));
+  const normalized = rough / magnitude;
+  const step = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
+  return step * magnitude;
+}
+
+/**
+ * A drawn elevation axis over `bounds`: about `maxTicks` labelled lines at a
+ * nice step, with the top raised to the next line so the high point always
+ * sits under a label (a 1,400 m ceiling on a 500 m step would leave the peak
+ * 400 m above the last one). The floor stays at `bounds.floorM`, 0 m for any
+ * track that stays above sea level.
+ */
+export function eleAxis(
+  bounds: EleBounds,
+  maxTicks: number,
+): { minM: number; maxM: number; ticks: number[] } {
+  const minM = bounds.floorM;
+  const step = niceStep(bounds.ceilingM - minM, maxTicks);
+  const ticks: number[] = [];
+  for (let i = Math.ceil(minM / step); ; i++) {
+    const tick = Math.round(i * step * 1e6) / 1e6;
+    ticks.push(tick);
+    if (tick >= bounds.ceilingM) break;
+  }
+  return { minM, maxM: ticks[ticks.length - 1], ticks };
+}

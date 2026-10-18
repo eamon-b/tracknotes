@@ -7,11 +7,13 @@
  * descent from the row before, and among them the OpenStreetMap points of
  * interest the guide's POI filter shows. The route params (`dayRouteParams`)
  * carry the day as the card showed it and the Plan screen's section, and the
- * day is rebuilt from the plan over that section (`currentPlanDay`: by date,
- * else by number), so an edit made from a waypoint pushed over this screen,
- * or a data reload, shows here; the params are the fallback when the plan no
- * longer has the day. The rows are measured on the route the plan walks
- * (`use-plan-route`), as the Plan screen's are.
+ * day is rebuilt from the plan over that section (dropped when it no longer
+ * fits the route), so an edit made from a waypoint pushed over this screen,
+ * or a data reload, shows here. The day is the one that starts where the
+ * opened one did (`currentPlanDay`); when the plan is "not planned yet" from
+ * there, or no day starts there any more, the screen says so. The rows are
+ * measured on the route the plan walks (`use-plan-route`), as the Plan
+ * screen's are.
  *
  * Read-only, like Today: stops are made and changed on the Plan screen.
  */
@@ -23,12 +25,13 @@ import { KM_EPSILON } from '@lib/plan-direction';
 import { useTheme } from '../../../src/theme';
 import { spacing, typography } from '../../../src/tokens';
 import { useGuide } from '../../../src/features/guide/GuideContext';
-import { usePlanGlance } from '../../../src/features/plan/use-plan-glance';
-import { planDays } from '../../../src/features/plan/plan-glance';
+import { usePlanBasis } from '../../../src/features/plan/use-plan-glance';
+import { planGlance } from '../../../src/features/plan/plan-glance';
 import {
   currentPlanDay,
   dayFromRouteParams,
   sectionFromRouteParams,
+  sectionOnRoute,
 } from '../../../src/features/plan/today-plan';
 import { useDayEntries, useLocalDate } from '../../../src/features/plan/use-today-plan';
 import { DayWaypointList } from '../../../src/features/plan/DayWaypointList';
@@ -37,7 +40,7 @@ export default function DayScreen() {
   const params = useLocalSearchParams<Record<string, string>>();
   const { trailId } = useGuide();
   const { colors } = useTheme();
-  const { trail, plan, options } = usePlanGlance();
+  const { trail, plan, options } = usePlanBasis();
   const today = useLocalDate();
   // Params are strings re-made on every render; key the parse on their values.
   const paramsKey = JSON.stringify(params);
@@ -46,19 +49,25 @@ export default function DayScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [paramsKey],
   );
-  const day = useMemo(
-    () => opened.day && currentPlanDay(planDays(trail, plan, options, opened.section), opened.day),
-    [trail, plan, options, opened],
-  );
+  const current = useMemo(() => {
+    if (!opened.day) return null;
+    const section = sectionOnRoute(opened.section, trail.track.totalDistance);
+    return currentPlanDay(planGlance(trail, plan, options, section), opened.day);
+  }, [trail, plan, options, opened]);
+  const day = current?.kind === 'day' ? current.day : null;
   const { entries, pois } = useDayEntries(trail, day);
 
   if (!day) {
+    const message =
+      current === null
+        ? 'This day could not be opened. Go back to the planner and tap it again.'
+        : current.kind === 'unplanned'
+          ? `Not planned yet: from ${current.day.startName} the plan has no stop within a day's walk. Add one in the planner.`
+          : 'This day is no longer in the plan. Go back to the planner to see the days as they are now.';
     return (
       <View style={[styles.empty, { backgroundColor: colors.background }]}>
         <Stack.Screen options={{ title: 'Day' }} />
-        <Text style={[styles.emptyBody, { color: colors.textSecondary }]}>
-          This day could not be opened. Go back to the planner and tap it again.
-        </Text>
+        <Text style={[styles.emptyBody, { color: colors.textSecondary }]}>{message}</Text>
       </View>
     );
   }

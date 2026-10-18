@@ -31,7 +31,22 @@ export interface PlanGlanceState extends PlanGlance {
   trail: TrailJson;
 }
 
-export function usePlanGlance(): PlanGlanceState {
+/** What the plan's days are computed from, without computing them. */
+export interface PlanBasis {
+  /** The saved plan in route km (`planToRoute`), or an empty one when the trail has none. */
+  plan: PlanDocument;
+  /** The hiker's direction, pace and daily hours. */
+  options: PlanGlanceOptions;
+  /** The route the plan walks (`use-plan-route`), direction applied. */
+  trail: TrailJson;
+}
+
+/**
+ * The saved plan on the route it walks, with the hiker's figures — for a
+ * screen that computes days of its own (the Day screen, over the Plan
+ * screen's section) and has no use for the whole route's.
+ */
+export function usePlanBasis(): PlanBasis {
   const { trailId, direction } = useGuide();
   const saved = usePlansStore(selectPlan(trailId));
   const { route, trail } = usePlanRoute(saved);
@@ -40,15 +55,26 @@ export function usePlanGlance(): PlanGlanceState {
   const baseKmh = PACE_KMH[prefs.pace];
   const dailyHours = prefs.dailyHours;
 
-  return useMemo(() => {
-    const plan = planToRoute(saved ?? emptyPlan(trailId, planDirection), route);
-    const options: PlanGlanceOptions = { direction: planDirection, baseKmh, dailyHours };
-    return {
+  return useMemo(
+    () => ({
+      plan: planToRoute(saved ?? emptyPlan(trailId, planDirection), route),
+      options: { direction: planDirection, baseKmh, dailyHours },
+      trail,
+    }),
+    [saved, route, trail, trailId, planDirection, baseKmh, dailyHours],
+  );
+}
+
+export function usePlanGlance(): PlanGlanceState {
+  const { plan, options, trail } = usePlanBasis();
+  return useMemo(
+    () => ({
       ...planGlance(trail, plan, options),
       plan,
       hasStops: plan.stops.length > 0,
       options,
       trail,
-    };
-  }, [saved, route, trail, trailId, planDirection, baseKmh, dailyHours]);
+    }),
+    [plan, options, trail],
+  );
 }

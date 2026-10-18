@@ -30,6 +30,7 @@ import type { TrailPOI } from '@lib/trail-types';
 import type { TrailJson, TrailJsonWaypoint } from '../../services/trail-assets';
 import { placeOffTrailMeters } from '../guide/waypoint-detail';
 import type { PlanGlance } from './plan-glance';
+import { kmRangeFromParams } from './plan-section';
 
 /** What the plan says about today. */
 export type TodayPlan =
@@ -267,8 +268,7 @@ export function todayEntries(
  * The day travels whole, with the section it was computed over: the Plan
  * screen's days are scoped to its section (a local choice the Day screen
  * cannot see), so "day 3" there need not be day 3 of the whole plan. The Day
- * screen rebuilds the day from the plan over that section (`currentPlanDay`),
- * and shows the day as it travelled only when the plan no longer has it.
+ * screen rebuilds the day from the plan over that section (`currentPlanDay`).
  */
 export function dayRouteParams(day: ComputedDay, section?: SectionConfig): Record<string, string> {
   return {
@@ -354,34 +354,50 @@ export function dayFromRouteParams(
 export function sectionFromRouteParams(
   params: Partial<Record<string, string | string[]>>,
 ): SectionConfig | undefined {
-  const { sectionStartKm, sectionEndKm, sectionStartName, sectionEndName } = params;
-  if (
-    typeof sectionStartKm !== 'string' ||
-    typeof sectionEndKm !== 'string' ||
-    typeof sectionStartName !== 'string' ||
-    typeof sectionEndName !== 'string' ||
-    sectionStartKm.trim() === '' ||
-    sectionEndKm.trim() === ''
-  ) {
-    return undefined;
-  }
-  const startKm = Number(sectionStartKm);
-  const endKm = Number(sectionEndKm);
-  if (!Number.isFinite(startKm) || !Number.isFinite(endKm) || !(endKm > startKm)) return undefined;
-  return { startKm, endKm, startName: sectionStartName, endName: sectionEndName };
+  const range = kmRangeFromParams(params.sectionStartKm, params.sectionEndKm);
+  const { sectionStartName: startName, sectionEndName: endName } = params;
+  if (!range || typeof startName !== 'string' || typeof endName !== 'string') return undefined;
+  return { ...range, startName, endName };
 }
 
 /**
- * The plan's current version of `opened`, the day a screen was opened with:
- * the day with its date when it has one (a stop added before it renumbers the
- * days, but the hiker opened the day of that date), else the day with its
- * number, else `opened` itself — the plan no longer has that day, and the
- * day as it was beats a blank screen.
+ * `section` when it still lies on a route of `totalKm`, else undefined (the
+ * whole route). The Plan screen resets its section when the route changes —
+ * an alternate taken or dropped from a screen pushed over the Day screen —
+ * and a section measured on the old route would run past the new one's end.
  */
-export function currentPlanDay(days: ComputedDay[], opened: ComputedDay): ComputedDay {
-  if (opened.date !== undefined) {
-    const dated = days.find((d) => d.date === opened.date);
-    if (dated) return dated;
+export function sectionOnRoute(
+  section: SectionConfig | undefined,
+  totalKm: number,
+): SectionConfig | undefined {
+  if (!section) return undefined;
+  return section.startKm >= 0 && section.endKm <= totalKm + KM_EPSILON ? section : undefined;
+}
+
+/** What the plan says now about the day a screen was opened with. */
+export type CurrentPlanDay =
+  /** The plan still has a day from the same place. */
+  | { kind: 'day'; day: ComputedDay }
+  /** From that place on, the plan is "not planned yet": no stop within a day. */
+  | { kind: 'unplanned'; day: ComputedDay }
+  /** No day of the plan starts there any more. */
+  | { kind: 'gone' };
+
+/**
+ * The plan's current version of `opened`, the day a screen was opened with:
+ * the day that starts where it started. The start is the stop slept at, which
+ * survives the edits that renumber or re-date the days (a stop added before
+ * it, a new start date, more nights somewhere), while a date or a day number
+ * would quietly land on another stretch. When the stretch from there is now
+ * the "not planned yet" tail, or no day starts there, the screen says so
+ * rather than repeating figures the plan no longer has.
+ */
+export function currentPlanDay(glance: PlanGlance, opened: ComputedDay): CurrentPlanDay {
+  const sameStart = (d: ComputedDay) => Math.abs(d.startKm - opened.startKm) <= KM_EPSILON;
+  const day = glance.days.find(sameStart);
+  if (day) return { kind: 'day', day };
+  if (glance.unplanned && sameStart(glance.unplanned)) {
+    return { kind: 'unplanned', day: glance.unplanned };
   }
-  return days.find((d) => d.dayNumber === opened.dayNumber) ?? opened;
+  return { kind: 'gone' };
 }

@@ -23,6 +23,7 @@ import {
   type ResupplySection,
 } from '../../../src/features/plan/ResupplySelectList';
 import { selectPrefs, usePlanInputsStore } from '../../../src/features/plan/plan-inputs-store';
+import { kmRangeFromParams } from '../../../src/features/plan/plan-section';
 import { planDirectionOf } from '../../../src/features/plan/plan-stops';
 import { queueResupplyToggle } from '../../../src/features/plan/resupply-toggle';
 import {
@@ -64,7 +65,11 @@ export default function ResupplyStopsScreen() {
   const allIds = useMemo(() => allResupplyOptionIds(groups), [groups]);
   // No selection yet = every option ticked, the same default the legs card uses.
   const selectedIds = useMemo(() => new Set(stored ?? allIds), [stored, allIds]);
-  const section = useMemo(() => parseSection(params.startKm, params.endKm), [params.startKm, params.endKm]);
+  // Anything unparseable dims nothing.
+  const section: ResupplySection | null = useMemo(
+    () => kmRangeFromParams(params.startKm, params.endKm),
+    [params.startKm, params.endKm],
+  );
 
   // The new list is worked out when the edit runs, from the document it is
   // handed — not from `stored` — so a second quick tap builds on the first.
@@ -86,15 +91,4 @@ export default function ResupplyStopsScreen() {
       onReset={() => resetResupplyStops(trailId, defaults)}
     />
   );
-}
-
-/** Route params are strings (or arrays); anything unparseable dims nothing. */
-function parseSection(
-  startKm: string | string[] | undefined,
-  endKm: string | string[] | undefined,
-): ResupplySection | null {
-  const start = Number(Array.isArray(startKm) ? startKm[0] : startKm);
-  const end = Number(Array.isArray(endKm) ? endKm[0] : endKm);
-  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return null;
-  return { startKm: start, endKm: end };
 }

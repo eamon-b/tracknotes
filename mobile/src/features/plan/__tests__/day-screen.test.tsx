@@ -35,7 +35,7 @@ jest.mock('../../../state/settings-store', () => ({
 
 jest.mock('../../guide/GuideContext', () => ({ useGuide: () => ({ trailId: 'syn' }) }));
 
-/** 100 km, flat, with a creek at 30 and camps at 20 and 60. */
+/** 100 km, flat, with a creek at 30 and camps at 5, 20, 60 and 80. */
 const mockTrail = {
   config: { id: 'syn', name: 'Syn' },
   track: {
@@ -43,14 +43,16 @@ const mockTrail = {
     points: Array.from({ length: 101 }, (_, i) => ({ lat: 0, lon: i * 0.009, ele: 100, dist: i })),
   },
   waypoints: [
+    { id: 'c0', name: 'Camp 0', lat: 0, lon: 0.045, type: 'campsite', totalDistance: 5, trackIndex: 5 },
     { id: 'c1', name: 'Camp A', lat: 0, lon: 0.18, type: 'campsite', totalDistance: 20, trackIndex: 20 },
     { id: 'wa', name: 'Creek', lat: 0, lon: 0.27, type: 'water', totalDistance: 30, trackIndex: 30 },
     { id: 'c2', name: 'Camp B', lat: 0, lon: 0.54, type: 'campsite', totalDistance: 60, trackIndex: 60 },
+    { id: 'c3', name: 'Camp C', lat: 0, lon: 0.72, type: 'campsite', totalDistance: 80, trackIndex: 80 },
   ],
 } as unknown as TrailJson;
 let mockPlan: PlanDocument;
 jest.mock('../use-plan-glance', () => ({
-  usePlanGlance: () => ({
+  usePlanBasis: () => ({
     trail: mockTrail,
     plan: mockPlan,
     options: { direction: 'NOBO', baseKmh: 4, dailyHours: 8 },
@@ -102,15 +104,16 @@ const texts = (tree: ReactTestRenderer) =>
 beforeEach(() => {
   mockPush.mockClear();
   mockFilter = defaultPoiFilterState();
-  // The plan the card was opened from: Camp A, then Camp B on day 4.
-  mockPlan = planWith(['c1', 'c2'], null);
+  // The plan the card was opened from: Camp A, then Camp B on day 2.
+  mockPlan = planWith(['c1', 'c2'], '2020-01-01');
 });
 
 it('lists the day stop to stop and opens a waypoint', () => {
   mockParams = { trailId: 'syn', ...dayRouteParams(day) };
   const tree = render();
   const shown = texts(tree);
-  expect(shown).toContain('Day 4 · 2020-01-02');
+  // The plan's own number and date, not the card's.
+  expect(shown).toContain('Day 2 · 2020-01-02');
   expect(shown).toContain('Camp A → Camp B');
   expect(shown.filter((s) => ['Camp A', 'Creek', 'Camp B'].includes(s))).toEqual([
     'Camp A',
@@ -148,22 +151,36 @@ it('says so when the params do not make a day', () => {
 });
 
 it('shows the plan as it is now, not as the card was', () => {
-  // Opened as Camp A → Camp B; then Camp A was taken out (from a waypoint
-  // screen pushed over this one), so day 2 now runs from the start.
-  mockParams = { trailId: 'syn', ...dayRouteParams({ ...day, dayNumber: 2, date: undefined }) };
-  mockPlan = planWith(['c2'], null);
+  // Opened as Camp A → Camp B; then Camp B was taken out and Camp C (km 80)
+  // made a stop, from a waypoint screen pushed over this one.
+  mockParams = { trailId: 'syn', ...dayRouteParams(day) };
+  mockPlan = planWith(['c1', 'c3'], null);
   const shown = texts(render());
-  expect(shown).toContain('Camp B → Syn End');
-  expect(shown).toContain('Finish');
+  expect(shown).toContain('Camp A → Camp C');
 });
 
-it('finds a dated day by its date after the days are renumbered', () => {
-  mockParams = { trailId: 'syn', ...dayRouteParams({ ...day, dayNumber: 1, date: '2020-01-02' }) };
-  // A stop added before it: the 2nd's day is now day 2, Camp A → Camp B.
-  mockPlan = planWith(['c1', 'c2'], '2020-01-01');
+it('follows the day from the same stop after the days are renumbered', () => {
+  mockParams = { trailId: 'syn', ...dayRouteParams({ ...day, dayNumber: 1, date: '2020-01-01' }) };
+  // A stop added before Camp A: the day from Camp A is now day 3, on the 3rd.
+  mockPlan = planWith(['c0', 'c1', 'c2'], '2020-01-01');
   const shown = texts(render());
-  expect(shown).toContain('Day 2 · 2020-01-02');
+  expect(shown).toContain('Day 3 · 2020-01-03');
   expect(shown).toContain('Camp A → Camp B');
+});
+
+it('says when no day starts at that stop any more', () => {
+  mockParams = { trailId: 'syn', ...dayRouteParams(day) };
+  mockPlan = planWith(['c2'], null);
+  expect(texts(render()).some((s) => s.includes('no longer in the plan'))).toBe(true);
+});
+
+it('says when the stretch from that stop is not planned yet', () => {
+  mockParams = { trailId: 'syn', ...dayRouteParams(day) };
+  // Camp B taken out: 80 km from Camp A to the end is too long for a day.
+  mockPlan = planWith(['c1'], null);
+  const shown = texts(render());
+  expect(shown.some((s) => s.startsWith('Not planned yet: from Camp A'))).toBe(true);
+  expect(shown).not.toContain('Camp A → Syn End');
 });
 
 it('measures the day over the section the Plan screen showed', () => {
@@ -173,4 +190,14 @@ it('measures the day over the section the Plan screen showed', () => {
   const shown = texts(render());
   expect(shown).toContain('Day 1');
   expect(shown).toContain('Camp A → Camp B');
+});
+
+it('drops a section that no longer fits the route', () => {
+  // Opened over a 120 km section; the route is now 100 km (an alternate taken).
+  const section = { startKm: 0, endKm: 120, startName: 'Old start', endName: 'Old end' };
+  mockParams = { trailId: 'syn', ...dayRouteParams({ ...day, startKm: 80, endKm: 120 }, section) };
+  mockPlan = planWith(['c1', 'c2', 'c3'], null);
+  const shown = texts(render());
+  expect(shown).toContain('Camp C → Syn End');
+  expect(shown).toContain('Finish');
 });

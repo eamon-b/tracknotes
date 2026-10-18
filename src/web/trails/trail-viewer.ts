@@ -3,7 +3,7 @@
 
 import type * as Leaflet from 'leaflet';
 import { findNearestByDistance } from '@lib/track-geometry';
-import { eleBounds } from '@lib/elevation-axis';
+import { eleAxis, eleBounds } from '@lib/elevation-axis';
 import { createReversedTrail } from '@lib/trail-reverse';
 import { routeBreakCrossings, splitAtRouteBreaks } from '@lib/route-breaks';
 import { buildPointIndex, type PointIndex } from '@lib/point-index';
@@ -27,7 +27,8 @@ import {
 // in an attribute value as in a text node. That matters here: `linkifyText`
 // puts a description's links inside `href="…"`, and imported GPX supplies
 // every waypoint name, type and description on this page.
-import { SITE_ROOT, escapeHtml, generatedDataUrl, linkifyText } from '../web-utils';
+import { SITE_ROOT, escapeHtml, generatedDataUrl } from '../web-utils';
+import { linkifyText } from '../linkify-text';
 import { buildGpx, csvQuote } from './trail-export';
 import { waypointFamilyClass, waypointIcon } from './waypoint-icons';
 import { accessPathLayer, hasAccessPath } from './access-path';
@@ -1931,11 +1932,11 @@ function drawElevationProfile(points: TrackPoint[]): void {
   const distances = points.map(p => p.dist);
   const { max: maxDist } = getMinMax(distances);
 
-  // The phone's axis: from 0 m to just above the trail's high point, not
-  // fitted to its low and high points, so a climb looks the same on both.
-  const { floorM: eleMin, ceilingM: eleMax } = eleBounds(points);
+  // The phone's axis: from 0 m to the first labelled line above the trail's
+  // high point, not fitted to its low and high points, so a climb looks the
+  // same on both.
+  const { minM: eleMin, maxM: eleMax, ticks: eleTicks } = eleAxis(eleBounds(points), 4);
   const eleRange = eleMax - eleMin || 1;
-  const eleTicks = niceAxisTicks(eleMin, eleMax, 4);
   const distTicks = niceAxisTicks(0, maxDist, 5);
 
   // Measure the widest elevation label to size left padding
