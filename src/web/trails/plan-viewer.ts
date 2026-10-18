@@ -82,6 +82,8 @@ import { trailElevationIsUsable } from '@lib/elevation-backfill';
 import { KM_EPSILON, getDirectionLabel, stopsToActive, toNoboKm, type PlanDirection } from '@lib/plan-direction';
 import { baseWaypointType, waypointTypeLabel } from '@lib/waypoint-taxonomy';
 import { waypointFamilyClass, waypointIcon } from './waypoint-icons';
+import { accessPathLayer, hasAccessPath } from './access-path';
+import { stopWalk } from '@lib/day-calculator';
 import {
   loadOrMigratePlan,
   loadPlanUiPrefs,
@@ -219,6 +221,13 @@ let basePolyline: L.Polyline | null = null;
 let routeLineLayer: L.LayerGroup | null = null;
 let dayPolylines: L.Polyline[] = [];
 let stopMarkers: L.LayerGroup | null = null;
+/** The open popup's place's walk in from the route, drawn while the popup is open. */
+let popupAccessPath: L.LayerGroup | null = null;
+/**
+ * An off-route place's dotted walk in: dark against the grey base line and the
+ * day colours, because the walk is part of the day, not a day of its own.
+ */
+const ACCESS_PATH_COLOR = '#37474f';
 let waypointMarkers: Array<{ marker: L.Marker; waypoint: PlanWaypoint }> = [];
 
 // Elevation
@@ -719,6 +728,7 @@ function drawWaypointMarkers(): void {
   // Remove existing
   waypointMarkers.forEach(({ marker }) => marker.remove());
   waypointMarkers = [];
+  hidePopupAccessPath();
 
   // On the Resupply tab the map answers the question that tab asks: which of the
   // resupply options am I taking? Ticked ones borrow the camp-stop emphasis and
@@ -764,9 +774,27 @@ function drawWaypointMarkers(): void {
       }
       marker.bindPopup(waypointPopupContent(wp, km), { className: 'plan-wp-popup' }).openPopup();
     });
+    // The trail viewer's rule: the way walked in to an off-route place is
+    // dotted while its popup is open.
+    const path = wp.offTrailPath;
+    if (hasAccessPath(path)) {
+      marker.on('popupopen', () => showPopupAccessPath(path));
+      marker.on('popupclose', hidePopupAccessPath);
+    }
     marker.addTo(map!);
     waypointMarkers.push({ marker, waypoint: wp });
   });
+}
+
+function showPopupAccessPath(path: Array<[number, number]>): void {
+  hidePopupAccessPath();
+  if (!map) return;
+  popupAccessPath = accessPathLayer(path, ACCESS_PATH_COLOR).addTo(map);
+}
+
+function hidePopupAccessPath(): void {
+  if (popupAccessPath && map) map.removeLayer(popupAccessPath);
+  popupAccessPath = null;
 }
 
 /**
@@ -854,6 +882,13 @@ function redrawMapLayers(): void {
       iconAnchor: [12, 12],
     });
     L.marker([wp.lat ?? 0, wp.lon ?? 0], { icon: divIcon }).addTo(stopMarkers!);
+    // A stop off the route is walked to and from, and its days count that
+    // walk (`stopWalk`, the same test `computePlanDays` makes), so the way is
+    // on the map as long as the stop is.
+    const path = wp.offTrailPath;
+    if (hasAccessPath(path) && stopWalk(wp, stop.km)) {
+      accessPathLayer(path, ACCESS_PATH_COLOR).addTo(stopMarkers!);
+    }
   });
 
   // Re-draw waypoint markers to update is-stop styling

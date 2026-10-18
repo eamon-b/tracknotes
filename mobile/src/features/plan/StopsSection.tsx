@@ -39,6 +39,8 @@ import { radii, spacing, typography } from '../../tokens';
 import type { Units } from '../../state/settings-store';
 import { StopEditor } from './StopEditor';
 import { OffTrailBadge, offTrailA11y } from '../guide/OffTrailBadge';
+import type { MapPoint } from '../guide/GuideFocusContext';
+import { ShowOnMapIconButton } from '../guide/ShowOnMap';
 import { stopKeyOf, type StopCandidate, type StopLeg } from './plan-stops';
 
 /** Rows revealed at a time — a long trail's "All waypoints" list is thousands. */
@@ -93,6 +95,8 @@ export interface StopsSectionProps {
   alternates?: AlternateMarker[];
   /** Take an alternate (`true`) or go back to the main route. */
   onAlternate?: (name: string, take: boolean) => void;
+  /** Show a place on the guide's map (its `point`); no button without it. */
+  onShowOnMap?: (point: MapPoint) => void;
 }
 
 /**
@@ -199,6 +203,11 @@ export function StopsSection(props: StopsSectionProps) {
               onNights={(nights) => props.onNights(candidate, nights)}
               onNote={(note) => props.onNote(candidate, note)}
               onBooked={(booked) => props.onBooked(candidate, booked)}
+              onShowOnMap={
+                props.onShowOnMap && candidate.point
+                  ? () => props.onShowOnMap!(candidate.point!)
+                  : undefined
+              }
             />
           </React.Fragment>
         ))
@@ -325,6 +334,7 @@ function StopRow({
   onNights,
   onNote,
   onBooked,
+  onShowOnMap,
 }: {
   candidate: StopCandidate;
   stop: PlanStop | undefined;
@@ -337,6 +347,7 @@ function StopRow({
   onNights: (nights: number) => void;
   onNote: (note: string) => void;
   onBooked: (booked: boolean) => void;
+  onShowOnMap?: () => void;
 }) {
   const { colors } = useTheme();
   const checked = stop !== undefined;
@@ -350,35 +361,40 @@ function StopRow({
         },
       ]}
     >
-      <Pressable
-        onPress={onToggle}
-        accessibilityRole="checkbox"
-        accessibilityState={{ checked }}
-        accessibilityLabel={`${candidate.name}${offTrailA11y(offTrailM, units)}`}
-        style={({ pressed }) => [styles.rowPress, pressed && styles.pressed]}
-      >
-        <View
-          style={[
-            styles.tick,
-            {
-              borderColor: checked ? colors.accent : colors.border,
-              backgroundColor: checked ? colors.accent : 'transparent',
-            },
-          ]}
+      <View style={styles.rowLine}>
+        <Pressable
+          onPress={onToggle}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked }}
+          accessibilityLabel={`${candidate.name}${offTrailA11y(offTrailM, units)}`}
+          style={({ pressed }) => [styles.rowPress, pressed && styles.pressed]}
         >
-          {checked && <Text style={[styles.tickGlyph, { color: colors.accentText }]}>✓</Text>}
-        </View>
-        <View style={styles.rowBody}>
-          <Text style={[styles.name, { color: colors.textPrimary }]} numberOfLines={1}>
-            {candidate.name}
-          </Text>
-          <Text style={[styles.km, { color: colors.textSecondary }]}>
-            {leg ? legText(leg, units, showClimb) : formatDistance(candidate.activeKm, units)}
-          </Text>
-          <OffTrailBadge metres={offTrailM} units={units} style={styles.offTrail} />
-          {services && <ServicesStrip services={services} />}
-        </View>
-      </Pressable>
+          <View
+            style={[
+              styles.tick,
+              {
+                borderColor: checked ? colors.accent : colors.border,
+                backgroundColor: checked ? colors.accent : 'transparent',
+              },
+            ]}
+          >
+            {checked && <Text style={[styles.tickGlyph, { color: colors.accentText }]}>✓</Text>}
+          </View>
+          <View style={styles.rowBody}>
+            <Text style={[styles.name, { color: colors.textPrimary }]} numberOfLines={1}>
+              {candidate.name}
+            </Text>
+            <Text style={[styles.km, { color: colors.textSecondary }]}>
+              {leg ? legText(leg, units, showClimb) : formatDistance(candidate.activeKm, units)}
+            </Text>
+            <OffTrailBadge metres={offTrailM} units={units} style={styles.offTrail} />
+            {services && <ServicesStrip services={services} />}
+          </View>
+        </Pressable>
+        {/* Beside the checkbox, not in it: an accessible parent would hide it
+            from a screen reader. */}
+        {onShowOnMap && <ShowOnMapIconButton name={candidate.name} onPress={onShowOnMap} />}
+      </View>
 
       {stop && (
         <View style={[styles.editor, { borderTopColor: colors.border }]}>
@@ -431,7 +447,9 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.md,
   },
+  rowLine: { flexDirection: 'row', alignItems: 'center', paddingRight: spacing.xs },
   rowPress: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,

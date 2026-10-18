@@ -16,6 +16,7 @@ import { Linking, Platform } from 'react-native';
 import TestRenderer, { act, type ReactTestRenderer } from 'react-test-renderer';
 import type { TrailPOI } from '@lib/trail-types';
 import { googleMapsUrl, mapsUrlFor } from '../poi-detail';
+import { takeMapTarget } from '../map-target';
 import PoiDetailScreen from '../../../../app/guide/[trailId]/poi/[poiKey]';
 
 // Mutated per test, then returned by the mocked router hook.
@@ -33,8 +34,10 @@ const mockTrack = {
   ],
 };
 
+const mockDismissTo = jest.fn();
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => mockParams,
+  useRouter: () => ({ dismissTo: mockDismissTo }),
   Stack: { Screen: () => null },
 }));
 
@@ -225,6 +228,17 @@ describe('PoiDetailScreen', () => {
     expect(Linking.openURL).toHaveBeenCalledWith('https://www.openstreetmap.org/node/1');
   });
 
+  it("shows the POI's own position on the guide's map", () => {
+    const press = controls(render()).get('Show on map');
+    expect(press).toBeDefined();
+    act(() => press?.());
+    expect(takeMapTarget('heysen')).toEqual({ lat: -34.9285, lon: 138.6007 });
+    expect(mockDismissTo).toHaveBeenCalledWith({
+      pathname: '/guide/[trailId]',
+      params: { trailId: 'heysen' },
+    });
+  });
+
   it("opens a new OpenStreetMap note at the POI's position", () => {
     const press = controls(render()).get('Report a problem on OpenStreetMap');
     expect(press).toBeDefined();
@@ -279,6 +293,7 @@ describe('PoiDetailScreen', () => {
     expect(allText(tree)).toContain('javascript:alert(1)');
     // …but no control exists for it, so nothing can open it.
     expect([...controls(tree).keys()]).toEqual([
+      'Show on map',
       'Open in OpenStreetMap',
       'Open in Maps',
       'Report a problem on OpenStreetMap',

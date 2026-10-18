@@ -2,7 +2,9 @@
  * One planned day, waypoint by waypoint: a summary card, the guide's POI
  * filter chips, then every row from the stop slept at to the night's stop with
  * the OSM points of interest the filter shows among them (`today-plan.ts`
- * `todayEntries`). Each waypoint row opens its waypoint, each POI row its POI.
+ * `todayEntries`). Each waypoint row opens its waypoint, each POI row its POI,
+ * and a waypoint row's map-marker button shows the place on the guide's map,
+ * with the walk in dotted when it is off the route.
  *
  * Shared by the Today screen (the day dated today) and the Day screen (any
  * day card tapped on the Plan screen), so the two read the same.
@@ -26,6 +28,8 @@ import { radii, spacing, touchTarget, typography } from '../../tokens';
 import { useSettingsStore, type Units } from '../../state/settings-store';
 import { poiColor } from '../elevation/waypoint-category';
 import { OffTrailBadge, offTrailA11y } from '../guide/OffTrailBadge';
+import { mapPointOf } from '../guide/map-target';
+import { ShowOnMapIconButton, useShowOnMap } from '../guide/ShowOnMap';
 import { ScreenFlatList } from '../../navigation/ScreenScrollView';
 import { formatHours } from './plan-format';
 import type { TodayEntry, TodayRow } from './today-plan';
@@ -53,6 +57,7 @@ export function DayWaypointList({
   const router = useRouter();
   const { colors } = useTheme();
   const units = useSettingsStore((s) => s.units);
+  const showOnMap = useShowOnMap(trailId);
   const hasPoiRows = entries.some((entry) => entry.kind === 'poi');
   return (
     <ScreenFlatList<TodayEntry>
@@ -114,6 +119,9 @@ export function DayWaypointList({
                       params: { trailId, waypointId: item.row.waypoint!.id! },
                     })
                 : undefined
+            }
+            onShowOnMap={
+              item.row.waypoint ? () => showOnMap(mapPointOf(item.row.waypoint!)) : undefined
             }
           />
         )
@@ -185,11 +193,13 @@ function TodayRowView({
   units,
   endLead,
   onPress,
+  onShowOnMap,
 }: {
   row: TodayRow;
   units: Units;
   endLead: string;
   onPress?: () => void;
+  onShowOnMap?: () => void;
 }) {
   const { colors } = useTheme();
   const isEnd = row.role !== 'via';
@@ -199,42 +209,50 @@ function TodayRowView({
     row.role === 'start'
       ? ''
       : `${formatDistance(row.legKm, units)} · ↑ ${formatElevation(row.legAscentM, units)} · ↓ ${formatElevation(row.legDescentM, units)}`;
+  // The map button sits beside the row's pressable, not inside it: an
+  // accessible parent would hide it from a screen reader.
   return (
-    <Pressable
-      onPress={onPress}
-      disabled={!onPress}
-      accessibilityRole={onPress ? 'button' : undefined}
-      accessibilityLabel={`${row.name}, ${formatDistance(row.fromStartKm, units)} from start${leg ? `, leg ${leg}` : ''}${offTrailA11y(row.offTrailM, units)}`}
-      style={({ pressed }) => [
+    <View
+      style={[
         styles.row,
         {
           backgroundColor: colors.surface,
           borderColor: isEnd ? colors.waypointCamp : colors.border,
         },
-        pressed && styles.pressed,
       ]}
     >
-      <View style={styles.rowMain}>
-        <Text style={[styles.rowLead, { color: isEnd ? colors.waypointCamp : colors.textSecondary }]}>
-          {lead}
-        </Text>
-        <Text style={[styles.rowName, { color: colors.textPrimary }]} numberOfLines={2}>
-          {row.name}
-        </Text>
-        {leg !== '' && (
-          <Text style={[styles.rowLeg, { color: colors.textSecondary }]}>{leg}</Text>
-        )}
-      </View>
-      <View style={styles.rowSide}>
-        <Text style={[styles.rowKm, { color: colors.textPrimary }]}>
-          {formatDistance(row.fromStartKm, units)}
-        </Text>
-        <Text style={[styles.rowClimb, { color: colors.textSecondary }]}>
-          {`↑ ${formatElevation(row.totalAscentM, units)} ↓ ${formatElevation(row.totalDescentM, units)}`}
-        </Text>
-        <OffTrailBadge metres={row.offTrailM} units={units} />
-      </View>
-    </Pressable>
+      <Pressable
+        onPress={onPress}
+        disabled={!onPress}
+        accessibilityRole={onPress ? 'button' : undefined}
+        accessibilityLabel={`${row.name}, ${formatDistance(row.fromStartKm, units)} from start${leg ? `, leg ${leg}` : ''}${offTrailA11y(row.offTrailM, units)}`}
+        style={({ pressed }) => [styles.rowPress, pressed && styles.pressed]}
+      >
+        <View style={styles.rowMain}>
+          <Text
+            style={[styles.rowLead, { color: isEnd ? colors.waypointCamp : colors.textSecondary }]}
+          >
+            {lead}
+          </Text>
+          <Text style={[styles.rowName, { color: colors.textPrimary }]} numberOfLines={2}>
+            {row.name}
+          </Text>
+          {leg !== '' && (
+            <Text style={[styles.rowLeg, { color: colors.textSecondary }]}>{leg}</Text>
+          )}
+        </View>
+        <View style={styles.rowSide}>
+          <Text style={[styles.rowKm, { color: colors.textPrimary }]}>
+            {formatDistance(row.fromStartKm, units)}
+          </Text>
+          <Text style={[styles.rowClimb, { color: colors.textSecondary }]}>
+            {`↑ ${formatElevation(row.totalAscentM, units)} ↓ ${formatElevation(row.totalDescentM, units)}`}
+          </Text>
+          <OffTrailBadge metres={row.offTrailM} units={units} />
+        </View>
+      </Pressable>
+      {onShowOnMap && <ShowOnMapIconButton name={row.name} onPress={onShowOnMap} />}
+    </View>
   );
 }
 
@@ -259,6 +277,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     minHeight: touchTarget.min,
   },
+  rowPress: { flex: 1, flexDirection: 'row', gap: spacing.md },
   rowMain: { flex: 1, gap: 2 },
   poiRow: {
     flexDirection: 'row',

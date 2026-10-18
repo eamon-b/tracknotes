@@ -68,6 +68,8 @@ import {
   mapsUrlFor,
   openUrlWithFallback,
 } from '../../../../src/features/guide/poi-detail';
+import { mapPointOf } from '../../../../src/features/guide/map-target';
+import { useShowOnMap } from '../../../../src/features/guide/ShowOnMap';
 import { KeyboardAwareScrollView } from '../../../../src/navigation/KeyboardAwareScrollView';
 import { CommentsSection } from '../../../../src/features/comments/CommentsSection';
 
@@ -75,6 +77,7 @@ export default function PoiDetailScreen() {
   const { trailId, poiKey } = useLocalSearchParams<{ trailId: string; poiKey: string }>();
   const { colors } = useTheme();
   const { trail } = useGuide();
+  const showOnMap = useShowOnMap(trailId ?? '');
   const units = useSettingsStore((s) => s.units);
 
   const poi = useMemo(
@@ -175,6 +178,8 @@ export default function PoiDetailScreen() {
       <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
       <View style={styles.actions}>
+        {/* Back to the guide's map, centred on the POI's own position. */}
+        <ActionButton label="Show on map" onPress={() => showOnMap(mapPointOf(poi))} />
         <ActionButton label="Open in OpenStreetMap" onPress={openOsm} />
         <ActionButton label="Open in Maps" onPress={openMaps} />
         <ActionButton label="Report a problem on OpenStreetMap" onPress={reportOnOsm} />

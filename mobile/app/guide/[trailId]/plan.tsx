@@ -117,6 +117,7 @@ import { DaySplitList } from '../../../src/features/plan/DaySplitList';
 import { dayRouteParams } from '../../../src/features/plan/today-plan';
 import { PoiFilterChips } from '../../../src/features/plan/PoiFilterChips';
 import { useVisiblePois } from '../../../src/features/guide/use-visible-pois';
+import { useShowOnMap } from '../../../src/features/guide/ShowOnMap';
 import { placeOffTrailMeters } from '../../../src/features/guide/waypoint-detail';
 import { StopsSection } from '../../../src/features/plan/StopsSection';
 import { ResupplyCard } from '../../../src/features/plan/ResupplyCard';
@@ -127,6 +128,7 @@ export default function PlanScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const { trailId, direction } = useGuide();
+  const showOnMap = useShowOnMap(trailId);
   const units = useSettingsStore((s) => s.units);
   const planDirection = planDirectionOf(direction);
 
@@ -602,6 +604,7 @@ export default function PlanScreen() {
                 onBooked={(c, booked) => edit((p) => setStopBooked(p, stopKeyOf(c), booked))}
                 currentKm={currentKm}
                 onHereLayout={onHereLayout}
+                onShowOnMap={showOnMap}
               />
             </Section>
 

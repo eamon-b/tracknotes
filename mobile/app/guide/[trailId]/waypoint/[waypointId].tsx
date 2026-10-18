@@ -51,6 +51,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { placeWalk } from '@lib/day-calculator';
 import { formatDistance, formatElevation } from '@lib/format-distance';
 import { accessSummary } from '@lib/resupply-display';
 import { isAccessMode } from '@lib/types';
@@ -76,7 +77,8 @@ import {
   waypointOffTrailMeters,
 } from '../../../../src/features/guide/waypoint-detail';
 import { TripCard } from '../../../../src/features/guide/TripCard';
-import { requestMapTarget } from '../../../../src/features/guide/map-target';
+import { mapPointOf } from '../../../../src/features/guide/map-target';
+import { useShowOnMap } from '../../../../src/features/guide/ShowOnMap';
 import { offTrailDistance } from '../../../../src/features/guide/OffTrailBadge';
 import {
   findStop,
@@ -140,6 +142,7 @@ export default function WaypointDetailScreen() {
   }>();
   const { colors } = useTheme();
   const router = useRouter();
+  const showOnMap = useShowOnMap(trailId);
   const { trail, direction } = useGuide();
   const units = useSettingsStore((s) => s.units);
   const guidePosition = useGuidePositionContext();
@@ -413,12 +416,14 @@ export default function WaypointDetailScreen() {
             placeKm={km}
             placeOffTrailM={placeOffTrailM}
             placeAccessMode={isAccessMode(waypoint.accessMode) ? waypoint.accessMode : undefined}
+            placeWalk={placeWalk(waypoint)}
           />
         ) : routeWaypoint ? (
           <TripCard
             placeKm={routeWaypoint.totalDistance ?? 0}
             placeOffTrailM={placeOffTrailM}
             placeAccessMode={isAccessMode(waypoint.accessMode) ? waypoint.accessMode : undefined}
+            placeWalk={placeWalk(waypoint)}
             along={{ trail: routeTrail, currentKm: routeFixKm }}
           />
         ) : null}
@@ -583,12 +588,7 @@ export default function WaypointDetailScreen() {
             route is shown where it is, not where the route passes it. */}
         <Pressable
           onPress={() => {
-            requestMapTarget(trailId, {
-              lat: waypoint.lat,
-              lon: waypoint.lon,
-              accessPath: waypoint.offTrailPath,
-            });
-            router.dismissTo({ pathname: '/guide/[trailId]', params: { trailId } });
+            showOnMap(mapPointOf(waypoint));
           }}
           accessibilityRole="button"
           accessibilityLabel="Show on map"

@@ -29,6 +29,7 @@ import {
 import { SITE_ROOT, escapeHtml, generatedDataUrl } from '../web-utils';
 import { buildGpx, csvQuote } from './trail-export';
 import { waypointFamilyClass, waypointIcon } from './waypoint-icons';
+import { accessPathLayer, hasAccessPath } from './access-path';
 import { onThemeChange, themeColor } from '../theme';
 // OpenStreetMap points of interest. The pure half — labels, tag summaries,
 // popup/row markup, interleave ordering, filter state — lives next door so it
@@ -1210,18 +1211,7 @@ function walkInLine(wp: Waypoint): string {
 function showAccessPath(path: Array<[number, number]>): void {
   hideAccessPath();
   if (!map) return;
-  // A faint white casing under the dots, so they read over busy town tiles.
-  accessPathLine = L.layerGroup([
-    L.polyline(path, { color: '#ffffff', weight: 6, opacity: 0.7, interactive: false }),
-    L.polyline(path, {
-      color: MAIN_ROUTE_COLOR,
-      weight: 4,
-      opacity: 0.9,
-      dashArray: '1 8',
-      lineCap: 'round',
-      interactive: false
-    })
-  ]).addTo(map);
+  accessPathLine = accessPathLayer(path, MAIN_ROUTE_COLOR).addTo(map);
 }
 
 function hideAccessPath(): void {
@@ -1246,7 +1236,7 @@ function drawWaypointMarkers(waypoints: Waypoint[]): void {
     }).addTo(map!).bindPopup(waypointPopupHtml(wp, index));
 
     const path = wp.offTrailPath;
-    if (path && path.length >= 2) {
+    if (hasAccessPath(path)) {
       marker.on('popupopen', () => showAccessPath(path));
       marker.on('popupclose', hideAccessPath);
     }

@@ -23,6 +23,8 @@ import { KM_EPSILON, toActiveKm, toNoboKm, type PlanDirection } from '@lib/plan-
 import { calculateElevationBetween, type ElevationPoint } from '@lib/track-geometry';
 import { addPlaceWalks, placeWalk, stopWalk, type PlaceWalk } from '@lib/day-calculator';
 import type { TrailJson } from '../../services/trail-assets';
+import type { MapPoint } from '../guide/GuideFocusContext';
+import { mapPointOf } from '../guide/map-target';
 import type { Direction } from '../../state/settings-store';
 
 /** A place the Stops list offers, in both km spaces. */
@@ -39,6 +41,8 @@ export interface StopCandidate {
   noboKm: number;
   /** The walk to it when it is off the route (`@lib/day-calculator` `placeWalk`). */
   walk?: PlaceWalk;
+  /** Where "Show on map" takes the map: the place, and its walk in when routed. */
+  point?: MapPoint;
 }
 
 /** The guide's direction setting as the plan document's direction enum. */
@@ -81,6 +85,7 @@ export function stopCandidateOf(
     activeKm,
     noboKm,
     ...walkOf(wp),
+    point: mapPointOf(wp),
   };
 }
 

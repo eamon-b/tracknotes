@@ -64,6 +64,7 @@ import { MapErrorBoundary } from './MapErrorBoundary';
 import { PoiLayersSheet } from './PoiLayersSheet';
 import { PlanGlanceSheet } from '../plan/PlanGlanceSheet';
 import { usePlanGlance } from '../plan/use-plan-glance';
+import { findGuideWaypoint } from '../plan/waypoint-alternates';
 import { ScaleBar, type ScaleBarHandle } from './ScaleBar';
 import {
   degradationMessage,
@@ -364,12 +365,15 @@ export function MapPane() {
 
   const onWaypointTap = useCallback(
     (id: string) => {
+      // Like the web marker popup: the place's walk in stays dotted on the map
+      // behind its screen (and nothing stays from a place tapped before it).
+      setAccessPath(findGuideWaypoint(trail, id)?.waypoint.offTrailPath ?? null);
       router.push({
         pathname: '/guide/[trailId]/waypoint/[waypointId]',
         params: { trailId, waypointId: id },
       });
     },
-    [router, trailId],
+    [router, trailId, trail],
   );
 
   // A new hiker waypoint: where the map was long-pressed, or at the GPS fix.

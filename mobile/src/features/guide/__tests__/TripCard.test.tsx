@@ -71,6 +71,30 @@ describe('TripCard — the way off the trail', () => {
   });
 });
 
+describe('TripCard — the walk in to the place', () => {
+  const walk = { km: 1.2, ascentM: 80, descentM: 10 };
+
+  it('adds the walk to the climb and time, and says what it climbs', () => {
+    // 10 km of flat trail at 4 km/h is 150 min; the walk adds 1.2 km and 80 m
+    // up by the same rule the planner uses.
+    const out = text(
+      <TripCard placeKm={20} placeOffTrailM={1200} placeAccessMode="foot" placeWalk={walk} />,
+    );
+    expect(out).toContain('10.0 km ahead');
+    expect(out).toContain('↑ 80 m');
+    expect(out).toContain('↓ 10 m');
+    expect(out).toContain('Then 1.20 km off the trail to reach it, ↑ 80 m ↓ 10 m, counted above');
+    expect(out).toContain('~2 h 55 min');
+  });
+
+  it('gives the walk its own time when the hiker is level with it', () => {
+    const out = text(<TripCard placeKm={10} placeOffTrailM={1200} placeWalk={walk} />);
+    expect(out).toContain('At its nearest point on the trail');
+    expect(out).toContain('Then 1.20 km off the trail to reach it, ↑ 80 m ↓ 10 m, ~25 min');
+    expect(out).not.toContain('counted above');
+  });
+});
+
 describe('TripCard — along the route as planned', () => {
   const routeTrail = {
     track: {

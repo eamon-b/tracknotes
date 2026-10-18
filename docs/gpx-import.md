@@ -289,10 +289,19 @@ hanging a few extra fields off the waypoint that marks the turn-off:
   walking *in*, from the route to the place; walking back out climbs the
   descent and descends the climb.
 
-A place you walk to (`foot`, or no mode and 5 km or less) is counted in the
-day planner: a night there adds the walk in, with its climb, to the day that
-reaches it, and the walk back to the day after. A place you ride to is not
-walked, so it adds nothing to the days.
+A place you walk to (`foot`, or no mode and 5 km or less) is counted wherever
+the guide measures a walk:
+
+- in the day planner, a night there adds the walk in, with its climb, to the
+  day that reaches it, and the walk back to the day after;
+- a water carry that starts or ends at a water source off the route includes
+  the walk out of it or in to it;
+- a resupply leg counts the walk to and from the town in its time and food;
+- on the phone, the "From your location" card on a place's page adds the
+  walk's climb and time to the trip there.
+
+A place you ride to is not walked, so it adds nothing to any of them: the ride
+is reported, never timed.
 
 All six are optional and all six are read on import, so a hand-made file
 can describe a turn-off exactly the way the built-in trails do. They have to
@@ -302,6 +311,15 @@ number — is left off rather than guessed at, and another program's
 `<extensions>` block is ignored. Nothing here changes the route: a turn-off
 is a point on the trail at the kilometre where you leave it, not the place
 itself.
+
+There is no field for the way itself. The built-in trails also carry the line
+of each walk in, found over OpenStreetMap when the trail is built, so the map
+can draw it dotted from the route to the place. An imported file has no such
+line, and none is made for it: the map shows the place where it is, without
+the dotted way in, and every distance and climb above still counts. The same
+goes for a route shared with the community, which keeps these six fields but
+never a line: the server rebuilds every shared route from its own
+coordinates, and a line it was handed is not something it can check.
 
 ### 10. Identity
 

@@ -44,6 +44,10 @@ interface StubMarker {
 let markers: StubMarker[] = [];
 /** Where each ⛺ stop flag was dropped. */
 let flagPositions: Array<[number, number]> = [];
+/** Every dotted walk in drawn (`access-path.ts`), by its path. */
+let dottedPaths: Array<Array<[number, number]>> = [];
+/** Extra fields for Camp One, to put it off the route. */
+let campAccess: Record<string, unknown> = {};
 
 /** The least Leaflet the plan viewer needs to boot and draw markers. */
 function installLeafletStub(): void {
@@ -59,7 +63,10 @@ function installLeafletStub(): void {
     tileLayer: layer,
     control: { scale: layer },
     layerGroup: layer,
-    polyline: layer,
+    polyline: (latLngs: Array<[number, number]>, opts?: { dashArray?: string }) => {
+      if (opts?.dashArray === '1 8') dottedPaths.push(latLngs);
+      return layer();
+    },
     divIcon: (opts: { html: string }) => opts,
     marker: (latLng: [number, number], opts: { icon: { html: string } }) => {
       if (opts.icon.html.includes('stop-flag-icon')) flagPositions.push(latLng);
@@ -124,7 +131,7 @@ function makeTrail() {
     track: { points, totalDistance: 30, totalAscent: 0, totalDescent: 0 },
     waypoints: [
       wp('w_alpha', 'Alpha', 'town', 10),
-      wp('w_camp', 'Camp One', 'campsite', 15),
+      { ...wp('w_camp', 'Camp One', 'campsite', 15), ...campAccess },
       wp('w_bravo', 'Bravo', 'town', 20),
     ],
   };
@@ -145,6 +152,8 @@ beforeEach(() => {
   vi.useFakeTimers();
   markers = [];
   flagPositions = [];
+  dottedPaths = [];
+  campAccess = {};
   installLeafletStub();
 });
 
@@ -235,6 +244,34 @@ describe('clicking a waypoint marker', () => {
     expect(savedPlan().stops).toHaveLength(1);
     expect(check('w_alpha').checked).toBe(true);
     expect(check('w_bravo').checked).toBe(true);
+  });
+});
+
+describe("an off-route place's walk in", () => {
+  const walkIn: Array<[number, number]> = [
+    [-34.015, 138.015],
+    [-34.02, 138.02],
+  ];
+  beforeEach(() => {
+    campAccess = { offTrailKm: 0.8, accessMode: 'foot', offTrailPath: walkIn };
+  });
+
+  it('is dotted while its popup is open', async () => {
+    await boot();
+    expect(dottedPaths).toEqual([]);
+    marker('Camp One').handlers.popupopen();
+    expect(dottedPaths).toEqual([walkIn]);
+    expect(marker('Alpha').handlers.popupopen).toBeUndefined();
+  });
+
+  it('stays on the map while the place is a stop', async () => {
+    await boot();
+    pressPopupButton('Camp One');
+    expect(dottedPaths).toContainEqual(walkIn);
+
+    dottedPaths = [];
+    pressPopupButton('Camp One');
+    expect(dottedPaths).toEqual([]);
   });
 });
 
