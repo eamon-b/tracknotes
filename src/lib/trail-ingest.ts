@@ -40,6 +40,7 @@ import type {
 } from './types';
 import type {
   EnrichedWaypoint,
+  KnownRetraceConfig,
   OffTrailWaypoint,
   ProcessedTrail,
   RouteBreak,
@@ -73,11 +74,17 @@ const TOLERANCE_MULTIPLIER = 5;
 const MAX_TOLERANCE_METERS = 25;
 
 // Report main-route sections that double back on themselves for at least this
-// many km. Purely advisory: most are the official route (e.g. the Bibbulmun's
-// walk-ins to Collie and Denmark), so extraction is opt-in via `extractSpurs`.
-// 2 km is low enough to surface Collie's 2.8 km walk-in and still silent on the
-// five trails that have no retrace at all.
+// many km. Purely advisory: a retrace may be a walk into town that belongs off
+// the route (the Bibbulmun's 2.8 km into Collie, lifted out by `extractSpurs`)
+// or the route as drawn (its 6.9 km into Denmark and back out to the Wilson
+// Inlet mouth, recorded in `knownRetraces`), so neither is automatic. 2 km is
+// low enough to surface the Collie walk-in and still silent on the five trails
+// that have no retrace at all.
 const SELF_RETRACE_WARN_KM = 2;
+
+// How near a `knownRetraces` entry's km must be to the retrace it names. Wide
+// enough that a small edit upstream of it does not re-raise the warning.
+const KNOWN_RETRACE_MATCH_KM = 1;
 
 // Distance (metres) from a variant's track within which a waypoint counts as
 // being on that variant. Deliberately tighter than the main route's
@@ -1523,7 +1530,26 @@ export function buildTrail(gpx: ParsedGpxResult, options: BuildTrailOptions): Pr
 
   const selfRetraceWarnings: string[] = [];
   const selfRetraces = detectSelfRetraces(mainRoutePoints, { minRetraceKm: SELF_RETRACE_WARN_KM });
+  const knownRetraces = config.knownRetraces ?? [];
+  const isKnownRetrace = (known: KnownRetraceConfig, retrace: SelfRetrace) =>
+    Math.abs(known.turnaroundKm - retrace.turnaroundKm) <= KNOWN_RETRACE_MATCH_KM;
+  for (const known of knownRetraces) {
+    if (!selfRetraces.some(retrace => isKnownRetrace(known, retrace))) {
+      warn(
+        `  Warning: knownRetraces lists a retrace at km ${known.turnaroundKm} that the route no longer has. ` +
+          'Remove or move the entry in trail.json.'
+      );
+    }
+  }
   for (const retrace of selfRetraces) {
+    const known = knownRetraces.find(k => isKnownRetrace(k, retrace));
+    if (known) {
+      log(
+        `  ✓ Main route retraces ${retrace.retraceLengthKm.toFixed(1)} km around km ` +
+          `${retrace.turnaroundKm.toFixed(1)} (known): ${known.note}`
+      );
+      continue;
+    }
     const message =
       `  Warning: main route retraces ${retrace.retraceLengthKm.toFixed(1)} km around km ` +
       `${retrace.turnaroundKm.toFixed(1)} (${retrace.terminal ? 'terminal spur' : 'mid-route'}). ` +

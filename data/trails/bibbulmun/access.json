@@ -1,0 +1,21 @@
+{
+  "source": "OpenStreetMap ways via Overpass; heights from Copernicus GLO-30",
+  "attribution": "© OpenStreetMap contributors (ODbL); Copernicus DEM © DLR e.V. 2010-2014 and © Airbus 2014-2018",
+  "fetchedAt": "2026-10-18T00:00:00.000Z",
+  "endpoint": "none: manual entries only",
+  "minDistanceM": 150,
+  "places": {
+    "w_57dadd26": {
+      "name": "Collie",
+      "method": "manual",
+      "junction": [-33.357719, 116.124514],
+      "junctionKm": 324.57,
+      "offTrailKm": 2.78,
+      "ascentM": 3,
+      "descentM": 41,
+      "straightLineM": 2329,
+      "nearestKm": 327.35,
+      "reason": "The track passes 1-1.5 km west of the town centre (OSM relation 400098). The walk in is the GPX's own, lifted off the main route by the \"Collie town (return)\" extractSpurs entry; heights from the GPX."
+    }
+  }
+}

@@ -158,6 +158,8 @@ Each trail has its own directory containing:
 
 A trail may also carry `Terminus: <name>` tracks — alternative starts/finishes, declared with `trackClassification.terminusPatterns` and drawn junction-first, with a `<wpt>` of `<type>endpoint</type>` at the free end. `buildTrail` attaches the one junction at whichever end is actually nearer the route (turning the line round if the generator drew it backwards), attaches the nearby waypoints including that endpoint to the variant, and keeps the endpoint out of `offTrailWaypoints` so a place the route reaches is never also listed as a place it misses.
 
+A main route that doubles back on itself for 2 km or more makes the build warn (`detectSelfRetraces`). A walk into town that is not the route is lifted out with `extractSpurs`; to keep the town a stop, give it an `access.json` `manual` entry (junction = the spur's start, `offTrailKm` = its one-way length) and a `waypointMaxDistance` that reaches it — the Bibbulmun's Collie, 2.3 km from the line, is set up this way (2500 m). A retrace that *is* the route as drawn goes in `knownRetraces` (`turnaroundKm` in the km the warning reports, matched within 1 km, and a `note` the build logs instead): the Bibbulmun walks into Denmark on the official line to the Wilson Inlet ferry, then back out to wade the inlet mouth.
+
 Te Araroa's file also carries waypoint types no other trail uses. `gap` is the "Trail ends"/"Trail resumes" pair at each route break. The **turn-offs** are points on the route at the km you leave it for a place that is somewhere else, typed `<servedType>-access` — `town-access`, `hut-access`, and so on — so one field says both what kind of place it is and that you are not there yet.
 
 Two rules follow, both in `waypoint-taxonomy.ts`:

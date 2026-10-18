@@ -40,6 +40,17 @@ export interface SpurExtractionConfig {
 }
 
 /**
+ * A retrace that is the route as drawn, not a spur to lift out: the build logs
+ * `note` in place of the self-retrace warning. `turnaroundKm` is in the km
+ * space the warning reports (after `reverseTrack` and `extractSpurs`), matched
+ * to within 1 km.
+ */
+export interface KnownRetraceConfig {
+  turnaroundKm: number;
+  note: string;
+}
+
+/**
  * Where a trail's GPX track came from. `text` is the sentence shown to
  * readers; `url` links back to the guide when the track is someone else's.
  */
@@ -97,6 +108,8 @@ export interface TrailConfig {
   reverseTrack?: boolean;
   /** Out-and-back sections to lift out of the main route. */
   extractSpurs?: SpurExtractionConfig[];
+  /** Retraces that are part of the route, each with why (silences the build's warning). */
+  knownRetraces?: KnownRetraceConfig[];
   /** Merge near-duplicate waypoints (same name + type within radius, default 150m). */
   dedupeWaypoints?: boolean | { radiusMeters?: number };
   /** Max distance (meters) from track to match waypoints (default 500). */

@@ -605,6 +605,57 @@ describe('a loop that ends where it started', () => {
   });
 });
 
+describe('knownRetraces', () => {
+  /** 3 km south, 3 km back north on itself, then 3 km east: a retrace turning at km 3. */
+  function outAndBack(): ParsedGpxResult {
+    const leg = (from: [number, number], dLat: number, dLon: number) =>
+      Array.from({ length: 30 }, (_, i) => ({
+        lat: from[0] + dLat * (i / 30),
+        lon: from[1] + dLon * (i / 30),
+        ele: 100,
+        time: null,
+      }));
+    const points = [
+      ...leg([-34.0, 138.0], -0.027, 0),
+      ...leg([-34.027, 138.0], 0.027, 0.0001),
+      ...leg([-34.0, 138.0001], 0, 0.033),
+      { lat: -34.0, lon: 138.0331, ele: 100, time: null },
+    ];
+    return { tracks: [{ name: 'Main', points }], waypoints: [], name: null };
+  }
+
+  function build(knownRetraces?: TrailConfig['knownRetraces']) {
+    const warnings: string[] = [];
+    const logs: string[] = [];
+    buildTrail(outAndBack(), {
+      config: config(knownRetraces ? { knownRetraces } : {}),
+      warn: m => warnings.push(m),
+      log: m => logs.push(m),
+    });
+    return { warnings: warnings.filter(w => /retrace/i.test(w)), logs };
+  }
+
+  it('warns about a retrace nothing explains', () => {
+    expect(build().warnings).toEqual([expect.stringMatching(/retraces 3\.0 km around km 3\.0/)]);
+  });
+
+  it('logs the note instead for a retrace the config lists', () => {
+    const { warnings, logs } = build([{ turnaroundKm: 3.4, note: 'Into town and back' }]);
+
+    expect(warnings).toEqual([]);
+    expect(logs).toContainEqual(expect.stringMatching(/\(known\): Into town and back$/));
+  });
+
+  it('warns about an entry the route no longer has', () => {
+    const { warnings } = build([{ turnaroundKm: 6, note: 'Moved' }]);
+
+    expect(warnings).toEqual([
+      expect.stringMatching(/knownRetraces lists a retrace at km 6/),
+      expect.stringMatching(/retraces 3\.0 km around km 3\.0/),
+    ]);
+  });
+});
+
 describe('waypoint km across a route break', () => {
   /** Same two stretches as above, with a waypoint either side of the break. */
   function brokenRoute(): ParsedGpxResult {
