@@ -64,7 +64,9 @@ async function pressLink(r: ReactTestRenderer) {
 
 it('shows each credit, and a link by its name', () => {
   const shown = texts(mount());
-  expect(shown).toEqual(expect.arrayContaining(['Trail data', 'From the trust.', 'Trust', 'SRTM.']));
+  expect(shown).toEqual(
+    expect.arrayContaining(['Trail data', 'From the trust.', 'Trust', 'SRTM.']),
+  );
   expect(shown).not.toContain('https://example.org/');
 });
 

@@ -4,7 +4,11 @@ import { TRAIL_DATA } from '../../services/trail-assets';
 describe('trailDataCredit', () => {
   it('reads a dataSource with its link', () => {
     expect(
-      trailDataCredit({ text: ' From the trust. ', url: 'https://example.org/', linkText: 'Trust' }),
+      trailDataCredit({
+        text: ' From the trust. ',
+        url: 'https://example.org/',
+        linkText: 'Trust',
+      }),
     ).toEqual({
       label: 'Trail data',
       text: 'From the trust.',

@@ -48,7 +48,11 @@ export function MapCreditsSheet({ visible, onClose, lines }: MapCreditsSheetProp
               <Text style={[styles.doneText, { color: colors.accent }]}>Done</Text>
             </Pressable>
           </View>
-          <ScrollView style={styles.list} contentContainerStyle={styles.listContent} bounces={false}>
+          <ScrollView
+            style={styles.list}
+            contentContainerStyle={styles.listContent}
+            bounces={false}
+          >
             <CreditList lines={lines} />
           </ScrollView>
         </Pressable>
