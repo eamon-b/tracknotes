@@ -883,10 +883,11 @@ function redrawMapLayers(): void {
     });
     L.marker([wp.lat ?? 0, wp.lon ?? 0], { icon: divIcon }).addTo(stopMarkers!);
     // A stop off the route is walked to and from, and its days count that
-    // walk (`stopWalk`, the same test `computePlanDays` makes), so the way is
-    // on the map as long as the stop is.
+    // walk, so the way is on the map as long as the stop is. The same test
+    // `computePlanDays` makes: a walk only for a stop saved with its waypoint
+    // id (one matched by km gets none), and only while it is at that km.
     const path = wp.offTrailPath;
-    if (hasAccessPath(path) && stopWalk(wp, stop.km)) {
+    if (stop.waypointId && hasAccessPath(path) && stopWalk(wp, stop.km)) {
       accessPathLayer(path, ACCESS_PATH_COLOR).addTo(stopMarkers!);
     }
   });

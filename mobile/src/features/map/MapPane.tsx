@@ -64,7 +64,6 @@ import { MapErrorBoundary } from './MapErrorBoundary';
 import { PoiLayersSheet } from './PoiLayersSheet';
 import { PlanGlanceSheet } from '../plan/PlanGlanceSheet';
 import { usePlanGlance } from '../plan/use-plan-glance';
-import { findGuideWaypoint } from '../plan/waypoint-alternates';
 import { ScaleBar, type ScaleBarHandle } from './ScaleBar';
 import {
   degradationMessage,
@@ -78,6 +77,7 @@ import { TrackLegend } from './TrackLegend';
 import {
   hasDrawableVariant,
   variantFeatureId,
+  waypointFeatureId,
   type MapVariant,
   type MapWaypoint,
   type VariantKind,
@@ -175,7 +175,10 @@ export function MapPane() {
     waypoints,
     plannedStopIds,
     lines: plannedLines,
-  } = usePlannedRouteMap(trail.waypoints as MapWaypoint[], alternates);
+  } = usePlannedRouteMap(
+    trail.waypoints as (MapWaypoint & { offTrailPath?: MapPoint['accessPath'] })[],
+    alternates,
+  );
   const takenAlternateIds = useMemo(
     () =>
       plannedLines
@@ -183,6 +186,14 @@ export function MapPane() {
         : undefined,
     [plannedLines],
   );
+  // Each marker's walk in, by the id its tap reports (`waypointFeatureId`).
+  const accessPathById = useMemo(() => {
+    const byId = new Map<string, MapPoint['accessPath']>();
+    waypoints.forEach((wp, i) => {
+      if (wp.offTrailPath) byId.set(waypointFeatureId(wp, i), wp.offTrailPath);
+    });
+    return byId;
+  }, [waypoints]);
   // OSM points of interest, already filtered by the global settings-store
   // filter (duplicates of curated waypoints and switched-off categories gone).
   // `TrailPOI` satisfies the map's structural `MapPoi`, so it goes straight in.
@@ -222,14 +233,15 @@ export function MapPane() {
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
   const selectedVariant = selectedVariantId ? variantsById.get(selectedVariantId) : undefined;
 
-  const onVariantTap = useCallback(
-    (id: string) => setSelectedVariantId(id),
-    [],
-  );
-  const clearVariant = useCallback(() => setSelectedVariantId(null), []);
-  // The walk in to the place "Show on map" last brought us to, drawn until the
-  // next tap on the map itself or the next "Show on map".
+  // The walk in to the place last shown or tapped — a "Show on map" or a
+  // waypoint marker tap — drawn until the next tap on the map, a variant or a
+  // POI, or the next place shown.
   const [accessPath, setAccessPath] = useState<MapPoint['accessPath'] | null>(null);
+  const onVariantTap = useCallback((id: string) => {
+    setSelectedVariantId(id);
+    setAccessPath(null);
+  }, []);
+  const clearVariant = useCallback(() => setSelectedVariantId(null), []);
   const onBackgroundPress = useCallback(() => {
     setSelectedVariantId(null);
     setAccessPath(null);
@@ -367,13 +379,13 @@ export function MapPane() {
     (id: string) => {
       // Like the web marker popup: the place's walk in stays dotted on the map
       // behind its screen (and nothing stays from a place tapped before it).
-      setAccessPath(findGuideWaypoint(trail, id)?.waypoint.offTrailPath ?? null);
+      setAccessPath(accessPathById.get(id) ?? null);
       router.push({
         pathname: '/guide/[trailId]/waypoint/[waypointId]',
         params: { trailId, waypointId: id },
       });
     },
-    [router, trailId, trail],
+    [router, trailId, accessPathById],
   );
 
   // A new hiker waypoint: where the map was long-pressed, or at the GPS fix.
@@ -393,6 +405,7 @@ export function MapPane() {
 
   const onPoiTap = useCallback(
     (routeKey: string) => {
+      setAccessPath(null);
       router.push({
         pathname: '/guide/[trailId]/poi/[poiKey]',
         params: { trailId, poiKey: routeKey },

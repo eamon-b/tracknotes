@@ -273,6 +273,27 @@ describe("an off-route place's walk in", () => {
     pressPopupButton('Camp One');
     expect(dottedPaths).toEqual([]);
   });
+
+  it('is not drawn for a stop saved without its waypoint id, which the days do not walk', async () => {
+    localStorage.setItem(
+      `trail-plan-doc-${TRAIL_ID}`,
+      JSON.stringify({
+        id: 'plan-1',
+        trailId: TRAIL_ID,
+        name: 'No id',
+        direction: 'NOBO',
+        startDate: null,
+        stops: [{ km: 15, name: 'Camp One', nights: 1 }],
+        updatedAt: '2026-07-01T10:00:00.000Z',
+        version: 1,
+      }),
+    );
+    await boot();
+    // The flag is still dropped on the place, matched by km…
+    expect(flagPositions).toHaveLength(1);
+    // …but no walk is drawn, because `computePlanDays` counts none for it.
+    expect(dottedPaths).toEqual([]);
+  });
 });
 
 describe('a stop whose waypoint a rebuild has moved', () => {

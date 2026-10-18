@@ -51,7 +51,6 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { placeWalk } from '@lib/day-calculator';
 import { formatDistance, formatElevation } from '@lib/format-distance';
 import { accessSummary } from '@lib/resupply-display';
 import { isAccessMode } from '@lib/types';
@@ -416,14 +415,14 @@ export default function WaypointDetailScreen() {
             placeKm={km}
             placeOffTrailM={placeOffTrailM}
             placeAccessMode={isAccessMode(waypoint.accessMode) ? waypoint.accessMode : undefined}
-            placeWalk={placeWalk(waypoint)}
+            place={waypoint}
           />
         ) : routeWaypoint ? (
           <TripCard
             placeKm={routeWaypoint.totalDistance ?? 0}
             placeOffTrailM={placeOffTrailM}
             placeAccessMode={isAccessMode(waypoint.accessMode) ? waypoint.accessMode : undefined}
-            placeWalk={placeWalk(waypoint)}
+            place={waypoint}
             along={{ trail: routeTrail, currentKm: routeFixKm }}
           />
         ) : null}

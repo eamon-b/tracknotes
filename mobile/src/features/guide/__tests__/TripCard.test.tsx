@@ -72,26 +72,45 @@ describe('TripCard — the way off the trail', () => {
 });
 
 describe('TripCard — the walk in to the place', () => {
-  const walk = { km: 1.2, ascentM: 80, descentM: 10 };
+  const place = { offTrailKm: 1.2, accessMode: 'foot' as const, offTrailAscentM: 80, offTrailDescentM: 10 };
 
-  it('adds the walk to the climb and time, and says what it climbs', () => {
-    // 10 km of flat trail at 4 km/h is 150 min; the walk adds 1.2 km and 80 m
-    // up by the same rule the planner uses.
-    const out = text(
-      <TripCard placeKm={20} placeOffTrailM={1200} placeAccessMode="foot" placeWalk={walk} />,
-    );
-    expect(out).toContain('10.0 km ahead');
+  it('adds the walk to the distance, climb and time, and says how much of it is the walk', () => {
+    // 10 km of flat trail and the 1.2 km walk, 80 m up, timed as one 11.2 km
+    // trip at 4 km/h: 2.8 h + 80/600 h = 2.9 h.
+    const out = text(<TripCard placeKm={20} placeOffTrailM={1200} placeAccessMode="foot" place={place} />);
+    expect(out).toContain('11.2 km ahead');
     expect(out).toContain('↑ 80 m');
     expect(out).toContain('↓ 10 m');
-    expect(out).toContain('Then 1.20 km off the trail to reach it, ↑ 80 m ↓ 10 m, counted above');
     expect(out).toContain('~2 h 55 min');
+    expect(out).toContain('Includes 1.20 km off the trail to reach it, ↑ 80 m ↓ 10 m');
   });
 
   it('gives the walk its own time when the hiker is level with it', () => {
-    const out = text(<TripCard placeKm={10} placeOffTrailM={1200} placeWalk={walk} />);
+    const out = text(<TripCard placeKm={10} placeOffTrailM={1200} place={place} />);
     expect(out).toContain('At its nearest point on the trail');
     expect(out).toContain('Then 1.20 km off the trail to reach it, ↑ 80 m ↓ 10 m, ~25 min');
-    expect(out).not.toContain('counted above');
+  });
+
+  it('never shows a missing climb as a flat walk', () => {
+    const out = text(
+      <TripCard placeKm={20} placeOffTrailM={2000} place={{ offTrailKm: 2, accessMode: 'foot' }} />,
+    );
+    expect(out).toContain('12.0 km ahead');
+    expect(out).toContain('Includes 2.00 km off the trail to reach it (its climb is not known)');
+    expect(out).not.toContain('reach it, ↑');
+  });
+
+  it('times no ride', () => {
+    const out = text(
+      <TripCard
+        placeKm={20}
+        placeOffTrailM={35000}
+        placeAccessMode="hitch"
+        place={{ offTrailKm: 35, accessMode: 'hitch' }}
+      />,
+    );
+    expect(out).toContain('10.0 km ahead');
+    expect(out).toContain('Then 35.00 km by hitch to reach it');
   });
 });
 

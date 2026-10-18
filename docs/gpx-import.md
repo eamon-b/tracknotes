@@ -314,12 +314,14 @@ itself.
 
 There is no field for the way itself. The built-in trails also carry the line
 of each walk in, found over OpenStreetMap when the trail is built, so the map
-can draw it dotted from the route to the place. An imported file has no such
-line, and none is made for it: the map shows the place where it is, without
+can draw it dotted from the route to the place. An imported GPX file has no
+such line, and none is made for it: the map shows the place where it is, without
 the dotted way in, and every distance and climb above still counts. The same
 goes for a route shared with the community, which keeps these six fields but
 never a line: the server rebuilds every shared route from its own
-coordinates, and a line it was handed is not something it can check.
+coordinates, and a line it was handed is not something it can check. A
+`.tracknotes.json` file exported from the website is a copy of a trail already
+built, so it keeps any line the trail has.
 
 ### 10. Identity
 
