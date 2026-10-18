@@ -4,8 +4,10 @@
 > (deleted 2026-08-22 with the rest of the pre-rebuild plans). The **decisions**
 > below — CC0 for contributions, the safety-critical water disclaimer, the
 > Australian Privacy Principles posture, and the ToS/takedown shape — are still
-> the project's position and none of them have shipped yet (a ToS and the CC0
-> notice are still outstanding; see issue #31).
+> the project's position. A draft ToS is `docs/terms-of-service.md` (published
+> as `public/terms.html`, awaiting a legal read), and the CC0 line is shown
+> where comments are posted and waypoints shared (issue #148); the store
+> listing link is still outstanding (#31).
 >
 > **Stale infrastructure references.** The text was written against the Supabase
 > design that was never built. Read "Supabase Sydney", "RLS", "Edge Function",

@@ -1,5 +1,6 @@
 /**
- * About section for Settings — the in-app route to the privacy policy.
+ * About section for Settings — the in-app route to the privacy policy and the
+ * terms of service.
  *
  * The store listings link the same URL, and app stores expect the policy to be
  * reachable from inside the app too, so this is the one place a hiker can read
@@ -16,6 +17,7 @@
 import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { openURL } from 'expo-linking';
+import { TERMS_URL } from '@lib/contribution-licence';
 import { useTheme } from '../../theme';
 import { radii, spacing, touchTarget, typography } from '../../tokens';
 
@@ -29,16 +31,19 @@ export const PRIVACY_POLICY_URL = 'https://trail-maps.vercel.app/privacy.html';
 /** Shown when the OS refuses to open the policy (no browser, blocked scheme). */
 export const PRIVACY_OPEN_FAILED_MESSAGE = `Couldn't open the privacy policy. You can read it at ${PRIVACY_POLICY_URL}`;
 
+/** Shown when the OS refuses to open the terms of service. */
+export const TERMS_OPEN_FAILED_MESSAGE = `Couldn't open the terms of service. You can read them at ${TERMS_URL}`;
+
 export function AboutSection() {
   const { colors } = useTheme();
   const [error, setError] = useState<string | null>(null);
 
-  const openPrivacyPolicy = useCallback(async () => {
+  const open = useCallback(async (url: string, failedMessage: string) => {
     setError(null);
     try {
-      await openURL(PRIVACY_POLICY_URL);
+      await openURL(url);
     } catch {
-      setError(PRIVACY_OPEN_FAILED_MESSAGE);
+      setError(failedMessage);
     }
   }, []);
 
@@ -61,10 +66,29 @@ export function AboutSection() {
             </Text>
           </View>
           <Pressable
-            onPress={() => void openPrivacyPolicy()}
+            onPress={() => void open(PRIVACY_POLICY_URL, PRIVACY_OPEN_FAILED_MESSAGE)}
             accessibilityRole="link"
             accessibilityLabel="Open privacy policy"
             accessibilityHint="Opens the Tracknotes privacy policy in your browser"
+            hitSlop={spacing.sm}
+            style={styles.action}
+          >
+            <Text style={[styles.actionLink, { color: colors.accent }]}>Read</Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.row}>
+          <View style={styles.rowMain}>
+            <Text style={[styles.rowLabel, { color: colors.textSecondary }]}>Terms of service</Text>
+            <Text style={[styles.hint, { color: colors.textSecondary }]}>
+              The terms for using Tracknotes and for what you post. Opens in your browser.
+            </Text>
+          </View>
+          <Pressable
+            onPress={() => void open(TERMS_URL, TERMS_OPEN_FAILED_MESSAGE)}
+            accessibilityRole="link"
+            accessibilityLabel="Open terms of service"
+            accessibilityHint="Opens the Tracknotes terms of service in your browser"
             hitSlop={spacing.sm}
             style={styles.action}
           >

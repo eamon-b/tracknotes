@@ -15,7 +15,9 @@ import {
   AboutSection,
   PRIVACY_POLICY_URL,
   PRIVACY_OPEN_FAILED_MESSAGE,
+  TERMS_OPEN_FAILED_MESSAGE,
 } from '../AboutSection';
+import { TERMS_URL } from '@lib/contribution-licence';
 
 jest.mock('../../../theme', () => ({
   useTheme: () => ({ colors: new Proxy({}, { get: () => '#123456' }) }),
@@ -113,5 +115,19 @@ describe('AboutSection', () => {
 
     await pressAsync(r, 'Open privacy policy');
     expect(renderedText(r)).not.toContain(PRIVACY_OPEN_FAILED_MESSAGE);
+  });
+
+  it('points at the published terms of service, beside the privacy policy', () => {
+    expect(TERMS_URL).toBe('https://trail-maps.vercel.app/terms.html');
+  });
+
+  it('opens the terms of service, and spells out the URL when it cannot', async () => {
+    const r = mount();
+    await pressAsync(r, 'Open terms of service');
+    expect(mockOpenURL).toHaveBeenCalledWith(TERMS_URL);
+
+    mockOpenURL.mockRejectedValue(new Error('no activity found'));
+    await pressAsync(r, 'Open terms of service');
+    expect(renderedText(r)).toContain(TERMS_OPEN_FAILED_MESSAGE);
   });
 });

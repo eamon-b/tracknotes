@@ -32,6 +32,7 @@ import { glyphSizes, radii, spacing, typography } from '../../../src/tokens';
 import { useGuide } from '../../../src/features/guide/GuideContext';
 import { useGuidePositionContext } from '../../../src/features/guide/GuidePositionContext';
 import { ChoiceChips } from '../../../src/features/community/CommunityUi';
+import { ContributionLicence } from '../../../src/features/comments/ContributionLicence';
 import {
   MAX_DISPLAY_NAME_LENGTH,
   validateDisplayName,
@@ -298,6 +299,9 @@ export default function WaypointEditScreen() {
               ? 'Shared with every Tracknotes hiker on this trail, under your display name. Anyone can report a shared waypoint, and reported ones are reviewed.'
               : 'Kept on this phone only. Nobody else sees it.'}
         </Text>
+        {shareable && form.visibility === 'shared' ? (
+          <ContributionLicence verb="sharing" what="this waypoint" />
+        ) : null}
         {existing?.visibility === 'shared' && form.visibility === 'private' ? (
           <Text style={[styles.caption, { color: colors.textSecondary }]}>
             Saving removes it from other hikers’ guides.

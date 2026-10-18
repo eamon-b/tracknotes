@@ -2,7 +2,7 @@
  * App settings — units, "Check now" for guide updates, the account sections (rename the comment display name,
  * link a browser to this account's plans, the routes it shared to the
  * community, delete the account), and About, which
- * carries the privacy-policy link the app stores require in-app.
+ * carries the privacy-policy link the app stores require in-app and the terms of service.
  */
 
 import { StyleSheet, Text, View } from 'react-native';

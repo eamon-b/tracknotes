@@ -38,6 +38,7 @@ import {
   type SelectedPhoto,
 } from './photo-upload';
 import { MAX_DISPLAY_NAME_LENGTH, validateDisplayName } from './display-name';
+import { ContributionLicence } from './ContributionLicence';
 
 /** Fallback copy when the failure isn't something we can be specific about. */
 export const POST_FAILED_MESSAGE = "Couldn't post your comment. Please try again.";
@@ -252,6 +253,8 @@ export function Composer({
       {/* Inline failure surface. While the name prompt is open the same message
           is repeated inside the modal, which is what the user is looking at. */}
       {!promptOpen && errorText}
+
+      <ContributionLicence verb="posting" what="your comment and photo" />
 
       <Pressable
         onPress={handleSubmit}

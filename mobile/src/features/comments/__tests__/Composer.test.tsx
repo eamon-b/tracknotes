@@ -51,7 +51,13 @@ function mount(props: {
 function renderedText(r: ReactTestRenderer): string {
   return r.root
     .findAllByType(Text)
-    .map((n) => JSON.stringify(n.props.children))
+    // A nested <Text> (the licence line's link) is an element child; it is
+    // visited on its own, so keep only the plain parts here.
+    .map((n) =>
+      JSON.stringify(
+        ([] as unknown[]).concat(n.props.children).filter((c) => typeof c !== 'object' || c === null),
+      ),
+    )
     .join(' ');
 }
 
@@ -87,6 +93,13 @@ function inputValue(r: ReactTestRenderer, index = 0): string {
 }
 
 describe('Composer', () => {
+  it('says what a post is released under, with a link to the terms', () => {
+    const r = mount({ registered: true, onSubmit: jest.fn() });
+    expect(renderedText(r)).toContain('public domain (CC0)');
+    const link = r.root.findAll((n) => n.props?.accessibilityLabel === 'Open terms of service')[0];
+    expect(link.props.accessibilityRole).toBe('link');
+  });
+
   it('surfaces a network failure inline and keeps the draft', async () => {
     const onSubmit = jest.fn().mockRejectedValue(new NetworkError('POST /v1/devices failed'));
     const r = mount({ registered: true, onSubmit, waypointType: 'water' });
