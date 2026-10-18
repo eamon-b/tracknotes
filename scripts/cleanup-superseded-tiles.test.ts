@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { packPrefixes, planCleanup, referencedNames, type BucketObject } from './cleanup-superseded-tiles';
+import { packPrefixes, planCleanup, planWorldBuildCleanup, referencedNames, type BucketObject } from './cleanup-superseded-tiles';
 
 const NOW = Date.parse('2026-11-01T00:00:00Z');
 const OLD = '2026-09-23T00:00:00Z';
@@ -29,9 +29,9 @@ describe('packPrefixes', () => {
 });
 
 describe('referencedNames', () => {
-  it('takes the content-addressed key, else the legacy name', () => {
+  it('takes the content-addressed key and the plain name old app builds download', () => {
     expect([...referencedNames(manifest({ name: 'base.mbtiles', key: 'base.aaaa.mbtiles' }, { name: 'contours.mbtiles' }))])
-      .toEqual(['base.aaaa.mbtiles', 'contours.mbtiles']);
+      .toEqual(['base.mbtiles', 'base.aaaa.mbtiles', 'contours.mbtiles']);
   });
 
   it('refuses something that is not a manifest', () => {
@@ -44,6 +44,7 @@ describe('planCleanup', () => {
   const objects = [
     obj('larapinta/manifest.json'),
     obj('larapinta/base.new1.mbtiles'),
+    obj('larapinta/base.mbtiles'),
     obj('larapinta/contours.new2.mbtiles'),
     obj('larapinta/base.old1.mbtiles'),
     obj('larapinta/contours.old2.mbtiles', RECENT),
@@ -68,6 +69,19 @@ describe('planCleanup', () => {
     expect(plan.skipped).toEqual([{ prefix: 'cdt/', reason: 'rclone cat failed' }]);
   });
 
+  it('leaves a prefix alone until its manifest has been live for the grace', () => {
+    const manifests = new Map<string, unknown>([
+      ['larapinta/', manifest({ name: 'base.mbtiles', key: 'base.new1.mbtiles' }, { name: 'contours.mbtiles', key: 'contours.new2.mbtiles' })],
+      ['cdt/', manifest({ name: 'base.mbtiles' })],
+    ]);
+    // cdt's base.old.mbtiles is a month old, but the manifest that dropped it
+    // went up two days ago: phones may still be downloading it.
+    const fresh = objects.map(o => (o.path === 'cdt/manifest.json' ? { ...o, modTime: RECENT } : o));
+    const plan = planCleanup(fresh, manifests, { now: NOW, graceDays: 7 });
+    expect(plan.delete.map(o => o.path)).toEqual(['larapinta/base.old1.mbtiles']);
+    expect(plan.skipped).toEqual([{ prefix: 'cdt/', reason: 'manifest published 2026-10-30, inside the 7-day grace' }]);
+  });
+
   it('a grace of 0 days deletes recent superseded files too', () => {
     const manifests = new Map<string, unknown>([
       ['larapinta/', manifest({ name: 'base.mbtiles', key: 'base.new1.mbtiles' }, { name: 'contours.mbtiles', key: 'contours.new2.mbtiles' })],
@@ -79,5 +93,33 @@ describe('planCleanup', () => {
       'larapinta/base.old1.mbtiles',
       'larapinta/contours.old2.mbtiles',
     ]);
+  });
+});
+
+describe('planWorldBuildCleanup', () => {
+  const build = [
+    obj('contours/world-build/batches/oceania/batch-00.mbtiles', '2026-10-01T00:00:00Z'),
+    obj('contours/world-build/shards/world_oceania.mbtiles', '2026-10-03T00:00:00Z'),
+  ];
+  const opts = { now: NOW, graceDays: 7 };
+
+  it('deletes the insurance copies once the archive is newer than all of them', () => {
+    const plan = planWorldBuildCleanup(build, obj('contours/world.pmtiles', '2026-10-05T00:00:00Z'), opts);
+    expect(plan.refused).toBeUndefined();
+    expect(plan.delete.map(o => o.path)).toEqual(build.map(o => o.path));
+  });
+
+  it('refuses without the archive, or while the build is newer than it', () => {
+    expect(planWorldBuildCleanup(build, null, opts).refused).toMatch(/not in the bucket/);
+    const running = planWorldBuildCleanup(build, obj('contours/world.pmtiles', '2026-10-02T00:00:00Z'), opts);
+    expect(running.refused).toMatch(/1 object\(s\).*world_oceania/);
+    expect(running.delete).toEqual([]);
+  });
+
+  it('keeps what is younger than the grace', () => {
+    const recent = [...build, obj('contours/world-build/shards/world_asia.mbtiles', RECENT)];
+    const plan = planWorldBuildCleanup(recent, obj('contours/world.pmtiles', '2026-10-31T00:00:00Z'), opts);
+    expect(plan.keptRecent.map(o => o.path)).toEqual(['contours/world-build/shards/world_asia.mbtiles']);
+    expect(plan.delete).toHaveLength(2);
   });
 });

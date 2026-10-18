@@ -64,8 +64,8 @@ function decodeValue(buf) {
       case 1: return new TextDecoder().decode(f.bytes);
       case 2: return view.getFloat32(0, true);
       case 3: return view.getFloat64(0, true);
-      case 4: // int64: two's complement in a varint
-      case 5: return f.value >= 2 ** 63 ? f.value - 2 ** 64 : f.value;
+      case 4: return f.value >= 2 ** 63 ? f.value - 2 ** 64 : f.value; // int64: two's complement
+      case 5: return f.value; // uint64
       case 6: return f.value % 2 === 0 ? f.value / 2 : -(f.value + 1) / 2;
       case 7: return f.value !== 0;
     }

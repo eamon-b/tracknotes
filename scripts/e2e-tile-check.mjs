@@ -57,7 +57,7 @@
  * Usage:  node scripts/e2e-tile-check.mjs            # every check
  *         node scripts/e2e-tile-check.mjs --packs    # trail offline sets only
  *         node scripts/e2e-tile-check.mjs --tiered   # tiered contours only
- *         node scripts/e2e-tile-check.mjs --packs --tiered  # packs, and each pack tiered
+ *         node scripts/e2e-tile-check.mjs --packs --tiered  # packs, and tiered contours
  * Env:    CONTOUR_TILE_URL   (default: the worker the app's builds use)
  *         TILE_BASE_URL      (default: the pack host the app's builds use)
  *
@@ -629,47 +629,77 @@ async function fetchPackManifest(trailId) {
   }
 }
 
-async function checkTieredPacks() {
-  console.log(`\n[tiered] z9 of each pack's contours.mbtiles tiered`);
-  for (const trailId of TRAIL_IDS) {
-    const manifest = await fetchPackManifest(trailId);
-    const file = Array.isArray(manifest?.files) && manifest.files.find((f) => f?.name === 'contours.mbtiles');
-    if (!file) {
-      // The pack check reports a missing manifest or file; don't count it twice.
-      console.log(`      - ${trailId}: no contours.mbtiles to read (see the pack check)`);
-      continue;
-    }
-    const url = `${TILE_BASE_URL}/${trailId}/${file.key ?? file.name}`;
-    let tiles;
+/** Packs read at once: each is a chain of sequential range requests. */
+const TIERED_PACK_CONCURRENCY = 4;
+
+/** Check one pack's z9: `{ line }` to print, or `{ failure }` to record. */
+async function checkTieredPack(trailId) {
+  const manifest = await fetchPackManifest(trailId);
+  const file = Array.isArray(manifest?.files) && manifest.files.find((f) => f?.name === 'contours.mbtiles');
+  if (!file) {
+    // The pack check reports a missing manifest or file; don't count it twice.
+    return { line: `      - ${trailId}: no contours.mbtiles to read (see the pack check)` };
+  }
+  const url = `${TILE_BASE_URL}/${trailId}/${file.key ?? file.name}`;
+  let tiles;
+  try {
+    tiles = await readZoomTiles(httpRangeReader(url), 9);
+  } catch (e) {
+    return { failure: `[tiered] [${trailId}] could not read contours.mbtiles z9: ${e.message}` };
+  }
+  if (tiles.length === 0) {
+    return { failure: `[tiered] [${trailId}] contours.mbtiles has no z9 tiles (contours start at z9)` };
+  }
+  let features = 0;
+  let withLayer = 0;
+  const bad = [];
+  for (const tile of tiles) {
     try {
-      tiles = await readZoomTiles(httpRangeReader(url), 9);
+      const result = checkZ9Tiered(tile.data);
+      features += result.features;
+      // A z9 tile over flat country can hold no 100 m line at all: one tile
+      // without the contour layer is not a failure, a 10 m line is.
+      if (result.reason !== 'no contour layer') withLayer++;
+      if (!result.ok && result.reason !== 'no contour layer') bad.push(`9/${tile.x}/${tile.y} (TMS): ${result.reason}`);
     } catch (e) {
-      failures.push(`[tiered] [${trailId}] could not read contours.mbtiles z9: ${e.message}`);
-      continue;
-    }
-    if (tiles.length === 0) {
-      failures.push(`[tiered] [${trailId}] contours.mbtiles has no z9 tiles (contours start at z9)`);
-      continue;
-    }
-    let features = 0;
-    const bad = [];
-    for (const tile of tiles) {
-      try {
-        const result = checkZ9Tiered(tile.data);
-        features += result.features;
-        // A z9 tile over flat country can hold no 100 m line at all: an empty
-        // contour layer is not a failure, a 10 m line is.
-        if (!result.ok && result.reason !== 'no contour layer') bad.push(`9/${tile.x}/${tile.y} (TMS): ${result.reason}`);
-      } catch (e) {
-        bad.push(`9/${tile.x}/${tile.y} (TMS): does not decode: ${e.message}`);
-      }
-    }
-    if (bad.length > 0) {
-      failures.push(`[tiered] [${trailId}] ${bad.length} of ${tiles.length} z9 tiles not tiered (v${manifest.version}); first: ${bad[0]}`);
-    } else {
-      console.log(`      ✓ ${trailId}: ${tiles.length} z9 tiles, ${features} features, all 100 m lines (v${manifest.version})`);
+      bad.push(`9/${tile.x}/${tile.y} (TMS): does not decode: ${e.message}`);
     }
   }
+  if (bad.length > 0) {
+    return { failure: `[tiered] [${trailId}] ${bad.length} of ${tiles.length} z9 tiles not tiered (v${manifest.version}); first: ${bad[0]}` };
+  }
+  // But a whole pack without it is one whose tiers were never folded into
+  // `contour` (renameContourTiers), and the app's style draws nothing from it.
+  if (withLayer === 0 || features === 0) {
+    return {
+      failure: `[tiered] [${trailId}] none of its ${tiles.length} z9 tiles has a contour feature ` +
+        `(v${manifest.version}): layers not folded into \`contour\`, or no contours at all`,
+    };
+  }
+  return { line: `      ✓ ${trailId}: ${tiles.length} z9 tiles, ${features} features, all 100 m lines (v${manifest.version})` };
+}
+
+async function checkTieredPacks() {
+  console.log(`\n[tiered] z9 of each pack's contours.mbtiles tiered`);
+  const results = new Array(TRAIL_IDS.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < TRAIL_IDS.length) {
+      const i = next++;
+      results[i] = await checkTieredPack(TRAIL_IDS[i]);
+    }
+  };
+  await Promise.all(Array.from({ length: TIERED_PACK_CONCURRENCY }, worker));
+  // Reported in trail order, whatever order they finished in.
+  TRAIL_IDS.forEach((trailId, i) => {
+    const { line, failure } = results[i];
+    if (failure) {
+      failures.push(failure);
+      console.log(`      ✗ ${trailId}: see failures below`);
+    } else {
+      console.log(line);
+    }
+  });
 }
 
 async function checkGridBaseReachable() {
@@ -701,7 +731,7 @@ async function main() {
   const tiered = process.argv.includes('--tiered');
   if (packs || tiered) {
     if (packs) await checkTrailOfflineArtifacts();
-    if (tiered && !packs) await checkTieredSpotTiles();
+    if (tiered) await checkTieredSpotTiles();
     if (tiered) await checkTieredPacks();
   } else {
     await checkContourHealth();

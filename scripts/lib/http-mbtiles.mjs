@@ -145,6 +145,10 @@ export class RemoteSqlite {
     this.pageSize = size === 1 ? 65536 : size;
     this.usable = this.pageSize - header[20];
     if (readUint(header, 56, 4) > 1) throw new Error('only UTF-8 databases are supported');
+    // The file's length in pages, which read-ahead must not run past. The
+    // header field is valid only when its version-valid-for number matches
+    // the change counter (SQLite 3.7.0+ writers); without it, no read-ahead.
+    this.pageCount = readUint(header, 92, 4) === readUint(header, 24, 4) ? readUint(header, 28, 4) : 0;
     this.schema = [];
     for await (const { payload } of this.scanTable(1)) {
       const [type, name, tblName, rootPage, sql] = parseRecord(payload);
@@ -161,6 +165,29 @@ export class RemoteSqlite {
       this.pages.set(number, pending);
     }
     return pending;
+  }
+
+  /**
+   * Fetch `count` consecutive pages from `first` in one range request (the
+   * ones not already cached), so an overflow chain — normally contiguous —
+   * costs one round trip rather than one per page.
+   */
+  readAhead(first, count) {
+    count = Math.min(count, this.pageCount - first + 1);
+    let start = first;
+    while (start < first + count && this.pages.has(start)) start++;
+    let end = start;
+    while (end < first + count && !this.pages.has(end)) end++;
+    if (end === start) return;
+    const block = this.read((start - 1) * this.pageSize, (end - 1) * this.pageSize - 1);
+    for (let n = start; n < end; n++) {
+      const offset = (n - start) * this.pageSize;
+      const page = block.then(b => b.subarray(offset, offset + this.pageSize));
+      // A page read ahead may never be asked for (the chain jumped): a failed
+      // read must reject only whoever awaits it, not crash the process.
+      page.catch(() => {});
+      this.pages.set(n, page);
+    }
   }
 
   /** The b-tree page `number`: its kind and its cells' offsets. */
@@ -196,6 +223,9 @@ export class RemoteSqlite {
     let next = readUint(buf, pos + local, 4);
     while (written < size) {
       if (next === 0) throw new Error('overflow chain ends early');
+      // Overflow pages are usually consecutive: read the rest of the chain as
+      // one range from here. A chain that jumps elsewhere just reads again.
+      this.readAhead(next, Math.ceil((size - written) / (u - 4)));
       const page = await this.page(next);
       const take = Math.min(u - 4, size - written);
       out.set(page.subarray(4, 4 + take), written);

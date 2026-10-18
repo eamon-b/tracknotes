@@ -62,6 +62,8 @@ import {
   contourTierRenameArgs,
   contourTippecanoeArgs,
   contourSettingsHash,
+  installedTippecanoeVersion,
+  type ContourTippecanoeOptions,
   renameContourTiers,
   run,
   ensureDir,
@@ -342,13 +344,25 @@ function batchDoneMarker(batchPath: string): string {
 }
 
 /**
- * The tail of a batch `.done` label naming the tippecanoe settings it was
- * tiled with. A batch is reused only when its whole label matches, so one
- * built with other settings (the untiered archives before 2026-10, or any
- * later change to the quality bundle) is re-tiled rather than shipped.
+ * The tippecanoe options every world merge tiles with. One object, passed to
+ * both tippecanoeMerge() and the batch marker's settings hash, so the hash
+ * cannot describe settings other than the ones the batch was tiled with.
+ */
+const WORLD_CONTOUR_OPTIONS: ContourTippecanoeOptions = {};
+
+let settingsLabel: string | undefined;
+
+/**
+ * The tail of a batch `.done` label naming the tippecanoe release and
+ * settings it was tiled with. A batch is reused only when its whole label
+ * matches, so one built with other settings (the untiered archives before
+ * 2026-10, or any later change to the quality bundle) or by another release
+ * (TIPPECANOE_ANY_VERSION=1, another box) is re-tiled rather than shipped.
  */
 function batchSettingsLabel(): string {
-  return `tippecanoe settings ${contourSettingsHash()}`;
+  settingsLabel ??= `tippecanoe ${installedTippecanoeVersion() ?? 'unknown'} ` +
+    `settings ${contourSettingsHash(WORLD_CONTOUR_OPTIONS)}`;
+  return settingsLabel;
 }
 
 function mosaicVrtPath(workDir: string): string {
@@ -872,7 +886,7 @@ function joinKeptBatches(workDir: string, outputPath: string, verbose: boolean):
   if (stale.length > 0) {
     throw new Error(
       `--join-batches: ${stale.map(p => path.basename(p)).join(', ')} ` +
-      `were tiled with other tippecanoe settings than this checkout's (${settings}); ` +
+      `were tiled with another tippecanoe release or settings than this run's (${settings}); ` +
       'delete them and re-run --merge-only --batches-only from the tiers'
     );
   }
@@ -904,7 +918,7 @@ function tippecanoeMerge(layerArgs: string[], outputPath: string, tmpDir: string
   execFileSync('tippecanoe', [
     '-t', tmpDir,
     '-o', outputPath,
-    ...contourTippecanoeArgs({}, { verbose }),
+    ...contourTippecanoeArgs(WORLD_CONTOUR_OPTIONS, { verbose }),
     ...layerArgs,
   ], {
     cwd: PROJECT_ROOT,

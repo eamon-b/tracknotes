@@ -545,7 +545,8 @@ export function checkTippecanoeVersion(
   return requirePinned ? { status: 'fail', message } : { status: 'warn', message };
 }
 
-function installedTippecanoeVersion(): string | null {
+/** The installed tippecanoe's `x.y.z`, or null when it cannot be read. */
+export function installedTippecanoeVersion(): string | null {
   try {
     // Prints to stderr, and exits 0 or 1 depending on the release.
     const out = execSync('tippecanoe --version 2>&1 || true', { encoding: 'utf-8', stdio: 'pipe' });

@@ -5,6 +5,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { gzipSync } from 'zlib';
 import { execFileSync } from 'child_process';
+import { randomBytes } from 'crypto';
 import { httpRangeReader, readZoomTiles, tableColumns, indexColumns } from './http-mbtiles.mjs';
 import { checkZ9Tiered, contourElevations } from './mvt-contours.mjs';
 
@@ -31,7 +32,7 @@ function vfield(num: number, value: number): number[] {
 const utf8 = (s: string) => [...Buffer.from(s, 'utf8')];
 
 /** A tile with one `contour` layer holding a line per elevation. */
-function contourTile(elevations: number[], layerName = 'contour'): Uint8Array {
+function contourTile(elevations: number[], layerName = 'contour', valueField = 4): Uint8Array {
   const distinct = [...new Set(elevations)];
   const layer = [
     ...vfield(15, 2),
@@ -45,7 +46,7 @@ function contourTile(elevations: number[], layerName = 'contour'): Uint8Array {
     ),
     ...field(3, utf8('elevation')),
     // sint values for negative elevations, int for the rest: both decode.
-    ...distinct.flatMap(e => field(4, e < 0 ? vfield(6, -2 * e - 1) : vfield(4, e))),
+    ...distinct.flatMap(e => field(4, e < 0 ? vfield(6, -2 * e - 1) : vfield(valueField, e))),
     ...vfield(5, 4096),
   ];
   return Uint8Array.from(field(3, layer));
@@ -70,8 +71,7 @@ interface Tile { z: number; x: number; y: number; data: Uint8Array }
 /** Tiles at z9–z12, big enough (≈6 KB, incompressible) to overflow a page. */
 function fixtureTiles(): Tile[] {
   const tiles: Tile[] = [];
-  let seed = 1;
-  const noise = (n: number) => Uint8Array.from({ length: n }, () => (seed = (seed * 1103515245 + 12345) % 2 ** 31) % 256);
+  const noise = (n: number) => new Uint8Array(randomBytes(n));
   for (let z = 9; z <= 12; z++) {
     const span = 2 ** (z - 7);
     for (let x = 0; x < span; x++) {
@@ -153,6 +153,9 @@ describe('readZoomTiles', () => {
       // The point of the exercise: nowhere near the whole file.
       const bytesRead = reads.reduce((a, [s, e]) => a + e - s + 1, 0);
       expect(bytesRead).toBeLessThan(size / 4);
+      // Each z9 tile overflows into a run of pages (≈12 at 512 bytes): read
+      // ahead, a tile costs a few requests, not one per page.
+      expect(reads.length).toBeLessThan(z9.length * 6);
     });
 
     it(`reads one zoom from tippecanoe's map/images layout (page size ${pageSize})`, async () => {
@@ -209,6 +212,11 @@ describe('checkZ9Tiered', () => {
     expect(checkZ9Tiered(tile)).toEqual({ ok: true, features: 4, offInterval: 0 });
     expect(checkZ9Tiered(gzipSync(tile)).ok).toBe(true);
     expect(contourElevations(tile).elevations).toEqual([100, 200, 1300, -100]);
+  });
+
+  it('reads a uint value as unsigned and an int value as two\'s complement', () => {
+    expect(contourElevations(contourTile([2 ** 63], 'contour', 5)).elevations).toEqual([2 ** 63]);
+    expect(contourElevations(contourTile([2 ** 63], 'contour', 4)).elevations).toEqual([-(2 ** 63)]);
   });
 
   it('fails an untiered tile, and one without the contour layer', () => {

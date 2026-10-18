@@ -16,17 +16,22 @@
  *
  * What it deletes, per pack prefix (`<trail>/` or `grid/<cell>/`): every
  * `.mbtiles` object directly under the prefix that the live `manifest.json`
- * there does not list, and that was last modified more than `--grace-days`
- * ago (a download started against the previous manifest finishes in hours;
- * the grace is the margin). It never touches a prefix whose manifest is
- * missing or unreadable, an object in a sub-directory, anything but
+ * there does not list, by content-addressed key or by plain name (old app
+ * builds download the plain name), once that manifest has been live for
+ * `--grace-days` (a download started against the previous manifest finishes
+ * in hours; the grace is the margin). It never touches a prefix whose
+ * manifest is missing, unreadable or younger than the grace, an object
+ * younger than the grace, an object in a sub-directory, anything but
  * `.mbtiles`, the manifest itself, or any other prefix of the bucket
  * (`contours/`, `trails/v1/`, …). The manifest is read from the bucket, not
- * through the edge cache, so it is the one phones get next.
+ * through the edge cache, so it is the one phones get next. Do not run it
+ * during an upload.
  *
  * `--world-build` lists `contours/world-build/` (the world contour build's
  * batches and shards, streamed to R2 as insurance), all of which goes once
  * `world.pmtiles` is verified (runbook: docs/world-contours-remote-build.md).
+ * It refuses unless `contours/world.pmtiles` is newer than everything under
+ * the prefix, and keeps what is younger than the grace.
  *
  * Dry run by default; `--delete` deletes. Needs rclone with an R2 remote
  * (`RCLONE_REMOTE`, default `r2`; Object Read & Write on the bucket) — the
@@ -44,6 +49,7 @@ const BUCKET = process.env.R2_BUCKET || 'aus-map-data';
 const RCLONE_REMOTE = process.env.RCLONE_REMOTE || 'r2';
 const DEFAULT_GRACE_DAYS = 7;
 const WORLD_BUILD_PREFIX = 'contours/world-build/';
+const WORLD_ARCHIVE_KEY = 'contours/world.pmtiles';
 
 /** One object of a bucket listing (rclone lsjson's fields we use). */
 export interface BucketObject {
@@ -80,8 +86,12 @@ export function packPrefixes(objects: BucketObject[]): string[] {
 
 /**
  * The object names (relative to its prefix) a manifest references: each
- * file's `key`, or its `name` for a manifest from before content addressing.
- * Throws on a manifest that is not one, so the caller skips that prefix.
+ * file's content-addressed `key` *and* its plain `name`. The plain name
+ * stays live: app builds from before content addressing (~2026-10-10, no
+ * over-the-air updates) always download it, and a current build falls back
+ * to it when it cannot read the manifest (`tile-service.ts`
+ * `remoteKeys.get(name) ?? name`). Throws on a manifest that is not one, so
+ * the caller skips that prefix.
  */
 export function referencedNames(manifest: unknown): Set<string> {
   const files = (manifest as { files?: unknown })?.files;
@@ -89,11 +99,13 @@ export function referencedNames(manifest: unknown): Set<string> {
   const names = new Set<string>();
   for (const file of files) {
     const f = file as { name?: unknown; key?: unknown };
-    const name = typeof f.key === 'string' && f.key !== '' ? f.key : f.name;
-    if (typeof name !== 'string' || name === '' || name.includes('/')) {
-      throw new Error(`manifest has an invalid file entry ${JSON.stringify(file)}`);
+    const keys = [f.name, ...(f.key === undefined ? [] : [f.key])];
+    for (const name of keys) {
+      if (typeof name !== 'string' || name === '' || name.includes('/')) {
+        throw new Error(`manifest has an invalid file entry ${JSON.stringify(file)}`);
+      }
+      names.add(name);
     }
-    names.add(name);
   }
   return names;
 }
@@ -101,6 +113,14 @@ export function referencedNames(manifest: unknown): Set<string> {
 /**
  * Which objects to delete. `manifests` maps each prefix to its parsed live
  * manifest, or to an Error when it could not be read.
+ *
+ * The grace runs from when an object was *superseded* — when the manifest
+ * that dropped it was published — not from its own age: a pack uploaded a
+ * month ago and superseded a minute ago is still being downloaded by phones
+ * that read the previous manifest (or an edge-cached copy). So a prefix whose
+ * manifest is younger than the grace is left alone entirely. An object itself
+ * younger than the grace is kept too: the payload of an upload still running,
+ * whose manifest (published last) does not name it yet.
  */
 export function planCleanup(
   objects: BucketObject[],
@@ -120,6 +140,16 @@ export function planCleanup(
       plan.skipped.push({ prefix, reason: (e as Error).message });
       continue;
     }
+    const manifestObject = objects.find(o => o.path === `${prefix}manifest.json`);
+    const published = manifestObject ? Date.parse(manifestObject.modTime) : NaN;
+    if (!Number.isFinite(published) || published > cutoff) {
+      plan.skipped.push({
+        prefix,
+        reason: `manifest published ${manifestObject?.modTime.slice(0, 10) ?? 'at an unknown time'}, ` +
+          `inside the ${options.graceDays}-day grace`,
+      });
+      continue;
+    }
     plan.prefixes.push(prefix);
     for (const o of objects) {
       if (!o.path.startsWith(prefix)) continue;
@@ -129,6 +159,48 @@ export function planCleanup(
       if (!Number.isFinite(modified) || modified > cutoff) plan.keptRecent.push(o);
       else plan.delete.push(o);
     }
+  }
+  return plan;
+}
+
+export interface WorldBuildPlan {
+  delete: BucketObject[];
+  /** Objects inside the grace, kept. */
+  keptRecent: BucketObject[];
+  /** Why nothing may be deleted, when nothing may. */
+  refused?: string;
+}
+
+/**
+ * Which of `contours/world-build/` to delete. The prefix is the world build's
+ * insurance copy of its batches and shards, so it may go only once the
+ * archive built from them is published: `contours/world.pmtiles` must exist
+ * and be newer than every object under the prefix (a build still streaming
+ * batches, or one whose archive is not uploaded yet, is refused). Objects
+ * younger than the grace are kept regardless.
+ */
+export function planWorldBuildCleanup(
+  objects: BucketObject[],
+  archive: BucketObject | null,
+  options: { now: number; graceDays: number }
+): WorldBuildPlan {
+  const plan: WorldBuildPlan = { delete: [], keptRecent: [] };
+  if (!archive) {
+    return { ...plan, refused: `${WORLD_ARCHIVE_KEY} is not in the bucket: the build is not published yet` };
+  }
+  const archiveTime = Date.parse(archive.modTime);
+  const newer = objects.filter(o => !(Date.parse(o.modTime) < archiveTime));
+  if (!Number.isFinite(archiveTime) || newer.length > 0) {
+    return {
+      ...plan,
+      refused: `${newer.length} object(s) under ${WORLD_BUILD_PREFIX} are not older than ${WORLD_ARCHIVE_KEY} ` +
+        `(${archive.modTime}), e.g. ${newer[0]?.path ?? '?'}: a build may still be running, or the archive predates it`,
+    };
+  }
+  const cutoff = options.now - options.graceDays * 86_400_000;
+  for (const o of objects) {
+    if (Date.parse(o.modTime) > cutoff) plan.keptRecent.push(o);
+    else plan.delete.push(o);
   }
   return plan;
 }
@@ -149,9 +221,9 @@ function rclone(args: string[]): string {
   return result.stdout;
 }
 
-function listObjects(prefix = ''): BucketObject[] {
+function listObjects(prefix = '', { recursive = true } = {}): BucketObject[] {
   const entries = JSON.parse(
-    rclone(['lsjson', '-R', '--files-only', `${RCLONE_REMOTE}:${BUCKET}/${prefix}`])
+    rclone(['lsjson', ...(recursive ? ['-R'] : []), '--files-only', `${RCLONE_REMOTE}:${BUCKET}/${prefix}`])
   ) as Array<{ Path: string; Size: number; ModTime: string }>;
   return entries.map(e => ({ path: prefix + e.Path, size: e.Size, modTime: e.ModTime }));
 }
@@ -207,10 +279,17 @@ function main(): void {
 
   if (args.worldBuild) {
     const objects = listObjects(WORLD_BUILD_PREFIX);
-    const total = objects.reduce((a, o) => a + o.size, 0);
-    console.log(`${mode}: ${objects.length} objects (${formatBytes(total)}) under ${BUCKET}/${WORLD_BUILD_PREFIX}`);
-    printObjects(objects);
-    if (args.delete) deleteObjects(objects);
+    const archive = listObjects('contours/', { recursive: false }).find(o => o.path === WORLD_ARCHIVE_KEY) ?? null;
+    const plan = planWorldBuildCleanup(objects, archive, { now: Date.now(), graceDays: args.graceDays });
+    if (plan.refused) throw new Error(`not deleting ${WORLD_BUILD_PREFIX}: ${plan.refused}`);
+    if (plan.keptRecent.length > 0) {
+      console.log(`Newer than ${args.graceDays} days, kept (${plan.keptRecent.length}):`);
+      printObjects(plan.keptRecent);
+    }
+    const total = plan.delete.reduce((a, o) => a + o.size, 0);
+    console.log(`${mode}: ${plan.delete.length} objects (${formatBytes(total)}) under ${BUCKET}/${WORLD_BUILD_PREFIX}`);
+    printObjects(plan.delete);
+    if (args.delete) deleteObjects(plan.delete);
     return;
   }
 
