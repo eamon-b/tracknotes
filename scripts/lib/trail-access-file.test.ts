@@ -4,6 +4,8 @@ import {
   mergeTrailAccess,
   parseTrailAccessFile,
   stringifyTrailAccessFile,
+  unroutedAccessIds,
+  variantAccess,
   type TrailAccessFile,
 } from './trail-access-file';
 
@@ -49,6 +51,29 @@ describe('trail access file', () => {
     );
     const none = { ...FILE, places: { w_x: { name: 'X', method: 'none' } } };
     expect(() => parseTrailAccessFile(JSON.stringify(none), 'f')).toThrow(/needs a "reason"/);
+  });
+
+  it("keeps an alternate's entries off the main route and hands them over by alternate", () => {
+    const file: TrailAccessFile = {
+      ...FILE,
+      places: {
+        ...FILE.places,
+        w_d: { name: 'Field', method: 'osm', variant: 'Alt: Kamiyama', junction: [33.97, 134.37], junctionKm: 6.1, offTrailKm: 0.6 },
+        w_e: { name: 'Shed', method: 'none', variant: 'Alt: Kamiyama', reason: 'no mapped way' },
+      },
+    };
+    expect(parseTrailAccessFile(stringifyTrailAccessFile(file), 'access.json')).toEqual(file);
+    expect([...accessPlacements(file).keys()].sort()).toEqual(['w_b', 'w_c']);
+    expect([...unroutedAccessIds(file)]).toEqual(['w_a']);
+    const byAlternate = variantAccess(file);
+    expect([...byAlternate.keys()]).toEqual(['Alt: Kamiyama']);
+    expect(byAlternate.get('Alt: Kamiyama')).toEqual({
+      placements: new Map([['w_d', { junction: { lat: 33.97, lon: 134.37 }, offTrailKm: 0.6 }]]),
+      unrouted: new Set(['w_e']),
+    });
+    expect(variantAccess(FILE).size).toBe(0);
+    const unnamed = { ...FILE, places: { w_x: { ...FILE.places.w_c, variant: '' } } };
+    expect(() => parseTrailAccessFile(JSON.stringify(unnamed), 'f')).toThrow(/variant must be/);
   });
 
   it('keeps manual entries and the previous entry of a failed query', () => {

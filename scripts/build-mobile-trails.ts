@@ -107,14 +107,19 @@ function truncateWaypoint(wp: Record<string, unknown>): Record<string, unknown> 
   if (typeof result.descent === 'number') result.descent = Math.round(result.descent as number);
   if (typeof result.totalAscent === 'number') result.totalAscent = Math.round(result.totalAscent as number);
   if (typeof result.totalDescent === 'number') result.totalDescent = Math.round(result.totalDescent as number);
-  // The walk in is only drawn, so 1e-5° (about a metre) is plenty.
-  if (Array.isArray(result.offTrailPath)) {
-    result.offTrailPath = (result.offTrailPath as Array<[number, number]>).map(([lat, lon]) => [
+  return truncateAccessPath(result);
+}
+
+/** The walk in is only drawn, so 1e-5° (about a metre) is plenty. */
+function truncateAccessPath(wp: Record<string, unknown>): Record<string, unknown> {
+  if (!Array.isArray(wp.offTrailPath)) return wp;
+  return {
+    ...wp,
+    offTrailPath: (wp.offTrailPath as Array<[number, number]>).map(([lat, lon]) => [
       Math.round(lat * 1e5) / 1e5,
       Math.round(lon * 1e5) / 1e5,
-    ]);
-  }
-  return result;
+    ]),
+  };
 }
 
 /**
@@ -262,6 +267,8 @@ export function processTrail(trail: TrailJson): TrailJson {
     return {
       ...alt,
       points: truncatePoints(simplifyToTarget(alt.points, Math.min(alt.points.length, 1000))),
+      // A place walked to from the alternate (access.json `variant`) carries its walk in.
+      ...(Array.isArray(alt.waypoints) ? { waypoints: (alt.waypoints as Array<Record<string, unknown>>).map(truncateAccessPath) } : {}),
     };
   });
 

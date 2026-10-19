@@ -53,6 +53,15 @@
  *
  * `straightLineM`/`nearestKm` record what the build would do without the
  * entry, so a reviewer can see what moved and how far.
+ *
+ * An entry with `variant` is for a place off one of the trail's alternates
+ * rather than off the main route (Shikoku's Cotton Field Campground, a few
+ * hundred metres off the Kamiyama alternative and 3 km from the main route):
+ * `variant` names the alternate, its walk leaves from that alternate's line,
+ * and `junctionKm`/`nearestKm` are km along the alternate from its start
+ * (`points[0]`, the branch point), not trail km — the build adds the
+ * alternate's `startDistance`. The build applies it to that alternate's
+ * waypoints only (`variantAccess`), never to the main route.
  */
 
 import * as fs from 'fs';
@@ -68,6 +77,11 @@ export type AccessMethod = 'osm' | 'manual' | 'none';
 export interface TrailAccessEntry {
   name: string;
   method: AccessMethod;
+  /**
+   * The alternate the walk leaves from, by name, when it is not the main
+   * route; `junctionKm`/`nearestKm` are then km along that alternate.
+   */
+  variant?: string;
   junction?: [number, number];
   junctionKm?: number;
   offTrailKm?: number;
@@ -152,6 +166,9 @@ export function parseTrailAccessFile(text: string, filePath: string): TrailAcces
     if (entry.method !== 'osm' && entry.method !== 'manual' && entry.method !== 'none') {
       fail(`${where}.method must be "osm", "manual" or "none"`);
     }
+    if (entry.variant !== undefined && (typeof entry.variant !== 'string' || entry.variant === '')) {
+      fail(`${where}.variant must be an alternate's name`);
+    }
     if (entry.method === 'none') {
       if (typeof entry.reason !== 'string') fail(`${where}: a "none" entry needs a "reason"`);
       continue;
@@ -174,31 +191,69 @@ export function readTrailAccessFile(trailDir: string): TrailAccessFile | null {
   return parseTrailAccessFile(fs.readFileSync(filePath, 'utf-8'), filePath);
 }
 
-/** The placements the build applies: every `osm` and `manual` entry, by waypoint id. */
+/** What the build applies to one entry, or null for a `none` (or incomplete) one. */
+function placementFor(entry: TrailAccessEntry): WaypointAccessPlacement | null {
+  if (entry.method === 'none' || !entry.junction || entry.offTrailKm === undefined) return null;
+  return {
+    junction: { lat: entry.junction[0], lon: entry.junction[1] },
+    offTrailKm: entry.offTrailKm,
+    ...(entry.ascentM !== undefined ? { ascentM: entry.ascentM } : {}),
+    ...(entry.descentM !== undefined ? { descentM: entry.descentM } : {}),
+    // Only a routed walk has a way to draw: a hand-written entry's path,
+    // were one added, would say no more than its junction does.
+    ...(entry.method === 'osm' && entry.path && entry.path.length >= 2 ? { path: entry.path } : {}),
+  };
+}
+
+/**
+ * The main route's placements: every `osm` and `manual` entry without a
+ * `variant`, by waypoint id.
+ */
 export function accessPlacements(file: TrailAccessFile | null): Map<string, WaypointAccessPlacement> {
   const placements = new Map<string, WaypointAccessPlacement>();
-  if (!file) return placements;
-  for (const [id, entry] of Object.entries(file.places)) {
-    if (entry.method === 'none' || !entry.junction || entry.offTrailKm === undefined) continue;
-    placements.set(id, {
-      junction: { lat: entry.junction[0], lon: entry.junction[1] },
-      offTrailKm: entry.offTrailKm,
-      ...(entry.ascentM !== undefined ? { ascentM: entry.ascentM } : {}),
-      ...(entry.descentM !== undefined ? { descentM: entry.descentM } : {}),
-      // Only a routed walk has a way to draw: a hand-written entry's path,
-      // were one added, would say no more than its junction does.
-      ...(entry.method === 'osm' && entry.path && entry.path.length >= 2 ? { path: entry.path } : {}),
-    });
+  for (const [id, entry] of Object.entries(file?.places ?? {})) {
+    if (entry.variant !== undefined) continue;
+    const placement = placementFor(entry);
+    if (placement) placements.set(id, placement);
   }
   return placements;
 }
 
 /**
- * The waypoints the fetch found no way to (`none` entries), by id: the build
- * gives them the straight line to the route as their walk.
+ * The main route's waypoints the fetch found no way to (`none` entries without
+ * a `variant`), by id: the build gives them the straight line to the route as
+ * their walk.
  */
 export function unroutedAccessIds(file: TrailAccessFile | null): Set<string> {
-  return new Set(Object.entries(file?.places ?? {}).filter(([, entry]) => entry.method === 'none').map(([id]) => id));
+  return new Set(
+    Object.entries(file?.places ?? {})
+      .filter(([, entry]) => entry.method === 'none' && entry.variant === undefined)
+      .map(([id]) => id)
+  );
+}
+
+/** One alternate's entries, as the build applies them to its waypoints. */
+export interface VariantAccessPlacements {
+  placements: Map<string, WaypointAccessPlacement>;
+  /** Its `none` entries: walked as the straight line to the alternate. */
+  unrouted: Set<string>;
+}
+
+/** The entries with a `variant`, by alternate name, then waypoint id. */
+export function variantAccess(file: TrailAccessFile | null): Map<string, VariantAccessPlacements> {
+  const byVariant = new Map<string, VariantAccessPlacements>();
+  for (const [id, entry] of Object.entries(file?.places ?? {})) {
+    if (entry.variant === undefined) continue;
+    let access = byVariant.get(entry.variant);
+    if (!access) {
+      access = { placements: new Map(), unrouted: new Set() };
+      byVariant.set(entry.variant, access);
+    }
+    const placement = placementFor(entry);
+    if (placement) access.placements.set(id, placement);
+    else if (entry.method === 'none') access.unrouted.add(id);
+  }
+  return byVariant;
 }
 
 /**

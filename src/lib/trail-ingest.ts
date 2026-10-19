@@ -1070,6 +1070,39 @@ export interface WaypointAccessPlacement {
 }
 
 /**
+ * One alternate's `access.json` entries (those naming it as their `variant`),
+ * applied to its waypoints by {@link enrichVariantWaypoints}: the walk leaves
+ * from the alternate's own line, and the place is listed at the junction's km
+ * along it.
+ */
+export interface VariantAccess {
+  placements: ReadonlyMap<string, WaypointAccessPlacement>;
+  /** Places the fetch found no way to: walked as the straight line to the alternate. */
+  unrouted?: ReadonlySet<string>;
+}
+
+/**
+ * The fields of a matched row the junction passes read and rewrite: a main
+ * route's `EnrichedWaypoint`, or a variant's `VariantWaypoint` with its
+ * `variantTrackIndex` read as `trackIndex`.
+ */
+type JunctionRow = Pick<
+  EnrichedWaypoint,
+  | 'id'
+  | 'lat'
+  | 'lon'
+  | 'elevation'
+  | 'distance'
+  | 'totalDistance'
+  | 'ascent'
+  | 'descent'
+  | 'totalAscent'
+  | 'totalDescent'
+  | 'trackIndex'
+  | 'offTrailKm'
+>;
+
+/**
  * A junction further than this from the route no longer lies on it: the route
  * was redrawn since `fetch-access` ran, and the entry is ignored until it runs
  * again (metres).
@@ -1211,17 +1244,22 @@ function snapBesideVertex(
  * re-measured, and the rows put back in km order. Only `applied` ids move — an
  * entry `matchAtJunctions` ignored stands at the place, not a junction. Run
  * while the rows still stand at their junctions.
+ *
+ * `startKm` is the km the first row's leg is measured from: 0 on the main
+ * route, an alternate's `startDistance` on its waypoints (whose `points` then
+ * carry `dist` on the trail's scale and whose climb counts from `points[0]`).
  */
-export function placeAtJunctionKm(
-  enriched: EnrichedWaypoint[],
+export function placeAtJunctionKm<T extends JunctionRow>(
+  enriched: T[],
   applied: ReadonlySet<string>,
   points: readonly { lat: number; lon: number; ele: number; dist: number }[],
   breakStarts: ReadonlySet<number> = NO_BREAK_STARTS,
-  climb?: ClimbLadder
-): EnrichedWaypoint[] {
+  climb?: ClimbLadder,
+  startKm = 0
+): T[] {
   if (applied.size === 0) return enriched;
-  const moved = new Set<EnrichedWaypoint>();
-  const revertexed = new Set<EnrichedWaypoint>();
+  const moved = new Set<T>();
+  const revertexed = new Set<T>();
   const rows = enriched.map(row => {
     if (row.id === undefined || !applied.has(row.id)) return row;
     const snap = snapBesideVertex(row.lat, row.lon, points, row.trackIndex, breakStarts);
@@ -1255,7 +1293,7 @@ export function placeAtJunctionKm(
     // totals; every other leg stays as enriched.
     const reordered = enrichedPrev.get(row) !== prev;
     if (!reordered && !moved.has(row) && !(prev !== undefined && moved.has(prev))) return row;
-    const distance = Math.round((row.totalDistance - (prev?.totalDistance ?? 0)) * 100) / 100;
+    const distance = Math.round((row.totalDistance - (prev?.totalDistance ?? startKm)) * 100) / 100;
     // Climb is read at the vertex, so only a leg whose ends changed vertex needs it again.
     if (!reordered && !revertexed.has(row) && !(prev !== undefined && revertexed.has(prev))) return { ...row, distance };
     return {
@@ -1274,12 +1312,12 @@ export function placeAtJunctionKm(
  * (`placeUserWaypoints`), rather than no walk at all. A row whose source
  * already gives `offTrailKm` keeps it.
  */
-export function straightLineAccess(
-  enriched: EnrichedWaypoint[],
+export function straightLineAccess<T extends JunctionRow>(
+  enriched: T[],
   ids: ReadonlySet<string>,
   points: readonly { lat: number; lon: number; dist: number }[],
   breakStarts: ReadonlySet<number> = NO_BREAK_STARTS
-): EnrichedWaypoint[] {
+): T[] {
   if (ids.size === 0) return enriched;
   return enriched.map(row => {
     if (row.id === undefined || !ids.has(row.id) || row.offTrailKm !== undefined) return row;
@@ -1289,11 +1327,11 @@ export function straightLineAccess(
 }
 
 /** Undo {@link matchAtJunctions} on the enriched rows: the place stays where it is. */
-export function restoreJunctionPositions(
-  enriched: EnrichedWaypoint[],
+export function restoreJunctionPositions<T extends Pick<JunctionRow, 'id' | 'lat' | 'lon'>>(
+  enriched: T[],
   waypoints: readonly TrailWaypoint[],
   placements: ReadonlyMap<string, WaypointAccessPlacement>
-): EnrichedWaypoint[] {
+): T[] {
   if (placements.size === 0) return enriched;
   const source = new Map(waypoints.filter(wp => wp.id !== undefined && placements.has(wp.id)).map(wp => [wp.id, wp]));
   return enriched.map(ew => {
@@ -1314,17 +1352,32 @@ export function restoreJunctionPositions(
  * point. This keeps variant waypoints directly comparable with main-route
  * waypoints in datasheets. Falls back to variant-relative km when the variant
  * never attaches to the main track.
+ *
+ * `access` (by alternate name) places an off-route waypoint at the junction
+ * where it is walked to from that *alternate* — the main route's
+ * {@link matchAtJunctions} → {@link placeAtJunctionKm} →
+ * {@link restoreJunctionPositions} → {@link straightLineAccess} passes, run on
+ * the alternate's own line with the variant match radius. Only alternates take
+ * it: a side trip is itself the way to what is near it, and a terminus ends
+ * the trail. A variant with no entries is enriched exactly as before.
  */
 export function enrichVariantWaypoints(
   variants: RouteVariant[],
-  waypoints: TrailWaypoint[]
+  waypoints: TrailWaypoint[],
+  access: ReadonlyMap<string, VariantAccess> = NO_VARIANT_ACCESS,
+  warn: (message: string) => void = () => {}
 ): RouteVariant[] {
   if (waypoints.length === 0) return variants;
 
   return variants.map(variant => {
     if (variant.points.length === 0) return variant;
 
-    const visits = findWaypointVisits(waypoints, variant.points, VARIANT_WAYPOINT_MAX_DISTANCE_METERS);
+    const own = variant.type === 'alternate' ? access.get(variant.name) : undefined;
+    const placements = own?.placements ?? NO_PLACEMENTS;
+    const matched = matchAtJunctions(waypoints, placements, variant.points, VARIANT_WAYPOINT_MAX_DISTANCE_METERS, message =>
+      warn(`alternate "${variant.name}": ${message}`)
+    );
+    const visits = findWaypointVisits(matched, variant.points, VARIANT_WAYPOINT_MAX_DISTANCE_METERS);
     if (visits.length === 0) return variant;
 
     const junctionKm = variant.startDistance ?? 0;
@@ -1364,8 +1417,47 @@ export function enrichVariantWaypoints(
       prevTrackIndex = visit.trackIndex;
     }
 
-    return { ...variant, waypoints: variantWaypoints };
+    if (!own) return { ...variant, waypoints: variantWaypoints };
+    return { ...variant, waypoints: applyVariantAccess(variant, variantWaypoints, waypoints, matched, own) };
   });
+}
+
+const NO_PLACEMENTS: ReadonlyMap<string, WaypointAccessPlacement> = new Map();
+const NO_VARIANT_ACCESS: ReadonlyMap<string, VariantAccess> = new Map();
+
+/**
+ * The main route's junction passes on one alternate's rows: each applied
+ * place moves to its junction's km on the alternate's line and back to its
+ * own position, and every listed place without a junction applied is walked
+ * as the straight line to the alternate.
+ */
+function applyVariantAccess(
+  variant: RouteVariant,
+  rows: VariantWaypoint[],
+  waypoints: TrailWaypoint[],
+  matched: readonly TrailWaypoint[],
+  access: VariantAccess
+): VariantWaypoint[] {
+  const applied = appliedAccessIds(waypoints, matched);
+  const unrouted = new Set([
+    ...(access.unrouted ?? []),
+    ...[...access.placements.keys()].filter(id => !applied.has(id)),
+  ]);
+  const startKm = variant.startDistance ?? 0;
+  // On the trail's scale, as the rows' `totalDistance` is.
+  const points = cumulativeKm(variant.points).map((km, i) => ({ ...variant.points[i], dist: startKm + km }));
+  const asRows = rows.map(row => ({ ...row, trackIndex: row.variantTrackIndex }));
+  const placed = straightLineAccess(
+    restoreJunctionPositions(
+      placeAtJunctionKm(asRows, applied, points, NO_BREAK_STARTS, undefined, startKm),
+      waypoints,
+      access.placements
+    ),
+    unrouted,
+    points
+  );
+  // `variantTrackIndex` keeps its place among the keys.
+  return placed.map(({ trackIndex, ...row }) => ({ ...row, variantTrackIndex: trackIndex }));
 }
 
 // ---------------------------------------------------------------------------
@@ -1437,6 +1529,12 @@ export interface BuildTrailOptions {
    * id: walked as the straight line to the route ({@link straightLineAccess}).
    */
   waypointAccessUnrouted?: ReadonlySet<string>;
+  /**
+   * Off-route waypoints walked to from an alternate rather than the main
+   * route, by alternate name (`access.json` entries with a `variant`): applied
+   * to that alternate's waypoints only ({@link enrichVariantWaypoints}).
+   */
+  variantWaypointAccess?: ReadonlyMap<string, VariantAccess>;
   /**
    * What to do when the route passes one waypoint twice, fanning a single
    * source waypoint into several output rows that share an id. The build script
@@ -1927,7 +2025,16 @@ export function buildTrail(gpx: ParsedGpxResult, options: BuildTrailOptions): Pr
       ? variant
       : { ...variant, waypoints: applyWaypointDedupe(variant.waypoints, `variant "${variant.name}"`) });
 
-  const alternatesWithWaypoints = dedupeVariants(enrichVariantWaypoints(enrichedAlternates, waypoints));
+  const variantAccess = options.variantWaypointAccess ?? NO_VARIANT_ACCESS;
+  const alternateNames = new Set(enrichedAlternates.map(variant => variant.name));
+  for (const name of variantAccess.keys()) {
+    if (!alternateNames.has(name)) {
+      warn(`  Warning: access for alternate "${name}" ignored: the trail has no alternate of that name — re-run fetch-access`);
+    }
+  }
+  const alternatesWithWaypoints = dedupeVariants(
+    enrichVariantWaypoints(enrichedAlternates, waypoints, variantAccess, message => warn(`  Warning: ${message}`))
+  );
   const sideTripsWithWaypoints = dedupeVariants(enrichVariantWaypoints(enrichedSideTrips, waypoints));
 
   // Identify off-trail waypoints (not matched even at the increased threshold).

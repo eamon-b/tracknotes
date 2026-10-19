@@ -39,11 +39,13 @@ import * as path from 'path';
 import { createHash } from 'crypto';
 import { fileURLToPath } from 'url';
 
-import { buildWalkNetwork, findAccess, type WalkWay } from '../src/lib/access-routing.js';
+import { buildWalkNetwork, findAccess, type AccessRoutePoint, type WalkWay } from '../src/lib/access-routing.js';
 import { snapToTrail } from '../src/lib/position-on-trail.js';
 import { routeBreakStarts } from '../src/lib/route-breaks.js';
+import { DEFAULT_WAYPOINT_MAX_DISTANCE_METERS } from '../src/lib/trail-ingest.js';
 import { simplifyTrack } from '../src/lib/track-simplify.js';
-import type { ProcessedTrail } from '../src/lib/trail-types.js';
+import { cumulativeKm } from '../src/lib/track-spurs.js';
+import type { ProcessedTrail, RouteVariant } from '../src/lib/trail-types.js';
 import { isAccessWaypoint } from '../src/lib/waypoint-taxonomy.js';
 import { CopernicusDem, type Bbox } from './lib/dem-sampler.js';
 import {
@@ -120,6 +122,11 @@ export interface Candidate {
   /** The longest walk worth searching (metres). */
   maxWalkM: number;
   /**
+   * The alternate the place is walked to from, by name, when it is off an
+   * alternate rather than the main route; `nearestKm` is then km along it.
+   */
+  variant?: string;
+  /**
    * Near-duplicates the build merged into this waypoint (`dedupeWaypoints`).
    * They get the same entry: one place, and if only the survivor moved, the
    * next build's merge would keep the other copy, which has none.
@@ -188,9 +195,20 @@ const ON_SIDE_TRIP_M = 200;
  * the temple that OSM lacks, and routing over OSM found a road and a 250 m
  * cross-country climb from elsewhere instead), and not one whose source file
  * already says how far off it is — unless that figure came from this file.
+ *
+ * Then the same for places off an **alternate** rather than the main route
+ * (Shikoku's Cotton Field Campground: 560 m off the Kamiyama alternative, 3 km
+ * from the main route): every waypoint the main route did not match — an
+ * off-trail row, or one of an alternate's own — whose nearest line is an
+ * alternate, at least `minDistanceM` and at most the trail's match radius
+ * (`waypointMaxDistance`, as the main route matches its waypoints) off it. It
+ * is routed to that alternate's line, with km along the alternate
+ * ({@link alternateRoute}). Side trips are not routed to: they are the way to
+ * what is near them, and the same 200 m rule leaves those places alone.
  */
 export function selectCandidates(
-  trail: Pick<ProcessedTrail, 'waypoints' | 'track'> & Partial<Pick<ProcessedTrail, 'sideTrips'>>,
+  trail: Pick<ProcessedTrail, 'waypoints' | 'track'> &
+    Partial<Pick<ProcessedTrail, 'sideTrips' | 'alternates' | 'offTrailWaypoints' | 'config'>>,
   minDistanceM: number,
   ownIds: ReadonlySet<string>
 ): Candidate[] {
@@ -201,9 +219,14 @@ export function selectCandidates(
     sideTripLines.some(line => (snapToTrail(lat, lon, line)?.offTrailMeters ?? Infinity) <= ON_SIDE_TRIP_M);
   const candidates: Candidate[] = [];
   const seen = new Set<string>();
+  const routable = (wp: { id?: string; type: string; offTrailKm?: number }): wp is { id: string; type: string } =>
+    !!wp.id &&
+    !seen.has(wp.id) &&
+    !isAccessWaypoint(wp.type) &&
+    !NOT_DESTINATIONS.has(wp.type) &&
+    (wp.offTrailKm === undefined || ownIds.has(wp.id));
   for (const wp of trail.waypoints) {
-    if (!wp.id || seen.has(wp.id) || isAccessWaypoint(wp.type) || NOT_DESTINATIONS.has(wp.type)) continue;
-    if (wp.offTrailKm !== undefined && !ownIds.has(wp.id)) continue;
+    if (!routable(wp)) continue;
     seen.add(wp.id);
     const snap = snapToTrail(wp.lat, wp.lon, trail.track.points, undefined, breakStarts);
     if (!snap || snap.offTrailMeters < minDistanceM) continue;
@@ -219,7 +242,67 @@ export function selectCandidates(
       ...searchBox(wp.lat, wp.lon, snap.offTrailMeters),
     });
   }
+
+  // Off an alternate. The main route's rows (and the twins merged into them)
+  // are its own, routed above or left alone there.
+  for (const wp of trail.waypoints) for (const id of wp.mergedIds ?? []) seen.add(id);
+  const alternates = routableAlternates(trail.alternates ?? []);
+  if (alternates.length === 0) return candidates;
+  const matchRadiusM = trail.config?.waypointMaxDistance ?? DEFAULT_WAYPOINT_MAX_DISTANCE_METERS;
+  const lines = alternates.map(alt => ({ name: alt.name, line: alternateRoute(alt) }));
+  const rows = [...(trail.offTrailWaypoints ?? []), ...alternates.flatMap(alt => alt.waypoints ?? [])];
+  for (const wp of rows) {
+    if (!routable(wp)) continue;
+    seen.add(wp.id);
+    let nearest: { name: string; offM: number; km: number } | null = null;
+    for (const { name, line } of lines) {
+      const snap = snapToTrail(wp.lat, wp.lon, line);
+      if (snap && (nearest === null || snap.offTrailMeters < nearest.offM)) {
+        nearest = { name, offM: snap.offTrailMeters, km: snap.currentKm };
+      }
+    }
+    if (!nearest || nearest.offM < minDistanceM || nearest.offM > matchRadiusM) continue;
+    // Nearer the main route, it is the main route's to route (or leave).
+    const main = snapToTrail(wp.lat, wp.lon, trail.track.points, undefined, breakStarts);
+    if (main && main.offTrailMeters <= nearest.offM) continue;
+    if (onSideTrip(wp.lat, wp.lon)) continue;
+    candidates.push({
+      id: wp.id,
+      name: wp.name,
+      lat: wp.lat,
+      lon: wp.lon,
+      straightLineM: nearest.offM,
+      nearestKm: nearest.km,
+      variant: nearest.name,
+      ...('mergedIds' in wp && wp.mergedIds?.length ? { mergedIds: [...wp.mergedIds] } : {}),
+      ...searchBox(wp.lat, wp.lon, nearest.offM),
+    });
+  }
   return candidates;
+}
+
+/**
+ * The alternates a place can be routed to: those with a line, and a name no
+ * other alternate shares — the entry names its alternate, and the build would
+ * apply it to every one of that name.
+ */
+export function routableAlternates(alternates: readonly RouteVariant[]): RouteVariant[] {
+  const count = new Map<string, number>();
+  for (const alt of alternates) count.set(alt.name, (count.get(alt.name) ?? 0) + 1);
+  return alternates.filter(alt => alt.type === 'alternate' && alt.points.length >= 2 && count.get(alt.name) === 1);
+}
+
+/**
+ * An alternate's line with km along it from `points[0]` — the branch point,
+ * as the build turns every variant round to read forwards — which is the
+ * scale a variant entry's `junctionKm`/`nearestKm` are on.
+ */
+export function alternateRoute(alternate: Pick<RouteVariant, 'points'>): AccessRoutePoint[] {
+  return cumulativeKm(alternate.points).map((km, i) => ({
+    lat: alternate.points[i].lat,
+    lon: alternate.points[i].lon,
+    dist: km,
+  }));
 }
 
 interface OverpassWay {
@@ -359,6 +442,7 @@ const round = (value: number, places: number) => Math.round(value * 10 ** places
 function entryFor(candidate: Candidate, result: ReturnType<typeof findAccess>): TrailAccessEntry {
   const base = {
     name: candidate.name,
+    ...(candidate.variant !== undefined ? { variant: candidate.variant } : {}),
     straightLineM: Math.round(candidate.straightLineM),
     nearestKm: round(candidate.nearestKm, 2),
   };
@@ -371,6 +455,7 @@ function entryFor(candidate: Candidate, result: ReturnType<typeof findAccess>): 
   return {
     name: base.name,
     method: 'osm',
+    ...(base.variant !== undefined ? { variant: base.variant } : {}),
     junction: [round(result.junction.lat, 6), round(result.junction.lon, 6)],
     junctionKm: round(result.junctionKm, 2),
     offTrailKm: round(result.lengthM / 1000, 2),
@@ -500,6 +585,7 @@ async function main(): Promise<void> {
   }
 
   const breakStarts = routeBreakStarts(trail.track.breaks, 'points');
+  const alternateRoutes = new Map(routableAlternates(trail.alternates ?? []).map(alt => [alt.name, alternateRoute(alt)]));
   const dem = new CopernicusDem();
   const fetched: Record<string, TrailAccessEntry> = {};
   const failedIds = new Set<string>();
@@ -543,10 +629,11 @@ async function main(): Promise<void> {
       const network = buildWalkNetwork(ways);
       console.log(`  ${label}: ${ways.length} ways`);
       for (const member of cluster.members) {
-        const result = findAccess(network, member, trail.track.points, {
+        // A place off an alternate is walked to from that alternate's line.
+        const result = findAccess(network, member, member.variant ? alternateRoutes.get(member.variant)! : trail.track.points, {
           elevationAt: (lat, lon) => dem.at(lat, lon),
           maxWalkM: member.maxWalkM,
-          breakStarts,
+          ...(member.variant ? {} : { breakStarts }),
         });
         const entry = entryFor(member, result);
         fetched[member.id] = entry;
@@ -592,8 +679,10 @@ async function main(): Promise<void> {
   for (const candidate of candidates) {
     const entry = fetched[candidate.id];
     if (!entry) continue;
+    // A place off an alternate: its km are along that alternate.
+    const on = candidate.variant ? ` (km along "${candidate.variant}")` : '';
     if (entry.method === 'none') {
-      console.log(`  ${candidate.nearestKm.toFixed(1).padStart(7)}  (unchanged)            ${candidate.name}: ${entry.reason}`);
+      console.log(`  ${candidate.nearestKm.toFixed(1).padStart(7)}  (unchanged)            ${candidate.name}${on}: ${entry.reason}`);
       continue;
     }
     const moved =
@@ -601,7 +690,7 @@ async function main(): Promise<void> {
       ((entry.crossCountryM ?? 0) > LONG_CROSS_COUNTRY_M ? `  ← ends ${entry.crossCountryM} m cross-country` : '');
     console.log(
       `  ${candidate.nearestKm.toFixed(1).padStart(7)} → ${entry.junctionKm!.toFixed(1).padStart(7)}   ` +
-        `${entry.offTrailKm!.toFixed(2)} km +${entry.ascentM}/-${entry.descentM} m   ${candidate.name}${moved}`
+        `${entry.offTrailKm!.toFixed(2)} km +${entry.ascentM}/-${entry.descentM} m   ${candidate.name}${on}${moved}`
     );
   }
   console.log(`\nWrote ${path.relative(PROJECT_ROOT, filePath)}`);

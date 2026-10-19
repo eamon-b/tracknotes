@@ -5,6 +5,26 @@
   "endpoint": "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
   "minDistanceM": 150,
   "places": {
+    "w_00dae8b4": {
+      "name": "Austral Inn Hotel",
+      "method": "osm",
+      "variant": "N3.9 Alternative route via Quorn",
+      "junction": [-32.347276, 138.037138],
+      "junctionKm": 1.97,
+      "offTrailKm": 0.45,
+      "ascentM": 0,
+      "descentM": 0,
+      "crossCountryM": 30,
+      "straightLineM": 417,
+      "nearestKm": 2,
+      "path": [
+        [-32.347276, 138.037138],
+        [-32.347301, 138.037519],
+        [-32.345749, 138.040596],
+        [-32.346127, 138.04085],
+        [-32.346215, 138.041157]
+      ]
+    },
     "w_01f47758": {
       "name": "Morse Cottage",
       "method": "osm",
@@ -20,6 +40,25 @@
         [-33.684501, 138.943621],
         [-33.68591, 138.941239],
         [-33.685879, 138.940855]
+      ]
+    },
+    "w_064ed5f7": {
+      "name": "Transcontinental Hotel",
+      "method": "osm",
+      "variant": "N3.9 Alternative route via Quorn",
+      "junction": [-32.347276, 138.037138],
+      "junctionKm": 1.97,
+      "offTrailKm": 0.35,
+      "ascentM": 0,
+      "descentM": 0,
+      "crossCountryM": 31,
+      "straightLineM": 353,
+      "nearestKm": 2,
+      "path": [
+        [-32.347276, 138.037138],
+        [-32.347301, 138.037519],
+        [-32.346014, 138.040077],
+        [-32.346015, 138.040405]
       ]
     },
     "w_295f4a99": {
@@ -62,6 +101,24 @@
         [-34.974113, 138.708992]
       ]
     },
+    "w_32b969ff": {
+      "name": "Outback Chapmanton Motor Inn",
+      "method": "osm",
+      "variant": "N4.11 Alternative route into Hawker",
+      "junction": [-31.888113, 138.420529],
+      "junctionKm": 6.65,
+      "offTrailKm": 0.47,
+      "ascentM": 0,
+      "descentM": 0,
+      "crossCountryM": 15,
+      "straightLineM": 442,
+      "nearestKm": 6.72,
+      "path": [
+        [-31.888113, 138.420529],
+        [-31.888495, 138.421042],
+        [-31.88627, 138.424484]
+      ]
+    },
     "w_33bcba8a": {
       "name": "Mount Brown Bush Camp",
       "method": "osm",
@@ -93,6 +150,43 @@
         [-34.525715, 138.964997],
         [-34.526769, 138.964536],
         [-34.526809, 138.964295]
+      ]
+    },
+    "w_3ac34e6b": {
+      "name": "Quorn Caravan Park",
+      "method": "osm",
+      "variant": "N3.9 Alternative route via Quorn",
+      "junction": [-32.345754, 138.036549],
+      "junctionKm": 2.13,
+      "offTrailKm": 0.45,
+      "ascentM": 0,
+      "descentM": 4,
+      "crossCountryM": 60,
+      "straightLineM": 385,
+      "nearestKm": 2.3,
+      "path": [
+        [-32.345754, 138.036549],
+        [-32.345755, 138.036888],
+        [-32.3441, 138.040086],
+        [-32.34356, 138.04011]
+      ]
+    },
+    "w_48af1b86": {
+      "name": "Quorn",
+      "method": "osm",
+      "variant": "N3.9 Alternative route via Quorn",
+      "junction": [-32.347276, 138.037138],
+      "junctionKm": 1.97,
+      "offTrailKm": 0.36,
+      "ascentM": 0,
+      "descentM": 0,
+      "crossCountryM": 2,
+      "straightLineM": 365,
+      "nearestKm": 2,
+      "path": [
+        [-32.347276, 138.037138],
+        [-32.347301, 138.037519],
+        [-32.345833, 138.040466]
       ]
     },
     "w_4ddbe35f": {
@@ -323,6 +417,28 @@
         [-34.457905, 138.9296]
       ]
     },
+    "w_94970080": {
+      "name": "Savings Bank of South Australia – Old Quorn Branch",
+      "method": "osm",
+      "variant": "N3.9 Alternative route via Quorn",
+      "junction": [-32.347276, 138.037138],
+      "junctionKm": 1.97,
+      "offTrailKm": 0.56,
+      "ascentM": 0,
+      "descentM": 3,
+      "crossCountryM": 21,
+      "straightLineM": 487,
+      "nearestKm": 2,
+      "path": [
+        [-32.347276, 138.037138],
+        [-32.347301, 138.037519],
+        [-32.34691, 138.038321],
+        [-32.347828, 138.038974],
+        [-32.346702, 138.041233],
+        [-32.34652, 138.041758],
+        [-32.346579, 138.041968]
+      ]
+    },
     "w_9e2647e1": {
       "name": "Apartments on Fiedler",
       "method": "osm",
@@ -355,6 +471,26 @@
         [-35.494409, 138.45622],
         [-35.494019, 138.457273],
         [-35.493382, 138.458313]
+      ]
+    },
+    "w_ad54d6a8": {
+      "name": "Meaney’s Rest",
+      "method": "osm",
+      "variant": "N4.11 Alternative route into Hawker",
+      "junction": [-31.888113, 138.420529],
+      "junctionKm": 6.65,
+      "offTrailKm": 0.35,
+      "ascentM": 0,
+      "descentM": 0,
+      "crossCountryM": 17,
+      "straightLineM": 229,
+      "nearestKm": 6.72,
+      "path": [
+        [-31.888113, 138.420529],
+        [-31.888495, 138.421042],
+        [-31.887395, 138.422708],
+        [-31.886902, 138.422254],
+        [-31.886756, 138.422294]
       ]
     },
     "w_aecdaa67": {
@@ -394,6 +530,24 @@
         [-33.671601, 138.927793],
         [-33.671909, 138.926471],
         [-33.671874, 138.926155]
+      ]
+    },
+    "w_bb0bb2dc": {
+      "name": "Quorn Brewers Cottages",
+      "method": "osm",
+      "variant": "N3.9 Alternative route via Quorn",
+      "junction": [-32.342659, 138.035651],
+      "junctionKm": 2.48,
+      "offTrailKm": 0.24,
+      "ascentM": 0,
+      "descentM": 0,
+      "crossCountryM": 93,
+      "straightLineM": 250,
+      "nearestKm": 2.58,
+      "path": [
+        [-32.342659, 138.035651],
+        [-32.341982, 138.037004],
+        [-32.341233, 138.037439]
       ]
     },
     "w_bc550aab": {
@@ -555,6 +709,27 @@
       "path": [
         [-34.340545, 138.915587],
         [-34.339077, 138.916672]
+      ]
+    },
+    "w_f968253e": {
+      "name": "Quandong Apartments",
+      "method": "osm",
+      "variant": "N3.9 Alternative route via Quorn",
+      "junction": [-32.347276, 138.037138],
+      "junctionKm": 1.97,
+      "offTrailKm": 0.53,
+      "ascentM": 0,
+      "descentM": 3,
+      "crossCountryM": 25,
+      "straightLineM": 449,
+      "nearestKm": 2,
+      "path": [
+        [-32.347276, 138.037138],
+        [-32.347301, 138.037519],
+        [-32.34691, 138.038321],
+        [-32.347949, 138.03906],
+        [-32.346812, 138.041305],
+        [-32.346805, 138.041574]
       ]
     },
     "w_fef350de": {
