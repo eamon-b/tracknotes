@@ -30,6 +30,12 @@ import type { TrailPOI, TrailPOICategory } from './trail-types';
 /** Two points further apart than this are never the same place. */
 export const MAX_DUPLICATE_DISTANCE_M = 250;
 
+/**
+ * `MAX_DUPLICATE_DISTANCE_M` as degrees of latitude, with a metre to spare so
+ * rounding can never drop a pair the distance check would keep.
+ */
+const MAX_DUPLICATE_LAT_DEGREES = ((MAX_DUPLICATE_DISTANCE_M + 1) / 6_371_000) * (180 / Math.PI);
+
 /** Name similarity at or above this counts as the same name. */
 export const MIN_NAME_SCORE = 0.9;
 
@@ -318,6 +324,11 @@ export function markDuplicatePois(
     } | null = null;
     for (const waypoint of waypoints) {
       if (!waypoint.id) continue;
+      // A latitude gap alone already puts it out of range: skip it before the
+      // name is tokenised. Exact, not a heuristic — a great-circle distance is
+      // never shorter than its north-south component — and it keeps a long
+      // trail's POIs × waypoints cheap enough for the comments API's Worker.
+      if (Math.abs(poi.lat - waypoint.lat) > MAX_DUPLICATE_LAT_DEGREES) continue;
       if (nameTokens(waypoint.name).length === 0) continue;
 
       const metres = haversineDistance2D(poi.lat, poi.lon, waypoint.lat, waypoint.lon);
