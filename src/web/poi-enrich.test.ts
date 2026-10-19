@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { OverpassArea, POI, POIType } from 'gpx-tools/lib/osm-poi';
-import type { POIFetcher } from 'gpx-tools/lib/overpass-client';
+import type { OverpassArea, POI, POIType } from '@lib/osm-poi';
+import type { POIFetcher } from '@lib/overpass-client';
 
 import { DEFAULT_OVERPASS_ENDPOINTS, enrichImportedTrail } from './poi-enrich';
 import type { ProcessedTrail, RouteVariant, TrackPoint } from '@lib/trail-types';

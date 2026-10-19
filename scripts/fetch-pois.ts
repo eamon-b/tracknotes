@@ -2,9 +2,12 @@
  * Pre-fetch OSM points of interest for trail corridors.
  *
  * The OSM catalog, the Overpass query builder, the corridor chunking and the
- * point-to-route geometry all live in the shared `gpx-tools` library, so the
- * web tools, the API proxy and this script agree on what a "water source" is
- * and how far off-trail it sits. This script only supplies the file-system
+ * point-to-route geometry live in `src/lib` (`osm-poi`, `overpass-client`,
+ * `poi-enrichment`, ported from the `gpx-tools` library), so this script, the
+ * web's imported-trail search and the phone's on-device search agree on what a
+ * "water source" is and how far off-trail it sits;
+ * `scripts/osm-poi-parity.test.ts` holds that port to gpx-tools, whose API
+ * proxy still uses its own copy. This script only supplies the file-system
  * pieces and the trail's own km scale.
  *
  * Track geometry is READ from `public/data/generated/{trail-id}.json`, so
@@ -97,9 +100,14 @@ import {
   buildCorridorChunks,
   packCorridorChunks,
   type POIType,
-} from 'gpx-tools/lib/osm-poi';
-import { createOverpassFetcher, type POIFetcher } from 'gpx-tools/lib/overpass-client';
-import { enrichRoute, type ChunkFailure } from 'gpx-tools/lib/poi-enrichment';
+} from '../src/lib/osm-poi.js';
+import {
+  DEFAULT_OVERPASS_ENDPOINT,
+  createOverpassFetcher,
+  type POIFetcher,
+} from '../src/lib/overpass-client.js';
+import { enrichRoute, type ChunkFailure } from '../src/lib/poi-enrichment.js';
+import { POI_SEARCH_RADIUS_KM } from '../src/lib/trail-poi-search.js';
 
 import { buildRouteScale, toTrailPOIs } from '../src/lib/trail-pois.js';
 import type { LatLon, RouteScale } from '../src/lib/trail-pois.js';
@@ -135,8 +143,8 @@ const PROJECT_ROOT = path.resolve(SCRIPT_DIR, '..');
 const GENERATED_DIR = path.join(PROJECT_ROOT, 'public/data/generated');
 const DATA_DIR = path.join(PROJECT_ROOT, 'data/trails');
 
-/** POIs within this distance of the trail are kept. */
-const SEARCH_RADIUS_KM = 2;
+/** POIs within this distance of the trail are kept (shared with the phone's search). */
+const SEARCH_RADIUS_KM = POI_SEARCH_RADIUS_KM;
 /** Overpass etiquette: a slow trickle from one IP, never parallel queries. */
 const MIN_DELAY_MS = 2000;
 /**
@@ -155,12 +163,9 @@ const MIN_DELAY_MS = 2000;
  * being refused regardless of cost.
  */
 const MAX_VERTICES_PER_CHUNK = 300;
-/**
- * The gpx-tools default, restated so the endpoint actually used can be recorded
- * in `pois.json`. Keep in step with `createOverpassFetcher`'s own default.
- */
-const DEFAULT_ENDPOINT = 'https://overpass-api.de/api/interpreter';
-/** The gpx-tools default `[timeout:]`, restated so --timeout has a baseline to print. */
+/** `createOverpassFetcher`'s default, named so the endpoint used is recorded in `pois.json`. */
+const DEFAULT_ENDPOINT = DEFAULT_OVERPASS_ENDPOINT;
+/** `createOverpassFetcher`'s default `[timeout:]`, restated so --timeout has a baseline to print. */
 const DEFAULT_TIMEOUT_SECONDS = 22;
 /** Overpass etiquette asks clients to identify themselves; kumi.systems enforces it. */
 const USER_AGENT = 'trail-maps-fetch-pois/1.0 (+https://github.com/eamon-b/trail-maps)';
@@ -463,7 +468,7 @@ function printUsage(): void {
   );
   console.log('');
   console.log('Fetches OSM points of interest along each trail corridor via the');
-  console.log('shared gpx-tools library. Track geometry is read from');
+  console.log('shared src/lib Overpass client. Track geometry is read from');
   console.log('public/data/generated/{trail-id}.json (run "npm run build:trails" first);');
   console.log('results are written to data/trails/<dir>/pois.json.');
   console.log('');

@@ -5,7 +5,7 @@
  * `scripts/fetch-pois.ts`. An imported trail exists nowhere but this browser's
  * IndexedDB, so there is no build step to hang that off — the browser has to
  * ask Overpass itself. This module is the browser half of that script: the same
- * `gpx-tools` corridor query, the same 2 km radius, and the same
+ * `@lib/osm-poi` corridor query, the same 2 km radius, and the same
  * `@lib/trail-pois` km-scale mapping, so a POI lands on the same trail km
  * whichever path found it.
  *
@@ -25,13 +25,10 @@
  *   `endpoint` option disables that fallback — it means "use this one".
  */
 
-import { POI_TYPES, type POIType } from 'gpx-tools/lib/osm-poi';
-import { createOverpassFetcher, type POIFetcher } from 'gpx-tools/lib/overpass-client';
-import {
-  enrichRoute,
-  type ChunkFailure,
-  type EnrichmentProgress,
-} from 'gpx-tools/lib/poi-enrichment';
+import { POI_TYPES, type POIType } from '@lib/osm-poi';
+import { createOverpassFetcher, type POIFetcher } from '@lib/overpass-client';
+import { enrichRoute, type ChunkFailure, type EnrichmentProgress } from '@lib/poi-enrichment';
+import { POI_SEARCH_RADIUS_KM } from '@lib/trail-poi-search';
 
 import { buildRouteScale, toTrailPOIs } from '@lib/trail-pois';
 import type { ProcessedTrail, TrailPOI } from '@lib/trail-types';
@@ -51,7 +48,7 @@ export const DEFAULT_OVERPASS_ENDPOINTS: readonly string[] = [
 ];
 
 /** POIs within this distance of the trail are kept. Matches `scripts/fetch-pois.ts`. */
-export const SEARCH_RADIUS_KM = 2;
+export const SEARCH_RADIUS_KM = POI_SEARCH_RADIUS_KM;
 
 /** Overpass etiquette: a slow trickle from one client, never parallel queries. */
 const MIN_DELAY_MS = 2000;

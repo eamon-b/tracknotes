@@ -38,8 +38,8 @@
  * Like `@lib/poi-noise`, this runs at build and import time and never on
  * `pois.json` itself, so changing a threshold is a rebuild, not a re-fetch.
  */
-import { poiHasTag } from './poi-noise.js';
-import type { TrailPOI, TrailPoiConfig } from './trail-types.js';
+import { poiHasTag } from './poi-noise';
+import type { TrailPOI, TrailPoiConfig } from './trail-types';
 
 /** Width of the sliding window density is measured over, km. */
 export const DENSITY_WINDOW_KM = 5;

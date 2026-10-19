@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import type { POI, POIType, OverpassArea } from 'gpx-tools/lib/osm-poi';
-import type { POIFetcher } from 'gpx-tools/lib/overpass-client';
+import type { POI, POIType, OverpassArea } from '../src/lib/osm-poi.js';
+import type { POIFetcher } from '../src/lib/overpass-client.js';
 
 import * as path from 'path';
 
@@ -314,7 +314,7 @@ describe('trailDirsById', () => {
 describe('resolveEndpoint', () => {
   const DEFAULT = 'https://overpass-api.de/api/interpreter';
 
-  it('defaults to the gpx-tools endpoint', () => {
+  it('defaults to the main Overpass endpoint', () => {
     expect(resolveEndpoint([], {})).toBe(DEFAULT);
   });
 
@@ -347,7 +347,7 @@ describe('resolveEndpoint', () => {
 });
 
 describe('resolveTimeoutSeconds', () => {
-  it('defaults to the gpx-tools [timeout:]', () => {
+  it('defaults to the Overpass client default [timeout:]', () => {
     expect(resolveTimeoutSeconds([])).toBe(22);
   });
 
