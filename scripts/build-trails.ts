@@ -24,15 +24,10 @@ import {
   DESCRIPTIONS_FILENAME,
   loadCuratedDescriptions,
 } from './lib/waypoint-descriptions.js';
-import {
-  applyDuplicateOverrides,
-  countDuplicatePois,
-  dedupCandidates,
-  markDuplicatePois,
-} from '../src/lib/poi-dedup.js';
-import { countNoiseByReason, dropNoisePois } from '../src/lib/poi-noise.js';
+import { countDuplicatePois } from '../src/lib/poi-dedup.js';
+import { countNoiseByReason } from '../src/lib/poi-noise.js';
 import { findDenseStretches, thinUrbanPois } from '../src/lib/poi-urban.js';
-import { poisForBuild, readTrailPOIFile } from './lib/trail-pois-file.js';
+import { markTrailPOIsForBuild, readTrailPOIFile } from './lib/trail-pois-file.js';
 import { accessPlacements, readTrailAccessFile, unroutedAccessIds, variantAccess } from './lib/trail-access-file.js';
 import { BUNDLED_PLAN_FILLS, inlinePlanShell } from './lib/plan-shell.js';
 import { fillTemplate } from './lib/fill-template.js';
@@ -731,19 +726,19 @@ async function main() {
       // waypoint is never thinned away (@lib/poi-urban).
       // `config.pois` carries the trail's own rules on top (TrailPoiConfig), and
       // the file's hand-edited `duplicates` map flags the pairs no rule should.
-      const poiFile = readTrailPOIFile(trailDir);
-      const fetched = poiFile ? poisForBuild(poiFile) : undefined;
       const poiConfig = processed.config.pois;
+      const {
+        fetched,
+        pois: unthinned,
+        unmatched,
+        replaced,
+      } = markTrailPOIsForBuild(readTrailPOIFile(trailDir), processed, poiConfig);
       const noise = countNoiseByReason(fetched, poiConfig);
-      const candidates = dedupCandidates(processed);
-      const marked = markDuplicatePois(dropNoisePois(fetched, poiConfig), candidates);
-      let unthinned = marked;
-      if (marked && poiFile?.duplicates) {
-        const overridden = applyDuplicateOverrides(marked, poiFile.duplicates, candidates);
-        unthinned = overridden.pois;
-        if (overridden.unmatched.length > 0) {
-          console.warn(`  ⚠ pois.json duplicates match no POI: ${overridden.unmatched.join(', ')}`);
-        }
+      if (unmatched.length > 0) {
+        console.warn(`  ⚠ pois.json duplicates match no POI: ${unmatched.join(', ')}`);
+      }
+      for (const { key, ruleMatch, override } of replaced) {
+        console.warn(`  ⚠ pois.json duplicates: ${key} → ${override} replaces the rule match ${ruleMatch}`);
       }
       const cities = findDenseStretches(unthinned ?? []);
       const pois = thinUrbanPois(unthinned, poiConfig);

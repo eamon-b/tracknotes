@@ -134,6 +134,17 @@ const GENERIC_WORDS = new Set([
   'gsww',
 ]);
 
+/** Abbreviations expanded before names are compared. */
+const ABBREVIATIONS: Readonly<Record<string, string>> = {
+  mt: 'mount',
+  nth: 'north',
+  sth: 'south',
+  n: 'north',
+  s: 'south',
+  e: 'east',
+  w: 'west',
+};
+
 /** Curator prefixes used in the bundled GPX files (`R: Ormiston Gorge`). */
 const CURATOR_PREFIX = /^(closed\s*c?\s*-?\s*|c\?\s*|r:\s*|kiosk:\s*)/i;
 
@@ -165,15 +176,24 @@ export function nameTokens(name: string | null | undefined, keepGeneric = false)
   // Kitchen` reduce to the same `devils`, not to `devil s` against `devils`.
   // After a one-letter prefix it also swallows a stray space: the AAWT's
   // `O' Keefes Hut` is OSM's `O'Keefes Hut`.
-  const cleaned = (name.toLowerCase().replace(CURATOR_PREFIX, '') as string)
+  // Diacritics go first: Te Araroa's `Pāhautea Hut` is OSM's `Pahautea Hut`,
+  // and the a-z filter below would otherwise split it into `p hautea`.
+  const cleaned = (
+    name
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(CURATOR_PREFIX, '') as string
+  )
     .replace(TRAILING_QUALIFIER, '')
     .replace(/\b([a-z])['‘’]\s*/g, '$1')
     .replace(/['‘’]/g, '')
     .replace(/[^a-z0-9 ]/g, ' ');
   return cleaned
     .split(/\s+/)
-    // `Mt Wills Hut` in the guide is `Mount Wills Hut` in OSM.
-    .map(token => (token === 'mt' ? 'mount' : token))
+    // `Mt Wills Hut` in the guide is `Mount Wills Hut` in OSM, and `Nth` /
+    // `S` are the compass words `DISTINGUISHING_WORDS` must see.
+    .map(token => ABBREVIATIONS[token] ?? token)
     .filter(token => token.length > 0 && (keepGeneric || !GENERIC_WORDS.has(token)));
 }
 
@@ -288,6 +308,16 @@ export const COLOCATED_DUPLICATE_M = 10;
  */
 export const UNNAMED_CAMPING_DUPLICATE_M = 30;
 
+/**
+ * An unnamed campsite with a second, differently named compatible waypoint no
+ * more than this many metres further away than the nearest is left alone: with
+ * no name to tell them apart, the nearest is a guess. The Overland's Waterfall
+ * Valley camp site lies 20 m from Old Waterfall Valley Hut and 43 m from the
+ * group camping platform. One that sits on its hut is not in doubt: Shikoku's
+ * Katsuura pilgrim hut is 1 m away, the next hut 43 m.
+ */
+export const UNNAMED_CAMPING_AMBIGUOUS_MARGIN_M = 30;
+
 /** Waypoint types that say nothing about what the place is. */
 const GENERIC_WAYPOINT_TYPES = new Set(['poi', 'waypoint']);
 
@@ -363,6 +393,10 @@ export function markDuplicatePois(
     delete next.duplicateDistanceM;
 
     if (nameTokens(poi.name).length === 0) {
+      // A name that reduces to nothing is either no name (or only generic
+      // words, `Campsite`) or one this matcher cannot read — `遍路小屋` has no
+      // a-z letters at all. Only the first is safe to fold by position.
+      if (!isUnnamed(poi.name)) return next;
       const host = nearestUnnamedCampingHost(poi, waypoints);
       if (host) {
         next.duplicateOf = host.waypoint.id;
@@ -425,6 +459,17 @@ export function markDuplicatePois(
 }
 
 /**
+ * Whether a POI has no name worth comparing: none, blank, or only generic
+ * words (`Campsite`, `Camp Site`). A name in another script is *not* unnamed —
+ * it is a name `nameTokens` cannot read.
+ */
+function isUnnamed(name: string | null | undefined): boolean {
+  if (!name || name.trim() === '') return true;
+  const all = nameTokens(name, true);
+  return all.length > 0 && nameTokens(name).length === 0;
+}
+
+/**
  * Whether two names differ by a word that marks a different place: one has a
  * `DISTINGUISHING_WORDS` word the other lacks, or both carry numbers and the
  * numbers differ (`Twins Track 1` / `Twins Track 2`). A number on one side only
@@ -451,15 +496,37 @@ function nearestUnnamedCampingHost(
   waypoints: readonly DedupWaypointLike[]
 ): { waypoint: DedupWaypointLike; metres: number } | null {
   if (poi.category !== 'camping') return null;
-  let best: { waypoint: DedupWaypointLike; metres: number } | null = null;
+  const near: { waypoint: DedupWaypointLike; metres: number }[] = [];
   for (const waypoint of waypoints) {
     if (!waypoint.id || !isCompatibleType(poi.category, waypoint.type)) continue;
     const metres = haversineDistance2D(poi.lat, poi.lon, waypoint.lat, waypoint.lon);
-    if (metres <= UNNAMED_CAMPING_DUPLICATE_M && (!best || metres < best.metres)) {
-      best = { waypoint, metres };
+    if (metres <= UNNAMED_CAMPING_DUPLICATE_M + UNNAMED_CAMPING_AMBIGUOUS_MARGIN_M) {
+      near.push({ waypoint, metres });
     }
   }
-  return best;
+  near.sort((a, b) => a.metres - b.metres);
+  const best = near[0];
+  if (!best || best.metres > UNNAMED_CAMPING_DUPLICATE_M) return null;
+  // A hut and its campsite under one name (the AAWT's Buckwong Hut) are one
+  // place; two names this close are two places, and nothing says which.
+  const ambiguous = near
+    .slice(1)
+    .some(
+      other =>
+        other.metres - best.metres <= UNNAMED_CAMPING_AMBIGUOUS_MARGIN_M &&
+        nameScore(best.waypoint.name, other.waypoint.name) < MIN_NAME_SCORE
+    );
+  return ambiguous ? null : best;
+}
+
+/** A hand-listed duplicate that overrode a different rule match. */
+export interface DuplicateOverrideReplacement {
+  /** The POI, `<type>/<id>`. */
+  key: string;
+  /** The waypoint `markDuplicatePois` matched. */
+  ruleMatch: string;
+  /** The waypoint the override names. */
+  override: string;
 }
 
 /**
@@ -470,15 +537,17 @@ function nearestUnnamedCampingHost(
  * Hut) or a second name for one campground. Throws on a waypoint id the trail
  * does not have — waypoint ids are stable, so that is a typo, and a silent miss
  * would leave the duplicate showing. Returns the keys that matched no POI (a
- * POI since deleted from OSM), for the build to report.
+ * POI since deleted from OSM, rejected, or dropped as noise) and the POIs whose
+ * rule match the override replaced with a different waypoint, for the build to
+ * report.
  */
 export function applyDuplicateOverrides(
   pois: readonly TrailPOI[],
   overrides: Readonly<Record<string, string>> | undefined,
   waypoints: readonly DedupWaypointLike[]
-): { pois: TrailPOI[]; unmatched: string[] } {
+): { pois: TrailPOI[]; unmatched: string[]; replaced: DuplicateOverrideReplacement[] } {
   if (!overrides || Object.keys(overrides).length === 0) {
-    return { pois: [...pois], unmatched: [] };
+    return { pois: [...pois], unmatched: [], replaced: [] };
   }
   const byId = new Map(waypoints.filter(w => w.id).map(w => [w.id as string, w]));
   for (const [key, waypointId] of Object.entries(overrides)) {
@@ -487,18 +556,22 @@ export function applyDuplicateOverrides(
     }
   }
   const seen = new Set<string>();
+  const replaced: DuplicateOverrideReplacement[] = [];
   const out = pois.map(poi => {
     const key = poiKey(poi);
     const waypoint = byId.get(overrides[key] ?? '');
     if (!waypoint) return poi;
     seen.add(key);
+    if (poi.duplicateOf && poi.duplicateOf !== waypoint.id) {
+      replaced.push({ key, ruleMatch: poi.duplicateOf, override: waypoint.id as string });
+    }
     return {
       ...poi,
       duplicateOf: waypoint.id,
       duplicateDistanceM: Math.round(haversineDistance2D(poi.lat, poi.lon, waypoint.lat, waypoint.lon)),
     };
   });
-  return { pois: out, unmatched: Object.keys(overrides).filter(key => !seen.has(key)) };
+  return { pois: out, unmatched: Object.keys(overrides).filter(key => !seen.has(key)), replaced };
 }
 
 /** POIs that are not flagged as duplicating a waypoint. */
