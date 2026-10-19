@@ -35,7 +35,7 @@ const MOCK_LIBERTY_STYLE = {
 // Setup
 // ---------------------------------------------------------------------------
 
-const CONTOUR_URL = 'https://contour-tiles.example.workers.dev';
+const CONTOUR_URL = 'https://tiles.example.net';
 
 beforeEach(() => {
   clearStyleCache();

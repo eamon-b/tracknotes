@@ -315,9 +315,8 @@ export default {
     //
     // NOTE: `caches.default` is a NO-OP on *.workers.dev — that cache lives at
     // the zone level and workers.dev is a shared zone, so put/match silently do
-    // nothing there. This Worker answers on both hostnames, so the code below is
-    // live on tiles.contour-map-tiles.net and inert on the workers.dev one.
-    // Measure cache behaviour on the custom domain only.
+    // nothing there. The Worker answers only on tiles.contour-map-tiles.net
+    // (`workers_dev = false`), where the code below is live.
     //
     // Staleness tradeoff: tiles are immutable for the lifetime of an archive
     // build, but australia.pmtiles can be re-uploaded. The R2 side of that is

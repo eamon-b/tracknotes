@@ -2,8 +2,8 @@
 
 Serves contour vector tiles out of PMTiles archives on R2.
 
-- Public hostname: `https://tiles.contour-map-tiles.net` (also still on
-  `contour-tiles.aus-map-data.workers.dev` for already-shipped mobile builds)
+- Public hostname: `https://tiles.contour-map-tiles.net` (the only one: the
+  `workers.dev` URL is off, `workers_dev = false`, issue #159)
 - URL pattern: `/{source}/{z}/{x}/{y}.pbf`
 - Archives: R2 bucket `aus-map-data` (see Sources below)
 - Health: `/health` — reports archive size/etag and the archive's zoom + bbox
@@ -74,13 +74,9 @@ stripped, always a GET key so HEAD shares the same entry).
 
 This is **live on `tiles.contour-map-tiles.net`** (verified 2026-08-19:
 requesting `/contours/12/3734/2493.pbf` twice flips `X-Edge-Cache` from `MISS`
-to `HIT`). It remains a no-op on the `*.workers.dev` hostname, where the Cache
-API does nothing because that zone is shared by every account — so measure
-caching on the custom domain only.
-
-`workers_dev = true` is deliberately still set, so builds that already shipped
-with the workers.dev URL inlined keep working. Flip it to `false` only once no
-released build points there.
+to `HIT`). The Cache API would be a no-op on a `*.workers.dev` hostname, whose
+zone is shared by every account; that hostname is now off (`workers_dev =
+false`, issue #159), so the custom domain is the only way in.
 
 What is and is not cached:
 

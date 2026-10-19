@@ -5,11 +5,10 @@ compatibility_date = "2025-04-01"
 # Public hostname: https://api.contour-map-tiles.net (zone: contour-map-tiles.net).
 # Deploy with: npm run deploy (requires `wrangler login`).
 #
-# workers.dev is kept alive alongside the custom domain so already-shipped
-# mobile builds (which have https://farout-comments.aus-map-data.workers.dev
-# inlined at bundle time) keep working. Do not flip to false until no released
-# build points at the workers.dev URL.
-workers_dev = true
+# The custom domain is the only hostname: the workers.dev URL was retired
+# (issue #159) once no distributed build predated the custom domains
+# (2026-08-22), so every shipped build points at api.contour-map-tiles.net.
+workers_dev = false
 
 [[routes]]
 pattern = "api.contour-map-tiles.net"
