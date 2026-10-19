@@ -23,9 +23,12 @@
  * the hiker removes it ({@link removeCommunityRouteFromDevice}). A list that
  * names it again clears the flag.
  *
- * A community route is NOT server-known (`server-trails`): no comments, no
- * plan sync, no curated descriptions — the same as a `u_` import. Its offline
- * map pack is borrowed from a covering bundled trail, as for an import.
+ * A community route this phone knows (listed or downloaded) is server-known
+ * (`server-trails`): every load and save of the state registers the ids
+ * (`registerCommunityTrailIds`), so it gets comments, plan sync and shared
+ * hiker waypoints like a bundled trail. It has no curated descriptions, and
+ * its offline map pack is borrowed from a covering bundled trail, as for an
+ * import.
  *
  * Keep this module free of `trail-loader` imports: the loader depends on it.
  */
@@ -53,6 +56,7 @@ import {
   type InstalledCommunityRoute,
 } from './community-catalog';
 import { deleteLocalTrailData } from './local-trail-data';
+import { registerCommunityTrailIds } from './server-trails';
 import type { TrailJson } from './trail-assets';
 
 /** How often the launch/foreground refresh actually reaches the network. */
@@ -123,12 +127,19 @@ function readStateFile(name: string): CommunityState | null {
 function getState(): CommunityState {
   if (state) return state;
   state = readStateFile(STATE_FILE) ?? readStateFile(STATE_TEMP_FILE) ?? emptyState();
+  registerKnownIds(state);
   return state;
+}
+
+/** Tell the server gate which routes this phone knows (`isServerKnown`). */
+function registerKnownIds(s: CommunityState): void {
+  registerCommunityTrailIds([...(s.list ?? []).map((r) => r.id), ...Object.keys(s.installed)]);
 }
 
 /** Temp file then rename, as `trail-data-updates` does, so a crash never tears it. */
 function saveState(next: CommunityState): void {
   state = next;
+  registerKnownIds(next);
   try {
     const root = ensureRoot();
     const temp = new File(root, STATE_TEMP_FILE);
@@ -146,6 +157,7 @@ function saveState(next: CommunityState): void {
 /** Test seam: forget the in-memory state so the next read goes to disk. */
 export function resetCommunityStateForTests(): void {
   state = null;
+  registerCommunityTrailIds([]);
   inFlightRefresh = null;
   lastAttemptAt = 0;
   inFlightDownloads.clear();

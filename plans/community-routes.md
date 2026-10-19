@@ -203,9 +203,38 @@ Storage:
   downloaded route because a list leaves it out; it probes the route's detail
   and a 404 marks it "No longer shared" (file kept until the hiker removes it).
 
-Ids: `c_` + 16 url-safe random chars. A community route is **not** in
-`ALLOWED_TRAILS`: comments, descriptions and plan sync are off for it (as for
-`u_` imports) until a follow-up decides otherwise.
+Ids: `c_` + 16 url-safe random chars. A community route is not in
+`ALLOWED_TRAILS`, but it takes comments, plan sync and shared hiker waypoints
+all the same (issue #163). The worker's one trail gate
+(`workers/comments-api/src/trails.ts`, `resolveTrail`) accepts a curated id or
+a `c_` id with a row in `community_routes` (one primary-key read, cached in
+the isolate):
+
+- **Public writes** — a comment, a shared hiker waypoint (new or edited) —
+  need a live route (`unverified`/`verified`); on a hidden or removed one they
+  are 403 `trail_not_live`. Nothing new is published where nobody can see it.
+  The "live" answer is cached for 60 s, so a hide takes up to a minute to stop
+  new comments; a restore is seen at once.
+- **Plans** are private, so they sync on any route the server has a row for,
+  hidden or removed included: a hiker keeps planning on a copy that is "No
+  longer shared".
+- **Reads** (the comment feeds, `GET …/waypoints`, `GET …/descriptions`) answer
+  for any route with a row: what was posted while it was up stays readable.
+  Descriptions are always empty for a route — its descriptions are in the
+  route itself; the admin description PUT is curated-only.
+- **Comment targets**: a route's waypoints keep the `uw_…` ids their import
+  minted (the server stores them as submitted, and an owner's edit changes
+  only metadata), so a comment on a `c_` route is filed under `uw_…`, `hw_…`
+  or `osm_…` — never a curated `w_…`, and a curated trail never takes `uw_…`
+  (`@lib/comment-targets`). The check is by form, as for curated ids: the
+  worker does not read the stored trail.
+
+On the phone `isServerKnown` is true for a `c_` route it knows (the cached list
+or a download, `registerCommunityTrailIds`), never for a `u_` import, so the
+route's guide gets comment sync, the composer, plan sync and sharing of hiker
+waypoints. On the web the shared-plan page draws a plan on a community route
+from the route's public copy; the web planner has no page for a `c_` route
+("Save to my trails" still copies it under a `u_` id, whose plan stays local).
 
 ## Trail organisation
 
@@ -241,7 +270,7 @@ deleted.
 
 ## Follow-ups (not in this PR)
 
-- Comments and plan sync on community routes.
+- ~~Comments and plan sync on community routes~~: done (#163) — see "Ids" above.
 - Server-side OSM POI enrichment for community routes.
 - ~~Map overview of all trails on the landing page~~: done (#163) — markers at each curated trail's and community route's start (`src/web/landing-map.ts`), from the existing list's `start`/`bbox`; no API change.
 - ~~Auto-detecting country/state from coordinates~~: done — `@lib/region-detect` prefills both share forms and backs the worker's `region` check.

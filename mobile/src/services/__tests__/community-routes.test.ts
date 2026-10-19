@@ -20,6 +20,7 @@ import {
   ensureCommunityRouteDownloaded,
   forgetCommunityRoute,
   getCommunityRouteInfo,
+  initCommunityRoutes,
   listCachedCommunityRoutes,
   markCommunityRouteTakenDown,
   readCommunityTrail,
@@ -38,6 +39,7 @@ import {
   parseCommunitySummary,
   planCommunitySync,
 } from '../community-catalog';
+import { isServerKnown } from '../server-trails';
 import { createMigratedTestDb } from '../../db/__tests__/test-helpers';
 import * as plansRepo from '../../db/plans-repo';
 import { useSettingsStore } from '../../state/settings-store';
@@ -627,6 +629,32 @@ describe('a route this phone just shared', () => {
     expect(await readCommunityTrail(ID)).toBeNull();
     expect(await plansRepo.getByTrail(db as never, ID)).toBeNull();
     expect(useSettingsStore.getState().currentTrailId).toBeNull();
+  });
+});
+
+describe('the server gate (isServerKnown)', () => {
+  it('knows a route once it is listed, after a restart, and forgets it with the route', async () => {
+    const db = await createMigratedTestDb();
+    expect(isServerKnown(ID)).toBe(false);
+    upsertCommunitySummary(publish(ID));
+    expect(isServerKnown(ID)).toBe(true);
+
+    // A restart: the state is read back from disk, and registers it again.
+    resetCommunityStateForTests();
+    expect(isServerKnown(ID)).toBe(false);
+    initCommunityRoutes();
+    expect(isServerKnown(ID)).toBe(true);
+
+    await forgetCommunityRoute(ID, { db: db as never });
+    expect(isServerKnown(ID)).toBe(false);
+  });
+
+  it('still knows a downloaded route that was taken down', async () => {
+    upsertCommunitySummary(publish(ID));
+    await ensureCommunityRouteDownloaded(ID);
+    markCommunityRouteTakenDown(ID);
+    expect(listCachedCommunityRoutes().map((r) => r.id)).toEqual([ID]);
+    expect(isServerKnown(ID)).toBe(true);
   });
 });
 

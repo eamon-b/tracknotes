@@ -4,7 +4,8 @@
  * The share id in `?s=` is the whole credential: `GET /v1/shared/plans/:id` is
  * public and needs no token, so this page works for a reader who has never
  * linked a browser. It fetches the plan, fetches the trail the plan names from
- * this site's own generated JSON, and boots the ordinary planner with
+ * this site's own generated JSON (a community route's, `c_…`, from the API's
+ * public copy, as its route page does), and boots the ordinary planner with
  * `readOnly: true` — the same map, elevation profile, day cards and datasheet,
  * with nothing that edits or stores anything.
  *
@@ -24,7 +25,9 @@ import { SITE_ROOT, generatedDataUrl, getQueryParam } from './web-utils';
 import { ApiError, getApiBase } from './api/client';
 import { loadSession } from './api/session';
 import { fetchMyPlan, fetchSharedPlan, putPlan } from './api/plans';
+import { fetchCommunityTrail, getCommunityRoute } from './api/community';
 import { isPlanDocument } from '@lib/plan-editor';
+import { isCommunityRouteId } from '@lib/community-types';
 import type { SharedPlanResponse } from '@lib/comments-api-types';
 import type { PlanDocument } from '@lib/plan-types';
 
@@ -72,8 +75,25 @@ function applyIdentity(shared: SharedPlanResponse, shareId: string): void {
   }
 }
 
+/**
+ * A community route's trail, from the API's detail and its public `trailUrl`
+ * (as `community-route.html` reads it), under the route's own id and current
+ * name; null when the route is not shared (any more) or cannot be read.
+ */
+async function loadCommunityTrail(trailId: string): Promise<Record<string, unknown> | null> {
+  try {
+    const detail = await getCommunityRoute(trailId);
+    const trail = await fetchCommunityTrail(detail);
+    trail.config = { ...trail.config, id: trailId, name: detail.name, shortName: detail.name };
+    return trail as unknown as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
 /** The trail this site carries under that id, or null when it carries none. */
 async function loadTrail(trailId: string): Promise<Record<string, unknown> | null> {
+  if (isCommunityRouteId(trailId)) return loadCommunityTrail(trailId);
   try {
     // Relative to this top-level page, as index.html's fetch is, so a site
     // served from a sub-path still finds its data.
@@ -195,8 +215,10 @@ async function init(): Promise<void> {
 
   applyIdentity(shared, shareId);
 
+  // Not for a community route: the copy opens the trail's own plan page, and
+  // this site has none for a route (the phone's plan sync does).
   const copyBtn = byId<HTMLButtonElement>('copy-to-plans');
-  if (copyBtn && loadSession()) {
+  if (copyBtn && loadSession() && !isCommunityRouteId(shared.trailId)) {
     copyBtn.hidden = false;
     copyBtn.addEventListener('click', () => void copyToMyPlans(shared));
   }

@@ -16,9 +16,9 @@ import {
   parseLimit,
   validateCommentTarget,
   validateText,
-  validateTrailId,
   validateWaterStatus,
 } from './validation';
+import { resolveTrail } from './trails';
 import type { CommentTarget } from './validation';
 import type {
   AdminComment,
@@ -75,9 +75,10 @@ function toFeedComment(row: CommentRow, displayName: string): FeedComment {
  * Refuse a comment on a place no screen would show it under, where that is
  * cheap to know. A shared hiker waypoint is one row: it must exist on this
  * trail and still be shared (an owner's unshare, a report or an admin hide
- * all tombstone it). Curated and OSM ids are checked by form only — the
- * worker carries neither the waypoint registry nor the trails' POI lists, and
- * a registry entry the build has just minted must not need a worker deploy.
+ * all tombstone it). Curated, community-route and OSM ids are checked by form
+ * only — the worker carries neither the waypoint registry, a route's stored
+ * trail nor the trails' POI lists, and a registry entry the build has just
+ * minted must not need a worker deploy.
  */
 async function assertCommentTargetExists(
   env: Env,
@@ -128,8 +129,11 @@ export async function putComment(
     return json(toFeedComment(existing, user.display_name), 200);
   }
 
-  const trailId = validateTrailId(body.trailId);
-  const target = validateCommentTarget(body.waypointId);
+  // A curated trail or a live community route (`trails.ts`); the trail's kind
+  // decides which waypoint ids it has.
+  const trail = await resolveTrail(env, body.trailId, 'public-write');
+  const trailId = trail.id;
+  const target = validateCommentTarget(body.waypointId, trail.kind);
   const waypointId = target.id;
   const text = validateText(body.text);
   const waterStatus = validateWaterStatus(body.waterStatus);

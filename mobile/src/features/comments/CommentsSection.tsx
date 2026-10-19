@@ -32,6 +32,8 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import type { WaterStatus } from '@lib/comments-api-types';
+import { commentTargetFitsTrail, commentTargetKind } from '@lib/comment-targets';
+import { isCommunityRouteId } from '@lib/community-types';
 import { useTheme } from '../../theme';
 import { radii, spacing, typography } from '../../tokens';
 import { relativeDate, waterStatusMeta } from '../guide/waypoint-detail';
@@ -56,6 +58,19 @@ import { confirmDeleteComment, retryComment } from './comment-actions';
 /** Comments revealed per "show earlier" tap (and in the initial window). */
 const COMMENT_PAGE_SIZE = 20;
 
+/**
+ * Whether the server files comments under this id on this trail. A community
+ * route takes them only on its own `uw_` waypoints, shared hiker waypoints
+ * and OSM places (`@lib/comment-targets`, the worker's rule): a route whose
+ * file carries some other id for a place would have every comment refused.
+ */
+function takesComments(trailId: string, waypointId: string | null): waypointId is string {
+  if (waypointId === null) return false;
+  if (!isCommunityRouteId(trailId)) return true;
+  const kind = commentTargetKind(waypointId);
+  return kind !== null && commentTargetFitsTrail(kind, 'community');
+}
+
 export function CommentsSection({
   trailId,
   waypointId,
@@ -73,7 +88,7 @@ export function CommentsSection({
   const { colors } = useTheme();
   const serverKnown = isServerKnown(trailId);
   // Null switches the feed off: no SQLite read and no composer.
-  const commentWaypointId = serverKnown ? waypointId : null;
+  const commentWaypointId = serverKnown && takesComments(trailId, waypointId) ? waypointId : null;
   const identityStatus = useIdentityStore((s) => s.status);
   const session = useIdentityStore((s) => s.session);
 

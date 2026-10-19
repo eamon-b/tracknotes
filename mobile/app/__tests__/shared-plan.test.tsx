@@ -51,6 +51,12 @@ jest.mock('../../src/services/trail-loader', () => {
 
 jest.mock('../../src/api/uuid', () => ({ uuidv4: () => 'new-plan-id' }));
 
+// A plan on a community route the phone has not downloaded fetches it first.
+const mockEnsureCommunity = jest.fn(async (_id: string) => false);
+jest.mock('../../src/services/community-routes', () => ({
+  ensureCommunityRouteDownloaded: (id: string) => mockEnsureCommunity(id),
+}));
+
 // When this phone's copy of the trail was published (`PlanDocument.dataUpdatedAt`).
 jest.mock('../../src/services/trail-data-updates', () => ({
   ...jest.requireActual('../../src/services/trail-data-updates'),
@@ -159,6 +165,26 @@ describe('SharedPlanScreen', () => {
     mockGetTrailJson.mockReturnValue(null);
     const r = await mount();
     expect(renderedText(r)).toContain(UNKNOWN_TRAIL_MESSAGE);
+    expect(mockEnsureCommunity).not.toHaveBeenCalled();
+  });
+
+  it('downloads the community route a plan is for, then shows its days', async () => {
+    const routeId = 'c_AbCdEfGhIjKlMnOp';
+    mockFetchShared.mockResolvedValue({
+      document: { ...DOC, trailId: routeId },
+      trailId: routeId,
+      ownerDisplayName: 'Trail Ghost',
+    });
+    let downloaded = false;
+    mockGetTrailJson.mockImplementation(() => (downloaded ? TRAIL : null));
+    mockEnsureCommunity.mockImplementationOnce(async () => {
+      downloaded = true;
+      return true;
+    });
+    const r = await mount();
+    expect(mockEnsureCommunity).toHaveBeenCalledWith(routeId);
+    expect(renderedText(r)).not.toContain(UNKNOWN_TRAIL_MESSAGE);
+    expect(renderedText(r)).toContain('Mount Hut');
   });
 
   it('reports a revoked or unknown link rather than an empty screen', async () => {

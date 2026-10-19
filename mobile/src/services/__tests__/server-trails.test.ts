@@ -6,8 +6,10 @@
  */
 
 import {
+  isCuratedTrailId,
   isLocalOnlyTrailId,
   isServerKnown,
+  registerCommunityTrailIds,
   registerRemoteTrailIds,
   serverTrailIds,
 } from '../server-trails';
@@ -30,12 +32,23 @@ describe('isServerKnown', () => {
     expect(isServerKnown('')).toBe(false);
   });
 
-  it('rejects community route ids: no comments, descriptions or plan sync for them', () => {
+  it('rejects community route ids the phone has not heard of', () => {
     expect(isServerKnown('c_AbCdEfGhIjKlMnOp')).toBe(false);
     expect(isServerKnown('c_short')).toBe(false);
     expect(isLocalOnlyTrailId('c_AbCdEfGhIjKlMnOp')).toBe(true);
     expect(isLocalOnlyTrailId('u_1a2b3c4d')).toBe(true);
     expect(isLocalOnlyTrailId('heysen')).toBe(false);
+  });
+
+  it('counts only bundled and catalog trails as curated', () => {
+    registerCommunityTrailIds(['c_AbCdEfGhIjKlMnOp']);
+    try {
+      expect(isCuratedTrailId('c_AbCdEfGhIjKlMnOp')).toBe(false);
+      expect(isCuratedTrailId('u_1a2b3c4d')).toBe(false);
+      for (const id of serverTrailIds()) expect(isCuratedTrailId(id)).toBe(true);
+    } finally {
+      registerCommunityTrailIds([]);
+    }
   });
 
   it('agrees with the bundled require() map', () => {
@@ -87,5 +100,27 @@ describe('registerRemoteTrailIds', () => {
     registerRemoteTrailIds([]);
     for (const id of serverTrailIds()) expect(isServerKnown(id)).toBe(true);
     expect(serverTrailIds()).not.toContain('catalog-only-trail');
+  });
+});
+
+describe('registerCommunityTrailIds', () => {
+  afterEach(() => {
+    registerCommunityTrailIds([]);
+  });
+
+  it('makes the community routes the phone knows server-known, and replaces the set', () => {
+    registerCommunityTrailIds(['c_AbCdEfGhIjKlMnOp', 'c_0123456789abcdef']);
+    expect(isServerKnown('c_AbCdEfGhIjKlMnOp')).toBe(true);
+    expect(isServerKnown('c_0123456789abcdef')).toBe(true);
+    registerCommunityTrailIds(['c_0123456789abcdef']);
+    expect(isServerKnown('c_AbCdEfGhIjKlMnOp')).toBe(false);
+    expect(isServerKnown('c_0123456789abcdef')).toBe(true);
+  });
+
+  it('never takes an import, a malformed id or a curated id through it', () => {
+    registerCommunityTrailIds(['u_1a2b3c4d', 'c_short', 'catalog-only-trail']);
+    expect(isServerKnown('u_1a2b3c4d')).toBe(false);
+    expect(isServerKnown('c_short')).toBe(false);
+    expect(isServerKnown('catalog-only-trail')).toBe(false);
   });
 });

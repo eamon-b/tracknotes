@@ -137,6 +137,23 @@ describe('CommentsSection', () => {
     expect(mockComposerSubmit).toBeNull();
   });
 
+  it('on a community route, reads and files comments under the route’s own waypoint ids', async () => {
+    await render({ trailId: 'c_AbCdEfGhIjKlMnOp', waypointId: 'uw_0a1b2c3d4e5f' });
+    expect(mockList).toHaveBeenCalledWith({}, 'c_AbCdEfGhIjKlMnOp', 'uw_0a1b2c3d4e5f', { limit: 20 });
+    expect(mockComposerSubmit).not.toBeNull();
+  });
+
+  it('on a community route, is off for an id the server would refuse there', async () => {
+    const tree = await render({
+      trailId: 'c_AbCdEfGhIjKlMnOp',
+      waypointId: 'w_00176641',
+      unavailableText: 'No comments here.',
+    });
+    expect(allText(tree)).toContain('No comments here.');
+    expect(mockList).not.toHaveBeenCalled();
+    expect(mockComposerSubmit).toBeNull();
+  });
+
   it('is off for an imported trail', async () => {
     mockServerKnown = false;
     const tree = await render();
