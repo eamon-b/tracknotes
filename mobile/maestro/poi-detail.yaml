@@ -1,0 +1,70 @@
+appId: com.tracknotes.app
+---
+# POI detail — List pane → an OpenStreetMap point of interest → its screen
+# (`app/guide/[trailId]/poi/[poiKey].tsx`), then "Show on map" back to the
+# guide's Map pane.
+#
+# Hamelin Bay Caravan Park (OSM camping, km 24.8, 190 m off the trail) is the
+# first Cape to Cape POI the default filter shows: the km-15.6 Deepdene POI
+# duplicates a curated waypoint and is never drawn. Its row is a button
+# labelled "Open <name> (OpenStreetMap)" plus an off-trail suffix (`PoiRow`).
+# The external links (OSM, Maps, report a problem) are asserted, not tapped:
+# they leave the app.
+- runFlow: shared/launch-dev.yaml
+- runFlow: shared/open-cape-to-cape.yaml
+
+- tapOn: "List"
+- extendedWaitUntil:
+    visible: "Cape Leeuwin Lighthouse"
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "Open Hamelin Bay Caravan Park.*"
+    direction: DOWN
+    timeout: 30000
+- tapOn: "Open Hamelin Bay Caravan Park.*"
+- waitForAnimationToEnd
+
+# --- Header ------------------------------------------------------------------------
+# The "OpenStreetMap" pill keeps a POI from reading as a curated waypoint; the
+# meta line is "<Category> · <km> along the trail · <m> off trail".
+- extendedWaitUntil:
+    visible: "OpenStreetMap"
+    timeout: 20000
+- assertVisible: "Hamelin Bay Caravan Park"
+- assertVisible: "Camping · .* along the trail.*"
+- takeScreenshot: poi-detail
+
+# --- Actions and the OSM note ---------------------------------------------------------
+- scrollUntilVisible:
+    element:
+      text: "Report a problem on OpenStreetMap"
+    direction: DOWN
+    timeout: 20000
+- assertVisible: "Open in OpenStreetMap"
+- assertVisible: "Open in Maps"
+- assertVisible: "Show on map"
+
+# Comments are filed under the OSM element; the block's heading always renders
+# (its body depends on EXPO_PUBLIC_API_BASE_URL, as in waypoint-detail.yaml).
+- scrollUntilVisible:
+    element:
+      text: "Comments"
+    direction: DOWN
+    timeout: 20000
+
+# --- Show on map ---------------------------------------------------------------------
+# Dismisses to the guide with its Map pane selected (all three panes stay
+# mounted, so the selected tab is the proof, as in waypoint-stop-here.yaml).
+- scrollUntilVisible:
+    element:
+      text: "Show on map"
+    direction: UP
+    timeout: 20000
+- tapOn: "Show on map"
+- extendedWaitUntil:
+    visible:
+      selected: true
+      containsChild: "Map"
+    timeout: 20000
+- assertNotVisible: "Open in OpenStreetMap"

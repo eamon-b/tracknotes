@@ -118,9 +118,14 @@ adb reverse tcp:8787 tcp:8787   # after
 | `toggle-views.yaml` | Map → Elevation → List segmented switching, plus the List filter chips. | **Green** — 2026-08-19 |
 | `waypoint-detail.yaml` | List → waypoint row → detail: name, stats, favorite round-trip, comments area. | **Green** — 2026-08-19 |
 | `waypoint-stop-here.yaml` | List → Deepdene Campsite → "Stop here" / "Remove stop" round-trip, then "Show on map" back to the guide. | **New, not yet run** — 2026-10-18 (issue #145) |
+| `today.yaml` | Planner: tick Deepdene Campsite, set the plan start date to today in the settings sheet → the guide header's "Today's plan" → Today shows Day 1 from "Start" to "Tonight". | **New, not yet run** — 2026-10-19 (issue #145) |
+| `poi-detail.yaml` | List → Hamelin Bay Caravan Park (OSM) → POI screen: name, OSM pill, category line, the external-link buttons (asserted, not tapped), Comments heading, then "Show on map" back to the Map pane. | **New, not yet run** — 2026-10-19 (issue #145) |
+| `waypoint-alternate.yaml` | List → Kilcarnup Beach Start → the Margaret River Detour "rejoins" card → "Take this alternate" / "Stay on the main route" round-trip. | **New, not yet run** — 2026-10-19 (issue #145) |
+| `hiker-waypoint-edit.yaml` | Map ＋ → New waypoint form (name, type, mocked GPS position) → Save → List row → "Edit waypoint" rename → Delete, leaving no waypoint behind. | **New, not yet run** — 2026-10-19 (issue #145) |
 | `add-comment-offline.yaml` | Post a comment with the API unreachable; assert the queued/failed affordance. | **Green** — 2026-08-19, took branch A (registration NetworkError → "Try again") |
 | `shared/launch-dev.yaml` | Launcher fragment — `clearState` + dev-client deep link. Not standalone. | — |
 | `shared/open-cape-to-cape.yaml` | Fragment — scroll My Guides to Cape to Cape, open it, wait for the guide shell. Not standalone. | — |
+| `shared/today-iso.js` | Script for `today.yaml` (`runScript`) — sets `output.todayIso` to the host's local date, `YYYY-MM-DD`. | — |
 
 On 2026-10-18 (issue #145) the guide-opening steps of `view-map`,
 `toggle-views`, `waypoint-detail` and `add-comment-offline` moved into
@@ -136,9 +141,11 @@ themselves are unchanged, but they have not been re-run against it yet.
 
 ## Selector conventions
 
-- **No testIDs exist in the app** (checked 2026-08-19: zero `testID` props under
-  `mobile/src` and `mobile/app`). Every selector is visible text or an
-  `accessibilityLabel`.
+- **Prefer visible text or an `accessibilityLabel`.** A `testID` is added only
+  where a field shares its accessible name with the label beside it, so text
+  cannot single it out: `plan-start-date` (`PlanHeaderCard`'s Start date input),
+  `waypoint-edit-name` and `waypoint-edit-delete` (`waypoint-edit.tsx`), all
+  added 2026-10-19 for issue #145. Select them with `tapOn: { id: … }`.
 - Maestro matches text as a **full-string regex**, hence patterns like
   `"Add a note.*"` (covers both the plain and water-report placeholders) and
   `"Online|Offline maps ready|Updating offline maps…"` for the map status pill.
@@ -158,6 +165,16 @@ themselves are unchanged, but they have not been re-run against it yet.
   tapping it. A change to My Guides' layout is fixed there, once.
 
 ## Known caveats
+
+- **`today.yaml` reads the date on the host.** `shared/today-iso.js` runs in
+  Maestro on the computer, and the app compares the plan's dates with the
+  phone's local date. An emulator takes the host's time zone by default; if
+  the two disagree (or the run straddles midnight), the "Today's plan" button
+  never appears and the flow times out waiting for it.
+- **`hiker-waypoint-edit.yaml` needs mock location and a permission prompt.**
+  It uses Maestro `setLocation` (emulator only) and taps "While using the app"
+  on Android's location prompt, which `clearState` brings back every run. A
+  device whose prompt words differ fails at the "At … along the trail" wait.
 
 - **All three guide panes stay mounted.** `GuideView` hides inactive panes with
   `display: 'none'`, so a hidden pane's text can still show up in the view

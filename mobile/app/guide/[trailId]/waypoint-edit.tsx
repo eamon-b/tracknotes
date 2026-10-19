@@ -251,6 +251,9 @@ export default function WaypointEditScreen() {
           placeholder="e.g. Spring below the saddle"
           placeholderTextColor={colors.textSecondary}
           accessibilityLabel="Name"
+          // The "Name" label above shares this accessible name; UI tests
+          // (mobile/maestro/hiker-waypoint-edit.yaml) find the field by id.
+          testID="waypoint-edit-name"
         />
         {errorText(fieldMessage('name'))}
       </View>
@@ -351,6 +354,7 @@ export default function WaypointEditScreen() {
         <Pressable
           onPress={onDelete}
           accessibilityRole="button"
+          testID="waypoint-edit-delete"
           style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}
         >
           <Text style={[styles.secondaryText, { color: colors.danger }]}>Delete waypoint</Text>
