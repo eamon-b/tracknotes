@@ -16,6 +16,7 @@ import {
   buildCorridorChunks,
   buildRouteGeometry,
   categorizePOI,
+  createRouteIndex,
   nearestPointOnRoute,
   osmElementKey,
   packCorridorChunks,
@@ -229,6 +230,14 @@ export interface PlaceOptions {
   pause?: () => Promise<void>;
   /** Default 200. */
   pauseEvery?: number;
+  /**
+   * Find each element's nearest segment through a grid (`createRouteIndex`)
+   * instead of measuring it against the whole route: the same placements, at
+   * a cost that does not grow with the route's length. Off by default, which
+   * keeps `enrichRoute` gpx-tools' code path; the comments API's
+   * community-route enrichment turns it on.
+   */
+  indexed?: boolean;
 }
 
 /**
@@ -244,6 +253,9 @@ export async function placePois(
   const { signal, pause } = options;
   const every = Math.max(1, options.pauseEvery ?? 200);
   const pois: EnrichedPOI[] = [];
+  const nearest = options.indexed
+    ? createRouteIndex(corridor.geometry, corridor.searchRadiusKm)
+    : (poi: LatLon) => nearestPointOnRoute(poi, corridor.geometry);
   for (let n = 0; n < fetched.length; n++) {
     if (pause && n > 0 && n % every === 0) {
       await pause();
@@ -252,8 +264,8 @@ export async function placePois(
       throw abortError();
     }
     const poi = fetched[n];
-    const proximity = nearestPointOnRoute(poi, corridor.geometry);
-    if (!(proximity.distanceKm <= corridor.searchRadiusKm)) {
+    const proximity = nearest(poi);
+    if (!proximity || !(proximity.distanceKm <= corridor.searchRadiusKm)) {
       continue;
     }
     // Whatever a requested selector matched is classified as that type.

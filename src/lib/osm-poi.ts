@@ -765,3 +765,217 @@ export function nearestPointOnRoute(poi: LatLon, geom: RouteGeometry): RouteProx
     distanceAlongRouteKm: startKm + bestT * (endKm - startKm),
   };
 }
+
+/**
+ * Most grid cells `createRouteIndex` fills before it gives up on the grid and
+ * falls back to `nearestPointOnRoute` for every POI.
+ */
+const MAX_INDEX_CELLS = 400_000;
+
+/**
+ * Cells per search radius in `createRouteIndex`: a POI looks this many cells
+ * either way. Smaller cells hold fewer segments, and the nearest-first visit
+ * stops long before the far ones.
+ */
+const RING = 3;
+
+/**
+ * `nearestPointOnRoute` for many POIs against one route, answering only for a
+ * POI within `radiusKm` of it: the same `RouteProximity` (same arithmetic, same
+ * tie-break — the lowest segment index), or null when the nearest point is
+ * further than `radiusKm`. Not part of gpx-tools.
+ *
+ * `nearestPointOnRoute` measures every coarse sample of the route for every
+ * POI, so placing a long trail's answers costs POIs × route length (seconds of
+ * CPU for 12,000 POIs on the Heysen). This puts the segments, and the coarse
+ * samples the original can return as a vertex, into a grid of cells a third
+ * of `radiusKm` across, and measures a POI only against the cells within
+ * `radiusKm` of it, nearest first, stopping at the first cell that cannot
+ * hold anything nearer than the best so far: about 25 times faster on the
+ * Heysen. A route that crosses the antimeridian, comes near it or a pole, or
+ * would fill more than `MAX_INDEX_CELLS` cells is not gridded: every POI then
+ * goes through `nearestPointOnRoute` itself.
+ */
+export function createRouteIndex(
+  geom: RouteGeometry,
+  radiusKm: number
+): (poi: LatLon) => RouteProximity | null {
+  const { points, cumulativeKm, segmentBreaks, coarseIndices } = geom;
+  const n = points.length;
+  const within = (proximity: RouteProximity): RouteProximity | null =>
+    proximity.distanceKm <= radiusKm ? proximity : null;
+  const scanAll = (poi: LatLon): RouteProximity | null => within(nearestPointOnRoute(poi, geom));
+  if (n === 0 || !(radiusKm > 0)) return scanAll;
+
+  let minLat = Infinity;
+  let maxLat = -Infinity;
+  let minLon = Infinity;
+  let maxLon = -Infinity;
+  for (const p of points) {
+    if (p.lat < minLat) minLat = p.lat;
+    if (p.lat > maxLat) maxLat = p.lat;
+    if (p.lon < minLon) minLon = p.lon;
+    if (p.lon > maxLon) maxLon = p.lon;
+  }
+  // RING cells either side of a POI's own reach 5 % past the radius, so
+  // rounding at a cell edge never loses a segment.
+  const latCell = (((radiusKm * 1000) / METERS_PER_DEGREE) * 1.05) / RING;
+  // Narrowest a degree of longitude gets anywhere a POI within reach can be.
+  const poleward = Math.max(Math.abs(minLat), Math.abs(maxLat)) + latCell * RING * 2;
+  if (poleward >= 89) return scanAll;
+  const lonCell = latCell / Math.cos((poleward * Math.PI) / 180);
+  // A POI across the antimeridian from the route is measured with a wrapped
+  // longitude, which a grid over raw longitudes cannot see.
+  const lonReach = lonCell * RING * 2;
+  if (maxLon - minLon > 180 || minLon - lonReach <= -180 || maxLon + lonReach >= 180) {
+    return scanAll;
+  }
+
+  const rowOf = (lat: number): number => Math.floor((lat - minLat) / latCell);
+  const colOf = (lon: number): number => Math.floor((lon - minLon) / lonCell);
+  const lastCol = colOf(maxLon) + RING;
+  const cols = lastCol + RING + 1;
+  const keyOf = (row: number, col: number): number => (row + RING) * cols + (col + RING);
+  const segmentCells = new Map<number, number[]>();
+  const vertexCells = new Map<number, number[]>();
+  const add = (map: Map<number, number[]>, key: number, i: number): void => {
+    const list = map.get(key);
+    if (list) list.push(i);
+    else map.set(key, [i]);
+  };
+
+  let filled = 0;
+  for (let i = 0; i + 1 < n; i++) {
+    if (segmentBreaks.has(i)) continue;
+    const a = points[i];
+    const b = points[i + 1];
+    const r0 = rowOf(Math.min(a.lat, b.lat));
+    const r1 = rowOf(Math.max(a.lat, b.lat));
+    const c0 = colOf(Math.min(a.lon, b.lon));
+    const c1 = colOf(Math.max(a.lon, b.lon));
+    filled += (r1 - r0 + 1) * (c1 - c0 + 1);
+    if (filled > MAX_INDEX_CELLS) return scanAll;
+    for (let r = r0; r <= r1; r++) {
+      for (let c = c0; c <= c1; c++) add(segmentCells, keyOf(r, c), i);
+    }
+  }
+  // `nearestPointOnRoute` can answer with a coarse sample rather than a
+  // segment (a lone point, or a rounding tie at a track's end), so they are
+  // candidates too, in coarse order.
+  for (const i of coarseIndices) add(vertexCells, keyOf(rowOf(points[i].lat), colOf(points[i].lon)), i);
+
+  // Cells are visited nearest first, and one that cannot hold anything
+  // nearer than the best so far is skipped. Exact: the nearest point of the
+  // best segment lies in a cell the segment is listed in, no nearer than that
+  // cell. The slack (1 mm) only keeps rounding from skipping a tie.
+  const SKIP_SLACK_KM = 1e-6;
+  // `Math.hypot` is slow; a squared distance clearly beyond the best so far
+  // (a millionth over, far wider than hypot's last-bit rounding) skips it.
+  const cutoffSq = (km: number): number => (km * 1000 * (1 + 1e-6)) ** 2;
+  const side = RING * 2 + 1;
+  const cellOrder: { key: number; lowerKm: number }[] = Array.from({ length: side * side }, () => ({
+    key: 0,
+    lowerKm: 0,
+  }));
+
+  return (poi: LatLon): RouteProximity | null => {
+    if (!isFinitePoint(poi)) return scanAll(poi);
+    const row = rowOf(poi.lat);
+    const col = colOf(poi.lon);
+    const cosLat0 = Math.cos((poi.lat * Math.PI) / 180);
+    let cells = 0;
+    for (let r = row - RING; r <= row + RING; r++) {
+      if (r < -RING) continue;
+      for (let c = col - RING; c <= col + RING; c++) {
+        if (c < -RING || c > lastCol) continue;
+        const key = keyOf(r, c);
+        if (!segmentCells.has(key) && !vertexCells.has(key)) continue;
+        const south = minLat + r * latCell;
+        const west = minLon + c * lonCell;
+        const dLat = Math.max(0, south - poi.lat, poi.lat - (south + latCell));
+        const dLon = Math.max(0, west - poi.lon, poi.lon - (west + lonCell));
+        const entry = cellOrder[cells++];
+        entry.key = key;
+        entry.lowerKm = (Math.hypot(dLon * cosLat0, dLat) * METERS_PER_DEGREE) / 1000;
+      }
+    }
+    const visit = cellOrder.slice(0, cells).sort((x, y) => x.lowerKm - y.lowerKm);
+
+    let bestVertexKm = Infinity;
+    let bestVertexIndex = -1;
+    let bestVertexSq = Infinity;
+    let bestSegKm = Infinity;
+    let bestSegIndex = -1;
+    let bestSegSq = Infinity;
+    let bestT = 0;
+    for (const { key, lowerKm } of visit) {
+      if (lowerKm - SKIP_SLACK_KM > Math.min(bestVertexKm, bestSegKm)) break;
+      // The arithmetic is `nearestPointOnRoute`'s, step for step, so the
+      // distances are bit-identical; an equal distance goes to the lower
+      // index, as the full scan's in-order strict comparison has it.
+      const vertices = vertexCells.get(key);
+      if (vertices) {
+        for (const i of vertices) {
+          const p = points[i];
+          const x = wrapLonDelta(p.lon - poi.lon) * cosLat0 * METERS_PER_DEGREE;
+          const y = (p.lat - poi.lat) * METERS_PER_DEGREE;
+          if (x * x + y * y > bestVertexSq) continue;
+          const d = Math.hypot(x, y) / 1000;
+          if (d < bestVertexKm || (d === bestVertexKm && i < bestVertexIndex)) {
+            bestVertexSq = cutoffSq(d);
+            bestVertexKm = d;
+            bestVertexIndex = i;
+          }
+        }
+      }
+      const segments = segmentCells.get(key);
+      if (!segments) continue;
+      for (const i of segments) {
+        const a = points[i];
+        const b = points[i + 1];
+        const ax = wrapLonDelta(a.lon - poi.lon) * cosLat0 * METERS_PER_DEGREE;
+        const ay = (a.lat - poi.lat) * METERS_PER_DEGREE;
+        const bx = wrapLonDelta(b.lon - poi.lon) * cosLat0 * METERS_PER_DEGREE;
+        const by = (b.lat - poi.lat) * METERS_PER_DEGREE;
+        const dx = bx - ax;
+        const dy = by - ay;
+        const lenSq = dx * dx + dy * dy;
+        let t = 0;
+        if (lenSq > 0) {
+          t = -(ax * dx + ay * dy) / lenSq;
+          t = t < 0 ? 0 : t > 1 ? 1 : t;
+        }
+        const px = ax + t * dx;
+        const py = ay + t * dy;
+        if (px * px + py * py > bestSegSq) continue;
+        const d = Math.hypot(px, py) / 1000;
+        if (d < bestSegKm || (d === bestSegKm && i < bestSegIndex)) {
+          bestSegSq = cutoffSq(d);
+          bestSegKm = d;
+          bestSegIndex = i;
+          bestT = t;
+        }
+      }
+    }
+
+    if (bestSegIndex < 0 || bestVertexKm < bestSegKm) {
+      if (bestVertexIndex < 0) return null;
+      return within({
+        distanceKm: bestVertexKm,
+        segmentIndex: bestVertexIndex,
+        t: 0,
+        nearestPointIndex: bestVertexIndex,
+        distanceAlongRouteKm: cumulativeKm[bestVertexIndex],
+      });
+    }
+    const startKm = cumulativeKm[bestSegIndex];
+    const endKm = cumulativeKm[bestSegIndex + 1];
+    return within({
+      distanceKm: bestSegKm,
+      segmentIndex: bestSegIndex,
+      t: bestT,
+      nearestPointIndex: bestT <= 0.5 ? bestSegIndex : bestSegIndex + 1,
+      distanceAlongRouteKm: startKm + bestT * (endKm - startKm),
+    });
+  };
+}
