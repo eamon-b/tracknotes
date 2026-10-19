@@ -9,6 +9,7 @@ import {
   retryAfterSeconds,
   searchBox,
   selectCandidates,
+  alternateRoute,
   type Candidate,
 } from './fetch-access';
 import type { TrailAccessEntry, TrailAccessFile } from './lib/trail-access-file';
@@ -61,6 +62,78 @@ describe('selectCandidates', () => {
     const sideTrips = [{ name: 'Spur', type: 'side-trip', points: [{ lat: -34.01, lon: 138 }, { lat: -34.01, lon: 138.02 }] }];
     const trail = { track, sideTrips, waypoints: [wp('w_summit', 138.01)] };
     expect(selectCandidates(trail as never, 150, new Set())).toEqual([]);
+  });
+
+  describe('off an alternate', () => {
+    // East from km 1.112 of the route for 2.5 km, along latitude -34.01.
+    const alternate = {
+      name: 'Alt: east',
+      type: 'alternate',
+      points: [0, 1, 2, 3, 4, 5].map(i => ({ lat: -34.01, lon: 138 + i * 0.006, ele: 0 })),
+      waypoints: [],
+    };
+    // 0.003 deg south of the alternate (334 m), 2.2 km east of the route.
+    const below = (id: string, extra = {}) => ({ id, name: id, type: 'campsite', lat: -34.013, lon: 138.024, ...extra });
+
+    it('routes a place the main route did not match to the alternate it is off, with km along it', () => {
+      const trail = { track, waypoints: [], alternates: [alternate], offTrailWaypoints: [below('w_camp')] };
+      const [camp] = selectCandidates(trail as never, 150, new Set());
+      expect(camp.variant).toBe('Alt: east');
+      expect(camp.straightLineM).toBeCloseTo(334, -1);
+      // 0.024 deg of longitude at 34 deg S from the alternate's start, not trail km.
+      expect(camp.nearestKm).toBeCloseTo(2.214, 2);
+    });
+
+    it("takes the alternate's own rows too, once each", () => {
+      const row = { ...below('w_camp'), totalDistance: 3 };
+      const trail = {
+        track,
+        waypoints: [],
+        alternates: [{ ...alternate, waypoints: [row] }],
+        offTrailWaypoints: [below('w_camp')],
+      };
+      expect(selectCandidates(trail as never, 150, new Set()).map(c => c.id)).toEqual(['w_camp']);
+    });
+
+    it('leaves a place beyond the match radius of the alternate, or near enough to it, alone', () => {
+      const far = { ...below('w_far'), lat: -34.02 };
+      const near = { ...below('w_near'), lat: -34.0105 };
+      const trail = { track, waypoints: [], alternates: [alternate], offTrailWaypoints: [far, near] };
+      expect(selectCandidates(trail as never, 150, new Set())).toEqual([]);
+      // A trail with a wider radius (Shikoku's 3 km) reaches the far one.
+      const wide = { ...trail, config: { waypointMaxDistance: 3000 } };
+      expect(selectCandidates(wide as never, 150, new Set()).map(c => c.id)).toEqual(['w_far']);
+    });
+
+    it("leaves the main route's waypoints, turn-offs and places on a side trip to the main route's rules", () => {
+      const sideTrips = [{ name: 'Spur', type: 'side-trip', points: [{ lat: -34.013, lon: 138.02 }, { lat: -34.013, lon: 138.03 }] }];
+      const trail = {
+        track,
+        waypoints: [wp('w_main', 138.001, { mergedIds: ['w_twin'] })],
+        alternates: [alternate],
+        offTrailWaypoints: [below('w_twin'), below('w_turnoff', { type: 'campsite-access' }), below('w_given', { offTrailKm: 1 })],
+      };
+      expect(selectCandidates(trail as never, 150, new Set())).toEqual([]);
+      const onSpur = { ...trail, waypoints: [], offTrailWaypoints: [below('w_camp')], sideTrips };
+      expect(selectCandidates(onSpur as never, 150, new Set())).toEqual([]);
+    });
+
+    it('routes nothing to an alternate whose name another alternate shares', () => {
+      const trail = {
+        track,
+        waypoints: [],
+        alternates: [alternate, { ...alternate, points: alternate.points.map(p => ({ ...p, lat: -34.03 })) }],
+        offTrailWaypoints: [below('w_camp')],
+      };
+      expect(selectCandidates(trail as never, 150, new Set())).toEqual([]);
+    });
+  });
+});
+
+describe('alternateRoute', () => {
+  it('measures km from the branch point', () => {
+    const route = alternateRoute({ points: [0, 1, 2].map(i => ({ lat: -34 - i * 0.01, lon: 138, ele: 0 })) });
+    expect(route.map(p => p.dist)).toEqual([0, expect.closeTo(1.112, 2), expect.closeTo(2.224, 2)]);
   });
 });
 

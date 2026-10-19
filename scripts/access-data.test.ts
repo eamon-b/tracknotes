@@ -3,7 +3,9 @@
  * its ids are live entries in `data/waypoint-ids.json` (a retired or unknown id
  * is a place the build no longer has, so its walk silently stops applying), and
  * the bundled trail puts each routed place at its junction's km with its walk
- * in — the build only warns when it ignores an entry. Read from the committed
+ * in — the build only warns when it ignores an entry; a place walked to from an
+ * alternate (`variant`), in that alternate's list at its junction's km along
+ * it. Read from the committed
  * mobile assets, so a stale `npm run build:mobile-trails` fails here too.
  */
 import { describe, expect, it } from 'vitest';
@@ -56,8 +58,16 @@ describe('access.json', () => {
   it.each(trails.map(t => [t.dir, t] as const))('%s places each routed waypoint at its junction', (_dir, trail) => {
     const bundled = JSON.parse(fs.readFileSync(path.join(ASSETS_DIR, `${trail.id}.json`), 'utf-8')) as {
       waypoints: BundledWaypoint[];
+      alternates?: Array<{ name: string; startDistance?: number; waypoints?: BundledWaypoint[] }>;
     };
-    const rows = new Map(bundled.waypoints.filter(w => w.id).map(w => [w.id!, w]));
+    const byId = (list: readonly BundledWaypoint[]) => new Map(list.filter(w => w.id).map(w => [w.id!, w]));
+    const mainRows = byId(bundled.waypoints);
+    // An alternate's rows are on the trail's scale; its entries' km are along it.
+    const alternates = new Map(
+      (bundled.alternates ?? []).map(alt => [alt.name, { startKm: alt.startDistance ?? 0, rows: byId(alt.waypoints ?? []) }])
+    );
+    const scaleFor = (entry: TrailAccessEntry) =>
+      entry.variant === undefined ? { startKm: 0, rows: mainRows } : alternates.get(entry.variant);
     const places = Object.entries(trail.access.places);
     // A near-duplicate the build merged away (`dedupeWaypoints`) has no row of
     // its own; fetch-access gave it its survivor's entry, so a twin with the
@@ -65,26 +75,33 @@ describe('access.json', () => {
     const sameWalk = (a: TrailAccessEntry, b: TrailAccessEntry) =>
       a.junction !== undefined &&
       a.method === b.method &&
+      a.variant === b.variant &&
       a.offTrailKm === b.offTrailKm &&
       String(a.junction) === String(b.junction);
-    const rowFor = (id: string, entry: TrailAccessEntry) =>
+    const rowFor = (id: string, entry: TrailAccessEntry, rows: Map<string, BundledWaypoint>) =>
       rows.get(id) ?? places.filter(([other, e]) => other !== id && sameWalk(e, entry)).map(([other]) => rows.get(other)).find(Boolean);
 
     const problems: string[] = [];
     for (const [id, entry] of places) {
-      const row = rowFor(id, entry);
+      const scale = scaleFor(entry);
+      if (!scale) {
+        problems.push(`${id} ${entry.name}: no alternate "${entry.variant}"`);
+        continue;
+      }
+      const row = rowFor(id, entry, scale.rows);
       if (entry.method === 'none') {
         // On the route, it is walked as the straight line; off it, not listed here.
         if (row && !(row.offTrailKm! > 0)) problems.push(`${id} ${entry.name}: no walk`);
         continue;
       }
       if (!row) {
-        problems.push(`${id} ${entry.name}: not on the main route`);
+        problems.push(`${id} ${entry.name}: not on ${entry.variant === undefined ? 'the main route' : `"${entry.variant}"`}`);
         continue;
       }
       if (row.offTrailKm !== entry.offTrailKm) problems.push(`${id} ${entry.name}: walk ${row.offTrailKm} ≠ ${entry.offTrailKm}`);
-      if (entry.junctionKm !== undefined && Math.abs(row.totalDistance - entry.junctionKm) > KM_TOLERANCE) {
-        problems.push(`${id} ${entry.name}: built at km ${row.totalDistance}, junction at km ${entry.junctionKm}`);
+      const builtKm = row.totalDistance - scale.startKm;
+      if (entry.junctionKm !== undefined && Math.abs(builtKm - entry.junctionKm) > KM_TOLERANCE) {
+        problems.push(`${id} ${entry.name}: built at km ${builtKm}, junction at km ${entry.junctionKm}`);
       }
     }
     expect(problems).toEqual([]);

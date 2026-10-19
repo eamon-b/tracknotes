@@ -109,6 +109,26 @@
         [-36.58252, 148.25995]
       ]
     },
+    "w_3e3fb00d": {
+      "name": "Bogong Creek Saddle",
+      "method": "osm",
+      "variant": "Alt S4: Mt Bogong",
+      "junction": [-36.770728, 147.279858],
+      "junctionKm": 10.85,
+      "offTrailKm": 0.17,
+      "ascentM": 9,
+      "descentM": 3,
+      "crossCountryM": 21,
+      "straightLineM": 192,
+      "nearestKm": 10.8,
+      "path": [
+        [-36.770728, 147.279858],
+        [-36.770893, 147.279504],
+        [-36.770953, 147.279167],
+        [-36.770904, 147.278831],
+        [-36.771025, 147.278018]
+      ]
+    },
     "w_3ed1c0c3": {
       "name": "Nobs Track",
       "method": "osm",

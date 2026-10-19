@@ -931,6 +931,98 @@ describe('waypointAccess', () => {
   });
 });
 
+describe('variantWaypointAccess', () => {
+  /**
+   * A main route south along 138 E; an alternate that leaves it at km 1.1,
+   * runs 2.8 km east, south and back west to rejoin it. A camp 556 m south of
+   * the alternate's east leg (and 1.8 km from the main route), a hut 167 m
+   * north of it.
+   */
+  function withAlternate(): ParsedGpxResult {
+    const at = (lat: number, lon: number) => ({ lat, lon, ele: 0, time: null });
+    const steps = (n: number) => Array.from({ length: n }, (_, i) => i);
+    const alternate = [
+      ...steps(15).map(i => at(-34.01, 138 + i * 0.002)),
+      ...steps(10).map(i => at(-34.01 - i * 0.002, 138.03)),
+      ...steps(16).map(i => at(-34.03, 138.03 - i * 0.002)),
+    ];
+    return {
+      tracks: [
+        { name: 'Main', points: steps(11).map(i => at(-34 - i * 0.005, 138)) },
+        { name: 'Alternative: east loop', points: alternate },
+      ],
+      waypoints: [
+        { id: 'w_camp', name: 'Camp', lat: -34.015, lon: 138.02, type: 'campsite' },
+        { id: 'w_hut', name: 'Hut', lat: -34.0085, lon: 138.01, type: 'hut' },
+        { id: 'w_end', name: 'End', lat: -34.05, lon: 138, type: 'waypoint' },
+      ],
+      name: null,
+    };
+  }
+  const trailConfig = () => config({ trackClassification: { mainRoutePatterns: ['^Main$'] } });
+  // On the east leg between two vertices, 0.021 deg (1.94 km) along it.
+  const camp = { junction: { lat: -34.01, lon: 138.021 }, offTrailKm: 0.6 };
+  const access = new Map([
+    ['Alternative: east loop', { placements: new Map([['w_camp', camp]]), unrouted: new Set(['w_hut']) }],
+  ]);
+
+  it("lists the place on the alternate at its junction's km along it, with its walk in", () => {
+    const plain = buildTrail(withAlternate(), { config: trailConfig() });
+    expect(plain.alternates[0].waypoints!.map(w => w.name)).toEqual(['Hut']);
+
+    const warnings: string[] = [];
+    const trail = buildTrail(withAlternate(), {
+      config: trailConfig(),
+      variantWaypointAccess: access,
+      warn: m => warnings.push(m),
+    });
+    const alternate = trail.alternates[0];
+    expect(alternate.waypoints!.map(w => w.name)).toEqual(['Hut', 'Camp']);
+    const [hut, field] = alternate.waypoints!;
+    expect(field.totalDistance).toBeCloseTo(alternate.startDistance! + 1.938, 1);
+    expect(field.distance).toBeCloseTo(field.totalDistance - hut.totalDistance, 2);
+    expect(hut.distance).toBeCloseTo(hut.totalDistance - alternate.startDistance!, 2);
+    expect(field.variantTrackIndex).toBeGreaterThanOrEqual(hut.variantTrackIndex);
+    expect([field.lat, field.lon]).toEqual([-34.015, 138.02]);
+    expect(field.offTrailKm).toBe(0.6);
+    expect(field.accessMode).toBe('foot');
+    // No way found: the straight line to the alternate.
+    expect(hut.offTrailKm).toBeCloseTo(0.17, 2);
+    expect(hut).not.toHaveProperty('accessMode');
+    expect(warnings).toEqual([]);
+
+    // The main route is untouched, and the off-trail list as it was.
+    expect(trail.waypoints).toEqual(plain.waypoints);
+    expect(trail.offTrailWaypoints).toEqual(plain.offTrailWaypoints);
+  });
+
+  it("never applies an alternate's entry to the main route, or the main route's to an alternate", () => {
+    const trail = buildTrail(withAlternate(), {
+      config: trailConfig(),
+      waypointAccess: new Map(),
+      variantWaypointAccess: access,
+    });
+    expect(trail.waypoints.map(w => w.name)).not.toContain('Camp');
+    const byMain = buildTrail(withAlternate(), {
+      config: trailConfig(),
+      waypointAccess: new Map([['w_camp', camp]]),
+    });
+    expect(byMain.alternates[0].waypoints!.map(w => w.name)).toEqual(['Hut']);
+  });
+
+  it('ignores, with a warning, a junction off the alternate or an alternate the trail lacks', () => {
+    const warnings: string[] = [];
+    const stale = new Map([
+      ['Alternative: east loop', { placements: new Map([['w_camp', { ...camp, junction: { lat: -34.02, lon: 138.021 } }]]) }],
+      ['Alternative: gone', { placements: new Map([['w_camp', camp]]) }],
+    ]);
+    const trail = buildTrail(withAlternate(), { config: trailConfig(), variantWaypointAccess: stale, warn: m => warnings.push(m) });
+    expect(trail.alternates[0].waypoints!.map(w => w.name)).toEqual(['Hut']);
+    expect(warnings.join('\n')).toMatch(/alternate "Alternative: east loop": access for "Camp" \(w_camp\) ignored: its junction is \d+m from the route/);
+    expect(warnings.join('\n')).toMatch(/access for alternate "Alternative: gone" ignored/);
+  });
+});
+
 describe('the display copy of an out-and-back route', () => {
   /**
    * 2,000 points north along a meander the simplification keeps some of, then
