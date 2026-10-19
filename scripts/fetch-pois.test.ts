@@ -8,6 +8,7 @@ import {
   positionalArgs,
   processTrailData,
   repositionTrailPois,
+  misplacedPois,
   resolveEndpoint,
   clipScaleToKm,
   resolveKmRange,
@@ -529,5 +530,19 @@ describe('repositionTrailPois', () => {
 
     expect(pois).toEqual(fetched.pois);
     expect(dropped.map(p => p.id)).toEqual([3]);
+  });
+});
+
+describe('misplacedPois', () => {
+  it('passes POIs where a fetch would put them and names the rest, with their fresh km', async () => {
+    const camp = node(2, START_LAT + 4.5 * LAT_STEP, LON, { tourism: 'camp_site', name: 'Camp' });
+    const [placed] = (await processTrailData(makeTrail(), fixedFetcher([camp]))).pois;
+    // Still inside the trail, but not where this track puts it.
+    const stale = { ...placed, distanceAlongTrail: 30 };
+
+    expect(await misplacedPois(makeTrail(), [placed])).toEqual([]);
+    const misplaced = await misplacedPois(makeTrail(), [stale]);
+    expect(misplaced).toHaveLength(1);
+    expect(misplaced[0].km).toBeCloseTo(45, 1);
   });
 });
