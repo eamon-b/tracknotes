@@ -1,26 +1,26 @@
 {
   "trailId": "six_foot_track",
-  "note": "Curated waypoint descriptions, keyed by the stable ids in data/waypoint-ids.json. Applied by scripts/build-trails.ts (overriding any description from the GPX source) and uploadable to the comments API with scripts/upload-descriptions.ts. Listed east to west, from Katoomba to Jenolan Caves, matching the km order of the generated trail data. Mount George has no entry: no source described it beyond a signpost. Sources for each fact: plans/waypoint-description-sources.md.",
+  "note": "Curated waypoint descriptions, keyed by the stable ids in data/waypoint-ids.json. Applied by scripts/build-trails.ts (overriding any description from the GPX source) and uploadable to the comments API with scripts/upload-descriptions.ts. Listed east to west, from Katoomba to Jenolan Caves, matching the km order of the generated trail data. Mount George has no entry: no source described it beyond a signpost. Descriptions give the permanent place; temporary closures are posted as server-side updates. Sources for each fact: plans/waypoint-description-sources.md.",
   "descriptions": [
     {
       "waypointId": "w_e864dd52",
       "name": "Pulpit Hill",
-      "description": "The hill at the Katoomba end of the track, on whose side stands the Explorers Tree, where Blaxland, Wentworth and Lawson are said to have carved their names on their 1813 crossing of the mountains. The tree is long dead; it was caged in 1884 to protect the carvings, which can no longer be seen."
+      "description": "Hill at the Katoomba end of the track. On its side stood the Explorers Tree, a long-dead tree enclosed in 1884 to protect marks said to have been cut by Blaxland, Wentworth and Lawson on their 1813 crossing, a claim disputed for over a century. Transport for NSW removed what was left of it in February 2021, fearing it would fall."
     },
     {
       "waypointId": "w_2977b31a",
       "name": "Katoomba (2 km east)",
-      "description": "Start of the track near the Explorers Tree on Pulpit Hill Road, about 2 km west of Katoomba, with parking at the Explorers Tree. Katoomba has supermarkets, shops and the railway station. The track follows an 1884 horse track to Jenolan Caves, named for its width."
+      "description": "The track starts by the Explorers Tree site on Pulpit Hill Road, about 2 km west of Katoomba, where there is parking. Katoomba has supermarkets, shops and the railway station. The route follows an 1884 horse track to Jenolan Caves, named for its width: six feet, enough for a horse-drawn vehicle."
     },
     {
       "waypointId": "w_08059283",
       "name": "Six Foot Track Information Shelter",
-      "description": "Dirt car park and shelter with a large Six Foot Track information sign, about 260 m from the Explorers Tree."
+      "description": "Dirt car park off Nellies Glen Road with a shelter and a large Six Foot Track information sign, about 260 m along from the Explorers Tree site."
     },
     {
       "waypointId": "w_9efee08f",
       "name": "Norths Lookout",
-      "description": "Fenced lookout a short side trip off the track, with views over Nellies Glen and into the Megalong Valley. Below it the track drops steeply down the Nellies Glen steps, between tall rock walls and back and forth across a small creek."
+      "description": "Fenced lookout a short detour from the track, looking over Nellies Glen into the Megalong Valley. Below it the track goes steeply down the Nellies Glen steps, beside high rock walls, crossing a small creek several times."
     },
     {
       "waypointId": "w_30f90ba1",
@@ -30,27 +30,27 @@
     {
       "waypointId": "w_760a564c",
       "name": "Old Ford Reserve",
-      "description": "Roadside campground a few metres north of the Megalong Road bridge over Megalong Creek, reached by car, with a wheelchair-accessible toilet, flat tent space and access to the creek. Being beside the road, it can be noisy at times."
+      "description": "Campground just north of the Megalong Road bridge over Megalong Creek, about 500 m from where the track crosses the road. It has a wheelchair-accessible toilet, plenty of level ground for tents and access to the creek. Cars can drive in, and it sometimes has loud campers."
     },
     {
       "waypointId": "w_7a3dec9e",
       "name": "Coxs River Camp Area",
-      "description": "Grassy campground on the western bank of the Coxs River, with a toilet, a sheltered picnic table and good river access; it is a fuel-stove-only area. Water comes from a rainwater tank or the river, neither of them treated. The river is normally shin-deep at the crossing; when it floods, Bowtells Swing Bridge, built by the Royal Australian Engineers in 1992, is the way across."
+      "description": "Grassy campground on the west bank of the Coxs River, with a toilet, a sheltered picnic table and river access; fuel stoves only. Water is from a rainwater tank or the river, both untreated. Upstream, Bowtells Swing Bridge (built 1992, rebuilt 2024) carries walkers over the river; the ford below the camp crosses slippery rounded stones and is impassable in flood."
     },
     {
       "waypointId": "w_d38267f2",
       "name": "Alum Creek Campground",
-      "description": "The least used and least developed of the track's campgrounds, in a sheltered gully beside the small Alum Creek; NSW National Parks lists no toilet here. Water can normally be collected from Alum Creek and the fairly reliable Little River down the road, except in prolonged dry periods. From here the track climbs the Black Range on a dirt road, with no further water until the Black Range tank."
+      "description": "The least-used campground on the track, a flat grassy area in a sheltered gully beside the small Alum Creek; NSW National Parks lists no toilet. Water is normally in Alum Creek and in Little River, which the road fords about 750 m on, except in long dry spells. Past Little River the road climbs the Black Range with no water until the Black Range tank."
     },
     {
       "waypointId": "w_9f949f0b",
       "name": "Black Range Camp Ground",
-      "description": "Campground on the Black Range, also reachable by car, with toilets, a covered picnic table and an information board with a map; it is a fuel-stove-only area. The rainwater tank is fairly reliable but has run empty in long dry spells and through vandalism, and the water is untreated."
+      "description": "Large fenced grassy campground on the Black Range, also reached by car, with toilets, sheltered picnic tables and an information board with a map; fuel stoves only. Its rainwater tank usually holds water, though long dry spells and vandalism have emptied it, and the water is untreated."
     },
     {
       "waypointId": "w_9853df4e",
       "name": "Jenolan Caves",
-      "description": "The end of the track, reached by a steep, rocky descent along a narrow ridge with views down to the Blue Lake. The cave system dates back at least 340 million years; the heritage-listed Caves House, built in 1898, has dining, accommodation and a shop selling essentials."
+      "description": "The end of the track, reached down a steep, rocky ridge, narrow in places, overlooking the Blue Lake. The caves date back at least 340 million years, and the heritage-listed Caves House (1898) has restaurants, accommodation and a shop for essentials."
     }
   ]
 }

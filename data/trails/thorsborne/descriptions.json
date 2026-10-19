@@ -1,46 +1,46 @@
 {
   "trailId": "thorsborne",
-  "note": "Curated waypoint descriptions, keyed by the stable ids in data/waypoint-ids.json. Applied by scripts/build-trails.ts (overriding any description from the GPX source) and uploadable to the comments API with scripts/upload-descriptions.ts. Listed north to south, from Ramsay Bay to George Point, matching the km order of the generated trail data. Sources for each fact: plans/waypoint-description-sources.md.",
+  "note": "Curated waypoint descriptions, keyed by the stable ids in data/waypoint-ids.json. Applied by scripts/build-trails.ts (overriding any description from the GPX source) and uploadable to the comments API with scripts/upload-descriptions.ts. Listed north to south, from Ramsay Bay to George Point, matching the km order of the generated trail data. Facilities (toilets, platforms) are left out until a Queensland Parks page can be read in full. Sources for each fact: plans/waypoint-description-sources.md.",
   "descriptions": [
     {
       "waypointId": "w_360268e6",
       "name": "Nina Bay",
-      "description": "The first camping area south of the Ramsay Bay start, about 4 km in, with composting toilets and a pack rack. Water is in the creeks at either end of the bay, 100–200 m upstream."
+      "description": "Camping area on the white sand of Nina Bay, the bay after the Ramsay Bay start and before Little Ramsay Bay. Water is in the creeks at each end of the bay, 100–200 m upstream."
     },
     {
       "waypointId": "w_43389253",
       "name": "Little Ramsay Bay campsite",
-      "description": "The second camping area from the north, with composting toilets, platforms and pack poles. Water comes from the creek upstream of the lagoon."
+      "description": "Camping area on the south side of the lagoon at Little Ramsay Bay, reached from Nina Bay by rock-hopping around the headland. The water sources listed for this stretch are the Nina Bay creeks and the lagoon at Blacksand Beach."
     },
     {
       "waypointId": "w_b47033ee",
       "name": "Banksia Bay campsite",
-      "description": "Small camping area with no facilities — no toilet, and campfires are not allowed. Water is in Banksia Creek, about 100 m upstream from the beach."
+      "description": "Small, quieter camping area on Banksia Bay, on the stretch between Little Ramsay Bay and Zoe Bay. Water is in Banksia Creek, about 100 m upstream from the beach."
     },
     {
       "waypointId": "w_9ac0c3d4",
       "name": "Zoe Bay campsite",
-      "description": "Camping area at South Zoe Bay with composting toilets, platforms and pack poles; boat-based campers and day visitors have their own separate areas. Water is collected from Zoe Creek about 600 m upstream of the camp sites, and Fan Palm and Cypress Pine creeks, crossed on the way from Little Ramsay Bay, are the most reliable water on that stretch."
+      "description": "Camping area at South Zoe Bay, about half a kilometre from Zoe Falls. Water is in Zoe Creek, about 600 m upstream of the camp sites."
     },
     {
       "waypointId": "w_531bd2c6",
       "name": "Zoe Falls",
-      "description": "The well-known waterfall above Zoe Bay, about a 15-minute walk from the South Zoe Bay day-use area."
+      "description": "Waterfall about half a kilometre from the South Zoe Bay camping area, with a rock pool at its top that looks out over Zoe Bay."
     },
     {
       "waypointId": "w_14399866",
       "name": "Thorsborne Trail High point",
-      "description": "A saddle of bare granite pavement, reached by a spur climbing from South Zoe Creek. At 260 m above sea level it is the highest point on the trail."
+      "description": "Saddle of bare granite at 260 m above sea level, the highest point on the trail, reached from Zoe Bay along South Zoe Creek and then up a spur. On a clear day the Palm Islands and Magnetic Island are in view."
     },
     {
       "waypointId": "w_2053b158",
       "name": "Mulligan Falls campsite",
-      "description": "Camping area near the base of Mulligan Falls, with composting toilets, platforms and pack poles. The area above and around the falls is restricted access, where people have died and been seriously injured. Water is at the falls; south of here the only source is the seasonal Moth Creek, and there is none at George Point."
+      "description": "Camping area at the foot of Mulligan Falls, the one camping area with a one-night limit. The area beyond the falls is restricted access. The falls are the last reliable water on the trail before George Point."
     },
     {
       "waypointId": "w_fc1b14f4",
       "name": "George Point campsite",
-      "description": "The southern end of the trail, at the southern end of Mulligan Bay, and its southern boat pick-up and drop-off point, reached by boat from Lucinda (Dungeness). The camping area has no facilities and no fresh water."
+      "description": "The southern end of the trail, at the end of a 5 km beach along Mulligan Bay, where boats from Lucinda (Dungeness) drop off and collect walkers. There is no reliable water between Mulligan Falls and here."
     }
   ]
 }
