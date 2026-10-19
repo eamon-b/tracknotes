@@ -11,7 +11,7 @@ change one and change the other. Still outstanding before store submission:
 link the URL from the App Store / Play Store listings, and give this draft a
 human read (issue #31)._
 
-**Last updated: 2026-10-18**
+**Last updated: 2026-10-19**
 
 Tracknotes is a hiking guide app for long-distance trails in Australia, New
 Zealand, the United States and Japan. It is designed to work offline-first and
@@ -28,6 +28,14 @@ display name is the only identity shown to other users.
 waypoints, or to OpenStreetMap points of interest (shops, cafés, campgrounds
 and the like) shown in the app, are stored on our servers and shown publicly to
 other users of the app alongside your display name and the time of posting.
+
+**Photo location.** Photos are uploaded as taken: the app re-encodes them at a
+reduced quality to make them smaller, but does not remove their metadata. A
+photo may therefore keep its EXIF data, including the GPS location where it
+was taken if your camera recorded one, and anyone who views or downloads the
+photo can read it. This is deliberate, so other hikers can see exactly where a
+photo was taken. If you do not want a photo's location published, turn off
+location tagging in your camera app before taking it, or do not attach it.
 
 **Waypoints you share (optional).** You can add your own waypoints to a trail
 on the phone. A waypoint you keep to yourself ("Only me") stays on your device
@@ -144,14 +152,24 @@ may result in a device being blocked from posting.
 
 Settings → **Delete account** (on the phone) anonymises your device
 identity on our servers: your display name is replaced with "Deleted user", and
-the phone and every linked browser are signed out for good. It also hides every
-comment you posted, every waypoint you shared and every plan you saved (they
-disappear from all devices on their next sync, and any shared plan link stops
-working), and deletes your uploaded photos. The hidden comments, shared
-waypoints and plans are kept in our database, marked deleted. They are no
-longer shown in the app, on the website or through the public API; our admins
-can still see the hidden comments and shared waypoints for moderation. Reports you filed are kept as a moderation record. This is
-immediate and irreversible.
+the phone and every linked browser are signed out for good. It also deletes
+every comment you posted, every waypoint you shared and every plan you saved
+(they disappear from all devices on their next sync), including ones that were
+already deleted or hidden:
+
+- **Comments:** the text, water status and observation time are erased, and
+  your uploaded photos are deleted.
+- **Plans:** the plan's contents are erased and any shared plan link is
+  removed, so it stops working.
+- **Shared waypoints:** the name, note and position are erased, and the
+  waypoint is unshared for good (moderation cannot restore it). On your phone
+  they are kept as private waypoints.
+
+What stays in our database for each is an empty record: its ID, the trail (and
+waypoint or place) it belonged to, a waypoint's type, and when it was created,
+changed and deleted, so that devices which synced it know to drop it. Reports
+you filed are kept as a moderation record (the reason you chose and when), but
+any text you wrote in them is erased. This is immediate and irreversible.
 
 A community route you shared can be deleted at any time from its page
 (**Delete**); this removes it from the public list and deletes the stored route
@@ -160,10 +178,11 @@ description, credit line, the display name it was shared under, its summary
 statistics and a fingerprint of its track, which lets moderation stop a removed
 route from being shared again. Because shared routes are released as CC0, copies others have
 already downloaded or saved may remain on their devices. Deleting your account
-leaves the routes you shared public but removes your display name from them;
-the description and credit line you wrote stay published, and the original GPX
-file, if you included one, stays in private storage. Delete the routes first if
-you want them gone. Local data on your own device (favorites, routes,
+leaves the routes you shared public but removes your display name from them:
+the stored route is rewritten without it and the earlier copies that named you
+are deleted. The original GPX file, if you included one, is deleted too. The
+description and credit line you wrote stay published. Delete the routes first
+if you want them gone. Local data on your own device (favorites, routes,
 downloaded maps) stays on your device until you clear it or uninstall.
 
 ## Children
@@ -173,7 +192,8 @@ collect personal information from them.
 
 ## Contact
 
-Questions or removal requests: privacy@contour-map-tiles.net
+Questions or removal requests:
+[privacy@contour-map-tiles.net](mailto:privacy@contour-map-tiles.net)
 
 ## Changes
 
