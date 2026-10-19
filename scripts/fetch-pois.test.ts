@@ -543,6 +543,9 @@ describe('misplacedPois', () => {
     expect(await misplacedPois(makeTrail(), [placed])).toEqual([]);
     const misplaced = await misplacedPois(makeTrail(), [stale]);
     expect(misplaced).toHaveLength(1);
-    expect(misplaced[0].km).toBeCloseTo(45, 1);
+    expect(misplaced[0].fresh?.distanceAlongTrail).toBeCloseTo(45, 1);
+
+    // Same km, but a category the current classifier would not give it.
+    expect(await misplacedPois(makeTrail(), [{ ...placed, category: 'water' }])).toHaveLength(1);
   });
 });

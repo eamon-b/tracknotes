@@ -277,7 +277,8 @@ export async function processTrailData(
  * and the AAWT's Blue Waterholes POIs at km 790-793 of 688. `build-trails`
  * refuses a file this would change (`misplacedPois`); this is the cheap fix
  * when the OSM data itself is still fine. POIs the moved track no longer
- * passes within the search radius are dropped, as a fetch would drop them.
+ * passes within the search radius, or whose tags no longer classify, are
+ * dropped, as a fetch would drop them.
  */
 export async function repositionTrailPois(
   trail: ProcessedTrail,
@@ -295,20 +296,25 @@ export async function repositionTrailPois(
 const PLACEMENT_TOLERANCE_KM = 0.001;
 
 /**
- * The stored POIs whose km is not where `repositionTrailPois` would put them on
- * this track (`km` null: the track no longer passes within the search radius).
- * `build-trails` fails on any, so a track edit cannot leave POIs at stale km —
- * past the end (mirrored to km 0 when the trail is reversed) or anywhere along it.
+ * The stored POIs that `repositionTrailPois` would change on this track: a
+ * different km or category, or no placement at all (`fresh` null: beyond the
+ * search radius, or its tags no longer classify). `build-trails` fails on any,
+ * so a track edit cannot leave POIs at stale km — past the end (mirrored to
+ * km 0 when the trail is reversed) or anywhere along it.
  */
 export async function misplacedPois(
   trail: ProcessedTrail,
   stored: readonly TrailPOI[]
-): Promise<Array<{ poi: TrailPOI; km: number | null }>> {
+): Promise<Array<{ poi: TrailPOI; fresh: TrailPOI | null }>> {
   const { pois } = await repositionTrailPois(trail, stored);
-  const fresh = new Map(pois.map(poi => [poiKey(poi), poi.distanceAlongTrail]));
+  const byKey = new Map(pois.map(poi => [poiKey(poi), poi]));
   return stored.flatMap(poi => {
-    const km = fresh.get(poiKey(poi)) ?? null;
-    return km !== null && Math.abs(km - poi.distanceAlongTrail) <= PLACEMENT_TOLERANCE_KM ? [] : [{ poi, km }];
+    const fresh = byKey.get(poiKey(poi)) ?? null;
+    const same =
+      fresh !== null &&
+      fresh.category === poi.category &&
+      Math.abs(fresh.distanceAlongTrail - poi.distanceAlongTrail) <= PLACEMENT_TOLERANCE_KM;
+    return same ? [] : [{ poi, fresh }];
   });
 }
 
@@ -325,7 +331,9 @@ async function repositionTrail(trailPath: string, trailDir: string): Promise<boo
   const moved = pois.filter(poi => Math.abs((before.get(poiKey(poi)) ?? NaN) - poi.distanceAlongTrail) > 0.05);
   console.log(`  ${moved.length} POI(s) moved more than 50 m along the trail`);
   for (const poi of dropped) {
-    console.log(`  dropped (now beyond ${SEARCH_RADIUS_KM} km of the track): ${poi.name ?? poiKey(poi)}`);
+    console.log(
+      `  dropped (beyond ${SEARCH_RADIUS_KM} km of the track, or its tags no longer classify): ${poi.name ?? poiKey(poi)}`
+    );
   }
   const written = writeTrailPOIFile(
     trailDir,
@@ -512,13 +520,18 @@ async function processTrail(
   });
   const merging = mode === 'merge' && existing !== null;
   const merged = merging ? mergeTrailPOIs(existing.pois, result.pois) : null;
+  // A windowed fetch places POIs against the clipped route, where a POI near
+  // the window's edge (or nearer a line outside it) gets a different km than
+  // on the whole route; the kept POIs may predate a track edit. Re-place the
+  // merged file on the whole route, as build-trails checks it.
+  const mergedPois = merged ? (await repositionTrailPois(trail, merged.pois)).pois : null;
   if (merging && kmRange === null) {
     console.log('  Chunks failed, so merging into the existing file instead of replacing it.');
   }
 
   const file = buildTrailPOIFile({
     existing,
-    pois: merged ? merged.pois : result.pois,
+    pois: mergedPois ?? result.pois,
     fetchedAt: merging ? existing.fetchedAt : new Date().toISOString(),
     searchRadiusKm: merging ? existing.searchRadiusKm : SEARCH_RADIUS_KM,
     endpoint: merging ? existing.endpoint : endpoint,

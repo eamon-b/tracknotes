@@ -735,17 +735,10 @@ async function main() {
         replaced,
       } = markTrailPOIsForBuild(readTrailPOIFile(trailDir), processed, poiConfig);
       // A track edit since the fetch leaves POI km stale (the AAWT's Blue
-      // Waterholes POIs sat at km 790 of 688 and, reversed, at km 0).
+      // Waterholes POIs sat at km 790 of 688 and, reversed, at km 0). Checked
+      // here, reported after the generated file is written: fetch-pois reads
+      // the track from that file, so --reposition must see the new geometry.
       const misplaced = fetched ? await misplacedPois(processed, fetched) : [];
-      if (misplaced.length > 0) {
-        const where = misplaced
-          .slice(0, 5)
-          .map(({ poi, km }) => `${poi.name ?? `${poi.type}/${poi.id}`} (km ${poi.distanceAlongTrail.toFixed(2)} → ${km === null ? 'out of reach' : km.toFixed(2)})`);
-        throw new Error(
-          `${misplaced.length} POI(s) in pois.json are not placed on the current track, e.g. ${where.join(', ')}. ` +
-            `Run npm run fetch:pois -- ${processed.config.id} --reposition`
-        );
-      }
       const noise = countNoiseByReason(fetched, poiConfig);
       if (unmatched.length > 0) {
         console.warn(`  ⚠ pois.json duplicates match no POI: ${unmatched.join(', ')}`);
@@ -765,6 +758,19 @@ async function main() {
       const outputPath = path.join(OUTPUT_DIR, `${processed.config.id}.json`);
       fs.writeFileSync(outputPath, JSON.stringify(processed, null, 2));
       console.log(`  ✓ Written to ${outputPath}`);
+      if (misplaced.length > 0) {
+        const where = misplaced.slice(0, 5).map(({ poi, fresh }) => {
+          const name = poi.name ?? `${poi.type}/${poi.id}`;
+          if (!fresh) return `${name} (km ${poi.distanceAlongTrail.toFixed(2)} → no longer placed)`;
+          if (fresh.category !== poi.category) return `${name} (${poi.category} → ${fresh.category})`;
+          return `${name} (km ${poi.distanceAlongTrail.toFixed(2)} → ${fresh.distanceAlongTrail.toFixed(2)})`;
+        });
+        throw new Error(
+          `${misplaced.length} POI(s) in pois.json are not where a fetch would place them on the current track, ` +
+            `e.g. ${where.join(', ')}. The new track is written; run npm run fetch:pois -- ${processed.config.id} ` +
+            '--reposition, then build again'
+        );
+      }
       console.log(`    Distance: ${processed.track.totalDistance.toFixed(1)} km`);
       console.log(`    Elevation: +${Math.round(processed.track.totalAscent)}m / -${Math.round(processed.track.totalDescent)}m`);
       console.log(`    Waypoints: ${processed.waypoints.length} on-trail, ${processed.offTrailWaypoints.length} off-trail`);
