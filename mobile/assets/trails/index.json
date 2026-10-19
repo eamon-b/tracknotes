@@ -217,9 +217,9 @@
       "NSW"
     ],
     "dataVersion": "2026-10-19",
-    "updatedAt": "2026-10-19T05:24:30.947Z",
-    "md5": "b91f80cc56714f715fe0c2fdbce72e4e",
-    "bytes": 349199
+    "updatedAt": "2026-10-19T21:43:49.331Z",
+    "md5": "b0b98454d550a7834de06169f8a38089",
+    "bytes": 349247
   },
   {
     "id": "south_coast_track",
@@ -260,9 +260,9 @@
       "QLD"
     ],
     "dataVersion": "2026-10-19",
-    "updatedAt": "2026-10-19T05:49:35.765Z",
-    "md5": "05bfa0921d3e980b941e580b40ed7b90",
-    "bytes": 90786
+    "updatedAt": "2026-10-19T21:43:49.331Z",
+    "md5": "1445ad5be45803921e5fa86a355f8dc7",
+    "bytes": 90633
   },
   {
     "id": "three_capes",
@@ -274,8 +274,8 @@
       "TAS"
     ],
     "dataVersion": "2026-10-19",
-    "updatedAt": "2026-10-19T05:49:35.765Z",
-    "md5": "8fcd3a88b2a47edc2a5e02b48a7ae80b",
-    "bytes": 471818
+    "updatedAt": "2026-10-19T21:43:49.331Z",
+    "md5": "bee2a83c17198a2cbba9d071cc8ff7cc",
+    "bytes": 470701
   }
 ]
