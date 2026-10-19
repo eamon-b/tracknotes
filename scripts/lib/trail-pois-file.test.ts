@@ -7,6 +7,7 @@ import {
   mergeTrailPOIs,
   parseTrailPOIFile,
   poisForBuild,
+  poisPastTrailEnd,
   readTrailPOIFile,
   readTrailPOIsForBuild,
   sortTrailPOIs,
@@ -343,5 +344,20 @@ describe('markTrailPOIsForBuild', () => {
 
   it('gives no POIs for a trail without a POI file', () => {
     expect(markTrailPOIsForBuild(null, { waypoints: [hut] }).pois).toBeUndefined();
+  });
+});
+
+describe('poisPastTrailEnd', () => {
+  const trail = {
+    track: { totalDistance: 100 },
+    sideTrips: [{ startDistance: 98, distance: 5 }, { distance: 40 }],
+  };
+
+  it('accepts POIs on the main route and out along a side trip past its end', () => {
+    expect(poisPastTrailEnd([poi(1, 0), poi(2, 100), poi(3, 102.9)], trail)).toEqual([]);
+  });
+
+  it('flags a km past every line, ignoring variants with no junction km', () => {
+    expect(poisPastTrailEnd([poi(1, 50), poi(2, 104)], trail).map(p => p.id)).toEqual([2]);
   });
 });

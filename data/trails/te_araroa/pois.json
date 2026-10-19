@@ -252451,62 +252451,27 @@
       "distanceFromTrail": 0.13588867657908751
     },
     {
-      "id": 2246888372,
-      "type": "node",
-      "category": "resupply",
-      "lat": -43.8210086,
-      "lon": 171.4217206,
-      "name": "Caltex",
+      "id": 1137177727,
+      "type": "way",
+      "category": "camping",
+      "lat": -43.8095338,
+      "lon": 171.4305584,
+      "name": "Hinds River",
       "tags": {
-        "addr:city": "Mayfield",
-        "addr:street": "Arundel Rakaia Gorge Road",
-        "amenity": "fuel",
-        "branch": "Mayfield",
-        "brand": "Caltex",
-        "brand:wikidata": "Q277470",
-        "brand:wikipedia": "en:Caltex",
-        "compressed_air": "yes",
-        "fuel:diesel": "yes",
-        "fuel:octane_91": "yes",
-        "name": "Caltex",
-        "opening_hours": "24/7",
-        "operator": "Caltex"
+        "caravans": "yes",
+        "drinking_water": "no",
+        "flood_prone": "yes",
+        "name": "Hinds River",
+        "name:de": "Hinds River",
+        "name:en": "Hinds River",
+        "power_supply": "no",
+        "sanitary_dump_station": "no",
+        "shower": "no",
+        "tents": "yes",
+        "tourism": "camp_site"
       },
       "distanceAlongTrail": 2324.998883185366,
-      "distanceFromTrail": 0.023879894116606768
-    },
-    {
-      "id": 2246890570,
-      "type": "node",
-      "category": "resupply",
-      "lat": -43.820847,
-      "lon": 171.4224569,
-      "name": "Udder Dairy Cafe and Gift Shop",
-      "tags": {
-        "name": "Udder Dairy Cafe and Gift Shop",
-        "shop": "convenience"
-      },
-      "distanceAlongTrail": 2324.998883185366,
-      "distanceFromTrail": 0.02063784423553916
-    },
-    {
-      "id": 7039379523,
-      "type": "node",
-      "category": "restaurant",
-      "lat": -43.8198682,
-      "lon": 171.4233036,
-      "name": "Panthers Rock Bar & Cafe",
-      "tags": {
-        "addr:city": "Mayfield",
-        "addr:housenumber": "2006",
-        "addr:postcode": "7778",
-        "addr:street": "Arundel Rakaia Gorge Road",
-        "amenity": "cafe",
-        "name": "Panthers Rock Bar & Cafe",
-        "opening_hours": "We-Th 16:00-17:00; Fr-Su 11:00-21:00"
-      },
-      "distanceAlongTrail": 2324.998883185366,
-      "distanceFromTrail": 0.03187805620293217
+      "distanceFromTrail": 0.012500189240165896
     },
     {
       "id": 8930627817,
@@ -252535,8 +252500,98 @@
         "self_service": "yes",
         "source": "local knowledge"
       },
-      "distanceAlongTrail": 2324.998883185366,
+      "distanceAlongTrail": 2325.347737428058,
       "distanceFromTrail": 0.5450264175639301
+    },
+    {
+      "id": 7039379523,
+      "type": "node",
+      "category": "restaurant",
+      "lat": -43.8198682,
+      "lon": 171.4233036,
+      "name": "Panthers Rock Bar & Cafe",
+      "tags": {
+        "addr:city": "Mayfield",
+        "addr:housenumber": "2006",
+        "addr:postcode": "7778",
+        "addr:street": "Arundel Rakaia Gorge Road",
+        "amenity": "cafe",
+        "name": "Panthers Rock Bar & Cafe",
+        "opening_hours": "We-Th 16:00-17:00; Fr-Su 11:00-21:00"
+      },
+      "distanceAlongTrail": 2325.4877796394094,
+      "distanceFromTrail": 0.03187805620293217
+    },
+    {
+      "id": 402588013,
+      "type": "way",
+      "category": "resupply",
+      "lat": -43.8207721,
+      "lon": 171.422447,
+      "name": null,
+      "tags": {
+        "building": "yes",
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 2325.550110723888,
+      "distanceFromTrail": 0.016156060406568737
+    },
+    {
+      "id": 8944712235,
+      "type": "node",
+      "category": "transport",
+      "lat": -43.8207204,
+      "lon": 171.4221233,
+      "name": null,
+      "tags": {
+        "bench": "yes",
+        "bin": "yes",
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform",
+        "shelter": "yes"
+      },
+      "distanceAlongTrail": 2325.553539916646,
+      "distanceFromTrail": 0.009599694488352314
+    },
+    {
+      "id": 2246890570,
+      "type": "node",
+      "category": "resupply",
+      "lat": -43.820847,
+      "lon": 171.4224569,
+      "name": "Udder Dairy Cafe and Gift Shop",
+      "tags": {
+        "name": "Udder Dairy Cafe and Gift Shop",
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 2325.553757794394,
+      "distanceFromTrail": 0.02063784423553916
+    },
+    {
+      "id": 2246888372,
+      "type": "node",
+      "category": "resupply",
+      "lat": -43.8210086,
+      "lon": 171.4217206,
+      "name": "Caltex",
+      "tags": {
+        "addr:city": "Mayfield",
+        "addr:street": "Arundel Rakaia Gorge Road",
+        "amenity": "fuel",
+        "branch": "Mayfield",
+        "brand": "Caltex",
+        "brand:wikidata": "Q277470",
+        "brand:wikipedia": "en:Caltex",
+        "compressed_air": "yes",
+        "fuel:diesel": "yes",
+        "fuel:octane_91": "yes",
+        "name": "Caltex",
+        "opening_hours": "24/7",
+        "operator": "Caltex"
+      },
+      "distanceAlongTrail": 2325.575845318756,
+      "distanceFromTrail": 0.023879894116606768
     },
     {
       "id": 8930627819,
@@ -252557,63 +252612,8 @@
         "phone": "+64 3 303 6552",
         "website": "https://www.fireandemergency.nz/stations/show/mayfield-volunteer-fire-brigade"
       },
-      "distanceAlongTrail": 2324.998883185366,
+      "distanceAlongTrail": 2325.667319458585,
       "distanceFromTrail": 0.03689764149821497
-    },
-    {
-      "id": 8944712235,
-      "type": "node",
-      "category": "transport",
-      "lat": -43.8207204,
-      "lon": 171.4221233,
-      "name": null,
-      "tags": {
-        "bench": "yes",
-        "bin": "yes",
-        "bus": "yes",
-        "highway": "bus_stop",
-        "public_transport": "platform",
-        "shelter": "yes"
-      },
-      "distanceAlongTrail": 2324.998883185366,
-      "distanceFromTrail": 0.009599694488352314
-    },
-    {
-      "id": 1137177727,
-      "type": "way",
-      "category": "camping",
-      "lat": -43.8095338,
-      "lon": 171.4305584,
-      "name": "Hinds River",
-      "tags": {
-        "caravans": "yes",
-        "drinking_water": "no",
-        "flood_prone": "yes",
-        "name": "Hinds River",
-        "name:de": "Hinds River",
-        "name:en": "Hinds River",
-        "power_supply": "no",
-        "sanitary_dump_station": "no",
-        "shower": "no",
-        "tents": "yes",
-        "tourism": "camp_site"
-      },
-      "distanceAlongTrail": 2324.998883185366,
-      "distanceFromTrail": 0.012500189240165896
-    },
-    {
-      "id": 402588013,
-      "type": "way",
-      "category": "resupply",
-      "lat": -43.8207721,
-      "lon": 171.422447,
-      "name": null,
-      "tags": {
-        "building": "yes",
-        "shop": "convenience"
-      },
-      "distanceAlongTrail": 2324.998883185366,
-      "distanceFromTrail": 0.016156060406568737
     },
     {
       "id": 13419377819,
@@ -252801,7 +252801,7 @@
         "name": "Freedom Camping for Self Contained Vehicles",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 2346.5438477251028,
+      "distanceAlongTrail": 2346.365379697942,
       "distanceFromTrail": 0.05946009240804486
     },
     {
@@ -252814,7 +252814,7 @@
       "tags": {
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 2346.5438477251028,
+      "distanceAlongTrail": 2346.365379697942,
       "distanceFromTrail": 0.07612064638018287
     },
     {
@@ -252833,7 +252833,7 @@
         "operator:wikidata": "Q28180518",
         "website": "https://www.fireandemergency.nz/stations/show/lake-clearwater-volunteer-fire-brigade"
       },
-      "distanceAlongTrail": 2347.0819885809383,
+      "distanceAlongTrail": 2346.5438477251028,
       "distanceFromTrail": 0.009780615651326095
     },
     {
@@ -252846,7 +252846,7 @@
       "tags": {
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 2347.0819885809383,
+      "distanceAlongTrail": 2346.5438477251028,
       "distanceFromTrail": 0.2538320581260258
     },
     {

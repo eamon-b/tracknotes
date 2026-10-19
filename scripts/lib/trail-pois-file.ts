@@ -337,3 +337,35 @@ export function writeTrailPOIFile(trailDir: string, file: TrailPOIFile): string 
   fs.writeFileSync(filePath, stringifyTrailPOIFile(file));
   return filePath;
 }
+
+/** Km of slack past a line's end before a POI counts as off the trail's scale. */
+const POI_SCALE_SLACK_KM = 0.5;
+
+/**
+ * The POIs whose `distanceAlongTrail` lies past every line of the trail: past
+ * the main route's end and past the far end of every side trip and alternate.
+ *
+ * No placement `@lib/trail-pois` makes can land there, so such a km is stale —
+ * written by a fetch from before a placement fix. The AAWT's Blue Waterholes
+ * POIs (fetched before chained side trips took their nearest main-route km)
+ * sat at km 790-793 on a 688 km trail, which mirrors to km 0 SOBO and listed
+ * them at the start of the walk. `build-trails` fails on any: re-fetch the
+ * trail's POIs.
+ */
+export function poisPastTrailEnd<P extends Pick<TrailPOI, 'distanceAlongTrail'>>(
+  pois: readonly P[] | undefined,
+  trail: {
+    track: { totalDistance: number };
+    alternates?: ReadonlyArray<{ startDistance?: number; distance?: number }>;
+    sideTrips?: ReadonlyArray<{ startDistance?: number; distance?: number }>;
+  }
+): P[] {
+  if (!pois) return [];
+  let reach = trail.track.totalDistance;
+  for (const variant of [...(trail.alternates ?? []), ...(trail.sideTrips ?? [])]) {
+    if (variant.startDistance != null) {
+      reach = Math.max(reach, variant.startDistance + (variant.distance ?? 0));
+    }
+  }
+  return pois.filter(poi => poi.distanceAlongTrail > reach + POI_SCALE_SLACK_KM);
+}
