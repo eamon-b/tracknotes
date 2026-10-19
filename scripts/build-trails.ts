@@ -508,7 +508,7 @@ function applyTrailDescriptions(trailDir: string, config: TrailConfig, waypoints
  * Render the "where this track came from" note for a trail page.
  *
  * Most of our tracks are someone else's work, so the note carries a link back
- * to the guide it was digitised from. Trails without a `dataSource` render
+ * to the guide whose GPX files it came from. Trails without a `dataSource` render
  * nothing rather than an empty box.
  */
 function renderDataSource(config: TrailConfig): string {
