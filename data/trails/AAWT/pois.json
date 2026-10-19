@@ -5,6 +5,12 @@
   "searchRadiusKm": 2,
   "endpoint": "https://overpass.private.coffee/api/interpreter",
   "rejected": [],
+  "duplicates": {
+    "node/2035760366": "w_2b8b4dba",
+    "node/2969738991": "w_bd9f9e69",
+    "node/756645636": "w_fbeed8e6",
+    "way/250735325": "w_64766767"
+  },
   "pois": [
     {
       "id": 2284233966,

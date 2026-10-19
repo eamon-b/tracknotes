@@ -25,6 +25,7 @@
  */
 
 import { haversineDistance2D } from './distance';
+import { poiKey } from './trail-pois';
 import type { TrailPOI, TrailPOICategory } from './trail-types';
 
 /** Two points further apart than this are never the same place. */
@@ -38,6 +39,36 @@ const MAX_DUPLICATE_LAT_DEGREES = ((MAX_DUPLICATE_DISTANCE_M + 1) / 6_371_000) *
 
 /** Name similarity at or above this counts as the same name. */
 export const MIN_NAME_SCORE = 0.9;
+
+/**
+ * Within this many metres, a name scoring `MIN_CLOSE_NAME_SCORE` is enough.
+ *
+ * Spelling drift between the guide and OSM lands just under 0.9: the AAWT's
+ * `Edmondson Hut` is OSM's `Edmonsons Hut` (0.89, 2 m), the Great South West
+ * Walk's `Lake Monibeong` is `Lake Mombeong` (0.89, 18 m). Only this close is a
+ * weaker match safe; further out the full score is still required.
+ */
+export const CLOSE_NAME_DUPLICATE_M = 25;
+
+/** The name score that matches within `CLOSE_NAME_DUPLICATE_M`. */
+export const MIN_CLOSE_NAME_SCORE = 0.85;
+
+/**
+ * Words that tell two otherwise same-named places apart: Te Araroa's `Old
+ * Aparima Hut` stands 12 m from `Aparima Hut` and is a different building, and
+ * `Buenba Flat #1` is not `Buenba Flat South #1`. A name carrying one of these
+ * that the other name lacks is never the same place.
+ */
+const DISTINGUISHING_WORDS = new Set([
+  'old',
+  'new',
+  'upper',
+  'lower',
+  'north',
+  'south',
+  'east',
+  'west',
+]);
 
 /**
  * Waypoint types each POI category may duplicate.
@@ -141,6 +172,8 @@ export function nameTokens(name: string | null | undefined, keepGeneric = false)
     .replace(/[^a-z0-9 ]/g, ' ');
   return cleaned
     .split(/\s+/)
+    // `Mt Wills Hut` in the guide is `Mount Wills Hut` in OSM.
+    .map(token => (token === 'mt' ? 'mount' : token))
     .filter(token => token.length > 0 && (keepGeneric || !GENERIC_WORDS.has(token)));
 }
 
@@ -358,7 +391,9 @@ export function markDuplicatePois(
       if (metres > MAX_DUPLICATE_DISTANCE_M) continue;
 
       const score = nameScore(poi.name, waypoint.name);
-      if (score < MIN_NAME_SCORE) continue;
+      const minScore = metres <= CLOSE_NAME_DUPLICATE_M ? MIN_CLOSE_NAME_SCORE : MIN_NAME_SCORE;
+      if (score < minScore) continue;
+      if (namesDistinguished(poi.name, waypoint.name)) continue;
 
       const colocated =
         metres <= COLOCATED_DUPLICATE_M &&
@@ -389,6 +424,27 @@ export function markDuplicatePois(
   });
 }
 
+/**
+ * Whether two names differ by a word that marks a different place: one has a
+ * `DISTINGUISHING_WORDS` word the other lacks, or both carry numbers and the
+ * numbers differ (`Twins Track 1` / `Twins Track 2`). A number on one side only
+ * is a count, not an identity: `Big River` is the AAWT's `Big River 1`, and
+ * `Trig Campground Places 12 To 25` is the Heysen's `Trig Campground`.
+ */
+export function namesDistinguished(
+  a: string | null | undefined,
+  b: string | null | undefined
+): boolean {
+  const setA = new Set(nameTokens(a, true));
+  const setB = new Set(nameTokens(b, true));
+  for (const token of setA) if (DISTINGUISHING_WORDS.has(token) && !setB.has(token)) return true;
+  for (const token of setB) if (DISTINGUISHING_WORDS.has(token) && !setA.has(token)) return true;
+  const numbers = (set: Set<string>) => [...set].filter(token => /^\d+$/.test(token)).sort().join(' ');
+  const numbersA = numbers(setA);
+  const numbersB = numbers(setB);
+  return numbersA !== '' && numbersB !== '' && numbersA !== numbersB;
+}
+
 /** The nearest compatible waypoint an unnamed campsite POI is part of, if any. */
 function nearestUnnamedCampingHost(
   poi: TrailPOI,
@@ -404,6 +460,45 @@ function nearestUnnamedCampingHost(
     }
   }
   return best;
+}
+
+/**
+ * Flag the POIs a reviewer listed by hand (`pois.json` `duplicates`:
+ * `<type>/<id>` → waypoint id), over whatever `markDuplicatePois` decided.
+ *
+ * For pairs no rule should match: a nickname (`Schlink Hilton` is Schlink
+ * Hut) or a second name for one campground. Throws on a waypoint id the trail
+ * does not have — waypoint ids are stable, so that is a typo, and a silent miss
+ * would leave the duplicate showing. Returns the keys that matched no POI (a
+ * POI since deleted from OSM), for the build to report.
+ */
+export function applyDuplicateOverrides(
+  pois: readonly TrailPOI[],
+  overrides: Readonly<Record<string, string>> | undefined,
+  waypoints: readonly DedupWaypointLike[]
+): { pois: TrailPOI[]; unmatched: string[] } {
+  if (!overrides || Object.keys(overrides).length === 0) {
+    return { pois: [...pois], unmatched: [] };
+  }
+  const byId = new Map(waypoints.filter(w => w.id).map(w => [w.id as string, w]));
+  for (const [key, waypointId] of Object.entries(overrides)) {
+    if (!byId.has(waypointId)) {
+      throw new Error(`POI duplicate ${key} names waypoint ${waypointId}, which the trail does not have`);
+    }
+  }
+  const seen = new Set<string>();
+  const out = pois.map(poi => {
+    const key = poiKey(poi);
+    const waypoint = byId.get(overrides[key] ?? '');
+    if (!waypoint) return poi;
+    seen.add(key);
+    return {
+      ...poi,
+      duplicateOf: waypoint.id,
+      duplicateDistanceM: Math.round(haversineDistance2D(poi.lat, poi.lon, waypoint.lat, waypoint.lon)),
+    };
+  });
+  return { pois: out, unmatched: Object.keys(overrides).filter(key => !seen.has(key)) };
 }
 
 /** POIs that are not flagged as duplicating a waypoint. */
