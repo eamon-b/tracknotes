@@ -10,7 +10,7 @@ licence line under the comment composer and the waypoint form
 out are in `docs/content-legal-posture.md` §8. Still outstanding (issue #148):
 link it from the App Store / Play Store listings (#31)._
 
-**Last updated: 2026-10-18**
+**Last updated: 2026-10-19**
 
 These terms cover the Tracknotes app and the trail-maps website (together,
 "Tracknotes"). By using Tracknotes, or by posting anything to it, you agree to
@@ -128,4 +128,4 @@ These terms are governed by the laws of Australia.
 ## Contact
 
 Questions, takedown requests and reports:
-[barretteamon@gmail.com](mailto:barretteamon@gmail.com)
+[privacy@contour-map-tiles.net](mailto:privacy@contour-map-tiles.net)
