@@ -26,8 +26,9 @@ binding = "PHOTOS"
 bucket_name = "aus-map-data"
 
 # Community-route maintenance (`runCommunityMaintenance` in src/community.ts):
-# retries de-attributions an account deletion left pending and re-runs AI
-# reviews stuck at `pending`, a bounded batch each run.
+# retries de-attributions an account deletion left pending, re-runs AI
+# reviews stuck at `pending`, and fetches OSM POIs for routes that have none
+# yet (`enrichCommunityRoutePois`), a bounded batch each run.
 [triggers]
 crons = ["*/15 * * * *"]
 
@@ -42,6 +43,13 @@ PHOTOS_PUBLIC_BASE = "https://data.contour-map-tiles.net"
 # `SITE_BASE/shared-plan.html?s=<shareId>`, so this must change the day the site
 # moves or every link minted after the move is dead. Tests override it.
 SITE_BASE = "https://trail-maps.vercel.app"
+
+# Overpass instances the community-route POI enrichment asks, in order
+# (comma-separated; `src/community-pois.ts`). Each query goes to the instance
+# that answered last, then the next one on a failure. Empty switches the
+# enrichment off (routes are then shared without POIs); tests set it empty.
+# Mirrors come and go: see docs/architecture/build-scripts.md (fetch-pois).
+OVERPASS_ENDPOINTS = "https://overpass-api.de/api/interpreter,https://overpass.private.coffee/api/interpreter,https://maps.mail.ru/osm/tools/overpass/api/interpreter"
 
 # Secrets (not in this file): set with `wrangler secret put <NAME>`.
 #   ANTHROPIC_API_KEY — the community-route AI review (src/community-review.ts).
