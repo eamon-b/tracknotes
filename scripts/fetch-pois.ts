@@ -318,8 +318,8 @@ export async function misplacedPois(
   });
 }
 
-/** Run `repositionTrailPois` on one trail directory's file and write it back. */
-async function repositionTrail(trailPath: string, trailDir: string): Promise<boolean> {
+/** Run `repositionTrailPois` on one trail directory's file and write it back (or, dry, only report). */
+async function repositionTrail(trailPath: string, trailDir: string, dryRun: boolean): Promise<boolean> {
   console.log(`\nRepositioning: ${path.basename(trailPath, '.json')}`);
   const existing = readTrailPOIFile(trailDir);
   if (!existing) {
@@ -334,6 +334,10 @@ async function repositionTrail(trailPath: string, trailDir: string): Promise<boo
     console.log(
       `  dropped (beyond ${SEARCH_RADIUS_KM} km of the track, or its tags no longer classify): ${poi.name ?? poiKey(poi)}`
     );
+  }
+  if (dryRun) {
+    console.log('  Dry run: nothing written.');
+    return false;
   }
   const written = writeTrailPOIFile(
     trailDir,
@@ -522,16 +526,18 @@ async function processTrail(
   const merged = merging ? mergeTrailPOIs(existing.pois, result.pois) : null;
   // A windowed fetch places POIs against the clipped route, where a POI near
   // the window's edge (or nearer a line outside it) gets a different km than
-  // on the whole route; the kept POIs may predate a track edit. Re-place the
-  // merged file on the whole route, as build-trails checks it.
-  const mergedPois = merged ? (await repositionTrailPois(trail, merged.pois)).pois : null;
+  // on the whole route, whether it is merged or is the first file; a merge
+  // also keeps POIs that may predate a track edit. Re-place either on the
+  // whole route, as build-trails checks it.
+  const kept = merged ? merged.pois : result.pois;
+  const pois = merged || kmRange ? (await repositionTrailPois(trail, kept)).pois : kept;
   if (merging && kmRange === null) {
     console.log('  Chunks failed, so merging into the existing file instead of replacing it.');
   }
 
   const file = buildTrailPOIFile({
     existing,
-    pois: mergedPois ?? result.pois,
+    pois,
     fetchedAt: merging ? existing.fetchedAt : new Date().toISOString(),
     searchRadiusKm: merging ? existing.searchRadiusKm : SEARCH_RADIUS_KM,
     endpoint: merging ? existing.endpoint : endpoint,
@@ -775,7 +781,7 @@ async function main(): Promise<void> {
   if (args.includes('--reposition')) {
     let updated = 0;
     for (const { trailFile, trailDir } of targets) {
-      if (await repositionTrail(trailFile, trailDir)) updated++;
+      if (await repositionTrail(trailFile, trailDir, dryRun)) updated++;
     }
     console.log(`\nRepositioned ${updated} trail(s).`);
     if (failedCount > 0) process.exitCode = 1;
