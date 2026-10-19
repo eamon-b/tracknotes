@@ -37,11 +37,16 @@
    in-app display-name credit for linked users (Section 5) is a product courtesy, not
    a license term.
 2. **Safety-critical water-data disclaimer.** Water status is the one datum where a
-   wrong value can hurt someone. Required: a one-time acknowledgement before community
-   water data is first displayed, persistent "Reported by <name> · <date>"
+   wrong value can hurt someone. Required: persistent "Reported by <name> · <date>"
    attribution on hiker-reported water, with no hedging or advice: the hiker
    judges it, and another hiker's shared water still counts in the carry
-   calculators (decided 2026-10-18). The existing
+   calculators (decided 2026-10-18). The phone shows that line on the List
+   pane row (read to screen readers too) and on the waypoint screen
+   (`hikerReportLine`, #167), and it is what sets another hiker's pin apart
+   from curated data and from the hiker's own ("Added by you"). **No one-time
+   acknowledgement** (decided 2026-10-19, issue #144): the first draft of this
+   section required one before community water data was first displayed; the
+   attribution note replaces it, and nothing is put in the hiker's way. The existing
    `unknown`-when-stale rule in Section 2.3 is itself a safety control. Also a ToS
    clause disclaiming reliance on user-submitted data to the extent permitted by the
    Australian Consumer Law (blanket disclaimers can't exclude ACL consumer guarantees,
