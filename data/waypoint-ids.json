@@ -156,7 +156,7 @@
     },
     {
       "id": "w_1563456f",
-      "name": "bobs hut",
+      "name": "Bob's Hut",
       "type": "water",
       "lat": -37.62583,
       "lon": 146.38022
@@ -569,7 +569,7 @@
     },
     {
       "id": "w_5445ab41",
-      "name": "Stronarchs Campsite",
+      "name": "Stronachs Campsite",
       "type": "campsite",
       "lat": -37.74752144741015,
       "lon": 146.2162742609386
@@ -695,7 +695,7 @@
     },
     {
       "id": "w_69ba7f83",
-      "name": "O' Keefes Hut",
+      "name": "O'Keefes Hut",
       "type": "hut",
       "lat": -36.12369859286997,
       "lon": 148.40260533159065
@@ -1535,7 +1535,7 @@
     },
     {
       "id": "w_ef93114e",
-      "name": "Edmonson Hut",
+      "name": "Edmondson Hut",
       "type": "hut",
       "lat": -36.848203828396166,
       "lon": 147.33281098426815
@@ -1577,7 +1577,7 @@
     },
     {
       "id": "w_f674898b",
-      "name": "low saddle road 2",
+      "name": "Low Saddle Rd 2",
       "type": "water",
       "lat": -37.3234,
       "lon": 146.43889
@@ -1663,7 +1663,7 @@
     },
     {
       "id": "w_04f58448",
-      "name": "Hewitt's Hill Campsite",
+      "name": "Hewett's Hill Campsite",
       "type": "campsite",
       "lat": -31.95798,
       "lon": 116.1292
@@ -1698,7 +1698,7 @@
     },
     {
       "id": "w_0e50da43",
-      "name": "Ginger Creek",
+      "name": "Gringer Creek Campsite",
       "type": "campsite",
       "lat": -32.56834,
       "lon": 116.44422
@@ -1726,7 +1726,7 @@
     },
     {
       "id": "w_25402ab3",
-      "name": "Gregory Brook campsite",
+      "name": "Gregory Brook Campsite",
       "type": "campsite",
       "lat": -33.98250377872235,
       "lon": 115.937983668329
@@ -1740,7 +1740,7 @@
     },
     {
       "id": "w_2d1372b1",
-      "name": "Dwelingup",
+      "name": "Dwellingup",
       "type": "town",
       "lat": -32.713562754758286,
       "lon": 116.06133808525206
@@ -1754,7 +1754,7 @@
     },
     {
       "id": "w_39205f30",
-      "name": "Mt Dale",
+      "name": "Mt Dale Campsite",
       "type": "campsite",
       "lat": -32.13589,
       "lon": 116.29768
@@ -1782,7 +1782,7 @@
     },
     {
       "id": "w_45669674",
-      "name": "Tom road campsite",
+      "name": "Tom Road Campsite",
       "type": "campsite",
       "lat": -34.16437487956443,
       "lon": 115.91348648071289
@@ -1810,7 +1810,7 @@
     },
     {
       "id": "w_5373331a",
-      "name": "Boat harbour campsite",
+      "name": "Boat Harbour Campsite",
       "type": "campsite",
       "lat": -35.03318,
       "lon": 117.06794
@@ -1824,14 +1824,14 @@
     },
     {
       "id": "w_569f8c31",
-      "name": "Chadora",
+      "name": "Chadoora Campsite",
       "type": "campsite",
       "lat": -32.759004956796566,
       "lon": 116.23842007325476
     },
     {
       "id": "w_56ed070d",
-      "name": "Mundaring Weir hotel",
+      "name": "Mundaring Weir Hotel",
       "type": "food",
       "lat": -31.95205,
       "lon": 116.16759
@@ -1859,7 +1859,7 @@
     },
     {
       "id": "w_65c040a4",
-      "name": "Boarding House campsite",
+      "name": "Boarding House Campsite",
       "type": "campsite",
       "lat": -34.28024822884286,
       "lon": 115.93251120802377
@@ -1887,14 +1887,14 @@
     },
     {
       "id": "w_6da6b772",
-      "name": "Mumbullup Pub",
+      "name": "Mumballup Forest Tavern",
       "type": "food",
       "lat": -33.52828,
       "lon": 116.11252
     },
     {
       "id": "w_70a537b3",
-      "name": "Blackwood camp",
+      "name": "Blackwood Campsite",
       "type": "campsite",
       "lat": -33.87688204302544,
       "lon": 115.96544828403981
@@ -1915,14 +1915,14 @@
     },
     {
       "id": "w_7c242c0f",
-      "name": "Mt Wells",
+      "name": "Mt Wells Campsite",
       "type": "campsite",
       "lat": -32.699085003185296,
       "lon": 116.33620262145996
     },
     {
       "id": "w_7ec14a80",
-      "name": "William bay campsite",
+      "name": "William Bay Campsite",
       "type": "campsite",
       "lat": -35.01652325778124,
       "lon": 117.23822386075095
@@ -1930,7 +1930,7 @@
     {
       "id": "w_8208b89c",
       "name": "Albany Highway",
-      "type": "campsite",
+      "type": "road-crossing",
       "lat": -32.56151863550377,
       "lon": 116.42716046698939
     },
@@ -1943,15 +1943,15 @@
     },
     {
       "id": "w_841eb18d",
-      "name": "Harris Dam campsite",
+      "name": "Harris Dam Campsite",
       "type": "campsite",
       "lat": -33.24426063412231,
       "lon": 116.16104385076545
     },
     {
       "id": "w_85a52eae",
-      "name": "Broackman Highway",
-      "type": "campsite",
+      "name": "Brockman Highway",
+      "type": "road-crossing",
       "lat": -34.007560802456894,
       "lon": 115.93149181223008
     },
@@ -1985,7 +1985,7 @@
     },
     {
       "id": "w_910756dc",
-      "name": "Mount Clare",
+      "name": "Mt Clare Campsite",
       "type": "campsite",
       "lat": -34.9981263483095,
       "lon": 116.64572954177856
@@ -2006,7 +2006,7 @@
     },
     {
       "id": "w_9a957877",
-      "name": "White Horse",
+      "name": "White Horse Hills Campsite",
       "type": "campsite",
       "lat": -32.60907582443261,
       "lon": 116.33600913345086
@@ -2041,7 +2041,7 @@
     },
     {
       "id": "w_b785b2a4",
-      "name": "Woolbales",
+      "name": "Woolbales Campsite",
       "type": "campsite",
       "lat": -34.94430038557663,
       "lon": 116.56589152683388
@@ -2090,14 +2090,14 @@
     },
     {
       "id": "w_cb987df8",
-      "name": "Noggenup Campsite",
+      "name": "Noggerup Campsite",
       "type": "campsite",
       "lat": -33.56497746137847,
       "lon": 116.09881686093384
     },
     {
       "id": "w_cd19e56d",
-      "name": "Sout Coast highway",
+      "name": "South Coast Highway",
       "type": "road-crossing",
       "lat": -34.99417,
       "lon": 116.90583
@@ -2139,7 +2139,7 @@
     },
     {
       "id": "w_db3c8d31",
-      "name": "Long Point",
+      "name": "Long Point Campsite",
       "type": "campsite",
       "lat": -35.01983662549648,
       "lon": 116.5842573124299
@@ -2160,7 +2160,7 @@
     },
     {
       "id": "w_ec52ce46",
-      "name": "Dog Pool campsite",
+      "name": "Dog Pool Campsite",
       "type": "campsite",
       "lat": -34.76358196686181,
       "lon": 116.37612607695657
@@ -2188,7 +2188,7 @@
     },
     {
       "id": "w_ff19f4f4",
-      "name": "Franklin River Campsite",
+      "name": "Frankland River Campsite",
       "type": "campsite",
       "lat": -34.95012943365928,
       "lon": 116.81158929832955
@@ -10787,21 +10787,21 @@
   "hume-and-hovell": [
     {
       "id": "w_0467a95e",
-      "name": "Wymah road end",
+      "name": "Wymah Road end",
       "type": "road-crossing",
       "lat": -35.98718131420836,
       "lon": 147.14743080588303
     },
     {
       "id": "w_05619db9",
-      "name": "snowy mountains highway",
+      "name": "Snowy Mountains Highway",
       "type": "road-crossing",
       "lat": -35.36511,
       "lon": 148.28422
     },
     {
       "id": "w_0ea9676b",
-      "name": "Billy Grace reserve",
+      "name": "Billy Grace Reserve",
       "type": "campsite",
       "lat": -35.13887,
       "lon": 148.68156
@@ -10815,49 +10815,49 @@
     },
     {
       "id": "w_2b576c8d",
-      "name": "Wymah road start",
+      "name": "Wymah Road start",
       "type": "road-crossing",
       "lat": -35.9837,
       "lon": 147.22794
     },
     {
       "id": "w_30a54c45",
-      "name": "lake Hume turnoff",
+      "name": "Lake Hume turnoff",
       "type": "caravan-park",
       "lat": -35.99059,
       "lon": 147.15283
     },
     {
       "id": "w_3251395d",
-      "name": "Hovell tree",
+      "name": "Hovell Tree",
       "type": "endpoint",
       "lat": -36.08474,
       "lon": 146.90821
     },
     {
       "id": "w_34b4e2f1",
-      "name": "Mundaroo camp",
+      "name": "Munderoo Campsite",
       "type": "campsite",
       "lat": -35.81663,
       "lon": 147.84785
     },
     {
       "id": "w_35fe2997",
-      "name": "Tin mines",
+      "name": "Tin Mines Campsite",
       "type": "campsite",
       "lat": -35.85969,
       "lon": 147.47718
     },
     {
       "id": "w_3668bb18",
-      "name": "table top park actual",
+      "name": "Table Top Park",
       "type": "campsite",
       "lat": -35.97442,
       "lon": 147.04525
     },
     {
       "id": "w_3908730d",
-      "name": "Windy point",
+      "name": "Windy Point",
       "type": "campsite",
       "lat": -35.49599,
       "lon": 148.24186
@@ -10878,49 +10878,49 @@
     },
     {
       "id": "w_4f55061e",
-      "name": "Barrois camp",
+      "name": "Barrois Campsite",
       "type": "campsite",
       "lat": -35.28101,
       "lon": 148.53731
     },
     {
       "id": "w_5035e9d5",
-      "name": "Henry Angel Flat",
+      "name": "Henry Angel Trackhead",
       "type": "trailhead",
       "lat": -35.82506,
       "lon": 148.06137
     },
     {
       "id": "w_54de1796",
-      "name": "Yass caravan park",
+      "name": "Yass Caravan Park",
       "type": "caravan-park",
       "lat": -34.83386,
       "lon": 148.90848
     },
     {
       "id": "w_55db99d3",
-      "name": "Micalong creek",
+      "name": "Micalong Creek Campsite",
       "type": "campsite",
       "lat": -35.24652,
       "lon": 148.57478
     },
     {
       "id": "w_62879a43",
-      "name": "CLOSED C - Ben Smith campsite",
+      "name": "Ben Smith Campsite",
       "type": "campsite",
       "lat": -35.58431,
       "lon": 148.28045
     },
     {
       "id": "w_66f41d32",
-      "name": "Browns creek",
+      "name": "Browns Creek Campsite",
       "type": "campsite",
       "lat": -35.45133,
       "lon": 148.24131
     },
     {
       "id": "w_6804d5ad",
-      "name": "Tunnel road",
+      "name": "Tunnel Road",
       "type": "road-crossing",
       "lat": -35.90536,
       "lon": 147.31809
@@ -10934,7 +10934,7 @@
     },
     {
       "id": "w_76fbcba2",
-      "name": "Log bridge creek",
+      "name": "Log Bridge Creek Campsite",
       "type": "campsite",
       "lat": -35.17074,
       "lon": 148.60243
@@ -10944,18 +10944,19 @@
       "name": "table top park",
       "type": "campsite",
       "lat": -35.97533,
-      "lon": 147.04083
+      "lon": 147.04083,
+      "retired": true
     },
     {
       "id": "w_8a843bdc",
-      "name": "The captain camp",
+      "name": "Captain Campsite",
       "type": "campsite",
       "lat": -34.87649,
       "lon": 148.71697
     },
     {
       "id": "w_8b042405",
-      "name": "Yellowin camp",
+      "name": "Yellowin Forest Park",
       "type": "campsite",
       "lat": -35.53922,
       "lon": 148.23189
@@ -10979,7 +10980,8 @@
       "name": "Paddys river dam",
       "type": "campsite",
       "lat": -35.71631,
-      "lon": 148.16744
+      "lon": 148.16744,
+      "retired": true
     },
     {
       "id": "w_bb19d698",
@@ -10997,14 +10999,14 @@
     },
     {
       "id": "w_c18b2dee",
-      "name": "Lankeys creek",
+      "name": "Lankeys Creek Campsite",
       "type": "campsite",
       "lat": -35.81178,
       "lon": 147.64745
     },
     {
       "id": "w_c393582e",
-      "name": "Buddong falls",
+      "name": "Buddong Falls",
       "type": "campsite",
       "lat": -35.64283,
       "lon": 148.24556
@@ -11018,21 +11020,21 @@
     },
     {
       "id": "w_cc5807a7",
-      "name": "Buddong hut",
+      "name": "Buddong Hut",
       "type": "campsite",
       "lat": -35.64341,
       "lon": 148.22014
     },
     {
       "id": "w_cd629136",
-      "name": "Lake Hume Holiday park",
+      "name": "Lake Hume Holiday Park",
       "type": "caravan-park",
       "lat": -35.99617,
       "lon": 147.15004
     },
     {
       "id": "w_d2a0bdf8",
-      "name": "Tooma road",
+      "name": "Tooma Road",
       "type": "road-crossing",
       "lat": -35.82818,
       "lon": 148.06102
@@ -11046,77 +11048,77 @@
     },
     {
       "id": "w_d3cc6a7f",
-      "name": "reflections Burrinjuck holiday park",
+      "name": "Reflections Burrinjuck Waters",
       "type": "caravan-park",
       "lat": -34.98076,
       "lon": 148.62356
     },
     {
       "id": "w_d7f3dcf9",
-      "name": "Blowering camp",
+      "name": "Blowering Campsite",
       "type": "campsite",
       "lat": -35.40207,
       "lon": 148.23938
     },
     {
       "id": "w_dc3338aa",
-      "name": "Thomas Boyd trackhead",
+      "name": "Thomas Boyd Trackhead",
       "type": "trailhead",
       "lat": -35.37303,
       "lon": 148.41629
     },
     {
       "id": "w_e34a01ce",
-      "name": "Lake Mannus road",
+      "name": "Lake Mannus Road",
       "type": "road-crossing",
       "lat": -35.77922,
       "lon": 147.94454
     },
     {
       "id": "w_e8b9bf53",
-      "name": "Mannus campsite",
+      "name": "Mannus Campsite",
       "type": "campsite",
       "lat": -35.77907,
       "lon": 147.94122
     },
     {
       "id": "w_eae5f76f",
-      "name": "Brindabella road",
+      "name": "Brindabella Road",
       "type": "road-crossing",
       "lat": -35.28989,
       "lon": 148.53599
     },
     {
       "id": "w_f1d70ad9",
-      "name": "Junction camp",
+      "name": "Junction Campsite",
       "type": "campsite",
       "lat": -35.78773,
       "lon": 148.09433
     },
     {
       "id": "w_f65adcad",
-      "name": "Samual Bollard",
+      "name": "Samuel Bollard Campsite",
       "type": "campsite",
       "lat": -35.89899,
       "lon": 147.32892
     },
     {
       "id": "w_fadc709c",
-      "name": "Mannus lake",
+      "name": "Mannus Lake Campsite",
       "type": "campsite",
       "lat": -35.81177,
       "lon": 147.98004
     },
     {
       "id": "w_fe7d1507",
-      "name": "Paddys river dam actual",
+      "name": "Paddys River Dam Campsite",
       "type": "campsite",
       "lat": -35.71255,
       "lon": 148.16708
     },
     {
       "id": "w_fe919aa9",
-      "name": "Crown rest site",
+      "name": "Crown Reserve Rest Site",
       "type": "waypoint",
       "lat": -34.82554,
       "lon": 148.76889
@@ -11260,7 +11262,7 @@
     },
     {
       "id": "w_20e85086",
-      "name": "Simpons Gap Trailhead",
+      "name": "Simpsons Gap Trailhead",
       "type": "trailhead",
       "lat": -23.68053,
       "lon": 133.71761
@@ -11526,7 +11528,7 @@
     },
     {
       "id": "w_cdc52d70",
-      "name": "Serpentine Gorge, Larapinta Trail campsite",
+      "name": "Serpentine Gorge",
       "type": "water-tank",
       "lat": -23.75941,
       "lon": 132.97931

@@ -9,53 +9,53 @@
     },
     {
       "waypointId": "w_54de1796",
-      "name": "Yass caravan park",
+      "name": "Yass Caravan Park",
       "description": "Caravan park on the edge of Yass, the first camping and showers after Cooma Cottage. Yass itself has shops and food."
     },
     {
       "waypointId": "w_fe919aa9",
-      "name": "Crown rest site",
+      "name": "Crown Reserve Rest Site",
       "description": "Rest site on crown land in the farmland country south of Yass. A simple place to stop or shelter, with no facilities or water marked."
     },
     {
       "waypointId": "w_0ea9676b",
-      "name": "Billy Grace reserve",
+      "name": "Billy Grace Reserve",
       "description": "Riverside camping reserve near Wee Jasper, on the flats beside the Goodradigbee. Open ground close to the Fitzpatrick trackhead; the water is untreated river water."
     },
     {
       "waypointId": "w_eae5f76f",
-      "name": "Brindabella road",
+      "name": "Brindabella Road",
       "description": "Crossing of Brindabella Road in the mountain country west of Canberra. It is a winding, mostly unsealed road with light traffic, and is reachable by vehicle for lifts and food drops."
     },
     {
       "waypointId": "w_66f41d32",
-      "name": "Browns creek",
+      "name": "Browns Creek Campsite",
       "description": "Creekside campsite in the hills above the Blowering valley. Basic bush camping, with the creek as the water source — untreated, and low late in a dry season."
     },
     {
       "waypointId": "w_62879a43",
-      "name": "CLOSED C - Ben Smith campsite",
-      "description": "Flagged as closed in the track data. NPWS and Hume and Hovell Track notices carry the current status of campsites through this section."
+      "name": "Ben Smith Campsite",
+      "description": "Hikers' campsite off Yellowin Road, reopened in May 2026 after bushfire damage in 2019–20 and flood damage in 2020. It has a hut with a raised sleeping platform, a water tank, a barbecue and a pit toilet; camping is free with no booking."
     },
     {
       "waypointId": "w_fe7d1507",
-      "name": "Paddys river dam actual",
-      "description": "The corrected position for the Paddys River Dam campsite, about a kilometre along the track from the other pin of the same name. The two pins are the same site."
+      "name": "Paddys River Dam Campsite",
+      "description": "Campsite at Paddys River Dam, with toilets. The water comes from the dam and is untreated."
     },
     {
       "waypointId": "w_2b576c8d",
-      "name": "Wymah road start",
-      "description": "Where the track joins Wymah Road for a road section of roughly eight kilometres, ending at the matching Wymah road end marker. The road is open to traffic and walked on the verge."
+      "name": "Wymah Road start",
+      "description": "Where the track joins Wymah Road for a road section of roughly eight kilometres, ending at the matching Wymah Road end marker. The road is open to traffic and walked on the verge."
     },
     {
       "waypointId": "w_30a54c45",
-      "name": "lake Hume turnoff",
+      "name": "Lake Hume turnoff",
       "description": "Turnoff toward Lake Hume and the caravan park on its shore, the main accommodation in this part of the walk. Opening seasons and booking arrangements vary."
     },
     {
       "waypointId": "w_0467a95e",
-      "name": "Wymah road end",
-      "description": "The track leaves Wymah Road here and returns to trail, closing out the road section that began at the Wymah road start marker."
+      "name": "Wymah Road end",
+      "description": "The track leaves Wymah Road here and returns to trail, closing out the road section that began at the Wymah Road start marker."
     },
     {
       "waypointId": "w_4cf83e0b",
@@ -69,7 +69,7 @@
     },
     {
       "waypointId": "w_3251395d",
-      "name": "Hovell tree",
+      "name": "Hovell Tree",
       "description": "The southern end of the track: the river red gum beside the Murray at Albury that William Hovell marked on the 1824 expedition. It stands in a riverside park, with the town's full services close by."
     },
     {
