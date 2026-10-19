@@ -86,29 +86,41 @@ JSON with a `pois` array, so a community route carries what a curated trail
 ships. The md5 changes, so the app downloads the route again; the web page
 reads the JSON afresh.
 
-- **When:** a live route untouched for 2 minutes, with no answer for its
-  current geometry (`pois_hash` ≠ `content_hash`), not tried in the last hour;
-  3 routes a run, least-tried then newest first. Existing routes are
-  backfilled the same way (migration `0009` starts them `pending`).
-- **Budget:** 20 Overpass requests a run (across routes and endpoints), none
-  started after 6 minutes; 25 s per query. A route needing more than 16
-  queries, or one with a city's worth of POIs (an 8 MB answer, 12,000 fetched,
-  4,000 shipped) or whose JSON would pass 4 MB, is `skipped` — never fetched
-  in part.
-- **Failure:** fail open. A query no endpoint answers fails the attempt and
-  nothing is stored; the route stays as it was, without POIs, and is retried
-  an hour later, 4 attempts per geometry, then `failed`. A run is claimed
-  before its first request, so one the platform stops still counts.
+- **Switch:** off by default — `OVERPASS_ENDPOINTS` (`wrangler.toml`) is
+  empty until the account's Workers plan is confirmed: the run's CPU (tens to
+  hundreds of ms a route, `scripts/measure-community-poi-cpu.ts`) is far over
+  Workers Free's 10 ms. Set it (comma-separated; each query goes to the
+  instance that answered last, then the next) to turn it on, after migration
+  `0009`. The privacy policy names the instances' operators.
+- **When:** a live route due for POIs (`pois_due_at`: `''` never tried, an hour
+  after an attempt, NULL once answered), untouched for 2 minutes and with no
+  AI review pending; 3 routes a run, longest-waiting first. Existing routes
+  are backfilled the same way (migration `0009` makes them due), each
+  republished once.
+- **Budget:** 20 Overpass requests a run (across routes and endpoints), each
+  of which must be able to finish within 6 minutes of the run's start; 25 s
+  per query. A route needing more than 10 queries, or one with a city's worth
+  of POIs (an 8 MB answer, counted as it streams; 12,000 fetched; 4,000
+  shipped) or whose JSON would pass 4 MB, is `skipped` — never fetched in
+  part. A route starts only if its missing answers fit what the run has left.
+- **Failure:** fail open. Nothing is stored on the route until every query
+  has an answer; answers are cached per query, so the next attempt (an hour
+  later) asks only for the rest. An attempt counts (4 per geometry, then
+  `failed`) only if Overpass failed one of its requests; running out of the
+  run's budget gives it back. `Retry-After` is honoured up to 60 s. A run is
+  claimed before its first request, so one the platform stops still counts,
+  and what it wrote to R2 is swept once the route is answered or given up on.
 - **Consistency:** the POIs live in the canonical private JSON, so every
   republish (owner edit, de-attribution, restore) keeps them. The enrichment's
-  write is guarded like an edit and moves `updated_at`; a route that changed
-  during the fetch keeps its state and the run's objects are dropped.
-  `content_hash` is never recomputed. A geometry change (none exists yet:
-  replacing the GPX is a new submission) only has to change `content_hash`
-  for the route to be fetched again at once — and should drop the old `pois`.
-- **Config:** `OVERPASS_ENDPOINTS` in `wrangler.toml` (comma-separated; each
-  query goes to the instance that answered last, then the next); empty turns
-  the enrichment off.
+  write is guarded like an edit and moves `updated_at` (the JSON did change;
+  `status_changed_at` and the review do not move); a route that changed during
+  the fetch keeps its state and the run's objects are dropped. `content_hash`
+  is never recomputed. A geometry change (none exists yet: replacing the GPX
+  is a new submission) must set `pois_due_at = ''` and `pois_attempts = 0` for
+  the route to be fetched again — and should drop the old `pois`.
+- **Licence:** the hiker's part stays CC0; the POIs are OpenStreetMap data
+  (ODbL), credited in the route's `config.dataSource` with a link to
+  openstreetmap.org/copyright.
 
 ## Automatic checks (`src/lib/community-checks.ts`)
 
@@ -210,7 +222,8 @@ Storage:
 - D1 `community_routes` (+ `community_route_reports`), migrations `0005`,
   `0006` (`deattribute_pending`, `removed_by`, `blocks_resubmit`) and `0009`
   (the POI enrichment's `pois_status`, `pois_hash`, `poi_count`,
-  `pois_attempts`, `pois_attempted_at`, `pois_error`; never returned).
+  `pois_attempts`, `pois_attempted_at`, `pois_due_at`, `pois_error`; never
+  returned).
 - R2 (the PHOTOS bucket). The bucket has no private area — all of it is
   served at `PHOTOS_PUBLIC_BASE` — so private objects are protected by
   unguessable keys (128 random bits) that are recorded in the row and never

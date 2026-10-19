@@ -43,6 +43,17 @@ export function privateKey(id: string, ext: 'json' | 'gpx'): string {
   return `${PRIVATE_PREFIX}${id}/${randomHex()}.${ext}`;
 }
 
+/**
+ * One cached Overpass answer for the route's POI enrichment
+ * (`community-pois.ts` `PoiAnswerCache`), beside its private copies so a
+ * removal purges it too. `hash` is salted with the route's private key, so
+ * the key is as unguessable as the others; the enrichment deletes its answers
+ * once the route has its POIs (or gives up).
+ */
+export function poiAnswerKey(id: string, hash: string): string {
+  return `${PRIVATE_PREFIX}${id}/overpass-${hash}.json`;
+}
+
 function publicKey(id: string, md5: string): string {
   return `${TRAIL_PREFIX}${id}.${md5.slice(0, 12)}.json`;
 }

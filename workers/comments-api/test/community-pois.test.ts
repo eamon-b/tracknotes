@@ -7,9 +7,15 @@ import { describe, expect, it } from 'vitest';
 import { authHeaders, deleteMe, makeAdmin, registerDevice, url } from './helpers';
 import type { Device } from './helpers';
 import { makeTrail, submitBody, submitRoute } from './community-fixtures';
-import { POI_RUN_LIMITS, enrichCommunityRoutePois, patchCommunityRoute } from '../src/community';
+import {
+  POI_CANDIDATES_SQL,
+  POI_DATA_CREDIT,
+  POI_RUN_LIMITS,
+  enrichCommunityRoutePois,
+  patchCommunityRoute,
+} from '../src/community';
 import type { PoiEnrichDeps } from '../src/community';
-import { POI_LIMITS, parseOverpassEndpoints } from '../src/community-pois';
+import { POI_LIMITS, WORST_REQUEST_MS, parseOverpassEndpoints, readCapped, retryAfterMs } from '../src/community-pois';
 import type { Env } from '../src/http';
 import type { CommunityRouteDetail } from '../../../src/lib/community-types';
 import type { ProcessedTrail, TrailPOI } from '../../../src/lib/trail-types';
@@ -52,7 +58,7 @@ async function storedTrail(key: string): Promise<ProcessedTrail> {
 /** Make `id` the only route the run will look at. */
 async function onlyCandidate(id: string): Promise<void> {
   await env.DB.prepare(
-    `UPDATE community_routes SET pois_status = 'done', pois_hash = content_hash WHERE id != ?`
+    `UPDATE community_routes SET pois_status = 'done', pois_hash = content_hash, pois_due_at = NULL WHERE id != ?`
   )
     .bind(id)
     .run();
@@ -155,6 +161,10 @@ async function run(fetchImpl: typeof fetch, deps: Partial<PoiEnrichDeps> = {}, a
   });
 }
 
+async function privateKeys(id: string): Promise<string[]> {
+  return (await env.PHOTOS.list({ prefix: `community/private/${id}/` })).objects.map((o) => o.key);
+}
+
 function keyOf(trailUrl: string): string {
   return trailUrl.replace(/^https:\/\/photos\.test\//, '');
 }
@@ -205,6 +215,14 @@ describe('POI enrichment', () => {
       await (await env.PHOTOS.get(after.r2_key as string))!.text()
     );
     expect(await env.PHOTOS.get(before.private_key as string)).toBeNull();
+    // Nothing else is left under the private prefix: the cached answer went.
+    expect(await privateKeys(route.id)).toEqual([after.private_key]);
+    // The hiker's part is CC0; the POIs are credited to OpenStreetMap (ODbL).
+    expect(trail.config.dataSource).toEqual({
+      text: `Shared by Trail Angel under CC0. ${POI_DATA_CREDIT}`,
+      url: 'https://www.openstreetmap.org/copyright',
+      linkText: 'openstreetmap.org/copyright',
+    });
 
     // The list carries the new md5, so phones download the new copy.
     const list = (await (await SELF.fetch(url('/v1/community/routes'))).json()) as {
@@ -345,7 +363,9 @@ describe('POI enrichment', () => {
     expect(down.calls).toHaveLength(POI_RUN_LIMITS.queries);
     const r = await row(route.id);
     expect(r.pois_status).toBe('pending');
-    expect(r.pois_error).toBe('run_budget');
+    // Overpass failed every one of them: the attempt counts.
+    expect(r.pois_error).toMatch(/^run_budget: o0\.test: HTTP 503/);
+    expect(r.pois_attempts).toBe(1);
   });
 
   it('keeps the POIs through an edit, a hide and restore, and a de-attribution', async () => {
@@ -397,6 +417,8 @@ describe('POI enrichment', () => {
     const trail = await storedTrail(r.r2_key as string);
     expect(JSON.stringify(trail)).not.toContain('Poi Walker');
     expect(trail.pois).toHaveLength(3);
+    // The OpenStreetMap credit survives every rebuild of the config.
+    expect(trail.config.dataSource?.text).toBe(`Shared by a Tracknotes user under CC0. ${POI_DATA_CREDIT}`);
     // None of that asked Overpass again.
     expect(r.pois_status).toBe('done');
     expect(r.pois_hash).toBe(r.content_hash);
@@ -410,8 +432,10 @@ describe('POI enrichment', () => {
     await run(overpass([elementsResponse(elementsAlong(start))]));
     expect((await row(route.id)).pois_status).toBe('done');
 
-    // What a geometry edit would leave: a new content hash.
-    await env.DB.prepare(`UPDATE community_routes SET content_hash = ? WHERE id = ?`)
+    // What a geometry edit would have to do: a new content hash, due again.
+    await env.DB.prepare(
+      `UPDATE community_routes SET content_hash = ?, pois_due_at = '', pois_attempts = 0 WHERE id = ?`
+    )
       .bind('f'.repeat(64), route.id)
       .run();
     const fetchImpl = overpass([elementsResponse(elementsAlong(start).slice(0, 1))]);
@@ -445,8 +469,245 @@ describe('POI enrichment', () => {
     expect(r.status).toBe('hidden');
     expect(r.pois_status).toBe('pending');
     expect(r.pois_error).toBe('route_changed');
+    // Not Overpass's failure: the attempt is given back.
+    expect(r.pois_attempts).toBe(0);
     expect(r.private_key).toBe(before.private_key);
     const privates = (await env.PHOTOS.list({ prefix: `community/private/${route.id}/` })).objects.map((o) => o.key);
-    expect(privates).toEqual([before.private_key]);
+    // The answer stays cached for the next attempt; the run's trail JSON is gone.
+    expect(privates.filter((k) => !k.includes('/overpass-'))).toEqual([before.private_key]);
+    expect(privates.filter((k) => k.includes('/overpass-'))).toHaveLength(1);
+  });
+});
+
+
+/** A clock the test moves: `now()` for the run's budget, `sleep` advances it. */
+function fakeClock(start = Date.now()): {
+  now: () => number;
+  sleep: (ms: number) => Promise<void>;
+  slept: number[];
+  advance: (ms: number) => void;
+} {
+  let t = start;
+  const slept: number[] = [];
+  return {
+    now: () => t,
+    sleep: async (ms: number) => {
+      slept.push(ms);
+      t += ms;
+    },
+    slept,
+    advance: (ms: number) => {
+      t += ms;
+    },
+  };
+}
+
+/** A zigzag route the corridor cannot thin: `groups` Overpass queries' worth. */
+function routeOfQueries(start: { lat: number; lon: number }, groups: number): ProcessedTrail {
+  return zigzagTrail(start, (groups - 1) * (POI_LIMITS.maxVerticesPerQuery - 1) + 50);
+}
+
+describe('POI enrichment: budgets, retries and leftovers', () => {
+  it('fits the longest route into one run however slow each answer is', () => {
+    expect(POI_LIMITS.maxQueriesPerRoute * WORST_REQUEST_MS).toBeLessThanOrEqual(POI_RUN_LIMITS.wallMs);
+    expect(POI_LIMITS.maxQueriesPerRoute).toBeLessThanOrEqual(POI_RUN_LIMITS.queries);
+  });
+
+  it('gives the attempt back to a route the run has no time left for', async () => {
+    const owner = await registerDevice();
+    const first = freshStart();
+    const a = await submitAt(owner, first);
+    const second = freshStart();
+    const b = await submitAt(owner, second, routeOfQueries(second, 3));
+    await env.DB.prepare(
+      `UPDATE community_routes SET pois_status = 'done', pois_hash = content_hash, pois_due_at = NULL WHERE id NOT IN (?, ?)`
+    )
+      .bind(a.id, b.id)
+      .run();
+    const clock = fakeClock();
+    // The first route's one answer leaves time for two slow requests, not
+    // the three the second route needs: it is claimed, then given back.
+    const slow = overpass([
+      () => {
+        clock.advance(POI_RUN_LIMITS.wallMs - WORST_REQUEST_MS * 2.5);
+        return elementsResponse(elementsAlong(first));
+      },
+    ]);
+    await run(slow, { now: clock.now, sleep: clock.sleep });
+    expect(slow.calls).toHaveLength(1);
+    expect((await row(a.id)).pois_status).toBe('done');
+    const rb = await row(b.id);
+    expect(rb.pois_status).toBe('pending');
+    expect(rb.pois_attempts).toBe(0);
+    expect(rb.pois_error).toBe('run_budget');
+    // Still at the head of the queue: the next run takes it at once.
+    expect(rb.pois_due_at).toBe('');
+    const next = overpass([elementsResponse([])]);
+    await run(next);
+    expect(next.calls).toHaveLength(3);
+    expect((await row(b.id)).pois_status).toBe('done');
+  }, 60_000);
+
+  it('keeps the answers it got and asks only for the rest next time', async () => {
+    const owner = await registerDevice();
+    const start = freshStart();
+    const route = await submitAt(owner, start, routeOfQueries(start, 3));
+    await onlyCandidate(route.id);
+    // Query 1 answers; query 2 fails on both instances.
+    const flaky = overpass([
+      elementsResponse(elementsAlong(start)),
+      new Response('busy', { status: 504 }),
+      new Response('busy', { status: 502 }),
+    ]);
+    await run(flaky);
+    expect(flaky.calls).toHaveLength(3);
+    let r = await row(route.id);
+    expect(r.pois_status).toBe('pending');
+    expect(r.pois_attempts).toBe(1);
+    expect(r.pois_error).toMatch(/^overpass: overpass-a\.test: HTTP 504; overpass-b\.test: HTTP 502/);
+    expect((await privateKeys(route.id)).filter((k) => k.includes('/overpass-'))).toHaveLength(1);
+
+    const rest = overpass([elementsResponse([])]);
+    // With the production grace: the answers are deleted by name, not swept by age.
+    await run(rest, { purgeGraceMs: 10 * 60 * 1000 }, 2 * 60 * 60 * 1000);
+    // Query 1 came from the cache.
+    expect(rest.calls).toHaveLength(2);
+    expect(rest.calls.map((c) => c.query)).not.toContain(flaky.calls[0].query);
+    r = await row(route.id);
+    expect(r.pois_status).toBe('done');
+    expect(r.poi_count).toBeGreaterThan(0);
+    expect(await privateKeys(route.id)).toEqual([r.private_key]);
+  }, 60_000);
+
+  it('waits out a short Retry-After, and leaves a long one for another run', async () => {
+    const owner = await registerDevice();
+    const start = freshStart();
+    const route = await submitAt(owner, start);
+    await onlyCandidate(route.id);
+    const clock = fakeClock();
+    const limited = overpass([
+      new Response('slow down', { status: 429, headers: { 'Retry-After': '7' } }),
+      elementsResponse(elementsAlong(start)),
+    ]);
+    await run(limited, { endpoints: [ENDPOINT_A], now: clock.now, sleep: clock.sleep });
+    expect(limited.calls).toHaveLength(2);
+    expect(clock.slept).toContain(7000);
+    expect((await row(route.id)).pois_status).toBe('done');
+
+    const other = await submitAt(owner, freshStart());
+    await onlyCandidate(other.id);
+    const clock2 = fakeClock();
+    const hours = overpass([
+      new Response('come back tomorrow', { status: 429, headers: { 'Retry-After': '3600' } }),
+    ]);
+    await run(hours, { endpoints: [ENDPOINT_A], now: clock2.now, sleep: clock2.sleep });
+    expect(hours.calls).toHaveLength(1);
+    expect(clock2.slept.every((ms) => ms <= POI_LIMITS.maxRetryAfterMs)).toBe(true);
+    const r = await row(other.id);
+    expect(r.pois_status).toBe('pending');
+    expect(r.pois_error).toMatch(/^rate_limited: overpass-a\.test: HTTP 429/);
+    expect(retryAfterMs('Wed, 21 Oct 2015 07:28:00 GMT', Date.parse('Wed, 21 Oct 2015 07:27:00 GMT'))).toBe(60_000);
+    expect(retryAfterMs('soon', Date.now())).toBeNull();
+  });
+
+  it('stops reading an answer the moment it passes the byte cap', async () => {
+    let pulls = 0;
+    const chunk = new Uint8Array(1024 * 1024).fill(32);
+    const endless = () =>
+      new Response(
+        new ReadableStream<Uint8Array>({
+          pull(controller) {
+            pulls++;
+            controller.enqueue(chunk);
+          },
+        })
+      );
+    // Chunked (no Content-Length): only the counted bytes stop it.
+    await expect(readCapped(endless(), 3 * chunk.byteLength)).rejects.toThrow('too_many_pois');
+    expect(pulls).toBeLessThanOrEqual(6);
+
+    const owner = await registerDevice();
+    const route = await submitAt(owner, freshStart());
+    await onlyCandidate(route.id);
+    pulls = 0;
+    await run(overpass([endless]));
+    const r = await row(route.id);
+    expect(r.pois_status).toBe('skipped');
+    expect(r.pois_error).toBe('too_many_pois');
+    expect(pulls).toBeLessThanOrEqual(POI_LIMITS.maxResponseBytes / chunk.byteLength + 3);
+    // Multi-byte text is counted in bytes, not characters.
+    const text = 'é'.repeat(10);
+    await expect(readCapped(new Response(text), 15)).rejects.toThrow('too_many_pois');
+    expect(new TextDecoder().decode(await readCapped(new Response(text), 20))).toBe(text);
+  });
+
+  it('sweeps a trail JSON an interrupted run left behind once the route is answered', async () => {
+    const owner = await registerDevice();
+    const start = freshStart();
+    const route = await submitAt(owner, start);
+    await onlyCandidate(route.id);
+    // What a run stopped between its R2 write and its D1 write leaves.
+    const orphan = `community/private/${route.id}/${'ab'.repeat(16)}.json`;
+    await env.PHOTOS.put(orphan, '{}');
+    await env.DB.prepare(`UPDATE community_routes SET pois_attempts = 1 WHERE id = ?`).bind(route.id).run();
+    await run(overpass([elementsResponse(elementsAlong(start))]));
+    const r = await row(route.id);
+    expect(r.pois_status).toBe('done');
+    expect(await env.PHOTOS.get(orphan)).toBeNull();
+    expect(await privateKeys(route.id)).toEqual([r.private_key]);
+  });
+
+  it('gives up, and sweeps, after the last attempt the platform cut short', async () => {
+    const owner = await registerDevice();
+    const route = await submitAt(owner, freshStart());
+    await onlyCandidate(route.id);
+    const orphan = `community/private/${route.id}/${'cd'.repeat(16)}.json`;
+    await env.PHOTOS.put(orphan, '{}');
+    await env.DB.prepare(`UPDATE community_routes SET pois_attempts = ? WHERE id = ?`)
+      .bind(POI_RUN_LIMITS.maxAttempts, route.id)
+      .run();
+    const fetchImpl = overpass([elementsResponse([])]);
+    await run(fetchImpl);
+    expect(fetchImpl.calls).toHaveLength(0);
+    const r = await row(route.id);
+    expect(r.pois_status).toBe('failed');
+    expect(r.pois_error).toBe('gave_up');
+    expect(r.pois_due_at).toBeNull();
+    expect(await env.PHOTOS.get(orphan)).toBeNull();
+  });
+
+  it('leaves a route alone while its AI review is pending', async () => {
+    const owner = await registerDevice();
+    const route = await submitAt(owner, freshStart());
+    await onlyCandidate(route.id);
+    await env.DB.prepare(`UPDATE community_routes SET review_status = 'pending' WHERE id = ?`).bind(route.id).run();
+    const fetchImpl = overpass([elementsResponse([])]);
+    await run(fetchImpl);
+    expect(fetchImpl.calls).toHaveLength(0);
+    expect((await row(route.id)).pois_attempts).toBe(0);
+  });
+
+  it('finds its candidates through the due index', async () => {
+    const { results } = await env.DB.prepare(`EXPLAIN QUERY PLAN ${POI_CANDIDATES_SQL}`)
+      .bind(new Date().toISOString(), new Date().toISOString(), 3)
+      .all<{ detail: string }>();
+    const plan = results.map((r) => r.detail).join('\n');
+    expect(plan).toContain('idx_community_routes_pois_due');
+    expect(plan).not.toMatch(/TEMP B-TREE/);
+  });
+
+  it('does nothing, without throwing, before migration 0009 is applied', async () => {
+    const statement = {
+      bind: () => statement,
+      all: async () => {
+        throw new Error('D1_ERROR: no such column: pois_due_at: SQLITE_ERROR');
+      },
+    };
+    const brokenEnv = { ...testEnv, DB: { prepare: () => statement } } as unknown as Env;
+    const fetchImpl = overpass([elementsResponse([])]);
+    await expect(
+      enrichCommunityRoutePois(brokenEnv, { endpoints: [ENDPOINT_A], fetchImpl, sleep: noSleep })
+    ).resolves.toBeUndefined();
+    expect(fetchImpl.calls).toHaveLength(0);
   });
 });
