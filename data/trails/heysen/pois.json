@@ -10013,197 +10013,36 @@
       "distanceFromTrail": 0.011810971065742287
     },
     {
-      "id": 6484974190,
+      "id": 2461292044,
       "type": "node",
-      "category": "camping",
-      "lat": -31.8778195,
-      "lon": 138.3999258,
-      "name": "Hawker Overflow",
+      "category": "emergency",
+      "lat": -31.8934943,
+      "lon": 138.4279709,
+      "name": "Hawker Hospital",
       "tags": {
-        "addr:housenumber": "12",
-        "addr:street": "Carpenter Road",
-        "name": "Hawker Overflow",
-        "tourism": "camp_site"
+        "amenity": "hospital",
+        "name": "Hawker Hospital"
       },
-      "distanceAlongTrail": 970.2984201231811,
-      "distanceFromTrail": 1.1029249000483337
+      "distanceAlongTrail": 973.0120815648177,
+      "distanceFromTrail": 0.8874959002382798
     },
     {
-      "id": 503651505,
+      "id": 1304953706,
       "type": "way",
-      "category": "camping",
-      "lat": -31.8848433,
-      "lon": 138.4130437,
-      "name": "Hawker Caravan Park",
+      "category": "emergency",
+      "lat": -31.8933541,
+      "lon": 138.4276432,
+      "name": "Hawker Memorial Hospital",
       "tags": {
-        "name": "Hawker Caravan Park",
-        "tourism": "caravan_site"
+        "addr:street": "Cradock Road",
+        "amenity": "hospital",
+        "healthcare": "hospital",
+        "name": "Hawker Memorial Hospital",
+        "short_name": "Hawker Hospital",
+        "source": "https://www.health.gov.au/resources/publications/list-of-declared-hospitals"
       },
-      "distanceAlongTrail": 971.5161409022514,
-      "distanceFromTrail": 0.3333289468523893
-    },
-    {
-      "id": 120023616,
-      "type": "way",
-      "category": "restaurant",
-      "lat": -31.8854025,
-      "lon": 138.4181861,
-      "name": "Old Ghan Resturant & Gallery",
-      "tags": {
-        "amenity": "restaurant",
-        "building": "yes",
-        "contact:facebook": "http://www.facebook.com/theoldghan",
-        "cuisine": "regional",
-        "name": "Old Ghan Resturant & Gallery",
-        "opening_hours": "We-Sa 16:00-20:30 \"closed mid winter and mid summer, see Facebook page for details\"",
-        "phone": "+61 8 8648 4176",
-        "website": "https://theoldghanrestaurant.weebly.com/"
-      },
-      "distanceAlongTrail": 971.8214418281707,
-      "distanceFromTrail": 0.009621450495755652
-    },
-    {
-      "id": 5936804241,
-      "type": "node",
-      "category": "resupply",
-      "lat": -31.8871269,
-      "lon": 138.4226623,
-      "name": "Hawker General Store",
-      "tags": {
-        "name": "Hawker General Store",
-        "shop": "outdoor"
-      },
-      "distanceAlongTrail": 972.125931952365,
-      "distanceFromTrail": 0.2505743106727346
-    },
-    {
-      "id": 2518155838,
-      "type": "node",
-      "category": "resupply",
-      "lat": -31.8871956,
-      "lon": 138.4226859,
-      "name": "Hawker Post Office",
-      "tags": {
-        "amenity": "post_office",
-        "brand": "Australia Post",
-        "name": "Hawker Post Office",
-        "operator": "Australia Post",
-        "operator:wikidata": "Q1142936"
-      },
-      "distanceAlongTrail": 972.133873769561,
-      "distanceFromTrail": 0.25107083807883
-    },
-    {
-      "id": 1811178458,
-      "type": "node",
-      "category": "camping",
-      "lat": -31.8875,
-      "lon": 138.42111,
-      "name": "Hawker Town Park",
-      "tags": {
-        "name": "Hawker Town Park",
-        "tourism": "camp_site"
-      },
-      "distanceAlongTrail": 972.1342301505001,
-      "distanceFromTrail": 0.09848172674499917
-    },
-    {
-      "id": 5936807333,
-      "type": "node",
-      "category": "resupply",
-      "lat": -31.8872166,
-      "lon": 138.4227367,
-      "name": "Hawker General Store",
-      "tags": {
-        "name": "Hawker General Store",
-        "shop": "supermarket"
-      },
-      "distanceAlongTrail": 972.1372048540862,
-      "distanceFromTrail": 0.2552373669816408
-    },
-    {
-      "id": 5936788852,
-      "type": "node",
-      "category": "restaurant",
-      "lat": -31.8875491,
-      "lon": 138.4214874,
-      "name": "Flinders Food Co",
-      "tags": {
-        "amenity": "cafe",
-        "name": "Flinders Food Co",
-        "opening_hours": "Tu-Su 07:30-15:00"
-      },
-      "distanceAlongTrail": 972.1473793224841,
-      "distanceFromTrail": 0.13204561357770425
-    },
-    {
-      "id": 5936806695,
-      "type": "node",
-      "category": "resupply",
-      "lat": -31.8874237,
-      "lon": 138.4231268,
-      "name": "Mogas",
-      "tags": {
-        "amenity": "fuel",
-        "brand": "Mobil",
-        "name": "Mogas"
-      },
-      "distanceAlongTrail": 972.1677572298441,
-      "distanceFromTrail": 0.28611349779636236
-    },
-    {
-      "id": 1837680769,
-      "type": "node",
-      "category": "resupply",
-      "lat": -31.8874702,
-      "lon": 138.4230739,
-      "name": "Hawker tourist information",
-      "tags": {
-        "amenity": "fuel",
-        "brand": "Mogas",
-        "information": "office",
-        "name": "Hawker tourist information",
-        "note": "located in Mobil service station",
-        "operator": "Mobil",
-        "source": "survey",
-        "tourism": "information"
-      },
-      "distanceAlongTrail": 972.1717050730007,
-      "distanceFromTrail": 0.2801055399349642
-    },
-    {
-      "id": 628799474,
-      "type": "way",
-      "category": "camping",
-      "lat": -31.8879421,
-      "lon": 138.421106,
-      "name": null,
-      "tags": {
-        "amenity": "shelter",
-        "building": "yes"
-      },
-      "distanceAlongTrail": 972.1821069719462,
-      "distanceFromTrail": 0.08732030821904611
-    },
-    {
-      "id": 244500240,
-      "type": "way",
-      "category": "camping",
-      "lat": -31.8870515,
-      "lon": 138.4262267,
-      "name": "Big 4: Hawker Caravan Park",
-      "tags": {
-        "brand": "Big 4 Holiday Parks",
-        "brand:wikidata": "Q18636678",
-        "brand:wikipedia": "en:BIG4 Holiday Parks",
-        "name": "Big 4: Hawker Caravan Park",
-        "short_name": "Big4",
-        "source": "AGRI",
-        "source:name": "survey",
-        "tourism": "caravan_site"
-      },
-      "distanceAlongTrail": 972.1916359378777,
-      "distanceFromTrail": 0.58073616445078
+      "distanceAlongTrail": 973.0120815648177,
+      "distanceFromTrail": 0.8532440493997717
     },
     {
       "id": 1831952290,
@@ -10221,7 +10060,7 @@
         "source": "survey",
         "website": "https://map.bp.com/en-AU/AU/gas-station/hawker/bp-hawker/6828"
       },
-      "distanceAlongTrail": 972.2536261591475,
+      "distanceAlongTrail": 973.0307730714638,
       "distanceFromTrail": 0.3307827892333627
     },
     {
@@ -10242,7 +10081,7 @@
         "operator": "South Australian Country Fire Service",
         "operator:wikidata": "Q7566104"
       },
-      "distanceAlongTrail": 972.2536261591475,
+      "distanceAlongTrail": 973.0307730714638,
       "distanceFromTrail": 0.23088489436133458
     },
     {
@@ -10255,40 +10094,201 @@
       "tags": {
         "amenity": "shelter"
       },
-      "distanceAlongTrail": 972.2536261591475,
+      "distanceAlongTrail": 973.0307730714638,
       "distanceFromTrail": 0.7872155671472777
     },
     {
-      "id": 2461292044,
-      "type": "node",
-      "category": "emergency",
-      "lat": -31.8934943,
-      "lon": 138.4279709,
-      "name": "Hawker Hospital",
+      "id": 244500240,
+      "type": "way",
+      "category": "camping",
+      "lat": -31.8870515,
+      "lon": 138.4262267,
+      "name": "Big 4: Hawker Caravan Park",
       "tags": {
-        "amenity": "hospital",
-        "name": "Hawker Hospital"
+        "brand": "Big 4 Holiday Parks",
+        "brand:wikidata": "Q18636678",
+        "brand:wikipedia": "en:BIG4 Holiday Parks",
+        "name": "Big 4: Hawker Caravan Park",
+        "short_name": "Big4",
+        "source": "AGRI",
+        "source:name": "survey",
+        "tourism": "caravan_site"
       },
-      "distanceAlongTrail": 972.2723176657937,
-      "distanceFromTrail": 0.8874959002382798
+      "distanceAlongTrail": 973.0927632927337,
+      "distanceFromTrail": 0.5807361644507802
     },
     {
-      "id": 1304953706,
+      "id": 628799474,
       "type": "way",
-      "category": "emergency",
-      "lat": -31.8933541,
-      "lon": 138.4276432,
-      "name": "Hawker Memorial Hospital",
+      "category": "camping",
+      "lat": -31.8879421,
+      "lon": 138.421106,
+      "name": null,
       "tags": {
-        "addr:street": "Cradock Road",
-        "amenity": "hospital",
-        "healthcare": "hospital",
-        "name": "Hawker Memorial Hospital",
-        "short_name": "Hawker Hospital",
-        "source": "https://www.health.gov.au/resources/publications/list-of-declared-hospitals"
+        "amenity": "shelter",
+        "building": "yes"
       },
-      "distanceAlongTrail": 972.2723176657937,
-      "distanceFromTrail": 0.8532440493997717
+      "distanceAlongTrail": 973.1022922586652,
+      "distanceFromTrail": 0.08732030821904611
+    },
+    {
+      "id": 1837680769,
+      "type": "node",
+      "category": "resupply",
+      "lat": -31.8874702,
+      "lon": 138.4230739,
+      "name": "Hawker tourist information",
+      "tags": {
+        "amenity": "fuel",
+        "brand": "Mogas",
+        "information": "office",
+        "name": "Hawker tourist information",
+        "note": "located in Mobil service station",
+        "operator": "Mobil",
+        "source": "survey",
+        "tourism": "information"
+      },
+      "distanceAlongTrail": 973.1126941576107,
+      "distanceFromTrail": 0.2801055399349642
+    },
+    {
+      "id": 5936806695,
+      "type": "node",
+      "category": "resupply",
+      "lat": -31.8874237,
+      "lon": 138.4231268,
+      "name": "Mogas",
+      "tags": {
+        "amenity": "fuel",
+        "brand": "Mobil",
+        "name": "Mogas"
+      },
+      "distanceAlongTrail": 973.1166420007672,
+      "distanceFromTrail": 0.2861134977963624
+    },
+    {
+      "id": 5936788852,
+      "type": "node",
+      "category": "restaurant",
+      "lat": -31.8875491,
+      "lon": 138.4214874,
+      "name": "Flinders Food Co",
+      "tags": {
+        "amenity": "cafe",
+        "name": "Flinders Food Co",
+        "opening_hours": "Tu-Su 07:30-15:00"
+      },
+      "distanceAlongTrail": 973.1370199081273,
+      "distanceFromTrail": 0.13204561357770425
+    },
+    {
+      "id": 5936807333,
+      "type": "node",
+      "category": "resupply",
+      "lat": -31.8872166,
+      "lon": 138.4227367,
+      "name": "Hawker General Store",
+      "tags": {
+        "name": "Hawker General Store",
+        "shop": "supermarket"
+      },
+      "distanceAlongTrail": 973.1471943765251,
+      "distanceFromTrail": 0.2552373669816408
+    },
+    {
+      "id": 1811178458,
+      "type": "node",
+      "category": "camping",
+      "lat": -31.8875,
+      "lon": 138.42111,
+      "name": "Hawker Town Park",
+      "tags": {
+        "name": "Hawker Town Park",
+        "tourism": "camp_site"
+      },
+      "distanceAlongTrail": 973.1501690801113,
+      "distanceFromTrail": 0.09848172674499917
+    },
+    {
+      "id": 2518155838,
+      "type": "node",
+      "category": "resupply",
+      "lat": -31.8871956,
+      "lon": 138.4226859,
+      "name": "Hawker Post Office",
+      "tags": {
+        "amenity": "post_office",
+        "brand": "Australia Post",
+        "name": "Hawker Post Office",
+        "operator": "Australia Post",
+        "operator:wikidata": "Q1142936"
+      },
+      "distanceAlongTrail": 973.1505254610504,
+      "distanceFromTrail": 0.25107083807883
+    },
+    {
+      "id": 5936804241,
+      "type": "node",
+      "category": "resupply",
+      "lat": -31.8871269,
+      "lon": 138.4226623,
+      "name": "Hawker General Store",
+      "tags": {
+        "name": "Hawker General Store",
+        "shop": "outdoor"
+      },
+      "distanceAlongTrail": 973.1584672782463,
+      "distanceFromTrail": 0.2505743106727346
+    },
+    {
+      "id": 120023616,
+      "type": "way",
+      "category": "restaurant",
+      "lat": -31.8854025,
+      "lon": 138.4181861,
+      "name": "Old Ghan Resturant & Gallery",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "contact:facebook": "http://www.facebook.com/theoldghan",
+        "cuisine": "regional",
+        "name": "Old Ghan Resturant & Gallery",
+        "opening_hours": "We-Sa 16:00-20:30 \"closed mid winter and mid summer, see Facebook page for details\"",
+        "phone": "+61 8 8648 4176",
+        "website": "https://theoldghanrestaurant.weebly.com/"
+      },
+      "distanceAlongTrail": 973.4629574024407,
+      "distanceFromTrail": 0.009621450495755675
+    },
+    {
+      "id": 503651505,
+      "type": "way",
+      "category": "camping",
+      "lat": -31.8848433,
+      "lon": 138.4130437,
+      "name": "Hawker Caravan Park",
+      "tags": {
+        "name": "Hawker Caravan Park",
+        "tourism": "caravan_site"
+      },
+      "distanceAlongTrail": 973.7682583283599,
+      "distanceFromTrail": 0.3333289468523893
+    },
+    {
+      "id": 6484974190,
+      "type": "node",
+      "category": "camping",
+      "lat": -31.8778195,
+      "lon": 138.3999258,
+      "name": "Hawker Overflow",
+      "tags": {
+        "addr:housenumber": "12",
+        "addr:street": "Carpenter Road",
+        "name": "Hawker Overflow",
+        "tourism": "camp_site"
+      },
+      "distanceAlongTrail": 974.9859791074302,
+      "distanceFromTrail": 1.1029249000483339
     },
     {
       "id": 1811190815,

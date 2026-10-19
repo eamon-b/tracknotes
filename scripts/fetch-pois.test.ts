@@ -7,6 +7,7 @@ import * as path from 'path';
 import {
   positionalArgs,
   processTrailData,
+  repositionTrailPois,
   resolveEndpoint,
   clipScaleToKm,
   resolveKmRange,
@@ -513,5 +514,20 @@ describe('positionalArgs', () => {
 
   it('drops flags', () => {
     expect(positionalArgs(['heysen', '--dry-run'])).toEqual(['heysen']);
+  });
+});
+
+describe('repositionTrailPois', () => {
+  it('re-places stored POIs on the current track, as a fetch would, and drops ones now out of reach', async () => {
+    const camp = node(2, START_LAT + 4.5 * LAT_STEP, LON, { tourism: 'camp_site', name: 'Camp' });
+    const fetched = await processTrailData(makeTrail(), fixedFetcher([camp]));
+    // A km from an older track, and a POI the current track no longer passes.
+    const stale = { ...fetched.pois[0], distanceAlongTrail: 130 };
+    const far = { ...stale, id: 3, lat: START_LAT, lon: LON + 1, name: 'Far' };
+
+    const { pois, dropped } = await repositionTrailPois(makeTrail(), [stale, far]);
+
+    expect(pois).toEqual(fetched.pois);
+    expect(dropped.map(p => p.id)).toEqual([3]);
   });
 });

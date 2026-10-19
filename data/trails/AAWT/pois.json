@@ -3513,6 +3513,24 @@
       "distanceFromTrail": 0.008550806893548077
     },
     {
+      "id": 1586536409,
+      "type": "node",
+      "category": "camping",
+      "lat": -35.6095359,
+      "lon": 148.6647753,
+      "name": "The Cheese Hut",
+      "tags": {
+        "amenity": "shelter",
+        "board_type": "history",
+        "information": "board",
+        "name": "The Cheese Hut",
+        "shelter_type": "basic_hut",
+        "tourism": "information"
+      },
+      "distanceAlongTrail": 626.4059039485184,
+      "distanceFromTrail": 0.012207451388329455
+    },
+    {
       "id": 583649637,
       "type": "way",
       "category": "camping",
@@ -3529,6 +3547,67 @@
       },
       "distanceAlongTrail": 627.1916897228956,
       "distanceFromTrail": 0.00949022498983257
+    },
+    {
+      "id": 583638034,
+      "type": "way",
+      "category": "camping",
+      "lat": -35.6215399,
+      "lon": 148.680257,
+      "name": "Magpie Flat campground",
+      "tags": {
+        "caravans": "no",
+        "fee": "no",
+        "internet_access": "no",
+        "name": "Magpie Flat campground",
+        "operator": "NSW National Parks and Wildlife Service",
+        "operator:wikidata": "Q108872274",
+        "shower": "no",
+        "tents": "yes",
+        "toilets": "yes",
+        "tourism": "camp_site"
+      },
+      "distanceAlongTrail": 627.4915506909447,
+      "distanceFromTrail": 0.016444865493035334
+    },
+    {
+      "id": 583631231,
+      "type": "way",
+      "category": "camping",
+      "lat": -35.6230348,
+      "lon": 148.6830643,
+      "name": "Blue Waterholes campground",
+      "tags": {
+        "bbq": "yes",
+        "caravans": "no",
+        "fee": "no",
+        "internet_access": "no",
+        "name": "Blue Waterholes campground",
+        "operator": "NSW National Parks and Wildlife Service",
+        "operator:wikidata": "Q108872274",
+        "shower": "no",
+        "tents": "yes",
+        "toilets": "yes",
+        "tourism": "camp_site",
+        "website": "https://www.nationalparks.nsw.gov.au/camping-and-accommodation/campgrounds/blue-waterholes-campground"
+      },
+      "distanceAlongTrail": 627.5067568610972,
+      "distanceFromTrail": 0.002861579012209654
+    },
+    {
+      "id": 12753715136,
+      "type": "node",
+      "category": "water",
+      "lat": -35.6248246,
+      "lon": 148.6842751,
+      "name": "Blue Waterholes",
+      "tags": {
+        "drinking_water": "no",
+        "name": "Blue Waterholes",
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 627.5192836814216,
+      "distanceFromTrail": 0.1197766835999669
     },
     {
       "id": 322503392,
@@ -3703,85 +3782,6 @@
       },
       "distanceAlongTrail": 687.971940789119,
       "distanceFromTrail": 0.07520995962289798
-    },
-    {
-      "id": 583631231,
-      "type": "way",
-      "category": "camping",
-      "lat": -35.6230348,
-      "lon": 148.6830643,
-      "name": "Blue Waterholes campground",
-      "tags": {
-        "bbq": "yes",
-        "caravans": "no",
-        "fee": "no",
-        "internet_access": "no",
-        "name": "Blue Waterholes campground",
-        "operator": "NSW National Parks and Wildlife Service",
-        "operator:wikidata": "Q108872274",
-        "shower": "no",
-        "tents": "yes",
-        "toilets": "yes",
-        "tourism": "camp_site",
-        "website": "https://www.nationalparks.nsw.gov.au/camping-and-accommodation/campgrounds/blue-waterholes-campground"
-      },
-      "distanceAlongTrail": 790.3283588390448,
-      "distanceFromTrail": 0.002861579012209654
-    },
-    {
-      "id": 583638034,
-      "type": "way",
-      "category": "camping",
-      "lat": -35.6215399,
-      "lon": 148.680257,
-      "name": "Magpie Flat campground",
-      "tags": {
-        "caravans": "no",
-        "fee": "no",
-        "internet_access": "no",
-        "name": "Magpie Flat campground",
-        "operator": "NSW National Parks and Wildlife Service",
-        "operator:wikidata": "Q108872274",
-        "shower": "no",
-        "tents": "yes",
-        "toilets": "yes",
-        "tourism": "camp_site"
-      },
-      "distanceAlongTrail": 790.6657071207584,
-      "distanceFromTrail": 0.016444865493035334
-    },
-    {
-      "id": 1586536409,
-      "type": "node",
-      "category": "camping",
-      "lat": -35.6095359,
-      "lon": 148.6647753,
-      "name": "The Cheese Hut",
-      "tags": {
-        "amenity": "shelter",
-        "board_type": "history",
-        "information": "board",
-        "name": "The Cheese Hut",
-        "shelter_type": "basic_hut",
-        "tourism": "information"
-      },
-      "distanceAlongTrail": 793.1196992244797,
-      "distanceFromTrail": 0.012207451388329455
-    },
-    {
-      "id": 12753715136,
-      "type": "node",
-      "category": "water",
-      "lat": -35.6248246,
-      "lon": 148.6842751,
-      "name": "Blue Waterholes",
-      "tags": {
-        "drinking_water": "no",
-        "name": "Blue Waterholes",
-        "natural": "spring"
-      },
-      "distanceAlongTrail": 793.2179780593502,
-      "distanceFromTrail": 0.1197766835999669
     }
   ]
 }

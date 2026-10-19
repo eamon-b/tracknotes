@@ -1044,8 +1044,8 @@
         "name": "Wild camping",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 350.092756398095,
-      "distanceFromTrail": 0.8389526657342782
+      "distanceAlongTrail": 349.23457251506704,
+      "distanceFromTrail": 0.012946858415897088
     },
     {
       "id": 14188533802,
@@ -2105,8 +2105,8 @@
         "amenity": "fire_station",
         "name": "West Valley VFD"
       },
-      "distanceAlongTrail": 700.2105968034138,
-      "distanceFromTrail": 1.5791985652296767
+      "distanceAlongTrail": 698.8529336163247,
+      "distanceFromTrail": 0.7303158940352862
     },
     {
       "id": 1213387943,
@@ -2448,45 +2448,6 @@
       "distanceFromTrail": 0.09269617150047994
     },
     {
-      "id": 11136684325,
-      "type": "node",
-      "category": "water",
-      "lat": 45.1787547,
-      "lon": -113.4862214,
-      "name": null,
-      "tags": {
-        "natural": "spring"
-      },
-      "distanceAlongTrail": 1106.4073685997853,
-      "distanceFromTrail": 1.8903930182169042
-    },
-    {
-      "id": 11136684332,
-      "type": "node",
-      "category": "water",
-      "lat": 45.1788908,
-      "lon": -113.4890968,
-      "name": null,
-      "tags": {
-        "natural": "spring"
-      },
-      "distanceAlongTrail": 1106.4073685997853,
-      "distanceFromTrail": 1.6948197197789792
-    },
-    {
-      "id": 11136684337,
-      "type": "node",
-      "category": "water",
-      "lat": 45.1802332,
-      "lon": -113.4901214,
-      "name": null,
-      "tags": {
-        "natural": "spring"
-      },
-      "distanceAlongTrail": 1106.4073685997853,
-      "distanceFromTrail": 1.7025468221794413
-    },
-    {
       "id": 11136692345,
       "type": "node",
       "category": "water",
@@ -2640,7 +2601,7 @@
         "natural": "spring"
       },
       "distanceAlongTrail": 1121.5616366405302,
-      "distanceFromTrail": 1.0225123258122093
+      "distanceFromTrail": 0.2895985572750489
     },
     {
       "id": 11136578884,
@@ -2653,7 +2614,7 @@
         "natural": "spring"
       },
       "distanceAlongTrail": 1121.8862321439565,
-      "distanceFromTrail": 0.9706423538712382
+      "distanceFromTrail": 0.5470440583963007
     },
     {
       "id": 11136578840,
@@ -2665,8 +2626,47 @@
       "tags": {
         "natural": "spring"
       },
-      "distanceAlongTrail": 1121.9203357591796,
+      "distanceAlongTrail": 1123.8913386861439,
       "distanceFromTrail": 0.7841114287489444
+    },
+    {
+      "id": 11136684325,
+      "type": "node",
+      "category": "water",
+      "lat": 45.1787547,
+      "lon": -113.4862214,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 1130.187978674157,
+      "distanceFromTrail": 1.8903930182169042
+    },
+    {
+      "id": 11136684332,
+      "type": "node",
+      "category": "water",
+      "lat": 45.1788908,
+      "lon": -113.4890968,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 1130.187978674157,
+      "distanceFromTrail": 1.6948197197789792
+    },
+    {
+      "id": 11136684337,
+      "type": "node",
+      "category": "water",
+      "lat": 45.1802332,
+      "lon": -113.4901214,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 1130.187978674157,
+      "distanceFromTrail": 1.7025468221794413
     },
     {
       "id": 3687638649,
@@ -2893,37 +2893,18 @@
       "distanceFromTrail": 0.0910630599640213
     },
     {
-      "id": 12717571896,
+      "id": 4415202094,
       "type": "node",
-      "category": "emergency",
-      "lat": 44.4568279,
-      "lon": -110.8316842,
-      "name": "Old Faithful Clinic",
+      "category": "water",
+      "lat": 44.4679747,
+      "lon": -110.8398319,
+      "name": "Lavender Pool",
       "tags": {
-        "amenity": "clinic",
-        "healthcare": "clinic",
-        "name": "Old Faithful Clinic",
-        "operator": "STGi",
-        "operator:type": "private",
-        "website": "https://www.nps.gov/places/000/old-faithful-medical-clinic.htm"
+        "name": "Lavender Pool",
+        "natural": "spring"
       },
-      "distanceAlongTrail": 1600.0126198602022,
-      "distanceFromTrail": 0.5523908945480357
-    },
-    {
-      "id": 1814425008,
-      "type": "node",
-      "category": "restaurant",
-      "lat": 44.4571889,
-      "lon": -110.8289848,
-      "name": "Geyser Grill",
-      "tags": {
-        "amenity": "fast_food",
-        "name": "Geyser Grill",
-        "smoking": "no"
-      },
-      "distanceAlongTrail": 1600.0126198602022,
-      "distanceFromTrail": 0.49490648255818204
+      "distanceAlongTrail": 1596.7931936881437,
+      "distanceFromTrail": 0.15965133923560687
     },
     {
       "id": 356511794,
@@ -2939,72 +2920,99 @@
         "natural": "spring",
         "wikidata": "Q49728518"
       },
-      "distanceAlongTrail": 1600.0126198602022,
-      "distanceFromTrail": 1.8754894249792189
+      "distanceAlongTrail": 1596.8479594952785,
+      "distanceFromTrail": 0.20207394541918164
     },
     {
-      "id": 4407524489,
-      "type": "node",
-      "category": "restaurant",
-      "lat": 44.4567615,
-      "lon": -110.8297996,
-      "name": "Snow Lodge Obsidian Dining Room",
-      "tags": {
-        "amenity": "restaurant",
-        "name": "Snow Lodge Obsidian Dining Room",
-        "name:en": "Snow Lodge Obsidian Dining Room",
-        "opening_hours": "Mo-Su 06:30-10:00, 17:00-22:30",
-        "phone": "+1-307-344-7311",
-        "website": "https://www.yellowstonenationalparklodges.com/restaurant/old-faithful-snow-lodge-obsidian-dining-room/"
-      },
-      "distanceAlongTrail": 1600.0126198602022,
-      "distanceFromTrail": 0.4703135960112708
-    },
-    {
-      "id": 4415201855,
-      "type": "node",
+      "id": 1320821746,
+      "type": "way",
       "category": "water",
-      "lat": 44.4637901,
-      "lon": -110.8306215,
-      "name": "Heart Spring",
+      "lat": 44.4595086,
+      "lon": -110.8445212,
+      "name": null,
       "tags": {
-        "drinking_water": "no",
-        "name": "Heart Spring",
         "natural": "spring"
       },
-      "distanceAlongTrail": 1600.0126198602022,
-      "distanceFromTrail": 1.2396207360054494
+      "distanceAlongTrail": 1597.2785140321048,
+      "distanceFromTrail": 0.713559765584571
     },
     {
-      "id": 4415201863,
-      "type": "node",
+      "id": 1320821745,
+      "type": "way",
       "category": "water",
-      "lat": 44.462831,
-      "lon": -110.8301237,
-      "name": "Copper Kettle",
+      "lat": 44.4594424,
+      "lon": -110.8443357,
+      "name": null,
       "tags": {
-        "drinking_water": "no",
-        "name": "Copper Kettle",
-        "natural": "spring",
-        "wikidata": "Q134695356"
-      },
-      "distanceAlongTrail": 1600.0126198602022,
-      "distanceFromTrail": 1.1273378319590286
-    },
-    {
-      "id": 4415201866,
-      "type": "node",
-      "category": "water",
-      "lat": 44.4636166,
-      "lon": -110.8307994,
-      "name": "Arrowhead Spring",
-      "tags": {
-        "drinking_water": "no",
-        "name": "Arrowhead Spring",
         "natural": "spring"
       },
-      "distanceAlongTrail": 1600.0126198602022,
-      "distanceFromTrail": 1.2236926122638767
+      "distanceAlongTrail": 1597.294699740348,
+      "distanceFromTrail": 0.7105767798905165
+    },
+    {
+      "id": 1320821743,
+      "type": "way",
+      "category": "water",
+      "lat": 44.4591488,
+      "lon": -110.844229,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 1597.32110793125,
+      "distanceFromTrail": 0.731551329871155
+    },
+    {
+      "id": 1320821744,
+      "type": "way",
+      "category": "water",
+      "lat": 44.4591688,
+      "lon": -110.8439787,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 1597.3356322921597,
+      "distanceFromTrail": 0.7178181815812201
+    },
+    {
+      "id": 1320821741,
+      "type": "way",
+      "category": "water",
+      "lat": 44.458593,
+      "lon": -110.8442062,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 1597.3597433715229,
+      "distanceFromTrail": 0.7798175416332854
+    },
+    {
+      "id": 1320821740,
+      "type": "way",
+      "category": "water",
+      "lat": 44.4582819,
+      "lon": -110.8442832,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 1597.3756798613726,
+      "distanceFromTrail": 0.8111219753875236
+    },
+    {
+      "id": 1240959568,
+      "type": "way",
+      "category": "water",
+      "lat": 44.46558,
+      "lon": -110.8362835,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 1597.3942108349233,
+      "distanceFromTrail": 0.21906993298379754
     },
     {
       "id": 4415201871,
@@ -3020,216 +3028,8 @@
         "natural": "geyser",
         "wikidata": "Q49711840"
       },
-      "distanceAlongTrail": 1600.0126198602022,
-      "distanceFromTrail": 1.52785802752145
-    },
-    {
-      "id": 4415202094,
-      "type": "node",
-      "category": "water",
-      "lat": 44.4679747,
-      "lon": -110.8398319,
-      "name": "Lavender Pool",
-      "tags": {
-        "name": "Lavender Pool",
-        "natural": "spring"
-      },
-      "distanceAlongTrail": 1600.0126198602022,
-      "distanceFromTrail": 1.9447304754453325
-    },
-    {
-      "id": 5777960859,
-      "type": "node",
-      "category": "resupply",
-      "lat": 44.4608534,
-      "lon": -110.8339033,
-      "name": "Old Faithful Basin General Store",
-      "tags": {
-        "name": "Old Faithful Basin General Store",
-        "shop": "convenience"
-      },
-      "distanceAlongTrail": 1600.0126198602022,
-      "distanceFromTrail": 1.0237507101526047
-    },
-    {
-      "id": 5777960861,
-      "type": "node",
-      "category": "restaurant",
-      "lat": 44.4608102,
-      "lon": -110.8336781,
-      "name": "Basin Store",
-      "tags": {
-        "amenity": "restaurant",
-        "name": "Basin Store"
-      },
-      "distanceAlongTrail": 1600.0126198602022,
-      "distanceFromTrail": 1.0107681906747192
-    },
-    {
-      "id": 6612422915,
-      "type": "node",
-      "category": "restaurant",
-      "lat": 44.4595875,
-      "lon": -110.8311558,
-      "name": "Old Faithful Inn Dining Room",
-      "tags": {
-        "amenity": "restaurant",
-        "cuisine": "american",
-        "name": "Old Faithful Inn Dining Room",
-        "opening_hours": "Mo-Su 06:30-10:30, 11:30-14:30, 16:30-22:00",
-        "phone": "+1-307-344-7311",
-        "website": "https://yellowstonenationalparklodges.com/restaurant/old-faithful-inn-dining-room/"
-      },
-      "distanceAlongTrail": 1600.0126198602022,
-      "distanceFromTrail": 0.801957391929948
-    },
-    {
-      "id": 6612465097,
-      "type": "node",
-      "category": "restaurant",
-      "lat": 44.4567248,
-      "lon": -110.8296531,
-      "name": "Firehole Lounge",
-      "tags": {
-        "amenity": "bar",
-        "cuisine": "pub",
-        "name": "Firehole Lounge",
-        "opening_hours": "Mo-Su 17:00-22:00",
-        "phone": "+1-307-344-7311"
-      },
-      "distanceAlongTrail": 1600.0126198602022,
-      "distanceFromTrail": 0.4620931245429307
-    },
-    {
-      "id": 6831700988,
-      "type": "node",
-      "category": "restaurant",
-      "lat": 44.4597583,
-      "lon": -110.8314287,
-      "name": "Bear Paw Deli",
-      "tags": {
-        "addr:housenumber": "3200",
-        "addr:postcode": "82180",
-        "addr:street": "Old Faithful Inn Road",
-        "amenity": "restaurant",
-        "cuisine": "american;breakfast;ice_cream;sandwich",
-        "name": "Bear Paw Deli",
-        "opening_hours": "Mo-Su 06:30-20:00",
-        "website": "https://www.yellowstonenationalparklodges.com/restaurant/old-faithful-inn-bear-paw-deli/"
-      },
-      "distanceAlongTrail": 1600.0126198602022,
-      "distanceFromTrail": 0.8276358090490213
-    },
-    {
-      "id": 1068392226,
-      "type": "way",
-      "category": "restaurant",
-      "lat": 44.4595949,
-      "lon": -110.8309955,
-      "name": "Bear Pit Lounge",
-      "tags": {
-        "addr:housenumber": "3200",
-        "addr:postcode": "82190",
-        "addr:street": "Old Faithful Inn Road",
-        "amenity": "bar",
-        "building:part": "yes",
-        "cuisine": "american;burger",
-        "name": "Bear Pit Lounge",
-        "opening_hours": "Mo-Su 11:30-00:00"
-      },
-      "distanceAlongTrail": 1600.0126198602022,
-      "distanceFromTrail": 0.7981857689744698
-    },
-    {
-      "id": 1240959568,
-      "type": "way",
-      "category": "water",
-      "lat": 44.46558,
-      "lon": -110.8362835,
-      "name": null,
-      "tags": {
-        "natural": "spring"
-      },
-      "distanceAlongTrail": 1600.0126198602022,
-      "distanceFromTrail": 1.5766001166898873
-    },
-    {
-      "id": 1320821740,
-      "type": "way",
-      "category": "water",
-      "lat": 44.4582819,
-      "lon": -110.8442832,
-      "name": null,
-      "tags": {
-        "natural": "spring"
-      },
-      "distanceAlongTrail": 1600.0126198602022,
-      "distanceFromTrail": 1.4632426004461427
-    },
-    {
-      "id": 1320821741,
-      "type": "way",
-      "category": "water",
-      "lat": 44.458593,
-      "lon": -110.8442062,
-      "name": null,
-      "tags": {
-        "natural": "spring"
-      },
-      "distanceAlongTrail": 1600.0126198602022,
-      "distanceFromTrail": 1.472286090691719
-    },
-    {
-      "id": 1320821743,
-      "type": "way",
-      "category": "water",
-      "lat": 44.4591488,
-      "lon": -110.844229,
-      "name": null,
-      "tags": {
-        "natural": "spring"
-      },
-      "distanceAlongTrail": 1600.0126198602022,
-      "distanceFromTrail": 1.50162520073187
-    },
-    {
-      "id": 1320821744,
-      "type": "way",
-      "category": "water",
-      "lat": 44.4591688,
-      "lon": -110.8439787,
-      "name": null,
-      "tags": {
-        "natural": "spring"
-      },
-      "distanceAlongTrail": 1600.0126198602022,
-      "distanceFromTrail": 1.485113639303841
-    },
-    {
-      "id": 1320821745,
-      "type": "way",
-      "category": "water",
-      "lat": 44.4594424,
-      "lon": -110.8443357,
-      "name": null,
-      "tags": {
-        "natural": "spring"
-      },
-      "distanceAlongTrail": 1600.0126198602022,
-      "distanceFromTrail": 1.5244999858751793
-    },
-    {
-      "id": 1320821746,
-      "type": "way",
-      "category": "water",
-      "lat": 44.4595086,
-      "lon": -110.8445212,
-      "name": null,
-      "tags": {
-        "natural": "spring"
-      },
-      "distanceAlongTrail": 1600.0126198602022,
-      "distanceFromTrail": 1.540947836014512
+      "distanceAlongTrail": 1597.420308285698,
+      "distanceFromTrail": 0.1612775066905949
     },
     {
       "id": 24168102,
@@ -3250,24 +3050,260 @@
         "operator": "YPSS",
         "self_service": "yes"
       },
-      "distanceAlongTrail": 1600.0126198602022,
-      "distanceFromTrail": 1.0550404398936493
+      "distanceAlongTrail": 1597.812795204518,
+      "distanceFromTrail": 0.09183422970773024
     },
     {
-      "id": 273535473,
-      "type": "way",
-      "category": "emergency",
-      "lat": 44.4568632,
-      "lon": -110.8317481,
-      "name": "Old Faithful Ranger Station",
+      "id": 5777960859,
+      "type": "node",
+      "category": "resupply",
+      "lat": 44.4608534,
+      "lon": -110.8339033,
+      "name": "Old Faithful Basin General Store",
       "tags": {
-        "amenity": "ranger_station",
-        "building": "yes",
-        "healthcare": "doctor",
-        "name": "Old Faithful Ranger Station"
+        "name": "Old Faithful Basin General Store",
+        "shop": "convenience"
       },
-      "distanceAlongTrail": 1600.0126198602022,
-      "distanceFromTrail": 0.5585855887685172
+      "distanceAlongTrail": 1597.8492111124092,
+      "distanceFromTrail": 0.07534812217146748
+    },
+    {
+      "id": 5777960861,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 44.4608102,
+      "lon": -110.8336781,
+      "name": "Basin Store",
+      "tags": {
+        "amenity": "restaurant",
+        "name": "Basin Store"
+      },
+      "distanceAlongTrail": 1597.8673719744056,
+      "distanceFromTrail": 0.07178732303781103
+    },
+    {
+      "id": 4415201866,
+      "type": "node",
+      "category": "water",
+      "lat": 44.4636166,
+      "lon": -110.8307994,
+      "name": "Arrowhead Spring",
+      "tags": {
+        "drinking_water": "no",
+        "name": "Arrowhead Spring",
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 1598.0001948475992,
+      "distanceFromTrail": 0.2924585482698534
+    },
+    {
+      "id": 4415201855,
+      "type": "node",
+      "category": "water",
+      "lat": 44.4637901,
+      "lon": -110.8306215,
+      "name": "Heart Spring",
+      "tags": {
+        "drinking_water": "no",
+        "name": "Heart Spring",
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 1598.0093170827124,
+      "distanceFromTrail": 0.3145559103823035
+    },
+    {
+      "id": 4415201863,
+      "type": "node",
+      "category": "water",
+      "lat": 44.462831,
+      "lon": -110.8301237,
+      "name": "Copper Kettle",
+      "tags": {
+        "drinking_water": "no",
+        "name": "Copper Kettle",
+        "natural": "spring",
+        "wikidata": "Q134695356"
+      },
+      "distanceAlongTrail": 1598.0497301887676,
+      "distanceFromTrail": 0.22160347798923077
+    },
+    {
+      "id": 4415201850,
+      "type": "node",
+      "category": "water",
+      "lat": 44.462742,
+      "lon": -110.8280964,
+      "name": "Sulphide Spring",
+      "tags": {
+        "drinking_water": "no",
+        "drinking_water:legal": "no",
+        "name": "Sulphide Spring",
+        "natural": "spring",
+        "wikidata": "Q121872752"
+      },
+      "distanceAlongTrail": 1598.1020590422647,
+      "distanceFromTrail": 0.29520820459602237
+    },
+    {
+      "id": 6831700988,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 44.4597583,
+      "lon": -110.8314287,
+      "name": "Bear Paw Deli",
+      "tags": {
+        "addr:housenumber": "3200",
+        "addr:postcode": "82180",
+        "addr:street": "Old Faithful Inn Road",
+        "amenity": "restaurant",
+        "cuisine": "american;breakfast;ice_cream;sandwich",
+        "name": "Bear Paw Deli",
+        "opening_hours": "Mo-Su 06:30-20:00",
+        "website": "https://www.yellowstonenationalparklodges.com/restaurant/old-faithful-inn-bear-paw-deli/"
+      },
+      "distanceAlongTrail": 1598.1891544077719,
+      "distanceFromTrail": 0.1133282766778699
+    },
+    {
+      "id": 6612422915,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 44.4595875,
+      "lon": -110.8311558,
+      "name": "Old Faithful Inn Dining Room",
+      "tags": {
+        "amenity": "restaurant",
+        "cuisine": "american",
+        "name": "Old Faithful Inn Dining Room",
+        "opening_hours": "Mo-Su 06:30-10:30, 11:30-14:30, 16:30-22:00",
+        "phone": "+1-307-344-7311",
+        "website": "https://yellowstonenationalparklodges.com/restaurant/old-faithful-inn-dining-room/"
+      },
+      "distanceAlongTrail": 1598.2130499236646,
+      "distanceFromTrail": 0.09724155305077163
+    },
+    {
+      "id": 1068392226,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 44.4595949,
+      "lon": -110.8309955,
+      "name": "Bear Pit Lounge",
+      "tags": {
+        "addr:housenumber": "3200",
+        "addr:postcode": "82190",
+        "addr:street": "Old Faithful Inn Road",
+        "amenity": "bar",
+        "building:part": "yes",
+        "cuisine": "american;burger",
+        "name": "Bear Pit Lounge",
+        "opening_hours": "Mo-Su 11:30-00:00"
+      },
+      "distanceAlongTrail": 1598.2155050506253,
+      "distanceFromTrail": 0.08473142020159613
+    },
+    {
+      "id": 6612417469,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 44.4596261,
+      "lon": -110.8257382,
+      "name": "Old Faithful Lodge Cafeteria",
+      "tags": {
+        "amenity": "restaurant",
+        "cuisine": "american",
+        "name": "Old Faithful Lodge Cafeteria",
+        "phone": "+1-307-344-7311"
+      },
+      "distanceAlongTrail": 1598.454814185197,
+      "distanceFromTrail": 0.1745290961017983
+    },
+    {
+      "id": 12717590626,
+      "type": "node",
+      "category": "water",
+      "lat": 44.4592795,
+      "lon": -110.8256426,
+      "name": null,
+      "tags": {
+        "access": "yes",
+        "amenity": "drinking_water",
+        "fee": "no"
+      },
+      "distanceAlongTrail": 1598.456137783285,
+      "distanceFromTrail": 0.16408135584563752
+    },
+    {
+      "id": 8927144235,
+      "type": "node",
+      "category": "water",
+      "lat": 44.4570775,
+      "lon": -110.82723,
+      "name": null,
+      "tags": {
+        "access": "customers",
+        "amenity": "drinking_water",
+        "bottle": "yes",
+        "covered": "yes",
+        "fee": "no",
+        "fountain": "bubbler",
+        "indoor": "no"
+      },
+      "distanceAlongTrail": 1598.6314094086185,
+      "distanceFromTrail": 0.04317121286283157
+    },
+    {
+      "id": 24233241,
+      "type": "way",
+      "category": "resupply",
+      "lat": 44.4567938,
+      "lon": -110.8279065,
+      "name": "Old Faithful General Store",
+      "tags": {
+        "name": "Old Faithful General Store",
+        "nohousenumber": "yes",
+        "shop": "convenience",
+        "website": "https://www.yellowstonevacations.com/yellowstone-general-stores/#old-faithful"
+      },
+      "distanceAlongTrail": 1598.6444803253808,
+      "distanceFromTrail": 0.04081947505346259
+    },
+    {
+      "id": 24244165,
+      "type": "way",
+      "category": "resupply",
+      "lat": 44.4566227,
+      "lon": -110.8271433,
+      "name": "Old Faithful Upper Service Station",
+      "tags": {
+        "amenity": "fuel",
+        "brand": "Sinclair",
+        "brand:wikidata": "Q1290900",
+        "building": "commercial",
+        "fuel:diesel": "yes",
+        "fuel:octane_87": "yes",
+        "fuel:octane_91": "yes",
+        "name": "Old Faithful Upper Service Station",
+        "operator": "YPSS",
+        "self_service": "yes"
+      },
+      "distanceAlongTrail": 1598.6444803253808,
+      "distanceFromTrail": 0.08135232682341682
+    },
+    {
+      "id": 1814425008,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 44.4571889,
+      "lon": -110.8289848,
+      "name": "Geyser Grill",
+      "tags": {
+        "amenity": "fast_food",
+        "name": "Geyser Grill",
+        "smoking": "no"
+      },
+      "distanceAlongTrail": 1598.7137552744925,
+      "distanceFromTrail": 0.020765268715640054
     },
     {
       "id": 50873786,
@@ -3289,113 +3325,77 @@
         "operator:wikipedia": "en:United States Postal Service",
         "short_name": "USPS"
       },
-      "distanceAlongTrail": 1600.0126198602022,
-      "distanceFromTrail": 0.5248363901234113
+      "distanceAlongTrail": 1599.05967297062,
+      "distanceFromTrail": 0.06806339081488326
     },
     {
-      "id": 24233241,
-      "type": "way",
-      "category": "resupply",
-      "lat": 44.4567938,
-      "lon": -110.8279065,
-      "name": "Old Faithful General Store",
-      "tags": {
-        "name": "Old Faithful General Store",
-        "nohousenumber": "yes",
-        "shop": "convenience",
-        "website": "https://www.yellowstonevacations.com/yellowstone-general-stores/#old-faithful"
-      },
-      "distanceAlongTrail": 1600.015806390864,
-      "distanceFromTrail": 0.4376185379634301
-    },
-    {
-      "id": 12717590626,
-      "type": "node",
-      "category": "water",
-      "lat": 44.4592795,
-      "lon": -110.8256426,
-      "name": null,
-      "tags": {
-        "access": "yes",
-        "amenity": "drinking_water",
-        "fee": "no"
-      },
-      "distanceAlongTrail": 1600.0309421108425,
-      "distanceFromTrail": 0.7224709818728391
-    },
-    {
-      "id": 4415201850,
-      "type": "node",
-      "category": "water",
-      "lat": 44.462742,
-      "lon": -110.8280964,
-      "name": "Sulphide Spring",
-      "tags": {
-        "drinking_water": "no",
-        "drinking_water:legal": "no",
-        "name": "Sulphide Spring",
-        "natural": "spring",
-        "wikidata": "Q121872752"
-      },
-      "distanceAlongTrail": 1600.0309421108425,
-      "distanceFromTrail": 1.0982254294735703
-    },
-    {
-      "id": 6612417469,
+      "id": 4407524489,
       "type": "node",
       "category": "restaurant",
-      "lat": 44.4596261,
-      "lon": -110.8257382,
-      "name": "Old Faithful Lodge Cafeteria",
+      "lat": 44.4567615,
+      "lon": -110.8297996,
+      "name": "Snow Lodge Obsidian Dining Room",
       "tags": {
         "amenity": "restaurant",
-        "cuisine": "american",
-        "name": "Old Faithful Lodge Cafeteria",
+        "name": "Snow Lodge Obsidian Dining Room",
+        "name:en": "Snow Lodge Obsidian Dining Room",
+        "opening_hours": "Mo-Su 06:30-10:00, 17:00-22:30",
+        "phone": "+1-307-344-7311",
+        "website": "https://www.yellowstonenationalparklodges.com/restaurant/old-faithful-snow-lodge-obsidian-dining-room/"
+      },
+      "distanceAlongTrail": 1599.110883385354,
+      "distanceFromTrail": 0.027558411364022064
+    },
+    {
+      "id": 6612465097,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 44.4567248,
+      "lon": -110.8296531,
+      "name": "Firehole Lounge",
+      "tags": {
+        "amenity": "bar",
+        "cuisine": "pub",
+        "name": "Firehole Lounge",
+        "opening_hours": "Mo-Su 17:00-22:00",
         "phone": "+1-307-344-7311"
       },
-      "distanceAlongTrail": 1600.0309421108425,
-      "distanceFromTrail": 0.7592029174276329
+      "distanceAlongTrail": 1599.1232044500132,
+      "distanceFromTrail": 0.02734584463121445
     },
     {
-      "id": 8927144235,
+      "id": 12717571896,
       "type": "node",
-      "category": "water",
-      "lat": 44.4570775,
-      "lon": -110.82723,
-      "name": null,
+      "category": "emergency",
+      "lat": 44.4568279,
+      "lon": -110.8316842,
+      "name": "Old Faithful Clinic",
       "tags": {
-        "access": "customers",
-        "amenity": "drinking_water",
-        "bottle": "yes",
-        "covered": "yes",
-        "fee": "no",
-        "fountain": "bubbler",
-        "indoor": "no"
+        "amenity": "clinic",
+        "healthcare": "clinic",
+        "name": "Old Faithful Clinic",
+        "operator": "STGi",
+        "operator:type": "private",
+        "website": "https://www.nps.gov/places/000/old-faithful-medical-clinic.htm"
       },
-      "distanceAlongTrail": 1600.0309421108425,
-      "distanceFromTrail": 0.46629811337802485
+      "distanceAlongTrail": 1599.1250750963234,
+      "distanceFromTrail": 0.09026018853792629
     },
     {
-      "id": 24244165,
+      "id": 273535473,
       "type": "way",
-      "category": "resupply",
-      "lat": 44.4566227,
-      "lon": -110.8271433,
-      "name": "Old Faithful Upper Service Station",
+      "category": "emergency",
+      "lat": 44.4568632,
+      "lon": -110.8317481,
+      "name": "Old Faithful Ranger Station",
       "tags": {
-        "amenity": "fuel",
-        "brand": "Sinclair",
-        "brand:wikidata": "Q1290900",
-        "building": "commercial",
-        "fuel:diesel": "yes",
-        "fuel:octane_87": "yes",
-        "fuel:octane_91": "yes",
-        "name": "Old Faithful Upper Service Station",
-        "operator": "YPSS",
-        "self_service": "yes"
+        "amenity": "ranger_station",
+        "building": "yes",
+        "healthcare": "doctor",
+        "name": "Old Faithful Ranger Station"
       },
-      "distanceAlongTrail": 1600.0309421108425,
-      "distanceFromTrail": 0.41580751737726873
+      "distanceAlongTrail": 1599.130799034857,
+      "distanceFromTrail": 0.09315263276054549
     },
     {
       "id": 3064201081,
@@ -5169,36 +5169,6 @@
       "distanceFromTrail": 0.02986128708375094
     },
     {
-      "id": 2568833623,
-      "type": "node",
-      "category": "camping",
-      "lat": 43.7065744,
-      "lon": -109.9715384,
-      "name": "Brooks Lake Creek Falls Campground",
-      "tags": {
-        "name": "Brooks Lake Creek Falls Campground",
-        "operator": "USDA",
-        "tourism": "camp_site",
-        "website": "https://www.fs.usda.gov/recarea/shoshone/recreation/camping-cabins/recarea/?recid=36469&actid=29"
-      },
-      "distanceAlongTrail": 1755.1827917264598,
-      "distanceFromTrail": 1.662309651012153
-    },
-    {
-      "id": 8980014225,
-      "type": "node",
-      "category": "water",
-      "lat": 43.706469,
-      "lon": -109.9711991,
-      "name": null,
-      "tags": {
-        "access": "yes",
-        "man_made": "water_tap"
-      },
-      "distanceAlongTrail": 1755.1827917264598,
-      "distanceFromTrail": 1.6898826610799211
-    },
-    {
       "id": 3036363218,
       "type": "node",
       "category": "camping",
@@ -5224,6 +5194,36 @@
       },
       "distanceAlongTrail": 1769.790569371522,
       "distanceFromTrail": 0.03282306631324728
+    },
+    {
+      "id": 2568833623,
+      "type": "node",
+      "category": "camping",
+      "lat": 43.7065744,
+      "lon": -109.9715384,
+      "name": "Brooks Lake Creek Falls Campground",
+      "tags": {
+        "name": "Brooks Lake Creek Falls Campground",
+        "operator": "USDA",
+        "tourism": "camp_site",
+        "website": "https://www.fs.usda.gov/recarea/shoshone/recreation/camping-cabins/recarea/?recid=36469&actid=29"
+      },
+      "distanceAlongTrail": 1770.433289988444,
+      "distanceFromTrail": 1.662309651012153
+    },
+    {
+      "id": 8980014225,
+      "type": "node",
+      "category": "water",
+      "lat": 43.706469,
+      "lon": -109.9711991,
+      "name": null,
+      "tags": {
+        "access": "yes",
+        "man_made": "water_tap"
+      },
+      "distanceAlongTrail": 1770.433289988444,
+      "distanceFromTrail": 1.6898826610799211
     },
     {
       "id": 3040265245,
@@ -14067,34 +14067,6 @@
       "distanceFromTrail": 1.7545158336083562
     },
     {
-      "id": 13128847016,
-      "type": "node",
-      "category": "camping",
-      "lat": 39.5553844,
-      "lon": -105.8439972,
-      "name": null,
-      "tags": {
-        "backcountry": "yes",
-        "tourism": "camp_site"
-      },
-      "distanceAlongTrail": 2800.0103222214248,
-      "distanceFromTrail": 1.4505170001265515
-    },
-    {
-      "id": 13128847017,
-      "type": "node",
-      "category": "camping",
-      "lat": 39.5554807,
-      "lon": -105.842479,
-      "name": null,
-      "tags": {
-        "backcountry": "yes",
-        "tourism": "camp_site"
-      },
-      "distanceAlongTrail": 2800.0103222214248,
-      "distanceFromTrail": 1.3249304864774094
-    },
-    {
       "id": 9815201100,
       "type": "node",
       "category": "camping",
@@ -14106,8 +14078,8 @@
         "description": "Designated Campsite",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 2800.0103222214248,
-      "distanceFromTrail": 1.9897421513272182
+      "distanceAlongTrail": 2799.1781034890887,
+      "distanceFromTrail": 1.6651718411301786
     },
     {
       "id": 9815222727,
@@ -14121,8 +14093,8 @@
         "description": "Designated Campsite",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 2800.0103222214248,
-      "distanceFromTrail": 1.9499486232346241
+      "distanceAlongTrail": 2799.1781034890887,
+      "distanceFromTrail": 1.6159918526572914
     },
     {
       "id": 9815222728,
@@ -14136,8 +14108,36 @@
         "description": "Designated Campsite",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 2800.0103222214248,
-      "distanceFromTrail": 1.9055931305850211
+      "distanceAlongTrail": 2799.1781034890887,
+      "distanceFromTrail": 1.558624416510803
+    },
+    {
+      "id": 13128847016,
+      "type": "node",
+      "category": "camping",
+      "lat": 39.5553844,
+      "lon": -105.8439972,
+      "name": null,
+      "tags": {
+        "backcountry": "yes",
+        "tourism": "camp_site"
+      },
+      "distanceAlongTrail": 2799.827452653896,
+      "distanceFromTrail": 1.3839129388416669
+    },
+    {
+      "id": 13128847017,
+      "type": "node",
+      "category": "camping",
+      "lat": 39.5554807,
+      "lon": -105.842479,
+      "name": null,
+      "tags": {
+        "backcountry": "yes",
+        "tourism": "camp_site"
+      },
+      "distanceAlongTrail": 2799.827452653896,
+      "distanceFromTrail": 1.2637067953442627
     },
     {
       "id": 13429513941,
@@ -15081,32 +15081,6 @@
       "distanceFromTrail": 0.009838357902512095
     },
     {
-      "id": 5832059364,
-      "type": "node",
-      "category": "camping",
-      "lat": 39.424639,
-      "lon": -106.2696241,
-      "name": null,
-      "tags": {
-        "tourism": "camp_site"
-      },
-      "distanceAlongTrail": 2900.0081878246588,
-      "distanceFromTrail": 0.6508205948213586
-    },
-    {
-      "id": 5832059365,
-      "type": "node",
-      "category": "camping",
-      "lat": 39.424236,
-      "lon": -106.2695865,
-      "name": null,
-      "tags": {
-        "tourism": "camp_site"
-      },
-      "distanceAlongTrail": 2900.0081878246588,
-      "distanceFromTrail": 0.6400236346653428
-    },
-    {
       "id": 858687382,
       "type": "way",
       "category": "camping",
@@ -15129,8 +15103,34 @@
         "tourism": "wilderness_hut",
         "website": "https://www.huts.org/The_Huts/jackal.php"
       },
-      "distanceAlongTrail": 2900.1890987118313,
-      "distanceFromTrail": 1.736072819298145
+      "distanceAlongTrail": 2897.595881043013,
+      "distanceFromTrail": 1.198478779622372
+    },
+    {
+      "id": 5832059364,
+      "type": "node",
+      "category": "camping",
+      "lat": 39.424639,
+      "lon": -106.2696241,
+      "name": null,
+      "tags": {
+        "tourism": "camp_site"
+      },
+      "distanceAlongTrail": 2898.6274666788595,
+      "distanceFromTrail": 0.0073340448048297
+    },
+    {
+      "id": 5832059365,
+      "type": "node",
+      "category": "camping",
+      "lat": 39.424236,
+      "lon": -106.2695865,
+      "name": null,
+      "tags": {
+        "tourism": "camp_site"
+      },
+      "distanceAlongTrail": 2898.6695693577194,
+      "distanceFromTrail": 0.010027412032698467
     },
     {
       "id": 438037919,
@@ -16576,20 +16576,6 @@
       "distanceFromTrail": 0.12635747522505636
     },
     {
-      "id": 11034735013,
-      "type": "node",
-      "category": "camping",
-      "lat": 38.9648137,
-      "lon": -106.4602857,
-      "name": null,
-      "tags": {
-        "backcountry": "yes",
-        "tourism": "camp_site"
-      },
-      "distanceAlongTrail": 3000.026222178932,
-      "distanceFromTrail": 0.9095907973015538
-    },
-    {
       "id": 11034735014,
       "type": "node",
       "category": "camping",
@@ -16600,8 +16586,8 @@
         "backcountry": "yes",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 3000.026222178932,
-      "distanceFromTrail": 1.6474977448419132
+      "distanceAlongTrail": 2997.6333350410955,
+      "distanceFromTrail": 0.011656923539877564
     },
     {
       "id": 11034735015,
@@ -16614,8 +16600,8 @@
         "backcountry": "yes",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 3000.026222178932,
-      "distanceFromTrail": 1.5510094655475042
+      "distanceAlongTrail": 2997.7301388419796,
+      "distanceFromTrail": 0.015102498390890107
     },
     {
       "id": 11034735016,
@@ -16628,8 +16614,22 @@
         "backcountry": "yes",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 3000.026222178932,
-      "distanceFromTrail": 1.3019040244833202
+      "distanceAlongTrail": 2997.999731595224,
+      "distanceFromTrail": 0.013906011465820262
+    },
+    {
+      "id": 11034735013,
+      "type": "node",
+      "category": "camping",
+      "lat": 38.9648137,
+      "lon": -106.4602857,
+      "name": null,
+      "tags": {
+        "backcountry": "yes",
+        "tourism": "camp_site"
+      },
+      "distanceAlongTrail": 2998.3988369905337,
+      "distanceFromTrail": 0.08649534879207971
     },
     {
       "id": 335221809,
@@ -16693,8 +16693,8 @@
         "name": "Monarch Crest Food & Gifts",
         "shop": "convenience"
       },
-      "distanceAlongTrail": 3100.001102049196,
-      "distanceFromTrail": 1.6695423903258606
+      "distanceAlongTrail": 3098.128187516865,
+      "distanceFromTrail": 0.05259116397314625
     },
     {
       "id": 2332624900,
@@ -18760,8 +18760,8 @@
         "name": "Group Campsite",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 4000.0082082106414,
-      "distanceFromTrail": 0.6195370954745604
+      "distanceAlongTrail": 3999.417926848755,
+      "distanceFromTrail": 0.16822882897079316
     },
     {
       "id": 177770704,
@@ -18778,8 +18778,8 @@
         "tourism": "camp_site",
         "url": "https://nps.gov/elma/planyourvisit/camping.htm"
       },
-      "distanceAlongTrail": 4000.0082082106414,
-      "distanceFromTrail": 0.5000438078537325
+      "distanceAlongTrail": 3999.569730106956,
+      "distanceFromTrail": 0.2035132975068582
     },
     {
       "id": 1891887077,
@@ -19203,7 +19203,7 @@
         "natural": "spring",
         "source": "NHD"
       },
-      "distanceAlongTrail": 4239.374017353224,
+      "distanceAlongTrail": 4255.359476017036,
       "distanceFromTrail": 1.2766455667816299
     },
     {
@@ -20364,8 +20364,8 @@
         "tourism": "camp_site",
         "website": "https://www.fs.usda.gov/recarea/gila/recreation/camping-cabins/recarea/?recid=1987&actid=29"
       },
-      "distanceAlongTrail": 4500.035736829686,
-      "distanceFromTrail": 0.4802758009921073
+      "distanceAlongTrail": 4499.429718871571,
+      "distanceFromTrail": 0.07197122128294779
     },
     {
       "id": 7785668038,
@@ -20378,8 +20378,8 @@
         "name": "Sapillo Group Campground Road",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 4500.035736829686,
-      "distanceFromTrail": 0.28883886061500424
+      "distanceAlongTrail": 4499.69740584287,
+      "distanceFromTrail": 0.06669903181487503
     },
     {
       "id": 6936453302,

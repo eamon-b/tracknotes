@@ -23,7 +23,7 @@
  *
  * Usage: tsx scripts/fetch-pois.ts [trail-id] [--dry-run] [--endpoint <url>]
  *          [--timeout <s>] [--max-vertices <n>] [--from-km <km>] [--to-km <km>]
- *          [--force-replace]
+ *          [--force-replace] [--reposition]
  *   - With no trail-id: processes every generated trail
  *   - With trail-id:    processes only that trail
  *   - --dry-run:        builds the corridor and prints query counts, but makes
@@ -34,6 +34,8 @@
  *                       note on MAX_VERTICES_PER_CHUNK before reaching for it
  *   - --force-replace:  replace pois.json even when chunks failed (default:
  *                       merge into it, and exit non-zero)
+ *   - --reposition:     no network: re-place the POIs already in pois.json on
+ *                       the current track (see `repositionTrailPois`)
  *
  * Choosing an instance: public Overpass mirrors vary wildly in reach and load,
  * and a whole-corridor query with all six POI types is a heavy one. As of
@@ -106,10 +108,10 @@ import {
   createOverpassFetcher,
   type POIFetcher,
 } from '../src/lib/overpass-client.js';
-import { enrichRoute, type ChunkFailure } from '../src/lib/poi-enrichment.js';
+import { enrichRoute, placePois, prepareCorridor, type ChunkFailure } from '../src/lib/poi-enrichment.js';
 import { POI_SEARCH_RADIUS_KM } from '../src/lib/trail-poi-search.js';
 
-import { buildRouteScale, toTrailPOIs } from '../src/lib/trail-pois.js';
+import { buildRouteScale, poiKey, toTrailPOIs } from '../src/lib/trail-pois.js';
 import type { LatLon, RouteScale } from '../src/lib/trail-pois.js';
 import type { ProcessedTrail, TrailPOI } from '../src/lib/trail-types.js';
 import {
@@ -263,6 +265,59 @@ export async function processTrailData(
     queryChunks: result.stats.queryChunks,
     queryTimeMs: result.stats.queryTimeMs,
   };
+}
+
+/**
+ * Re-place POIs already in a trail's `pois.json` on its current track, with no
+ * Overpass query: exactly the placement a fetch makes, fed the stored elements.
+ *
+ * A POI's km is measured against the track as it was when it was fetched, so
+ * editing the GPX (or a placement fix) leaves it stale until the next fetch:
+ * Bibbulmun's Albany POIs sat at km 977-982 after the track was cut to 976 km,
+ * and the AAWT's Blue Waterholes POIs at km 790-793 of 688. `build-trails`
+ * refuses a POI past the trail's end (`poisPastTrailEnd`); this is the cheap
+ * fix when the OSM data itself is still fine. POIs the moved track no longer
+ * passes within the search radius are dropped, as a fetch would drop them.
+ */
+export async function repositionTrailPois(
+  trail: ProcessedTrail,
+  stored: readonly TrailPOI[]
+): Promise<{ pois: TrailPOI[]; dropped: TrailPOI[] }> {
+  const scale = buildRouteScale(trail);
+  const corridor = prepareCorridor(scale.polylines, { searchRadiusKm: SEARCH_RADIUS_KM });
+  const elements = stored.map(({ id, type, lat, lon, tags }) => ({ id, type, lat, lon, tags }));
+  const placed = toTrailPOIs(await placePois(corridor, elements, { types: ALL_POI_TYPES }), scale);
+  const kept = new Set(placed.map(poiKey));
+  return { pois: placed, dropped: stored.filter(poi => !kept.has(poiKey(poi))) };
+}
+
+/** Run `repositionTrailPois` on one trail directory's file and write it back. */
+async function repositionTrail(trailPath: string, trailDir: string): Promise<boolean> {
+  console.log(`\nRepositioning: ${path.basename(trailPath, '.json')}`);
+  const existing = readTrailPOIFile(trailDir);
+  if (!existing) {
+    console.log('  No pois.json. Skipping.');
+    return false;
+  }
+  const { pois, dropped } = await repositionTrailPois(readTrail(trailPath), existing.pois);
+  const before = new Map(existing.pois.map(poi => [poiKey(poi), poi.distanceAlongTrail]));
+  const moved = pois.filter(poi => Math.abs((before.get(poiKey(poi)) ?? NaN) - poi.distanceAlongTrail) > 0.05);
+  console.log(`  ${moved.length} POI(s) moved more than 50 m along the trail`);
+  for (const poi of dropped) {
+    console.log(`  dropped (now beyond ${SEARCH_RADIUS_KM} km of the track): ${poi.name ?? poiKey(poi)}`);
+  }
+  const written = writeTrailPOIFile(
+    trailDir,
+    buildTrailPOIFile({
+      existing,
+      pois,
+      fetchedAt: existing.fetchedAt,
+      searchRadiusKm: existing.searchRadiusKm,
+      endpoint: existing.endpoint,
+    })
+  );
+  console.log(`  Updated ${written}`);
+  return true;
 }
 
 /** The filesystem calls the trail-directory lookup makes. Injectable for tests. */
@@ -488,6 +543,7 @@ function printUsage(): void {
   console.log(
     '  --force-replace  Replace pois.json even when chunks failed (default: merge, exit 1)'
   );
+  console.log('  --reposition     No network: re-place the POIs in pois.json on the current track');
   console.log('  --help, -h       Show this message');
   console.log('');
   console.log(
@@ -680,6 +736,16 @@ async function main(): Promise<void> {
       continue;
     }
     targets.push({ trailFile, trailDir });
+  }
+
+  if (args.includes('--reposition')) {
+    let updated = 0;
+    for (const { trailFile, trailDir } of targets) {
+      if (await repositionTrail(trailFile, trailDir)) updated++;
+    }
+    console.log(`\nRepositioned ${updated} trail(s).`);
+    if (failedCount > 0) process.exitCode = 1;
+    return;
   }
 
   if (dryRun) {

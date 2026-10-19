@@ -3990,7 +3990,7 @@
         "amenity": "pub",
         "name": "Club Hotel"
       },
-      "distanceAlongTrail": 327.2541110069443,
+      "distanceAlongTrail": 327.2551409902576,
       "distanceFromTrail": 0.18838087418810326
     },
     {
@@ -4005,7 +4005,7 @@
         "check_date": "2023-04-02",
         "healthcare": "clinic"
       },
-      "distanceAlongTrail": 327.34927579972623,
+      "distanceAlongTrail": 327.3503057830395,
       "distanceFromTrail": 0.3955816110987964
     },
     {
@@ -4029,7 +4029,7 @@
         "shop": "supermarket",
         "website": "https://www.coles.com.au/find-stores/coles/wa/collie-390"
       },
-      "distanceAlongTrail": 327.34927579972623,
+      "distanceAlongTrail": 327.3503057830395,
       "distanceFromTrail": 0.3065160372989139
     },
     {
@@ -4044,7 +4044,7 @@
         "name": "Collie Post Office",
         "opening_hours": "Mo-Fr 08:00-17:00; PH off"
       },
-      "distanceAlongTrail": 327.34927579972623,
+      "distanceAlongTrail": 327.3503057830395,
       "distanceFromTrail": 0.5719501649112486
     },
     {
@@ -4063,7 +4063,7 @@
         "name": "Chicken Treat",
         "takeaway": "yes"
       },
-      "distanceAlongTrail": 327.34927579972623,
+      "distanceAlongTrail": 327.3503057830395,
       "distanceFromTrail": 0.20010268229466746
     },
     {
@@ -4076,7 +4076,7 @@
       "tags": {
         "amenity": "fuel"
       },
-      "distanceAlongTrail": 327.34927579972623,
+      "distanceAlongTrail": 327.3503057830395,
       "distanceFromTrail": 0.3021576312664163
     },
     {
@@ -4090,7 +4090,7 @@
         "amenity": "pharmacy",
         "healthcare": "pharmacy"
       },
-      "distanceAlongTrail": 327.34927579972623,
+      "distanceAlongTrail": 327.3503057830395,
       "distanceFromTrail": 0.47167581861233776
     },
     {
@@ -4104,7 +4104,7 @@
         "amenity": "pub",
         "name": "Premier Hotel"
       },
-      "distanceAlongTrail": 327.34927579972623,
+      "distanceAlongTrail": 327.3503057830395,
       "distanceFromTrail": 0.3217246967274874
     },
     {
@@ -4125,7 +4125,7 @@
         "shop": "convenience",
         "website": "https://www.woolworths.com.au/"
       },
-      "distanceAlongTrail": 327.34927579972623,
+      "distanceAlongTrail": 327.3503057830395,
       "distanceFromTrail": 0.4975936845072431
     },
     {
@@ -4145,7 +4145,7 @@
         "takeaway": "yes",
         "website": "https://www.dominos.com.au/"
       },
-      "distanceAlongTrail": 327.34927579972623,
+      "distanceAlongTrail": 327.3503057830395,
       "distanceFromTrail": 0.29520442880930564
     },
     {
@@ -4160,7 +4160,7 @@
         "check_date": "2023-04-02",
         "name": "The Wagon"
       },
-      "distanceAlongTrail": 327.34927579972623,
+      "distanceAlongTrail": 327.3503057830395,
       "distanceFromTrail": 0.3507758644763164
     },
     {
@@ -4177,7 +4177,7 @@
         "phone": "+61 8 9734 2734",
         "shop": "bakery"
       },
-      "distanceAlongTrail": 327.34927579972623,
+      "distanceAlongTrail": 327.3503057830395,
       "distanceFromTrail": 0.4227721158535267
     },
     {
@@ -4196,7 +4196,7 @@
         "short_name": "Collie District Hospital",
         "source": "https://www.health.gov.au/resources/publications/list-of-declared-hospitals"
       },
-      "distanceAlongTrail": 327.34927579972623,
+      "distanceAlongTrail": 327.3503057830395,
       "distanceFromTrail": 1.4402872382257486
     },
     {
@@ -4210,7 +4210,7 @@
         "amenity": "pub",
         "name": "Federal Hotel"
       },
-      "distanceAlongTrail": 327.34927579973015,
+      "distanceAlongTrail": 327.3503057830435,
       "distanceFromTrail": 0.9190479967711277
     },
     {
@@ -4224,7 +4224,7 @@
         "amenity": "fast_food",
         "name": "Sizzles Deli"
       },
-      "distanceAlongTrail": 327.34927579973015,
+      "distanceAlongTrail": 327.3503057830435,
       "distanceFromTrail": 0.980870913207996
     },
     {
@@ -4238,7 +4238,7 @@
         "amenity": "fuel",
         "created_by": "JOSM"
       },
-      "distanceAlongTrail": 327.34927579973015,
+      "distanceAlongTrail": 327.3503057830435,
       "distanceFromTrail": 0.07866197416363013
     },
     {
@@ -4256,7 +4256,7 @@
         "created_by": "JOSM",
         "name": "Ampol"
       },
-      "distanceAlongTrail": 327.34927579973015,
+      "distanceAlongTrail": 327.3503057830435,
       "distanceFromTrail": 0.28947900889565076
     },
     {
@@ -4277,7 +4277,7 @@
         "operator:wikidata": "Q7987488",
         "website": "https://www.police.wa.gov.au/"
       },
-      "distanceAlongTrail": 327.34927579973015,
+      "distanceAlongTrail": 327.3503057830435,
       "distanceFromTrail": 1.0055693172051878
     },
     {
@@ -4292,7 +4292,7 @@
         "building": "yes",
         "shelter_type": "weather_shelter"
       },
-      "distanceAlongTrail": 327.34927579973015,
+      "distanceAlongTrail": 327.3503057830435,
       "distanceFromTrail": 0.8402684379698303
     },
     {
@@ -4316,7 +4316,7 @@
         "takeaway": "yes",
         "website": "https://mcdonalds.com.au/"
       },
-      "distanceAlongTrail": 327.34927579973015,
+      "distanceAlongTrail": 327.3503057830435,
       "distanceFromTrail": 0.44071932218252957
     },
     {
@@ -4330,7 +4330,7 @@
         "name": "Collie River Valley Tourist Park",
         "tourism": "caravan_site"
       },
-      "distanceAlongTrail": 327.6789173223197,
+      "distanceAlongTrail": 327.67994730563305,
       "distanceFromTrail": 0.5157362569895418
     },
     {
@@ -4343,7 +4343,7 @@
       "tags": {
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 346.56725089274073,
+      "distanceAlongTrail": 341.2466393266509,
       "distanceFromTrail": 0.004733121861416367
     },
     {
@@ -4366,7 +4366,7 @@
         "water": "yes",
         "website": "https://www.bibbulmuntrack.org.au"
       },
-      "distanceAlongTrail": 346.8520964595204,
+      "distanceAlongTrail": 341.53148489343056,
       "distanceFromTrail": 0.01176739559163775
     },
     {
@@ -4385,7 +4385,7 @@
         "tourism": "camp_site",
         "website": "https://collierivervalley.com.au/local-listings/glen-mervyn-dam/"
       },
-      "distanceAlongTrail": 352.17122841793054,
+      "distanceAlongTrail": 346.8506168518407,
       "distanceFromTrail": 0.07494228029262756
     },
     {
@@ -4400,7 +4400,7 @@
         "contact:facebook": "https://www.facebook.com/TheMumbyTavernJustforFun/",
         "name": "Mumballup Tavern"
       },
-      "distanceAlongTrail": 358.82489359410937,
+      "distanceAlongTrail": 353.50428202801953,
       "distanceFromTrail": 0.011630454475826354
     },
     {
@@ -4414,7 +4414,7 @@
         "amenity": "shelter",
         "name": "Department of Parks & Wildlife: Arcadia Campsite"
       },
-      "distanceAlongTrail": 360.2422586565389,
+      "distanceAlongTrail": 354.92225865653893,
       "distanceFromTrail": 0.026802067712821533
     },
     {
@@ -4433,7 +4433,7 @@
         "phone": "+61 8 9734 7521",
         "website": "https://www.kioskatthedam.com.au"
       },
-      "distanceAlongTrail": 363.27014488033626,
+      "distanceAlongTrail": 357.95014488033627,
       "distanceFromTrail": 0.5401438233021675
     },
     {
@@ -4457,7 +4457,7 @@
         "toilets": "yes",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 363.27014488033626,
+      "distanceAlongTrail": 357.95014488033627,
       "distanceFromTrail": 1.6419720446498016
     },
     {
@@ -4480,7 +4480,7 @@
         "water": "yes",
         "website": "https://www.bibbulmuntrack.org.au"
       },
-      "distanceAlongTrail": 366.5716133847609,
+      "distanceAlongTrail": 361.25100181867106,
       "distanceFromTrail": 0.010102612724438425
     },
     {
@@ -4503,7 +4503,7 @@
         "water": "yes",
         "website": "https://www.bibbulmuntrack.org.au"
       },
-      "distanceAlongTrail": 388.650175094533,
+      "distanceAlongTrail": 383.32956352844315,
       "distanceFromTrail": 0.04765744784123936
     },
     {
@@ -4525,7 +4525,7 @@
         "tourism": "camp_site",
         "website": "https://balinguptourism.com.au/accommodation/balingup-transit-park-2/"
       },
-      "distanceAlongTrail": 410.878039708082,
+      "distanceAlongTrail": 405.55742814199215,
       "distanceFromTrail": 0.022339030347312893
     },
     {
@@ -4538,7 +4538,7 @@
       "tags": {
         "amenity": "water_point"
       },
-      "distanceAlongTrail": 411.03244462483616,
+      "distanceAlongTrail": 405.7118330587463,
       "distanceFromTrail": 0.005946122262962106
     },
     {
@@ -4551,7 +4551,7 @@
       "tags": {
         "amenity": "water_point"
       },
-      "distanceAlongTrail": 411.195795882169,
+      "distanceAlongTrail": 405.8751843160792,
       "distanceFromTrail": 0.0268041231919682
     },
     {
@@ -4568,7 +4568,7 @@
         "name": "Balingup Doctors Surgery",
         "phone": "+61 8 9760 2118"
       },
-      "distanceAlongTrail": 411.233715482405,
+      "distanceAlongTrail": 405.91310391631515,
       "distanceFromTrail": 0.049668784128941997
     },
     {
@@ -4584,7 +4584,7 @@
         "operator": "Department of Fire & Emergency Services",
         "operator:wikidata": "Q5451517"
       },
-      "distanceAlongTrail": 411.25344226083905,
+      "distanceAlongTrail": 405.9328306947492,
       "distanceFromTrail": 0.3234048832552311
     },
     {
@@ -4598,7 +4598,7 @@
         "amenity": "fuel",
         "name": "Balingup General and Liquor Store"
       },
-      "distanceAlongTrail": 411.25344226083905,
+      "distanceAlongTrail": 405.9328306947492,
       "distanceFromTrail": 0.015968593447371355
     },
     {
@@ -4612,7 +4612,7 @@
         "name": "Balingup General and Liquor Store",
         "shop": "general"
       },
-      "distanceAlongTrail": 411.269861311752,
+      "distanceAlongTrail": 405.94924974566214,
       "distanceFromTrail": 0.014192031506340528
     },
     {
@@ -4626,7 +4626,7 @@
         "access": "customers",
         "amenity": "water_point"
       },
-      "distanceAlongTrail": 411.3832710897046,
+      "distanceAlongTrail": 406.06265952361474,
       "distanceFromTrail": 0.25344923682138565
     },
     {
@@ -4640,7 +4640,7 @@
         "amenity": "cafe",
         "name": "Packing Shed Cafe"
       },
-      "distanceAlongTrail": 411.4770261859178,
+      "distanceAlongTrail": 406.15641461982796,
       "distanceFromTrail": 0.01789481965686648
     },
     {
@@ -4656,7 +4656,7 @@
         "opening_hours": "Mo-Fr 08:00-15:00",
         "wheelchair": "yes"
       },
-      "distanceAlongTrail": 411.4785888723711,
+      "distanceAlongTrail": 406.1579773062813,
       "distanceFromTrail": 0.02127388497600635
     },
     {
@@ -4674,7 +4674,7 @@
         "name": "The Mushroom at no. 61",
         "opening_hours": "Mo-Fr 08:00-15:00"
       },
-      "distanceAlongTrail": 411.4800280207108,
+      "distanceAlongTrail": 406.15941645462095,
       "distanceFromTrail": 0.024187636070302776
     },
     {
@@ -4691,7 +4691,7 @@
         "name": "Balingup Pharmacy",
         "opening_hours": "Mo-Sa 08:30-17:00,09:00-18:00; Su 10:00-17:00"
       },
-      "distanceAlongTrail": 411.4825075348063,
+      "distanceAlongTrail": 406.16189596871646,
       "distanceFromTrail": 0.03054406562334429
     },
     {
@@ -4710,7 +4710,7 @@
         "phone": "+61 8 9764 1172",
         "website": "https://fruitwinery.com.au/"
       },
-      "distanceAlongTrail": 411.4844062818924,
+      "distanceAlongTrail": 406.16379471580257,
       "distanceFromTrail": 0.01940319353889289
     },
     {
@@ -4724,7 +4724,7 @@
         "amenity": "pub",
         "name": "Balingup Tavern"
       },
-      "distanceAlongTrail": 411.4922871205923,
+      "distanceAlongTrail": 406.1716755545025,
       "distanceFromTrail": 0.36893292472314027
     },
     {
@@ -4740,7 +4740,7 @@
         "bin": "yes",
         "building": "yes"
       },
-      "distanceAlongTrail": 411.5066120263114,
+      "distanceAlongTrail": 406.1860004602216,
       "distanceFromTrail": 0.025592926089109392
     },
     {
@@ -4757,7 +4757,7 @@
         "operator": "Australia Post",
         "operator:wikidata": "Q1142936"
       },
-      "distanceAlongTrail": 411.5066944377471,
+      "distanceAlongTrail": 406.1860828716573,
       "distanceFromTrail": 0.25991983191681334
     },
     {
@@ -4773,7 +4773,7 @@
         "highway": "bus_stop",
         "public_transport": "platform"
       },
-      "distanceAlongTrail": 411.64439676991043,
+      "distanceAlongTrail": 406.3237852038206,
       "distanceFromTrail": 0.009476472679400423
     },
     {
@@ -4789,7 +4789,7 @@
         "public_transport": "platform",
         "shelter": "yes"
       },
-      "distanceAlongTrail": 411.68001902166526,
+      "distanceAlongTrail": 406.3594074555754,
       "distanceFromTrail": 0.007088369521906148
     },
     {
@@ -4804,7 +4804,7 @@
         "building": "yes",
         "shelter_type": "gazebo"
       },
-      "distanceAlongTrail": 413.76036186571656,
+      "distanceAlongTrail": 408.4397502996267,
       "distanceFromTrail": 0.006131257792469455
     },
     {
@@ -4827,7 +4827,7 @@
         "water": "yes",
         "website": "https://www.bibbulmuntrack.org.au"
       },
-      "distanceAlongTrail": 428.58346051691944,
+      "distanceAlongTrail": 423.2628489508296,
       "distanceFromTrail": 0.0004969500458100746
     },
     {
@@ -4841,7 +4841,7 @@
         "amenity": "shelter",
         "building": "yes"
       },
-      "distanceAlongTrail": 428.58459872452863,
+      "distanceAlongTrail": 423.2639871584388,
       "distanceFromTrail": 0.010305310601523874
     },
     {
@@ -4864,7 +4864,7 @@
         "water": "yes",
         "website": "https://www.bibbulmuntrack.org.au"
       },
-      "distanceAlongTrail": 446.47758566693545,
+      "distanceAlongTrail": 441.1569741008456,
       "distanceFromTrail": 0.050439214582774214
     },
     {
@@ -4882,7 +4882,7 @@
         "toilets": "yes",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 450.1495721010466,
+      "distanceAlongTrail": 444.82896053495676,
       "distanceFromTrail": 0.1487208401056601
     },
     {
@@ -4901,7 +4901,7 @@
         "toilets": "yes",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 455.94385465537584,
+      "distanceAlongTrail": 450.623243089286,
       "distanceFromTrail": 0.0590913928649991
     },
     {
@@ -4914,7 +4914,7 @@
       "tags": {
         "amenity": "shelter"
       },
-      "distanceAlongTrail": 482.81863989898306,
+      "distanceAlongTrail": 477.4980283328932,
       "distanceFromTrail": 0.04400561564610661
     },
     {
@@ -4938,7 +4938,7 @@
         "water": "yes",
         "website": "https://www.bibbulmuntrack.org.au"
       },
-      "distanceAlongTrail": 482.82909334460237,
+      "distanceAlongTrail": 477.50848177851253,
       "distanceFromTrail": 0.05572709312013641
     },
     {
@@ -4957,7 +4957,7 @@
         "tourism": "camp_site",
         "website": "https://exploreparks.dbca.wa.gov.au/site/greens-island-campground"
       },
-      "distanceAlongTrail": 491.89580341936653,
+      "distanceAlongTrail": 486.5751918532767,
       "distanceFromTrail": 0.07106231557370676
     },
     {
@@ -4983,7 +4983,7 @@
         "water": "yes",
         "website": "https://mundi-biddi.myshopify.com/pages/group-bookings"
       },
-      "distanceAlongTrail": 496.58279540499063,
+      "distanceAlongTrail": 491.2621838389008,
       "distanceFromTrail": 0.6837863166570153
     },
     {
@@ -4999,7 +4999,7 @@
         "name": "Karta Burnu",
         "shelter_type": "basic_hut"
       },
-      "distanceAlongTrail": 496.58279540499063,
+      "distanceAlongTrail": 491.2621838389008,
       "distanceFromTrail": 0.6979779447944925
     },
     {
@@ -5022,7 +5022,7 @@
         "water": "yes",
         "website": "https://www.bibbulmuntrack.org.au"
       },
-      "distanceAlongTrail": 505.45094329915344,
+      "distanceAlongTrail": 500.1303317330636,
       "distanceFromTrail": 0.09444656934095769
     },
     {
@@ -5044,7 +5044,7 @@
         "water": "yes",
         "website": "https://www.bibbulmuntrack.org.au"
       },
-      "distanceAlongTrail": 524.7789368244289,
+      "distanceAlongTrail": 519.4583252583396,
       "distanceFromTrail": 0.019485998662170826
     },
     {
@@ -5067,7 +5067,7 @@
         "tourism": "camp_site",
         "website": "https://parksandresorts.rac.com.au/karri-valley/resort-info/resort-map/"
       },
-      "distanceAlongTrail": 542.321146099329,
+      "distanceAlongTrail": 537.0005345332397,
       "distanceFromTrail": 0.9917084176751293
     },
     {
@@ -5086,7 +5086,7 @@
         "smoking": "no",
         "takeaway": "no"
       },
-      "distanceAlongTrail": 542.6649596381245,
+      "distanceAlongTrail": 537.3443480720352,
       "distanceFromTrail": 0.29076213582939475
     },
     {
@@ -5108,7 +5108,7 @@
         "water": "yes",
         "website": "https://www.bibbulmuntrack.org.au"
       },
-      "distanceAlongTrail": 544.7212659378802,
+      "distanceAlongTrail": 539.4006543717909,
       "distanceFromTrail": 0.03419573864368127
     },
     {
@@ -5129,7 +5129,7 @@
         "takeaway": "no",
         "website": "http://silkwoodwines.com.au/"
       },
-      "distanceAlongTrail": 549.7317882410258,
+      "distanceAlongTrail": 544.4111766749365,
       "distanceFromTrail": 1.6442102560653444
     },
     {
@@ -5151,7 +5151,7 @@
         "water": "no",
         "website": "https://exploreparks.dbca.wa.gov.au/site/big-brook-arboretum-campground"
       },
-      "distanceAlongTrail": 559.1827418840671,
+      "distanceAlongTrail": 553.8621303179779,
       "distanceFromTrail": 0.38075211343657334
     },
     {
@@ -5176,7 +5176,7 @@
         "takeaway": "no",
         "website": "https://www.hiddenriver.com.au/"
       },
-      "distanceAlongTrail": 562.8289756628997,
+      "distanceAlongTrail": 557.5083640968104,
       "distanceFromTrail": 0.7961037900710888
     },
     {
@@ -5198,7 +5198,7 @@
         "takeaway": "no",
         "website": "https://www.jarrahjacks.com.au/"
       },
-      "distanceAlongTrail": 564.3983275530546,
+      "distanceAlongTrail": 559.0777159869654,
       "distanceFromTrail": 0.7851204987058101
     },
     {
@@ -5219,7 +5219,7 @@
         "tourism": "caravan_site",
         "website": "https://www.pembertoncaravanpark.com.au/"
       },
-      "distanceAlongTrail": 567.5059795297964,
+      "distanceAlongTrail": 562.1853679637071,
       "distanceFromTrail": 0.16473234675958925
     },
     {
@@ -5239,7 +5239,7 @@
         "shop": "bakery",
         "survey:date": "2022-07-03"
       },
-      "distanceAlongTrail": 567.750012126234,
+      "distanceAlongTrail": 562.4294005601447,
       "distanceFromTrail": 0.0836177055489041
     },
     {
@@ -5258,7 +5258,7 @@
         "phone": "+61 8 9776 0712",
         "website": "http://pembertonfwg.com.au/"
       },
-      "distanceAlongTrail": 567.7628277355154,
+      "distanceAlongTrail": 562.4422161694262,
       "distanceFromTrail": 0.4764835900952723
     },
     {
@@ -5273,7 +5273,7 @@
         "cuisine": "regional",
         "name": "The Millhouse Cafe"
       },
-      "distanceAlongTrail": 567.7685921482714,
+      "distanceAlongTrail": 562.4479805821821,
       "distanceFromTrail": 0.02686106380662567
     },
     {
@@ -5287,7 +5287,7 @@
         "amenity": "cafe",
         "name": "Source Kitchen"
       },
-      "distanceAlongTrail": 567.8251456027158,
+      "distanceAlongTrail": 562.5045340366265,
       "distanceFromTrail": 0.014903341848077867
     },
     {
@@ -5302,7 +5302,7 @@
         "description": "Whiskey bar and restaurant",
         "name": "Jaspers"
       },
-      "distanceAlongTrail": 567.9161047408944,
+      "distanceAlongTrail": 562.5954931748051,
       "distanceFromTrail": 0.006178932584676643
     },
     {
@@ -5317,7 +5317,7 @@
         "healthcare": "hospital",
         "name": "Pemberton District Hospital"
       },
-      "distanceAlongTrail": 568.029830003335,
+      "distanceAlongTrail": 562.7092184372457,
       "distanceFromTrail": 0.13066140128178577
     },
     {
@@ -5335,7 +5335,7 @@
         "public_transport": "platform",
         "shelter": "yes"
       },
-      "distanceAlongTrail": 568.0766257728621,
+      "distanceAlongTrail": 562.7560142067729,
       "distanceFromTrail": 0.0030922852740439843
     },
     {
@@ -5349,7 +5349,7 @@
         "man_made": "water_tap",
         "name": "Water tap"
       },
-      "distanceAlongTrail": 568.0853325575058,
+      "distanceAlongTrail": 562.7647209914165,
       "distanceFromTrail": 0.017281246377628002
     },
     {
@@ -5363,7 +5363,7 @@
         "amenity": "cafe",
         "name": "Cafe Brasil"
       },
-      "distanceAlongTrail": 568.1497670189812,
+      "distanceAlongTrail": 562.8291554528919,
       "distanceFromTrail": 0.020433798195152782
     },
     {
@@ -5381,7 +5381,7 @@
         "shop": "supermarket",
         "survey:date": "2022-07-03"
       },
-      "distanceAlongTrail": 568.1570136391748,
+      "distanceAlongTrail": 562.8364020730855,
       "distanceFromTrail": 0.10533466122522518
     },
     {
@@ -5394,7 +5394,7 @@
       "tags": {
         "amenity": "shelter"
       },
-      "distanceAlongTrail": 568.1659979070233,
+      "distanceAlongTrail": 562.845386340934,
       "distanceFromTrail": 0.025271544039935766
     },
     {
@@ -5410,7 +5410,7 @@
         "name": "Pemberton Phamacy",
         "opening_hours": "Mo-Fr 09:00-17:00; Sa 09:00-12:00"
       },
-      "distanceAlongTrail": 568.188403140877,
+      "distanceAlongTrail": 562.8677915747877,
       "distanceFromTrail": 0.0228242737786935
     },
     {
@@ -5425,7 +5425,7 @@
         "name:en": "Just Lofti",
         "opening_hours": "Su-Sa 05:00-14:00"
       },
-      "distanceAlongTrail": 568.2101471010499,
+      "distanceAlongTrail": 562.8895355349606,
       "distanceFromTrail": 0.023409514115483677
     },
     {
@@ -5441,7 +5441,7 @@
         "name": "Wild at Heart",
         "opening_hours:signed": "no"
       },
-      "distanceAlongTrail": 568.2164659816837,
+      "distanceAlongTrail": 562.8958544155944,
       "distanceFromTrail": 0.021722931141465958
     },
     {
@@ -5455,7 +5455,7 @@
         "name": "Pemberton",
         "railway": "halt"
       },
-      "distanceAlongTrail": 568.2387351005915,
+      "distanceAlongTrail": 562.9181235345022,
       "distanceFromTrail": 0.222648118387452
     },
     {
@@ -5474,7 +5474,7 @@
         "operator:wikidata": "Q5451517",
         "phone": "+61 8 9776 1462"
       },
-      "distanceAlongTrail": 568.2788531134192,
+      "distanceAlongTrail": 562.95824154733,
       "distanceFromTrail": 0.05805790173731335
     },
     {
@@ -5492,7 +5492,7 @@
         "operator": "Australia Post",
         "operator:wikidata": "Q1142936"
       },
-      "distanceAlongTrail": 568.299786037756,
+      "distanceAlongTrail": 562.9791744716667,
       "distanceFromTrail": 0.02096317322972096
     },
     {
@@ -5510,7 +5510,7 @@
         "name": "BP Pemberton",
         "shop": "gas"
       },
-      "distanceAlongTrail": 568.3146216985264,
+      "distanceAlongTrail": 562.9940101324371,
       "distanceFromTrail": 0.2165492764649692
     },
     {
@@ -5532,7 +5532,7 @@
         "opening_hours": "24/7",
         "website": "https://map.bp.com/en-AU/AU/gas-station/pemberton/bp-pemberton-card/6433"
       },
-      "distanceAlongTrail": 568.3146216985264,
+      "distanceAlongTrail": 562.9940101324371,
       "distanceFromTrail": 0.21014635109036806
     },
     {
@@ -5546,7 +5546,7 @@
         "amenity": "pub",
         "name": "Pemberton Hotel"
       },
-      "distanceAlongTrail": 568.3174985320826,
+      "distanceAlongTrail": 562.9968869659933,
       "distanceFromTrail": 0.0856652704879004
     },
     {
@@ -5564,7 +5564,7 @@
         "phone": "+61 8 9776 1017",
         "website": "https://www.pembertonhotel.com.au/"
       },
-      "distanceAlongTrail": 568.3188332359422,
+      "distanceAlongTrail": 562.9982216698529,
       "distanceFromTrail": 0.09428906390474559
     },
     {
@@ -5582,7 +5582,7 @@
         "shop": "general",
         "wheelchair": "yes"
       },
-      "distanceAlongTrail": 568.3334259340542,
+      "distanceAlongTrail": 563.0128143679649,
       "distanceFromTrail": 0.02973229423185728
     },
     {
@@ -5602,7 +5602,7 @@
         "operator:wikidata": "Q7987488",
         "phone": "+61 8 9716 3100"
       },
-      "distanceAlongTrail": 568.5881089793976,
+      "distanceAlongTrail": 563.2674974133083,
       "distanceFromTrail": 0.029724126250751368
     },
     {
@@ -5620,7 +5620,7 @@
         "public_transport": "platform",
         "shelter": "no"
       },
-      "distanceAlongTrail": 569.7135785846488,
+      "distanceAlongTrail": 564.3929670185595,
       "distanceFromTrail": 0.0073859966771029
     },
     {
@@ -5645,7 +5645,7 @@
         "website": "http://www.gloucester-ridge.com.au/",
         "wheelchair": "yes"
       },
-      "distanceAlongTrail": 570.7321290703956,
+      "distanceAlongTrail": 565.4115175043063,
       "distanceFromTrail": 0.21594208360777056
     },
     {
@@ -5659,7 +5659,7 @@
         "amenity": "ranger_station",
         "name": "Gloucester Tree"
       },
-      "distanceAlongTrail": 571.0914605232412,
+      "distanceAlongTrail": 565.7708489571519,
       "distanceFromTrail": 0.07758868750781688
     },
     {
@@ -5672,7 +5672,7 @@
       "tags": {
         "amenity": "drinking_water"
       },
-      "distanceAlongTrail": 571.1604059361104,
+      "distanceAlongTrail": 565.8397943700211,
       "distanceFromTrail": 0.06421409075773658
     },
     {
@@ -5686,7 +5686,7 @@
         "name": "Cascades",
         "railway": "halt"
       },
-      "distanceAlongTrail": 576.4511343649372,
+      "distanceAlongTrail": 571.1305227988479,
       "distanceFromTrail": 0.10229634107914443
     },
     {
@@ -5707,7 +5707,7 @@
         "name": "Foragers",
         "takeaway": "no"
       },
-      "distanceAlongTrail": 576.5138329658373,
+      "distanceAlongTrail": 571.193221399748,
       "distanceFromTrail": 1.8751555507120072
     },
     {
@@ -5729,7 +5729,7 @@
         "water": "yes",
         "website": "https://www.bibbulmuntrack.org.au"
       },
-      "distanceAlongTrail": 587.9470530414769,
+      "distanceAlongTrail": 582.6264414753877,
       "distanceFromTrail": 0.007416537660278334
     },
     {
@@ -5748,7 +5748,7 @@
         "toilets": "no",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 597.5427378264762,
+      "distanceAlongTrail": 592.222126260387,
       "distanceFromTrail": 0.4482967692202648
     },
     {
@@ -5771,7 +5771,7 @@
         "water": "yes",
         "website": "https://www.bibbulmuntrack.org.au"
       },
-      "distanceAlongTrail": 608.3235971710835,
+      "distanceAlongTrail": 603.0029856049943,
       "distanceFromTrail": 0.020939927380925927
     },
     {
@@ -5785,7 +5785,7 @@
         "amenity": "shelter",
         "shelter_type": "picnic_shelter"
       },
-      "distanceAlongTrail": 620.2572280780005,
+      "distanceAlongTrail": 614.9366165119112,
       "distanceFromTrail": 0.011584151707646782
     },
     {
@@ -5808,7 +5808,7 @@
         "toilets": "yes",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 620.6488439524129,
+      "distanceAlongTrail": 615.3282323863236,
       "distanceFromTrail": 0.2691813698694485
     },
     {
@@ -5824,7 +5824,7 @@
         "operator": "Department of Fire & Emergency Services",
         "operator:wikidata": "Q5451517"
       },
-      "distanceAlongTrail": 622.2593474036687,
+      "distanceAlongTrail": 616.9387358375794,
       "distanceFromTrail": 0.06515014484945067
     },
     {
@@ -5837,7 +5837,7 @@
       "tags": {
         "amenity": "water_point"
       },
-      "distanceAlongTrail": 622.3068257296985,
+      "distanceAlongTrail": 616.9862141636092,
       "distanceFromTrail": 0.10678269502798286
     },
     {
@@ -5859,7 +5859,7 @@
         "name": "Northcliffe Newsagent and General Store",
         "phone": "+61 8 9776 7072"
       },
-      "distanceAlongTrail": 622.3729657755378,
+      "distanceAlongTrail": 617.0523542094485,
       "distanceFromTrail": 0.19959135772985503
     },
     {
@@ -5883,7 +5883,7 @@
         "operator": "Post Office",
         "phone": "+61 8 9776 7002"
       },
-      "distanceAlongTrail": 622.3729657755378,
+      "distanceAlongTrail": 617.0523542094485,
       "distanceFromTrail": 0.10675005957712627
     },
     {
@@ -5896,7 +5896,7 @@
       "tags": {
         "man_made": "water_tap"
       },
-      "distanceAlongTrail": 622.3729657755378,
+      "distanceAlongTrail": 617.0523542094485,
       "distanceFromTrail": 0.2244007811910068
     },
     {
@@ -5909,7 +5909,7 @@
       "tags": {
         "amenity": "drinking_water"
       },
-      "distanceAlongTrail": 622.3729657755378,
+      "distanceAlongTrail": 617.0523542094485,
       "distanceFromTrail": 0.08441482082643363
     },
     {
@@ -5929,7 +5929,7 @@
         "name": "Northcliffe Newsagent and General Store",
         "shop": "general"
       },
-      "distanceAlongTrail": 622.3729657755378,
+      "distanceAlongTrail": 617.0523542094485,
       "distanceFromTrail": 0.20781555175664312
     },
     {
@@ -5946,7 +5946,7 @@
         "opening_hours": "We 15:00+;Th-Su 11:30+",
         "tourism": "hotel"
       },
-      "distanceAlongTrail": 622.3729657755378,
+      "distanceAlongTrail": 617.0523542094485,
       "distanceFromTrail": 0.3426690294078258
     },
     {
@@ -5959,7 +5959,7 @@
       "tags": {
         "amenity": "fuel"
       },
-      "distanceAlongTrail": 622.3729657755378,
+      "distanceAlongTrail": 617.0523542094485,
       "distanceFromTrail": 0.200128074398759
     },
     {
@@ -5974,7 +5974,7 @@
         "building": "yes",
         "shelter_type": "weather_shelter"
       },
-      "distanceAlongTrail": 622.3729657755378,
+      "distanceAlongTrail": 617.0523542094485,
       "distanceFromTrail": 0.2543522572231411
     },
     {
@@ -5994,7 +5994,7 @@
         "operator:wikidata": "Q5451517",
         "phone": "+61 8 9776 7169"
       },
-      "distanceAlongTrail": 622.3729657755378,
+      "distanceAlongTrail": 617.0523542094485,
       "distanceFromTrail": 0.28974047082422677
     },
     {
@@ -6009,7 +6009,7 @@
         "building": "retail",
         "name": "Naughty Noodle Bar"
       },
-      "distanceAlongTrail": 622.3729657755378,
+      "distanceAlongTrail": 617.0523542094485,
       "distanceFromTrail": 0.25603574202119656
     },
     {
@@ -6033,7 +6033,7 @@
         "phone": "+61 8 9776 7002",
         "website": "https://auspost.com.au/pol/app/locate/post-office/wa/northcliffe/6262"
       },
-      "distanceAlongTrail": 622.3912505112405,
+      "distanceAlongTrail": 617.0706389451512,
       "distanceFromTrail": 0.11487391602151517
     },
     {
@@ -6047,7 +6047,7 @@
         "amenity": "pub",
         "name": "Workers Club"
       },
-      "distanceAlongTrail": 623.3068433182292,
+      "distanceAlongTrail": 617.9862317521399,
       "distanceFromTrail": 0.43385277132241207
     },
     {
@@ -6062,7 +6062,7 @@
         "toilets": "yes",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 623.8365636001456,
+      "distanceAlongTrail": 618.5159520340563,
       "distanceFromTrail": 1.323891782884976
     },
     {
@@ -6096,7 +6096,7 @@
         "tourism": "camp_site",
         "website": "http://www.facebook.com/northcliffebushcamp"
       },
-      "distanceAlongTrail": 628.6768510078017,
+      "distanceAlongTrail": 623.3562394417124,
       "distanceFromTrail": 1.4300686018907711
     },
     {
@@ -6119,7 +6119,7 @@
         "water": "yes",
         "website": "https://www.bibbulmuntrack.org.au"
       },
-      "distanceAlongTrail": 637.6047521916499,
+      "distanceAlongTrail": 632.2841406255607,
       "distanceFromTrail": 0.00941485423200049
     },
     {
@@ -6142,7 +6142,7 @@
         "water": "yes",
         "website": "https://www.bibbulmuntrack.org.au"
       },
-      "distanceAlongTrail": 653.8538827609101,
+      "distanceAlongTrail": 648.5332711948208,
       "distanceFromTrail": 0.008594215186798728
     },
     {
@@ -6156,7 +6156,7 @@
         "fee": "no",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 654.3281516135427,
+      "distanceAlongTrail": 649.0075400474534,
       "distanceFromTrail": 0.8741891894667795
     },
     {
@@ -6179,7 +6179,7 @@
         "water": "yes",
         "website": "https://www.bibbulmuntrack.org.au"
       },
-      "distanceAlongTrail": 679.4953932766589,
+      "distanceAlongTrail": 674.1747817105696,
       "distanceFromTrail": 0.000557525215974528
     },
     {
@@ -6202,7 +6202,7 @@
         "water": "yes",
         "website": "https://www.bibbulmuntrack.org.au"
       },
-      "distanceAlongTrail": 698.6370405350566,
+      "distanceAlongTrail": 693.3164289689673,
       "distanceFromTrail": 0.33226388361676107
     },
     {
@@ -6225,7 +6225,7 @@
         "water": "yes",
         "website": "https://www.bibbulmuntrack.org.au"
       },
-      "distanceAlongTrail": 719.5720640220783,
+      "distanceAlongTrail": 714.251452455989,
       "distanceFromTrail": 0.008122128451708984
     },
     {
@@ -6240,7 +6240,7 @@
         "name": "Banksia Hut",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 729.41040372241,
+      "distanceAlongTrail": 724.0897921563208,
       "distanceFromTrail": 1.8440279474338799
     },
     {
@@ -6263,7 +6263,7 @@
         "water": "yes",
         "website": "https://www.bibbulmuntrack.org.au"
       },
-      "distanceAlongTrail": 736.4930184324115,
+      "distanceAlongTrail": 731.1724068663223,
       "distanceFromTrail": 0.2736553007915618
     },
     {
@@ -6277,7 +6277,7 @@
         "building": "yes",
         "tourism": "wilderness_hut"
       },
-      "distanceAlongTrail": 736.4930184324115,
+      "distanceAlongTrail": 731.1724068663223,
       "distanceFromTrail": 0.27236387877206225
     },
     {
@@ -6296,7 +6296,7 @@
         "toilets": "no",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 747.8660057054132,
+      "distanceAlongTrail": 742.5453941393239,
       "distanceFromTrail": 0.0004405772406411692
     },
     {
@@ -6312,7 +6312,7 @@
         "building": "roof",
         "shelter_type": "picnic_shelter"
       },
-      "distanceAlongTrail": 748.2711806468558,
+      "distanceAlongTrail": 742.9505690807665,
       "distanceFromTrail": 0.01630691717017168
     },
     {
@@ -6328,7 +6328,7 @@
         "name": "Mount Clare hut",
         "shelter_type": "lean_to"
       },
-      "distanceAlongTrail": 749.8474735010454,
+      "distanceAlongTrail": 744.5268619349562,
       "distanceFromTrail": 0.0238759184907294
     },
     {
@@ -6353,7 +6353,7 @@
         "water": "yes",
         "website": "https://www.bibbulmuntrack.org.au"
       },
-      "distanceAlongTrail": 749.8550628407027,
+      "distanceAlongTrail": 744.5344512746134,
       "distanceFromTrail": 0.04365742119313813
     },
     {
@@ -6372,7 +6372,7 @@
         "tourism": "caravan_site",
         "website": "https://summerstar.com.au/caravan-parks/rest-point-walpole/"
       },
-      "distanceAlongTrail": 757.6998387729076,
+      "distanceAlongTrail": 752.3792272068183,
       "distanceFromTrail": 0.7454194637892532
     },
     {
@@ -6388,7 +6388,7 @@
         "opening_hours": "Mo-Fr 07:30-17:30; Sa 07:30-17:00; Su 09:00-17:00",
         "shop": "supermarket"
       },
-      "distanceAlongTrail": 760.0031846692749,
+      "distanceAlongTrail": 754.6825731031856,
       "distanceFromTrail": 0.12244815836968546
     },
     {
@@ -6404,7 +6404,7 @@
         "brand:wikidata": "Q277470",
         "name": "Caltex"
       },
-      "distanceAlongTrail": 760.0138149467211,
+      "distanceAlongTrail": 754.6932033806319,
       "distanceFromTrail": 0.11528870939572261
     },
     {
@@ -6427,7 +6427,7 @@
         "opening_hours": "Mo-Su 09:00-20:00",
         "phone": "+61 8 9840 1921"
       },
-      "distanceAlongTrail": 760.1057755028799,
+      "distanceAlongTrail": 754.7851639367906,
       "distanceFromTrail": 0.10175002272169525
     },
     {
@@ -6446,7 +6446,7 @@
         "opening_hours": "Mo-Fr 09:00-17:00; Sa 09:00-12:00; Su off",
         "phone": "+61 8 9840 1127"
       },
-      "distanceAlongTrail": 760.1057755028799,
+      "distanceAlongTrail": 754.7851639367906,
       "distanceFromTrail": 0.09309697786887583
     },
     {
@@ -6462,7 +6462,7 @@
         "brand:wikidata": "Q152057",
         "name": "BP"
       },
-      "distanceAlongTrail": 760.1522164224751,
+      "distanceAlongTrail": 754.8316048563859,
       "distanceFromTrail": 0.06762237996869709
     },
     {
@@ -6484,7 +6484,7 @@
         "shop": "bakery",
         "wheelchair": "yes"
       },
-      "distanceAlongTrail": 760.1522164224751,
+      "distanceAlongTrail": 754.8316048563859,
       "distanceFromTrail": 0.08885316303564299
     },
     {
@@ -6499,7 +6499,7 @@
         "highway": "bus_stop",
         "public_transport": "platform"
       },
-      "distanceAlongTrail": 760.1798269539457,
+      "distanceAlongTrail": 754.8592153878565,
       "distanceFromTrail": 0.00883853220156303
     },
     {
@@ -6515,7 +6515,7 @@
         "operator": "Australia Post",
         "operator:wikidata": "Q1142936"
       },
-      "distanceAlongTrail": 760.2496240042308,
+      "distanceAlongTrail": 754.9290124381415,
       "distanceFromTrail": 0.02540990735263381
     },
     {
@@ -6540,7 +6540,7 @@
         "phone": "+61 8 9840 1008",
         "website": "https://dfes.wa.gov.au/"
       },
-      "distanceAlongTrail": 760.5502779231896,
+      "distanceAlongTrail": 755.2296663571003,
       "distanceFromTrail": 0.027257199521841458
     },
     {
@@ -6567,7 +6567,7 @@
         "website": "https://www.silverchain.org.au/wa/health-care/country-services/remote-area-service-centres/",
         "wheelchair": "yes"
       },
-      "distanceAlongTrail": 760.5598524981154,
+      "distanceAlongTrail": 755.2392409320262,
       "distanceFromTrail": 0.09085677003456055
     },
     {
@@ -6591,7 +6591,7 @@
         "phone": "+61 8 9825 0800",
         "website": "https://www.police.wa.gov.au/"
       },
-      "distanceAlongTrail": 760.5782856131597,
+      "distanceAlongTrail": 755.2576740470704,
       "distanceFromTrail": 0.02780538367909028
     },
     {
@@ -6607,7 +6607,7 @@
         "name": "Centenary Gazebo",
         "shelter_type": "gazebo"
       },
-      "distanceAlongTrail": 761.9670488716318,
+      "distanceAlongTrail": 756.6464373055426,
       "distanceFromTrail": 0.6452228382055638
     },
     {
@@ -6636,7 +6636,7 @@
         "website": "https://www.coalminebeach.com.au",
         "wheelchair": "yes"
       },
-      "distanceAlongTrail": 763.6696039979455,
+      "distanceAlongTrail": 758.3489924318562,
       "distanceFromTrail": 0.054549028636648796
     },
     {
@@ -6649,7 +6649,7 @@
       "tags": {
         "tourism": "alpine_hut"
       },
-      "distanceAlongTrail": 764.2871859079397,
+      "distanceAlongTrail": 758.9665743418504,
       "distanceFromTrail": 0.0004916077461045006
     },
     {
@@ -6663,7 +6663,7 @@
         "amenity": "restaurant",
         "name": "Nornalup Teahouse"
       },
-      "distanceAlongTrail": 771.1730794794335,
+      "distanceAlongTrail": 765.8524679133442,
       "distanceFromTrail": 1.955882260347909
     },
     {
@@ -6686,7 +6686,7 @@
         "water": "yes",
         "website": "https://www.bibbulmuntrack.org.au"
       },
-      "distanceAlongTrail": 778.4477648261728,
+      "distanceAlongTrail": 773.1271532600836,
       "distanceFromTrail": 0.02042541569779579
     },
     {
@@ -6700,7 +6700,7 @@
         "name": "Tree Top Eco Caravan Park",
         "tourism": "caravan_site"
       },
-      "distanceAlongTrail": 786.3279518856227,
+      "distanceAlongTrail": 781.0073403195335,
       "distanceFromTrail": 1.4641715900679781
     },
     {
@@ -6713,7 +6713,7 @@
       "tags": {
         "amenity": "drinking_water"
       },
-      "distanceAlongTrail": 792.5023641839588,
+      "distanceAlongTrail": 787.1817526178695,
       "distanceFromTrail": 0.010845556747511986
     },
     {
@@ -6736,7 +6736,7 @@
         "water": "yes",
         "website": "https://www.bibbulmuntrack.org.au"
       },
-      "distanceAlongTrail": 792.5076735217434,
+      "distanceAlongTrail": 787.1870619556541,
       "distanceFromTrail": 0.01067773108431704
     },
     {
@@ -6749,7 +6749,7 @@
       "tags": {
         "man_made": "water_tap"
       },
-      "distanceAlongTrail": 809.4073817523148,
+      "distanceAlongTrail": 804.0867701862255,
       "distanceFromTrail": 0.007527556660925341
     },
     {
@@ -6772,7 +6772,7 @@
         "water": "yes",
         "website": "https://www.bibbulmuntrack.org.au"
       },
-      "distanceAlongTrail": 809.4073817523148,
+      "distanceAlongTrail": 804.0867701862255,
       "distanceFromTrail": 0.01593624053274606
     },
     {
@@ -6786,7 +6786,7 @@
         "building": "yes",
         "tourism": "wilderness_hut"
       },
-      "distanceAlongTrail": 809.4073817523148,
+      "distanceAlongTrail": 804.0867701862255,
       "distanceFromTrail": 0.010972206501240707
     },
     {
@@ -6808,7 +6808,7 @@
         "tourism": "camp_site",
         "website": "https://www.peacefulbaywa.com.au/"
       },
-      "distanceAlongTrail": 821.7551701675866,
+      "distanceAlongTrail": 816.4345586014973,
       "distanceFromTrail": 0.14834857991978562
     },
     {
@@ -6821,7 +6821,7 @@
       "tags": {
         "man_made": "water_tap"
       },
-      "distanceAlongTrail": 844.678490355431,
+      "distanceAlongTrail": 839.3578787893417,
       "distanceFromTrail": 0.002784328493831823
     },
     {
@@ -6835,7 +6835,7 @@
         "building": "yes",
         "tourism": "wilderness_hut"
       },
-      "distanceAlongTrail": 844.682474179861,
+      "distanceAlongTrail": 839.3618626137717,
       "distanceFromTrail": 0.005124887766841464
     },
     {
@@ -6858,7 +6858,7 @@
         "water": "yes",
         "website": "https://www.bibbulmuntrack.org.au"
       },
-      "distanceAlongTrail": 844.682572190446,
+      "distanceAlongTrail": 839.3619606243567,
       "distanceFromTrail": 0.008148396398967446
     },
     {
@@ -6879,7 +6879,7 @@
         "tourism": "camp_site",
         "website": "https://www.denmark.wa.gov.au/parry-beach-campground.aspx"
       },
-      "distanceAlongTrail": 856.628492471143,
+      "distanceAlongTrail": 851.3078809050537,
       "distanceFromTrail": 0.04692184341375499
     },
     {
@@ -6897,7 +6897,7 @@
         "name": "The Top Shed",
         "outdoor_seating": "yes"
       },
-      "distanceAlongTrail": 861.60853866604,
+      "distanceAlongTrail": 856.2879270999507,
       "distanceFromTrail": 1.8922977260709863
     },
     {
@@ -6913,7 +6913,7 @@
         "shelter_type": "basic_hut",
         "tourism": "wilderness_hut"
       },
-      "distanceAlongTrail": 865.5295710245555,
+      "distanceAlongTrail": 860.2089594584662,
       "distanceFromTrail": 0.022306949294265754
     },
     {
@@ -6926,7 +6926,7 @@
       "tags": {
         "amenity": "drinking_water"
       },
-      "distanceAlongTrail": 865.5319804789507,
+      "distanceAlongTrail": 860.2113689128614,
       "distanceFromTrail": 0.01686644168058103
     },
     {
@@ -6949,7 +6949,7 @@
         "water": "yes",
         "website": "https://www.bibbulmuntrack.org.au"
       },
-      "distanceAlongTrail": 865.53870123901,
+      "distanceAlongTrail": 860.2180896729208,
       "distanceFromTrail": 0.036258069768995385
     },
     {
@@ -6963,7 +6963,7 @@
         "amenity": "pub",
         "name": "Denmark Tavern"
       },
-      "distanceAlongTrail": 884.2235222974914,
+      "distanceAlongTrail": 878.9029107314021,
       "distanceFromTrail": 1.6136732450392581
     },
     {
@@ -6976,7 +6976,7 @@
       "tags": {
         "amenity": "fuel"
       },
-      "distanceAlongTrail": 885.1448733294726,
+      "distanceAlongTrail": 879.8242617633833,
       "distanceFromTrail": 1.5621680388595354
     },
     {
@@ -6989,7 +6989,7 @@
       "tags": {
         "man_made": "water_tap"
       },
-      "distanceAlongTrail": 885.1448733294726,
+      "distanceAlongTrail": 879.8242617633833,
       "distanceFromTrail": 0.7856004935547005
     },
     {
@@ -7002,7 +7002,7 @@
       "tags": {
         "amenity": "drinking_water"
       },
-      "distanceAlongTrail": 885.1463758123153,
+      "distanceAlongTrail": 879.8257642462261,
       "distanceFromTrail": 1.502672187358086
     },
     {
@@ -7016,7 +7016,7 @@
         "amenity": "shelter",
         "shelter_type": "picnic_shelter"
       },
-      "distanceAlongTrail": 885.1642900242197,
+      "distanceAlongTrail": 879.8436784581304,
       "distanceFromTrail": 0.08016560873578091
     },
     {
@@ -7035,7 +7035,7 @@
         "payment:credit_cards": "yes",
         "payment:debit_cards": "yes"
       },
-      "distanceAlongTrail": 885.1695388549418,
+      "distanceAlongTrail": 879.8489272888526,
       "distanceFromTrail": 1.4810778771464335
     },
     {
@@ -7052,7 +7052,7 @@
         "opening_hours": "Mo-Su 07:00-17:00",
         "shop": "bakery"
       },
-      "distanceAlongTrail": 885.1695388549418,
+      "distanceAlongTrail": 879.8489272888526,
       "distanceFromTrail": 1.388156832854617
     },
     {
@@ -7069,7 +7069,7 @@
         "name": "Bakery Cafe",
         "opening_hours": "Mo-Su 07:00-14:00"
       },
-      "distanceAlongTrail": 885.1695388549418,
+      "distanceAlongTrail": 879.8489272888526,
       "distanceFromTrail": 1.386863012421099
     },
     {
@@ -7086,7 +7086,7 @@
         "opening_hours": "Mo-Fr 08:30-17:00; Sa 09:00-14:00",
         "shop": "health_food"
       },
-      "distanceAlongTrail": 885.1695388549418,
+      "distanceAlongTrail": 879.8489272888526,
       "distanceFromTrail": 1.331949040562272
     },
     {
@@ -7103,7 +7103,7 @@
         "name": "Bar Tarifa",
         "outdoor_seating": "yes"
       },
-      "distanceAlongTrail": 885.1695388549418,
+      "distanceAlongTrail": 879.8489272888526,
       "distanceFromTrail": 1.1351390305350522
     },
     {
@@ -7119,7 +7119,7 @@
         "cuisine": "pizza",
         "name": "Massimo's Place"
       },
-      "distanceAlongTrail": 885.1695388549418,
+      "distanceAlongTrail": 879.8489272888526,
       "distanceFromTrail": 1.2942790972009819
     },
     {
@@ -7139,7 +7139,7 @@
         "name": "Hiroko Cafe",
         "website": "https://hirokocafe.com.au"
       },
-      "distanceAlongTrail": 885.1695388549418,
+      "distanceAlongTrail": 879.8489272888526,
       "distanceFromTrail": 1.209635362063467
     },
     {
@@ -7164,7 +7164,7 @@
         "phone": "+61 8 9848 1163",
         "website": "https://www.ravenscoffee.com"
       },
-      "distanceAlongTrail": 885.1695388549418,
+      "distanceAlongTrail": 879.8489272888526,
       "distanceFromTrail": 1.3994621479928713
     },
     {
@@ -7182,7 +7182,7 @@
         "name": "Mad Fish & Chips",
         "opening_hours": "Th-Sa 16:00-19:30"
       },
-      "distanceAlongTrail": 885.1695388549418,
+      "distanceAlongTrail": 879.8489272888526,
       "distanceFromTrail": 1.3838939300997224
     },
     {
@@ -7196,7 +7196,7 @@
         "amenity": "drinking_water",
         "fountain": "bubbler"
       },
-      "distanceAlongTrail": 885.1695388549418,
+      "distanceAlongTrail": 879.8489272888526,
       "distanceFromTrail": 1.2498895271541355
     },
     {
@@ -7218,7 +7218,7 @@
         "website": "https://m.facebook.com/teahousebooksdenmark/",
         "wheelchair": "limited"
       },
-      "distanceAlongTrail": 885.1695388549418,
+      "distanceAlongTrail": 879.8489272888526,
       "distanceFromTrail": 1.4785874728778974
     },
     {
@@ -7239,7 +7239,7 @@
         "phone": "+61 437 546 788",
         "wheelchair": "limited"
       },
-      "distanceAlongTrail": 885.1695388549418,
+      "distanceAlongTrail": 879.8489272888526,
       "distanceFromTrail": 1.3695611539690447
     },
     {
@@ -7256,7 +7256,7 @@
         "name": "Den Burger",
         "opening_hours": "Th-Fr 16:00-20:00; Sa 11:30-20:00"
       },
-      "distanceAlongTrail": 885.1695388549418,
+      "distanceAlongTrail": 879.8489272888526,
       "distanceFromTrail": 1.4774396779104562
     },
     {
@@ -7279,7 +7279,7 @@
         "operator": "Australia Post",
         "operator:wikidata": "Q1142936"
       },
-      "distanceAlongTrail": 885.1695388549418,
+      "distanceAlongTrail": 879.8489272888526,
       "distanceFromTrail": 1.2318951193139438
     },
     {
@@ -7294,7 +7294,7 @@
         "name": "Mrs Jones",
         "name:en": "Mrs Jones"
       },
-      "distanceAlongTrail": 885.1695388549418,
+      "distanceAlongTrail": 879.8489272888526,
       "distanceFromTrail": 1.6055149478049795
     },
     {
@@ -7313,7 +7313,7 @@
         "disused:name": "Bibbulmun",
         "name": "Denmark Kebab & Gozleme House"
       },
-      "distanceAlongTrail": 885.1695388549418,
+      "distanceAlongTrail": 879.8489272888526,
       "distanceFromTrail": 1.4636263809645231
     },
     {
@@ -7331,7 +7331,7 @@
         "check_date": "2024-04-24",
         "shop": "doityourself"
       },
-      "distanceAlongTrail": 885.1695388549418,
+      "distanceAlongTrail": 879.8489272888526,
       "distanceFromTrail": 1.4252766724685042
     },
     {
@@ -7354,7 +7354,7 @@
         "opening_hours": "Mo-Su 07:00-19:00",
         "shop": "supermarket"
       },
-      "distanceAlongTrail": 885.1695388549418,
+      "distanceAlongTrail": 879.8489272888526,
       "distanceFromTrail": 1.492639647031016
     },
     {
@@ -7367,7 +7367,7 @@
       "tags": {
         "man_made": "water_tap"
       },
-      "distanceAlongTrail": 885.1695388549418,
+      "distanceAlongTrail": 879.8489272888526,
       "distanceFromTrail": 1.071222889515416
     },
     {
@@ -7384,7 +7384,7 @@
         "check_date": "2024-04-24",
         "name": "BP"
       },
-      "distanceAlongTrail": 885.1695388549418,
+      "distanceAlongTrail": 879.8489272888526,
       "distanceFromTrail": 1.4954275698580046
     },
     {
@@ -7398,7 +7398,7 @@
         "amenity": "drinking_water",
         "fountain": "bubbler"
       },
-      "distanceAlongTrail": 885.1695388549418,
+      "distanceAlongTrail": 879.8489272888526,
       "distanceFromTrail": 1.2832655825378156
     },
     {
@@ -7419,7 +7419,7 @@
         "shelter": "yes",
         "tactile_paving": "no"
       },
-      "distanceAlongTrail": 885.1695388549418,
+      "distanceAlongTrail": 879.8489272888526,
       "distanceFromTrail": 1.3612620831904105
     },
     {
@@ -7432,7 +7432,7 @@
       "tags": {
         "amenity": "drinking_water"
       },
-      "distanceAlongTrail": 885.1695388549418,
+      "distanceAlongTrail": 879.8489272888526,
       "distanceFromTrail": 1.5045462738573279
     },
     {
@@ -7445,7 +7445,7 @@
       "tags": {
         "man_made": "water_tap"
       },
-      "distanceAlongTrail": 885.1695388549418,
+      "distanceAlongTrail": 879.8489272888526,
       "distanceFromTrail": 1.5959404337550827
     },
     {
@@ -7461,7 +7461,7 @@
         "healthcare": "hospital",
         "name": "Denmark Hospital"
       },
-      "distanceAlongTrail": 885.1695388549418,
+      "distanceAlongTrail": 879.8489272888526,
       "distanceFromTrail": 1.6586932037451212
     },
     {
@@ -7481,7 +7481,7 @@
         "phone": "+61 425 838 305",
         "website": "https://hoteldenmark.com.au/"
       },
-      "distanceAlongTrail": 885.1695388549418,
+      "distanceAlongTrail": 879.8489272888526,
       "distanceFromTrail": 1.3153980634039737
     },
     {
@@ -7501,7 +7501,7 @@
         "opening_hours": "Mo-We,Fr,Sa 07:30-18:30, Th 07:30-20:30, Su 08:00-18:30",
         "shop": "supermarket"
       },
-      "distanceAlongTrail": 885.1695388549418,
+      "distanceAlongTrail": 879.8489272888526,
       "distanceFromTrail": 1.548239431796511
     },
     {
@@ -7517,7 +7517,7 @@
         "building": "yes",
         "tourism": "information"
       },
-      "distanceAlongTrail": 885.1695388549418,
+      "distanceAlongTrail": 879.8489272888526,
       "distanceFromTrail": 1.069963127751202
     },
     {
@@ -7533,7 +7533,7 @@
         "picnic_table": "yes",
         "shelter_type": "picnic_shelter"
       },
-      "distanceAlongTrail": 885.1695388549418,
+      "distanceAlongTrail": 879.8489272888526,
       "distanceFromTrail": 1.497789594365375
     },
     {
@@ -7550,7 +7550,7 @@
         "name": "Denmark Medical Centre",
         "website": "https://www.denmarkmedicalcentre.com.au/"
       },
-      "distanceAlongTrail": 885.1695388549418,
+      "distanceAlongTrail": 879.8489272888526,
       "distanceFromTrail": 1.5157648056956374
     },
     {
@@ -7565,7 +7565,7 @@
         "building": "yes",
         "shelter_type": "picnic_shelter"
       },
-      "distanceAlongTrail": 885.1695388549418,
+      "distanceAlongTrail": 879.8489272888526,
       "distanceFromTrail": 1.3818351400570419
     },
     {
@@ -7580,7 +7580,7 @@
         "building": "yes",
         "shelter_type": "picnic_shelter"
       },
-      "distanceAlongTrail": 885.1695388549418,
+      "distanceAlongTrail": 879.8489272888526,
       "distanceFromTrail": 1.2565932400456485
     },
     {
@@ -7595,7 +7595,7 @@
         "building": "yes",
         "shelter_type": "picnic_shelter"
       },
-      "distanceAlongTrail": 885.1695388549418,
+      "distanceAlongTrail": 879.8489272888526,
       "distanceFromTrail": 1.214981020938261
     },
     {
@@ -7615,7 +7615,7 @@
         "power_supply": "yes",
         "tourism": "caravan_site"
       },
-      "distanceAlongTrail": 885.264575756219,
+      "distanceAlongTrail": 879.9439641901297,
       "distanceFromTrail": 0.03263842750079283
     },
     {
@@ -7636,7 +7636,7 @@
         "payment:debit_cards": "yes",
         "wheelchair": "yes"
       },
-      "distanceAlongTrail": 885.3147761001637,
+      "distanceAlongTrail": 879.9941645340745,
       "distanceFromTrail": 0.026796720302235767
     },
     {
@@ -7650,7 +7650,7 @@
         "access": "yes",
         "tourism": "wilderness_hut"
       },
-      "distanceAlongTrail": 885.4488174087285,
+      "distanceAlongTrail": 880.1282058426392,
       "distanceFromTrail": 1.8197558007853711
     },
     {
@@ -7670,7 +7670,7 @@
         "tourism": "camp_site",
         "website": "https://www.big4.com.au/caravan-parks/wa/south-west/denmark-ocean-beach-holiday-park"
       },
-      "distanceAlongTrail": 894.8910682979507,
+      "distanceAlongTrail": 889.5704567318614,
       "distanceFromTrail": 0.27650611183631496
     },
     {
@@ -7685,7 +7685,7 @@
         "amenity": "drinking_water",
         "wheelchair": "limited"
       },
-      "distanceAlongTrail": 895.603848460261,
+      "distanceAlongTrail": 890.2832368941718,
       "distanceFromTrail": 0.33335387090317076
     },
     {
@@ -7699,7 +7699,7 @@
         "building": "yes",
         "tourism": "wilderness_hut"
       },
-      "distanceAlongTrail": 911.8269997012807,
+      "distanceAlongTrail": 906.5063881351914,
       "distanceFromTrail": 0.06584565562130791
     },
     {
@@ -7722,7 +7722,7 @@
         "water": "yes",
         "website": "https://www.bibbulmuntrack.org.au"
       },
-      "distanceAlongTrail": 911.8277129823713,
+      "distanceAlongTrail": 906.507101416282,
       "distanceFromTrail": 0.06362924223111817
     },
     {
@@ -7735,7 +7735,7 @@
       "tags": {
         "man_made": "water_tap"
       },
-      "distanceAlongTrail": 911.8317746969486,
+      "distanceAlongTrail": 906.5111631308594,
       "distanceFromTrail": 0.06770792166939213
     },
     {
@@ -7749,7 +7749,7 @@
         "amenity": "shelter",
         "shelter_type": "weather_shelter"
       },
-      "distanceAlongTrail": 917.4218438718319,
+      "distanceAlongTrail": 912.101843871832,
       "distanceFromTrail": 1.2877428983550236
     },
     {
@@ -7763,7 +7763,7 @@
         "amenity": "shelter",
         "shelter_type": "weather_shelter"
       },
-      "distanceAlongTrail": 917.4218438718319,
+      "distanceAlongTrail": 912.101843871832,
       "distanceFromTrail": 1.2932781771726092
     },
     {
@@ -7776,7 +7776,7 @@
       "tags": {
         "amenity": "fuel"
       },
-      "distanceAlongTrail": 917.4218438718319,
+      "distanceAlongTrail": 912.101843871832,
       "distanceFromTrail": 1.3029427893030199
     },
     {
@@ -7792,7 +7792,7 @@
         "opening_hours": "Mo-Su 07:00-19:00",
         "shop": "convenience"
       },
-      "distanceAlongTrail": 917.4218438718319,
+      "distanceAlongTrail": 912.101843871832,
       "distanceFromTrail": 1.3111637461805905
     },
     {
@@ -7808,7 +7808,7 @@
         "name": "Youngs Siding volunteer Bushfire Brigade",
         "source": "mapillary;survey"
       },
-      "distanceAlongTrail": 917.4218438718319,
+      "distanceAlongTrail": 912.101843871832,
       "distanceFromTrail": 1.3487853376617667
     },
     {
@@ -7821,7 +7821,7 @@
       "tags": {
         "amenity": "shelter"
       },
-      "distanceAlongTrail": 924.1343816731891,
+      "distanceAlongTrail": 918.8137701070998,
       "distanceFromTrail": 0.16512795948739473
     },
     {
@@ -7834,7 +7834,7 @@
       "tags": {
         "amenity": "shelter"
       },
-      "distanceAlongTrail": 924.1476385192053,
+      "distanceAlongTrail": 918.827026953116,
       "distanceFromTrail": 0.2551822846508096
     },
     {
@@ -7847,7 +7847,7 @@
       "tags": {
         "man_made": "water_tap"
       },
-      "distanceAlongTrail": 928.6800902143374,
+      "distanceAlongTrail": 923.3594786482481,
       "distanceFromTrail": 0.05964108684917769
     },
     {
@@ -7870,7 +7870,7 @@
         "water": "yes",
         "website": "https://www.bibbulmuntrack.org.au"
       },
-      "distanceAlongTrail": 928.6800902143374,
+      "distanceAlongTrail": 923.3594786482481,
       "distanceFromTrail": 0.04538876208977102
     },
     {
@@ -7884,7 +7884,7 @@
         "building": "yes",
         "tourism": "wilderness_hut"
       },
-      "distanceAlongTrail": 928.6800902143374,
+      "distanceAlongTrail": 923.3594786482481,
       "distanceFromTrail": 0.06424610141347138
     },
     {
@@ -7904,7 +7904,7 @@
         "tourism": "camp_site",
         "website": "https://www.westernaustralia.com/au/accommodation/shelley-beach-camp-at-west-cape-howe-national-park/56b26b5b7b935fbe730e9596"
       },
-      "distanceAlongTrail": 939.9841778632195,
+      "distanceAlongTrail": 934.6635662971303,
       "distanceFromTrail": 0.47591908776043423
     },
     {
@@ -7927,7 +7927,7 @@
         "water": "yes",
         "website": "https://www.bibbulmuntrack.org.au"
       },
-      "distanceAlongTrail": 944.9784732100715,
+      "distanceAlongTrail": 939.6578616439822,
       "distanceFromTrail": 0.01689184588678054
     },
     {
@@ -7941,7 +7941,7 @@
         "building": "yes",
         "tourism": "wilderness_hut"
       },
-      "distanceAlongTrail": 944.9856071128638,
+      "distanceAlongTrail": 939.6649955467745,
       "distanceFromTrail": 0.02026951252968607
     },
     {
@@ -7954,7 +7954,7 @@
       "tags": {
         "man_made": "water_tap"
       },
-      "distanceAlongTrail": 944.9908614615119,
+      "distanceAlongTrail": 939.6702498954227,
       "distanceFromTrail": 0.01934813647549792
     },
     {
@@ -7969,7 +7969,7 @@
         "tents": "yes",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 947.2342396498342,
+      "distanceAlongTrail": 941.9136280837449,
       "distanceFromTrail": 0.19634759926769976
     },
     {
@@ -7991,7 +7991,7 @@
         "tourism": "camp_site",
         "website": "https://www.albany.wa.gov.au/facilities/recreation/camping.aspx"
       },
-      "distanceAlongTrail": 948.1081443828579,
+      "distanceAlongTrail": 942.7875328167686,
       "distanceFromTrail": 0.05578865577129049
     },
     {
@@ -8013,7 +8013,7 @@
         "tourism": "caravan_site",
         "website": "https://www.albany.wa.gov.au/facilities/recreation/camping.aspx"
       },
-      "distanceAlongTrail": 948.176383195693,
+      "distanceAlongTrail": 942.8557716296037,
       "distanceFromTrail": 0.14476350107017194
     },
     {
@@ -8033,7 +8033,7 @@
         "tourism": "camp_site",
         "website": "https://campkennedy.org/"
       },
-      "distanceAlongTrail": 949.2272431932253,
+      "distanceAlongTrail": 943.906631627136,
       "distanceFromTrail": 0.10091692836530902
     },
     {
@@ -8054,7 +8054,7 @@
         "tourism": "camp_site",
         "website": "https://www.albany.wa.gov.au/facilities/recreation/camping.aspx"
       },
-      "distanceAlongTrail": 952.0862905348494,
+      "distanceAlongTrail": 946.7656789687601,
       "distanceFromTrail": 0.5391028372270027
     },
     {
@@ -8077,7 +8077,7 @@
         "water": "yes",
         "website": "https://www.bibbulmuntrack.org.au"
       },
-      "distanceAlongTrail": 957.148248528191,
+      "distanceAlongTrail": 951.8276369621017,
       "distanceFromTrail": 0.1456617687876639
     },
     {
@@ -8090,7 +8090,7 @@
       "tags": {
         "man_made": "water_tap"
       },
-      "distanceAlongTrail": 957.1522201388392,
+      "distanceAlongTrail": 951.8316085727499,
       "distanceFromTrail": 0.15636465824403412
     },
     {
@@ -8104,7 +8104,7 @@
         "building": "yes",
         "tourism": "wilderness_hut"
       },
-      "distanceAlongTrail": 957.152274038935,
+      "distanceAlongTrail": 951.8316624728458,
       "distanceFromTrail": 0.15165071434541402
     },
     {
@@ -8127,7 +8127,7 @@
         "water": "yes",
         "website": "https://www.bibbulmuntrack.org.au"
       },
-      "distanceAlongTrail": 968.8361272917267,
+      "distanceAlongTrail": 963.5155157256374,
       "distanceFromTrail": 0.12436424151654107
     },
     {
@@ -8140,7 +8140,7 @@
       "tags": {
         "man_made": "water_tap"
       },
-      "distanceAlongTrail": 968.8399012839864,
+      "distanceAlongTrail": 963.5192897178971,
       "distanceFromTrail": 0.11869663807937342
     },
     {
@@ -8154,7 +8154,7 @@
         "building": "yes",
         "tourism": "wilderness_hut"
       },
-      "distanceAlongTrail": 968.8443062458604,
+      "distanceAlongTrail": 963.5236946797711,
       "distanceFromTrail": 0.11888315806492727
     },
     {
@@ -8172,7 +8172,7 @@
         "name": "Shell",
         "operator": "Shell"
       },
-      "distanceAlongTrail": 973.4157608772252,
+      "distanceAlongTrail": 968.095149311136,
       "distanceFromTrail": 1.9379010574137479
     },
     {
@@ -8185,7 +8185,7 @@
       "tags": {
         "amenity": "shelter"
       },
-      "distanceAlongTrail": 974.6859665261447,
+      "distanceAlongTrail": 969.3653549600555,
       "distanceFromTrail": 0.03097868648468665
     },
     {
@@ -8198,7 +8198,7 @@
       "tags": {
         "amenity": "shelter"
       },
-      "distanceAlongTrail": 977.2274375879604,
+      "distanceAlongTrail": 971.9068260218711,
       "distanceFromTrail": 0.008277913659001
     },
     {
@@ -8212,7 +8212,7 @@
         "amenity": "restaurant",
         "name": "Rock Salt"
       },
-      "distanceAlongTrail": 977.660698992775,
+      "distanceAlongTrail": 972.3400874266857,
       "distanceFromTrail": 0.16174226319344318
     },
     {
@@ -8231,7 +8231,7 @@
         "operator": "Coles Group",
         "operator:wikidata": "Q1339055"
       },
-      "distanceAlongTrail": 978.9818095726324,
+      "distanceAlongTrail": 973.6611980065431,
       "distanceFromTrail": 1.9385202762331333
     },
     {
@@ -8246,7 +8246,7 @@
         "compressed_air": "yes",
         "name": "Petro"
       },
-      "distanceAlongTrail": 978.9818095726324,
+      "distanceAlongTrail": 973.6611980065431,
       "distanceFromTrail": 1.3821332548500787
     },
     {
@@ -8261,7 +8261,7 @@
         "cuisine": "indian",
         "name": "Royal Turban Restaurant"
       },
-      "distanceAlongTrail": 978.9818095726324,
+      "distanceAlongTrail": 973.6611980065431,
       "distanceFromTrail": 1.3465368205266661
     },
     {
@@ -8280,7 +8280,7 @@
         "name": "United",
         "website": "https://servicestations.unitedpetroleum.com.au/location/united-albany-hwy"
       },
-      "distanceAlongTrail": 978.9818095726324,
+      "distanceAlongTrail": 973.6611980065431,
       "distanceFromTrail": 1.257475437081644
     },
     {
@@ -8300,7 +8300,7 @@
         "takeaway": "yes",
         "website": "https://www.dominos.com.au/"
       },
-      "distanceAlongTrail": 978.9818095726324,
+      "distanceAlongTrail": 973.6611980065431,
       "distanceFromTrail": 1.7339247023918785
     },
     {
@@ -8314,7 +8314,7 @@
         "amenity": "pharmacy",
         "healthcare": "pharmacy"
       },
-      "distanceAlongTrail": 978.9818095726324,
+      "distanceAlongTrail": 973.6611980065431,
       "distanceFromTrail": 1.599735106040055
     },
     {
@@ -8336,7 +8336,7 @@
         "name": "Caltex",
         "name:en": "Puma Mount Melville"
       },
-      "distanceAlongTrail": 978.9818095726324,
+      "distanceAlongTrail": 973.6611980065431,
       "distanceFromTrail": 1.72197356121219
     },
     {
@@ -8355,7 +8355,7 @@
         "opening_hours": "24/7",
         "website": "https://servicestations.unitedpetroleum.com.au/location/united-albany-central"
       },
-      "distanceAlongTrail": 978.9818095726324,
+      "distanceAlongTrail": 973.6611980065431,
       "distanceFromTrail": 1.6314132519295854
     },
     {
@@ -8383,7 +8383,7 @@
         "takeaway": "yes",
         "website": "https://www.zambrero.com.au/locations/albany"
       },
-      "distanceAlongTrail": 978.9818095726324,
+      "distanceAlongTrail": 973.6611980065431,
       "distanceFromTrail": 1.9195754407648986
     },
     {
@@ -8400,7 +8400,7 @@
         "building": "yes",
         "name": "United Petroleum Orana"
       },
-      "distanceAlongTrail": 978.9818095726324,
+      "distanceAlongTrail": 973.6611980065431,
       "distanceFromTrail": 1.9777254427867772
     },
     {
@@ -8416,7 +8416,7 @@
         "healthcare": "doctor",
         "name": "Pioneer Health Albany"
       },
-      "distanceAlongTrail": 978.9818095726324,
+      "distanceAlongTrail": 973.6611980065431,
       "distanceFromTrail": 1.5989644519926667
     },
     {
@@ -8429,7 +8429,7 @@
       "tags": {
         "tourism": "caravan_site"
       },
-      "distanceAlongTrail": 980.2672702307057,
+      "distanceAlongTrail": 974.9466586646164,
       "distanceFromTrail": 1.4688960539840457
     },
     {
@@ -8448,7 +8448,7 @@
         "name": "Chicken Treat",
         "takeaway": "yes"
       },
-      "distanceAlongTrail": 980.2672702307057,
+      "distanceAlongTrail": 974.9466586646164,
       "distanceFromTrail": 1.1015713845881019
     },
     {
@@ -8466,7 +8466,7 @@
         "name": "Albany Gardens Holiday Resort",
         "tourism": "caravan_site"
       },
-      "distanceAlongTrail": 980.2672702307057,
+      "distanceAlongTrail": 974.9466586646164,
       "distanceFromTrail": 1.4607715940917023
     },
     {
@@ -8481,7 +8481,7 @@
         "building": "yes",
         "name": "Vancouver Street Café"
       },
-      "distanceAlongTrail": 980.8322465228287,
+      "distanceAlongTrail": 975.5116349567394,
       "distanceFromTrail": 0.10914521581238891
     },
     {
@@ -8500,7 +8500,7 @@
         "shop": "outdoor",
         "website": "https://trailblazers.com.au/"
       },
-      "distanceAlongTrail": 981.0245365652979,
+      "distanceAlongTrail": 975.7039249992087,
       "distanceFromTrail": 1.173818264533449
     },
     {
@@ -8515,7 +8515,7 @@
         "cuisine": "steak_house",
         "name": "Rustlers"
       },
-      "distanceAlongTrail": 981.1917189505758,
+      "distanceAlongTrail": 975.8711073844865,
       "distanceFromTrail": 0.362797431967795
     },
     {
@@ -8536,7 +8536,7 @@
         "operator:wikipedia": "en:Western Australia Police Force",
         "website": "https://www.police.wa.gov.au/"
       },
-      "distanceAlongTrail": 981.2469486299487,
+      "distanceAlongTrail": 975.9263370638595,
       "distanceFromTrail": 0.3481557322552118
     },
     {
@@ -8556,7 +8556,7 @@
         "name": "Liberté",
         "website": "https://libertealbany.com.au/"
       },
-      "distanceAlongTrail": 981.3715511811121,
+      "distanceAlongTrail": 976.0509396150228,
       "distanceFromTrail": 0.32953774820005194
     },
     {
@@ -8570,7 +8570,7 @@
         "amenity": "drinking_water",
         "source": "GPS & survey"
       },
-      "distanceAlongTrail": 981.4871745715125,
+      "distanceAlongTrail": 976.1665630054232,
       "distanceFromTrail": 0.030495406857091345
     },
     {
@@ -8591,7 +8591,7 @@
         "shelter": "yes",
         "tactile_paving": "no"
       },
-      "distanceAlongTrail": 981.4926143728272,
+      "distanceAlongTrail": 976.172002806738,
       "distanceFromTrail": 0.21922161327817524
     },
     {
@@ -8605,7 +8605,7 @@
         "amenity": "cafe",
         "name": "Cosi‘s Café"
       },
-      "distanceAlongTrail": 981.5032689465327,
+      "distanceAlongTrail": 976.1826573804434,
       "distanceFromTrail": 0.24053004404982506
     },
     {
@@ -8628,7 +8628,7 @@
         "phone": "+61 8 9841 3978",
         "website": "https://thevenicealbany.com.au"
       },
-      "distanceAlongTrail": 981.524453256748,
+      "distanceAlongTrail": 976.2038416906587,
       "distanceFromTrail": 0.09227766238522943
     },
     {
@@ -8643,7 +8643,7 @@
         "cuisine": "kebab",
         "name": "Turkish Bakery"
       },
-      "distanceAlongTrail": 981.5275815978393,
+      "distanceAlongTrail": 976.2069700317501,
       "distanceFromTrail": 0.05809703595838129
     },
     {
@@ -8659,7 +8659,7 @@
         "name": "O'BA-SAN",
         "takeaway": "yes"
       },
-      "distanceAlongTrail": 981.5276396939117,
+      "distanceAlongTrail": 976.2070281278225,
       "distanceFromTrail": 0.049295854776587586
     },
     {
@@ -8673,7 +8673,7 @@
         "amenity": "fast_food",
         "name": "Istanbul Kebabs"
       },
-      "distanceAlongTrail": 981.5277075147081,
+      "distanceAlongTrail": 976.2070959486189,
       "distanceFromTrail": 0.06289839471400432
     },
     {
@@ -8689,7 +8689,7 @@
         "name": "Noodler's",
         "takeaway": "yes"
       },
-      "distanceAlongTrail": 981.5279841805542,
+      "distanceAlongTrail": 976.2073726144649,
       "distanceFromTrail": 0.05317600929999781
     },
     {
@@ -8705,7 +8705,7 @@
         "name": "Haz Beanz",
         "name:en": "Haz Beanz"
       },
-      "distanceAlongTrail": 981.5366749227314,
+      "distanceAlongTrail": 976.2160633566422,
       "distanceFromTrail": 0.7594025169124231
     },
     {
@@ -8726,7 +8726,7 @@
         "phone": "+61 8 9841 1852",
         "website": "https://majuba.com.au/majuba-bistro"
       },
-      "distanceAlongTrail": 981.5366749227314,
+      "distanceAlongTrail": 976.2160633566422,
       "distanceFromTrail": 0.28276091756388166
     },
     {
@@ -8740,7 +8740,7 @@
         "amenity": "pub",
         "name": "The Earl of Spencer"
       },
-      "distanceAlongTrail": 981.5366749227314,
+      "distanceAlongTrail": 976.2160633566422,
       "distanceFromTrail": 0.35891237245413743
     },
     {
@@ -8756,7 +8756,7 @@
         "opening_hours": "Mo-Fr 06:00-13:00; Sa 06:00-12:00; Su 07:00-12:00",
         "outdoor_seating": "yes"
       },
-      "distanceAlongTrail": 981.5366749227314,
+      "distanceAlongTrail": 976.2160633566422,
       "distanceFromTrail": 0.33139674566978683
     },
     {
@@ -8771,7 +8771,7 @@
         "check_date": "2023-12-27",
         "name": "The Store on Fredrick"
       },
-      "distanceAlongTrail": 981.5366749227314,
+      "distanceAlongTrail": 976.2160633566422,
       "distanceFromTrail": 0.4031560728947027
     },
     {
@@ -8785,7 +8785,7 @@
         "amenity": "drinking_water",
         "name": "Water fountain"
       },
-      "distanceAlongTrail": 981.5366749227314,
+      "distanceAlongTrail": 976.2160633566422,
       "distanceFromTrail": 1.089494607938362
     },
     {
@@ -8799,7 +8799,7 @@
         "amenity": "bar",
         "name": "Sotao"
       },
-      "distanceAlongTrail": 981.5366749227314,
+      "distanceAlongTrail": 976.2160633566422,
       "distanceFromTrail": 0.40082699660864746
     },
     {
@@ -8814,7 +8814,7 @@
         "cuisine": "burger",
         "name": "The Gaffer"
       },
-      "distanceAlongTrail": 981.5366749227314,
+      "distanceAlongTrail": 976.2160633566422,
       "distanceFromTrail": 0.06005916296398355
     },
     {
@@ -8828,7 +8828,7 @@
         "amenity": "pub",
         "name": "Premier Hotel Albany"
       },
-      "distanceAlongTrail": 981.5366749227314,
+      "distanceAlongTrail": 976.2160633566422,
       "distanceFromTrail": 0.035053426424766776
     },
     {
@@ -8842,7 +8842,7 @@
         "amenity": "cafe",
         "name": "Dylans"
       },
-      "distanceAlongTrail": 981.5366749227314,
+      "distanceAlongTrail": 976.2160633566422,
       "distanceFromTrail": 0.4124031371924069
     },
     {
@@ -8858,7 +8858,7 @@
         "name": "Burrata",
         "opening_hours": "Mo-Fr 07:00-17:00, Sa 07:00-15:00"
       },
-      "distanceAlongTrail": 981.5366749227314,
+      "distanceAlongTrail": 976.2160633566422,
       "distanceFromTrail": 0.2905248200377453
     },
     {
@@ -8876,7 +8876,7 @@
         "name": "Southern Viet Bites",
         "opening_hours": "Mo-Fr 08:00-15:00, Mo,Th 17:00-20:00"
       },
-      "distanceAlongTrail": 981.5366749227314,
+      "distanceAlongTrail": 976.2160633566422,
       "distanceFromTrail": 0.07802355134517384
     },
     {
@@ -8893,7 +8893,7 @@
         "name": "Sia's Kitchen",
         "opening_hours": "Mo-Sa 11:00-15:00, 17:00-20:00"
       },
-      "distanceAlongTrail": 981.5366749227314,
+      "distanceAlongTrail": 976.2160633566422,
       "distanceFromTrail": 0.175704635730369
     },
     {
@@ -8918,7 +8918,7 @@
         "phone": "+61 8 9842 3690",
         "shop": "supermarket"
       },
-      "distanceAlongTrail": 981.5366749227314,
+      "distanceAlongTrail": 976.2160633566422,
       "distanceFromTrail": 0.40591847389226954
     },
     {
@@ -8931,7 +8931,7 @@
       "tags": {
         "amenity": "shelter"
       },
-      "distanceAlongTrail": 981.5366749227314,
+      "distanceAlongTrail": 976.2160633566422,
       "distanceFromTrail": 0.41554751448900357
     },
     {
@@ -8946,7 +8946,7 @@
         "cuisine": "chinese",
         "name": "Three Plenties Palace"
       },
-      "distanceAlongTrail": 981.5366749227314,
+      "distanceAlongTrail": 976.2160633566422,
       "distanceFromTrail": 0.19757111934613986
     },
     {
@@ -8961,7 +8961,7 @@
         "cuisine": "chinese",
         "name": "WA Chinese Cafe & Resturant"
       },
-      "distanceAlongTrail": 981.5366749227314,
+      "distanceAlongTrail": 976.2160633566422,
       "distanceFromTrail": 0.24369560150965178
     },
     {
@@ -8975,7 +8975,7 @@
         "amenity": "shelter",
         "check_date": "2025-12-26"
       },
-      "distanceAlongTrail": 981.5366749227314,
+      "distanceAlongTrail": 976.2160633566422,
       "distanceFromTrail": 0.2097139082381791
     },
     {
@@ -8989,7 +8989,7 @@
         "amenity": "pub",
         "name": "The White Star"
       },
-      "distanceAlongTrail": 981.5366749227314,
+      "distanceAlongTrail": 976.2160633566422,
       "distanceFromTrail": 0.42671044014891446
     },
     {
@@ -9008,7 +9008,7 @@
         "cuisine": "indian",
         "name": "Albany‘s Indian Tandoori Restaurant"
       },
-      "distanceAlongTrail": 981.5366749227314,
+      "distanceAlongTrail": 976.2160633566422,
       "distanceFromTrail": 0.35192955479384436
     },
     {
@@ -9022,7 +9022,7 @@
         "amenity": "restaurant",
         "name": "Gourmandise Co"
       },
-      "distanceAlongTrail": 981.5366749227314,
+      "distanceAlongTrail": 976.2160633566422,
       "distanceFromTrail": 0.46951123865470923
     },
     {
@@ -9036,7 +9036,7 @@
         "amenity": "cafe",
         "name": "Barletta"
       },
-      "distanceAlongTrail": 981.5366749227314,
+      "distanceAlongTrail": 976.2160633566422,
       "distanceFromTrail": 0.49909925583083936
     },
     {
@@ -9052,7 +9052,7 @@
         "railway": "station",
         "train": "yes"
       },
-      "distanceAlongTrail": 981.5366749227314,
+      "distanceAlongTrail": 976.2160633566422,
       "distanceFromTrail": 0.5355004753728047
     },
     {
@@ -9066,7 +9066,7 @@
         "name": "The Health Nut",
         "shop": "convenience"
       },
-      "distanceAlongTrail": 981.5366749227314,
+      "distanceAlongTrail": 976.2160633566422,
       "distanceFromTrail": 0.21890180704179468
     },
     {
@@ -9080,7 +9080,7 @@
         "amenity": "cafe",
         "name": "Fredericks"
       },
-      "distanceAlongTrail": 981.5366749227314,
+      "distanceAlongTrail": 976.2160633566422,
       "distanceFromTrail": 0.20194421008262892
     },
     {
@@ -9098,7 +9098,7 @@
         "name:en": "La Botanic",
         "opening_hours": "Mo-Fr 07:30-17:00; Sa,Su 07:30-16:00"
       },
-      "distanceAlongTrail": 981.5366749227314,
+      "distanceAlongTrail": 976.2160633566422,
       "distanceFromTrail": 0.38608698836615785
     },
     {
@@ -9114,7 +9114,7 @@
         "amenity": "cafe",
         "name": "Kate‘s Place"
       },
-      "distanceAlongTrail": 981.5366749227314,
+      "distanceAlongTrail": 976.2160633566422,
       "distanceFromTrail": 0.48614777580731017
     },
     {
@@ -9129,7 +9129,7 @@
         "name": "Sixdegrees",
         "short_name": "6D"
       },
-      "distanceAlongTrail": 981.5366749227314,
+      "distanceAlongTrail": 976.2160633566422,
       "distanceFromTrail": 0.45826380425834745
     },
     {
@@ -9151,7 +9151,7 @@
         "phone": "+61 8 9841 8526",
         "website": "https://www.duesouthalbany.com.au/"
       },
-      "distanceAlongTrail": 981.5366749227314,
+      "distanceAlongTrail": 976.2160633566422,
       "distanceFromTrail": 0.7197915472659369
     },
     {
@@ -9165,7 +9165,7 @@
         "amenity": "shelter",
         "building": "yes"
       },
-      "distanceAlongTrail": 981.5366749227314,
+      "distanceAlongTrail": 976.2160633566422,
       "distanceFromTrail": 0.4917874285847317
     },
     {
@@ -9180,7 +9180,7 @@
         "cuisine": "indian",
         "name": "Little India"
       },
-      "distanceAlongTrail": 981.546580090039,
+      "distanceAlongTrail": 976.2259685239497,
       "distanceFromTrail": 0.027402637533949597
     },
     {
@@ -9200,7 +9200,7 @@
         "operator:wikidata": "Q1142936",
         "operator:wikipedia": "en:Australia Post"
       },
-      "distanceAlongTrail": 981.5515011118378,
+      "distanceAlongTrail": 976.2308895457485,
       "distanceFromTrail": 0.033530732191819235
     },
     {
@@ -9223,7 +9223,7 @@
         "payment:debit_cards": "yes",
         "takeaway": "yes"
       },
-      "distanceAlongTrail": 981.5688727956898,
+      "distanceAlongTrail": 976.2482612296005,
       "distanceFromTrail": 0.02714718475542565
     },
     {
@@ -9236,7 +9236,7 @@
       "tags": {
         "amenity": "drinking_water"
       },
-      "distanceAlongTrail": 981.6433824684445,
+      "distanceAlongTrail": 976.3227709023553,
       "distanceFromTrail": 0.021789118166454083
     },
     {
@@ -9251,7 +9251,7 @@
         "highway": "bus_stop",
         "public_transport": "platform"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 0.30393651021565027
     },
     {
@@ -9266,7 +9266,7 @@
         "highway": "bus_stop",
         "public_transport": "platform"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 0.3459886251545495
     },
     {
@@ -9280,7 +9280,7 @@
         "amenity": "shelter",
         "shelter_type": "weather_shelter"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 1.679526132767571
     },
     {
@@ -9297,7 +9297,7 @@
         "fountain": "drinking",
         "man_made": "water_tap"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 1.7233901698251826
     },
     {
@@ -9311,7 +9311,7 @@
         "amenity": "shelter",
         "shelter_type": "weather_shelter"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 1.3196465972796008
     },
     {
@@ -9325,7 +9325,7 @@
         "amenity": "shelter",
         "shelter_type": "weather_shelter"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 1.217238676006533
     },
     {
@@ -9339,7 +9339,7 @@
         "amenity": "shelter",
         "shelter_type": "weather_shelter"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 1.3105675804370502
     },
     {
@@ -9353,7 +9353,7 @@
         "amenity": "shelter",
         "shelter_type": "weather_shelter"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 1.2795336760494085
     },
     {
@@ -9367,7 +9367,7 @@
         "name": "OMG Convenience",
         "shop": "convenience"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 0.11994873893073131
     },
     {
@@ -9381,7 +9381,7 @@
         "amenity": "cafe",
         "name": "Whalley's Beachway Café"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 0.9755775223980923
     },
     {
@@ -9397,7 +9397,7 @@
         "outdoor_seating": "yes",
         "website": "https://www.thenakedbean.com.au"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 1.07150186268832
     },
     {
@@ -9412,7 +9412,7 @@
         "name": "The Albany Hotel",
         "survey:date": "2023-12-21"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 0.03209449385364338
     },
     {
@@ -9433,7 +9433,7 @@
         "cuisine": "pizza",
         "name": "Pizza Hut"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 0.47518758051417753
     },
     {
@@ -9448,7 +9448,7 @@
         "contact:facebook": "https://m.facebook.com/pages/Albany-Fish-N-Chips/200315786655509",
         "name": "Albany Fish & Chips"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 0.8250267228294405
     },
     {
@@ -9463,7 +9463,7 @@
         "healthcare": "pharmacy",
         "name": "Priceline"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 0.4213527541229628
     },
     {
@@ -9476,7 +9476,7 @@
       "tags": {
         "amenity": "fast_food"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 0.4533844379593183
     },
     {
@@ -9495,7 +9495,7 @@
         "name": "Red Rooster",
         "takeaway": "yes"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 0.6143529013855689
     },
     {
@@ -9519,7 +9519,7 @@
         "website": "https://store.aldi.com.au/wa/albany/70-80-albany-highway",
         "wheelchair": "yes"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 0.5422013058406382
     },
     {
@@ -9541,7 +9541,7 @@
         "takeaway": "yes",
         "website": "https://www.domecoffees.com/"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 0.4358640980928721
     },
     {
@@ -9567,7 +9567,7 @@
         "shop": "supermarket",
         "website": "https://www.coles.com.au/"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 0.34052354159681575
     },
     {
@@ -9581,7 +9581,7 @@
         "name": "Albany French hot bread",
         "shop": "bakery"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 0.36175286263204
     },
     {
@@ -9594,7 +9594,7 @@
       "tags": {
         "amenity": "shelter"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 1.4650624897246043
     },
     {
@@ -9607,7 +9607,7 @@
       "tags": {
         "shop": "greengrocer"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 1.015324750506141
     },
     {
@@ -9620,7 +9620,7 @@
       "tags": {
         "amenity": "fast_food"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 0.8730750985269653
     },
     {
@@ -9643,7 +9643,7 @@
         "name": "Wizard Pharmacy Albany Hacienda",
         "opening_hours": "Mo-Fr 08:00-18:00; Sa 08:00-12:30"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 1.2434721217971203
     },
     {
@@ -9657,7 +9657,7 @@
         "name": "BRED",
         "shop": "bakery"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 0.20592780518531814
     },
     {
@@ -9670,7 +9670,7 @@
       "tags": {
         "shop": "bakery"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 1.2558839868125085
     },
     {
@@ -9685,7 +9685,7 @@
         "cuisine": "thai",
         "name": "Joop Thai"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 0.9621599551485058
     },
     {
@@ -9699,7 +9699,7 @@
         "amenity": "fast_food",
         "cuisine": "fish_and_chips"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 0.28401282681259854
     },
     {
@@ -9713,7 +9713,7 @@
         "amenity": "fast_food",
         "cuisine": "pizza"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 0.26745878764601566
     },
     {
@@ -9737,7 +9737,7 @@
         "takeaway": "yes",
         "website": "https://www.kfc.com.au/"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 0.3367366160175217
     },
     {
@@ -9752,7 +9752,7 @@
         "highway": "bus_stop",
         "public_transport": "platform"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 1.4978002927977192
     },
     {
@@ -9766,7 +9766,7 @@
         "name": "Highway",
         "shop": "supermarket"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 0.781049929812509
     },
     {
@@ -9789,7 +9789,7 @@
         "takeaway": "yes",
         "website": "https://www.hungryjacks.com.au/"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 0.30785773932545896
     },
     {
@@ -9811,7 +9811,7 @@
         "takeaway": "yes",
         "website": "https://www.subway.com.au/"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 0.474249834750867
     },
     {
@@ -9831,7 +9831,7 @@
         "fuel:octane_91": "yes",
         "name": "METRO Petroleum"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 0.1198931806736874
     },
     {
@@ -9855,7 +9855,7 @@
         "takeaway": "yes",
         "website": "https://mcdonalds.com.au/"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 0.5142854488350606
     },
     {
@@ -9877,7 +9877,7 @@
         "shop": "supermarket",
         "website": "https://www.woolworths.com.au/"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 0.40970859546970106
     },
     {
@@ -9897,7 +9897,7 @@
         "name": "Amcal",
         "opening_hours": "Mo-We,Fr,Sa 08:00-20:00; Th 08:00-21:00; Su 09:00-19:00"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 0.06961401623436338
     },
     {
@@ -9912,7 +9912,7 @@
         "check_date": "2023-07-26",
         "name": "Espresso One"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 0.19838118139895108
     },
     {
@@ -9931,7 +9931,7 @@
         "name": "Pizza Capers",
         "takeaway": "yes"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 0.4811693219761648
     },
     {
@@ -9946,7 +9946,7 @@
         "shop": "greengrocer",
         "website": "https://www.nourishorganicalbany.com.au/"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 0.8103864186097761
     },
     {
@@ -9963,7 +9963,7 @@
         "name": "Strawberry Hill Farm",
         "opening_hours": "Mo-Su 10:00-15:00"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 1.6990623098095454
     },
     {
@@ -9983,7 +9983,7 @@
         "name": "BP",
         "website": "https://map.bp.com/en-AU/AU/gas-station/albany/bp-albany-allway-motors-temporary-closed/1862"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 0.2930975664449398
     },
     {
@@ -10001,7 +10001,7 @@
         "operator:wikidata": "Q1142936",
         "operator:wikipedia": "en:Australia Post"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 0.8324400504154427
     },
     {
@@ -10027,7 +10027,7 @@
         "operator": "Whalley‘s",
         "self_service": "yes"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 0.9693722090555317
     },
     {
@@ -10049,7 +10049,7 @@
         "name": "Albany Fire Station",
         "phone": "+61 8 6820 2510"
       },
-      "distanceAlongTrail": 981.6449958852467,
+      "distanceAlongTrail": 976.3243843191574,
       "distanceFromTrail": 1.671404920197529
     }
   ]

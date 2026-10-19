@@ -4790,89 +4790,6 @@
       "distanceFromTrail": 1.6448022813747802
     },
     {
-      "id": 13123462301,
-      "type": "node",
-      "category": "transport",
-      "lat": 33.9683408,
-      "lon": 134.3437455,
-      "name": "神山高校前",
-      "tags": {
-        "highway": "bus_stop",
-        "int_name": "Kamiyama High school-mae",
-        "name": "神山高校前"
-      },
-      "distanceAlongTrail": 52.42431412209509,
-      "distanceFromTrail": 1.9299539506047658
-    },
-    {
-      "id": 14086721802,
-      "type": "node",
-      "category": "restaurant",
-      "lat": 33.968358,
-      "lon": 134.343905,
-      "name": "山びこ",
-      "tags": {
-        "amenity": "restaurant",
-        "cuisine": "italian;japanese",
-        "name": "山びこ",
-        "name:en": "Yamabiko"
-      },
-      "distanceAlongTrail": 52.42431412209509,
-      "distanceFromTrail": 1.9335770554070688
-    },
-    {
-      "id": 1423660237,
-      "type": "node",
-      "category": "emergency",
-      "lat": 33.9680615,
-      "lon": 134.3440422,
-      "name": "石井警察署神山町神領駐在所",
-      "tags": {
-        "amenity": "police",
-        "name": "石井警察署神山町神領駐在所",
-        "note": "National-Land Numerical Information (Public Facility) 2006, MLIT Japan",
-        "note:ja": "国土数値情報（公共施設データ）平成19年　国土交通省",
-        "source": "KSJ2",
-        "source_ref": "http://nlftp.mlit.go.jp/ksj/jpgis/datalist/KsjTmplt-P02-v2_0.html"
-      },
-      "distanceAlongTrail": 52.42431412209509,
-      "distanceFromTrail": 1.9688886313040947
-    },
-    {
-      "id": 277377414,
-      "type": "node",
-      "category": "resupply",
-      "lat": 33.9687242,
-      "lon": 134.3452882,
-      "name": "寄井郵便局",
-      "tags": {
-        "amenity": "post_office",
-        "name": "寄井郵便局"
-      },
-      "distanceAlongTrail": 52.42431412209509,
-      "distanceFromTrail": 1.9476308709395371
-    },
-    {
-      "id": 4074540467,
-      "type": "node",
-      "category": "resupply",
-      "lat": 33.9691229,
-      "lon": 134.3457556,
-      "name": "ファミリーマート",
-      "tags": {
-        "brand": "FamilyMart",
-        "brand:en": "FamilyMart",
-        "brand:ja": "ファミリーマート",
-        "brand:wikidata": "Q11247682",
-        "name": "ファミリーマート",
-        "name:en": "FamilyMart",
-        "name:ja": "ファミリーマート",
-        "shop": "convenience"
-      },
-      "distanceAlongTrail": 52.42431412209509,
-      "distanceFromTrail": 1.927240186004545
-    },
-    {
       "id": 9405052452,
       "type": "node",
       "category": "camping",
@@ -4898,6 +4815,89 @@
       },
       "distanceAlongTrail": 54.60563046625061,
       "distanceFromTrail": 0.004264801217751822
+    },
+    {
+      "id": 13123462301,
+      "type": "node",
+      "category": "transport",
+      "lat": 33.9683408,
+      "lon": 134.3437455,
+      "name": "神山高校前",
+      "tags": {
+        "highway": "bus_stop",
+        "int_name": "Kamiyama High school-mae",
+        "name": "神山高校前"
+      },
+      "distanceAlongTrail": 55.04727085623862,
+      "distanceFromTrail": 0.004913894646586374
+    },
+    {
+      "id": 14086721802,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 33.968358,
+      "lon": 134.343905,
+      "name": "山びこ",
+      "tags": {
+        "amenity": "restaurant",
+        "cuisine": "italian;japanese",
+        "name": "山びこ",
+        "name:en": "Yamabiko"
+      },
+      "distanceAlongTrail": 55.05892180534176,
+      "distanceFromTrail": 0.011497028221429178
+    },
+    {
+      "id": 1423660237,
+      "type": "node",
+      "category": "emergency",
+      "lat": 33.9680615,
+      "lon": 134.3440422,
+      "name": "石井警察署神山町神領駐在所",
+      "tags": {
+        "amenity": "police",
+        "name": "石井警察署神山町神領駐在所",
+        "note": "National-Land Numerical Information (Public Facility) 2006, MLIT Japan",
+        "note:ja": "国土数値情報（公共施設データ）平成19年　国土交通省",
+        "source": "KSJ2",
+        "source_ref": "http://nlftp.mlit.go.jp/ksj/jpgis/datalist/KsjTmplt-P02-v2_0.html"
+      },
+      "distanceAlongTrail": 55.08361536699234,
+      "distanceFromTrail": 0.013747528003276312
+    },
+    {
+      "id": 277377414,
+      "type": "node",
+      "category": "resupply",
+      "lat": 33.9687242,
+      "lon": 134.3452882,
+      "name": "寄井郵便局",
+      "tags": {
+        "amenity": "post_office",
+        "name": "寄井郵便局"
+      },
+      "distanceAlongTrail": 55.15922901181881,
+      "distanceFromTrail": 0.09962322046281044
+    },
+    {
+      "id": 4074540467,
+      "type": "node",
+      "category": "resupply",
+      "lat": 33.9691229,
+      "lon": 134.3457556,
+      "name": "ファミリーマート",
+      "tags": {
+        "brand": "FamilyMart",
+        "brand:en": "FamilyMart",
+        "brand:ja": "ファミリーマート",
+        "brand:wikidata": "Q11247682",
+        "name": "ファミリーマート",
+        "name:en": "FamilyMart",
+        "name:ja": "ファミリーマート",
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 55.180162624315436,
+      "distanceFromTrail": 0.15760825318932906
     },
     {
       "id": 1423661466,

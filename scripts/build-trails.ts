@@ -27,7 +27,7 @@ import {
 import { countDuplicatePois } from '../src/lib/poi-dedup.js';
 import { countNoiseByReason } from '../src/lib/poi-noise.js';
 import { findDenseStretches, thinUrbanPois } from '../src/lib/poi-urban.js';
-import { markTrailPOIsForBuild, readTrailPOIFile } from './lib/trail-pois-file.js';
+import { markTrailPOIsForBuild, poisPastTrailEnd, readTrailPOIFile } from './lib/trail-pois-file.js';
 import { accessPlacements, readTrailAccessFile, unroutedAccessIds, variantAccess } from './lib/trail-access-file.js';
 import { BUNDLED_PLAN_FILLS, inlinePlanShell } from './lib/plan-shell.js';
 import { fillTemplate } from './lib/fill-template.js';
@@ -733,6 +733,14 @@ async function main() {
         unmatched,
         replaced,
       } = markTrailPOIsForBuild(readTrailPOIFile(trailDir), processed, poiConfig);
+      const stale = poisPastTrailEnd(fetched, processed);
+      if (stale.length > 0) {
+        const where = stale.map(p => `${p.name ?? `${p.type}/${p.id}`} (km ${p.distanceAlongTrail.toFixed(1)})`);
+        throw new Error(
+          `${stale.length} POI(s) in pois.json lie past the end of the trail: ${where.join(', ')}. ` +
+            `Re-fetch with npm run fetch:pois -- ${processed.config.id}`
+        );
+      }
       const noise = countNoiseByReason(fetched, poiConfig);
       if (unmatched.length > 0) {
         console.warn(`  ⚠ pois.json duplicates match no POI: ${unmatched.join(', ')}`);
