@@ -36,6 +36,19 @@
    contributing water-point data upstream to OSM is worth more than attribution. The
    in-app display-name credit for linked users (Section 5) is a product courtesy, not
    a license term.
+
+   *Community routes and OpenStreetMap POIs (2026-10, issue #163).* CC0 covers
+   only what the hiker contributes: the route, its waypoints and text, and the
+   display name. The points of interest the comments API adds to a published
+   route (`enrichCommunityRoutePois`) are OpenStreetMap data, © OpenStreetMap
+   contributors under the ODbL, and are never relicensed: they sit in their own
+   `pois` array, and the route's `config.dataSource` says so ("…under CC0.
+   Points of interest © OpenStreetMap contributors, under the Open Database
+   Licence (ODbL), not CC0.", linking openstreetmap.org/copyright), as the
+   bundled trails' POIs are credited to OSM in `pois.json` and in the app's map
+   credits. The API's `licence: 'CC0-1.0'` describes the hiker's contribution,
+   not the POIs. The same split holds for an import's POIs on the phone and the
+   web, which never leave the device.
 2. **Safety-critical water-data disclaimer.** Water status is the one datum where a
    wrong value can hurt someone. Required: persistent "Reported by <name> · <date>"
    attribution on hiker-reported water, with no hedging or advice: the hiker
