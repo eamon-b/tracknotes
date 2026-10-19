@@ -64,11 +64,20 @@ import {
   purgePrivateOrThrow,
   purgePublicOrThrow,
   putTrail,
+  poiAnswerKey,
   readStoredTrail,
 } from './community-storage';
 import type { StoredTrail } from './community-storage';
-import { POI_LIMITS, fetchRoutePois, parseOverpassEndpoints, planPoiQueries } from './community-pois';
-import type { OverpassBudget, OverpassDeps } from './community-pois';
+import {
+  POI_LIMITS,
+  WORST_REQUEST_MS,
+  fetchRoutePois,
+  newOverpassBudget,
+  parseOverpassEndpoints,
+  planPoiQueries,
+  queryHash,
+} from './community-pois';
+import type { OverpassBudget, OverpassDeps, PoiAnswerCache } from './community-pois';
 import {
   checkCommunityMetadata,
   checkCommunityRegion,
@@ -95,7 +104,7 @@ import type {
 } from '../../../src/lib/community-types';
 import { isValidCountry, isValidState } from '../../../src/lib/trail-regions';
 import { haversineDistance } from '../../../src/lib/distance';
-import type { ProcessedTrail } from '../../../src/lib/trail-types';
+import type { ProcessedTrail, TrailDataSource } from '../../../src/lib/trail-types';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -208,6 +217,8 @@ export interface CommunityRouteRow {
   poi_count: number;
   pois_attempts: number;
   pois_attempted_at: string | null;
+  /** When the route is next due for POIs: '' at once, NULL when nothing is due. */
+  pois_due_at: string | null;
   pois_error: string | null;
 }
 
@@ -479,8 +490,20 @@ async function contentHash(trail: ProcessedTrail): Promise<string> {
   return sha256Hex(JSON.stringify(rest));
 }
 
-function dataSourceText(submittedBy: string | null, credit: string | null): string {
-  return `Shared by ${submittedBy ?? ANONYMOUS_SUBMITTER} under CC0.${credit ? ` ${credit}` : ''}`;
+/** The credit for OpenStreetMap's POIs in a route that carries them (ODbL requires one). */
+export const POI_DATA_CREDIT =
+  'Points of interest © OpenStreetMap contributors, under the Open Database Licence (ODbL), not CC0.';
+const OSM_COPYRIGHT_URL = 'https://www.openstreetmap.org/copyright';
+
+/**
+ * A route's `config.dataSource`: the hiker's own contribution is CC0; the
+ * OpenStreetMap POIs the enrichment adds stay ODbL and are credited as such,
+ * with a link to OSM's copyright page.
+ */
+function communityDataSource(submittedBy: string | null, credit: string | null, hasPois: boolean): TrailDataSource {
+  const text = `Shared by ${submittedBy ?? ANONYMOUS_SUBMITTER} under CC0.${credit ? ` ${credit}` : ''}`;
+  if (!hasPois) return { text };
+  return { text: `${text} ${POI_DATA_CREDIT}`, url: OSM_COPYRIGHT_URL, linkText: 'openstreetmap.org/copyright' };
 }
 
 interface StoredMeta {
@@ -507,7 +530,7 @@ function withServerConfig(trail: ProcessedTrail, meta: StoredMeta): ProcessedTra
       country: meta.country,
       states: meta.state ? [meta.state] : [],
       description: meta.description,
-      dataSource: { text: dataSourceText(meta.submittedBy, meta.credit) },
+      dataSource: communityDataSource(meta.submittedBy, meta.credit, (trail.pois?.length ?? 0) > 0),
     },
   };
 }
@@ -1719,23 +1742,30 @@ export async function rerunStaleReviews(
  * Per scheduled run. Workers Free caps an invocation's external subrequests
  * (50), and the stale-review re-run before this may spend 10 on the model;
  * the wall time spent waiting on Overpass is not CPU, but the run must end
- * well inside the Cron Trigger's limit.
+ * well inside the Cron Trigger's limit. CPU is the other limit: see
+ * `docs/architecture/workers.md` ("community route POIs") before turning this
+ * on for a Worker on the Free plan.
  */
 export const POI_RUN_LIMITS = {
   /** Overpass requests per run, across every route and endpoint (≥ `POI_LIMITS.maxQueriesPerRoute`). */
   queries: 20,
   /** Routes looked at per run. */
   routes: 3,
-  /** No Overpass request starts after this much of the run, ms. */
+  /**
+   * Every Overpass request of the run must be able to finish within this
+   * much of the run, ms. At least `maxQueriesPerRoute × WORST_REQUEST_MS`, so a
+   * route of the longest kind fits a fresh run however slow each answer is.
+   */
   wallMs: 6 * 60 * 1000,
-  /** Runs per geometry before a route is left without POIs (`failed`). */
+  /** Attempts per geometry in which Overpass failed, before a route is left without POIs (`failed`). */
   maxAttempts: 4,
-  /** A failed run is retried no sooner than this, ms. */
+  /** A route is tried again no sooner than this after an attempt starts, ms. */
   retryAfterMs: 60 * 60 * 1000,
   /**
    * A route changed less than this long ago waits: the AI review a submit or
-   * an edit starts from `waitUntil` is then long finished, and this run's
-   * write (which moves `updated_at`) cannot make it lose its guard.
+   * an edit starts from `waitUntil` is then long finished (a review still
+   * `pending` waits too), and this run's write (which moves `updated_at`)
+   * cannot make it lose its guard.
    */
   settleMs: 2 * 60 * 1000,
 } as const;
@@ -1743,128 +1773,224 @@ export const POI_RUN_LIMITS = {
 /** Test seams for the POI enrichment. */
 export interface PoiEnrichDeps extends Partial<OverpassDeps> {
   nowMs?: number;
-  /** `purgeSuperseded`'s grace for fresh uploads. */
+  /** `purgeSuperseded`'s grace for fresh uploads, and the private sweep's. */
   purgeGraceMs?: number;
 }
 
 /**
- * Routes the run should look at: live, and with no POI answer for their
- * current geometry — never tried, being retried (not within
- * `retryAfterMs` of the last run), or answered for a geometry they no longer
- * have (at once).
+ * The run's candidates: live routes due for POIs (`pois_due_at` set and
+ * passed: '' for a route never tried, the claim's retry time after an attempt;
+ * NULL once answered or given up), settled, and with no AI review pending.
+ * Longest-waiting first, so a route a run had to pass over is first in the
+ * next. Served by `idx_community_routes_pois_due` (0009), range and order
+ * both; the unary `+` keeps the planner off the status index, which would
+ * read every live route and sort them.
  */
-async function poiCandidates(env: Env, nowMs: number, limit: number): Promise<CommunityRouteRow[]> {
-  const { results } = await env.DB.prepare(
-    `SELECT * FROM community_routes
-      WHERE status IN ('unverified', 'verified')
-        AND (pois_status = 'pending' OR pois_hash IS NULL OR pois_hash != content_hash)
-        AND (pois_attempted_at IS NULL OR pois_attempted_at < ?
-             OR (pois_hash IS NOT NULL AND pois_hash != content_hash))
+export const POI_CANDIDATES_SQL = `SELECT * FROM community_routes
+      WHERE pois_due_at IS NOT NULL AND pois_due_at <= ?
+        AND +status IN ('unverified', 'verified')
+        AND review_status != 'pending'
         AND updated_at < ?
-      ORDER BY pois_attempts ASC, created_at DESC, id DESC
-      LIMIT ?`
-  )
-    .bind(
-      new Date(nowMs - POI_RUN_LIMITS.retryAfterMs).toISOString(),
-      new Date(nowMs - POI_RUN_LIMITS.settleMs).toISOString(),
-      limit
-    )
+      ORDER BY pois_due_at ASC, created_at ASC, id ASC
+      LIMIT ?`;
+
+async function poiCandidates(env: Env, nowMs: number, limit: number): Promise<CommunityRouteRow[]> {
+  const { results } = await env.DB.prepare(POI_CANDIDATES_SQL)
+    .bind(new Date(nowMs).toISOString(), new Date(nowMs - POI_RUN_LIMITS.settleMs).toISOString(), limit)
     .all<CommunityRouteRow>();
   return results;
 }
 
+/** D1's answer to a query naming a column migration 0009 adds, when it has not been applied. */
+function isMissingPoiMigration(err: unknown): boolean {
+  return /no such column:?\s*"?pois?_/i.test(err instanceof Error ? err.message : String(err));
+}
+
+type PoiMiss = { kind: 'skip'; reason: string } | { kind: 'fail'; reason: string; counted: boolean };
+
 /**
- * Record a run that ended without POIs. Guarded by the claim's stamp: a
- * geometry change that reset the bookkeeping meanwhile wins. A `skip` is
- * final for this geometry; a `fail` is retried until `maxAttempts`.
+ * Record an attempt that ended without POIs. Guarded by the claim's stamp: a
+ * change that reset the bookkeeping meanwhile wins. A `skip` is final for this
+ * geometry; a counted `fail` is retried at the due time the claim set, until
+ * `maxAttempts`; an uncounted one gives the attempt back and puts the route
+ * back where it was in the queue (`dueAt`, the value the claim replaced).
  */
 async function recordPoiMiss(
   env: Env,
   id: string,
   claimedAt: string,
-  outcome: { kind: 'skip' | 'fail'; reason: string }
+  miss: PoiMiss,
+  dueAt: string | null
 ): Promise<void> {
-  const final = outcome.kind === 'skip' ? 1 : 0;
+  const reason = miss.reason.slice(0, 500);
+  if (miss.kind === 'fail' && !miss.counted) {
+    await env.DB.prepare(
+      `UPDATE community_routes SET pois_attempts = MAX(pois_attempts - 1, 0), pois_due_at = ?, pois_error = ?
+        WHERE id = ? AND pois_attempted_at = ?`
+    )
+      .bind(dueAt ?? '', reason, id, claimedAt)
+      .run();
+    return;
+  }
+  const final = miss.kind === 'skip' ? 1 : 0;
   await env.DB.prepare(
     `UPDATE community_routes
         SET pois_status = CASE WHEN ? = 1 THEN 'skipped' WHEN pois_attempts >= ? THEN 'failed' ELSE 'pending' END,
             pois_hash = CASE WHEN ? = 1 OR pois_attempts >= ? THEN content_hash ELSE pois_hash END,
+            pois_due_at = CASE WHEN ? = 1 OR pois_attempts >= ? THEN NULL ELSE pois_due_at END,
             pois_error = ?
       WHERE id = ? AND pois_attempted_at = ?`
   )
-    .bind(final, POI_RUN_LIMITS.maxAttempts, final, POI_RUN_LIMITS.maxAttempts, outcome.reason.slice(0, 500), id, claimedAt)
+    .bind(
+      final,
+      POI_RUN_LIMITS.maxAttempts,
+      final,
+      POI_RUN_LIMITS.maxAttempts,
+      final,
+      POI_RUN_LIMITS.maxAttempts,
+      reason,
+      id,
+      claimedAt
+    )
     .run();
 }
 
 /**
- * Enrich one route, if the run's budget covers it. Returns false when it was
- * left for a later run without spending anything.
+ * Once a route is answered or given up on: delete whatever under its private
+ * prefix the row does not name — the cached Overpass answers, and any trail
+ * JSON a run stopped between its R2 write and its D1 write left behind. Spares
+ * anything younger than `graceMs` (an edit's object, written before its row
+ * names it) except `answerKeys`, the answers this run cached. Never throws.
  */
+async function sweepPoiLeftovers(env: Env, id: string, graceMs: number, answerKeys: string[] = []): Promise<void> {
+  // This run's own cached answers are younger than the grace: named outright.
+  await deleteObjects(env, answerKeys);
+  try {
+    const current = await loadRoute(env, id);
+    if (!current || current.status === 'removed') return;
+    await purgePrivateOrThrow(env, id, [current.private_key, current.gpx_key], new Date(Date.now() - graceMs));
+  } catch (err) {
+    console.error(`Sweeping POI leftovers of ${id} failed: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+function storedMetaOf(row: CommunityRouteRow): StoredMeta {
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    credit: row.credit,
+    country: row.country,
+    state: row.state,
+    submittedBy: row.submitted_by_name,
+  };
+}
+
+/** Enrich one route, within the run's budget. */
 async function enrichRoutePois(
   env: Env,
   row: CommunityRouteRow,
   budget: OverpassBudget,
   deps: PoiEnrichDeps & OverpassDeps
-): Promise<boolean> {
-  if (row.pois_status === 'pending' && row.pois_hash === null && row.pois_attempts >= POI_RUN_LIMITS.maxAttempts) {
-    // Every attempt so far ended without recording an answer (the run was
+): Promise<void> {
+  const now = deps.now ?? Date.now;
+  const graceMs = deps.purgeGraceMs ?? SUPERSEDED_PURGE_GRACE_MS;
+  if (row.pois_attempts >= POI_RUN_LIMITS.maxAttempts) {
+    // The last attempts ended without recording an answer (the run was
     // stopped mid-way): stop trying this geometry.
-    await env.DB.prepare(
-      `UPDATE community_routes SET pois_status = 'failed', pois_hash = content_hash, pois_error = 'gave_up'
-        WHERE id = ? AND pois_attempted_at IS ? AND pois_status = 'pending'`
+    const gaveUp = await env.DB.prepare(
+      `UPDATE community_routes
+          SET pois_status = 'failed', pois_hash = content_hash, pois_due_at = NULL, pois_error = 'gave_up'
+        WHERE id = ? AND pois_attempted_at IS ? AND pois_due_at IS ?`
     )
-      .bind(row.id, row.pois_attempted_at)
+      .bind(row.id, row.pois_attempted_at, row.pois_due_at)
       .run();
-    return true;
-  }
-  const trail = await readStoredTrail(env, row.private_key);
-  const plan = trail ? planPoiQueries(trail) : null;
-  if (plan && plan.corridor.groups.length <= POI_LIMITS.maxQueriesPerRoute && plan.corridor.groups.length > budget.queriesLeft) {
-    return false;
+    if (gaveUp.meta.changes > 0) await sweepPoiLeftovers(env, row.id, graceMs);
+    return;
   }
 
-  // Claim the run before any request: a run cut short (the Worker stopped)
-  // still counts as an attempt, so a route that always kills the run is given
-  // up on rather than retried for ever. A geometry the last answer was not
-  // for starts counting again.
+  // Claim before any work: a run the platform stops (out of CPU or time)
+  // after this still counts as an attempt, so a route that always kills the
+  // run is given up on rather than retried for ever. The claim also sets the
+  // retry time, which a run that finishes clears or keeps.
   const claimedAt = stampAfter(row.pois_attempted_at ?? '');
   const claim = await env.DB.prepare(
     `UPDATE community_routes
-        SET pois_attempts = CASE WHEN pois_status = 'pending' AND pois_hash IS NULL THEN pois_attempts + 1 ELSE 1 END,
-            pois_status = 'pending', pois_hash = NULL, pois_attempted_at = ?
-      WHERE id = ? AND updated_at = ? AND pois_attempted_at IS ?`
+        SET pois_attempts = pois_attempts + 1, pois_status = 'pending', pois_attempted_at = ?, pois_due_at = ?
+      WHERE id = ? AND updated_at = ? AND pois_attempted_at IS ? AND pois_due_at IS ?`
   )
-    .bind(claimedAt, row.id, row.updated_at, row.pois_attempted_at)
+    .bind(
+      claimedAt,
+      new Date(Date.parse(claimedAt) + POI_RUN_LIMITS.retryAfterMs).toISOString(),
+      row.id,
+      row.updated_at,
+      row.pois_attempted_at,
+      row.pois_due_at
+    )
     .run();
-  if (claim.meta.changes === 0) return true;
+  if (claim.meta.changes === 0) return;
+  const miss = (outcome: PoiMiss) => recordPoiMiss(env, row.id, claimedAt, outcome, row.pois_due_at);
+  let answerKeys: string[] = [];
+  const finished = async (outcome: PoiMiss) => {
+    await miss(outcome);
+    await sweepPoiLeftovers(env, row.id, graceMs, answerKeys);
+  };
 
-  if (!trail || !plan) {
-    await recordPoiMiss(env, row.id, claimedAt, { kind: 'fail', reason: 'trail_missing' });
-    return true;
-  }
-  if (plan.corridor.groups.length > POI_LIMITS.maxQueriesPerRoute) {
-    await recordPoiMiss(env, row.id, claimedAt, { kind: 'skip', reason: 'route_too_long' });
-    return true;
-  }
-
-  const outcome = await fetchRoutePois(trail, plan, budget, deps);
-  if (outcome.kind !== 'ok') {
-    console.error(`POIs for ${row.id}: ${outcome.kind} (${outcome.reason})`);
-    await recordPoiMiss(env, row.id, claimedAt, outcome);
-    return true;
+  const trail = await readStoredTrail(env, row.private_key);
+  if (!trail) return miss({ kind: 'fail', reason: 'trail_missing', counted: true });
+  const plan = planPoiQueries(trail);
+  if (plan.queries.length > POI_LIMITS.maxQueriesPerRoute) {
+    return finished({ kind: 'skip', reason: 'route_too_long' });
   }
 
-  const { pois: _old, ...rest } = trail;
-  const before = JSON.stringify(trail.pois ?? []);
-  const changed = JSON.stringify(outcome.pois) !== before;
+  const hashes = await Promise.all(plan.queries.map((q) => queryHash(row.private_key, q)));
+  answerKeys = hashes.map((hash) => poiAnswerKey(row.id, hash));
+  const cache: PoiAnswerCache = {
+    async get(hash) {
+      const object = await env.PHOTOS.get(poiAnswerKey(row.id, hash));
+      return object ? new Uint8Array(await object.arrayBuffer()) : null;
+    },
+    async put(hash, body) {
+      await env.PHOTOS.put(poiAnswerKey(row.id, hash), body, { httpMetadata: { contentType: 'application/json' } });
+    },
+  };
+  // Only a route whose missing answers all fit what the run has left is
+  // started; otherwise it gives the attempt back, untouched, for a run with
+  // room for it.
+  let needed = 0;
+  for (const hash of hashes) {
+    if (!(await env.PHOTOS.head(poiAnswerKey(row.id, hash)))) needed++;
+  }
+  if (needed > budget.queriesLeft || now() + needed * WORST_REQUEST_MS > budget.deadline) {
+    return miss({ kind: 'fail', reason: 'run_budget', counted: false });
+  }
+
+  const outcome = await fetchRoutePois(trail, plan, hashes, cache, budget, deps);
+  if (outcome.kind === 'skip') {
+    console.error(`POIs for ${row.id}: skipped (${outcome.reason})`);
+    return finished(outcome);
+  }
+  if (outcome.kind === 'fail') {
+    console.error(`POIs for ${row.id}: ${outcome.counted ? 'failed' : 'deferred'} (${outcome.reason})`);
+    await miss(outcome);
+    if (outcome.counted && row.pois_attempts + 1 >= POI_RUN_LIMITS.maxAttempts) {
+      await sweepPoiLeftovers(env, row.id, graceMs, answerKeys);
+    }
+    return;
+  }
+
+  const changed = JSON.stringify(outcome.pois) !== JSON.stringify(trail.pois ?? []);
   let put: StoredTrail | null = null;
   if (changed) {
     try {
-      put = await putTrail(env, row.id, await encodeTrail({ ...rest, pois: outcome.pois }), isLive(row.status));
+      const { pois: _old, ...rest } = trail;
+      // Rebuilt as an edit rebuilds it: the same config, with the
+      // OpenStreetMap credit the POIs now need (`communityDataSource`).
+      const next = withServerConfig({ ...rest, pois: outcome.pois }, storedMetaOf(row));
+      put = await putTrail(env, row.id, await encodeTrail(next), isLive(row.status));
     } catch (err) {
       if (err instanceof HttpError && err.code === 'trail_too_large') {
-        await recordPoiMiss(env, row.id, claimedAt, { kind: 'skip', reason: 'trail_too_large' });
-        return true;
+        return finished({ kind: 'skip', reason: 'trail_too_large' });
       }
       throw err;
     }
@@ -1873,10 +1999,11 @@ async function enrichRoutePois(
   // Guarded like an owner's edit: whatever changed the row since it was read
   // (an edit, a hide, a de-attribution) wins, and this run's objects go. The
   // new JSON is a new version, so `updated_at` moves and clients that list
-  // the route see its md5 change.
+  // the route see its md5 change. (`status_changed_at`, which the report
+  // count runs from, and the review are untouched.)
   const written = await env.DB.prepare(
     `UPDATE community_routes
-        SET pois_status = 'done', pois_hash = content_hash, poi_count = ?, pois_error = NULL,
+        SET pois_status = 'done', pois_hash = content_hash, poi_count = ?, pois_error = NULL, pois_due_at = NULL,
             md5 = ?, bytes = ?, r2_key = ?, private_key = ?, updated_at = ?
       WHERE id = ? AND status = ? AND updated_at = ? AND pois_attempted_at = ?`
   )
@@ -1895,32 +2022,42 @@ async function enrichRoutePois(
     .run();
   if (written.meta.changes === 0) {
     if (put) await discardUnclaimed(env, row.id, [put.privateKey, put.publicKey]);
-    await recordPoiMiss(env, row.id, claimedAt, { kind: 'fail', reason: 'route_changed' });
-    return true;
+    // Not Overpass's doing: the answers stay cached for the next attempt.
+    await miss({ kind: 'fail', reason: 'route_changed', counted: false });
+    return;
   }
   if (put) {
     await deleteObjects(env, [row.private_key]);
     if (put.publicKey) await purgeSuperseded(env, row.id, [put.publicKey, row.r2_key], deps.purgeGraceMs);
   }
-  return true;
+  await sweepPoiLeftovers(env, row.id, graceMs, answerKeys);
 }
 
 /**
- * The scheduled POI enrichment: up to `POI_RUN_LIMITS.routes` live routes
- * whose stored JSON has no POI answer for their current geometry, newest
- * first among the least tried, within one Overpass budget for the run. Off
- * when `OVERPASS_ENDPOINTS` is empty. Never on a request's path: a submit
- * stores the route without POIs and this adds them within a run or two.
+ * The scheduled POI enrichment: up to `POI_RUN_LIMITS.routes` live routes due
+ * for POIs, longest-waiting first, within one Overpass budget for the run.
+ * Off when `OVERPASS_ENDPOINTS` is empty (the default). Never on a request's
+ * path: a submit stores the route without POIs and this adds them within a
+ * run or two. Before migration 0009 is applied it logs and does nothing.
  */
 export async function enrichCommunityRoutePois(env: Env, deps: PoiEnrichDeps = {}): Promise<void> {
   const endpoints = deps.endpoints ?? parseOverpassEndpoints(env.OVERPASS_ENDPOINTS);
   if (endpoints.length === 0) return;
   const nowMs = deps.nowMs ?? Date.now();
   const now = deps.now ?? Date.now;
-  const budget: OverpassBudget = { queriesLeft: POI_RUN_LIMITS.queries, deadline: now() + POI_RUN_LIMITS.wallMs, preferred: 0 };
-  const rows = await poiCandidates(env, nowMs, POI_RUN_LIMITS.routes);
+  const budget = newOverpassBudget(endpoints.length, POI_RUN_LIMITS.queries, now() + POI_RUN_LIMITS.wallMs);
+  let rows: CommunityRouteRow[];
+  try {
+    rows = await poiCandidates(env, nowMs, POI_RUN_LIMITS.routes);
+  } catch (err) {
+    if (isMissingPoiMigration(err)) {
+      console.error('POI enrichment skipped: migration 0009 (community route POIs) is not applied');
+      return;
+    }
+    throw err;
+  }
   for (const row of rows) {
-    if (budget.queriesLeft <= 0) return;
+    if (budget.queriesLeft <= 0 || now() + WORST_REQUEST_MS > budget.deadline) return;
     try {
       await enrichRoutePois(env, row, budget, { ...deps, endpoints });
     } catch (err) {
