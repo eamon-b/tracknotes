@@ -98,7 +98,7 @@ The app on the Shikoku Henro, in dark mode:
 
 ## Where the data comes from
 
-- **Curated trails** come from guidebooks' GPX files and official sources, or built from open data: Great Trails Victoria (CC BY 4.0), the Tasmanian LIST (CC BY 3.0 AU) and OpenStreetMap route relations (ODbL). Each trail page credits its source, and so does the app (tap the credit in the corner of the map).
+- **Curated trails** come from guidebooks' GPX files and official sources, or are built from open data: Great Trails Victoria (CC BY 4.0), the Tasmanian LIST (CC BY 3.0 AU) and OpenStreetMap route relations (ODbL). Each trail page credits its source, and so does the app (tap the credit in the corner of the map).
 - **Te Araroa** is built in the companion [te-araroa-data](https://github.com/eamon-b/te-araroa-data) repo: trail data © Te Araroa Trust, hut and campsite data © NZ Department of Conservation (CC BY 4.0), resupply coordinates © OpenStreetMap contributors (ODbL).
 - **CDT**: centreline © Continental Divide Trail Coalition (CC BY).
 - **Elevation** comes from Copernicus GLO-30 (produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved), and so do the contour lines in the app icon: Mt Sonder on the Larapinta Trail. **Points of interest** and walk-in paths come from OpenStreetMap. **Climate** is 30-year historical data from the [Open-Meteo](https://open-meteo.com/) historical weather API (CC BY 4.0).
