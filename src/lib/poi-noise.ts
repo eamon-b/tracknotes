@@ -16,7 +16,7 @@
  * Each rule below was measured against the six fetched trails on 2026-09-09,
  * and each keeps the cases that look like noise but aren't.
  */
-import type { TrailPOI, TrailPoiConfig } from './trail-types.js';
+import type { TrailPOI, TrailPoiConfig } from './trail-types';
 
 export type NoiseReason =
   | 'bus-stop'
