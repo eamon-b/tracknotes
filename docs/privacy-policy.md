@@ -134,8 +134,7 @@ to public OpenStreetMap search servers (the Overpass API), which are run by
 third parties under their own terms and see the outline and the network
 address it came from:
 
-- *Shared community routes.* When this is switched on, our server sends the
-  outline of each published community route, after it is published, to these
+- *Shared community routes.* Our server sends the outline of each published community route, after it is published, to these
   servers, one after another if one does not answer: overpass-api.de (run by
   FOSSGIS e.V., Germany), overpass.private.coffee (Private.coffee, Austria) and
   overpass.kumi.systems (Kumi Systems, Austria). The places found are added to
