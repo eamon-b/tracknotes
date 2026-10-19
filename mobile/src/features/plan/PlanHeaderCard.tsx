@@ -175,6 +175,9 @@ function StartDateField({
           placeholder="YYYY-MM-DD"
           placeholderTextColor={colors.textSecondary}
           accessibilityLabel="Start date"
+          // The row's "Start date" label shares the field's accessible name, so
+          // UI tests (mobile/maestro/today.yaml) find the input by this id.
+          testID="plan-start-date"
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="numbers-and-punctuation"
