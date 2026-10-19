@@ -168,7 +168,7 @@ describe('shared water and the carry calculators', () => {
   }
   const end = points[10].dist;
   const midway = { lat: -34.95, lon: 138.001 }; // ~km 5.56, ~91 m off the line
-  const longest = (wps: object[]) => analyzeWaterCarry(wps as never, end).longestGapKm;
+  const longest = (wps: object[]) => analyzeWaterCarry(wps as never, end, 40).longestGapKm;
 
   it('counts water from any hiker, mine or another device\'s', () => {
     expect(longest(wateredTrail().waypoints)).toBeCloseTo(end, 1);
