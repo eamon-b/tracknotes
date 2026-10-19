@@ -164,4 +164,54 @@ describe('trail-wide bulk / delta sync', () => {
     expect(new Set(seen).size).toBe(5);
     expect(seen.sort()).toEqual([...ids].sort());
   });
+
+  it("flags the caller's own live rows with `mine` only when a token is sent", async () => {
+    const author = await registerDevice('Author');
+    const reader = await registerDevice('Reader');
+    const trail = 'cape_to_cape';
+    const own = await createComment(author, { trailId: trail, waypointId: wpId('mine-wp-a'), text: 'own' });
+    const theirs = await createComment(reader, { trailId: trail, waypointId: wpId('mine-wp-b'), text: 'theirs' });
+    const gone = await createComment(author, { trailId: trail, waypointId: wpId('mine-wp-c'), text: 'gone' });
+    await SELF.fetch(url(`/v1/comments/${gone.id}`), { method: 'DELETE', headers: authHeaders(author) });
+
+    const read = async (headers: Record<string, string> = {}) => {
+      const res = await SELF.fetch(url(`/v1/trails/${trail}/comments?since=${encodeURIComponent('1970-01-01T00:00:00.000Z')}`), { headers });
+      expect(res.status).toBe(200);
+      return { res, body: (await res.json()) as BulkSyncResponse };
+    };
+    const byId = (body: BulkSyncResponse, id: string) => body.comments.find((c) => c.id === id);
+
+    const anon = await read();
+    expect(byId(anon.body, own.id)).not.toHaveProperty('mine');
+    expect(byId(anon.body, theirs.id)).not.toHaveProperty('mine');
+    expect(anon.res.headers.get('Cache-Control')).toBeNull();
+
+    const asAuthor = await read(authHeaders(author));
+    expect(byId(asAuthor.body, own.id)).toMatchObject({ mine: true });
+    expect(byId(asAuthor.body, theirs.id)).toMatchObject({ mine: false });
+    // Tombstones never carry it.
+    expect(byId(asAuthor.body, gone.id)).toEqual({
+      id: gone.id,
+      waypointId: wpId('mine-wp-c'),
+      deleted: true,
+      updatedAt: expect.any(String),
+    });
+    expect(asAuthor.res.headers.get('Cache-Control')).toBe('private, no-store');
+
+    const asReader = await read(authHeaders(reader));
+    expect(byId(asReader.body, own.id)).toMatchObject({ mine: false });
+    expect(byId(asReader.body, theirs.id)).toMatchObject({ mine: true });
+  });
+
+  it('reads anonymously, not failing, with a bad token', async () => {
+    const device = await registerDevice();
+    const trail = 'cape_to_cape';
+    const { id } = await createComment(device, { trailId: trail, waypointId: wpId('mine-bad-token') });
+    const res = await SELF.fetch(url(`/v1/trails/${trail}/comments`), {
+      headers: { Authorization: 'Bearer not-a-real-token' },
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as BulkSyncResponse;
+    expect(body.comments.find((c) => c.id === id)).not.toHaveProperty('mine');
+  });
 });

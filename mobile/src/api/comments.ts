@@ -5,7 +5,8 @@
  * `listTrailComments` auto-paginates: it follows `nextCursor` until exhausted
  * and returns the flattened entries plus the server's `syncedAt` from the first
  * page (the safe high-water mark to persist for the next delta — see
- * `sync/comment-sync`).
+ * `sync/comment-sync`). It sends `ctx.token` when set, so the server can mark
+ * the caller's own comments `mine`.
  */
 
 import type {
@@ -87,9 +88,11 @@ export async function listTrailComments(
     const path =
       `/v1/trails/${encodeURIComponent(params.trailId)}/comments` + (query ? `?${query}` : '');
 
+    // The token is optional: with one the server adds `mine` to live rows.
     const page: BulkSyncResponse = await apiRequest<BulkSyncResponse>(path, {
       baseUrl: ctx.baseUrl,
       fetchImpl: ctx.fetchImpl,
+      token: ctx.token,
     });
     entries.push(...page.comments);
     // The earliest page's clock is the conservative high-water mark: anything

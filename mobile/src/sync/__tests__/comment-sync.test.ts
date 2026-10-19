@@ -354,6 +354,82 @@ describe('pullTrail photo persistence', () => {
   });
 });
 
+describe('pullTrail own comments (mine)', () => {
+  /** Answers each trail-comments request with the next body; every other channel is empty. */
+  function commentsFeed(bodies: unknown[]) {
+    let i = 0;
+    const fn = jest.fn(async (url: string) => {
+      let body: unknown = {};
+      if (/\/v1\/trails\/[^/]+\/comments/.test(String(url))) {
+        body = bodies[Math.min(i, bodies.length - 1)];
+        i += 1;
+      }
+      return { ok: true, status: 200, statusText: '', text: async () => JSON.stringify(body) };
+    });
+    return fn as unknown as typeof fetch;
+  }
+
+  const isMine = async (d: SqlDatabase, id: string) =>
+    (await commentsRepo.getById(d, id))?.authorId === SESSION.userId;
+
+  it('sends the token on the comments pull', async () => {
+    const d = await db();
+    const fetchImpl = commentsFeed([{ comments: [], nextCursor: null, syncedAt: 'T1' }]);
+    await pullTrail('aawt', { db: d, baseUrl: BASE, fetchImpl, getSessionFn });
+    const call = (fetchImpl as jest.Mock).mock.calls.find((c) =>
+      String(c[0]).includes('/v1/trails/aawt/comments'),
+    );
+    expect(call?.[1]?.headers?.Authorization).toBe('Bearer tok');
+  });
+
+  it('keeps a comment ours across a tombstone and an admin restore', async () => {
+    const d = await db();
+    const fetchImpl = commentsFeed([
+      { comments: [feedComment('own', { updatedAt: 'U1', mine: true })], nextCursor: null, syncedAt: 'T1' },
+      // Hidden by reports: the phone drops the row, author_id with it.
+      { comments: [{ id: 'own', waypointId: 'w_1', deleted: true, updatedAt: 'U2' }], nextCursor: null, syncedAt: 'T2' },
+      // Restored by an admin: back as a live row, still marked ours.
+      { comments: [feedComment('own', { updatedAt: 'U3', mine: true })], nextCursor: null, syncedAt: 'T3' },
+    ]);
+    const deps = { db: d, baseUrl: BASE, fetchImpl, getSessionFn };
+
+    await pullTrail('aawt', deps);
+    expect(await isMine(d, 'own')).toBe(true);
+    await pullTrail('aawt', deps);
+    expect(await commentsRepo.getById(d, 'own')).toBeNull();
+    await pullTrail('aawt', deps);
+    expect(await isMine(d, 'own')).toBe(true);
+  });
+
+  it("leaves another hiker's comment unowned and keeps an existing author on mine:false", async () => {
+    const d = await db();
+    await commentsRepo.upsertServerComment(d, {
+      id: 'kept',
+      trailId: 'aawt',
+      waypointId: 'w_1',
+      displayName: 'Me',
+      text: 'hi',
+      waterStatus: null,
+      observedAt: null,
+      createdAt: '2026-01-01T00:00:00Z',
+      mineAuthorId: SESSION.userId,
+    });
+    const fetchImpl = commentsFeed([
+      {
+        comments: [
+          feedComment('theirs', { displayName: 'Other', updatedAt: 'U1', mine: false }),
+          feedComment('kept', { updatedAt: 'U1', mine: false }),
+        ],
+        nextCursor: null,
+        syncedAt: 'T1',
+      },
+    ]);
+    await pullTrail('aawt', { db: d, baseUrl: BASE, fetchImpl, getSessionFn });
+    expect((await commentsRepo.getById(d, 'theirs'))?.authorId).toBeNull();
+    expect(await isMine(d, 'kept')).toBe(true);
+  });
+});
+
 describe('drainOutbox photo uploads', () => {
   beforeEach(() => readBytes.mockClear());
 

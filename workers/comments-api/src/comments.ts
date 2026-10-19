@@ -6,7 +6,7 @@
 
 import { HttpError, json, noContent, readJson } from './http';
 import type { Env } from './http';
-import { requireAdmin, requireUser } from './auth';
+import { getUser, requireAdmin, requireUser } from './auth';
 import { appendSinceFilter, decodeCursor, encodeCursor } from './cursor';
 import { deleteCommentPhotos, parsePhotoUrls } from './photos';
 import { RATE_BUCKETS, consumeRateLimit, refundRateLimit } from './rate-limit';
@@ -305,8 +305,17 @@ export async function getWaypointFeed(
 // GET /v1/trails/:trailId/comments — public bulk / delta sync
 // ---------------------------------------------------------------------------
 
-export async function getBulkSync(request: Request, env: Env, trailId: string): Promise<Response> {
+export async function getBulkSync(
+  request: Request,
+  env: Env,
+  ctx: ExecutionContext,
+  trailId: string
+): Promise<Response> {
   const url = new URL(request.url);
+  // The read stays public. A token only adds `mine` to live rows; a missing,
+  // bad, revoked or expired one reads as anonymous rather than failing.
+  const viewer = await getUser(request, env, ctx);
+  const viewerId = viewer?.id ?? null;
   const limit = parseLimit(url.searchParams.get('limit'), BULK_DEFAULT_LIMIT, BULK_MAX_LIMIT);
   const cursor = decodeCursor(url.searchParams.get('cursor'));
   const since = url.searchParams.get('since');
@@ -368,11 +377,13 @@ export async function getBulkSync(request: Request, env: Env, trailId: string): 
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       photoUrls: parsePhotoUrls(row.photo_urls_json),
+      ...(viewerId !== null ? { mine: row.user_id === viewerId } : {}),
     };
   });
 
   const payload: BulkSyncResponse = { comments, nextCursor, syncedAt };
-  return json(payload);
+  // A token-bearing response is personal (`mine`), so no shared cache may keep it.
+  return json(payload, 200, viewerId !== null ? { 'Cache-Control': 'private, no-store' } : {});
 }
 
 // ---------------------------------------------------------------------------

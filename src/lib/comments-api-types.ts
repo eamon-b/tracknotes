@@ -329,6 +329,12 @@ export interface SyncComment {
    * when the comment has no photos.
    */
   photoUrls?: string[];
+  /**
+   * The caller's own comment. Only set when the request carried a valid token,
+   * so the phone can keep a comment it learns about from the feed (after a
+   * reinstall, or an admin restore of a report-hidden comment) as its own.
+   */
+  mine?: boolean;
   deleted?: false;
 }
 
