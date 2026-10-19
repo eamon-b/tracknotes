@@ -1857,11 +1857,10 @@ export function buildTrail(gpx: ParsedGpxResult, options: BuildTrailOptions): Pr
   );
 
   // Merge near-duplicate waypoints: some sources mark one physical feature with
-  // two <wpt>s — the AAWT has "Talbot Hut Site" twice ~60m apart, the Larapinta
-  // pins a `WT:` tank and a `C:` campsite at the same site (Rocky Bar Gap) —
-  // which, after the GeoJSON category overwrite gives both the same type, shows
-  // up as two adjacent identical-looking rows. Opt in per trail via
-  // `dedupeWaypoints`.
+  // two <wpt>s of the same name and type a few tens of metres apart, which shows
+  // up as two adjacent identical-looking rows. (A campsite and its water tank
+  // pinned under one name are two types and stay two rows.) Opt in per trail
+  // via `dedupeWaypoints`.
   //
   // Placement matters: this runs AFTER id minting (which still sees every
   // source waypoint, so data/waypoint-ids.json stays append-only and retired ids

@@ -18,6 +18,11 @@
       "description": "Tank and small camp at a gap in the low hills west of Alice Springs, the usual first night for walkers who start in the afternoon. The tank is refilled by vehicle rather than fed by a spring, and its level varies."
     },
     {
+      "waypointId": "w_ae1352c0",
+      "name": "Wallaby Gap",
+      "description": "Small camp at Wallaby Gap beside the tank, in the low hills west of Alice Springs."
+    },
+    {
       "waypointId": "w_20e85086",
       "name": "Simpons Gap Trailhead",
       "description": "Section 1 ends and Section 2 begins at the Simpsons Gap trailhead, reached by road from Alice Springs along Larapinta Drive. It has sealed road access and day-visitor facilities, and is used for food drops and lifts."
@@ -25,12 +30,12 @@
     {
       "waypointId": "w_0f2e1a6f",
       "name": "Simpsons Gap",
-      "description": "Walkers' camp near the Simpsons Gap trailhead, with tent sites and toilets close by. Drinking water comes from a carted tank and is untreated; the level depends on the last vehicle visit."
+      "description": "Water tank at the Simpsons Gap walkers' camp near the trailhead. The water is carted in and untreated; the level depends on the last vehicle visit."
     },
     {
       "waypointId": "w_b6428184",
       "name": "Simpsons Gap",
-      "description": "Simpsons Gap itself is a narrow cleft in the range with a waterhole that often holds through the dry, and black-footed rock-wallabies on the scree at dawn and dusk. The gap is a significant place for Arrernte people, and signage at the site sets out where access is permitted."
+      "description": "Walkers' camp near the Simpsons Gap trailhead, with tent sites and toilets close by. Simpsons Gap itself is a narrow cleft in the range with a waterhole that often holds through the dry, and black-footed rock-wallabies on the scree at dawn and dusk. The gap is a significant place for Arrernte people, and signage at the site sets out where access is permitted."
     },
     {
       "waypointId": "w_d03870da",
@@ -38,9 +43,19 @@
       "description": "Tank and camp in mulga scrub midway through the long Section 2 walk. Shade is thin around the tank in the middle of the day, and the water is carted in, so the level falls at the end of a dry stretch."
     },
     {
+      "waypointId": "w_f3cc6bef",
+      "name": "Mulga Camp",
+      "description": "Camp in the mulga scrub beside the Mulga Camp tank, midway through Section 2."
+    },
+    {
       "waypointId": "w_2c14e5b2",
       "name": "Jay Creek",
       "description": "Tank and camp at Jay Creek, at the western end of Section 2. The creek itself only runs after rain, and the tank level depends on the next vehicle visit. Standley Chasm is the next water on the trail."
+    },
+    {
+      "waypointId": "w_f131389e",
+      "name": "Jay Creek",
+      "description": "Walkers' camp at Jay Creek, at the western end of Section 2, beside the tank."
     },
     {
       "waypointId": "w_706b8959",
@@ -68,6 +83,11 @@
       "description": "Campground at Standley Chasm, run alongside the visitor area and the most comfortable stop on the eastern half of the trail. It sits on Aboriginal-owned land, and the operators run check-in and set where camping happens."
     },
     {
+      "waypointId": "w_7833c0da",
+      "name": "Standley Chasm",
+      "description": "Water tank at the Standley Chasm campground. The water is untreated."
+    },
+    {
       "waypointId": "w_8bfa58d2",
       "name": "Standley Chasm Trailhead",
       "description": "Section 3 ends and Section 4 begins here, at the end of the road in from Larapinta Drive. The chasm — a narrow red-walled cleft, lit through the middle of the day — is an Aboriginal-owned visitor site with a front counter at the entrance."
@@ -86,6 +106,11 @@
       "waypointId": "w_1cf09005",
       "name": "4/5 Junction",
       "description": "Camp at the junction where Section 4 ends and Section 5 begins, in the Birthday Waterhole area. A side track leads out to the Birthday Waterhole trailhead, a road-access point used for drops and pickups; the waterhole itself is seasonal."
+    },
+    {
+      "waypointId": "w_b3354342",
+      "name": "4/5 Junction",
+      "description": "Water tank at the 4/5 Junction camp. The water is untreated and the level varies."
     },
     {
       "waypointId": "w_f283c631",
@@ -108,6 +133,11 @@
       "description": "Tank at the Hugh Gorge trailhead camp, the last water before Section 6 — the longest stretch between trailheads on the trail. The water is carted in and the level varies."
     },
     {
+      "waypointId": "w_6580bb42",
+      "name": "Hugh Gorge",
+      "description": "Walkers' camp at the Hugh Gorge trailhead, at the mouth of the gorge, beside the tank."
+    },
+    {
       "waypointId": "w_b268c8fc",
       "name": "Ghost Gum Flat",
       "description": "Open camp among ghost gums on the long Section 6 walk, a common first night out from Hugh Gorge. Shade is patchy through the middle of the day and there is no dependable water."
@@ -118,9 +148,14 @@
       "description": "Camp in a stony gully partway along Section 6, the longest section on the trail. Water through the section is a matter of carted tanks and seasonal pools; Hugh Gorge and Ellery Creek are the fixed sources at either end."
     },
     {
+      "waypointId": "w_5b17238e",
+      "name": "Rocky Gully",
+      "description": "Water tank at the Rocky Gully camp. The water is untreated and the level varies."
+    },
+    {
       "waypointId": "w_b1668fab",
       "name": "Ellery Creek North",
-      "description": "Walkers' camp on the northern side of Ellery Creek, near Ellery Creek Big Hole. The Big Hole holds water year round and is a well-known swim, but it is deep and cold enough that people get into trouble in it."
+      "description": "Water tank at the Ellery Creek trailhead, beside the Ellery Creek South camp; the guide marks it under Ellery Creek North. It is refilled by vehicle, the water is untreated and the level varies."
     },
     {
       "waypointId": "w_05e13503",
@@ -163,6 +198,11 @@
       "description": "Bush camp beside the small dam built to supply the old chalet. It holds water after rain and can be dry otherwise, and the water is untreated."
     },
     {
+      "waypointId": "w_ee5920ee",
+      "name": "Serpentine Chalet Dam",
+      "description": "Water tank at the Serpentine Chalet Dam camp. The water is untreated and the level varies."
+    },
+    {
       "waypointId": "w_a7b5c8c4",
       "name": "Serpentine Chalet Dam Trailhead",
       "description": "Section 8 ends and Section 9 begins at Serpentine Chalet Dam, reached only by a rough four-wheel-drive track off Namatjira Drive. The ruins of the Serpentine Chalet, a short-lived mid-century tourist camp, lie nearby."
@@ -188,6 +228,11 @@
       "description": "Campground at Ormiston Gorge, the most developed stop on the western half of the trail, with toilets and usually hot showers. It is shared with car-based visitors and is busy through the cooler walking months."
     },
     {
+      "waypointId": "w_0d9926c6",
+      "name": "Ormiston Gorge",
+      "description": "Water at the Ormiston Gorge campground. The water is untreated."
+    },
+    {
       "waypointId": "w_839266d5",
       "name": "Ormiston Gorge Trailhead",
       "description": "Section 9 ends and Section 10 begins here, at the sealed road access off Namatjira Drive. The Ormiston Pound walk, a half-day loop through the gorge, starts from the same car park."
@@ -208,6 +253,11 @@
       "description": "Camp on the Finke, a broad sandy river bed and one of the oldest watercourses in the world. Water sits in scattered waterholes rather than a running stream, and the sand makes for slow walking wherever the trail follows the bed."
     },
     {
+      "waypointId": "w_3e493bbe",
+      "name": "Finke River",
+      "description": "Water tank at the Finke River camp. The water is untreated and the level varies."
+    },
+    {
       "waypointId": "w_2bbddefe",
       "name": "Finke River Trailhead",
       "description": "The boundary between Sections 10 and 11, where a vehicle track reaches the river. Access is rough, and the Glen Helen area out on Namatjira Drive is the nearest place with any services; what operates there varies by season."
@@ -220,7 +270,12 @@
     {
       "waypointId": "w_7d1c866d",
       "name": "Rocky Bar Gap",
-      "description": "Camp in a gap in the range on the last full section of the trail, sheltered between the ridgelines. It is a bush site with no facilities and no dependable water."
+      "description": "Camp in a gap in the range on the last full section of the trail, sheltered between the ridgelines. A bush site with a water tank and no other facilities."
+    },
+    {
+      "waypointId": "w_09fe6506",
+      "name": "Rocky Bar Gap",
+      "description": "Water tank at the Rocky Bar Gap camp. The water is untreated and the level varies."
     },
     {
       "waypointId": "w_93f929d7",
@@ -240,7 +295,7 @@
     {
       "waypointId": "w_ca5efda1",
       "name": "Ellery Creek North",
-      "description": "The Ellery Creek North camp as it is marked on the alternative high-route approach, which drops off the ridge to the creek rather than following the valley in. Facilities are basic and the tank is refilled by vehicle; the water is untreated and the level varies."
+      "description": "Walkers' camp on the northern side of Ellery Creek, near Ellery Creek Big Hole, on the alternative high-route approach. Facilities are basic and the tank is refilled by vehicle; the water is untreated and the level varies. The Big Hole holds water year round and is a well-known swim, but it is deep and cold enough that people get into trouble in it."
     },
     {
       "waypointId": "w_aa151485",

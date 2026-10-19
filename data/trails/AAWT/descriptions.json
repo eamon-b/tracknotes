@@ -25,22 +25,32 @@
     {
       "waypointId": "w_c3e9517c",
       "name": "Talbot Hut Site",
-      "description": "Clearing on the Baw Baw plateau where Talbot Hut once stood; only the site remains. Snow gums and open plateau country, with no water marked at the site itself."
+      "description": "Clearing on the Baw Baw plateau where Talbot Hut once stood; only the site remains. Snow gums and open plateau country, with water marked a short way from the camp."
+    },
+    {
+      "waypointId": "w_744e1c0a",
+      "name": "Talbot Hut Site",
+      "description": "Water marked at the Talbot Hut Site camp on the Baw Baw plateau. Plateau water runs with the season, and it is untreated."
     },
     {
       "waypointId": "w_15a792cc",
       "name": "Rock Shelter",
-      "description": "Rock overhang on the Baw Baw plateau, used as a rough camp and as somewhere to sit out weather. Cramped rather than comfortable, and no water is marked here."
+      "description": "Rock overhang on the Baw Baw plateau, used as a rough camp and as somewhere to sit out weather. Cramped rather than comfortable; water is marked a couple of hundred metres away."
     },
     {
       "waypointId": "w_2328b1c7",
       "name": "Rock Shelter",
-      "description": "A second rock-shelter pitch a little further along the plateau. Like its neighbour it suits a night out of the wind more than a planned camp, and has no marked water."
+      "description": "The water marked for the Rock Shelter camp on the Baw Baw plateau. Plateau water runs with the season, and it is untreated."
     },
     {
       "waypointId": "w_460c8b0c",
       "name": "Whitelaw Hut Site",
-      "description": "Site of the former Whitelaw Hut in the snow gums near Mt Whitelaw. The hut is long gone; the clearing is still used as a camp, and no water is marked at it."
+      "description": "Site of the former Whitelaw Hut in the snow gums near Mt Whitelaw. The hut is long gone; the clearing is still used as a camp, with water marked a short way from it."
+    },
+    {
+      "waypointId": "w_e4ee0516",
+      "name": "Whitelaw Hut Site",
+      "description": "Water marked at the Whitelaw Hut Site camp near Mt Whitelaw. Seasonal and untreated."
     },
     {
       "waypointId": "w_6eb22ab8",
@@ -108,6 +118,11 @@
       "description": "The Black River, down in the valley between the ranges. Larger than the ridge creeks either side, and untreated; the climb out is stiff in both directions."
     },
     {
+      "waypointId": "w_b4bf950e",
+      "name": "Black River",
+      "description": "Camp beside the Black River, down in the valley between the ranges. The river is alongside, and its water is untreated."
+    },
+    {
       "waypointId": "w_c04801c8",
       "name": "Middle Ridge Rd 1",
       "description": "Creek crossing on Middle Ridge Road, up in the snow gums. It runs after rain and is unreliable in a dry late summer, and the water is untreated."
@@ -140,12 +155,17 @@
     {
       "waypointId": "w_3ed1c0c3",
       "name": "Nobs Track",
-      "description": "Creek crossing on Nobs Track, high in the snow gums. Small, seasonal and untreated."
+      "description": "Camp on Nobs Track, high in the snow gums. The nearest marked water is a few kilometres away on the same track; it is small, seasonal and untreated."
     },
     {
       "waypointId": "w_3c99a282",
       "name": "Chesters Yard",
-      "description": "Old stockmen's yard site on the high country south of Mt Howitt, now a well-used camp with vehicle access. Exposed when the weather turns, and no water is marked at the yard."
+      "description": "Old stockmen's yard site on the high country south of Mt Howitt, now a well-used camp with vehicle access. Exposed when the weather turns; water is marked beside the yard."
+    },
+    {
+      "waypointId": "w_cd77f64a",
+      "name": "Chesters Yard",
+      "description": "Water marked at the Chesters Yard camp, south of Mt Howitt. Seasonal and untreated."
     },
     {
       "waypointId": "w_40722ae5",
@@ -178,6 +198,11 @@
       "description": "Camp Creek, the marked water for the Mt Speculation camping area. Seasonal like everything at this height, untreated, and often little more than a trickle late in summer."
     },
     {
+      "waypointId": "w_9fba7475",
+      "name": "Camp Creek",
+      "description": "Camping beside Camp Creek at Mt Speculation. The creek is the water: seasonal, untreated, and often little more than a trickle late in summer."
+    },
+    {
       "waypointId": "w_c28efa5b",
       "name": "Catherine Saddle",
       "description": "Saddle camp between Mt Speculation and the Viking country, lower and more sheltered than the peaks either side. No water is marked at the saddle."
@@ -190,12 +215,12 @@
     {
       "waypointId": "w_baa71afa",
       "name": "Viking Saddle",
-      "description": "Camp in the saddle below The Viking, at the foot of one of the steepest and most exposed climbs on the whole trail. No water is marked here."
+      "description": "Camp in the saddle below The Viking, at the foot of one of the steepest and most exposed climbs on the whole trail. Water is marked a few hundred metres away in the saddle."
     },
     {
       "waypointId": "w_e96c2d61",
       "name": "Viking Saddle",
-      "description": "A second marked pitch in Viking Saddle. Like its neighbour it has no water; the nearest marked sources are on the tracks either side."
+      "description": "Water marked in Viking Saddle, below The Viking, the source for the saddle camp. A small seasonal source, and untreated."
     },
     {
       "waypointId": "w_6ae71876",
@@ -221,6 +246,11 @@
       "waypointId": "w_2771b2db",
       "name": "South Selwyn",
       "description": "Tank on the South Selwyn section of the Barry Mountains, high on the ridge with no creek at hand. The water is untreated, and the next marked source is several hours on."
+    },
+    {
+      "waypointId": "w_64ace111",
+      "name": "South Selwyn",
+      "description": "Camp at South Selwyn in the Barry Mountains, beside the tank of the same name. There is no creek at hand."
     },
     {
       "waypointId": "w_42a846ec",
@@ -280,7 +310,7 @@
     {
       "waypointId": "w_ae9e919d",
       "name": "Dibbins Hut",
-      "description": "A second marker for the Dibbins Hut site on the Cobungra flats. Grassy camping around the hut, with untreated river water alongside."
+      "description": "Camping on the grassy Cobungra flats by Dibbins Hut, with untreated river water alongside."
     },
     {
       "waypointId": "w_39285cdd",
@@ -296,6 +326,11 @@
       "waypointId": "w_056dc132",
       "name": "Cope Hut",
       "description": "One of the best-known huts on the Bogong High Plains, built in the early days of alpine skiing and long used as a base by skiers and walkers. There is camping around it, and any water nearby is untreated alpine seepage."
+    },
+    {
+      "waypointId": "w_df6636cf",
+      "name": "Cope Hut",
+      "description": "Camping marked beside Cope Hut on the Bogong High Plains. Any water nearby is untreated alpine seepage."
     },
     {
       "waypointId": "w_76602783",
@@ -435,7 +470,7 @@
     {
       "waypointId": "w_2f90197e",
       "name": "Buckwong Hut",
-      "description": "A second marker for the Buckwong Hut site. Flat ground for tents around the hut, with the creek alongside for water."
+      "description": "Camping on the flat ground by Buckwong Hut, with the creek alongside for water."
     },
     {
       "waypointId": "w_159ea872",
@@ -593,6 +628,11 @@
       "description": "Marked water at Grey Mare Hut, in the old mining country west of Jagungal. Alpine creek water, seasonal and untreated."
     },
     {
+      "waypointId": "w_f874b459",
+      "name": "Grey Mare Hut",
+      "description": "Hut in the old mining country west of Jagungal, kept as a shelter, with camping outside. Water is marked close by."
+    },
+    {
       "waypointId": "w_b902046f",
       "name": "Tooma River",
       "description": "The Tooma River in its headwaters below Jagungal. A river by name and a small one at this altitude, with a flow that weakens late in summer. The water is untreated."
@@ -680,7 +720,7 @@
     {
       "waypointId": "w_ffe2ac93",
       "name": "Witzes Hut",
-      "description": "A second marker for the Witzes Hut site. Flat grassy ground around the hut; the nearest marked water is the creek back along the track."
+      "description": "Water marked near Witzes Hut, on the plains near Tantangara. Seasonal and untreated."
     },
     {
       "waypointId": "w_febc680c",
@@ -691,6 +731,11 @@
       "waypointId": "w_479fb77e",
       "name": "Tantangara Creek",
       "description": "A second crossing of Tantangara Creek, lower in its valley. Larger here than up on the plain, but still seasonal and untreated."
+    },
+    {
+      "waypointId": "w_1e2f836d",
+      "name": "Tantangara Creek",
+      "description": "Camp beside Tantangara Creek, lower in its valley. The creek is the water: seasonal and untreated."
     },
     {
       "waypointId": "w_31cbbe82",
@@ -808,6 +853,11 @@
       "description": "Creek in the Namadgi forest north of Cotter Gap. Seasonal like the rest of the water through here, and untreated."
     },
     {
+      "waypointId": "w_89010617",
+      "name": "Sawpit Creek",
+      "description": "Camp by Sawpit Creek in the Namadgi forest north of Cotter Gap. The creek is the water: seasonal and untreated."
+    },
+    {
       "waypointId": "w_2121963c",
       "name": "Orroral River",
       "description": "The Orroral River in its broad valley in Namadgi, lower and warmer country than the range behind. The water is untreated, and the flow drops away through summer."
@@ -851,6 +901,11 @@
       "waypointId": "w_7916d161",
       "name": "Macalister Springs",
       "description": "Spring below Mt Howitt and the classic water stop for this part of the trail. Being spring-fed it tends to hold on when surface creeks thin, though it too drops in a dry season. The water is untreated."
+    },
+    {
+      "waypointId": "w_5a16e979",
+      "name": "Macalister Springs",
+      "description": "Camping area at Macalister Springs below Mt Howitt, near Vallejo Gantner Hut. The spring is the water, and it is untreated."
     },
     {
       "waypointId": "w_e749a67a",
@@ -920,12 +975,12 @@
     {
       "waypointId": "w_1645d5d1",
       "name": "Bogong Creek Saddle",
-      "description": "Camp in the saddle above Big River, at the foot of the climb onto Mt Bogong on the alternate route. Exposed ground, and no water is marked at the saddle itself."
+      "description": "Camp in the saddle above Big River, at the foot of the climb onto Mt Bogong on the alternate route. Exposed ground; water is marked a couple of hundred metres from the camp."
     },
     {
       "waypointId": "w_3e3fb00d",
       "name": "Bogong Creek Saddle",
-      "description": "A second marked pitch at Bogong Creek Saddle on the Mt Bogong alternate. There is no water at the saddle; the river is down at the bottom of a long, steep climb."
+      "description": "Water marked at Bogong Creek Saddle on the Mt Bogong alternate, the source for the saddle camp. Seasonal and untreated; the river is down at the bottom of a long, steep climb."
     },
     {
       "waypointId": "w_c0755009",
