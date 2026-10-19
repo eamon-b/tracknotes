@@ -76,7 +76,8 @@ A POI is a duplicate of a waypoint when **all four** hold:
    `rest`, `area`, `reserve`, `trackhead`, `trailhead`, `walk`, `in`, `group`,
    `the`, `kiosk`, `closed`, `np`, `national`). Score is 1.0 if either token set
    contains the other, else `max(Jaccard, SequenceMatcher ratio)`.
-4. **The POI has a name** after that reduction.
+4. **The POI has a name** after that reduction — except an unnamed `camping`
+   POI within 30 m of a compatible waypoint, which needs neither name nor score.
 
 Plain string similarity is not enough: `Finke River Campground` vs `Finke River`
 scores 0.67 raw and 1.00 once "campground" is dropped.
@@ -92,6 +93,12 @@ scores 0.67 raw and 1.00 once "campground" is dropped.
 - **Unnamed POIs are never duplicates.** Cape to Cape has nameless water taps
   23–80 m from campsite waypoints. Those are *complementary* — the waypoint does
   not tell you there is a tap. Requiring a name is what protects them.
+  *Amended 2026-10:* one exception. An unnamed `camping` POI within 30 m of a
+  compatible waypoint is that waypoint's tent area — OSM maps the camping beside
+  a hut as a nameless `camp_site` (the AAWT's Pockets Hut, Cope Hut, Ryder's
+  Huts; Te Araroa's backcountry huts) — and was showing as a second "Campsite"
+  row on top of the hut. Flagging those took the AAWT from 74 to 102 flagged.
+  Unnamed water stays exempt.
 - **`transport` is excluded entirely.** No waypoint type corresponds, and bus
   stop names encode direction by word order, which token-set matching destroys
   (see the POI↔POI section).
