@@ -75,6 +75,18 @@
       <div id="community-list" class="trail-groups"></div>
     </section>
 
+    <!-- Shown only when this build has an API, like Community routes. Leaflet loads on approach. See landing-map.ts. -->
+    <section class="feature-section" id="map-section" hidden>
+      <h2>On the map</h2>
+      <p>Where each trail starts. Select a marker to open its page; the search and length filters above apply here too.</p>
+      <div id="landing-map" class="landing-map" role="region" aria-label="Map of where each trail starts"></div>
+      <ul class="landing-map-legend" aria-label="Map key">
+        <li><span class="legend-dot legend-dot-curated" aria-hidden="true"></span>Trail</li>
+        <li><span class="legend-dot legend-dot-verified" aria-hidden="true"></span>Community route, verified</li>
+        <li><span class="legend-dot legend-dot-unverified" aria-hidden="true"></span>Community route, unverified</li>
+      </ul>
+    </section>
+
     <section class="feature-section" id="my-trails-section">
       <div class="section-actions">
         <h2>My trails</h2>

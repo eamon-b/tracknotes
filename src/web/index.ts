@@ -1,6 +1,6 @@
 /**
- * The landing page (index.html): every trail the site knows, in three tiers,
- * under one filter bar.
+ * The landing page (index.html): every trail the site knows, in three tiers
+ * and a map, under one filter bar.
  *
  * 1. Curated trails (`data/generated/index.json`), with a Featured row for any
  *    marked `featured`, then grouped Country → State by `@lib/trail-regions`.
@@ -12,9 +12,13 @@
  *    "Shared by me": the reader's own community routes, hidden ones included
  *    (with why), since a hidden route is in no public list and its page is
  *    otherwise reachable only from the one-time link after sharing.
+ * 4. On the map (only when this build has an API, like the Community tier):
+ *    a marker at the start of every curated trail and community route the
+ *    filter keeps, linking to its page. Leaflet loads only when the map
+ *    nears the viewport (`landing-map.ts`).
  *
- * The search, length bands and sort apply to all three. Empty groups and
- * tiers disappear; when nothing matches at all the page says so. The filter
+ * The search and length bands apply to all four, the sort to the lists.
+ * Empty groups and tiers disappear; when nothing matches at all the page says so. The filter
  * is remembered per browser in `localStorage` (a convenience: the page works
  * the same when storage is unavailable).
  *
@@ -47,6 +51,7 @@ import {
   placeLabel,
   statusBadgeHtml,
 } from './community-labels';
+import { landingMapPoints, mountLandingMap, type LandingMapHandle } from './landing-map';
 import { isIndexedDbAvailable, listTrailSummaries, type ImportedTrailSummary } from './imported-trails-db';
 import { escapeHtml, formatKm } from './web-utils';
 
@@ -60,6 +65,8 @@ export interface CuratedTrailEntry {
   country?: string | null;
   states?: string[];
   featured?: boolean;
+  /** The route's first point; absent in an index built before it was added. */
+  start?: { lat: number; lon: number };
 }
 
 export interface ListFilterState {
@@ -418,6 +425,11 @@ export interface LandingDeps {
    * Default: `link-browser.ts`, loaded only when it is needed.
    */
   renderLinkForm?: (container: HTMLElement, intro: string, onLinked: (session: WebSession) => void) => void;
+  /**
+   * Attaches the map overview to its container. Default: `mountLandingMap`,
+   * which loads Leaflet once the container nears the viewport.
+   */
+  mountMap?: (container: HTMLElement) => LandingMapHandle;
   storage?: Storage | null;
   /** How long the community list may take before the tier gives up. */
   communityTimeoutMs?: number;
@@ -523,6 +535,9 @@ export async function initLandingPage(doc: Document = document, deps: LandingDep
   const filterBar = byId(doc, 'trail-filter');
   if (filterBar) filterBar.innerHTML = renderFilterBar(state);
 
+  const mountMap = deps.mountMap ?? ((container: HTMLElement) => mountLandingMap(container));
+  let mapHandle: LandingMapHandle | null = null;
+
   const render = () => {
     const active = isFilterActive(state);
     let total = 0;
@@ -626,6 +641,27 @@ export async function initLandingPage(doc: Document = document, deps: LandingDep
       // With a filter on, a tier with nothing to show steps aside; without
       // one, the empty state's "Import a GPX" invitation stays.
       setHidden(mySection, active && count === 0 && !sharedShown);
+    }
+
+    // Map overview: only with an API (the Community tier's rule: a list that
+    // failed still means there is one), once the curated list has settled so
+    // the map fits its bounds once rather than twice.
+    const mapSection = byId(doc, 'map-section');
+    const mapContainer = byId(doc, 'landing-map');
+    const apiOn = community.status === 'error' || (community.status === 'ready' && community.data !== null);
+    if (apiOn && curated.status !== 'loading' && mapContainer) {
+      const points = landingMapPoints(
+        curated.status === 'ready' ? filterCurated(curated.data, state) : [],
+        community.status === 'ready' && community.data ? filterCommunity(community.data, state).map((i) => i.route) : []
+      );
+      setHidden(mapSection, points.length === 0);
+      // Drawn only while visible, so Leaflet never measures a hidden box.
+      if (points.length > 0) {
+        mapHandle ??= mountMap(mapContainer);
+        mapHandle.update(points);
+      }
+    } else {
+      setHidden(mapSection, true);
     }
 
     const noMatch = byId(doc, 'no-match');
