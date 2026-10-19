@@ -491,10 +491,17 @@ export async function pullTrail(trailId: string, deps: SyncDeps = {}): Promise<P
   const db = await resolveDb(deps);
   const ctx: commentsApi.ApiContext = { baseUrl, fetchImpl: deps.fetchImpl };
   const since = await readSince(db, trailId);
+  // The token is optional on these public reads: it only has the server mark
+  // this account's own rows (`mine`), so a restored or reinstalled comment of
+  // ours keeps its Delete. A bad token still reads, as anonymous.
+  const session = await (deps.getSessionFn ?? getSession)().catch(() => null);
 
   let result: commentsApi.TrailCommentsResult;
   try {
-    result = await commentsApi.listTrailComments(ctx, { trailId, since });
+    result = await commentsApi.listTrailComments(
+      { ...ctx, token: session?.token },
+      { trailId, since },
+    );
   } catch (e) {
     if (e instanceof NetworkError) return { outcome: 'offline', applied: 0, syncedAt: null };
     return { outcome: 'error', applied: 0, syncedAt: null };
@@ -516,6 +523,7 @@ export async function pullTrail(trailId: string, deps: SyncDeps = {}): Promise<P
         observedAt: entry.observedAt,
         createdAt: entry.createdAt,
         photoUrls: entry.photoUrls,
+        mineAuthorId: entry.mine === true ? session?.userId : undefined,
       });
       if (entry.waypointId) changedWaypoints.add(entry.waypointId);
     }
@@ -541,7 +549,6 @@ export async function pullTrail(trailId: string, deps: SyncDeps = {}): Promise<P
   // same way. The token is optional (it only marks this account's own).
   let waypointsApplied = 0;
   try {
-    const session = await (deps.getSessionFn ?? getSession)().catch(() => null);
     waypointsApplied = await pullTrailWaypoints(db, trailId, {
       ...ctx,
       token: session?.token,

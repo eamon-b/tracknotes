@@ -284,7 +284,7 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
 
     // /v1/trails/:trailId/comments
     if (rest.length === 3 && rest[0] === 'trails' && rest[2] === 'comments') {
-      if (method === 'GET') return await getBulkSync(request, env, rest[1]);
+      if (method === 'GET') return await getBulkSync(request, env, ctx, rest[1]);
       return methodNotAllowed();
     }
 

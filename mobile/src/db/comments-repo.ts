@@ -64,6 +64,13 @@ export interface ServerCommentInput {
   createdAt: string;
   /** Photo URLs from the feed/sync; omitted when the comment has none. */
   photoUrls?: string[];
+  /**
+   * The signed-in user's id when the trail feed marked this row `mine`. It
+   * becomes `author_id`, so a comment of ours the phone learns about from the
+   * feed (an admin restore after a tombstone, a reinstall) stays ours. Omitted
+   * otherwise, and an existing `author_id` is kept.
+   */
+  mineAuthorId?: string | null;
 }
 
 /** A locally-composed, not-yet-synced comment. */
@@ -137,9 +144,10 @@ function toRecord(row: CommentRow): CommentRecord {
 }
 
 /**
- * Insert or update a confirmed server comment. `author_id` is preserved on
- * conflict so a comment we authored stays ours after it round-trips through a
- * trail sync (the public feed carries no user id).
+ * Insert or update a confirmed server comment. `author_id` is set from
+ * `mineAuthorId` when the feed said the row is the caller's own; otherwise it is
+ * preserved on conflict (and NULL on insert), so a comment we authored stays
+ * ours after it round-trips through a trail sync that carried no token.
  */
 export async function upsertServerComment(
   db: SqlDatabase,
@@ -149,10 +157,11 @@ export async function upsertServerComment(
     `INSERT INTO comments
        (id, trail_id, waypoint_id, author_id, author_name, body,
         water_status, observed_at, created_at, source, photo_urls_json)
-     VALUES (?, ?, ?, NULL, ?, ?, ?, ?, ?, 'server', ?)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'server', ?)
      ON CONFLICT(id) DO UPDATE SET
        trail_id = excluded.trail_id,
        waypoint_id = excluded.waypoint_id,
+       author_id = COALESCE(excluded.author_id, comments.author_id),
        author_name = excluded.author_name,
        body = excluded.body,
        water_status = excluded.water_status,
@@ -167,6 +176,7 @@ export async function upsertServerComment(
       input.id,
       input.trailId,
       input.waypointId,
+      input.mineAuthorId ?? null,
       input.displayName,
       input.text,
       input.waterStatus,
