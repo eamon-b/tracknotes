@@ -210,8 +210,8 @@ describe('DELETE /v1/me — sync semantics', () => {
 describe('DELETE /v1/me — content is blanked', () => {
   it('blanks comment content, live and already deleted', async () => {
     const device = await registerDevice('Blanked');
-    const { id: live } = await createComment(device, { waypointId: 'delme-blank-wp', text: 'my secret' });
-    const { id: gone } = await createComment(device, { waypointId: 'delme-blank-wp', text: 'old secret' });
+    const { id: live } = await createComment(device, { waypointId: wpId('delme-blank-wp'), text: 'my secret' });
+    const { id: gone } = await createComment(device, { waypointId: wpId('delme-blank-wp'), text: 'old secret' });
     await SELF.fetch(url(`/v1/comments/${gone}`), { method: 'DELETE', headers: authHeaders(device) });
 
     expect((await deleteMe(device)).status).toBe(204);
@@ -287,7 +287,7 @@ describe('DELETE /v1/me — photos and reports', () => {
   it('clears the free text of the reports the deleted account filed', async () => {
     const author = await registerDevice('Author');
     const reporter = await registerDevice('Wordy Reporter');
-    const { id } = await createComment(author, { waypointId: 'delme-report-detail-wp' });
+    const { id } = await createComment(author, { waypointId: wpId('delme-report-detail-wp') });
     expect((await reportComment(reporter, id, { reason: 'other', detail: 'my own words' })).status).toBe(201);
 
     expect((await deleteMe(reporter)).status).toBe(204);
