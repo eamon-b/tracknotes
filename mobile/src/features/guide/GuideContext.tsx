@@ -75,6 +75,12 @@ export interface GuideContextValue {
   dataUpdatedAt: string | null;
   /** A newer copy of this trail is on the phone than the one the guide shows. */
   dataUpdate: GuideDataUpdate;
+  /**
+   * Re-read the trail from disk, keeping every screen mounted — after the
+   * phone itself changed the file (the OSM POI search on an import). The same
+   * read as `dataUpdate.reload`.
+   */
+  reloadTrail: () => void;
 }
 
 export interface GuideDataUpdate {
@@ -266,6 +272,7 @@ export function GuideProvider({
       direction,
       dataUpdatedAt,
       dataUpdate: { available, version: latestVersion, reloading, reload },
+      reloadTrail: reload,
     };
   }, [trail, raw, placed, trailId, direction, dataUpdatedAt, available, latestVersion, reloading, reload]);
 

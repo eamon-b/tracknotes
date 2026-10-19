@@ -9,7 +9,9 @@ with 400 POIs imports fine and then shows none of them.
 
 This plan closes that gap. Status: **implemented** on
 `claude/osm-points-mobile-app-o76w0c` (PR #67) on top of `feat/osm-pois`; the
-on-phone Overpass search in the last section is still a follow-up.
+on-phone Overpass search in the last section followed on
+`claude/phone-poi-search-162` (issue #162) — see that section for what was
+built and where it departs from the sketch.
 
 ## Decisions already taken
 
@@ -331,6 +333,62 @@ interest" on. The sketch, so this PR's store shape does not have to change later
   default (`expo-network`), since a Bibbulmun search is ~30 Overpass queries.
 - Needs the endpoint fallback list and the Overpass etiquette note the web has,
   plus a "remove points of interest" action.
+
+### As built (issue #162)
+
+Status: **implemented** on `claude/phone-poi-search-162`. Where it departs
+from the sketch above, and why:
+
+- **No `gpx-tools` in `mobile/package.json`.** The search was ported into
+  `src/lib` instead — `osm-poi` (catalog, query builder, corridor chunks,
+  route geometry), `overpass-client` (`createOverpassFetcher`, plus
+  `createFallbackFetcher`), `poi-enrichment` (`enrichRoute`, split into
+  `prepareCorridor` / `fetchCorridorGroups` / `placePois`) — and
+  `scripts/fetch-pois.ts` and `src/web/poi-enrich.ts` moved onto the port, so
+  the build, the web and the phone run one copy. A second app-side git
+  dependency (and an EAS build that has to fetch it) was the alternative.
+  `scripts/osm-poi-parity.test.ts` holds the port to `gpx-tools` byte for byte
+  on real trail geometry — same catalog, classification, chunks, query text,
+  placement and `toTrailPOIs` output, and the same request — so fetch-pois'
+  `pois.json` output is unchanged for the same Overpass answers.
+- **Trail-level halves in `@lib/trail-poi-search`**: `planTrailPoiSearch`
+  (route, queries at 150 vertices each, and the estimate the screen shows) and
+  `finishTrailPois` (noise → duplicates → city thinning → `slimPoi`, the build's
+  order). The phone's flow is `features/import/poi-search.ts`; it writes only
+  `pois` through `imported-trail-store.saveImportedTrailPois` (re-reads the file
+  first; the registry row holds no POI facts, so `saveImportedTrail` is not
+  needed).
+- **Entry point: the map's layers sheet, not the header.** The header already
+  carries five icons. The layers button now shows for every import (`u_`), and
+  its sheet offers "Find places along this route" (or "Search OpenStreetMap
+  again"), opening the `guide/[trailId]/find-pois` modal.
+- **Not Wi-Fi-only.** That would be the app deciding. The screen states the
+  request count, a download range (0.5-15 KB per km of route, measured on the
+  bundled `pois.json` files; uncompressed, so often less), the upload, the
+  connection type (Wi-Fi / mobile data / offline, from `expo-network`) and the
+  servers the route outline goes to, and the hiker chooses. Offline disables
+  the button.
+- **Per-query fallback** rather than the web's whole-search fallback: each
+  query tries overpass-api.de, overpass.private.coffee and overpass.kumi.systems
+  in turn, starting with the last that answered. One retry per server, 25 s
+  Overpass timeout, 2 s between requests.
+- **Partial results are saved, and only the missed areas are retried**
+  (`fetchCorridorGroups` `only`, with the earlier run's elements kept in the
+  union and the passes re-run on it). Cancel, or every query failing, writes
+  nothing, so a failed search never replaces POIs a guide already has.
+- **The UI thread**: planning, placement (every 200 elements) and each pass
+  are separated by `yieldToUi`, so the progress line paints and Cancel stays
+  live on a 100,000-point import.
+- Leaving the screen cancels a running search.
+- The import review screen's hint now points at the layers sheet instead of the
+  web app.
+
+A live run of the port from a cloud session (2026-10-19, Three Capes) found
+the same 15 POIs the bundled trail ships, but only `maps.mail.ru` answered from
+there: the three listed servers returned errors. From a phone on an ordinary
+network overpass-api.de normally answers; whether to add `maps.mail.ru` to the
+phone's list is an open question (it would send hikers' route outlines to a
+further operator).
 
 ## Risks
 

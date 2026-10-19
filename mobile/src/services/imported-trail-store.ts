@@ -23,6 +23,7 @@
 
 import { Directory, File, Paths } from 'expo-file-system';
 import { slimPoi } from '@lib/poi-display';
+import type { TrailPOI } from '@lib/trail-types';
 
 import type { SqlDatabase } from '../db/sql-database';
 import {
@@ -103,6 +104,36 @@ export async function saveImportedTrail(
     pointCount: meta.pointCount,
     waypointCount: meta.waypointCount,
   });
+}
+
+/**
+ * Replace (or, with `null`, remove) an imported trail's OpenStreetMap POIs.
+ *
+ * The on-phone Overpass search (`features/import/poi-search.ts`) writes its
+ * result here. The file is re-read rather than written from the copy the
+ * search started with: a search takes minutes, and only `pois` is this
+ * function's to change. POIs are slimmed with the same `slimPoi` the import
+ * path and the bundled build use (a no-op on already-slim ones). `[]` is kept
+ * as `[]`: "searched, nothing here" — `null` deletes the key, back to "never
+ * searched". The registry row holds no POI facts, so only the file moves.
+ *
+ * Returns the trail as written, or null when the file is gone or unreadable
+ * (the guide was deleted mid-search) — nothing is written then.
+ */
+export async function saveImportedTrailPois(
+  id: string,
+  pois: TrailPOI[] | null,
+): Promise<TrailJson | null> {
+  const current = await readImportedTrail(id);
+  if (!current) return null;
+  const next: TrailJson = { ...current };
+  if (pois === null) {
+    delete next.pois;
+  } else {
+    next.pois = pois.map(slimPoi);
+  }
+  importedTrailFile(id).write(JSON.stringify(next));
+  return next;
 }
 
 /**

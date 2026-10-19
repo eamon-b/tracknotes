@@ -243,12 +243,14 @@ export default function ImportScreen() {
             value={`${report.poiCount} (OpenStreetMap)`}
           />
         )}
-        {/* A GPX carries no POIs, and the on-phone search is a later PR — so
-            say where they do come from rather than staying silent about a
-            feature the guide will visibly lack. */}
+        {/* A GPX carries no POIs — say where they come from rather than
+            staying silent about a feature the guide will visibly lack. The
+            search is the hiker's to start (it uses data), so it is not run
+            here. */}
         {report.poiCount === 0 && !trail.pois && (
           <Text style={[styles.hint, { color: colors.textSecondary }]}>
-            Points of interest can be added by exporting this trail from the web app.
+            Points of interest from OpenStreetMap can be added after import: open the guide’s map,
+            tap the layers button (◫) and choose “Find places along this route”.
           </Text>
         )}
       </View>

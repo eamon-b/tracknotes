@@ -131,6 +131,13 @@ export default function GuideLayout() {
           name="waypoint-edit"
           options={{ title: 'New waypoint', presentation: 'modal' }}
         />
+        {/* The on-phone OpenStreetMap search for an import, from the map's
+            layers sheet: a modal, like the resupply picker, since it is a
+            task with its own Done rather than a place in the guide. */}
+        <Stack.Screen
+          name="find-pois"
+          options={{ title: 'Points of interest', presentation: 'modal' }}
+        />
         {/* Title is overridden with the POI name from within the screen. */}
         <Stack.Screen name="poi/[poiKey]" options={{ title: 'Point of interest' }} />
       </Stack>

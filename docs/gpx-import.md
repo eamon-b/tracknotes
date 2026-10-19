@@ -354,6 +354,20 @@ water, campsites, shops and other resupply, transport, and emergency services.
   about an import, and are included when you export the trail for the mobile
   app, where they appear on the map, in the list and on the elevation profile.
 
+**On the phone**, a GPX imported in Tracknotes can search for its own: open the
+guide's map, tap the layers button (◫) and choose **Find places along this
+route**. The screen says how many requests the search makes, roughly how much
+data it will download and whether you are on Wi-Fi or mobile data before
+anything is sent; the search starts only when you tap **Search OpenStreetMap**.
+It runs the same corridor queries as the trail build, tries a second and third
+public Overpass server for any query the first one refuses, and cleans the
+results the way the bundled trails are cleaned (noise such as ordinary bus
+stops dropped, places that duplicate one of your waypoints folded into it, city
+stretches thinned). **Cancel** leaves the guide unchanged; if some areas get no
+answer the rest are saved and **Retry the missed areas** asks again for just
+those. The results are saved into the guide, so they work offline afterwards,
+and **Remove points of interest** on the same screen takes them out again.
+
 Points of interest are kept **separate from your waypoints**. They are shown on
 the map, never merged into the waypoint list, and never counted by the plan
 calculator — an OSM tap is not a water source you have checked. Nothing about
