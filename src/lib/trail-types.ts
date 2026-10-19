@@ -342,7 +342,8 @@ export type TrailPOICategory =
 
 /**
  * An OpenStreetMap point of interest near the trail, found by `scripts/fetch-pois.ts`
- * (bundled trails) or by the in-browser enrichment (imported trails). Kept separate
+ * (bundled trails), by the in-browser enrichment (imported trails) or by the
+ * comments API's scheduled enrichment (community routes). Kept separate
  * from waypoints: POIs are uncurated, carry no registry id, and can be hidden or
  * rejected without touching the waypoint data. Data is © OpenStreetMap contributors (ODbL).
  */
