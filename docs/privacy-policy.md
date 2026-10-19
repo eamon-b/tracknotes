@@ -106,7 +106,10 @@ enter, your display name at the time, and, if you include it, the original GPX
 file you imported (on the website, untick "Include the original GPX file" to
 leave it out). The route, its text and your display name are published publicly under
 [CC0](https://creativecommons.org/publicdomain/zero/1.0/) (public domain) on
-the website and in the app; the original GPX file is kept privately, for
+the website and in the app. The points of interest we add to a shared route
+from OpenStreetMap (see **Searching OpenStreetMap** below) are not part of that
+release: they are © OpenStreetMap contributors, under the Open Database
+Licence, and the published route credits them as such. The original GPX file is kept privately, for
 re-processing only, under an unguessable address that is never linked or
 shown publicly. If a route is hidden by moderation, its published copy is
 taken down until it is restored. Sharing is opt-in: an import
@@ -123,6 +126,33 @@ automated review that helps our admins spot spam, abuse or routes that are not
 walking routes. Anthropic processes this data to return the review; it is not
 used to identify you. The review's result is visible to you and to our admins,
 not to the public.
+
+**Searching OpenStreetMap (points of interest).** To find the shops, water,
+campsites and other places near a route, three features send the route's
+outline (a line of coordinates along it, never your name, device or account)
+to public OpenStreetMap search servers (the Overpass API), which are run by
+third parties under their own terms and see the outline and the network
+address it came from:
+
+- *Shared community routes.* When this is switched on, our server sends the
+  outline of each published community route, after it is published, to these
+  servers, one after another if one does not answer: overpass-api.de (run by
+  FOSSGIS e.V., Germany), overpass.private.coffee (Private.coffee, Austria) and
+  overpass.kumi.systems (Kumi Systems, Austria). The places found are added to
+  the published route. Only routes that are already public are sent.
+- *"Find places along this route" in the app.* When you ask for it on a guide
+  you imported, your phone sends that guide's outline directly to the same
+  three servers, tried in that order. Nothing goes through our server.
+- *Points of interest for a trail imported on the website.* When you ask for
+  them, your browser sends the outline directly to overpass-api.de, or to
+  overpass.kumi.systems if that does not answer. Nothing goes through our
+  server.
+
+**Filling in missing elevation (optional).** When you import a GPX file
+without elevation and choose to fill it in (on the app's import screen, or the
+website's "Fetch elevation" button), your device sends the track's coordinates
+directly to the public Open-Elevation service (api.open-elevation.com), which
+returns the terrain height at each. Nothing goes through our server.
 
 ## Where data is stored
 

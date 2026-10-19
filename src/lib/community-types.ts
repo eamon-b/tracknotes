@@ -128,6 +128,11 @@ export interface CommunityRouteSummary {
 export interface CommunityRouteDetail extends CommunityRouteSummary {
   description: string;
   credit: string | null;
+  /**
+   * The hiker's contribution (route, waypoints, text, display name). The
+   * OpenStreetMap POIs the server adds to the route's JSON are ODbL, credited
+   * in its `config.dataSource` (`docs/content-legal-posture.md`).
+   */
   licence: 'CC0-1.0';
   checks: CommunityCheck[];
   /** Present only for the owner and admins. */
