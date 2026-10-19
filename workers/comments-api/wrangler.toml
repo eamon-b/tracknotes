@@ -46,17 +46,15 @@ SITE_BASE = "https://trail-maps.vercel.app"
 
 # Overpass instances the community-route POI enrichment asks, in order
 # (comma-separated https URLs; `src/community-pois.ts`). Each query goes to the
-# instance that answered last, then the next one on a failure. EMPTY = OFF, the
-# default: the enrichment's CPU (tens to hundreds of ms per route) is far over
-# Workers Free's 10 ms, so leave it off until the account's plan is confirmed
-# (docs/architecture/workers.md, "community route POIs"). To turn it on, set
-# for example
-#   OVERPASS_ENDPOINTS = "https://overpass-api.de/api/interpreter,https://overpass.private.coffee/api/interpreter,https://overpass.kumi.systems/api/interpreter"
-# and deploy (migration 0009 first). Every instance listed receives each live
+# instance that answered last, then the next one on a failure. EMPTY = OFF.
+# It is on: the account is on Workers Paid (2026-10-20), whose 15-minute cron
+# CPU limit covers the enrichment's tens to hundreds of ms per route; on Workers
+# Free (10 ms) it would have to be switched off again
+# (docs/architecture/workers.md, "community route POIs"). Every instance listed receives each live
 # community route's outline: name its operator in docs/privacy-policy.md and
 # public/privacy.html before adding one (both list the three above).
 # Mirrors come and go: see docs/architecture/build-scripts.md (fetch-pois).
-OVERPASS_ENDPOINTS = ""
+OVERPASS_ENDPOINTS = "https://overpass-api.de/api/interpreter,https://overpass.private.coffee/api/interpreter,https://overpass.kumi.systems/api/interpreter"
 
 # Secrets (not in this file): set with `wrangler secret put <NAME>`.
 #   ANTHROPIC_API_KEY — the community-route AI review (src/community-review.ts).
