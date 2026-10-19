@@ -146,6 +146,8 @@ export interface FinishOptions {
   signal?: AbortSignal;
   /** Awaited between slices of work, so a UI thread can breathe. */
   pause?: () => Promise<void>;
+  /** Place through a grid (`PlaceOptions.indexed`): the same POIs, linear in their number. */
+  indexed?: boolean;
 }
 
 function abortError(): Error {
@@ -167,7 +169,7 @@ export async function finishTrailPois(
   trail: FinishableTrail,
   options: FinishOptions = {}
 ): Promise<TrailPOI[]> {
-  const { signal, pause } = options;
+  const { signal, pause, indexed } = options;
   const step = async (): Promise<void> => {
     if (pause) await pause();
     if (signal?.aborted) throw abortError();
@@ -177,6 +179,7 @@ export async function finishTrailPois(
     types: ALL_POI_TYPES,
     signal,
     pause,
+    indexed,
   });
   await step();
   const placed = toTrailPOIs(enriched, plan.scale);
