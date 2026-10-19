@@ -105,6 +105,11 @@ scores 0.67 raw and 1.00 once "campground" is dropped.
   old/new/upper/lower/north/south/east/west on one side only, or different
   numbers on both), and a hand-edited `duplicates` map in `pois.json` for
   pairs no rule should decide (`Schlink Hilton` → Schlink Hut).
+  Review follow-ups: diacritics are stripped and `Nth`/`Sth`/`N`/`S`/`E`/`W`
+  expanded before comparing; a non-Latin name is a name the matcher cannot
+  read, not "unnamed", so it never folds by position; and an unnamed campsite
+  with a differently named compatible waypoint no more than 30 m further than
+  the nearest stays visible, since nothing says which of the two it belongs to.
 - **`transport` is excluded entirely.** No waypoint type corresponds, and bus
   stop names encode direction by word order, which token-set matching destroys
   (see the POI↔POI section).

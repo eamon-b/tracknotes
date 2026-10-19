@@ -179,7 +179,7 @@ describe('markDuplicatePois', () => {
     const [marked] = markDuplicatePois(
       [poi({ name: null, lat: latOffset(20) })],
       [
-        wp({ id: 'w_far', name: 'Far Hut', type: 'hut' }),
+        wp({ id: 'w_far', name: 'Far Hut', type: 'hut', lat: latOffset(-25) }),
         wp({ id: 'w_water', name: 'Creek', type: 'water', lat: latOffset(20) }),
         wp({ id: 'w_near', name: 'Near Campsite', lat: latOffset(12) }),
       ]
@@ -230,6 +230,78 @@ describe('markDuplicatePois', () => {
     // A number on one side only is not an identity.
     expect(namesDistinguished('Big River', 'Big River 1')).toBe(false);
     expect(namesDistinguished('Mount Wills Hut', 'Mt Wills Hut')).toBe(false);
+    // Abbreviated compass words count.
+    expect(namesDistinguished('Buenba Flat Sth', 'Buenba Flat')).toBe(true);
+    expect(namesDistinguished('Nth Creek Camp', 'North Creek Camp')).toBe(false);
+    expect(namesDistinguished('Creek Camp S', 'Creek Camp')).toBe(true);
+  });
+
+  it('folds a campsite named only with generic words like an unnamed one', () => {
+    const [marked] = markDuplicatePois(
+      [poi({ name: 'Campsite', lat: latOffset(6) })],
+      [wp({ id: 'w_mackays', name: 'Mackays Hut', type: 'hut' })]
+    )!;
+    expect(marked.duplicateOf).toBe('w_mackays');
+  });
+
+  it('never folds by position a name it cannot read', () => {
+    // A Japanese name tokenises to nothing, but it is a name: an unrelated
+    // campground 23 m from a hut must not fold into it.
+    const [marked] = markDuplicatePois(
+      [poi({ name: '恵比須浜キャンプ村', lat: latOffset(23) })],
+      [wp({ name: 'Ebisuhama Ohenro Rest Hut', type: 'hut' })]
+    )!;
+    expect(marked.duplicateOf).toBeUndefined();
+  });
+
+  it('keeps an unnamed campsite beside a poi- or water-typed waypoint', () => {
+    const marked = markDuplicatePois(
+      [poi({ id: 1, name: null, lat: latOffset(3) }), poi({ id: 2, name: null, lat: latOffset(3) })],
+      [wp({ id: 'w_rock', name: 'Rock Shelter', type: 'poi' })]
+    )!;
+    expect(marked.every(p => p.duplicateOf === undefined)).toBe(true);
+    const [byWater] = markDuplicatePois(
+      [poi({ name: null, lat: latOffset(3) })],
+      [wp({ id: 'w_creek', name: 'Hellfire Creek', type: 'water' })]
+    )!;
+    expect(byWater.duplicateOf).toBeUndefined();
+  });
+
+  it('leaves an unnamed campsite alone between two differently named places', () => {
+    // The Overland's Waterfall Valley camp site: 20 m from the old hut, 43 m
+    // from the group platform.
+    const [marked] = markDuplicatePois(
+      [poi({ name: null })],
+      [
+        wp({ id: 'w_old', name: 'Old Waterfall Valley Hut', type: 'hut', lat: latOffset(20) }),
+        wp({ id: 'w_group', name: 'Waterfall Valley Group Camping Platform', lat: latOffset(-43) }),
+      ]
+    )!;
+    expect(marked.duplicateOf).toBeUndefined();
+  });
+
+  it('folds an unnamed campsite on its hut even with another hut nearby', () => {
+    // Shikoku: 1 m from the Katsuura pilgrim hut, 43 m from Yottene Market.
+    const [marked] = markDuplicatePois(
+      [poi({ name: null })],
+      [
+        wp({ id: 'w_katsuura', name: 'Pilgrim Hut No.11 Katsuura', type: 'hut', lat: latOffset(1) }),
+        wp({ id: 'w_market', name: 'Yottene Market', type: 'hut', lat: latOffset(-43) }),
+      ]
+    )!;
+    expect(marked.duplicateOf).toBe('w_katsuura');
+  });
+
+  it('folds an unnamed campsite beside a hut and campsite of one name', () => {
+    // The AAWT's Buckwong Hut is both a hut and a campsite waypoint.
+    const [marked] = markDuplicatePois(
+      [poi({ name: null })],
+      [
+        wp({ id: 'w_hut', name: 'Buckwong Hut', type: 'hut', lat: latOffset(12) }),
+        wp({ id: 'w_camp', name: 'Buckwong Hut', lat: latOffset(1) }),
+      ]
+    )!;
+    expect(marked.duplicateOf).toBe('w_camp');
   });
 
   it('never flags an unnamed POI other than a campsite', () => {
@@ -415,6 +487,15 @@ describe('applyDuplicateOverrides', () => {
     expect(pois[0].duplicateOf).toBe('w_schlink');
     expect(pois[0].duplicateDistanceM).toBe(4);
     expect(unmatched).toEqual([]);
+  });
+
+  it('reports an override that replaces a different rule match', () => {
+    const { replaced } = applyDuplicateOverrides(
+      [poi({ id: 7, type: 'node', name: 'Schlink Hilton', duplicateOf: 'w_other' })],
+      { 'node/7': 'w_schlink' },
+      [hut, wp({ id: 'w_other', name: 'Other' })]
+    );
+    expect(replaced).toEqual([{ key: 'node/7', ruleMatch: 'w_other', override: 'w_schlink' }]);
   });
 
   it('reports a key that matches no POI', () => {

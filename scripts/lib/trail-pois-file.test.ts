@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 
 import {
   buildTrailPOIFile,
+  markTrailPOIsForBuild,
   choosePoiWriteMode,
   mergeTrailPOIs,
   parseTrailPOIFile,
@@ -305,5 +306,42 @@ describe('choosePoiWriteMode', () => {
     const mode = choosePoiWriteMode({ ...base, failedChunks: 1 });
     const pois = mode === 'merge' ? mergeTrailPOIs(existing, fetched).pois : fetched;
     expect(pois.map(p => p.id)).toEqual([1, 2, 3, 4]);
+  });
+});
+
+describe('markTrailPOIsForBuild', () => {
+  const hut = { id: 'w_hut', name: 'Schlink Hut', type: 'hut', lat: -35, lon: 148 };
+  const named = (id: number, name: string, tags: Record<string, string> = {}) => ({
+    ...poi(id, 1),
+    category: 'camping' as const,
+    lat: -35,
+    lon: 148,
+    name,
+    tags,
+  });
+
+  it('applies a hand-listed duplicate after the rules', () => {
+    const { pois, unmatched } = markTrailPOIsForBuild(
+      file({ pois: [named(1, 'Schlink Hilton')], duplicates: { 'node/1': 'w_hut' } }),
+      { waypoints: [hut] }
+    );
+    expect(pois?.[0].duplicateOf).toBe('w_hut');
+    expect(unmatched).toEqual([]);
+  });
+
+  it('reports a hand-listed duplicate that is rejected or dropped as noise', () => {
+    const { unmatched } = markTrailPOIsForBuild(
+      file({
+        pois: [named(1, 'Schlink Hilton'), named(2, 'Picnic shelter', { amenity: 'shelter', shelter_type: 'picnic_shelter' })],
+        rejected: ['node/1'],
+        duplicates: { 'node/1': 'w_hut', 'node/2': 'w_hut' },
+      }),
+      { waypoints: [hut] }
+    );
+    expect(unmatched.sort()).toEqual(['node/1', 'node/2']);
+  });
+
+  it('gives no POIs for a trail without a POI file', () => {
+    expect(markTrailPOIsForBuild(null, { waypoints: [hut] }).pois).toBeUndefined();
   });
 });

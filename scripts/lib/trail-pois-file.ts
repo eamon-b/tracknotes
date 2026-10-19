@@ -40,8 +40,16 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
+import { dropNoisePois } from '../../src/lib/poi-noise.js';
+import {
+  applyDuplicateOverrides,
+  dedupCandidates,
+  markDuplicatePois,
+  type DedupTrailLike,
+  type DuplicateOverrideReplacement,
+} from '../../src/lib/poi-dedup.js';
 import { poiKey } from '../../src/lib/trail-pois.js';
-import type { TrailPOI } from '../../src/lib/trail-types.js';
+import type { TrailPOI, TrailPoiConfig } from '../../src/lib/trail-types.js';
 
 /** The file name inside a `data/trails/<dir>` directory. */
 export const POIS_FILENAME = 'pois.json';
@@ -201,6 +209,35 @@ export function readTrailPOIsForBuild(
 ): TrailPOI[] | null {
   const file = readTrailPOIFile(trailDir, io);
   return file === null ? null : poisForBuild(file);
+}
+
+/**
+ * A trail's POIs with noise dropped and duplicates flagged — by
+ * `@lib/poi-dedup`'s rules, then by the file's hand-edited `duplicates` — ready
+ * for city thinning. `pois` is undefined when the trail has no POI file.
+ *
+ * `unmatched` lists `duplicates` keys that reached no POI (deleted from OSM,
+ * `rejected`, or dropped as noise); `replaced` the overrides that displaced a
+ * different rule match. The build reports both.
+ */
+export function markTrailPOIsForBuild(
+  file: TrailPOIFile | null,
+  trail: DedupTrailLike,
+  config?: TrailPoiConfig
+): {
+  fetched: TrailPOI[] | undefined;
+  pois: TrailPOI[] | undefined;
+  unmatched: string[];
+  replaced: DuplicateOverrideReplacement[];
+} {
+  const fetched = file ? poisForBuild(file) : undefined;
+  const candidates = dedupCandidates(trail);
+  const marked = markDuplicatePois(dropNoisePois(fetched, config), candidates);
+  if (!marked || !file?.duplicates) {
+    return { fetched, pois: marked, unmatched: [], replaced: [] };
+  }
+  const overridden = applyDuplicateOverrides(marked, file.duplicates, candidates);
+  return { fetched, ...overridden };
 }
 
 /**
