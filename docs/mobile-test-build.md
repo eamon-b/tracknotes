@@ -136,7 +136,13 @@ be rolled forward without a reinstall. The detailed rationale is under "Deploy" 
    planner is local-only. To confirm a deploy carries it, fetch `my-plan.html`, follow its
    `plan-viewer-*.js` asset and grep for `api.contour-map-tiles.net`.
 
-3. **App, store build.** Bump `expo.version` in `mobile/app.json`; the `versionCode` is bumped
+3. **App, store build.** Release checklist gate (the rest of the store checklist is issue
+   #31): before building, the comments API's remote migrations are all applied
+   (`npx wrangler d1 migrations list farout-comments --remote` lists nothing to apply) and
+   the worker is deployed from `main`, with every probe in step 1 answering 200. A build
+   that ships ahead of its worker loses writes to routes that 404 (#141).
+
+   Bump `expo.version` in `mobile/app.json`; the `versionCode` is bumped
    by EAS on every `production` build (the first upload used `1`). Then run (or use the
    *Mobile build* workflow with the `production` profile):
 
