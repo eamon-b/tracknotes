@@ -3,7 +3,7 @@
  * `community-pois.ts`). Overpass is a mocked fetch throughout.
  */
 import { SELF, createExecutionContext, env, waitOnExecutionContext } from 'cloudflare:test';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { authHeaders, deleteMe, makeAdmin, registerDevice, url } from './helpers';
 import type { Device } from './helpers';
 import { makeTrail, submitBody, submitRoute } from './community-fixtures';
@@ -12,10 +12,20 @@ import {
   POI_DATA_CREDIT,
   POI_RUN_LIMITS,
   enrichCommunityRoutePois,
+  poiBackoffMs,
   patchCommunityRoute,
 } from '../src/community';
 import type { PoiEnrichDeps } from '../src/community';
-import { POI_LIMITS, WORST_REQUEST_MS, parseOverpassEndpoints, readCapped, retryAfterMs } from '../src/community-pois';
+import {
+  POI_LIMITS,
+  WORST_REQUEST_MS,
+  fetchRoutePois,
+  newOverpassBudget,
+  parseOverpassEndpoints,
+  planPoiQueries,
+  readCapped,
+  retryAfterMs,
+} from '../src/community-pois';
 import type { Env } from '../src/http';
 import type { CommunityRouteDetail } from '../../../src/lib/community-types';
 import type { ProcessedTrail, TrailPOI } from '../../../src/lib/trail-types';
@@ -284,7 +294,9 @@ describe('POI enrichment', () => {
     expect(down.calls.map((c) => c.endpoint)).toEqual([ENDPOINT_A, ENDPOINT_B]);
     let r = await row(route.id);
     expect(r.pois_status).toBe('pending');
-    expect(r.pois_attempts).toBe(1);
+    // An outage, not the route: the attempt is given back, the route backs off.
+    expect(r.pois_attempts).toBe(0);
+    expect(r.pois_failures).toBe(1);
     expect(r.pois_error).toMatch(/HTTP 504/);
     expect(r.md5).toBe(before.md5);
     expect(r.updated_at).toBe(before.updated_at);
@@ -304,23 +316,72 @@ describe('POI enrichment', () => {
     expect(r.pois_error).toBeNull();
   });
 
-  it('treats an Overpass runtime error as a failure, and gives up after the last attempt', async () => {
+  it('never uses up a route’s attempts in an outage, and backs off', async () => {
     const owner = await registerDevice();
     const route = await submitAt(owner, freshStart());
     await onlyCandidate(route.id);
     const timedOut = () =>
       new Response(JSON.stringify({ elements: [], remark: 'runtime error: Query timed out in "query" at line 3' }));
-    for (let attempt = 1; attempt <= POI_RUN_LIMITS.maxAttempts; attempt++) {
-      await run(overpass([timedOut]), {}, attempt * 2 * 60 * 60 * 1000);
+    // Ten failed runs, each as soon as the route is due again: a day-long outage and more.
+    let ahead = 10 * 60 * 1000;
+    const waits: number[] = [];
+    for (let n = 1; n <= 10; n++) {
+      const fetchImpl = overpass([n % 2 ? timedOut : new Response('down', { status: 502 })]);
+      await run(fetchImpl, {}, ahead);
+      expect(fetchImpl.calls.length).toBeGreaterThan(0);
       const r = await row(route.id);
-      expect(r.pois_attempts).toBe(attempt);
-      expect(r.pois_error).toMatch(/runtime error/);
-      expect(r.pois_status).toBe(attempt < POI_RUN_LIMITS.maxAttempts ? 'pending' : 'failed');
+      expect(r.pois_status).toBe('pending');
+      expect(r.pois_attempts).toBe(0);
+      expect(r.pois_failures).toBe(n);
+      const wait = Date.parse(r.pois_due_at as string) - Date.parse(r.pois_attempted_at as string);
+      expect(wait).toBe(poiBackoffMs(n));
+      waits.push(wait);
+      ahead = Date.parse(r.pois_due_at as string) - Date.now() + 60_000;
     }
+    // 1 h, 2 h, 4 h, … capped at 2 days.
+    expect(waits.slice(0, 3)).toEqual([1, 2, 4].map((h) => h * 60 * 60 * 1000));
+    expect(waits[9]).toBe(POI_RUN_LIMITS.maxBackoffMs);
+    // Overpass back: the route gets its POIs, and the back-off resets.
+    await run(overpass([elementsResponse([])]), {}, ahead);
+    const r = await row(route.id);
+    expect(r.pois_status).toBe('done');
+    expect(r.pois_failures).toBe(0);
+  });
+
+  it('counts only a refusal of the route’s own query, and retries a failed route after two weeks', async () => {
+    const owner = await registerDevice();
+    const start = freshStart();
+    const route = await submitAt(owner, start);
+    await onlyCandidate(route.id);
+    const refused = () => new Response('bad query', { status: 400 });
+    let ahead = 10 * 60 * 1000;
+    for (let attempt = 1; attempt <= POI_RUN_LIMITS.maxAttempts; attempt++) {
+      await run(overpass([refused]), {}, ahead);
+      const r = await row(route.id);
+      expect(r.pois_error).toMatch(/HTTP 400/);
+      if (attempt < POI_RUN_LIMITS.maxAttempts) {
+        expect(r.pois_attempts).toBe(attempt);
+        expect(r.pois_status).toBe('pending');
+        ahead = Date.parse(r.pois_due_at as string) - Date.now() + 60_000;
+      } else {
+        expect(r.pois_status).toBe('failed');
+        expect(r.pois_attempts).toBe(0);
+        const wait = Date.parse(r.pois_due_at as string) - Date.parse(r.pois_attempted_at as string);
+        expect(wait).toBe(POI_RUN_LIMITS.failedRetryAfterMs);
+      }
+    }
+    // Shown without POIs meanwhile, and not asked about for two weeks.
     const later = overpass([elementsResponse([])]);
-    await run(later, {}, 20 * 60 * 60 * 1000);
+    await run(later, {}, ahead + 13 * 24 * 60 * 60 * 1000);
     expect(later.calls).toHaveLength(0);
     expect((await storedTrail((await row(route.id)).r2_key as string)).pois).toBeUndefined();
+    // Then it is tried afresh, and recovers on its own.
+    const fixed = overpass([elementsResponse(elementsAlong(start))]);
+    await run(fixed, {}, ahead + 15 * 24 * 60 * 60 * 1000);
+    expect(fixed.calls).toHaveLength(1);
+    const r = await row(route.id);
+    expect(r.pois_status).toBe('done');
+    expect(r.poi_count).toBe(3);
   });
 
   it('skips a route that needs more queries than one route may make', async () => {
@@ -365,7 +426,9 @@ describe('POI enrichment', () => {
     expect(r.pois_status).toBe('pending');
     // Overpass failed every one of them: the attempt counts.
     expect(r.pois_error).toMatch(/^run_budget: o0\.test: HTTP 503/);
-    expect(r.pois_attempts).toBe(1);
+    // An outage, not the route: the attempt is given back, the route backs off.
+    expect(r.pois_attempts).toBe(0);
+    expect(r.pois_failures).toBe(1);
   });
 
   it('keeps the POIs through an edit, a hide and restore, and a de-attribution', async () => {
@@ -563,7 +626,9 @@ describe('POI enrichment: budgets, retries and leftovers', () => {
     expect(flaky.calls).toHaveLength(3);
     let r = await row(route.id);
     expect(r.pois_status).toBe('pending');
-    expect(r.pois_attempts).toBe(1);
+    // An outage, not the route: the attempt is given back, the route backs off.
+    expect(r.pois_attempts).toBe(0);
+    expect(r.pois_failures).toBe(1);
     expect(r.pois_error).toMatch(/^overpass: overpass-a\.test: HTTP 504; overpass-b\.test: HTTP 502/);
     expect((await privateKeys(route.id)).filter((k) => k.includes('/overpass-'))).toHaveLength(1);
 
@@ -672,7 +737,9 @@ describe('POI enrichment: budgets, retries and leftovers', () => {
     const r = await row(route.id);
     expect(r.pois_status).toBe('failed');
     expect(r.pois_error).toBe('gave_up');
-    expect(r.pois_due_at).toBeNull();
+    // Recoverable: due again in two weeks, attempts reset.
+    expect(r.pois_attempts).toBe(0);
+    expect(Date.parse(r.pois_due_at as string) - Date.now()).toBeGreaterThan(POI_RUN_LIMITS.failedRetryAfterMs - 60_000);
     expect(await env.PHOTOS.get(orphan)).toBeNull();
   });
 
@@ -709,5 +776,94 @@ describe('POI enrichment: budgets, retries and leftovers', () => {
       enrichCommunityRoutePois(brokenEnv, { endpoints: [ENDPOINT_A], fetchImpl, sleep: noSleep })
     ).resolves.toBeUndefined();
     expect(fetchImpl.calls).toHaveLength(0);
+  });
+});
+
+describe('POI enrichment: second review', () => {
+  it('keeps the cached answers through an owner’s edit', async () => {
+    const owner = await registerDevice();
+    const start = freshStart();
+    const route = await submitAt(owner, start, routeOfQueries(start, 3));
+    await onlyCandidate(route.id);
+    const flaky = overpass([
+      elementsResponse(elementsAlong(start)),
+      new Response('busy', { status: 504 }),
+      new Response('busy', { status: 502 }),
+    ]);
+    await run(flaky);
+    const before = await row(route.id);
+
+    // The edit rewrites the private copy (a new private key).
+    const ctx = createExecutionContext();
+    const res = await patchCommunityRoute(
+      new Request(url(`/v1/community/routes/${route.id}`), {
+        method: 'PATCH',
+        headers: authHeaders(owner),
+        body: JSON.stringify({ name: 'Zigzag, renamed' }),
+      }),
+      testEnv,
+      ctx,
+      route.id
+    );
+    await waitOnExecutionContext(ctx);
+    expect(res.status).toBe(200);
+    expect((await row(route.id)).private_key).not.toBe(before.private_key);
+
+    const rest = overpass([elementsResponse([])]);
+    await run(rest, {}, 2 * 60 * 60 * 1000);
+    expect(rest.calls).toHaveLength(2);
+    expect(rest.calls.map((c) => c.query)).not.toContain(flaky.calls[0].query);
+    const r = await row(route.id);
+    expect(r.pois_status).toBe('done');
+    expect(await privateKeys(route.id)).toEqual([r.private_key]);
+  }, 60_000);
+
+  it('stops, and leaves nothing behind, when the route is removed during the fetch', async () => {
+    const owner = await registerDevice();
+    const start = freshStart();
+    const route = await submitAt(owner, start, routeOfQueries(start, 3));
+    await onlyCandidate(route.id);
+    const removing = overpass([
+      async () => {
+        // The owner deletes the route while Overpass answers: the row is
+        // tombstoned and both prefixes purged, as removal does.
+        const res = await SELF.fetch(url(`/v1/community/routes/${route.id}`), {
+          method: 'DELETE',
+          headers: authHeaders(owner),
+        });
+        expect(res.status).toBeLessThan(300);
+        return elementsResponse(elementsAlong(start));
+      },
+    ]);
+    await run(removing);
+    // Nothing more was asked or written once the route was gone.
+    expect(removing.calls).toHaveLength(1);
+    const r = await row(route.id);
+    expect(r.status).toBe('removed');
+    expect(r.pois_error).toBe('route_removed');
+    expect(await privateKeys(route.id)).toEqual([]);
+  }, 60_000);
+
+  it('parses each Overpass answer once', async () => {
+    const start = freshStart();
+    const trail = makeTrail({ start });
+    const plan = planPoiQueries(trail);
+    const text = JSON.stringify({ version: 0.6, elements: elementsAlong(start) });
+    const fetchImpl = overpass([() => new Response(text)]);
+    const parse = vi.spyOn(JSON, 'parse');
+    try {
+      const outcome = await fetchRoutePois(
+        trail,
+        plan,
+        plan.queries.map((_, i) => `h${i}`),
+        { get: async () => null, put: async () => true },
+        newOverpassBudget(1, 5, Date.now() + POI_RUN_LIMITS.wallMs),
+        { endpoints: [ENDPOINT_A], fetchImpl, sleep: noSleep }
+      );
+      expect(outcome.kind).toBe('ok');
+      expect(parse.mock.calls.filter(([arg]) => arg === text)).toHaveLength(1);
+    } finally {
+      parse.mockRestore();
+    }
   });
 });

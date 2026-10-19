@@ -18,14 +18,19 @@
 -- `pois_hash`: the `content_hash` the last final answer was for (NULL before
 --   one).
 -- `poi_count`: POIs in the stored JSON.
--- `pois_attempts` / `pois_attempted_at`: attempts for the current geometry,
---   and when the last one was claimed (also the claim's guard). An attempt
---   that only ran out of the run's budget, without Overpass failing anything,
---   is given back.
+-- `pois_attempts` / `pois_attempted_at`: attempts for the current geometry
+--   that failed for a reason tied to the route (Overpass refusing its query,
+--   the platform stopping the run on it), and when the last one was claimed
+--   (also the claim's guard). An outage (timeouts, 5xx, 429) never counts, and
+--   an attempt that only ran out of the run's budget is given back.
+-- `pois_failures`: consecutive failed attempts of any kind, for the back-off
+--   (1 h, doubling, up to 2 days); 0 after an answer.
 -- `pois_due_at`: when the route is next due — '' at once (a route never
---   tried), an ISO time after an attempt (the claim sets it an hour on), NULL
---   once it has an answer or was given up on. The candidate query reads only
---   this column (and the index below), oldest due first. Whatever changes a
+--   tried), an ISO time after an attempt (the claim sets it an hour on, a
+--   failure further), NULL once it has an answer or was skipped. A `failed`
+--   route is due again 14 days after it was given up on, attempts reset.
+--   The candidate query reads only this column (and the index below), oldest
+--   due first. Whatever changes a
 --   route's geometry in future must set it back to '' (and `pois_attempts` to
 --   0) for the route to be enriched again.
 -- `pois_error`: why the last attempt failed, was deferred or skipped, for the
@@ -40,6 +45,7 @@ ALTER TABLE community_routes ADD COLUMN pois_hash TEXT;
 ALTER TABLE community_routes ADD COLUMN poi_count INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE community_routes ADD COLUMN pois_attempts INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE community_routes ADD COLUMN pois_attempted_at TEXT;
+ALTER TABLE community_routes ADD COLUMN pois_failures INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE community_routes ADD COLUMN pois_due_at TEXT DEFAULT '';
 ALTER TABLE community_routes ADD COLUMN pois_error TEXT;
 

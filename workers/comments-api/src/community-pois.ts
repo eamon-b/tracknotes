@@ -101,7 +101,11 @@ export interface OverpassDeps {
  */
 export interface PoiAnswerCache {
   get(queryHash: string): Promise<Uint8Array | null>;
-  put(queryHash: string, body: Uint8Array): Promise<void>;
+  /**
+   * Store one answer. False when the route is gone (removed meanwhile): the
+   * attempt stops there, and nothing more is fetched or written for it.
+   */
+  put(queryHash: string, body: Uint8Array): Promise<boolean>;
 }
 
 const USER_AGENT = 'trail-maps-comments-api/1.0 (+https://github.com/eamon-b/trail-maps)';
@@ -131,14 +135,25 @@ export type PoiOutcome =
   /** Not worth retrying for this geometry (too long, a city's worth of POIs). */
   | { kind: 'skip'; reason: string }
   /**
-   * Not finished: try again on a later run. `counted` when Overpass failed at
-   * least one request of this attempt (an HTTP error, a timeout, a refusal, a
-   * `runtime error`); an attempt that only ran out of the run's budget never
-   * asked anything that failed, and does not count against the route.
+   * Not finished: try again on a later run. `failure` says whose fault it was:
+   * - `'route'`: an answer only this route's query gets — an HTTP 4xx other
+   *   than 408/429 (Overpass refusing the query itself). Counts against the
+   *   route's attempts.
+   * - `'transient'`: Overpass being down or busy — a network error, a timeout,
+   *   a 5xx, a 408 or 429, a `runtime error` remark, a page that is not JSON.
+   *   Never counts (an outage must not use up a route's attempts), but backs
+   *   the route off.
+   * - `'none'`: nothing failed (the run's budget ran out, or the route was
+   *   removed): the attempt is simply given back.
    */
-  | { kind: 'fail'; reason: string; counted: boolean };
+  | { kind: 'fail'; reason: string; failure: PoiFailure };
+
+export type PoiFailure = 'none' | 'transient' | 'route';
 
 export class SkipRoute extends Error {}
+
+/** An HTTP answer that refuses this route's query itself, not a busy or broken server. */
+class RouteFault extends Error {}
 
 /** Parse the configured endpoint list (`OVERPASS_ENDPOINTS`): comma-separated https URLs. */
 export function parseOverpassEndpoints(raw: string | undefined): string[] {
@@ -220,8 +235,13 @@ class RateLimited extends Error {
   }
 }
 
-/** One request to one endpoint: the answer's bytes, or why not. Never retries. */
-async function queryOnce(endpoint: string, query: string, deps: OverpassDeps, nowMs: number): Promise<Uint8Array> {
+/** One request to one endpoint: the answer's bytes and its POIs (parsed once), or why not. Never retries. */
+async function queryOnce(
+  endpoint: string,
+  query: string,
+  deps: OverpassDeps,
+  nowMs: number
+): Promise<{ body: Uint8Array; pois: POI[] }> {
   const doFetch = deps.fetchImpl ?? fetch;
   const response = await doFetch(endpoint, {
     method: 'POST',
@@ -235,11 +255,15 @@ async function queryOnce(endpoint: string, query: string, deps: OverpassDeps, no
       ? retryAfterMs(response.headers.get('Retry-After'), nowMs)
       : null;
     if (wait !== null) throw new RateLimited(`HTTP ${response.status}`, wait);
-    throw new Error(`HTTP ${response.status}`);
+    const status = response.status;
+    if (status >= 400 && status < 500 && status !== 408 && status !== 429) {
+      throw new RouteFault(`HTTP ${status}`);
+    }
+    throw new Error(`HTTP ${status}`);
   }
   const body = await readCapped(response, POI_LIMITS.maxResponseBytes);
-  parseOverpassAnswer(body); // a `runtime error` remark is a failure, not "nothing here"
-  return body;
+  // A `runtime error` remark is a failure, not "nothing here".
+  return { body, pois: parseOverpassAnswer(body) };
 }
 
 function hex(buffer: ArrayBuffer): string {
@@ -248,7 +272,12 @@ function hex(buffer: ArrayBuffer): string {
   return out;
 }
 
-/** The cache key of one query: sha256 of `salt` (the route's secret) and the query text. */
+/**
+ * The cache key of one query: sha256 of `salt` and the query text. The caller
+ * salts with what stays put while the geometry does (the route's id and
+ * `content_hash`), so an edit or a de-attribution, which rewrite the private
+ * copy, keep the cached answers usable.
+ */
 export async function queryHash(salt: string, query: string): Promise<string> {
   return hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${salt}\n${query}`))).slice(0, 40);
 }
@@ -270,7 +299,7 @@ export async function fetchRoutePois(
   const now = deps.now ?? Date.now;
   const sleep = deps.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
   const endpoints = deps.endpoints;
-  if (endpoints.length === 0) return { kind: 'fail', reason: 'no_endpoint', counted: false };
+  if (endpoints.length === 0) return { kind: 'fail', reason: 'no_endpoint', failure: 'none' };
   while (budget.coolUntil.length < endpoints.length) budget.coolUntil.push(0);
 
   const unique = new Map<string, POI>();
@@ -283,12 +312,12 @@ export async function fetchRoutePois(
     return unique.size <= POI_LIMITS.maxFetchedPois;
   };
 
-  let failed = false;
+  let failure: PoiFailure = 'none';
   const errors: string[] = [];
   const stop = (reason: string): PoiOutcome => ({
     kind: 'fail',
     reason: (errors.length > 0 ? `${reason}: ${errors.join('; ')}` : reason).slice(0, 500),
-    counted: failed,
+    failure,
   });
 
   try {
@@ -313,7 +342,7 @@ export async function fetchRoutePois(
       const g = missing[m];
       /** Instances that failed this query (a rate limit is not a failure: it is waited out). */
       const tried = new Set<number>();
-      let answer: Uint8Array | null = null;
+      let answer: { body: Uint8Array; pois: POI[] } | null = null;
       while (answer === null) {
         // Every request left for this route, each as slow as it may be, must
         // fit: otherwise stop now rather than leave a hole at the deadline.
@@ -347,7 +376,8 @@ export async function fetchRoutePois(
           budget.preferred = index;
         } catch (err) {
           if (err instanceof SkipRoute) throw err;
-          failed = true;
+          if (err instanceof RouteFault) failure = 'route';
+          else if (failure === 'none') failure = 'transient';
           errors.push(`${new URL(endpoints[index]).host}: ${err instanceof Error ? err.message : String(err)}`);
           if (err instanceof RateLimited) {
             // Honoured up to the cap; past it, the instance sits out the run.
@@ -358,12 +388,14 @@ export async function fetchRoutePois(
           }
         }
       }
+      let kept = true;
       try {
-        await cache.put(hashes[g], answer);
+        kept = await cache.put(hashes[g], answer.body);
       } catch {
         /* best-effort: an uncached answer is only asked for again */
       }
-      if (!add(parseOverpassAnswer(answer))) return { kind: 'skip', reason: 'too_many_pois' };
+      if (!kept) return { kind: 'fail', reason: 'route_removed', failure: 'none' };
+      if (!add(answer.pois)) return { kind: 'skip', reason: 'too_many_pois' };
     }
   } catch (err) {
     if (err instanceof SkipRoute) return { kind: 'skip', reason: err.message };
