@@ -93,7 +93,7 @@ reads the JSON afresh.
   instance that answered last, then the next) to turn it on, after migration
   `0009`. The privacy policy names the instances' operators.
 - **When:** a live route due for POIs (`pois_due_at`: `''` never tried, an hour
-  after an attempt, NULL once answered), untouched for 2 minutes and with no
+  or more after an attempt, NULL once answered or skipped), untouched for 2 minutes and with no
   AI review pending; 3 routes a run, longest-waiting first. Existing routes
   are backfilled the same way (migration `0009` makes them due), each
   republished once.
@@ -104,12 +104,18 @@ reads the JSON afresh.
   shipped) or whose JSON would pass 4 MB, is `skipped` — never fetched in
   part. A route starts only if its missing answers fit what the run has left.
 - **Failure:** fail open. Nothing is stored on the route until every query
-  has an answer; answers are cached per query, so the next attempt (an hour
-  later) asks only for the rest. An attempt counts (4 per geometry, then
-  `failed`) only if Overpass failed one of its requests; running out of the
-  run's budget gives it back. `Retry-After` is honoured up to 60 s. A run is
-  claimed before its first request, so one the platform stops still counts,
-  and what it wrote to R2 is swept once the route is answered or given up on.
+  has an answer; answers are cached per query (keyed on the route's id and
+  geometry, so they survive an edit), so the next attempt asks only for the
+  rest. An outage (network errors, timeouts, 5xx, 408/429, `runtime error`)
+  never uses up a route's attempts: the route backs off, 1 h doubling to a
+  2-day cap. Only a failure tied to the route counts (a 4xx refusing its
+  query, its stored copy missing, the platform stopping the run on it); the
+  4th marks it `failed`, which is tried afresh 14 days later. Running out of
+  the run's budget gives the attempt back. `Retry-After` is honoured up to
+  60 s. A run is claimed before its first request, so one the platform stops
+  still counts, and what it wrote to R2 is swept once the route is answered
+  or given up on; a route removed mid-fetch stops it, and its private prefix
+  is purged again.
 - **Consistency:** the POIs live in the canonical private JSON, so every
   republish (owner edit, de-attribution, restore) keeps them. The enrichment's
   write is guarded like an edit and moves `updated_at` (the JSON did change;
@@ -222,7 +228,8 @@ Storage:
 - D1 `community_routes` (+ `community_route_reports`), migrations `0005`,
   `0006` (`deattribute_pending`, `removed_by`, `blocks_resubmit`) and `0009`
   (the POI enrichment's `pois_status`, `pois_hash`, `poi_count`,
-  `pois_attempts`, `pois_attempted_at`, `pois_due_at`, `pois_error`; never
+  `pois_attempts`, `pois_attempted_at`, `pois_failures`, `pois_due_at`,
+  `pois_error`; never
   returned).
 - R2 (the PHOTOS bucket). The bucket has no private area — all of it is
   served at `PHOTOS_PUBLIC_BASE` — so private objects are protected by
