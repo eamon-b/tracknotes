@@ -83,6 +83,16 @@ describe('parseTrailPOIFile', () => {
     expect(parseTrailPOIFile(stringifyTrailPOIFile(original), '/x/pois.json')).toEqual(original);
   });
 
+  it('round-trips a hand-edited duplicates map', () => {
+    const original = file({ pois: [poi(1, 5)], duplicates: { 'node/1': 'w_abc' } });
+    expect(parseTrailPOIFile(stringifyTrailPOIFile(original), '/x/pois.json')).toEqual(original);
+  });
+
+  it('rejects a malformed duplicates entry', () => {
+    const text = JSON.stringify(file({ duplicates: { 'node/x': 'w_abc' } }));
+    expect(() => parseTrailPOIFile(text, '/x/pois.json')).toThrow(/duplicates\["node\/x"\]/);
+  });
+
   it('defaults missing provenance rather than failing', () => {
     const parsed = parseTrailPOIFile('{"pois":[]}', '/x/pois.json');
     expect(parsed.source).toBe('OpenStreetMap');
@@ -187,6 +197,13 @@ describe('buildTrailPOIFile', () => {
     expect(next.pois.map(p => p.id)).toEqual([1, 5]);
     expect(next.fetchedAt).toBe('2026-09-07T00:00:00.000Z');
     expect(next.endpoint).toBe('https://overpass.kumi.systems/api/interpreter');
+  });
+
+  it('carries the hand-edited duplicates map across a re-fetch, and adds none', () => {
+    const base = { pois: [], fetchedAt: '2026-09-07T00:00:00.000Z', searchRadiusKm: 2, endpoint: 'x' };
+    const kept = buildTrailPOIFile({ ...base, existing: file({ duplicates: { 'way/2': 'w_abc' } }) });
+    expect(kept.duplicates).toEqual({ 'way/2': 'w_abc' });
+    expect('duplicates' in buildTrailPOIFile({ ...base, existing: file() })).toBe(false);
   });
 
   it('starts an empty rejected list for a first fetch', () => {

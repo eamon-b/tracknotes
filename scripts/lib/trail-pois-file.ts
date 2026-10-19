@@ -18,6 +18,7 @@
  *   "searchRadiusKm": 2,
  *   "endpoint": "https://overpass-api.de/api/interpreter",
  *   "rejected": ["node/123456", "way/98765"],
+ *   "duplicates": { "way/250735325": "w_64766767" },
  *   "pois": [ { "id": 123456, "type": "node", "category": "water", ... } ]
  * }
  * ```
@@ -27,6 +28,11 @@
  * - `rejected` is hand-edited: a list of `poiKey` strings (`<type>/<id>`) that
  *   the build drops. A re-fetch reads the existing file and carries the list
  *   over verbatim, so review work is never lost to a refresh.
+ * - `duplicates` is optional and hand-edited too: `<type>/<id>` → the stable id
+ *   of the waypoint that POI is the same place as, for pairs `@lib/poi-dedup`'s
+ *   rules cannot safely match (a nickname, `Schlink Hilton` for Schlink Hut; a
+ *   different name for the same campground). The build flags them exactly as
+ *   the rules would, and a re-fetch carries the map over like `rejected`.
  * - Everything is sorted by `distanceAlongTrail` then key and written with
  *   stable 2-space JSON, so a re-fetch diff shows only what actually moved.
  */
@@ -56,6 +62,11 @@ export interface TrailPOIFile {
   endpoint: string;
   /** Hand-edited `<type>/<id>` keys the build must drop. Order is preserved. */
   rejected: string[];
+  /**
+   * Hand-edited `<type>/<id>` → waypoint id: POIs the build flags as
+   * duplicating that waypoint. Absent when there are none.
+   */
+  duplicates?: Record<string, string>;
   /** Everything found, rejected entries included. Sorted by trail km, then key. */
   pois: TrailPOI[];
 }
@@ -141,6 +152,18 @@ export function parseTrailPOIFile(text: string, filePath: string): TrailPOIFile 
     fail(filePath, 'expected "rejected" to be an array of "<type>/<id>" strings');
   }
 
+  const duplicates = file.duplicates;
+  if (duplicates !== undefined) {
+    if (typeof duplicates !== 'object' || duplicates === null || Array.isArray(duplicates)) {
+      fail(filePath, 'expected "duplicates" to map "<type>/<id>" to a waypoint id');
+    }
+    for (const [key, waypointId] of Object.entries(duplicates)) {
+      if (!/^(node|way|relation)\/\d+$/.test(key) || typeof waypointId !== 'string' || waypointId === '') {
+        fail(filePath, `duplicates["${key}"] must map a "<type>/<id>" key to a waypoint id`);
+      }
+    }
+  }
+
   return {
     source: typeof file.source === 'string' ? file.source : POI_SOURCE,
     attribution: typeof file.attribution === 'string' ? file.attribution : POI_ATTRIBUTION,
@@ -148,6 +171,7 @@ export function parseTrailPOIFile(text: string, filePath: string): TrailPOIFile 
     searchRadiusKm: typeof file.searchRadiusKm === 'number' ? file.searchRadiusKm : NaN,
     endpoint: typeof file.endpoint === 'string' ? file.endpoint : '',
     rejected: rejected as string[],
+    ...(duplicates !== undefined ? { duplicates: duplicates as Record<string, string> } : {}),
     pois: file.pois as TrailPOI[],
   };
 }
@@ -181,7 +205,7 @@ export function readTrailPOIsForBuild(
 
 /**
  * Build the file to write after a fetch, carrying the existing hand-edited
- * `rejected` list over unchanged.
+ * `rejected` list and `duplicates` map over unchanged.
  */
 export function buildTrailPOIFile(options: {
   existing: TrailPOIFile | null;
@@ -197,6 +221,9 @@ export function buildTrailPOIFile(options: {
     searchRadiusKm: options.searchRadiusKm,
     endpoint: options.endpoint,
     rejected: [...(options.existing?.rejected ?? [])],
+    ...(options.existing?.duplicates !== undefined
+      ? { duplicates: { ...options.existing.duplicates } }
+      : {}),
     pois: sortTrailPOIs(options.pois),
   };
 }

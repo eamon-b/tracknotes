@@ -99,6 +99,12 @@ scores 0.67 raw and 1.00 once "campground" is dropped.
   Huts; Te Araroa's backcountry huts) — and was showing as a second "Campsite"
   row on top of the hut. Flagging those took the AAWT from 74 to 102 flagged.
   Unnamed water stays exempt.
+  The same change added `Mt` = `Mount` before comparing, a 0.85 name score
+  within 25 m (`Edmonsons`/`Edmondson Hut`, `Motorimu`/`Moturimu Shelter`),
+  a guard that keeps `Old Aparima Hut` apart from `Aparima Hut` (a word from
+  old/new/upper/lower/north/south/east/west on one side only, or different
+  numbers on both), and a hand-edited `duplicates` map in `pois.json` for
+  pairs no rule should decide (`Schlink Hilton` → Schlink Hut).
 - **`transport` is excluded entirely.** No waypoint type corresponds, and bus
   stop names encode direction by word order, which token-set matching destroys
   (see the POI↔POI section).

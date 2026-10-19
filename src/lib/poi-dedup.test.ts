@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  applyDuplicateOverrides,
   countDuplicatePois,
   dedupCandidates,
   isCompatibleType,
   markDuplicatePois,
   nameScore,
+  namesDistinguished,
   nameTokens,
   nonDuplicatePois,
   type DedupWaypointLike,
@@ -193,6 +195,43 @@ describe('markDuplicatePois', () => {
     expect(marked.duplicateOf).toBeUndefined();
   });
 
+  it('reads Mt and Mount as one word', () => {
+    expect(nameScore('Mount Wills Hut', 'Mt Wills Hut')).toBe(1);
+    expect(nameScore('Mount Cooke Campsite', 'Mt. Cooke Campsite')).toBe(1);
+  });
+
+  it('accepts spelling drift only within 25 m', () => {
+    // The AAWT's Edmondson Hut is OSM's Edmonsons Hut, 2 m away (0.89).
+    const near = markDuplicatePois(
+      [poi({ name: 'Edmonsons Hut', lat: latOffset(2) })],
+      [wp({ name: 'Edmondson Hut', type: 'hut' })]
+    )!;
+    expect(near[0].duplicateOf).toBe('w_1');
+    const far = markDuplicatePois(
+      [poi({ name: 'Edmonsons Hut', lat: latOffset(60) })],
+      [wp({ name: 'Edmondson Hut', type: 'hut' })]
+    )!;
+    expect(far[0].duplicateOf).toBeUndefined();
+  });
+
+  it('keeps an old hut apart from the new one beside it', () => {
+    // Te Araroa: Old Aparima Hut stands 12 m from Aparima Hut.
+    const [marked] = markDuplicatePois(
+      [poi({ name: 'Old Aparima Hut', lat: latOffset(12) })],
+      [wp({ name: 'Aparima Hut', type: 'hut' })]
+    )!;
+    expect(marked.duplicateOf).toBeUndefined();
+  });
+
+  it('tells places apart by direction words and differing numbers', () => {
+    expect(namesDistinguished('Buenba Flat #1', 'Buenba Flat South #1')).toBe(true);
+    expect(namesDistinguished('Old Aparima Hut', 'Aparima Hut')).toBe(true);
+    expect(namesDistinguished('Twins Track 1', 'Twins Track 2')).toBe(true);
+    // A number on one side only is not an identity.
+    expect(namesDistinguished('Big River', 'Big River 1')).toBe(false);
+    expect(namesDistinguished('Mount Wills Hut', 'Mt Wills Hut')).toBe(false);
+  });
+
   it('never flags an unnamed POI other than a campsite', () => {
     // A nameless water tap beside a campsite waypoint is complementary
     // information, not a repeat of it.
@@ -360,5 +399,30 @@ describe('dedupCandidates', () => {
       dedupCandidates({ waypoints: [], sideTrips: [{ waypoints: [wp({ id: 'w_munro', name: 'Munro Cabin', type: 'hut' })] }] })
     )!;
     expect(flagged.duplicateOf).toBe('w_munro');
+  });
+});
+
+describe('applyDuplicateOverrides', () => {
+  const hut = wp({ id: 'w_schlink', name: 'Schlink Hut', type: 'hut' });
+
+  it('flags a hand-listed pair no rule matches', () => {
+    // Schlink Hilton is the AAWT's Schlink Hut.
+    const { pois, unmatched } = applyDuplicateOverrides(
+      [poi({ id: 250735325, type: 'way', name: 'Schlink Hilton', lat: latOffset(4) })],
+      { 'way/250735325': 'w_schlink' },
+      [hut]
+    );
+    expect(pois[0].duplicateOf).toBe('w_schlink');
+    expect(pois[0].duplicateDistanceM).toBe(4);
+    expect(unmatched).toEqual([]);
+  });
+
+  it('reports a key that matches no POI', () => {
+    const { unmatched } = applyDuplicateOverrides([], { 'node/9': 'w_schlink' }, [hut]);
+    expect(unmatched).toEqual(['node/9']);
+  });
+
+  it('throws on a waypoint id the trail does not have', () => {
+    expect(() => applyDuplicateOverrides([], { 'node/9': 'w_missing' }, [hut])).toThrow(/w_missing/);
   });
 });
