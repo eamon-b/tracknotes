@@ -37,6 +37,10 @@ npm run preview        # Preview production build locally
 
 **Rebase and merge is the only merge method allowed in this repo.** A PR lands on `main` as a linear run of its own commits, so a branch must never contain a merge commit. To pick up `main` or resolve conflicts, rebase the branch onto `origin/main` (`git rebase origin/main`, resolve each commit, then push with `--force-with-lease`) — never `git merge main` into the branch. A merge commit on a branch cannot be rebase-merged and has to be unpicked afterwards, which is far more work than rebasing in the first place.
 
+## Reviewing PRs
+
+When asked to review PRs, post the findings on GitHub as a review on each PR (a `COMMENT` review: a summary, findings ranked most serious first with `file:line` and the failure scenario, and a verdict), as well as summarising them in chat. Do not ask first. Note conflicts between open PRs that touch the same files on each of them, and say when a PR has a merge conflict and so has no CI run.
+
 ## Architecture Overview
 
 **Trail Maps** is a TypeScript web application for displaying Australian long-distance hiking trails with interactive maps, elevation profiles, and waypoint data. The repo also contains **Tracknotes**, the companion Expo/React Native mobile app (`mobile/` — see Mobile App section). Trail data also covers New Zealand (Te Araroa), the US (CDT) and Japan (Shikoku).
