@@ -275,8 +275,8 @@ export async function processTrailData(
  * editing the GPX (or a placement fix) leaves it stale until the next fetch:
  * Bibbulmun's Albany POIs sat at km 977-982 after the track was cut to 976 km,
  * and the AAWT's Blue Waterholes POIs at km 790-793 of 688. `build-trails`
- * refuses a POI past the trail's end (`poisPastTrailEnd`); this is the cheap
- * fix when the OSM data itself is still fine. POIs the moved track no longer
+ * refuses a file this would change (`misplacedPois`); this is the cheap fix
+ * when the OSM data itself is still fine. POIs the moved track no longer
  * passes within the search radius are dropped, as a fetch would drop them.
  */
 export async function repositionTrailPois(
@@ -289,6 +289,27 @@ export async function repositionTrailPois(
   const placed = toTrailPOIs(await placePois(corridor, elements, { types: ALL_POI_TYPES }), scale);
   const kept = new Set(placed.map(poiKey));
   return { pois: placed, dropped: stored.filter(poi => !kept.has(poiKey(poi))) };
+}
+
+/** Km a stored POI may differ from its fresh placement by: float noise only. */
+const PLACEMENT_TOLERANCE_KM = 0.001;
+
+/**
+ * The stored POIs whose km is not where `repositionTrailPois` would put them on
+ * this track (`km` null: the track no longer passes within the search radius).
+ * `build-trails` fails on any, so a track edit cannot leave POIs at stale km —
+ * past the end (mirrored to km 0 when the trail is reversed) or anywhere along it.
+ */
+export async function misplacedPois(
+  trail: ProcessedTrail,
+  stored: readonly TrailPOI[]
+): Promise<Array<{ poi: TrailPOI; km: number | null }>> {
+  const { pois } = await repositionTrailPois(trail, stored);
+  const fresh = new Map(pois.map(poi => [poiKey(poi), poi.distanceAlongTrail]));
+  return stored.flatMap(poi => {
+    const km = fresh.get(poiKey(poi)) ?? null;
+    return km !== null && Math.abs(km - poi.distanceAlongTrail) <= PLACEMENT_TOLERANCE_KM ? [] : [{ poi, km }];
+  });
 }
 
 /** Run `repositionTrailPois` on one trail directory's file and write it back. */

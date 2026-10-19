@@ -27,7 +27,8 @@ import {
 import { countDuplicatePois } from '../src/lib/poi-dedup.js';
 import { countNoiseByReason } from '../src/lib/poi-noise.js';
 import { findDenseStretches, thinUrbanPois } from '../src/lib/poi-urban.js';
-import { markTrailPOIsForBuild, poisPastTrailEnd, readTrailPOIFile } from './lib/trail-pois-file.js';
+import { markTrailPOIsForBuild, readTrailPOIFile } from './lib/trail-pois-file.js';
+import { misplacedPois } from './fetch-pois.js';
 import { accessPlacements, readTrailAccessFile, unroutedAccessIds, variantAccess } from './lib/trail-access-file.js';
 import { BUNDLED_PLAN_FILLS, inlinePlanShell } from './lib/plan-shell.js';
 import { fillTemplate } from './lib/fill-template.js';
@@ -733,12 +734,16 @@ async function main() {
         unmatched,
         replaced,
       } = markTrailPOIsForBuild(readTrailPOIFile(trailDir), processed, poiConfig);
-      const stale = poisPastTrailEnd(fetched, processed);
-      if (stale.length > 0) {
-        const where = stale.map(p => `${p.name ?? `${p.type}/${p.id}`} (km ${p.distanceAlongTrail.toFixed(1)})`);
+      // A track edit since the fetch leaves POI km stale (the AAWT's Blue
+      // Waterholes POIs sat at km 790 of 688 and, reversed, at km 0).
+      const misplaced = fetched ? await misplacedPois(processed, fetched) : [];
+      if (misplaced.length > 0) {
+        const where = misplaced
+          .slice(0, 5)
+          .map(({ poi, km }) => `${poi.name ?? `${poi.type}/${poi.id}`} (km ${poi.distanceAlongTrail.toFixed(2)} → ${km === null ? 'out of reach' : km.toFixed(2)})`);
         throw new Error(
-          `${stale.length} POI(s) in pois.json lie past the end of the trail: ${where.join(', ')}. ` +
-            `Re-fetch with npm run fetch:pois -- ${processed.config.id}`
+          `${misplaced.length} POI(s) in pois.json are not placed on the current track, e.g. ${where.join(', ')}. ` +
+            `Run npm run fetch:pois -- ${processed.config.id} --reposition`
         );
       }
       const noise = countNoiseByReason(fetched, poiConfig);
