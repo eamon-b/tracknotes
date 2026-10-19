@@ -1,0 +1,46 @@
+{
+  "trailId": "thorsborne",
+  "note": "Curated waypoint descriptions, keyed by the stable ids in data/waypoint-ids.json. Applied by scripts/build-trails.ts (overriding any description from the GPX source) and uploadable to the comments API with scripts/upload-descriptions.ts. Listed north to south, from Ramsay Bay to George Point, matching the km order of the generated trail data. Sources for each fact: plans/waypoint-description-sources.md.",
+  "descriptions": [
+    {
+      "waypointId": "w_360268e6",
+      "name": "Nina Bay",
+      "description": "The first camping area south of the Ramsay Bay start, about 4 km in, with composting toilets and a pack rack. Water is in the creeks at either end of the bay, 100–200 m upstream."
+    },
+    {
+      "waypointId": "w_43389253",
+      "name": "Little Ramsay Bay campsite",
+      "description": "The second camping area from the north, with composting toilets, platforms and pack poles. Water comes from the creek upstream of the lagoon."
+    },
+    {
+      "waypointId": "w_b47033ee",
+      "name": "Banksia Bay campsite",
+      "description": "Small camping area with no facilities — no toilet, and campfires are not allowed. Water is in Banksia Creek, about 100 m upstream from the beach."
+    },
+    {
+      "waypointId": "w_9ac0c3d4",
+      "name": "Zoe Bay campsite",
+      "description": "Camping area at South Zoe Bay with composting toilets, platforms and pack poles; boat-based campers and day visitors have their own separate areas. Water is collected from Zoe Creek about 600 m upstream of the camp sites, and Fan Palm and Cypress Pine creeks, crossed on the way from Little Ramsay Bay, are the most reliable water on that stretch."
+    },
+    {
+      "waypointId": "w_531bd2c6",
+      "name": "Zoe Falls",
+      "description": "The well-known waterfall above Zoe Bay, about a 15-minute walk from the South Zoe Bay day-use area."
+    },
+    {
+      "waypointId": "w_14399866",
+      "name": "Thorsborne Trail High point",
+      "description": "A saddle of bare granite pavement, reached by a spur climbing from South Zoe Creek. At 260 m above sea level it is the highest point on the trail."
+    },
+    {
+      "waypointId": "w_2053b158",
+      "name": "Mulligan Falls campsite",
+      "description": "Camping area near the base of Mulligan Falls, with composting toilets, platforms and pack poles. The area above and around the falls is restricted access, where people have died and been seriously injured. Water is at the falls; south of here the only source is the seasonal Moth Creek, and there is none at George Point."
+    },
+    {
+      "waypointId": "w_fc1b14f4",
+      "name": "George Point campsite",
+      "description": "The southern end of the trail, at the southern end of Mulligan Bay, and its southern boat pick-up and drop-off point, reached by boat from Lucinda (Dungeness). The camping area has no facilities and no fresh water."
+    }
+  ]
+}

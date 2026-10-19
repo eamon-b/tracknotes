@@ -1,0 +1,76 @@
+{
+  "trailId": "three_capes",
+  "note": "Curated waypoint descriptions, keyed by the stable ids in data/waypoint-ids.json. Applied by scripts/build-trails.ts (overriding any description from the GPX source) and uploadable to the comments API with scripts/upload-descriptions.ts. Listed in walking order from Denmans Cove to Fortescue Bay, with the off-route waypoints (the Cape Pillar spur and Bare Knoll) appended at the end. Sources for each fact: plans/waypoint-description-sources.md.",
+  "descriptions": [
+    {
+      "waypointId": "w_b4f525ef",
+      "name": "Denmans Cove",
+      "description": "The start of the Three Capes Track, reached only by the walkers' boat from the Port Arthur Historic Site, a cruise of up to 75 minutes. A creek runs out across the beach, and the landing can mean a short wade ashore — knee-deep at times between September and December, depending on where the sandbanks have formed."
+    },
+    {
+      "waypointId": "w_6b79b6ba",
+      "name": "Surveyors Cabin",
+      "description": "The first night's cabin, about 4 km from Denmans Cove through eucalypt woodland and coastal heath, with a deck looking out to Cape Raoul. Like all three cabins it is for booked Three Capes walkers only: shared bunk rooms for 48, a heated dining hub with gas cooktops, toilets, and rainwater from tanks, which Parks Tasmania advises treating. There is mobile reception."
+    },
+    {
+      "waypointId": "w_09af2267",
+      "name": "Arthurs Peak",
+      "description": "A short climb early on the second day to a summit of about 300 m, with views across Crescent Bay to Cape Raoul. Beyond it the track descends from the forested slopes of Crescent Mountain to cross the open, windswept Ellarwey Valley."
+    },
+    {
+      "waypointId": "w_6a1244c7",
+      "name": "Retakunna Cabin",
+      "description": "The third night's cabin, near Retakunna Creek in forest and heathland, with views of Mount Fortescue. Booked walkers only; shared bunk rooms, a heated dining hub with gas cooktops, toilets and rainwater tanks, as at the other cabins. There is mobile reception."
+    },
+    {
+      "waypointId": "w_ba9b6188",
+      "name": "Mount Fortescue",
+      "description": "The last climb of the track, early on the fourth day, through wet forest to a summit of about 490 m. From here the track heads out to Cape Hauy and then mostly downhill to Fortescue Bay."
+    },
+    {
+      "waypointId": "w_cd764254",
+      "name": "Pillars of the south",
+      "description": "One of the track's interpretive stops, its story about the giant dolerite columns of this coast told in the guidebook issued to walkers at check-in."
+    },
+    {
+      "waypointId": "w_4d8d56b6",
+      "name": "Monument Lookout",
+      "description": "Lookout on the out-and-back track to Cape Hauy, where dolerite columns, among them the sea stacks known as the Totem Pole and the Candlestick, rise straight out of the sea. Rock climbers are sometimes seen on the columns."
+    },
+    {
+      "waypointId": "w_c198b5c8",
+      "name": "Mill Creek Campsite",
+      "description": "One of the two campgrounds at Fortescue Bay, with larger sites suited to boats, campervans and motorhomes; generators are allowed until 9 pm. Tank water is provided, and Parks Tasmania recommends boiling it for three minutes or sterilising it. Camping fees apply and sites are booked from October to April."
+    },
+    {
+      "waypointId": "w_30204345",
+      "name": "Fortescue Bay Campground",
+      "description": "The end of the track, where tall forest meets a white sand beach. The campground has toilets, token-operated hot showers at Banksia, tank water that Parks Tasmania recommends boiling or sterilising, and a site office selling ice and basic camping gear; the nearest groceries are at Nubeena, 45 minutes' drive away. The walkers' bus to Port Arthur takes 30 minutes."
+    },
+    {
+      "waypointId": "w_e2522cc4",
+      "name": "Bare Knoll Campground",
+      "description": "Campground for independent walkers on the Cape Pillar Track, about 1 km past the crossroads with the Old Cape Pillar Track, with 12 tent platforms and a toilet. Parks Tasmania advises that natural water sources here cannot be relied on. Stays are registered at the Fortescue Bay site office, and the Three Capes cabins are not open to campers."
+    },
+    {
+      "waypointId": "w_00b86ed2",
+      "name": "Munro Cabin",
+      "description": "The second night's cabin, looking out over Munro Bight to Cape Hauy. It is the only cabin with showers (two, outdoors), and mobile reception here is limited. Booked walkers only; the third day's walk to Cape Pillar is an out-and-back from here, so packs can stay at the cabin."
+    },
+    {
+      "waypointId": "w_22d363ee",
+      "name": "Drinking water",
+      "description": "Rainwater tank at Munro Cabin. Each of the three cabins has rainwater tanks, the only water Parks Tasmania lists along the track, and Parks advises treating it."
+    },
+    {
+      "waypointId": "w_8f8ad897",
+      "name": "Seal spa",
+      "description": "Lookout with seats on the way out to The Blade, looking across to Tasman Island. Parts of the island's old tramway, the lighthouse and its three houses are visible from here."
+    },
+    {
+      "waypointId": "w_73aabc3a",
+      "name": "The Blade",
+      "description": "High point near the tip of Cape Pillar, climbed by formed steps at the far end of the third day's out-and-back from Munro. It looks across to Tasman Island, with views around to Cape Hauy and Cape Raoul."
+    }
+  ]
+}
