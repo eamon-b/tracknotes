@@ -27,7 +27,7 @@ npm run sync:style     # Copy scripts/topo-style*.json into mobile/assets/
 npm run trace:mark-contours # Re-trace the app icon's contours from the DEM
 npm test               # Run all tests with Vitest
 npm test -- --watch    # Watch mode
-npm run lint           # Run ESLint
+npm run lint           # Run ESLint (src/ and scripts/)
 npm run check          # Web tests + lint, then mobile tests + typecheck + lint
 npm run phone          # Start Metro for the mobile app (phone:android:usb over adb reverse)
 npm run preview        # Preview production build locally
@@ -49,7 +49,7 @@ Per-module notes live in `docs/architecture/`. Read the file for the area you ar
 - [`docs/architecture/build-scripts.md`](docs/architecture/build-scripts.md) - `scripts/`: `build-trails`, `build-mobile-trails`, contour builds and zoom tiers, `fetch-pois`/`fetch-access` (and which Overpass mirrors answer), tile packs and their upload, Shikoku processing, `publish-trail-data`, `upload-descriptions`
 - [`docs/architecture/web-ui.md`](docs/architecture/web-ui.md) - `src/web/`: landing page, trail viewer, plan page and next-days, plan state and sync, upload/import, community pages, admin queue
 - [`docs/architecture/trail-data.md`](docs/architecture/trail-data.md) - `data/trails/<dir>/` files (`*.gpx`, `trail.json`, `climate.json`, `pois.json`, `access.json`, `descriptions.json`), termini, Te Araroa's turn-off types, the waypoint-id registry, open-data trails, `public/data/generated/`
-- [`docs/architecture/workers.md`](docs/architecture/workers.md) - `workers/comments-api/` (community routes, shared hiker waypoints) and `workers/contour-tiles/`
+- [`docs/architecture/workers.md`](docs/architecture/workers.md) - `workers/comments-api/` (community routes, comment targets and limits, shared hiker waypoints, comment moderation) and `workers/contour-tiles/`
 - [`docs/architecture/mobile.md`](docs/architecture/mobile.md) - Tracknotes: app architecture (map, theme, storage, over-the-air trail data, hiker waypoints, community routes, POIs), the `mobile/app/` route structure and the `mobile/src/` source structure
 
 Runbooks and specs: `docs/` (`gpx-import.md`, `trail-data-updates.md`, `mobile-test-build.md`, `world-contours-remote-build.md`) and `plans/`. Read `docs/privacy-policy.md`, `docs/data-residency.md` and `docs/content-legal-posture.md` before changing what the comments API or community routes store.
@@ -68,6 +68,7 @@ Each is explained where it lives; they are listed here because breaking one is s
 - **Every user-supplied string on the web goes through `escapeHtml`**, and every POI link through `safeHttpUrl`/`safeTelUrl`.
 - **Route breaks:** anything that draws or climbs the route must respect `track.breaks` (`@lib/route-breaks`, `routeBreakStarts`).
 - **Stored plan km are NOBO-absolute** (main-route km, or an alternate's own km); always pass the stored plan to `planFromRoute`.
+- **Deploying the comments API:** a merged change to `workers/comments-api/` is not live until someone runs `npm run migrate:remote && npm run deploy` there, from `main`. Shipped app builds call it, so deploy after the merge rather than at the next release, and run the route probes in `docs/mobile-test-build.md` ("Full release", step 1); `/health` answers while a new route 404s (#141).
 - **Mobile:** `npx expo install` for Expo packages; screens use the `navigation/` scroll containers (lint-enforced); raw palette tokens are import-restricted.
 
 ### Path Alias
@@ -80,11 +81,11 @@ Each is explained where it lives; they are listed here because breaking one is s
 - **Static site**: All trail pages are pre-generated and the site is served statically. The runtime servers are optional Cloudflare Workers: the comments API (comments, plan sync, shared plans, community routes, shared hiker waypoints; off when `VITE_API_BASE_URL` is unset) and the contour tile worker (see `docs/architecture/workers.md`)
 - **Client-side rendering**: Trail viewer loads JSON data and renders interactively
 - **Web maps**: Leaflet with OpenTopoMap tiles for topographic display
-- **The app informs the hiker's decisions; it never makes them.** Pace, hours per day, and any other figure that says how far or how long is "reasonable" is the hiker's input, not ours. A UI module must never fix such a figure in a constant (the web plan page's former `RESUPPLY_BASE_KMH = 4` / `DEFAULT_RESUPPLY_DAILY_HOURS = 8` are the named example, removed per `plans/resupply-mobile.md` Phase 0): give the page the input the phone already has, persist it with the plan, and feed the calculator from it. A *default* is fine only as the initial value of an input the hiker can see and change; a shared calculator should require the figure rather than silently substitute one. The same applies to thresholds that colour a judgement — "long carry", "dry stretch", grams of food per day — which are on the follow-up list to become inputs
+- **The app informs the hiker's decisions; it never makes them.** Pace, hours per day, and any other figure that says how far or how long is "reasonable" is the hiker's input, not ours. A UI module must never fix such a figure in a constant (the web plan page's former `RESUPPLY_BASE_KMH = 4` / `DEFAULT_RESUPPLY_DAILY_HOURS = 8` are the named example, removed per `plans/resupply-mobile.md` Phase 0): give the page the input the phone already has, persist it with the plan, and feed the calculator from it. A *default* is fine only as the initial value of an input the hiker can see and change; a shared calculator should require the figure rather than silently substitute one. The same applies to thresholds that colour a judgement — "long carry", "dry stretch", grams of food per day — which are inputs too (`PlanThresholds` in `plan-types.ts`, issue #153): the calculators require them, and like pace and hours they are kept per device (web `PlanUiPrefs`, mobile `plan-inputs-store`), not in the synced `PlanDocument`, because they describe the hiker and a shared plan is read against the reader's own
 
 ## Testing
 
-Tests use Vitest with jsdom. Test files are colocated with source (`*.test.ts` in `src/lib/`). Mobile tests (Jest) live in `__tests__/` subdirectories colocated with source across `mobile/src/` (`api/`, `db/`, `features/*/`, `hooks/`, `services/`, `state/`, `sync/`, `tokens/`).
+Tests use Vitest with jsdom. Test files are colocated with source (`*.test.ts` in `src/lib/`). The `tile-pipeline` mbtiles suites need the `sqlite3` CLI: without it they are skipped locally and fail in CI (`CI` set). The comments-api worker has its own suite (`cd workers/comments-api && npm ci && npm test`, vitest-pool-workers). CI (`.github/workflows/test.yml`) also runs `npx tsc --noEmit` and rebuilds the trail data (`sync:te-araroa`, `build:trails`, `build:mobile-trails`), failing when the committed output differs — commit the rebuilt files with any change to the build or the source data. Mobile tests (Jest) live in `__tests__/` subdirectories colocated with source across `mobile/src/` (`api/`, `db/`, `features/*/`, `hooks/`, `services/`, `state/`, `sync/`, `tokens/`).
 
 ```bash
 # Mobile tests (from mobile/)
@@ -221,4 +222,4 @@ Maestro test flows live in `mobile/maestro/`. They run locally against the emula
 ~/.maestro/bin/maestro record mobile/maestro/new-flow.yaml
 ```
 
-**Flows** (8): `app-launch.yaml` (launch → "My Guides"), `plan-screen.yaml` (guide → Plan → day splits/water carries), `plan-stops.yaml` (tick two Stops-list places → a second day card), `guide-list.yaml`, `view-map.yaml`, `toggle-views.yaml`, `waypoint-detail.yaml`, `add-comment-offline.yaml`. They all start via `shared/launch-dev.yaml`, which deep-links the dev client into Metro — don't run `maestro test mobile/maestro/` on the directory, since that would execute the shared launcher as a standalone flow.
+**Flows** (9): `app-launch.yaml` (launch → "My Guides"), `plan-screen.yaml` (guide → Plan → plan settings sheet/day splits/water carries), `plan-stops.yaml` (tick stops → day cards → day view), `guide-list.yaml`, `view-map.yaml`, `toggle-views.yaml`, `waypoint-detail.yaml`, `waypoint-stop-here.yaml` ("Stop here" round-trip, "Show on map"), `add-comment-offline.yaml`. They all start via `shared/launch-dev.yaml`, which deep-links the dev client into Metro, and those that open a guide do it through `shared/open-cape-to-cape.yaml` — don't run `maestro test mobile/maestro/` on the directory, since that would execute the shared fragments as standalone flows.
