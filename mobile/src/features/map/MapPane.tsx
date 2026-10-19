@@ -62,6 +62,7 @@ import {
 import { GuideMap, type GuideMapHandle, type ViewportBounds } from './GuideMap';
 import { MapErrorBoundary } from './MapErrorBoundary';
 import { PoiLayersSheet } from './PoiLayersSheet';
+import { canSearchPois } from '../import/can-search-pois';
 import { MapCreditsSheet } from './MapCreditsSheet';
 import { mapCreditLabel, mapCredits, type CreditBasemap } from '../../credits/credits';
 import { PlanGlanceSheet } from '../plan/PlanGlanceSheet';
@@ -204,6 +205,11 @@ export function MapPane() {
   // fetched", so the layers button stays away rather than offering an empty
   // sheet that implies the search ran and found nothing.
   const trailHasPois = hasPois(trail);
+  // A guide imported on this phone can search OpenStreetMap for its own, so it
+  // gets the layers button even before it has any: the sheet then offers the
+  // search (`app/guide/[trailId]/find-pois`).
+  const poiSearchable = canSearchPois(trailId);
+  const showLayers = trailHasPois || poiSearchable;
   const displayPoints = trail.track.displayPoints;
   const routeBreaks = trail.track.breaks;
   const routeTrack = displayPoints as RouteTrackPoint[];
@@ -254,6 +260,10 @@ export function MapPane() {
   const [layersOpen, setLayersOpen] = useState(false);
   const openLayers = useCallback(() => setLayersOpen(true), []);
   const closeLayers = useCallback(() => setLayersOpen(false), []);
+  const openPoiSearch = useCallback(() => {
+    setLayersOpen(false);
+    router.push({ pathname: '/guide/[trailId]/find-pois', params: { trailId } });
+  }, [router, trailId]);
 
   // Map and data credits: the base map that actually mounted (none for the
   // bare fallback), contours, and the trail's own source. `resolution` is the
@@ -602,8 +612,8 @@ export function MapPane() {
       {!building && !selectedVariant && (
         <>
           {/* Map layers: which OSM points of interest to draw. Only for trails
-              that actually carry some. */}
-          {trailHasPois && (
+              that actually carry some, or an import that can search for its own. */}
+          {showLayers && (
             <Pressable
               onPress={openLayers}
               accessibilityRole="button"
@@ -628,7 +638,7 @@ export function MapPane() {
               accessibilityLabel="View plan"
               style={({ pressed }) => [
                 styles.fab,
-                { bottom: fabBottom(trailHasPois ? 5 : 4) },
+                { bottom: fabBottom(showLayers ? 5 : 4) },
                 { backgroundColor: colors.surfaceElevated, borderColor: colors.border },
                 pressed && styles.pressed,
               ]}
@@ -732,8 +742,13 @@ export function MapPane() {
 
       <MapCreditsSheet visible={creditsOpen} onClose={closeCredits} lines={credits} />
 
-      {trailHasPois && (
-        <PoiLayersSheet visible={layersOpen} onClose={closeLayers} pois={trail.pois ?? []} />
+      {showLayers && (
+        <PoiLayersSheet
+          visible={layersOpen}
+          onClose={closeLayers}
+          pois={trail.pois ?? []}
+          onFindPois={poiSearchable ? openPoiSearch : undefined}
+        />
       )}
     </View>
   );

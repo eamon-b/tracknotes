@@ -45,9 +45,15 @@ export interface PoiLayersSheetProps {
    * waypoints are excluded by `countPoisByCategory` itself.
    */
   pois: TrailPOI[];
+  /**
+   * Offered only for a guide imported on this phone (`canSearchPois`): opens
+   * the on-phone OpenStreetMap search. Absent, the sheet has no search row —
+   * a bundled trail's POIs come from the build.
+   */
+  onFindPois?: () => void;
 }
 
-export function PoiLayersSheet({ visible, onClose, pois }: PoiLayersSheetProps) {
+export function PoiLayersSheet({ visible, onClose, pois, onFindPois }: PoiLayersSheetProps) {
   const { colors } = useTheme();
   // A bottom sheet in an edge-to-edge Modal: its last row clears the navigation bar.
   const { bottom } = useSafeAreaInsets();
@@ -56,6 +62,9 @@ export function PoiLayersSheet({ visible, onClose, pois }: PoiLayersSheetProps) 
   const setPoiCategory = useSettingsStore((s) => s.setPoiCategory);
 
   const counts = React.useMemo(() => countPoisByCategory(pois), [pois]);
+  // Nothing to switch on yet (never searched, or searched and found nothing):
+  // the search is the whole point of opening the sheet.
+  const empty = pois.length === 0;
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -95,6 +104,17 @@ export function PoiLayersSheet({ visible, onClose, pois }: PoiLayersSheetProps) 
             contentContainerStyle={styles.listContent}
             bounces={false}
           >
+            {onFindPois && empty ? (
+              <View style={styles.findBlock}>
+                <Text style={[styles.note, styles.findNote, { color: colors.textSecondary }]}>
+                  This guide has no points of interest yet. Search OpenStreetMap along the route to
+                  add water, campsites, shops, transport and more. You’ll see how much data it
+                  uses before anything is sent.
+                </Text>
+                <FindButton onPress={onFindPois} primary />
+              </View>
+            ) : null}
+
             <View style={[styles.masterRow, { borderColor: colors.border }]}>
               <Text style={[styles.masterLabel, { color: colors.textPrimary }]}>
                 Show points of interest
@@ -130,10 +150,39 @@ export function PoiLayersSheet({ visible, onClose, pois }: PoiLayersSheetProps) 
             <Text style={[styles.attribution, { color: colors.textSecondary }]}>
               {OSM_ATTRIBUTION}
             </Text>
+            {onFindPois && !empty ? <FindButton onPress={onFindPois} /> : null}
           </ScrollView>
         </Pressable>
       </Pressable>
     </Modal>
+  );
+}
+
+/** "Find places along this route": into the on-phone search screen. */
+function FindButton({ onPress, primary = false }: { onPress: () => void; primary?: boolean }) {
+  const { colors } = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel="Find places along this route (OpenStreetMap)"
+      style={({ pressed }) => [
+        styles.findButton,
+        primary
+          ? { backgroundColor: colors.accent, borderColor: colors.accent }
+          : { borderColor: colors.border },
+        pressed && styles.pressed,
+      ]}
+    >
+      <Text style={[styles.findLabel, { color: primary ? colors.accentText : colors.accent }]}>
+        {primary ? 'Find places along this route' : 'Search OpenStreetMap again'}
+      </Text>
+      <Text
+        style={[styles.findSub, { color: primary ? colors.accentText : colors.textSecondary }]}
+      >
+        OpenStreetMap
+      </Text>
+    </Pressable>
   );
 }
 
@@ -289,5 +338,28 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.6,
+  },
+  findBlock: {
+    gap: spacing.sm,
+    paddingBottom: spacing.md,
+  },
+  findNote: {
+    marginTop: 0,
+  },
+  findButton: {
+    minHeight: touchTarget.min,
+    borderRadius: radii.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    marginTop: spacing.sm,
+  },
+  findLabel: {
+    ...typography.titleSmall,
+  },
+  findSub: {
+    ...typography.caption,
   },
 });

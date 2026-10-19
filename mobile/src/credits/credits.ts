@@ -34,6 +34,19 @@ const OSM_LINE: CreditLine = {
   linkText: 'openstreetmap.org/copyright',
 };
 
+/**
+ * The credit on the "Find places along this route" screen: the POIs it saves
+ * are OpenStreetMap data (ODbL), asked for through a public Overpass instance.
+ */
+export const POI_SEARCH_CREDIT: CreditLine = {
+  label: 'Points of interest',
+  text:
+    '© OpenStreetMap contributors, under the Open Database Licence. Searched through a public ' +
+    'Overpass API server.',
+  url: OSM_COPYRIGHT_URL,
+  linkText: 'openstreetmap.org/copyright',
+};
+
 const ONLINE_BASEMAP_LINE: CreditLine = {
   label: 'Base map',
   text: 'OpenFreeMap, © OpenMapTiles.',

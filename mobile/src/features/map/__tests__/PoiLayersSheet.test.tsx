@@ -153,3 +153,42 @@ describe('PoiLayersSheet', () => {
     expect(rows.get('Show points of interest')!.disabled).toBeUndefined();
   });
 });
+
+describe('PoiLayersSheet — the on-phone search (imports only)', () => {
+  const renderWith = (pois: TrailPOI[], onFindPois?: () => void): ReactTestRenderer => {
+    let tree!: ReactTestRenderer;
+    act(() => {
+      tree = TestRenderer.create(
+        <PoiLayersSheet visible onClose={jest.fn()} pois={pois} onFindPois={onFindPois} />,
+      );
+    });
+    mounted.push(tree);
+    return tree;
+  };
+  const findButton = (tree: ReactTestRenderer) =>
+    tree.root.findAll(
+      (n) =>
+        n.props.accessibilityLabel === 'Find places along this route (OpenStreetMap)' &&
+        typeof n.props.onPress === 'function',
+    );
+
+  it('offers the search on an import that has no POIs yet', () => {
+    const onFindPois = jest.fn();
+    const tree = renderWith([], onFindPois);
+    expect(texts(tree)).toEqual(expect.arrayContaining(['Find places along this route']));
+    act(() => {
+      (findButton(tree)[0].props.onPress as () => void)();
+    });
+    expect(onFindPois).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers a fresh search on an import that has POIs', () => {
+    const tree = renderWith(POIS, jest.fn());
+    expect(texts(tree)).toEqual(expect.arrayContaining(['Search OpenStreetMap again']));
+    expect(texts(tree)).not.toContain('Find places along this route');
+  });
+
+  it('has no search for a trail whose POIs come from the build', () => {
+    expect(findButton(renderWith(POIS))).toHaveLength(0);
+  });
+});
