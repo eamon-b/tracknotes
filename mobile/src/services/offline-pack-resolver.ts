@@ -7,7 +7,7 @@
  * (`c_…`), which is someone else's import — has no pack of its own and never
  * will, so the app does the next best thing: if the import or community route
  * lies inside a bundled trail's coverage, it reuses *that* trail's pack. (Below,
- * "import" covers both: both are the local-only guides `isServerKnown` refuses.)
+ * "import" covers both: neither is one of our own trails, `isCuratedTrailId`.)
  *
  * The reuse is an alias, not a copy. Directory names stay equal to the bundled
  * trail id (`tileManager.getDownloadedTrails()` enumerates dir names, so a
@@ -33,7 +33,8 @@
  */
 
 import { calculateTrailBounds, type TrackPoint, type TrailBounds } from './trail-bounds';
-import { getBundledTrailJson, isServerKnown, listTrails } from './trail-loader';
+import { getBundledTrailJson, listTrails } from './trail-loader';
+import { isCuratedTrailId } from './server-trails';
 
 /**
  * Margin added to a bundled track's bbox when treating it as pack coverage.
@@ -200,7 +201,7 @@ export function resolveOfflinePack(
   trail: PackTrailInput | null | undefined,
   candidates: readonly PackCandidate[] = bundledPackCandidates(),
 ): OfflinePackResolution {
-  if (isServerKnown(trailId)) return { kind: 'own' };
+  if (isCuratedTrailId(trailId)) return { kind: 'own' };
 
   const bounds = trailBounds(trail);
   if (!bounds) return { kind: 'none' };

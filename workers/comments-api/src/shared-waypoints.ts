@@ -30,8 +30,8 @@ import {
   parseLimit,
   validateReportDetail,
   validateReportReason,
-  validateTrailId,
 } from './validation';
+import { resolveTrail } from './trails';
 import {
   USER_WAYPOINT_LIMITS,
   checkUserWaypointInput,
@@ -127,7 +127,9 @@ export async function putSharedWaypoint(
   assertWaypointId(id);
   const user = await requireUser(request, env, ctx);
   const body = await readJson(request);
-  const trailId = validateTrailId(body.trailId);
+  // A curated trail or a live community route (`trails.ts`): a hidden route
+  // takes no new or edited shares; the owner can still unshare (DELETE).
+  const { id: trailId } = await resolveTrail(env, body.trailId, 'public-write');
   const check = checkUserWaypointInput({
     name: body.name as string,
     type: body.type as string,
@@ -366,7 +368,7 @@ export async function getTrailSharedWaypoints(
   ctx: ExecutionContext,
   trailIdRaw: string
 ): Promise<Response> {
-  const trailId = validateTrailId(trailIdRaw);
+  const { id: trailId } = await resolveTrail(env, trailIdRaw, 'read');
   // Optional: a signed-in reader learns which waypoints are their own (after a
   // reinstall, say). Never required — the read is public.
   const viewer = await getUser(request, env, ctx);

@@ -19,6 +19,8 @@ const ROOT = path.resolve(__dirname, '../..');
 const API = 'https://api.example.test';
 const TRAIL_ID = 'shared-fixture';
 const SHARE_ID = 'abc123';
+const ROUTE_ID = 'c_AbCdEfGhIjKlMnOp';
+const ROUTE_URL = 'https://photos.example.test/community/v1/route.json';
 
 const $ = (id: string): HTMLElement => {
   const node = document.getElementById(id);
@@ -124,6 +126,18 @@ function installFetchStub(): void {
         text: async () =>
           sharedReply.body === undefined ? '' : JSON.stringify(sharedReply.body),
       } as unknown as Response;
+    }
+    if (full === `${API}/v1/community/routes/${ROUTE_ID}`) {
+      return {
+        ok: true,
+        status: 200,
+        statusText: '',
+        text: async () =>
+          JSON.stringify({ id: ROUTE_ID, name: 'Ridge loop', status: 'unverified', trailUrl: ROUTE_URL }),
+      } as unknown as Response;
+    }
+    if (full === ROUTE_URL) {
+      return { ok: true, status: 200, text: async () => JSON.stringify(makeTrail()) } as unknown as Response;
     }
     if (full.includes('/data/generated/')) {
       return {
@@ -362,6 +376,22 @@ describe('the shared plan page', () => {
     // Nothing of it reached the page, the trail fetch included.
     expect($('days-list').textContent).not.toContain('Salida');
     expect(requests.some(url => url.includes('/data/generated/'))).toBe(false);
+  });
+
+  it('draws a plan on a community route from the route’s public copy, with no copy button', async () => {
+    linkBrowser();
+    sharedReply = {
+      status: 200,
+      body: { document: sharedDoc({ trailId: ROUTE_ID }), trailId: ROUTE_ID, ownerDisplayName: 'Robin' },
+    };
+    await boot();
+
+    expect($('plan-missing').hidden).toBe(true);
+    expect(requests).toContain(ROUTE_URL);
+    expect(requests.some(url => url.includes('/data/generated/'))).toBe(false);
+    expect($('days-list').textContent).toContain('Salida');
+    // This site has no plan page for a route to copy the plan onto.
+    expect($('copy-to-plans').hidden).toBe(true);
   });
 
   it('says so when this site does not carry the trail', async () => {

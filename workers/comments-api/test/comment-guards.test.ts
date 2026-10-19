@@ -12,6 +12,7 @@ import {
 import { validateCommentTarget } from '../src/validation';
 import { poiCommentId } from '../../../src/lib/poi-display';
 import { userWaypointId } from '../../../src/lib/user-waypoints';
+import { mintImportedWaypointIds } from '../../../src/lib/gpx-import';
 import waypointRegistry from '../../../data/waypoint-ids.json';
 
 function errorCode(body: unknown): string {
@@ -66,7 +67,7 @@ describe('comment targets — the ids the clients send', () => {
     expect(ids.length).toBeGreaterThan(1000);
     const refused = ids.filter((id) => {
       try {
-        return validateCommentTarget(id).kind !== 'curated';
+        return validateCommentTarget(id, 'curated').kind !== 'curated';
       } catch {
         return true;
       }
@@ -74,16 +75,34 @@ describe('comment targets — the ids the clients send', () => {
     expect(refused).toEqual([]);
   });
 
-  it('accepts what poiCommentId and userWaypointId mint', () => {
-    for (const type of ['node', 'way', 'relation']) {
-      for (const id of [0, 7, 123456789, Number.MAX_SAFE_INTEGER]) {
-        const commentId = poiCommentId({ type, id });
-        expect(commentId).not.toBeNull();
-        expect(validateCommentTarget(commentId).kind).toBe('osm');
+  it('accepts what poiCommentId and userWaypointId mint, on either kind of trail', () => {
+    for (const trail of ['curated', 'community'] as const) {
+      for (const type of ['node', 'way', 'relation']) {
+        for (const id of [0, 7, 123456789, Number.MAX_SAFE_INTEGER]) {
+          const commentId = poiCommentId({ type, id });
+          expect(commentId).not.toBeNull();
+          expect(validateCommentTarget(commentId, trail).kind).toBe('osm');
+        }
       }
+      const hiker = userWaypointId(crypto.randomUUID().toUpperCase());
+      expect(validateCommentTarget(hiker, trail).kind).toBe('shared');
     }
-    const hiker = userWaypointId(crypto.randomUUID().toUpperCase());
-    expect(validateCommentTarget(hiker).kind).toBe('shared');
+  });
+
+  it('accepts what an import mints on a community route, and only there', () => {
+    const waypoints = [
+      { name: 'Creek camp', lat: -37.1, lon: 145.2 },
+      { name: 'Lookout', lat: -37.2, lon: 145.3 },
+    ] as Parameters<typeof mintImportedWaypointIds>[0];
+    const ids = mintImportedWaypointIds(waypoints, { id: 'u_abc123' } as never);
+    // The `_2` an import adds when a route passes one place twice.
+    ids.push(`${ids[0]}_2`);
+    for (const id of ids) {
+      expect(validateCommentTarget(id, 'community').kind).toBe('community');
+      expect(() => validateCommentTarget(id, 'curated')).toThrow();
+    }
+    // And a curated id is no waypoint of a community route.
+    expect(() => validateCommentTarget('w_00176641', 'community')).toThrow();
   });
 });
 

@@ -15,11 +15,13 @@ import type { AuthUser } from './auth';
 import { appendSinceFilter, decodeCursor, encodeCursor } from './cursor';
 import { RATE_BUCKETS, consumeRateLimit } from './rate-limit';
 import {
+  PLAN_TRAIL_REFUSAL,
   assertClientPlanId,
   parseLimit,
   serialisePlanDocument,
   validatePlanDocument,
 } from './validation';
+import { resolveTrail } from './trails';
 import type { PlanDocument } from '../../../src/lib/plan-types';
 import type {
   PlanSyncEntry,
@@ -202,6 +204,10 @@ export async function putPlan(
   const now = new Date(nowMs).toISOString();
   const document = validatePlanDocument(body, id, now);
   const documentJson = serialisePlanDocument(document);
+  // The form check above lets a `c_` id through; it must also be a route the
+  // server has. Any status: a plan is private, and a hiker keeps planning on
+  // a route that was taken down (`trails.ts`).
+  await resolveTrail(env, document.trailId, 'private-write', PLAN_TRAIL_REFUSAL);
 
   const existing = await env.DB.prepare(`SELECT * FROM plans WHERE id = ?`)
     .bind(id)

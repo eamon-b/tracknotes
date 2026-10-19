@@ -14,9 +14,9 @@
  *
  * The trail is the one thing that cannot be shared: a plan names a trail id,
  * and a phone that does not have that guide has nothing to compute days
- * against. A trail published to the R2 catalog after this build is downloaded
- * here, as opening its guide would; anything else says so plainly rather than
- * rendering an empty list.
+ * against. A trail published to the R2 catalog after this build, or a
+ * community route, is downloaded here, as opening its guide would; anything
+ * else says so plainly rather than rendering an empty list.
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -42,6 +42,8 @@ import { uuidv4 } from '../../src/api/uuid';
 import { getTrailIndexEntry, loadTrail, type TrailJson } from '../../src/services/trail-loader';
 import { ensureTrailDownloaded, trailDataUpdatedAt } from '../../src/services/trail-data-updates';
 import { isCatalogTrailId } from '../../src/services/trail-catalog';
+import { ensureCommunityRouteDownloaded } from '../../src/services/community-routes';
+import { isCommunityRouteId } from '@lib/community-types';
 import { ScreenScrollView } from '../../src/navigation/ScreenScrollView';
 import { resolveGuideTrail } from '../../src/features/guide/guide-trail';
 import { plannableTrail, planRouteOf } from '../../src/features/plan/use-plan-route';
@@ -129,6 +131,11 @@ export default function SharedPlanScreen() {
       let found = await read();
       if (!found && isCatalogTrailId(sharedTrailId)) {
         if (await ensureTrailDownloaded(sharedTrailId)) found = await read();
+      }
+      // A plan on a community route: fetched as opening its guide would. A
+      // route no longer shared throws, and reads as "not on this phone".
+      if (!found && isCommunityRouteId(sharedTrailId)) {
+        if (await ensureCommunityRouteDownloaded(sharedTrailId)) found = await read();
       }
       return found;
     })()

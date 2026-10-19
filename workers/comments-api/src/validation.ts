@@ -8,7 +8,9 @@ import type { ReportReason, WaterStatus } from '../../../src/lib/comments-api-ty
 import { PLAN_LIMITS } from '../../../src/lib/plan-types';
 import type { PlanDocument, PlanStop } from '../../../src/lib/plan-types';
 import { KM_EPSILON } from '../../../src/lib/plan-direction';
-import { isUserWaypointId } from '../../../src/lib/user-waypoints';
+import { commentTargetFitsTrail, commentTargetKind } from '../../../src/lib/comment-targets';
+import type { CommentTargetKind, CommentTrailKind } from '../../../src/lib/comment-targets';
+import { isCommunityRouteId } from '../../../src/lib/community-types';
 import type { PlanDirection } from '../../../src/lib/plan-direction';
 
 /**
@@ -111,39 +113,30 @@ export function validateWaypointId(raw: unknown): string {
   return raw;
 }
 
+export interface CommentTarget {
+  kind: CommentTargetKind;
+  id: string;
+}
+
 /**
- * The ids a comment may be filed under, one form per kind of place a screen
- * shows comments for:
- *
- * - `w_` + 8 or 12 hex: a curated waypoint (`data/waypoint-ids.json`, minted by
- *   `scripts/lib/waypoint-ids.ts`; up to 40 hex in case the mint is widened);
- * - `hw_` + a lowercase v4 uuid: a shared hiker waypoint (`isUserWaypointId`);
- * - `osm_<node|way|relation>_<id>`: an OSM POI (`poiCommentId`), the id a
- *   non-negative safe integer written without leading zeros.
- *
- * Anything else matched the old catch-all pattern but is shown by no screen,
- * so a comment filed under it could never be read or moderated.
+ * Validate a comment's `waypointId` by its prefix (`@lib/comment-targets`),
+ * returning which kind it is. The kind must fit the trail's: a curated `w_`
+ * id only on a curated trail, a community route's own `uw_` id only on a
+ * community route; shared hiker waypoints and OSM places on either. Anything
+ * else is shown by no screen, so a comment filed under it could never be read
+ * or moderated.
  */
-const CURATED_WAYPOINT_ID_RE = /^w_[0-9a-f]{8,40}$/;
-const OSM_COMMENT_ID_RE = /^osm_(?:node|way|relation)_(0|[1-9][0-9]{0,15})$/;
-
-export type CommentTarget =
-  | { kind: 'curated'; id: string }
-  | { kind: 'shared'; id: string }
-  | { kind: 'osm'; id: string };
-
-/** Validate a comment's `waypointId` by its prefix, returning which kind it is. */
-export function validateCommentTarget(raw: unknown): CommentTarget {
-  if (typeof raw === 'string') {
-    if (CURATED_WAYPOINT_ID_RE.test(raw)) return { kind: 'curated', id: raw };
-    if (isUserWaypointId(raw)) return { kind: 'shared', id: raw };
-    const osm = OSM_COMMENT_ID_RE.exec(raw);
-    if (osm && Number.isSafeInteger(Number(osm[1]))) return { kind: 'osm', id: raw };
+export function validateCommentTarget(raw: unknown, trail: CommentTrailKind): CommentTarget {
+  const kind = commentTargetKind(raw);
+  if (kind !== null && commentTargetFitsTrail(kind, trail)) {
+    return { kind, id: raw as string };
   }
   throw new HttpError(
     400,
     'invalid_waypoint',
-    'waypointId must be a waypoint (w_…), a shared hiker waypoint (hw_…) or an OSM place (osm_…)'
+    trail === 'community'
+      ? "waypointId must be one of the route's waypoints (uw_…), a shared hiker waypoint (hw_…) or an OSM place (osm_…)"
+      : 'waypointId must be a waypoint (w_…), a shared hiker waypoint (hw_…) or an OSM place (osm_…)'
   );
 }
 
@@ -273,18 +266,23 @@ export function assertClientPlanId(id: string): void {
   }
 }
 
+/** The refusal for a plan on a trail the server does not have. */
+export const PLAN_TRAIL_REFUSAL = {
+  code: 'trail_not_allowed',
+  message:
+    'trailId must be a bundled trail or a community route (imported trails stay on the device)',
+} as const;
+
 /**
- * A plan's trail must be a bundled trail. An imported trail's `u_…` id is
- * rejected here rather than stored, so a bug in a client's "is this trail
- * server-known?" gate can never leak someone's private import to the server.
+ * A plan's trail must be a bundled trail or a community route (`c_…`). An
+ * imported trail's `u_…` id is rejected here rather than stored, so a bug in
+ * a client's "is this trail server-known?" gate can never leak someone's
+ * private import to the server. This is the form check; `putPlan` then asks
+ * `resolveTrail` whether a `c_` id is a route the server has.
  */
 export function validatePlanTrailId(raw: unknown): string {
-  if (typeof raw !== 'string' || !ALLOWED_TRAILS.includes(raw)) {
-    throw new HttpError(
-      400,
-      'trail_not_allowed',
-      'trailId must be one of the bundled trails (imported trails stay on the device)'
-    );
+  if (typeof raw !== 'string' || !(ALLOWED_TRAILS.includes(raw) || isCommunityRouteId(raw))) {
+    throw new HttpError(400, PLAN_TRAIL_REFUSAL.code, PLAN_TRAIL_REFUSAL.message);
   }
   return raw;
 }

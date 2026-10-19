@@ -12,6 +12,7 @@ import type { Env } from './http';
 import { requireAdmin } from './auth';
 import { appendSinceFilter } from './cursor';
 import { validateDescription, validateTrailId, validateWaypointId } from './validation';
+import { resolveTrail } from './trails';
 import type {
   TrailDescriptionsResponse,
   WaypointDescription,
@@ -41,10 +42,18 @@ export async function getTrailDescriptions(
   env: Env,
   trailIdRaw: string
 ): Promise<Response> {
-  const trailId = validateTrailId(trailIdRaw);
+  const trail = await resolveTrail(env, trailIdRaw, 'read');
+  const trailId = trail.id;
   const url = new URL(request.url);
   const since = url.searchParams.get('since');
   const syncedAt = new Date().toISOString();
+
+  // A community route's descriptions are its owner's, in the route itself;
+  // curated ones are only ever written for our trails (the admin PUT below).
+  if (trail.kind === 'community') {
+    const empty: TrailDescriptionsResponse = { descriptions: [], syncedAt };
+    return json(empty);
+  }
 
   const conditions = ['trail_id = ?'];
   const binds: unknown[] = [trailId];
