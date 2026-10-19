@@ -38,9 +38,22 @@ function haversineDistanceKm(lat1: number, lon1: number, lat2: number, lon2: num
   return haversineDistanceMeters(lat1, lon1, lat2, lon2) / 1000;
 }
 
+/** One CalTopo marker, keyed in `CaltopoData.markers` by its cleaned name. */
+interface CaltopoMarker {
+  lat: number;
+  lon: number;
+  type: string;
+  description?: string;
+}
+
 interface CaltopoData {
-  waypointCategories: Map<string, string>;
-  waypointDescriptions: Map<string, string>;
+  /**
+   * Markers by cleaned name. A name can hold several markers: the guides pin a
+   * campsite and its water (`C Viking Saddle`, `W Viking Saddle`) or a hut and
+   * the camp beside it under one name, and a GPX waypoint takes its type from
+   * the nearest marker of its own name, never from whichever came last.
+   */
+  markers: Map<string, CaltopoMarker[]>;
 }
 
 
@@ -65,10 +78,7 @@ const PLAN_SHELL_PATH = path.join(TRAIL_PAGES_DIR, 'plan-shell.html');
  * Parse CalTopo GeoJSON for waypoint categorization, descriptions, and route variants
  */
 function parseCaltopoGeojson(jsonPath: string): CaltopoData {
-  const result: CaltopoData = {
-    waypointCategories: new Map<string, string>(),
-    waypointDescriptions: new Map<string, string>(),
-  };
+  const result: CaltopoData = { markers: new Map<string, CaltopoMarker[]>() };
 
   try {
     const content = fs.readFileSync(jsonPath, 'utf-8');
@@ -93,12 +103,13 @@ function parseCaltopoGeojson(jsonPath: string): CaltopoData {
         const classification = classifyWaypoint(rawName, { folderName });
 
         // Key by cleaned name for easier matching with GPX waypoints
-        result.waypointCategories.set(classification.cleanedName, classification.type);
-
-        // Extract description if available (also keyed by cleaned name)
-        if (feature.properties.description) {
-          result.waypointDescriptions.set(classification.cleanedName, feature.properties.description);
-        }
+        const [lon, lat] = feature.geometry?.coordinates ?? [];
+        if (typeof lat !== 'number' || typeof lon !== 'number') continue;
+        const marker: CaltopoMarker = { lat, lon, type: classification.type };
+        if (feature.properties.description) marker.description = feature.properties.description;
+        const sameName = result.markers.get(classification.cleanedName);
+        if (sameName) sameName.push(marker);
+        else result.markers.set(classification.cleanedName, [marker]);
       }
     }
 
@@ -420,20 +431,27 @@ function resolveTrailWaypoints(
     const geojsonPath = path.join(trailDir, geojsonFile);
     const caltopoData = parseCaltopoGeojson(geojsonPath);
 
-    if (caltopoData.waypointCategories.size > 0) {
+    if (caltopoData.markers.size > 0) {
       console.log(`  ✓ Using ${geojsonFile} for waypoint categorization`);
-      // Update waypoint types and descriptions from GeoJSON
-      // Both GPX waypoints and GeoJSON categories are now keyed by cleaned name
+      // Update waypoint types and descriptions from GeoJSON. Both sides are
+      // keyed by cleaned name; among same-named markers the nearest one wins.
       waypoints = waypoints.map(wp => {
-        if (caltopoData.waypointCategories.has(wp.name)) {
-          const desc = caltopoData.waypointDescriptions.get(wp.name);
-          return {
-            ...wp,
-            type: caltopoData.waypointCategories.get(wp.name)!,
-            description: desc || wp.description,
-          };
+        const sameName = caltopoData.markers.get(wp.name);
+        if (!sameName) return wp;
+        let marker = sameName[0];
+        let best = Infinity;
+        for (const candidate of sameName) {
+          const d = haversineDistanceMeters(wp.lat, wp.lon, candidate.lat, candidate.lon);
+          if (d < best) {
+            best = d;
+            marker = candidate;
+          }
         }
-        return wp;
+        return {
+          ...wp,
+          type: marker.type,
+          description: marker.description || wp.description,
+        };
       });
     }
   }

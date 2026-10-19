@@ -60,8 +60,8 @@
       "id": "w_056dc132",
       "name": "Cope Hut",
       "type": "hut",
-      "lat": -36.90738,
-      "lon": 147.29367
+      "lat": -36.90667046188608,
+      "lon": 147.29257508734372
     },
     {
       "id": "w_06812cbf",
@@ -172,15 +172,15 @@
       "id": "w_15a792cc",
       "name": "Rock Shelter",
       "type": "campsite",
-      "lat": -37.83588,
-      "lon": 146.30436
+      "lat": -37.83646164984719,
+      "lon": 146.30210234059146
     },
     {
       "id": "w_1645d5d1",
       "name": "Bogong Creek Saddle",
       "type": "campsite",
-      "lat": -36.77074,
-      "lon": 147.28004
+      "lat": -36.771025118522736,
+      "lon": 147.2780183301928
     },
     {
       "id": "w_16abb09e",
@@ -220,7 +220,7 @@
     {
       "id": "w_1e2f836d",
       "name": "Tantangara Creek",
-      "type": "water",
+      "type": "campsite",
       "lat": -35.75401,
       "lon": 148.56147
     },
@@ -276,9 +276,9 @@
     {
       "id": "w_2328b1c7",
       "name": "Rock Shelter",
-      "type": "campsite",
-      "lat": -37.83646164984719,
-      "lon": 146.30210234059146
+      "type": "water",
+      "lat": -37.83588,
+      "lon": 146.30436
     },
     {
       "id": "w_23f5a73a",
@@ -353,7 +353,7 @@
     {
       "id": "w_2f90197e",
       "name": "Buckwong Hut",
-      "type": "hut",
+      "type": "campsite",
       "lat": -36.7421,
       "lon": 148.00735
     },
@@ -430,14 +430,14 @@
     {
       "id": "w_3e3fb00d",
       "name": "Bogong Creek Saddle",
-      "type": "campsite",
-      "lat": -36.771025118522736,
-      "lon": 147.2780183301928
+      "type": "water",
+      "lat": -36.77074,
+      "lon": 147.28004
     },
     {
       "id": "w_3ed1c0c3",
       "name": "Nobs Track",
-      "type": "water",
+      "type": "campsite",
       "lat": -37.28926,
       "lon": 146.52024
     },
@@ -480,8 +480,8 @@
       "id": "w_460c8b0c",
       "name": "Whitelaw Hut Site",
       "type": "campsite",
-      "lat": -37.80207,
-      "lon": 146.26075
+      "lat": -37.802371053535104,
+      "lon": 146.26023475398495
     },
     {
       "id": "w_466f1382",
@@ -598,7 +598,7 @@
     {
       "id": "w_5a16e979",
       "name": "Macalister Springs",
-      "type": "water",
+      "type": "campsite",
       "lat": -37.17213833098715,
       "lon": 146.67074778830423
     },
@@ -661,7 +661,7 @@
     {
       "id": "w_64ace111",
       "name": "South Selwyn",
-      "type": "water-tank",
+      "type": "campsite",
       "lat": -37.0508,
       "lon": 146.89674
     },
@@ -773,9 +773,9 @@
     {
       "id": "w_744e1c0a",
       "name": "Talbot Hut Site",
-      "type": "campsite",
-      "lat": -37.87145634475613,
-      "lon": 146.34553526331027
+      "type": "water",
+      "lat": -37.87185,
+      "lon": 146.34511
     },
     {
       "id": "w_7628cc94",
@@ -871,7 +871,7 @@
     {
       "id": "w_89010617",
       "name": "Sawpit Creek",
-      "type": "water",
+      "type": "campsite",
       "lat": -35.61717,
       "lon": 148.89398
     },
@@ -983,7 +983,7 @@
     {
       "id": "w_9fba7475",
       "name": "Camp Creek",
-      "type": "water",
+      "type": "campsite",
       "lat": -37.11964013806988,
       "lon": 146.6489910257609
     },
@@ -1067,7 +1067,7 @@
     {
       "id": "w_ae9e919d",
       "name": "Dibbins Hut",
-      "type": "hut",
+      "type": "campsite",
       "lat": -36.94727,
       "lon": 147.18547
     },
@@ -1130,7 +1130,7 @@
     {
       "id": "w_b4bf950e",
       "name": "Black River",
-      "type": "water",
+      "type": "campsite",
       "lat": -37.53728,
       "lon": 146.39985
     },
@@ -1299,8 +1299,8 @@
       "id": "w_c3e9517c",
       "name": "Talbot Hut Site",
       "type": "campsite",
-      "lat": -37.87185,
-      "lon": 146.34511
+      "lat": -37.87145634475613,
+      "lon": 146.34553526331027
     },
     {
       "id": "w_c3fefd3f",
@@ -1368,7 +1368,7 @@
     {
       "id": "w_cd77f64a",
       "name": "Chesters Yard",
-      "type": "campsite",
+      "type": "water",
       "lat": -37.23672,
       "lon": 146.59655
     },
@@ -1452,9 +1452,9 @@
     {
       "id": "w_df6636cf",
       "name": "Cope Hut",
-      "type": "hut",
-      "lat": -36.90667046188608,
-      "lon": 147.29257508734372
+      "type": "campsite",
+      "lat": -36.90738,
+      "lon": 147.29367
     },
     {
       "id": "w_dfd0a81d",
@@ -1466,9 +1466,9 @@
     {
       "id": "w_e4ee0516",
       "name": "Whitelaw Hut Site",
-      "type": "campsite",
-      "lat": -37.802371053535104,
-      "lon": 146.26023475398495
+      "type": "water",
+      "lat": -37.80207,
+      "lon": 146.26075
     },
     {
       "id": "w_e5cbc0d2",
@@ -1508,7 +1508,7 @@
     {
       "id": "w_e96c2d61",
       "name": "Viking Saddle",
-      "type": "campsite",
+      "type": "water",
       "lat": -37.11369,
       "lon": 146.71275
     },
@@ -1592,7 +1592,7 @@
     {
       "id": "w_f874b459",
       "name": "Grey Mare Hut",
-      "type": "water",
+      "type": "hut",
       "lat": -36.21206074401668,
       "lon": 148.33824706567094
     },
@@ -1641,7 +1641,7 @@
     {
       "id": "w_ffe2ac93",
       "name": "Witzes Hut",
-      "type": "hut",
+      "type": "water",
       "lat": -35.8101,
       "lon": 148.58766
     }
@@ -11206,8 +11206,8 @@
       "id": "w_03479f8e",
       "name": "Hugh Gorge",
       "type": "water-tank",
-      "lat": -23.70309,
-      "lon": 133.25907
+      "lat": -23.70319,
+      "lon": 133.25883
     },
     {
       "id": "w_05e13503",
@@ -11219,9 +11219,9 @@
     {
       "id": "w_09fe6506",
       "name": "Rocky Bar Gap",
-      "type": "campsite",
-      "lat": -23.60877,
-      "lon": 132.60258
+      "type": "water-tank",
+      "lat": -23.60863,
+      "lon": 132.60276
     },
     {
       "id": "w_0d0eb8e6",
@@ -11233,14 +11233,14 @@
     {
       "id": "w_0d9926c6",
       "name": "Ormiston Gorge",
-      "type": "campsite",
-      "lat": -23.63223,
-      "lon": 132.72667
+      "type": "water-tank",
+      "lat": -23.63213,
+      "lon": 132.72675
     },
     {
       "id": "w_0f2e1a6f",
       "name": "Simpsons Gap",
-      "type": "campsite",
+      "type": "water-tank",
       "lat": -23.67876,
       "lon": 133.71752
     },
@@ -11255,8 +11255,8 @@
       "id": "w_1cf09005",
       "name": "4/5 Junction",
       "type": "campsite",
-      "lat": -23.71808,
-      "lon": 133.34829
+      "lat": -23.71848,
+      "lon": 133.34817
     },
     {
       "id": "w_20e85086",
@@ -11276,8 +11276,8 @@
       "id": "w_2c14e5b2",
       "name": "Jay Creek",
       "type": "water-tank",
-      "lat": -23.66383,
-      "lon": 133.5378
+      "lat": -23.66398,
+      "lon": 133.53768
     },
     {
       "id": "w_314d25b4",
@@ -11297,13 +11297,13 @@
       "id": "w_3dc49b64",
       "name": "Ormiston Gorge",
       "type": "campsite",
-      "lat": -23.63213,
-      "lon": 132.72675
+      "lat": -23.63223,
+      "lon": 132.72667
     },
     {
       "id": "w_3e493bbe",
       "name": "Finke River",
-      "type": "campsite",
+      "type": "water-tank",
       "lat": -23.65813,
       "lon": 132.67858
     },
@@ -11352,16 +11352,16 @@
     {
       "id": "w_5b17238e",
       "name": "Rocky Gully",
-      "type": "campsite",
+      "type": "water-tank",
       "lat": -23.75874,
       "lon": 133.168
     },
     {
       "id": "w_6580bb42",
       "name": "Hugh Gorge",
-      "type": "water-tank",
-      "lat": -23.70319,
-      "lon": 133.25883
+      "type": "campsite",
+      "lat": -23.70309,
+      "lon": 133.25907
     },
     {
       "id": "w_670e1459",
@@ -11374,8 +11374,8 @@
       "id": "w_67abb4ad",
       "name": "Standley Chasm",
       "type": "campsite",
-      "lat": -23.72192,
-      "lon": 133.46994
+      "lat": -23.72189,
+      "lon": 133.47015
     },
     {
       "id": "w_706b8959",
@@ -11394,16 +11394,16 @@
     {
       "id": "w_7833c0da",
       "name": "Standley Chasm",
-      "type": "campsite",
-      "lat": -23.72189,
-      "lon": 133.47015
+      "type": "water-tank",
+      "lat": -23.72192,
+      "lon": 133.46994
     },
     {
       "id": "w_7d1c866d",
       "name": "Rocky Bar Gap",
       "type": "campsite",
-      "lat": -23.60863,
-      "lon": 132.60276
+      "lat": -23.60877,
+      "lon": 132.60258
     },
     {
       "id": "w_839266d5",
@@ -11471,14 +11471,14 @@
     {
       "id": "w_ae1352c0",
       "name": "Wallaby Gap",
-      "type": "water-tank",
+      "type": "campsite",
       "lat": -23.66833,
       "lon": 133.79496
     },
     {
       "id": "w_b1668fab",
       "name": "Ellery Creek North",
-      "type": "campsite",
+      "type": "water-tank",
       "lat": -23.77986,
       "lon": 133.07269
     },
@@ -11492,9 +11492,9 @@
     {
       "id": "w_b3354342",
       "name": "4/5 Junction",
-      "type": "campsite",
-      "lat": -23.71848,
-      "lon": 133.34817
+      "type": "water-tank",
+      "lat": -23.71808,
+      "lon": 133.34829
     },
     {
       "id": "w_b6428184",
@@ -11535,8 +11535,8 @@
       "id": "w_d03870da",
       "name": "Mulga Camp",
       "type": "water-tank",
-      "lat": -23.66467,
-      "lon": 133.61306
+      "lat": -23.66473,
+      "lon": 133.61289
     },
     {
       "id": "w_d8163d57",
@@ -11583,16 +11583,16 @@
     {
       "id": "w_ee5920ee",
       "name": "Serpentine Chalet Dam",
-      "type": "campsite",
+      "type": "water-tank",
       "lat": -23.72719,
       "lon": 132.91019
     },
     {
       "id": "w_f131389e",
       "name": "Jay Creek",
-      "type": "water-tank",
-      "lat": -23.66398,
-      "lon": 133.53768
+      "type": "campsite",
+      "lat": -23.66383,
+      "lon": 133.5378
     },
     {
       "id": "w_f283c631",
@@ -11604,9 +11604,9 @@
     {
       "id": "w_f3cc6bef",
       "name": "Mulga Camp",
-      "type": "water-tank",
-      "lat": -23.66473,
-      "lon": 133.61289
+      "type": "campsite",
+      "lat": -23.66467,
+      "lon": 133.61306
     },
     {
       "id": "w_fceaac4b",

@@ -1,12 +1,13 @@
 /**
  * Near-duplicate waypoint merging for built trail data.
  *
- * Source data often carries two `<wpt>`s for one physical feature: the AAWT has
- * "Talbot Hut Site" twice ~60 m apart, and the Larapinta marks a single
- * campsite with both a `WT:` water tank and a `C:` campsite pin (Rocky Bar Gap,
- * Rocky Gully) — after the CalTopo category overwrite both members end up with
- * the same cleaned name *and* the same type, so they render as two adjacent
- * identical-looking rows in the waypoint list and two overlapping map pins.
+ * Source data sometimes carries two `<wpt>`s of one type for one physical
+ * feature — the same cleaned name *and* the same type a few tens of metres
+ * apart — so they render as two adjacent identical-looking rows in the waypoint
+ * list and two overlapping map pins. (A campsite and its water pinned under one
+ * name, like the Larapinta's `C:` and `WT:` pins at Rocky Bar Gap, are two
+ * types, so they are two features and never merge: the build types each GPX
+ * waypoint from the nearest same-named CalTopo marker.)
  *
  * {@link dedupeNearDuplicateWaypoints} collapses each such cluster to one
  * survivor. It is deliberately conservative: it only merges rows that share a
