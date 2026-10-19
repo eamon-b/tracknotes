@@ -243,5 +243,5 @@ deleted.
 
 - Comments and plan sync on community routes.
 - Server-side OSM POI enrichment for community routes.
-- Map overview of all trails on the landing page.
+- ~~Map overview of all trails on the landing page~~: done (#163) — markers at each curated trail's and community route's start (`src/web/landing-map.ts`), from the existing list's `start`/`bbox`; no API change.
 - ~~Auto-detecting country/state from coordinates~~: done — `@lib/region-detect` prefills both share forms and backs the worker's `region` check.

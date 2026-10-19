@@ -598,3 +598,99 @@ describe('initLandingPage', () => {
     expect($('no-my-trails').hidden).toBe(false);
   });
 });
+
+describe('initLandingPage map overview', () => {
+  beforeEach(() => {
+    const html = readFileSync(resolve(__dirname, 'index.html'), 'utf-8');
+    document.body.innerHTML = html.slice(html.indexOf('<body>') + 6, html.indexOf('</body>'));
+  });
+
+  const $ = (id: string) => document.getElementById(id)!;
+  const placed: CuratedTrailEntry[] = [
+    { ...curated[0], start: { lat: -37.85, lon: 145.35 } },
+    { ...curated[1], start: { lat: -33.7, lon: 150.3 } },
+    // An entry from an index built before `start`: listed, not mapped.
+    curated[3],
+  ];
+
+  function mapStub() {
+    const updates: string[][] = [];
+    const mountMap = vi.fn((_container: HTMLElement) => ({
+      update: (points: readonly { id: string }[]) => {
+        updates.push(points.map((p) => p.id));
+      },
+    }));
+    return { mountMap, updates };
+  }
+
+  it('is not shown, and the map never mounted, without an API', async () => {
+    const { mountMap } = mapStub();
+    await initLandingPage(document, {
+      storage: memoryStorage(),
+      fetchCurated: async () => placed,
+      fetchCommunity: async () => null,
+      fetchImported: async () => [],
+      mountMap,
+    });
+    expect($('map-section').hidden).toBe(true);
+    expect(mountMap).not.toHaveBeenCalled();
+  });
+
+  it('maps curated trails and community routes, following the filter', async () => {
+    const { mountMap, updates } = mapStub();
+    await initLandingPage(document, {
+      storage: memoryStorage(),
+      fetchCurated: async () => placed,
+      fetchCommunity: async () => [
+        route({ id: 'c_BBBBBBBBBBBBBBBB', name: 'Bushwalk', status: 'verified', start: { lat: -37, lon: 146 } }),
+      ],
+      fetchImported: async () => [],
+      mountMap,
+    });
+    expect($('map-section').hidden).toBe(false);
+    expect(mountMap).toHaveBeenCalledTimes(1);
+    expect(mountMap).toHaveBeenCalledWith($('landing-map'));
+    expect(updates.at(-1)).toEqual(['aawt', 'six_foot_track', 'c_BBBBBBBBBBBBBBBB']);
+
+    const search = $('trail-search') as HTMLInputElement;
+    search.value = 'bush';
+    search.dispatchEvent(new Event('input', { bubbles: true }));
+    expect(updates.at(-1)).toEqual(['c_BBBBBBBBBBBBBBBB']);
+
+    // Nothing left to place: the section steps aside and is not redrawn.
+    const before = updates.length;
+    search.value = 'nothing like this';
+    search.dispatchEvent(new Event('input', { bubbles: true }));
+    expect($('map-section').hidden).toBe(true);
+    expect(updates.length).toBe(before);
+    expect(mountMap).toHaveBeenCalledTimes(1);
+  });
+
+  it('still maps curated trails when the community list fails', async () => {
+    const { mountMap, updates } = mapStub();
+    await initLandingPage(document, {
+      storage: memoryStorage(),
+      fetchCurated: async () => placed,
+      fetchCommunity: async () => {
+        throw new Error('offline');
+      },
+      fetchImported: async () => [],
+      mountMap,
+    });
+    expect($('map-section').hidden).toBe(false);
+    expect(updates.at(-1)).toEqual(['aawt', 'six_foot_track']);
+  });
+
+  it('is hidden when nothing has a position', async () => {
+    const { mountMap } = mapStub();
+    await initLandingPage(document, {
+      storage: memoryStorage(),
+      fetchCurated: async () => curated,
+      fetchCommunity: async () => [],
+      fetchImported: async () => [],
+      mountMap,
+    });
+    expect($('map-section').hidden).toBe(true);
+    expect(mountMap).not.toHaveBeenCalled();
+  });
+});

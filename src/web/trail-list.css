@@ -284,3 +284,98 @@
 .trail-grid[hidden] {
   display: none;
 }
+
+/* ---- Map overview (landing-map.ts) ---- */
+.landing-map {
+  position: relative;
+  /* Its own stacking context, so Leaflet's panes (z-index 400+) stay inside it. */
+  z-index: 0;
+  height: 420px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bg-subtle);
+}
+
+.landing-map-loading::after {
+  content: 'Loading map…';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+.landing-map-error {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.landing-map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.25rem;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.landing-map-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* The same colours as the markers (markerStyle in landing-map.ts). */
+.legend-dot {
+  display: inline-block;
+  box-sizing: border-box;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.legend-dot-curated {
+  background: var(--primary);
+}
+
+.legend-dot-verified {
+  background: var(--select);
+}
+
+.legend-dot-unverified {
+  background: var(--surface);
+  border: 2.5px solid var(--select);
+}
+
+.landing-map-popup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.4rem;
+  line-height: 1.35;
+}
+
+.landing-map-popup-title {
+  font-weight: 600;
+}
+
+.landing-map-popup .list-badge {
+  margin-left: 0;
+}
+
+.landing-map-popup-meta {
+  flex-basis: 100%;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+@media (max-width: 480px) {
+  .landing-map {
+    height: 320px;
+  }
+}

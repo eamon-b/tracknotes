@@ -29,5 +29,5 @@ Changing a bundled waypoint's `type` re-keys it in `data/waypoint-ids.json`, whi
 ## Generated Data (`public/data/generated/`)
 
 Built at build time:
-- `index.json` - Trail index
+- `index.json` - Trail index (the landing page's list): `id`, `name`, `shortName`, `lengthKm`, `region`, `country`, `states`, `featured` when true, and `start` (the route's first point, 5 decimals) for the landing page's map overview. The mobile index copies only the fields it names, so `start` stays web-only
 - `{trail-id}.json` - Processed trail data with simplified tracks

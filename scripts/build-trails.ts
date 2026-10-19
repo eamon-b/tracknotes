@@ -9,6 +9,7 @@ import { escapeHtml, escapeJsString } from '../src/lib/escape.js';
 import type { GpxPoint } from '../src/lib/types.js';
 import type {
   ProcessedTrail,
+  TrackData,
   TrailConfig,
   TrailWaypoint as Waypoint,
 } from '../src/lib/trail-types.js';
@@ -206,9 +207,18 @@ interface TrailIndexEntry {
   country: string | null;
   states: string[];
   featured?: true;
+  /**
+   * The route's first point (5 decimals, ~1 m), for the landing page's map
+   * overview. Absent when the track has no points; the map skips such a trail.
+   */
+  start?: { lat: number; lon: number };
 }
 
-function trailIndexEntry(config: TrailConfig): TrailIndexEntry {
+function roundCoord(value: number): number {
+  return Math.round(value * 1e5) / 1e5;
+}
+
+function trailIndexEntry(config: TrailConfig, track?: TrackData): TrailIndexEntry {
   const entry: TrailIndexEntry = {
     id: config.id,
     name: config.name,
@@ -219,6 +229,10 @@ function trailIndexEntry(config: TrailConfig): TrailIndexEntry {
     states: config.states ?? [],
   };
   if (config.featured === true) entry.featured = true;
+  const first = track?.points[0];
+  if (first && Number.isFinite(first.lat) && Number.isFinite(first.lon)) {
+    entry.start = { lat: roundCoord(first.lat), lon: roundCoord(first.lon) };
+  }
   return entry;
 }
 
@@ -731,7 +745,7 @@ async function main() {
       generateClimatePage(processed);
       generatePlanPage(processed);
 
-      trailIndex.push(trailIndexEntry(processed.config));
+      trailIndex.push(trailIndexEntry(processed.config, processed.track));
       if (!processed.config.country) {
         console.warn(`  ! ${trailId}: trail.json has no "country"; the trail list will show it under "Other"`);
       }
