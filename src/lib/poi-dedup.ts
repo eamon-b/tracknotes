@@ -241,6 +241,20 @@ function sharedWithGeneric(a: string | null | undefined, b: string | null | unde
  */
 export const COLOCATED_DUPLICATE_M = 10;
 
+/**
+ * Within this many metres, an *unnamed* `camping` POI duplicates a waypoint
+ * its category is compatible with.
+ *
+ * OSM maps the tent area beside a hut as a nameless `tourism=camp_site`: the
+ * AAWT's Pockets Hut, Cope Hut and Ryder's Huts each have one 1-16 m from the
+ * curated waypoint, and Te Araroa's backcountry huts are the same. With no name
+ * there is nothing to match, so each showed as a second "Campsite" marker and
+ * datasheet row on top of the hut. The furthest real pair measured is 27 m
+ * (Kennedys Hut). Water stays out: a nameless tap near a waypoint tells the
+ * walker something the waypoint does not (see `markDuplicatePois`).
+ */
+export const UNNAMED_CAMPING_DUPLICATE_M = 30;
+
 /** Waypoint types that say nothing about what the place is. */
 const GENERIC_WAYPOINT_TYPES = new Set(['poi', 'waypoint']);
 
@@ -297,9 +311,11 @@ export function dedupCandidates(trail: DedupTrailLike): DedupWaypointLike[] {
  * without the duplicate fields at all, so a trail whose POIs are all distinct
  * serialises exactly as before.
  *
- * An unnamed POI is never a duplicate. Cape to Cape has nameless water taps
- * 23–80 m from campsite waypoints: those are *complementary* — the waypoint does
- * not record that there is a tap — and requiring a name is what protects them.
+ * An unnamed POI is a duplicate only when it is a campsite within
+ * `UNNAMED_CAMPING_DUPLICATE_M` of a compatible waypoint (the tent area beside
+ * a hut). Any other unnamed POI is kept: Cape to Cape has nameless water taps
+ * 23–80 m from campsite waypoints, and those are *complementary* — the waypoint
+ * does not record that there is a tap.
  */
 export function markDuplicatePois(
   pois: readonly TrailPOI[] | undefined,
@@ -313,7 +329,14 @@ export function markDuplicatePois(
     delete next.duplicateOf;
     delete next.duplicateDistanceM;
 
-    if (nameTokens(poi.name).length === 0) return next;
+    if (nameTokens(poi.name).length === 0) {
+      const host = nearestUnnamedCampingHost(poi, waypoints);
+      if (host) {
+        next.duplicateOf = host.waypoint.id;
+        next.duplicateDistanceM = Math.round(host.metres);
+      }
+      return next;
+    }
 
     const poiKey = [...new Set(nameTokens(poi.name))].sort().join(' ');
     let best: {
@@ -364,6 +387,23 @@ export function markDuplicatePois(
     }
     return next;
   });
+}
+
+/** The nearest compatible waypoint an unnamed campsite POI is part of, if any. */
+function nearestUnnamedCampingHost(
+  poi: TrailPOI,
+  waypoints: readonly DedupWaypointLike[]
+): { waypoint: DedupWaypointLike; metres: number } | null {
+  if (poi.category !== 'camping') return null;
+  let best: { waypoint: DedupWaypointLike; metres: number } | null = null;
+  for (const waypoint of waypoints) {
+    if (!waypoint.id || !isCompatibleType(poi.category, waypoint.type)) continue;
+    const metres = haversineDistance2D(poi.lat, poi.lon, waypoint.lat, waypoint.lon);
+    if (metres <= UNNAMED_CAMPING_DUPLICATE_M && (!best || metres < best.metres)) {
+      best = { waypoint, metres };
+    }
+  }
+  return best;
 }
 
 /** POIs that are not flagged as duplicating a waypoint. */

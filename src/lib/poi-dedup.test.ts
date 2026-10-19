@@ -162,7 +162,38 @@ describe('markDuplicatePois', () => {
     expect(marked.duplicateOf).toBeUndefined();
   });
 
-  it('never flags an unnamed POI', () => {
+  it('folds an unnamed campsite into the hut it sits beside', () => {
+    // The AAWT's Pockets Hut: OSM maps the tent area as a nameless camp_site
+    // 4 m from the hut.
+    const [marked] = markDuplicatePois(
+      [poi({ name: null, lat: latOffset(4) })],
+      [wp({ id: 'w_pockets', name: 'Pockets Hut', type: 'hut' })]
+    )!;
+    expect(marked.duplicateOf).toBe('w_pockets');
+    expect(marked.duplicateDistanceM).toBe(4);
+  });
+
+  it('takes the nearest compatible waypoint for an unnamed campsite', () => {
+    const [marked] = markDuplicatePois(
+      [poi({ name: null, lat: latOffset(20) })],
+      [
+        wp({ id: 'w_far', name: 'Far Hut', type: 'hut' }),
+        wp({ id: 'w_water', name: 'Creek', type: 'water', lat: latOffset(20) }),
+        wp({ id: 'w_near', name: 'Near Campsite', lat: latOffset(12) }),
+      ]
+    )!;
+    expect(marked.duplicateOf).toBe('w_near');
+  });
+
+  it('keeps an unnamed campsite beyond 30 m of any hut or campsite', () => {
+    const [marked] = markDuplicatePois(
+      [poi({ name: null, lat: latOffset(40) })],
+      [wp({ name: 'Pockets Hut', type: 'hut' })]
+    )!;
+    expect(marked.duplicateOf).toBeUndefined();
+  });
+
+  it('never flags an unnamed POI other than a campsite', () => {
     // A nameless water tap beside a campsite waypoint is complementary
     // information, not a repeat of it.
     const [marked] = markDuplicatePois(
