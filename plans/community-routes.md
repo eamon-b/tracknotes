@@ -66,10 +66,49 @@ submit ──► automatic checks ──fail──► 422 {checks}            (n
 - Replacing the GPX is a new submission (new id); the old one can be deleted.
 - Concurrency: every row change sets `updated_at` strictly later than the
   value it read. An owner edit, an admin status change, a de-attribution and
-  the AI review write only if the row's `status`/`updated_at` still match what
-  they read; a lost race returns 409 `conflict` (edit, admin) or retries
+  the AI review (and the POI enrichment below) write only if the row's
+  `status`/`updated_at` still match what they read; a lost race returns 409 `conflict` (edit, admin) or retries
   (de-attribution) and deletes the objects it wrote. A review that finishes
   after the row changed writes nothing.
+
+## OSM POI enrichment (worker, scheduled; issue #163)
+
+A submitted route is stored without POIs: the client's are dropped with the
+rest of its derived data, and the submit never waits on Overpass. The
+`*/15` cron (`enrichCommunityRoutePois`, after the de-attribution retry and
+the stale-review re-run) then fetches the OSM POIs within 2 km of the route —
+main track, alternates and side trips — with the corridor queries, catalog
+and km placement `scripts/fetch-pois.ts` and the phone use (`@lib/trail-poi-search`
+over the `src/lib` port of `gpx-tools`), runs the build's passes
+(`finishTrailPois`: noise, duplicates of the route's own waypoints, city
+thinning, then `slimPoi`), and republishes the trail
+JSON with a `pois` array, so a community route carries what a curated trail
+ships. The md5 changes, so the app downloads the route again; the web page
+reads the JSON afresh.
+
+- **When:** a live route untouched for 2 minutes, with no answer for its
+  current geometry (`pois_hash` ≠ `content_hash`), not tried in the last hour;
+  3 routes a run, least-tried then newest first. Existing routes are
+  backfilled the same way (migration `0009` starts them `pending`).
+- **Budget:** 20 Overpass requests a run (across routes and endpoints), none
+  started after 6 minutes; 25 s per query. A route needing more than 16
+  queries, or one with a city's worth of POIs (an 8 MB answer, 12,000 fetched,
+  4,000 shipped) or whose JSON would pass 4 MB, is `skipped` — never fetched
+  in part.
+- **Failure:** fail open. A query no endpoint answers fails the attempt and
+  nothing is stored; the route stays as it was, without POIs, and is retried
+  an hour later, 4 attempts per geometry, then `failed`. A run is claimed
+  before its first request, so one the platform stops still counts.
+- **Consistency:** the POIs live in the canonical private JSON, so every
+  republish (owner edit, de-attribution, restore) keeps them. The enrichment's
+  write is guarded like an edit and moves `updated_at`; a route that changed
+  during the fetch keeps its state and the run's objects are dropped.
+  `content_hash` is never recomputed. A geometry change (none exists yet:
+  replacing the GPX is a new submission) only has to change `content_hash`
+  for the route to be fetched again at once — and should drop the old `pois`.
+- **Config:** `OVERPASS_ENDPOINTS` in `wrangler.toml` (comma-separated; each
+  query goes to the instance that answered last, then the next); empty turns
+  the enrichment off.
 
 ## Automatic checks (`src/lib/community-checks.ts`)
 
@@ -168,8 +207,10 @@ request carrying a bearer token, and `Vary: Authorization` with the public
 `max-age=60`.
 
 Storage:
-- D1 `community_routes` (+ `community_route_reports`), migrations `0005` and
-  `0006` (`deattribute_pending`, `removed_by`, `blocks_resubmit`).
+- D1 `community_routes` (+ `community_route_reports`), migrations `0005`,
+  `0006` (`deattribute_pending`, `removed_by`, `blocks_resubmit`) and `0009`
+  (the POI enrichment's `pois_status`, `pois_hash`, `poi_count`,
+  `pois_attempts`, `pois_attempted_at`, `pois_error`; never returned).
 - R2 (the PHOTOS bucket). The bucket has no private area — all of it is
   served at `PHOTOS_PUBLIC_BASE` — so private objects are protected by
   unguessable keys (128 random bits) that are recorded in the row and never
@@ -192,8 +233,9 @@ Storage:
 - De-attribution is durable: the statement that clears the name sets
   `deattribute_pending`, which is cleared only once the route's objects are
   rewritten. A Cron Trigger (`*/15 * * * *`, `runCommunityMaintenance`)
-  retries up to 20 pending de-attributions and re-runs up to 5 AI reviews left
-  `pending` for over 10 minutes (a review that lost a race writes nothing).
+  retries up to 20 pending de-attributions, re-runs up to 5 AI reviews left
+  `pending` for over 10 minutes (a review that lost a race writes nothing),
+  then runs the POI enrichment above.
 - The public list and "my routes" are keyset-paged on (`created_at`, `id`):
   `?cursor=` in, `nextCursor` out (null on the last page). Clients follow it
   for up to 20 pages; the app skips probing unlisted downloads after a list it
@@ -271,6 +313,6 @@ deleted.
 ## Follow-ups (not in this PR)
 
 - ~~Comments and plan sync on community routes~~: done (#163) — see "Ids" above.
-- Server-side OSM POI enrichment for community routes.
+- ~~Server-side OSM POI enrichment for community routes~~: done — see "OSM POI enrichment" above.
 - ~~Map overview of all trails on the landing page~~: done (#163) — markers at each curated trail's and community route's start (`src/web/landing-map.ts`), from the existing list's `start`/`bbox`; no API change.
 - ~~Auto-detecting country/state from coordinates~~: done — `@lib/region-detect` prefills both share forms and backs the worker's `region` check.

@@ -22,6 +22,8 @@ export default defineConfig(async () => {
             TEST_MIGRATIONS: migrations,
             PHOTOS_PUBLIC_BASE: 'https://photos.test',
             SITE_BASE: 'https://site.test',
+            // No real Overpass from tests: the POI tests inject endpoints and a fetch.
+            OVERPASS_ENDPOINTS: '',
           },
           // Local R2 bucket backing the PHOTOS binding (wrangler.toml declares
           // the binding; this provisions its miniflare-local store for tests).

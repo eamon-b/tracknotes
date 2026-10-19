@@ -20,6 +20,12 @@ export interface Env {
    * and routes stay Unverified until an admin looks.
    */
   ANTHROPIC_API_KEY?: string;
+  /**
+   * Overpass instances the community-route POI enrichment asks, in order,
+   * comma-separated (`community-pois.ts`). Empty or unset switches the
+   * enrichment off: routes are then shared without POIs.
+   */
+  OVERPASS_ENDPOINTS?: string;
 }
 
 /** Wide-open CORS — this is a public, read-mostly hobby API. */
