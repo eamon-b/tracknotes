@@ -9,6 +9,7 @@ import {
   processTrailData,
   repositionTrailPois,
   misplacedPois,
+  placesOnWholeRoute,
   resolveEndpoint,
   clipScaleToKm,
   resolveKmRange,
@@ -547,5 +548,14 @@ describe('misplacedPois', () => {
 
     // Same km, but a category the current classifier would not give it.
     expect(await misplacedPois(makeTrail(), [{ ...placed, category: 'water' }])).toHaveLength(1);
+  });
+});
+
+describe('placesOnWholeRoute', () => {
+  it('re-places any windowed fetch, including a first file with nothing to merge into, and any merge', () => {
+    expect(placesOnWholeRoute({ merged: false, windowed: true })).toBe(true);
+    expect(placesOnWholeRoute({ merged: true, windowed: true })).toBe(true);
+    expect(placesOnWholeRoute({ merged: true, windowed: false })).toBe(true);
+    expect(placesOnWholeRoute({ merged: false, windowed: false })).toBe(false);
   });
 });

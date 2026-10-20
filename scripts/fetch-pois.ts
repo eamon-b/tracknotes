@@ -292,6 +292,16 @@ export async function repositionTrailPois(
   return { pois: placed, dropped: stored.filter(poi => !kept.has(poiKey(poi))) };
 }
 
+/**
+ * Whether a fetch's POIs must be re-placed on the whole route before writing:
+ * any windowed fetch (its km come from the clipped route, merged or first
+ * file alike) and any merge (it keeps POIs that may predate a track edit).
+ * Only a clean whole-trail replace is already placed as `build-trails` checks.
+ */
+export function placesOnWholeRoute(options: { merged: boolean; windowed: boolean }): boolean {
+  return options.merged || options.windowed;
+}
+
 /** Km a stored POI may differ from its fresh placement by: float noise only. */
 const PLACEMENT_TOLERANCE_KM = 0.001;
 
@@ -530,7 +540,9 @@ async function processTrail(
   // also keeps POIs that may predate a track edit. Re-place either on the
   // whole route, as build-trails checks it.
   const kept = merged ? merged.pois : result.pois;
-  const pois = merged || kmRange ? (await repositionTrailPois(trail, kept)).pois : kept;
+  const pois = placesOnWholeRoute({ merged: merged !== null, windowed: kmRange !== null })
+    ? (await repositionTrailPois(trail, kept)).pois
+    : kept;
   if (merging && kmRange === null) {
     console.log('  Chunks failed, so merging into the existing file instead of replacing it.');
   }
