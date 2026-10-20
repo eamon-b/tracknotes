@@ -56,8 +56,11 @@ import {
   planToRoute,
   setPlanAlternate,
 } from '@lib/plan-alternates';
+import { planStopIssues, stopIssuesNotice, type StopIssuesTrail } from '@lib/plan-stop-issues';
 import {
   computePlanDays,
+  refreshStopKms,
+  removeStoredStop,
   setDirection,
   setNights,
   setPlanName,
@@ -124,11 +127,13 @@ import { ResupplyCard } from '../../../src/features/plan/ResupplyCard';
 import { WaterCarryCard } from '../../../src/features/plan/WaterCarryCard';
 import { PlanThresholdsCard } from '../../../src/features/plan/PlanThresholdsCard';
 import { formatFoodWeight } from '../../../src/features/plan/plan-format';
+import { StopIssuesCard } from '../../../src/features/plan/StopIssuesCard';
+import { dayEndWarning, stopIssueRows } from '../../../src/features/plan/stop-issues';
 
 export default function PlanScreen() {
   const { colors } = useTheme();
   const router = useRouter();
-  const { trailId, direction } = useGuide();
+  const { trailId, direction, dataUpdatedAt } = useGuide();
   const showOnMap = useShowOnMap(trailId);
   const units = useSettingsStore((s) => s.units);
   const planDirection = planDirectionOf(direction);
@@ -293,6 +298,28 @@ export default function PlanScreen() {
             plannedDays[plannedDays.length - 1].endKm,
           ),
     [trail.pois, plannedDays],
+  );
+
+  // The stops a data update left without a place: kept on screen and named
+  // (`@lib/plan-stop-issues`), never moved or dropped for the hiker. Judged
+  // after the same refresh the guide applies on load, so a stop it is about to
+  // move with its place is not flagged for the moment before it lands.
+  const stopIssues = useMemo(
+    () =>
+      planStopIssues(
+        refreshStopKms(storedDisplayPlan, baseTrail, { dataUpdatedAt }),
+        baseTrail as unknown as StopIssuesTrail,
+        { route, dataUpdatedAt },
+      ),
+    [storedDisplayPlan, baseTrail, route, dataUpdatedAt],
+  );
+  const stopIssueList = useMemo(
+    () => stopIssueRows(stopIssues, plannedDays, planDirection, route.totalDistance),
+    [stopIssues, plannedDays, planDirection, route.totalDistance],
+  );
+  const endWarning = useMemo(
+    () => dayEndWarning(stopIssues, planDirection, route.totalDistance),
+    [stopIssues, planDirection, route.totalDistance],
   );
 
   // How far each place is from the route as planned, for the Stops rows' badges.
@@ -485,6 +512,14 @@ export default function PlanScreen() {
           </Text>
         )}
 
+        <StopIssuesCard
+          notice={stopIssuesNotice(stopIssues)}
+          rows={stopIssueList}
+          onRemove={(row) =>
+            void applyEdit(trailId, (p) => removeStoredStop(p, row.issue.stop), planDefaults)
+          }
+        />
+
         <PlanSettingsSheet visible={settingsOpen} onClose={() => setSettingsOpen(false)}>
           <PlanHeaderCard
             name={displayPlan.name}
@@ -586,6 +621,7 @@ export default function PlanScreen() {
                 // A trail never enriched with POIs says nothing, rather than
                 // implying OSM found nothing along every day.
                 pois={trail.pois === undefined ? undefined : visiblePois}
+                endWarning={endWarning}
                 onDayPress={(day) =>
                   router.push({
                     pathname: '/guide/[trailId]/day',

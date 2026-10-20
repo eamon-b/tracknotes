@@ -20,8 +20,8 @@
  */
 
 import { findStopIndex } from '@lib/plan-editor';
-import { mainKmToRoute, type PlanAlternate, type PlannedRoute } from '@lib/plan-alternates';
-import { stopsToActive, toActiveKm, toNoboKm, type PlanDirection } from '@lib/plan-direction';
+import { alternateKmToRoute, mainKmToRoute, type PlanAlternate, type PlannedRoute } from '@lib/plan-alternates';
+import { KM_EPSILON, stopsToActive, toActiveKm, toNoboKm, type PlanDirection } from '@lib/plan-direction';
 import type { PlanDocument, PlanStop } from '@lib/plan-types';
 
 /** The minimum of a waypoint this module needs: the map's and the list's shape both fit. */
@@ -103,9 +103,12 @@ export function plannedStopKms(
   route?: PlannedRoute,
 ): number[] {
   if (!plan || plan.stops.length === 0) return [];
+  // A stop past either end of the trail as it is now (a data update shortened
+  // it) is listed by the Plan screen as needing checking, not ticked off the
+  // end of the profile.
   const mainKms = plan.stops
     .map((stop) => profileKmOfStop(stop, route))
-    .filter((km): km is number => km !== null)
+    .filter((km): km is number => km !== null && km >= -KM_EPSILON && km <= totalKm + KM_EPSILON)
     .map((km) => ({ km }));
   return stopsToActive(mainKms, direction, totalKm)
     .map((stop) => stop.km)
@@ -134,6 +137,9 @@ export function profileKmOfStop(
   }
   const alternate = route?.alternates.find((a) => a.name === stop.alternate);
   if (!alternate) return null;
+  // Past an end of the alternate as it is now: not ticked at the branch or the
+  // rejoin, where it is not (`alternateKmToRoute` is null for it too).
+  if (route && alternateKmToRoute(route, alternate.name, stop.km) === null) return null;
   const along = Math.min(Math.max((stop.km - alternate.startKm) / alternate.distanceKm, 0), 1);
   return alternate.startKm + along * alternate.mainDistanceKm;
 }

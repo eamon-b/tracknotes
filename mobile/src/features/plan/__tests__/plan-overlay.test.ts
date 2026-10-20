@@ -14,6 +14,7 @@ import {
   plannedRouteLines,
   plannedStopFeatureIds,
   plannedStopKms,
+  profileKmOfStop,
 } from '../plan-overlay';
 
 
@@ -146,6 +147,20 @@ describe('alternates the plan takes', () => {
       stops: [{ waypointId: 'w_x', km: 35, name: 'Valley Hut', nights: 1 }],
     });
     expect(plannedStopKms(bypassed, 'NOBO', TOTAL, route)).toEqual([]);
+  });
+
+  it('ticks no stop past an end of a shortened alternate, nor past the end of the trail', () => {
+    // 23 km along a 20 km alternate: not pinned to the rejoin.
+    const shortened = plan({
+      alternates: ['Alt: Ridge'],
+      stops: [
+        { km: 53, name: 'Old Ridge End', nights: 1, alternate: 'Alt: Ridge' },
+        { km: 104, name: 'Past the End', nights: 1 },
+      ],
+    });
+    expect(profileKmOfStop(shortened.stops[0], route)).toBeNull();
+    expect(plannedStopKms(shortened, 'NOBO', TOTAL, route)).toEqual([]);
+    expect(plannedStopKms(shortened, 'NOBO', TOTAL)).toEqual([]);
   });
 
   it('rings a place on the alternate, never a main place at the same km', () => {

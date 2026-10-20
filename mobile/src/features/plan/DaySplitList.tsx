@@ -106,8 +106,14 @@ export function DaySplitList({
   units,
   pois,
   onDayPress,
+  endWarning,
 }: {
   days: PlanDay[];
+  /**
+   * Why the stop a day ends at needs checking after a data update
+   * (`stop-issues.dayEndWarning`), by the day's end km; null for none.
+   */
+  endWarning?: (endKm: number) => string | null;
   /** Opens a day's waypoints. Absent: the cards are not pressable. */
   onDayPress?: (day: PlanDay) => void;
   /**
@@ -214,6 +220,13 @@ export function DaySplitList({
           </View>
 
           {poiSummaries?.[i] && <AlongTheWay summary={poiSummaries[i]} />}
+
+          {(() => {
+            const warning = endWarning?.(day.endKm) ?? null;
+            return warning === null ? null : (
+              <Text style={[styles.overHint, { color: colors.warning }]}>{`⚠ ${warning}`}</Text>
+            );
+          })()}
 
           {day.restDays !== undefined && day.restDays > 0 && (
             <Text style={[styles.rest, { color: colors.accent }]}>
