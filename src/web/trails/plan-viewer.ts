@@ -90,7 +90,14 @@ import { analyzeWaterCarry } from '@lib/water-carry-calculator';
 import { createReversedTrail } from '@lib/trail-reverse';
 import { trailElevationIsUsable } from '@lib/elevation-backfill';
 import { KM_EPSILON, getDirectionLabel, stopsToActive, toActiveKm, toNoboKm, type PlanDirection } from '@lib/plan-direction';
-import { planStopIssues, stopIssueText, stopIssuesNotice, type StopIssue } from '@lib/plan-stop-issues';
+import {
+  planStopIssues,
+  STOP_ISSUES_HINT,
+  stopIssueText,
+  stopIssueWhere,
+  stopIssuesNotice,
+  type StopIssue,
+} from '@lib/plan-stop-issues';
 import { baseWaypointType, waypointTypeLabel } from '@lib/waypoint-taxonomy';
 import { waypointFamilyClass, waypointIcon } from './waypoint-icons';
 import { accessPathLayer, hasAccessPath } from './access-path';
@@ -1108,20 +1115,17 @@ function issueEndingAt(activeKm: number): StopIssue | undefined {
  * The notice above the days and the stops: how many stops need checking, then
  * each with its reason — a placed one says which day it ends, an unplaced one
  * that its nights are not in the dates — and, when the page can edit, a Remove
- * button. Moving a stop is ticking the place it should be in the Stops tab.
+ * button. Ticking a stop's own place in the Stops tab moves it there.
  */
 function stopIssuesHtml(): string {
   const notice = stopIssuesNotice(stopIssues);
   if (notice === null) return '';
   const rows = stopIssues.map((issue, i) => {
-    const nights = Number(issue.stop.nights);
-    const where = issue.routeKm === null
-      ? `${Number.isFinite(nights) ? nights : 1} night${nights === 1 ? '' : 's'}, not in the dates`
-      : (() => {
-        const activeKm = toActiveKm(issue.routeKm, direction(), routeTrail.track.totalDistance);
-        const day = currentDays.findIndex(d => Math.abs(d.endKm - activeKm) < KM_EPSILON);
-        return day === -1 ? `km ${activeKm.toFixed(1)}` : `ends Day ${currentDays[day].dayNumber}`;
-      })();
+    const activeKm = issue.routeKm === null
+      ? null
+      : toActiveKm(issue.routeKm, direction(), routeTrail.track.totalDistance);
+    const day = activeKm === null ? undefined : currentDays.find(d => Math.abs(d.endKm - activeKm) < KM_EPSILON);
+    const where = stopIssueWhere(issue, day ? day.dayNumber : null);
     const remove = readOnly
       ? ''
       : `<button type="button" class="stop-issue-remove" data-issue-index="${i}">Remove</button>`;
@@ -1131,7 +1135,7 @@ function stopIssuesHtml(): string {
         ${remove}
       </li>`;
   }).join('');
-  const hint = readOnly ? '' : '<p class="stop-issues-hint">To move one, tick the place it should be in the Stops tab, then remove it here.</p>';
+  const hint = readOnly ? '' : `<p class="stop-issues-hint">${escapeHtml(STOP_ISSUES_HINT)}</p>`;
   return `<div class="stop-issues" role="status">
       <p class="stop-issues-notice">\u26A0 ${escapeHtml(notice)}</p>
       <ul class="stop-issues-list">${rows}</ul>
@@ -2138,11 +2142,13 @@ function initTabs(): void {
 
 function renderAll(): void {
   refreshActiveStops();
-  // A page whose data has no publish time cannot tell newer data from its
-  // own, so it judges the stops against what it has rather than deferring.
+  // Judged against the data the same way `refreshStopKms` moved the stops
+  // (a read-only page refreshes without the guard): a plan saved against data
+  // this page cannot date is not moved, so its stops read as unchecked rather
+  // than as moved places another stop holds.
   stopIssues = planStopIssues(storedPlan, trail, {
     route: plannedRoute,
-    ...(trail.dataUpdatedAt ? { dataUpdatedAt: trail.dataUpdatedAt } : {}),
+    ...(readOnly ? {} : { dataUpdatedAt: trail.dataUpdatedAt ?? null }),
   });
   // Before any renderer asks: every tab, the datasheet, the markers and the
   // profile read the same set, so ticking a stop in the Resupply tab shows up

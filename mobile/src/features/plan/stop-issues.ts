@@ -9,7 +9,7 @@
  */
 
 import { KM_EPSILON, toActiveKm, type PlanDirection } from '@lib/plan-direction';
-import { stopIssueText, type StopIssue } from '@lib/plan-stop-issues';
+import { stopIssueText, stopIssueWhere, type StopIssue } from '@lib/plan-stop-issues';
 
 /** One row of the Plan screen's "needs checking" card. */
 export interface StopIssueRow {
@@ -34,20 +34,14 @@ export function stopIssueRows(
 ): StopIssueRow[] {
   return issues.map((issue, i) => {
     const activeKm = activeKmOf(issue, direction, routeTotalKm);
-    let where: string;
-    if (activeKm === null) {
-      const nights = Math.max(1, Number(issue.stop.nights) || 1);
-      where = `${nights} night${nights === 1 ? '' : 's'}, not in the dates`;
-    } else {
-      const day = days.find((d) => Math.abs(d.endKm - activeKm) < KM_EPSILON);
-      // A placed stop outside the section shown ends no day card here.
-      where = day ? `Ends day ${day.dayNumber}` : 'Outside the section shown';
-    }
+    // A placed stop outside the section shown ends no day card here.
+    const day =
+      activeKm === null ? undefined : days.find((d) => Math.abs(d.endKm - activeKm) < KM_EPSILON);
     return {
       key: `${i}:${issue.stop.waypointId ?? ''}:${issue.stop.alternate ?? ''}:${issue.stop.km}`,
       name: issue.stop.name,
       reason: stopIssueText(issue.reason),
-      where,
+      where: stopIssueWhere(issue, day ? day.dayNumber : null),
       issue,
     };
   });

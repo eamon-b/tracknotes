@@ -3,13 +3,14 @@
  * above the Plan screen's days: one notice — how many need checking, and the
  * nights left out of the dates — then each stop with why, which day it ends or
  * that its nights are not counted, and a Remove button. Nothing is removed or
- * moved for the hiker; moving one is ticking the right place in Stops.
+ * moved for the hiker; ticking a stop's own place in Stops moves it there.
  */
 
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '../../theme';
 import { radii, spacing, typography } from '../../tokens';
+import { STOP_ISSUES_HINT } from '@lib/plan-stop-issues';
 import type { StopIssueRow } from './stop-issues';
 
 export interface StopIssuesCardProps {
@@ -58,7 +59,7 @@ export function StopIssuesCard({ notice, rows, onRemove }: StopIssuesCardProps) 
       ))}
       {onRemove && (
         <Text style={[styles.hint, { color: colors.textSecondary }]}>
-          To move one, tick the place it should be in Stops, then remove it here.
+          {STOP_ISSUES_HINT}
         </Text>
       )}
     </View>
