@@ -210,6 +210,46 @@ describe('buildPlannedRoute', () => {
   });
 });
 
+describe('plannedRouteTrail: POIs found along an alternate', () => {
+  /** A POI at (km east, km north), with the cross-track distance the fetch recorded. */
+  function poi(id: number, eastKm: number, northKm: number, km: number, fromLineKm: number) {
+    return { id, lat: northKm * DEG_PER_KM, lon: eastKm * DEG_PER_KM, distanceAlongTrail: km, distanceFromTrail: fromLineKm };
+  }
+  // On the alternate's line (it bows 7.5 km north at its middle), numbered as
+  // the fetch numbers a POI on a variant: branch km 20 plus km along it.
+  const apex = poi(1, 30, 7.5, 35, 0);
+  const nearRejoin = poi(2, 38, 1.5, 45, 0);
+  // On the main route inside the stretch the alternate bypasses.
+  const bypassed = poi(3, 30, 0, 30, 0);
+  // 200 m off the main route just past the branch: the alternate's line is
+  // about as near, and the main line explains the recorded distance better.
+  const nearJunction = poi(4, 20.5, 0.2, 20.5, 0.2);
+  const ids = (pois: readonly object[] | undefined) => (pois ?? []).map(p => (p as { id?: number }).id);
+  const kmOf = (pois: ReadonlyArray<{ distanceAlongTrail: number }> | undefined, id: number) =>
+    pois?.find(p => (p as { id?: number }).id === id)?.distanceAlongTrail;
+
+  it('places them along a taken alternate, at the km its waypoints use', () => {
+    const trail = trailFixture({ pois: [apex, nearRejoin] });
+    const routed = plannedRouteTrail(trail, buildPlannedRoute(trail, [ALT]));
+    // Read as main km, the apex fell in the bypassed stretch and the other
+    // landed 10 km past where it is (route km 55).
+    expect(kmOf(routed.pois, 1)).toBeCloseTo(35);
+    expect(kmOf(routed.pois, 2)).toBeCloseTo(45);
+  });
+
+  it('leaves them on main-route km when the plan takes another alternate', () => {
+    const trail = trailFixture({ alternates: [bowAlternate(), bowAlternate('Alt: Other', 60, 80)], pois: [apex] });
+    const route = buildPlannedRoute(trail, ['Alt: Other']);
+    expect(kmOf(plannedRouteTrail(trail, route).pois, 1)).toBe(mainKmToRoute(route, 35));
+  });
+
+  it('still drops a main-route POI on the bypassed stretch, and one the main line explains near the branch', () => {
+    const trail = trailFixture({ pois: [apex, bypassed, nearJunction] });
+    const routed = plannedRouteTrail(trail, buildPlannedRoute(trail, [ALT]));
+    expect(ids(routed.pois)).toEqual([1]);
+  });
+});
+
 describe('plannedRouteTrail', () => {
   const trail = trailFixture();
   const route = buildPlannedRoute(trail, [ALT]);
