@@ -40,6 +40,7 @@
 
 import { haversineDistance } from './distance';
 import { KM_EPSILON } from './plan-direction';
+import { poiVariant } from './poi-display';
 import type { PlanDocument, PlanStop } from './plan-types';
 import { PLAN_LIMITS } from './plan-types';
 import { stamp } from './plan-editor';
@@ -115,7 +116,8 @@ export interface PlannableTrail {
   }>;
   alternates?: PlannableVariant[];
   sideTrips?: PlannableVariant[];
-  pois?: Array<{ distanceAlongTrail: number }>;
+  /** Position and cross-track distance let a POI found along an alternate follow it (`poiVariant`). */
+  pois?: Array<{ distanceAlongTrail: number; lat?: number; lon?: number; distanceFromTrail?: number }>;
 }
 
 // ---------------------------------------------------------------------------
@@ -467,7 +469,8 @@ function mapMainIndex(line: SplicedLine<RoutePoint>, index: number): number {
  *   alternate's (a junction waypoint both lines share is listed once), with
  *   their km, legs and climb recomputed along the new line.
  * - POIs, side trips and the alternates not taken move to route km; any the
- *   route no longer passes are left out.
+ *   route no longer passes are left out. A POI found along a taken alternate
+ *   (`poiVariant`) is placed along it, as its waypoints are.
  *
  * Returns `trail` itself when the route takes no alternate.
  */
@@ -598,8 +601,18 @@ export function plannedRouteTrail<T extends PlannableTrail>(trail: T, route: Pla
     });
   }
   if (trail.pois) {
+    // A POI the fetch found along an alternate carries that alternate's own
+    // scale (branch km plus km along it), as its waypoints do: on a taken
+    // alternate it goes where the alternate's waypoints go. Read as main km it
+    // was dropped inside the bypassed stretch, or placed past the rejoin.
+    const candidates = [...variants, ...(trail.sideTrips ?? [])];
+    const takenAlternate = new Map(route.alternates.map(a => [variants[a.index], a]));
     result.pois = trail.pois.flatMap(poi => {
-      const km = mainKmToRoute(route, poi.distanceAlongTrail);
+      const on = poiVariant(poi, candidates, track.totalDistance, track.points);
+      const alternate = on ? takenAlternate.get(on) : undefined;
+      const km = alternate
+        ? alternateKmToRoute(route, alternate.name, poi.distanceAlongTrail)
+        : mainKmToRoute(route, poi.distanceAlongTrail);
       return km === null ? [] : [{ ...poi, distanceAlongTrail: km }];
     });
   }

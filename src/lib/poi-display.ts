@@ -372,7 +372,7 @@ export function mirrorPoiDistances<P extends MirrorablePoi>(
     // out from it), so its POIs take the walked-out mapping too.
     ...(variants.alternates ?? []).map(v => ({ v, alternate: v.endDistance != null })),
     ...(variants.sideTrips ?? []).map(v => ({ v, alternate: false })),
-  ].filter(({ v }) => v.startDistance != null && (v.points?.length ?? 0) > 0);
+  ].filter(({ v }) => hasPoiLine(v));
   const mainLine = variants.mainLine ?? [];
 
   return pois
@@ -432,6 +432,27 @@ export interface PoiMirrorVariants {
  * a little further off than the one the fetch measured against.
  */
 const VARIANT_MATCH_SLACK_KM = 0.15;
+
+/** Whether a variant can carry POIs: it has a junction km and a line to measure against. */
+function hasPoiLine(variant: PoiMirrorVariant): boolean {
+  return variant.startDistance != null && (variant.points?.length ?? 0) > 0;
+}
+
+/**
+ * The variant (of `variants`, the trail's alternates and side trips) a POI was
+ * measured along, or null when it was measured along the main line — the same
+ * decision `mirrorPoiDistances` makes. `plannedRouteTrail` uses it to put a POI
+ * on a taken alternate at its km along that alternate, not at a main-route km.
+ */
+export function poiVariant<V extends PoiMirrorVariant>(
+  poi: MirrorablePoi,
+  variants: readonly V[],
+  totalDistance: number,
+  mainLine: readonly unknown[] = []
+): V | null {
+  const attached = variants.filter(hasPoiLine).map(v => ({ v }));
+  return attached.length > 0 ? (variantOf(poi, attached, totalDistance, mainLine)?.v ?? null) : null;
+}
 
 /**
  * The variant a POI was measured along, if any.
