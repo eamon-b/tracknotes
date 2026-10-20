@@ -439,19 +439,21 @@ function hasPoiLine(variant: PoiMirrorVariant): boolean {
 }
 
 /**
- * The variant (of `variants`, the trail's alternates and side trips) a POI was
- * measured along, or null when it was measured along the main line — the same
- * decision `mirrorPoiDistances` makes. `plannedRouteTrail` uses it to put a POI
- * on a taken alternate at its km along that alternate, not at a main-route km.
+ * For a trail's variants (its alternates and side trips), a function giving
+ * the variant a POI was measured along, or null when it was measured along the
+ * main line — the same decision `mirrorPoiDistances` makes. `plannedRouteTrail`
+ * uses it to put a POI on a taken alternate at its km along that alternate,
+ * not at a main-route km.
  */
-export function poiVariant<V extends PoiMirrorVariant>(
-  poi: MirrorablePoi,
+export function poiVariantFinder<V extends PoiMirrorVariant>(
   variants: readonly V[],
   totalDistance: number,
   mainLine: readonly unknown[] = []
-): V | null {
+): (poi: MirrorablePoi) => V | null {
+  // Built once per trail, not per POI: Te Araroa asks for thousands.
   const attached = variants.filter(hasPoiLine).map(v => ({ v }));
-  return attached.length > 0 ? (variantOf(poi, attached, totalDistance, mainLine)?.v ?? null) : null;
+  if (attached.length === 0) return () => null;
+  return poi => variantOf(poi, attached, totalDistance, mainLine)?.v ?? null;
 }
 
 /**
