@@ -45,6 +45,46 @@ describe('routes-repo', () => {
     expect(points.map((p) => p.seq)).toEqual([0, 1, 2]);
   });
 
+  it('records the track a route was snapped to, unknown by default', async () => {
+    const d = await db();
+    const unknown = await routesRepo.createRoute(d, sampleRoute());
+    const keyed = await routesRepo.createRoute(d, sampleRoute({ trackKey: '7:abc' }));
+    expect((await routesRepo.getRoute(d, unknown.id))?.trackKey).toBeNull();
+    expect((await routesRepo.getRoute(d, keyed.id))?.trackKey).toBe('7:abc');
+    expect((await routesRepo.getRoute(d, keyed.id))?.offTrailPoints).toBe(0);
+  });
+
+  it('replaces a route’s points and stats after a re-snap, keeping the rest', async () => {
+    const d = await db();
+    const route = await routesRepo.createRoute(d, sampleRoute());
+    await routesRepo.replaceRouteGeometry(d, route.id, {
+      totalKm: 7.5,
+      ascentM: 300,
+      descentM: 100,
+      trackKey: '9:def',
+      offTrailPoints: 1,
+      points: [
+        { kind: 'snap', lat: -23.5, lon: 133.2, km: 0 },
+        { kind: 'sketch', lat: -23.6, lon: 133.3, km: null },
+      ],
+    });
+
+    const stored = await routesRepo.getRoute(d, route.id);
+    expect(stored).toMatchObject({
+      name: 'Day 1',
+      totalKm: 7.5,
+      ascentM: 300,
+      trackKey: '9:def',
+      offTrailPoints: 1,
+      updatedAt: route.updatedAt,
+    });
+    const points = await routesRepo.getRoutePoints(d, route.id);
+    expect(points.map((p) => [p.seq, p.kind, p.km])).toEqual([
+      [0, 'snap', 0],
+      [1, 'sketch', null],
+    ]);
+  });
+
   it('lists routes newest-first, scoped by trail', async () => {
     const d = await db();
     const a = await routesRepo.createRoute(d, sampleRoute({ name: 'A' }));

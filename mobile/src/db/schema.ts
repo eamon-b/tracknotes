@@ -1,7 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { withTransaction } from './transaction';
 
-const SCHEMA_VERSION = 7;
+const SCHEMA_VERSION = 8;
 
 // Fresh v1 schema for Tracknotes. Waypoints and track geometry stay OUT of
 // SQLite — bundled trails ship as JSON assets, and user-imported trails are
@@ -89,12 +89,14 @@ const MIGRATIONS: Record<number, string> = {
   // touching a sketch point is a straight line.
   //
   // Waypoints are referenced only implicitly (a snap point is just a trail
-  // position), so there is no waypoint FK to break on data-version bumps —
-  // routes reference stable trail geometry (km + lat/lon), not positional
-  // waypoint ids. Trail *content* never lives in SQLite (bundled trails are a
-  // Metro require() map; imported ones are JSON files on disk, registered in
-  // `imported_trails` at v4), so `trail_id` is a plain scoping column with no
-  // FK to point at, exactly like `favorites`.
+  // position), so there is no waypoint FK to break on data-version bumps. The
+  // trail geometry is not stable, though: a data update that redraws the track
+  // moves the km under a snap point, so its km is re-derived from its lat/lon
+  // when the track changes (migration 8, `routes-store`). Trail *content*
+  // never lives in SQLite (bundled trails are a Metro require() map; imported
+  // ones are JSON files on disk, registered in `imported_trails` at v4), so
+  // `trail_id` is a plain scoping column with no FK to point at, exactly like
+  // `favorites`.
   2: `
     CREATE TABLE IF NOT EXISTS routes (
       id TEXT PRIMARY KEY NOT NULL,
@@ -309,6 +311,21 @@ const MIGRATIONS: Record<number, string> = {
     ALTER TABLE sync_state ADD COLUMN waypoints_synced_at TEXT;
 
     UPDATE schema_version SET version = 7;
+  `,
+
+  // Migration 8: what track a custom route's snap km were taken from.
+  //
+  // `track_key` is `routeTrackKey` of the track the route was last snapped to;
+  // when the guide opens on a different track the route's points are snapped
+  // again from their lat/lon and its stats recomputed. NULL (every route saved
+  // before this) is "unknown", so each is snapped once. `off_trail_points`
+  // counts the snap points a re-snap found the trail no longer passes (they
+  // became sketch points), so the Routes screen can tell the hiker.
+  8: `
+    ALTER TABLE routes ADD COLUMN track_key TEXT;
+    ALTER TABLE routes ADD COLUMN off_trail_points INTEGER NOT NULL DEFAULT 0;
+
+    UPDATE schema_version SET version = 8;
   `,
 };
 

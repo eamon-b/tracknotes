@@ -3,9 +3,11 @@ import {
   classifyTap,
   computeRouteLegs,
   computeRouteStats,
+  resnapRoutePoints,
   routeHighlightRanges,
   routePointsToActive,
   routePointsToNobo,
+  routeTrackKey,
   type RoutePointInput,
   type RouteTrackPoint,
 } from '../route-geometry';
@@ -235,5 +237,79 @@ describe('route km across a direction flip', () => {
     const pts = [snap(1), sketch(1, 1)];
     expect(routePointsToNobo(pts, 'NOBO', 4)).toBe(pts);
     expect(routePointsToActive(pts, 'SOBO', 4)[1]).toEqual(sketch(1, 1));
+  });
+});
+
+describe('re-snapping a saved route after a data update', () => {
+  // The track as a route was drawn on: a 5 km detour between lon 0.03 and
+  // 0.04 (km 3 → 9), then on to lon 0.06 (km 11).
+  const OLD: RouteTrackPoint[] = [
+    { lat: 0, lon: 0.0, ele: 100, dist: 0 },
+    { lat: 0, lon: 0.01, ele: 150, dist: 1 },
+    { lat: 0, lon: 0.02, ele: 120, dist: 2 },
+    { lat: 0, lon: 0.03, ele: 200, dist: 3 },
+    { lat: 0, lon: 0.04, ele: 180, dist: 9 },
+    { lat: 0, lon: 0.05, ele: 160, dist: 10 },
+    { lat: 0, lon: 0.06, ele: 140, dist: 11 },
+  ];
+  // The update: the detour is gone (5 km shorter past lon 0.03), and the
+  // trail now ends at lon 0.05.
+  const NEW: RouteTrackPoint[] = OLD.slice(0, 6).map((p, i) => ({
+    ...p,
+    dist: i <= 3 ? p.dist : p.dist - 5,
+  }));
+  const at = (track: RouteTrackPoint[], lon: number): RoutePointInput => {
+    const p = track.find((t) => t.lon === lon)!;
+    return { kind: 'snap', lat: p.lat, lon: p.lon, km: p.dist };
+  };
+
+  it('leaves a route on an unchanged track exactly as it was', () => {
+    const saved = [at(OLD, 0.01), sketch(0.01, 0.02), at(OLD, 0.05)];
+    const result = resnapRoutePoints(saved, OLD);
+    expect(result.changed).toBe(false);
+    expect(result.offTrail).toBe(0);
+    expect(result.points).toBe(saved);
+  });
+
+  it('moves the km of every point past the change, keeping the ground', () => {
+    const saved = [at(OLD, 0.01), at(OLD, 0.05)];
+    const result = resnapRoutePoints(saved, NEW);
+    expect(result.changed).toBe(true);
+    expect(result.points.map((p) => p.km)).toEqual([1, 5]);
+    expect(result.points.map((p) => p.lon)).toEqual([0.01, 0.05]);
+    // The span is now 4 km, where the stale km would have claimed 9.
+    expect(computeRouteStats(result.points, NEW).totalKm).toBe(4);
+  });
+
+  it('turns a point the trail no longer passes into a counted sketch point', () => {
+    const saved = [at(OLD, 0.02), at(OLD, 0.06), sketch(0.01, 0.02)];
+    const result = resnapRoutePoints(saved, NEW);
+    expect(result.offTrail).toBe(1);
+    expect(result.points[1]).toEqual({ kind: 'sketch', lat: 0, lon: 0.06, km: null });
+    // The hiker's own off-trail tap is not counted, and stays as it was.
+    expect(result.points[2]).toBe(saved[2]);
+  });
+
+  it('keeps a route drawn walking SOBO on the same ground', () => {
+    const reversed = (track: RouteTrackPoint[]) => {
+      const total = track[track.length - 1].dist;
+      return [...track].reverse().map((p) => ({ ...p, dist: total - p.dist }));
+    };
+    // Tapped SOBO on the old track at lon 0.05 and 0.01, saved NOBO-absolute.
+    const tapped = [classifyTap(0, 0.05, reversed(OLD)), classifyTap(0, 0.01, reversed(OLD))];
+    const saved = routePointsToNobo(tapped, 'SOBO', 11);
+    const { points } = resnapRoutePoints(saved, NEW);
+    expect(points.map((p) => p.km)).toEqual([5, 1]);
+    // Viewed SOBO on the new 5 km track: the same lon 0.01-0.05 stretch.
+    const sobo = routePointsToActive(points, 'SOBO', 5);
+    expect(routeHighlightRanges(sobo, reversed(NEW))).toEqual([{ startKm: 0, endKm: 4 }]);
+  });
+});
+
+describe('routeTrackKey', () => {
+  it('is the same for the same track and changes when a km does', () => {
+    expect(routeTrackKey(TRACK)).toBe(routeTrackKey(TRACK.map((p) => ({ ...p }))));
+    const moved = TRACK.map((p, i) => (i === 3 ? { ...p, dist: 3.5 } : p));
+    expect(routeTrackKey(moved)).not.toBe(routeTrackKey(TRACK));
   });
 });

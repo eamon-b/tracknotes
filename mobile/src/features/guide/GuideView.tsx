@@ -24,6 +24,9 @@ import { spacing } from '../../tokens';
 import { useFavoritesStore } from '../../state/favorites-store';
 import { refreshStopKms } from '@lib/plan-editor';
 import type { PlanDocument } from '@lib/plan-types';
+import { routeBreakStarts } from '@lib/route-breaks';
+import { useRoutesStore } from '../routes/routes-store';
+import type { RouteTrackPoint } from '../routes/route-geometry';
 import { selectPlan, usePlansStore } from '../../state/plans-store';
 import { useCommentSync } from '../../sync/connectivity';
 import { ElevationPane } from '../elevation/ElevationPane';
@@ -92,6 +95,23 @@ function GuidePanes() {
     if (!plan || refresh(plan) === plan) return;
     void usePlansStore.getState().apply(trailId, refresh, { dataUpdatedAt });
   }, [plan, baseTrail, trailId, dataUpdatedAt]);
+
+  // The same for custom routes: a redrawn track moves the km under every saved
+  // route's snap points, so each is snapped again from its lat/lon. Against
+  // the stored (NOBO) display track, the one their km are saved on; a no-op
+  // once the routes were saved against this track.
+  const baseDisplay = baseTrail.track.displayPoints;
+  const baseBreaks = baseTrail.track.breaks;
+  useEffect(() => {
+    void useRoutesStore
+      .getState()
+      .resnap(
+        trailId,
+        baseDisplay as RouteTrackPoint[],
+        routeBreakStarts(baseBreaks, 'displayPoints'),
+      )
+      .catch(() => {});
+  }, [trailId, baseDisplay, baseBreaks]);
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
