@@ -270,14 +270,26 @@ export function mainKmToRoute(route: PlannedRoute, km: number): number | null {
 }
 
 /**
+ * How far past either end of an alternate a stop on it may sit and still be on
+ * it (km). The build rounds an alternate's length to 0.1 km and its waypoints'
+ * km to 0.01 km, so a stop at the alternate's last place can overshoot its
+ * recorded end by up to 0.05 km; a stop further out than this is somewhere the
+ * alternate no longer reaches (it was shortened by a data update).
+ */
+export const ALTERNATE_END_SLACK_KM = 0.1;
+
+/**
  * Route km of a km on an alternate (its own absolute scale: branch km plus km
- * along it), or null when the plan does not take that alternate.
+ * along it), or null when the plan does not take that alternate or the km is
+ * not on it — never clamped to the alternate's ends, which would show a stop
+ * the data no longer places at the branch or the rejoin as if it were there.
  */
 export function alternateKmToRoute(route: PlannedRoute, name: string, km: number): number | null {
   for (const segment of route.segments) {
     if (segment.kind !== 'alternate' || segment.alternate.name !== name) continue;
-    const along = Math.min(Math.max(km - segment.alternate.startKm, 0), segment.alternate.distanceKm);
-    return segment.routeFromKm + along;
+    const along = km - segment.alternate.startKm;
+    if (along < -ALTERNATE_END_SLACK_KM || along > segment.alternate.distanceKm + ALTERNATE_END_SLACK_KM) return null;
+    return segment.routeFromKm + Math.min(Math.max(along, 0), segment.alternate.distanceKm);
   }
   return null;
 }
@@ -652,6 +664,14 @@ function splitForRoute(plan: PlanDocument, route: PlannedRoute): { shown: PlanSt
   placed.sort((a, b) => a.view.km - b.view.km);
   const { kept, dropped } = partitionDuplicates(placed, entry => entry.view, () => '');
   return { shown: kept.map(entry => entry.view), hidden: [...hidden, ...dropped.map(entry => entry.stored)] };
+}
+
+/**
+ * The stored stops a route view of `plan` leaves out (`splitForRoute`), as
+ * stored: what `planStopIssues` reports so a stop never drops out of sight.
+ */
+export function stopsHiddenOnRoute(plan: PlanDocument, route: PlannedRoute): PlanStop[] {
+  return splitForRoute(plan, route).hidden;
 }
 
 /**
