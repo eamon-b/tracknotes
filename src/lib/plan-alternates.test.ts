@@ -237,7 +237,10 @@ describe('plannedRouteTrail: POIs found along an alternate', () => {
     expect(kmOf(routed.pois, 2)).toBeCloseTo(45);
   });
 
-  it('leaves them on main-route km when the plan takes another alternate', () => {
+  // Unchanged by this rule, and not a placement to rely on: a POI on an
+  // alternate the plan does not take keeps its own-scale km read as main km,
+  // as on a plan that takes no alternate at all (follow-up to #205's review).
+  it('leaves them where they were when the plan takes another alternate', () => {
     const trail = trailFixture({ alternates: [bowAlternate(), bowAlternate('Alt: Other', 60, 80)], pois: [apex] });
     const route = buildPlannedRoute(trail, ['Alt: Other']);
     expect(kmOf(plannedRouteTrail(trail, route).pois, 1)).toBe(mainKmToRoute(route, 35));
