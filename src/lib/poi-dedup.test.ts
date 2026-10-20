@@ -236,6 +236,21 @@ describe('markDuplicatePois', () => {
     expect(namesDistinguished('Creek Camp S', 'Creek Camp')).toBe(true);
   });
 
+  it('reads a lone compass letter only at an end of the name, never as an initial', () => {
+    expect(nameTokens('Creek Camp S')).toEqual(['creek', 'south']);
+    expect(nameTokens('N Branch Hut')).toEqual(['north', 'branch']);
+    // Mid-name it is a word, not a direction.
+    expect(nameTokens("Night 'n Day")).toEqual(['night', 'n', 'day']);
+    // Beside another lone letter it is an initial.
+    expect(nameTokens('J W McMahon')).toEqual(['j', 'w', 'mcmahon']);
+    expect(nameTokens('W J Smith Hut')).toEqual(['w', 'j', 'smith']);
+    expect(nameTokens('Smith J W')).toEqual(['smith', 'j', 'w']);
+    expect(namesDistinguished("Night 'n Day", 'Night n Day')).toBe(false);
+    expect(namesDistinguished('J W McMahon', 'J W McMahon Hut')).toBe(false);
+    // The three-letter forms still expand anywhere.
+    expect(nameTokens('Buenba Nth Flat')).toEqual(['buenba', 'north', 'flat']);
+  });
+
   it('folds a campsite named only with generic words like an unnamed one', () => {
     const [marked] = markDuplicatePois(
       [poi({ name: 'Campsite', lat: latOffset(6) })],
@@ -250,6 +265,14 @@ describe('markDuplicatePois', () => {
     const [marked] = markDuplicatePois(
       [poi({ name: '恵比須浜キャンプ村', lat: latOffset(23) })],
       [wp({ name: 'Ebisuhama Ohenro Rest Hut', type: 'hut' })]
+    )!;
+    expect(marked.duplicateOf).toBeUndefined();
+  });
+
+  it('never folds by position a mixed-script name whose Latin words are generic', () => {
+    const [marked] = markDuplicatePois(
+      [poi({ name: '遍路小屋 Campsite', lat: latOffset(6) })],
+      [wp({ name: 'Mackays Hut', type: 'hut' })]
     )!;
     expect(marked.duplicateOf).toBeUndefined();
   });

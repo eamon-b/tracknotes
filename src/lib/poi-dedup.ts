@@ -139,11 +139,31 @@ const ABBREVIATIONS: Readonly<Record<string, string>> = {
   mt: 'mount',
   nth: 'north',
   sth: 'south',
+};
+
+/**
+ * Single-letter compass abbreviations. A lone letter is only a direction at
+ * either end of a name (`Creek Camp S`, `N Branch Hut`) and not beside another
+ * lone letter: mid-name it is the `'n` of `Night 'n Day`, and beside another
+ * letter it is an initial (`J W McMahon`, `W J Smith`).
+ */
+const COMPASS_LETTERS: Readonly<Record<string, string>> = {
   n: 'north',
   s: 'south',
   e: 'east',
   w: 'west',
 };
+
+function expandAbbreviation(token: string, index: number, tokens: readonly string[]): string {
+  const word = ABBREVIATIONS[token];
+  if (word) return word;
+  const compass = COMPASS_LETTERS[token];
+  if (!compass) return token;
+  const last = tokens.length - 1;
+  if (index !== 0 && index !== last) return token;
+  const neighbour = index === 0 ? tokens[1] : tokens[last - 1];
+  return neighbour !== undefined && neighbour.length === 1 ? token : compass;
+}
 
 /** Curator prefixes used in the bundled GPX files (`R: Ormiston Gorge`). */
 const CURATOR_PREFIX = /^(closed\s*c?\s*-?\s*|c\?\s*|r:\s*|kiosk:\s*)/i;
@@ -191,10 +211,11 @@ export function nameTokens(name: string | null | undefined, keepGeneric = false)
     .replace(/[^a-z0-9 ]/g, ' ');
   return cleaned
     .split(/\s+/)
+    .filter(token => token.length > 0)
     // `Mt Wills Hut` in the guide is `Mount Wills Hut` in OSM, and `Nth` /
     // `S` are the compass words `DISTINGUISHING_WORDS` must see.
-    .map(token => ABBREVIATIONS[token] ?? token)
-    .filter(token => token.length > 0 && (keepGeneric || !GENERIC_WORDS.has(token)));
+    .map(expandAbbreviation)
+    .filter(token => keepGeneric || !GENERIC_WORDS.has(token));
 }
 
 /** Longest-common-subsequence ratio, the same measure `difflib` reports. */
@@ -458,6 +479,9 @@ export function markDuplicatePois(
   });
 }
 
+/** A letter from any script but Latin. */
+const NON_LATIN_LETTER = /[^\P{L}\p{Script=Latin}]/u;
+
 /**
  * Whether a POI has no name worth comparing: none, blank, or only generic
  * words (`Campsite`, `Camp Site`). A name in another script is *not* unnamed —
@@ -465,6 +489,9 @@ export function markDuplicatePois(
  */
 function isUnnamed(name: string | null | undefined): boolean {
   if (!name || name.trim() === '') return true;
+  // Any letter outside the Latin script is name content `nameTokens` drops, so
+  // `遍路小屋 Campsite` is a name, not the generic `Campsite`.
+  if (NON_LATIN_LETTER.test(name)) return false;
   const all = nameTokens(name, true);
   return all.length > 0 && nameTokens(name).length === 0;
 }
