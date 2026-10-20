@@ -306,10 +306,58 @@ describe('re-snapping a saved route after a data update', () => {
   });
 });
 
+describe('re-snapping on an out-and-back', () => {
+  // Out along lon 0 → 0.03 (km 0-3), then back over the same vertices
+  // (km 4-6): every place on it is passed twice.
+  const OUT_BACK: RouteTrackPoint[] = [0, 0.01, 0.02, 0.03, 0.02, 0.01, 0].map((lon, i) => ({
+    lat: 0,
+    lon,
+    ele: 100,
+    dist: i,
+  }));
+  const onReturn = (km: number): RoutePointInput => {
+    const p = OUT_BACK[km];
+    return { kind: 'snap', lat: p.lat, lon: p.lon, km: p.dist };
+  };
+
+  it('leaves a route on the return leg alone when the track is unchanged', () => {
+    const saved = [onReturn(4), onReturn(5)];
+    const result = resnapRoutePoints(saved, OUT_BACK);
+    expect(result.changed).toBe(false);
+    expect(result.points).toBe(saved);
+  });
+
+  it('keeps it on the return leg when the km under it shift', () => {
+    // A 0.5 km lead-in added before the start shifts every km by 0.5.
+    const shifted: RouteTrackPoint[] = [
+      { lat: 0, lon: -0.005, ele: 100, dist: 0 },
+      ...OUT_BACK.map((p) => ({ ...p, dist: p.dist + 0.5 })),
+    ];
+    const { points } = resnapRoutePoints([onReturn(4), onReturn(5)], shifted);
+    // By position alone both would land on the way out (km 2.5 and 1.5).
+    expect(points.map((p) => p.km)).toEqual([4.5, 5.5]);
+  });
+
+  it('reads the shift off a point the track passes once when the legs are as far apart as it', () => {
+    // A 1 km lead-in: the return-leg point at old km 4 now has passes at
+    // km 3 and 5, equally near its stored km. The turnaround (old km 3,
+    // passed once) is at km 4 now, so the route moved by +1: km 5.
+    const shifted: RouteTrackPoint[] = [
+      { lat: 0, lon: -0.01, ele: 100, dist: 0 },
+      ...OUT_BACK.map((p) => ({ ...p, dist: p.dist + 1 })),
+    ];
+    const { points } = resnapRoutePoints([onReturn(3), onReturn(4)], shifted);
+    expect(points.map((p) => p.km)).toEqual([4, 5]);
+  });
+});
+
 describe('routeTrackKey', () => {
   it('is the same for the same track and changes when a km does', () => {
     expect(routeTrackKey(TRACK)).toBe(routeTrackKey(TRACK.map((p) => ({ ...p }))));
     const moved = TRACK.map((p, i) => (i === 3 ? { ...p, dist: 3.5 } : p));
     expect(routeTrackKey(moved)).not.toBe(routeTrackKey(TRACK));
+    // Heights too: the stored ascent and descent come from them.
+    const raised = TRACK.map((p, i) => (i === 3 ? { ...p, ele: p.ele + 10 } : p));
+    expect(routeTrackKey(raised)).not.toBe(routeTrackKey(TRACK));
   });
 });

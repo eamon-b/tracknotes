@@ -184,7 +184,7 @@ export async function replaceRouteGeometry(
   geometry: RouteGeometry,
 ): Promise<void> {
   await withTransaction(db, async () => {
-    await db.runAsync(
+    const { changes } = await db.runAsync(
       `UPDATE routes SET total_km = ?, ascent_m = ?, descent_m = ?, track_key = ?, off_trail_points = ?
        WHERE id = ?`,
       [
@@ -196,6 +196,8 @@ export async function replaceRouteGeometry(
         id,
       ],
     );
+    // Deleted meanwhile: writing its points would leave rows with no route.
+    if (changes === 0) return;
     await db.runAsync('DELETE FROM route_points WHERE route_id = ?', [id]);
     await insertPoints(db, id, geometry.points);
   });

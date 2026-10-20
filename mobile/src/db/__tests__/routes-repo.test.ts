@@ -85,6 +85,21 @@ describe('routes-repo', () => {
     ]);
   });
 
+  it('writes no points for a route deleted before its re-snap is saved', async () => {
+    const d = await db();
+    const route = await routesRepo.createRoute(d, sampleRoute());
+    await routesRepo.deleteRoute(d, route.id);
+    await routesRepo.replaceRouteGeometry(d, route.id, {
+      totalKm: 1,
+      ascentM: 0,
+      descentM: 0,
+      trackKey: '9:def',
+      offTrailPoints: 0,
+      points: [{ kind: 'snap', lat: -23.5, lon: 133.2, km: 0 }],
+    });
+    expect(await routesRepo.getRoutePoints(d, route.id)).toEqual([]);
+  });
+
   it('lists routes newest-first, scoped by trail', async () => {
     const d = await db();
     const a = await routesRepo.createRoute(d, sampleRoute({ name: 'A' }));
