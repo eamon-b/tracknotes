@@ -34,6 +34,10 @@ export interface Route {
   totalKm: number;
   ascentM: number;
   descentM: number;
+  /** `routeTrackKey` of the track the snap km were taken from; null = unknown. */
+  trackKey: string | null;
+  /** Snap points a data update left off the trail (now sketch points). */
+  offTrailPoints: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -45,6 +49,18 @@ export interface NewRoute {
   totalKm: number;
   ascentM: number;
   descentM: number;
+  /** The track the points were snapped to, when known (see `Route.trackKey`). */
+  trackKey?: string | null;
+  points: Omit<RoutePoint, 'seq'>[];
+}
+
+/** A route's geometry snapped to a changed track (`replaceRouteGeometry`). */
+export interface RouteGeometry {
+  totalKm: number;
+  ascentM: number;
+  descentM: number;
+  trackKey: string;
+  offTrailPoints: number;
   points: Omit<RoutePoint, 'seq'>[];
 }
 
@@ -55,6 +71,8 @@ interface RouteRow {
   total_km: number;
   ascent_m: number;
   descent_m: number;
+  track_key: string | null;
+  off_trail_points: number;
   created_at: string;
   updated_at: string;
 }
@@ -75,6 +93,8 @@ function rowToRoute(row: RouteRow): Route {
     totalKm: row.total_km,
     ascentM: row.ascent_m,
     descentM: row.descent_m,
+    trackKey: row.track_key,
+    offTrailPoints: row.off_trail_points,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -85,24 +105,33 @@ export function generateRouteId(): string {
   return `r_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 }
 
+async function insertPoints(
+  db: SqlDatabase,
+  routeId: string,
+  points: Omit<RoutePoint, 'seq'>[],
+): Promise<void> {
+  for (let seq = 0; seq < points.length; seq++) {
+    const p = points[seq];
+    await db.runAsync(
+      'INSERT INTO route_points (route_id, seq, kind, lat, lon, km) VALUES (?, ?, ?, ?, ?, ?)',
+      [routeId, seq, p.kind, p.lat, p.lon, p.km ?? null],
+    );
+  }
+}
+
 /** Persist a route and its ordered points (transactional). */
 export async function createRoute(db: SqlDatabase, input: NewRoute): Promise<Route> {
   const id = generateRouteId();
   const now = new Date().toISOString();
+  const trackKey = input.trackKey ?? null;
 
   await withTransaction(db, async () => {
     await db.runAsync(
-      `INSERT INTO routes (id, trail_id, name, total_km, ascent_m, descent_m, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, input.trailId, input.name, input.totalKm, input.ascentM, input.descentM, now, now],
+      `INSERT INTO routes (id, trail_id, name, total_km, ascent_m, descent_m, track_key, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, input.trailId, input.name, input.totalKm, input.ascentM, input.descentM, trackKey, now, now],
     );
-    for (let seq = 0; seq < input.points.length; seq++) {
-      const p = input.points[seq];
-      await db.runAsync(
-        'INSERT INTO route_points (route_id, seq, kind, lat, lon, km) VALUES (?, ?, ?, ?, ?, ?)',
-        [id, seq, p.kind, p.lat, p.lon, p.km ?? null],
-      );
-    }
+    await insertPoints(db, id, input.points);
   });
 
   return {
@@ -112,6 +141,8 @@ export async function createRoute(db: SqlDatabase, input: NewRoute): Promise<Rou
     totalKm: input.totalKm,
     ascentM: input.ascentM,
     descentM: input.descentM,
+    trackKey,
+    offTrailPoints: 0,
     createdAt: now,
     updatedAt: now,
   };
@@ -141,6 +172,33 @@ export async function getRoutePoints(db: SqlDatabase, routeId: string): Promise<
     [routeId],
   );
   return rows.map((r) => ({ seq: r.seq, kind: r.kind, lat: r.lat, lon: r.lon, km: r.km }));
+}
+
+/**
+ * Replace a route's points and stats after snapping it to a changed track
+ * (transactional). Not an edit by the hiker, so `updated_at` is left alone.
+ */
+export async function replaceRouteGeometry(
+  db: SqlDatabase,
+  id: string,
+  geometry: RouteGeometry,
+): Promise<void> {
+  await withTransaction(db, async () => {
+    await db.runAsync(
+      `UPDATE routes SET total_km = ?, ascent_m = ?, descent_m = ?, track_key = ?, off_trail_points = ?
+       WHERE id = ?`,
+      [
+        geometry.totalKm,
+        geometry.ascentM,
+        geometry.descentM,
+        geometry.trackKey,
+        geometry.offTrailPoints,
+        id,
+      ],
+    );
+    await db.runAsync('DELETE FROM route_points WHERE route_id = ?', [id]);
+    await insertPoints(db, id, geometry.points);
+  });
 }
 
 /** Delete a route and its points (transactional; independent of FK pragma). */

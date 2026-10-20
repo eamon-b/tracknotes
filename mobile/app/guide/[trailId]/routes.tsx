@@ -104,6 +104,11 @@ export default function RoutesScreen() {
                 <Text style={[styles.stats, { color: colors.textSecondary }]}>
                   {formatDistance(route.totalKm, units)} · ↑ {formatElevation(route.ascentM, units)}
                 </Text>
+                {route.offTrailPoints > 0 && (
+                  <Text style={[styles.notice, { color: colors.warning }]}>
+                    {offTrailNotice(route.offTrailPoints)}
+                  </Text>
+                )}
               </Pressable>
 
               <Pressable
@@ -121,6 +126,15 @@ export default function RoutesScreen() {
       )}
     </ScreenScrollView>
   );
+}
+
+/**
+ * A data update redrew the trail and some of the route's on-trail points are
+ * no longer on it: they are kept where they were, joined by straight lines.
+ */
+function offTrailNotice(count: number): string {
+  const points = count === 1 ? '1 point is' : `${count} points are`;
+  return `The trail data changed since this route was drawn; ${points} no longer on the trail.`;
 }
 
 const styles = StyleSheet.create({
@@ -161,6 +175,7 @@ const styles = StyleSheet.create({
   },
   activeBadgeText: { ...typography.caption, fontWeight: '700' },
   stats: { ...typography.bodySmall, fontVariant: ['tabular-nums'] },
+  notice: { ...typography.bodySmall },
   delete: { paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
   deleteText: { ...typography.titleSmall },
   pressed: { opacity: 0.6 },

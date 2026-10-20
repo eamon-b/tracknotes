@@ -32,8 +32,16 @@
  * walking one way still marks the same stretch after a direction flip.
  * `routePointsToNobo` converts on save and `routePointsToActive` on the way
  * back to the map and the profile. Routes saved before this rule have no
- * record of the direction they were drawn in; they are read as NOBO, which is
- * right for every route drawn with the default direction.
+ * record of the direction they were drawn in; their km are re-derived from
+ * their lat/lon on the NOBO track by their first re-snap (below), which puts a
+ * route drawn walking SOBO back on its own ground.
+ *
+ * A snap point's km is only true of the track it was snapped against. A data
+ * update that redraws the trail (a re-route, a spur moved to its real fork)
+ * shifts every km past the change, so a saved route would mark the wrong
+ * stretch. Its stored lat/lon is still right, though: `resnapRoutePoints`
+ * snaps each point to the current track again, keyed by `routeTrackKey` so it
+ * runs once per change of geometry (see `routes-store`).
  */
 
 import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
@@ -100,6 +108,80 @@ function nearerSegmentEnd(track: RouteTrackPoint[], index: number, km: number): 
   const end = track[index + 1];
   if (!end) return start;
   return Math.abs(end.dist - km) < Math.abs(km - start.dist) ? end : start;
+}
+
+/**
+ * A fingerprint of the track a route is snapped against: changes whenever any
+ * point's position or km does, and only then. FNV-1a over the rounded values,
+ * so it is stable across reads of the same data and needs no crypto.
+ */
+export function routeTrackKey(track: readonly RouteTrackPoint[]): string {
+  let hash = 0x811c9dc5;
+  const mix = (text: string) => {
+    for (let i = 0; i < text.length; i++) {
+      hash ^= text.charCodeAt(i);
+      hash = Math.imul(hash, 0x01000193);
+    }
+  };
+  for (const p of track) {
+    mix(p.lat.toFixed(6));
+    mix(p.lon.toFixed(6));
+    mix(p.dist.toFixed(4));
+  }
+  return `${track.length}:${(hash >>> 0).toString(16)}`;
+}
+
+/** Km moves smaller than this are floating-point noise, not a moved point. */
+const RESNAP_EPSILON_KM = 1e-6;
+
+/** What `resnapRoutePoints` did to a route. */
+export interface ResnapResult<P extends RoutePointInput> {
+  points: P[];
+  /** True when any point moved or changed kind. */
+  changed: boolean;
+  /** Snap points no longer within the snap threshold of the track (now sketch). */
+  offTrail: number;
+}
+
+/**
+ * Snap a saved route's on-trail points to `track` again, from their stored
+ * lat/lon: each gets the km of the vertex it lands on now, the same rule a
+ * tap gets (`classifyTap`). A point the track no longer passes becomes a
+ * sketch point where it was, so the route still goes there, in a straight
+ * line, and the caller can say so. Sketch points are the hiker's own off-trail
+ * taps and are left alone. On an unchanged track every point comes back as the
+ * same object.
+ *
+ * Pass the track the km are stored on (the NOBO one: saved routes are
+ * NOBO-absolute), so the new km need no conversion.
+ */
+export function resnapRoutePoints<P extends RoutePointInput>(
+  points: readonly P[],
+  track: RouteTrackPoint[],
+  thresholdM: number = SNAP_THRESHOLD_M,
+): ResnapResult<P> {
+  let changed = false;
+  let offTrail = 0;
+  const next = points.map((p) => {
+    if (!isSnap(p)) return p;
+    const snapped = classifyTap(p.lat, p.lon, track, thresholdM);
+    if (snapped.kind === 'sketch') {
+      changed = true;
+      offTrail++;
+      return { ...p, kind: 'sketch' as const, km: null };
+    }
+    const km = snapped.km as number;
+    if (
+      Math.abs(km - (p.km as number)) < RESNAP_EPSILON_KM &&
+      snapped.lat === p.lat &&
+      snapped.lon === p.lon
+    ) {
+      return p;
+    }
+    changed = true;
+    return { ...p, lat: snapped.lat, lon: snapped.lon, km };
+  });
+  return { points: changed ? next : (points as P[]), changed, offTrail };
 }
 
 /**
