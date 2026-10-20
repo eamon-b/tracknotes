@@ -39,6 +39,7 @@ import {
   setStopBooked as editStopBooked,
   setStopNote as editStopNote,
   refreshStopKms,
+  removeStoredStop,
   splitUnplannedTail,
   stampPlanData,
   toggleStop as editToggleStop,
@@ -88,7 +89,8 @@ import {
 import { analyzeWaterCarry } from '@lib/water-carry-calculator';
 import { createReversedTrail } from '@lib/trail-reverse';
 import { trailElevationIsUsable } from '@lib/elevation-backfill';
-import { KM_EPSILON, getDirectionLabel, stopsToActive, toNoboKm, type PlanDirection } from '@lib/plan-direction';
+import { KM_EPSILON, getDirectionLabel, stopsToActive, toActiveKm, toNoboKm, type PlanDirection } from '@lib/plan-direction';
+import { planStopIssues, stopIssueText, stopIssuesNotice, type StopIssue } from '@lib/plan-stop-issues';
 import { baseWaypointType, waypointTypeLabel } from '@lib/waypoint-taxonomy';
 import { waypointFamilyClass, waypointIcon } from './waypoint-icons';
 import { accessPathLayer, hasAccessPath } from './access-path';
@@ -189,6 +191,12 @@ let storedPlan: PlanDocument;
  */
 let plan: PlanDocument;
 let currentDays: ComputedDay[] = [];
+/**
+ * The stored stops the trail data no longer explains (`planStopIssues`):
+ * listed above the days and the stops with a Remove button, and flagged on
+ * the day card a placed one ends. Refreshed by every render.
+ */
+let stopIssues: StopIssue[] = [];
 /**
  * The stretch after the last stop when it is too long to be a day — "not
  * planned yet" rather than one enormous final day (`splitUnplannedTail`).
@@ -331,11 +339,12 @@ function firstLine(text: string): string {
  * The "Booked" badge and the note, shown wherever a stop is reported: the day
  * card that ends there and that stop's row in the datasheet.
  */
-function stopFooterHtml(stop: PlanStop | undefined): string {
+function stopFooterHtml(stop: PlanStop | undefined, issue?: StopIssue): string {
   if (!stop) return '';
   const note = firstLine(stop.note ?? '');
-  if (!stop.booked && !note) return '';
+  if (!stop.booked && !note && !issue) return '';
   return `<div class="stop-footer">
+      ${issue ? `<span class="stop-issue-badge">\u26A0 ${escapeHtml(stopIssueText(issue.reason))}</span>` : ''}
       ${stop.booked ? '<span class="booked-badge">Booked</span>' : ''}
       ${note ? `<span class="stop-note-text">${escapeHtml(note)}</span>` : ''}
     </div>`;
@@ -1088,6 +1097,69 @@ function setupElevationHover(): void {
 // Left panel — Days tab
 // ---------------------------------------------------------------------------
 
+/** The placed issue whose stop ends a day at `activeKm`, if any. */
+function issueEndingAt(activeKm: number): StopIssue | undefined {
+  const total = routeTrail.track.totalDistance;
+  return stopIssues.find(issue =>
+    issue.routeKm !== null && Math.abs(toActiveKm(issue.routeKm, direction(), total) - activeKm) < KM_EPSILON);
+}
+
+/**
+ * The notice above the days and the stops: how many stops need checking, then
+ * each with its reason — a placed one says which day it ends, an unplaced one
+ * that its nights are not in the dates — and, when the page can edit, a Remove
+ * button. Moving a stop is ticking the place it should be in the Stops tab.
+ */
+function stopIssuesHtml(): string {
+  const notice = stopIssuesNotice(stopIssues);
+  if (notice === null) return '';
+  const rows = stopIssues.map((issue, i) => {
+    const nights = Number(issue.stop.nights);
+    const where = issue.routeKm === null
+      ? `${Number.isFinite(nights) ? nights : 1} night${nights === 1 ? '' : 's'}, not in the dates`
+      : (() => {
+        const activeKm = toActiveKm(issue.routeKm, direction(), routeTrail.track.totalDistance);
+        const day = currentDays.findIndex(d => Math.abs(d.endKm - activeKm) < KM_EPSILON);
+        return day === -1 ? `km ${activeKm.toFixed(1)}` : `ends Day ${currentDays[day].dayNumber}`;
+      })();
+    const remove = readOnly
+      ? ''
+      : `<button type="button" class="stop-issue-remove" data-issue-index="${i}">Remove</button>`;
+    return `<li class="stop-issue">
+        <span class="stop-issue-name">${escapeHtml(issue.stop.name)}</span>
+        <span class="stop-issue-reason">${escapeHtml(stopIssueText(issue.reason))} \u00B7 ${escapeHtml(where)}</span>
+        ${remove}
+      </li>`;
+  }).join('');
+  const hint = readOnly ? '' : '<p class="stop-issues-hint">To move one, tick the place it should be in the Stops tab, then remove it here.</p>';
+  return `<div class="stop-issues" role="status">
+      <p class="stop-issues-notice">\u26A0 ${escapeHtml(notice)}</p>
+      <ul class="stop-issues-list">${rows}</ul>
+      ${hint}
+    </div>`;
+}
+
+function bindStopIssueButtons(container: HTMLElement): void {
+  container.querySelectorAll<HTMLButtonElement>('.stop-issue-remove').forEach(button => {
+    button.addEventListener('click', event => {
+      event.stopPropagation();
+      const issue = stopIssues[Number(button.dataset.issueIndex)];
+      if (issue) removeIssueStop(issue);
+    });
+  });
+}
+
+/** Take a stop that needs checking out of the stored plan (it may not be in the route view). */
+function removeIssueStop(issue: StopIssue): void {
+  if (readOnly) return;
+  const next = removeStoredStop(storedPlan, issue.stop);
+  if (next === storedPlan) return;
+  selectedDayIndex = null;
+  adoptStoredPlan(next);
+  scheduleSave();
+  renderAll();
+}
+
 function renderDayList(): void {
   const container = document.getElementById('days-list');
   if (!container) return;
@@ -1112,14 +1184,16 @@ function renderDayList(): void {
       </div>`
     : '';
 
+  const issuesBlock = stopIssuesHtml();
   if (days.length === 0 || (days.length === 1 && plan.stops.length === 0)) {
-    container.innerHTML = `${elevationNote}<p class="days-empty">Tick stops in the Stops tab, or suggest the next few days above.</p>${unplanned}`;
+    container.innerHTML = `${issuesBlock}${elevationNote}<p class="days-empty">Tick stops in the Stops tab, or suggest the next few days above.</p>${unplanned}`;
+    bindStopIssueButtons(container);
     renderResupplySection();
     renderWaterCarrySection();
     return;
   }
 
-  container.innerHTML = elevationNote + days.map((day, i) => {
+  container.innerHTML = issuesBlock + elevationNote + days.map((day, i) => {
     const dateStr = day.date ? `<span class="day-card-date">${formatDate(day.date)}</span>` : '';
     const waterStr = day.waterSources > 0
       ? `<span class="water-info">${waypointIcon('water')} ${day.waterSources} water</span>`
@@ -1155,7 +1229,7 @@ function renderDayList(): void {
         </div>
         ${viaLine(day)}
         ${restLine}
-        ${stopFooterHtml(stopAtActiveKm(day.endKm))}
+        ${stopFooterHtml(stopAtActiveKm(day.endKm), issueEndingAt(day.endKm))}
       </div>`;
   }).join('') + unplanned;
 
@@ -1165,6 +1239,7 @@ function renderDayList(): void {
       selectDay(selectedDayIndex === idx ? null : idx);
     });
   });
+  bindStopIssueButtons(container);
 
   renderResupplySection();
   renderWaterCarrySection();
@@ -1307,9 +1382,10 @@ function renderStopList(): void {
     : candidates;
 
   if (waypoints.length === 0) {
-    container.innerHTML = candidates.length === 0
+    container.innerHTML = stopIssuesHtml() + (candidates.length === 0
       ? '<p class="days-empty">This trail names nowhere to spend a night. Tick \u201CShow all waypoints\u201D to pick from every point on the route.</p>'
-      : '<p class="days-empty">No waypoints match.</p>';
+      : '<p class="days-empty">No waypoints match.</p>');
+    bindStopIssueButtons(container);
     return;
   }
 
@@ -1368,6 +1444,8 @@ function renderStopList(): void {
       ${stop ? stopEditorHtml(stop) : ''}
     </div>`;
   }).join('') + cardsAt(waypoints.length) + (hereIndex === waypoints.length ? hereDivider : '');
+  container.insertAdjacentHTML('afterbegin', stopIssuesHtml());
+  bindStopIssueButtons(container);
 
   if (scrollStopsToHere) {
     const divider = document.getElementById('stops-here');
@@ -2060,6 +2138,12 @@ function initTabs(): void {
 
 function renderAll(): void {
   refreshActiveStops();
+  // A page whose data has no publish time cannot tell newer data from its
+  // own, so it judges the stops against what it has rather than deferring.
+  stopIssues = planStopIssues(storedPlan, trail, {
+    route: plannedRoute,
+    ...(trail.dataUpdatedAt ? { dataUpdatedAt: trail.dataUpdatedAt } : {}),
+  });
   // Before any renderer asks: every tab, the datasheet, the markers and the
   // profile read the same set, so ticking a stop in the Resupply tab shows up
   // everywhere on the next render rather than on the next tab switch.

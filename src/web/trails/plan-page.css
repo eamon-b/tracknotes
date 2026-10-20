@@ -477,6 +477,41 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }
+.stop-issue-badge {
+  flex-shrink: 0;
+  padding: 0.05rem 0.35rem;
+  border-radius: 999px;
+  background: var(--tint-warn);
+  color: var(--tint-warn-text);
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
+/* Stops the trail data no longer explains (planStopIssues), above the days and the stops. */
+.stop-issues {
+  margin: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  border-left: 3px solid var(--tint-warn-border);
+  background: var(--tint-warn);
+  color: var(--tint-warn-text);
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+.stop-issues-notice { margin: 0 0 0.35rem; font-weight: 600; }
+.stop-issues-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
+.stop-issue { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 0.5rem; }
+.stop-issue-name { font-weight: 600; }
+.stop-issue-reason { flex: 1 1 12rem; min-width: 0; }
+.stop-issue-remove {
+  padding: 0.1rem 0.5rem;
+  border: 1px solid var(--tint-warn-border);
+  border-radius: 4px;
+  background: var(--bg-primary);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+.stop-issues-hint { margin: 0.35rem 0 0; font-size: 0.72rem; }
 
 /* Resupply tab */
 #resupply-controls {
