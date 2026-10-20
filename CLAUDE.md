@@ -39,7 +39,7 @@ npm run preview        # Preview production build locally
 
 ## Reviewing PRs
 
-When asked to review PRs, post the findings on GitHub as a review on each PR (a `COMMENT` review: a summary, findings ranked most serious first with `file:line` and the failure scenario, and a verdict), as well as summarising them in chat. Do not ask first. Note conflicts between open PRs that touch the same files on each of them, and say when a PR has a merge conflict and so has no CI run.
+When asked to review PRs, post the findings on GitHub as a review on each PR (a `COMMENT` review: a summary, findings ranked most serious first with `file:line` and the failure scenario, and a verdict), as well as summarising them in chat. Do not ask first. Note conflicts between open PRs that touch the same files on each of them, and say when a PR has a merge conflict and so has no CI run. On a re-review, say which points from the previous review are now addressed.
 
 ## Architecture Overview
 
