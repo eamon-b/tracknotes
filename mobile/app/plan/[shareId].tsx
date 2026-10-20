@@ -53,6 +53,9 @@ import { usePlansStore } from '../../src/state/plans-store';
 import { selectPrefs, usePlanInputsStore } from '../../src/features/plan/plan-inputs-store';
 import { PACE_KMH, type PlanDay } from '../../src/features/plan/plan-adapters';
 import { DaySplitList } from '../../src/features/plan/DaySplitList';
+import { StopIssuesCard } from '../../src/features/plan/StopIssuesCard';
+import { dayEndWarning, stopIssueRows } from '../../src/features/plan/stop-issues';
+import { planStopIssues, stopIssuesNotice, type StopIssuesTrail } from '@lib/plan-stop-issues';
 
 export const LOAD_FAILED_MESSAGE =
   "Couldn't open that shared plan. The link may have been revoked.";
@@ -206,6 +209,25 @@ export default function SharedPlanScreen() {
     };
   }, [shared, routed, trail, prefs.pace, prefs.dailyHours]);
 
+  // The stops this phone's data no longer explains, named as on the Plan
+  // screen; read-only here, so there is nothing to remove.
+  const issues = useMemo(() => {
+    if (!shownDocument || !rawTrail?.trail) return [];
+    return planStopIssues(shownDocument, rawTrail.trail as unknown as StopIssuesTrail, {
+      dataUpdatedAt: rawTrail.dataUpdatedAt,
+    });
+  }, [shownDocument, rawTrail]);
+  const issueDirection = shownDocument?.direction ?? 'NOBO';
+  const routeTotalKm = trail?.track.totalDistance ?? 0;
+  const issueRows = useMemo(
+    () => stopIssueRows(issues, days, issueDirection, routeTotalKm),
+    [issues, days, issueDirection, routeTotalKm],
+  );
+  const endWarning = useMemo(
+    () => dayEndWarning(issues, issueDirection, routeTotalKm),
+    [issues, issueDirection, routeTotalKm],
+  );
+
   const save = useCallback(
     async (doc: PlanDocument, trailId: string) => {
       setSaving(true);
@@ -307,11 +329,14 @@ export default function SharedPlanScreen() {
           </Text>
         </View>
 
+        <StopIssuesCard notice={stopIssuesNotice(issues)} rows={issueRows} />
+
         <DaySplitList
           days={days}
           unplanned={unplanned}
           targetHours={prefs.dailyHours}
           units={units}
+          endWarning={endWarning}
         />
 
         <Pressable
