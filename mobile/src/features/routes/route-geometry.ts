@@ -112,7 +112,7 @@ function nearerSegmentEnd(track: RouteTrackPoint[], index: number, km: number): 
 
 /**
  * A fingerprint of the track a route is snapped against: changes whenever any
- * point's position or km does, and only then. FNV-1a over the rounded values,
+ * point's position, km or height does, and only then. FNV-1a over the rounded values,
  * so it is stable across reads of the same data and needs no crypto.
  */
 export function routeTrackKey(track: readonly RouteTrackPoint[]): string {
@@ -127,12 +127,17 @@ export function routeTrackKey(track: readonly RouteTrackPoint[]): string {
     mix(p.lat.toFixed(6));
     mix(p.lon.toFixed(6));
     mix(p.dist.toFixed(4));
+    // The stored ascent and descent come from the heights.
+    mix(p.ele.toFixed(1));
   }
   return `${track.length}:${(hash >>> 0).toString(16)}`;
 }
 
 /** Km moves smaller than this are floating-point noise, not a moved point. */
 const RESNAP_EPSILON_KM = 1e-6;
+
+/** A stored snap point this close to the vertex at its own km is still on it (metres). */
+const RESNAP_SAME_VERTEX_M = 1;
 
 /** What `resnapRoutePoints` did to a route. */
 export interface ResnapResult<P extends RoutePointInput> {
@@ -152,6 +157,14 @@ export interface ResnapResult<P extends RoutePointInput> {
  * taps and are left alone. On an unchanged track every point comes back as the
  * same object.
  *
+ * Where the track passes a place twice (an out-and-back), a snap by position
+ * alone lands on whichever pass comes first. So a point still at the vertex
+ * its stored km names is kept as it is, and any other takes, of the passes at
+ * the place it snaps to, the one nearest its stored km moved by the shift seen
+ * at the nearest point of the route the track passes only once: the leg it
+ * was drawn on, even when the update moved the km by about as much as the
+ * legs are apart.
+ *
  * Pass the track the km are stored on (the NOBO one: saved routes are
  * NOBO-absolute), so the new km need no conversion.
  */
@@ -160,28 +173,80 @@ export function resnapRoutePoints<P extends RoutePointInput>(
   track: RouteTrackPoint[],
   thresholdM: number = SNAP_THRESHOLD_M,
 ): ResnapResult<P> {
+  // First pass: where each snap point lands now, and on which passes.
+  type Landing =
+    | { kind: 'kept' }
+    | { kind: 'gone' }
+    | { kind: 'snapped'; lat: number; lon: number; passes: number[] };
+  const landings: (Landing | null)[] = points.map((p) => {
+    if (!isSnap(p)) return null;
+    const storedKm = p.km as number;
+    const atKm = track[findNearestByDistance(track, storedKm)];
+    if (
+      atKm &&
+      Math.abs(atKm.dist - storedKm) < RESNAP_EPSILON_KM &&
+      haversineDistance(atKm.lat, atKm.lon, p.lat, p.lon) <= RESNAP_SAME_VERTEX_M
+    ) {
+      return { kind: 'kept' };
+    }
+    const snapped = classifyTap(p.lat, p.lon, track, thresholdM);
+    if (snapped.kind === 'sketch') return { kind: 'gone' };
+    return { kind: 'snapped', lat: snapped.lat, lon: snapped.lon, passes: passesAt(track, snapped) };
+  });
+
+  // How far the km moved under each point the track passes only once (or
+  // where it was kept): the shift to expect at an ambiguous point next to it.
+  const shifts: (number | null)[] = landings.map((landing, i) => {
+    if (landing?.kind === 'kept') return 0;
+    if (landing?.kind === 'snapped' && landing.passes.length === 1) {
+      return landing.passes[0] - (points[i].km as number);
+    }
+    return null;
+  });
+  const nearestShift = (i: number): number => {
+    for (let d = 1; d < points.length; d++) {
+      const before = shifts[i - d];
+      if (before != null) return before;
+      const after = shifts[i + d];
+      if (after != null) return after;
+    }
+    return 0;
+  };
+
   let changed = false;
   let offTrail = 0;
-  const next = points.map((p) => {
-    if (!isSnap(p)) return p;
-    const snapped = classifyTap(p.lat, p.lon, track, thresholdM);
-    if (snapped.kind === 'sketch') {
+  const next = points.map((p, i) => {
+    const landing = landings[i];
+    if (!landing || landing.kind === 'kept') return p;
+    if (landing.kind === 'gone') {
       changed = true;
       offTrail++;
       return { ...p, kind: 'sketch' as const, km: null };
     }
-    const km = snapped.km as number;
-    if (
-      Math.abs(km - (p.km as number)) < RESNAP_EPSILON_KM &&
-      snapped.lat === p.lat &&
-      snapped.lon === p.lon
-    ) {
+    const storedKm = p.km as number;
+    // Of the passes at this place, the one where this point's leg is now.
+    const expected = storedKm + (shifts[i] ?? nearestShift(i));
+    const km = landing.passes.reduce((best, pass) =>
+      Math.abs(pass - expected) < Math.abs(best - expected) ? pass : best,
+    );
+    if (Math.abs(km - storedKm) < RESNAP_EPSILON_KM && landing.lat === p.lat && landing.lon === p.lon) {
       return p;
     }
     changed = true;
-    return { ...p, lat: snapped.lat, lon: snapped.lon, km };
+    return { ...p, lat: landing.lat, lon: landing.lon, km };
   });
   return { points: changed ? next : (points as P[]), changed, offTrail };
+}
+
+/**
+ * The km of every vertex at `snapped`'s place, in track order: one for most
+ * places, more where the track passes the same ground twice (an out-and-back).
+ */
+function passesAt(track: readonly RouteTrackPoint[], snapped: RoutePointInput): number[] {
+  const passes = track
+    .filter((t) => haversineDistance(t.lat, t.lon, snapped.lat, snapped.lon) <= RESNAP_SAME_VERTEX_M)
+    .map((t) => t.dist);
+  return passes.length > 0 ? passes : [snapped.km as number];
 }
 
 /**

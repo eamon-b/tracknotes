@@ -94,12 +94,20 @@ export const useRoutesStore = create<RoutesState>((set, get) => ({
         moved.set(route.id, points);
       }
 
-      const refreshed = await routesRepo.listRoutes(db, trailId);
+      const refreshed = new Map(
+        (await routesRepo.listRoutes(db, trailId)).map((r) => [r.id, r]),
+      );
       set((s) => {
         const activeId = s.activeIdByTrail[trailId];
         const activePoints = activeId ? moved.get(activeId) : undefined;
+        // Refresh the rows in place rather than replacing the list, so a route
+        // saved or removed while this ran is neither dropped nor brought back.
+        const current = s.byTrail[trailId];
+        const routes = current
+          ? current.map((r) => refreshed.get(r.id) ?? r)
+          : [...refreshed.values()];
         return {
-          byTrail: { ...s.byTrail, [trailId]: refreshed },
+          byTrail: { ...s.byTrail, [trailId]: routes },
           activePointsByTrail: activePoints
             ? { ...s.activePointsByTrail, [trailId]: activePoints }
             : s.activePointsByTrail,
