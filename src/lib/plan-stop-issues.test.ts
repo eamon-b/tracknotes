@@ -1,7 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { alternateKmToRoute, buildPlannedRoute, planToRoute, type PlannableVariant } from './plan-alternates';
-import { computePlanDays, removeStoredStop } from './plan-editor';
-import { planStopIssues, stopIssueText, stopIssuesNotice, type StopIssuesTrail } from './plan-stop-issues';
+import {
+  alternateKmToRoute,
+  buildPlannedRoute,
+  planFromRoute,
+  planToRoute,
+  setPlanAlternate,
+  type PlannableVariant,
+} from './plan-alternates';
+import { assertPlanDocumentWithinLimits, computePlanDays, removeStoredStop, toggleStop } from './plan-editor';
+import {
+  planStopIssues,
+  stopIssueText,
+  stopIssueWhere,
+  stopIssuesNotice,
+  type StopIssuesTrail,
+} from './plan-stop-issues';
 import type { PlanDocument, PlanStop } from './plan-types';
 
 /** Degrees of longitude per km on the equator. */
@@ -163,6 +176,85 @@ describe('planStopIssues', () => {
     expect(stopIssuesNotice([])).toBeNull();
     const placed = planStopIssues(plan([stop(15, 'Old', { waypointId: 'w_gone', nights: 2 })]), trailFixture());
     expect(stopIssuesNotice(placed)).toBe('1 stop needs checking after a trail data update.');
+    // A duplicate can come from a plan edited elsewhere: no data update named.
+    const duplicate = planStopIssues(
+      plan([stop(30, 'Junction'), stop(30, 'Alt start', { alternate: 'Alt' })], { alternates: ['Alt'] }),
+      trailFixture(),
+    );
+    expect(stopIssuesNotice(duplicate)).toBe(
+      '1 stop needs checking. 1 night is left out of the dates until you move or remove it.',
+    );
+  });
+
+  it('says where a stop is the same way on every planner', () => {
+    const [placed] = planStopIssues(plan([stop(15, 'Old', { waypointId: 'w_gone' })]), trailFixture());
+    expect(stopIssueWhere(placed, 2)).toBe('Ends day 2');
+    expect(stopIssueWhere(placed, null)).toBe('Outside the section shown');
+    const [unplaced] = planStopIssues(plan([stop(120, 'Beyond', { nights: 3 })]), trailFixture());
+    expect(stopIssueWhere(unplaced, null)).toBe('3 nights, not in the dates');
+  });
+});
+
+/** The fixture with Alt cut to 15 km by a data update, and a second alternate "B" off km 70. */
+function updatedTrailFixture(): StopIssuesTrail {
+  const trail = trailFixture();
+  const alt = trail.alternates![0];
+  const b: PlannableVariant = {
+    ...alt,
+    name: 'B',
+    points: alt.points.map(p => ({ ...p, lon: p.lon + 40 * DEG_PER_KM })),
+    startDistance: 70,
+    endDistance: 90,
+    waypoints: [],
+  };
+  return {
+    ...trail,
+    alternates: [{ ...alt, distance: 15, points: alt.points.slice(0, 16), waypoints: alt.waypoints!.slice(0, 1) }, b],
+  };
+}
+
+describe('setPlanAlternate keeps the stops it does not move', () => {
+  const NOW = { now: () => '2026-10-02T00:00:00.000Z' };
+
+  it('keeps a stop past the end of a shortened alternate when another alternate is taken', () => {
+    const trail = updatedTrailFixture();
+    const hut = stop(54, 'Alt Hut', { waypointId: 'w_althut', alternate: 'Alt', nights: 2, note: 'Book' });
+    const doc = plan([hut], { alternates: ['Alt'] });
+    expect(planStopIssues(doc, trail).map(i => i.reason)).toEqual(['off-alternate']);
+    const next = setPlanAlternate(doc, trail, 'B', true, NOW);
+    expect(next.alternates).toEqual(['Alt', 'B']);
+    expect(next.stops).toEqual([hut]);
+  });
+
+  it('keeps a main-route stop past the end of the trail', () => {
+    const beyond = stop(120, 'Beyond', { nights: 2 });
+    const next = setPlanAlternate(plan([beyond]), updatedTrailFixture(), 'B', true, NOW);
+    expect(next.stops).toEqual([beyond]);
+  });
+
+  it('still drops a stop the edit itself takes off the route and cannot move', () => {
+    const doc = plan([stop(40, 'Alt Camp', { alternate: 'Alt' })], { alternates: ['Alt'] });
+    expect(setPlanAlternate(doc, updatedTrailFixture(), 'Alt', false, NOW).stops).toEqual([]);
+  });
+});
+
+describe('moving a stop that needs checking by ticking its place', () => {
+  it('moves a stop on a renamed alternate to its place on the new one, nights and note with it', () => {
+    const trail = trailFixture();
+    const stored = plan(
+      [stop(40, 'Alt Camp', { waypointId: 'w_altcamp', alternate: 'Old name', nights: 3, note: 'Water here' })],
+      { alternates: ['Alt'] },
+    );
+    expect(planStopIssues(stored, trail).map(i => i.reason)).toEqual(['alternate-missing']);
+    const route = buildPlannedRoute(trail, stored.alternates);
+    const view = planToRoute(stored, route);
+    const ticked = toggleStop(view, { id: 'w_altcamp', km: 40, name: 'Alt Camp' });
+    const saved = planFromRoute(ticked, route, stored);
+    assertPlanDocumentWithinLimits(saved);
+    expect(saved.stops).toEqual([
+      { waypointId: 'w_altcamp', km: 40, name: 'Alt Camp', nights: 3, note: 'Water here', alternate: 'Alt' },
+    ]);
+    expect(planStopIssues(saved, trail)).toEqual([]);
   });
 });
 
@@ -172,5 +264,11 @@ describe('removeStoredStop', () => {
     const next = removeStoredStop(doc, { km: 40, alternate: 'Gone' }, { now: () => '2026-10-02T00:00:00.000Z' });
     expect(next.stops.map(s => s.name)).toEqual(['Main 40']);
     expect(removeStoredStop(doc, { km: 41 })).toBe(doc);
+  });
+
+  it('finds a stop with an id by its id, judged on a copy that had moved it', () => {
+    const doc = plan([stop(18, 'Camp 20', { waypointId: 'w_c20' }), stop(60, 'Camp 60', { waypointId: 'w_c60' })]);
+    const next = removeStoredStop(doc, { km: 20, waypointId: 'w_c20' });
+    expect(next.stops.map(s => s.name)).toEqual(['Camp 60']);
   });
 });

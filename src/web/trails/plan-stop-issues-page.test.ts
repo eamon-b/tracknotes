@@ -99,13 +99,13 @@ function planWith(stops: PlanDocument['stops']): PlanDocument {
   };
 }
 
-async function boot(): Promise<void> {
+async function boot(trail: object = makeTrail()): Promise<void> {
   document.documentElement.innerHTML = bundledPlanPageHtml()
     .replace(/<!DOCTYPE html>/i, '')
     .replace(/<\/?html[^>]*>/gi, '');
   vi.resetModules();
   const { initPlanViewer } = await import('./plan-viewer');
-  await initPlanViewer(TRAIL_ID, makeTrail() as never);
+  await initPlanViewer(TRAIL_ID, trail as never);
 }
 
 const savedDocument = (): PlanDocument => {
@@ -159,7 +159,7 @@ describe('stops that need checking', () => {
     const rows = [...(notice?.querySelectorAll('.stop-issue') ?? [])]
       .map(row => row.textContent?.replace(/\s+/g, ' ').trim());
     expect(rows[0]).toContain('Old Camp');
-    expect(rows[0]).toContain('This place is no longer in the trail data \u00B7 ends Day 2');
+    expect(rows[0]).toContain('This place is no longer in the trail data \u00B7 Ends day 2');
     expect(rows[1]).toContain('Past the End');
     expect(rows[1]).toContain('Past the end of the updated trail \u00B7 2 nights, not in the dates');
 
@@ -183,5 +183,18 @@ describe('stops that need checking', () => {
     expect(document.querySelector('#days-list .stop-issues-notice')?.textContent).toContain(
       '1 stop needs checking after a trail data update.',
     );
+  });
+
+  it('judges the stops as it moved them on a page that cannot date its data', async () => {
+    // Camp 8's stop is at km 6: the refresh would move it, but this page has
+    // no publish time to set against the plan's, so it leaves it — and the
+    // notice says why rather than claiming another stop holds km 8.
+    localStorage.setItem(`trail-plan-doc-${TRAIL_ID}`, JSON.stringify(planWith([
+      { waypointId: 'w_c8', km: 6, name: 'Camp 8', nights: 1 },
+    ])));
+    await boot({ ...makeTrail(), dataUpdatedAt: undefined });
+    const row = document.querySelector('#days-list .stop-issue')?.textContent?.replace(/\s+/g, ' ');
+    expect(row).toContain('Saved against newer trail data than this device has');
+    expect(row).not.toContain('moved');
   });
 });

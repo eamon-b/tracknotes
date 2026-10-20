@@ -84,7 +84,9 @@ export interface PlanStopIssuesOptions {
   /**
    * When this trail data was published. Data older than the plan was last
    * saved against (`planDataIsCurrent`) cannot judge its stops: every issue is
-   * then reported as `newer-data`. Omit when the data time is not known.
+   * then reported as `newer-data`. Pass what `refreshStopKms` was given (null
+   * when the device cannot date its data), so a stop it would not move reads
+   * as unchecked rather than as moved; omit only where it was omitted there.
    */
   dataUpdatedAt?: string | null;
 }
@@ -174,7 +176,7 @@ function placeReason(
 /** What each reason says to the hiker, the same on the web and the phone. */
 const REASON_TEXT: Record<StopIssueReason, string> = {
   'waypoint-missing': 'This place is no longer in the trail data',
-  'waypoint-moved': 'This place has moved, and another stop is already where it is now',
+  'waypoint-moved': 'This place has moved to where another stop already is \u2014 remove one of the two',
   'off-route': 'Past the end of the updated trail',
   'alternate-missing': 'On an alternate that is no longer in the trail data',
   'off-alternate': 'Past the end of its alternate in the updated trail data',
@@ -187,15 +189,48 @@ export function stopIssueText(reason: StopIssueReason): string {
   return REASON_TEXT[reason];
 }
 
+/** The reasons only a change of trail data explains (not a plan edited elsewhere). */
+const DATA_REASONS: ReadonlySet<StopIssueReason> = new Set<StopIssueReason>([
+  'waypoint-missing',
+  'waypoint-moved',
+  'off-route',
+  'alternate-missing',
+  'off-alternate',
+  'newer-data',
+]);
+
 /**
- * The one notice above the plan, or null when nothing needs checking. Says
- * when nights are left out of the dates, because that moves every later date.
+ * Where a stop that needs checking is, the same on the web and the phone:
+ * "Ends day 3" for a placed stop that ends a day shown (`endsDay`), "Outside
+ * the section shown" for one that ends none, and for an unplaced one how many
+ * nights are left out of the dates.
+ */
+export function stopIssueWhere(issue: StopIssue, endsDay: number | null): string {
+  if (issue.routeKm === null) {
+    const nights = Number(issue.stop.nights);
+    return `${nights} night${nights === 1 ? '' : 's'}, not in the dates`;
+  }
+  return endsDay === null ? 'Outside the section shown' : `Ends day ${endsDay}`;
+}
+
+/** How to move or remove a stop that needs checking, under the list on both planners. */
+export const STOP_ISSUES_HINT =
+  'A stop whose nights are not in the dates moves to its place, nights and note with it, when you tick ' +
+  'that place in Stops. To move any other, tick where it should be, then remove it here.';
+
+/**
+ * The one notice above the plan, or null when nothing needs checking. Names a
+ * trail data update only when one explains an issue (a duplicate or a stop
+ * off the route walked can come from a plan edited on another device), and
+ * says when nights are left out of the dates, because that moves every later
+ * date.
  */
 export function stopIssuesNotice(issues: readonly StopIssue[]): string | null {
   if (issues.length === 0) return null;
+  const cause = issues.some(issue => DATA_REASONS.has(issue.reason)) ? ' after a trail data update' : '';
   const head = issues.length === 1
-    ? '1 stop needs checking after a trail data update'
-    : `${issues.length} stops need checking after a trail data update`;
+    ? `1 stop needs checking${cause}`
+    : `${issues.length} stops need checking${cause}`;
   const unplacedNights = issues
     .filter(issue => issue.routeKm === null)
     .reduce((sum, issue) => sum + Math.max(0, Number(issue.stop.nights) || 0), 0);

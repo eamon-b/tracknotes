@@ -695,13 +695,37 @@ export function planToRoute(plan: PlanDocument, route: PlannedRoute): PlanDocume
 export function planFromRoute(routePlan: PlanDocument, route: PlannedRoute, stored?: PlanDocument): PlanDocument {
   const hidden = stored ? splitForRoute(stored, route).hidden : [];
   if (route.alternates.length === 0 && hidden.length === 0) return routePlan;
+  // A hidden stop whose place the hiker has just ticked on the route (the view
+  // now holds a stop with its waypoint id) moves there: the new stop takes its
+  // nights, note and booking, and the hidden one goes, so the document never
+  // holds two stops with one id.
+  const viewIds = new Set(routePlan.stops.map(stop => stop.waypointId).filter((id): id is string => !!id));
+  const movedFrom = new Map<string, PlanStop>();
+  const carried: PlanStop[] = [];
+  for (const stop of hidden) {
+    if (stop.waypointId && viewIds.has(stop.waypointId)) movedFrom.set(stop.waypointId, stop);
+    else carried.push(stop);
+  }
   const stops = routePlan.stops.map(stop => {
-    const position = routeKmToPlan(route, stop.km);
+    const previous = stop.waypointId ? movedFrom.get(stop.waypointId) : undefined;
+    const kept = previous ? withStopDetails(stop, previous) : stop;
+    const position = routeKmToPlan(route, kept.km);
     return position.alternate === undefined
-      ? { ...omitAlternate(stop), km: position.km }
-      : { ...omitAlternate(stop), km: position.km, alternate: position.alternate };
+      ? { ...omitAlternate(kept), km: position.km }
+      : { ...omitAlternate(kept), km: position.km, alternate: position.alternate };
   });
-  return { ...routePlan, stops: sortPlanStops([...stops, ...hidden]) };
+  return { ...routePlan, stops: sortPlanStops([...stops, ...carried]) };
+}
+
+/** `stop` carrying the hiker's own details (nights, note, booking) from `from`. */
+function withStopDetails(stop: PlanStop, from: PlanStop): PlanStop {
+  const { note: _note, booked: _booked, ...rest } = stop;
+  return {
+    ...rest,
+    nights: from.nights,
+    ...(from.note !== undefined ? { note: from.note } : {}),
+    ...(from.booked !== undefined ? { booked: from.booked } : {}),
+  };
 }
 
 /** The stored order: by km, a main-route stop before an alternate's at the same km. */
@@ -851,12 +875,15 @@ export function setPlanAlternate(
     }
   }
 
+  // Only a stop this edit takes off the route is this edit's to move or drop.
+  // One the route already left out — on an alternate the trail no longer
+  // offers, past the end of a shortened alternate or of the trail — stays as
+  // stored, out of view, where `planStopIssues` keeps it in front of the hiker.
+  const before = buildPlannedRoute(trail, current);
   const stops: PlanStop[] = [];
   for (const stop of plan.stops) {
-    // A stop on an alternate the trail does not offer (renamed or dropped by a
-    // later build) is not this edit's to drop: it stays as stored, out of view.
     const unknownLine = stop.alternate !== undefined && !options.some(o => o.name === stop.alternate);
-    if (unknownLine || stopRouteKm(route, stop) !== null) {
+    if (unknownLine || stopRouteKm(before, stop) === null || stopRouteKm(route, stop) !== null) {
       stops.push(stop);
       continue;
     }
