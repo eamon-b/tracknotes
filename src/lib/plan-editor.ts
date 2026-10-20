@@ -354,6 +354,26 @@ export function toggleStop(
 }
 
 /**
+ * Take one stored stop out of the plan: the stop with this waypoint id, km and
+ * alternate, exactly as stored. For a stop the route view cannot show (one
+ * `planStopIssues` reports with no route km), which `toggleStop` on a route
+ * view never reaches. Edits the stored document; the same document when no
+ * stop matches.
+ */
+export function removeStoredStop(
+  plan: PlanDocument,
+  target: Pick<PlanStop, 'km' | 'waypointId' | 'alternate'>,
+  opts?: PlanEditOptions,
+): PlanDocument {
+  const index = plan.stops.findIndex(stop =>
+    stop.km === target.km
+    && stop.waypointId === target.waypointId
+    && stop.alternate === target.alternate);
+  if (index === -1) return plan;
+  return withStops(plan, plan.stops.filter((_, i) => i !== index), opts);
+}
+
+/**
  * A copy of `value` without `key`, preserving the order of the rest.
  *
  * An absent optional beats a falsy one in this document: it is size-capped and
