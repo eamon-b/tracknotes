@@ -1,6 +1,6 @@
-/// <reference path="../node_modules/@cloudflare/vitest-pool-workers/types/cloudflare-test.d.ts" />
+/// <reference path="../node_modules/@cloudflare/vitest-plugin/types/cloudflare-test.d.ts" />
 
-import type { D1Migration } from '@cloudflare/vitest-pool-workers';
+import type { D1Migration } from '@cloudflare/vitest-plugin';
 
 // Augment the worker's environment with the bindings our tests rely on: the D1
 // database (from wrangler.toml) and the test-only migrations array injected by
