@@ -34,7 +34,7 @@ describe('useCheckInShare', () => {
   it('passes the composed message and title to Share.share', async () => {
     const spy = jest
       .spyOn(Share, 'share')
-      .mockResolvedValue({ action: 'sharedAction', activityType: null });
+      .mockResolvedValue({ action: 'sharedAction', activityType: undefined });
 
     const share = grabHook();
     await act(async () => {
@@ -57,7 +57,7 @@ describe('useCheckInShare', () => {
   });
 
   it('resolves quietly when the user dismisses the sheet', async () => {
-    jest.spyOn(Share, 'share').mockResolvedValue({ action: 'dismissedAction' });
+    jest.spyOn(Share, 'share').mockResolvedValue({ action: 'dismissedAction', activityType: undefined });
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
     const share = grabHook();

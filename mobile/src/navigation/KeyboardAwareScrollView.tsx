@@ -31,11 +31,12 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
+  type ScrollViewInstance,
   type ScrollViewProps,
 } from 'react-native';
 import { useBottomInsetContentStyle } from './bottom-inset';
 
-export const KeyboardAwareScrollView = forwardRef<ScrollView, ScrollViewProps>(
+export const KeyboardAwareScrollView = forwardRef<ScrollViewInstance, ScrollViewProps>(
   function KeyboardAwareScrollView(props, ref) {
     // The context rather than `useHeaderHeight()`, which throws outside a
     // navigator (tests render screens without one); no header is 0.

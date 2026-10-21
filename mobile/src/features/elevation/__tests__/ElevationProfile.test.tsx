@@ -21,13 +21,24 @@ jest.mock('@shopify/react-native-skia', () => {
   // A fresh component per primitive, so a test can pick the Circles out of the
   // tree by type and read the paint props off them.
   const leaf = () => () => null;
-  const makePath = () => ({
-    moveTo: jest.fn(),
-    lineTo: jest.fn(),
-    close: jest.fn(),
-    dispose: jest.fn(),
-    copy: () => makePath(),
-  });
+  const makePath = () => ({ dispose: jest.fn() });
+  type MockBuilder = {
+    moveTo: jest.Mock;
+    lineTo: jest.Mock;
+    close: jest.Mock;
+    detach: () => ReturnType<typeof makePath>;
+    dispose: jest.Mock;
+  };
+  const makeBuilder = () => {
+    const builder: MockBuilder = {
+      moveTo: jest.fn(() => builder),
+      lineTo: jest.fn(() => builder),
+      close: jest.fn(() => builder),
+      detach: () => makePath(),
+      dispose: jest.fn(),
+    };
+    return builder;
+  };
   return {
     Canvas: container,
     Group: container,
@@ -37,7 +48,7 @@ jest.mock('@shopify/react-native-skia', () => {
     Rect: leaf(),
     LinearGradient: leaf(),
     vec: (x: number, y: number) => ({ x, y }),
-    Skia: { Path: { Make: () => makePath() } },
+    Skia: { PathBuilder: { Make: () => makeBuilder(), MakeFromPath: () => makeBuilder() } },
   };
 });
 
