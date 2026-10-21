@@ -5,6 +5,11 @@ const { designTokenRestrictions } = require('./lint/design-token-restrictions');
 
 module.exports = defineConfig([
   expoConfig,
+  // eslint-plugin-react's `version: 'detect'` calls `context.getFilename`,
+  // which ESLint 10 removed ("contextOrFilename.getFilename is not a
+  // function"). Pin the React major until eslint-config-expo's bundled
+  // eslint-plugin-react supports ESLint 10.
+  { settings: { react: { version: '19' } } },
   {
     ignores: ['dist/*', 'android/*', 'ios/*', '.expo/*'],
   },
