@@ -152,6 +152,7 @@ export function loadCuratedDescriptions(trailDir: string, trailId: string): Cura
   try {
     raw = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
   } catch (error) {
+    // eslint-disable-next-line preserve-caught-error -- tsconfig's lib is ES2020 (no `cause` option); the message carries the parse error
     throw new Error(`${filePath}: invalid JSON — ${(error as Error).message}`);
   }
   return parseCuratedDescriptions(raw, trailId, filePath);
