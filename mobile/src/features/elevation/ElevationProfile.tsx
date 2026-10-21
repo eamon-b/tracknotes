@@ -279,23 +279,29 @@ export function ElevationProfile({
 
   const elevationPath = useMemo(() => {
     if (!metrics || windowedPoints.length === 0) return null;
-    const path = Skia.Path.Make();
+    // SkPath is immutable since Skia 2.x's PathBuilder API: build the contour
+    // on a builder, then detach the finished path from it.
+    const builder = Skia.PathBuilder.Make();
     for (let i = 0; i < windowedPoints.length; i++) {
       const p = windowedPoints[i];
       const x = xOf(p.dist);
       const y = yOf(p.ele);
-      if (i === 0) path.moveTo(x, y);
-      else path.lineTo(x, y);
+      if (i === 0) builder.moveTo(x, y);
+      else builder.lineTo(x, y);
     }
+    const path = builder.detach();
+    builder.dispose();
     return path;
   }, [metrics, windowedPoints, xOf, yOf]);
 
   const fillPath = useMemo(() => {
     if (!elevationPath) return null;
-    const fill = elevationPath.copy();
-    fill.lineTo(left + chartWidth, PADDING.top + chartHeight);
-    fill.lineTo(left, PADDING.top + chartHeight);
-    fill.close();
+    const builder = Skia.PathBuilder.MakeFromPath(elevationPath);
+    builder.lineTo(left + chartWidth, PADDING.top + chartHeight);
+    builder.lineTo(left, PADDING.top + chartHeight);
+    builder.close();
+    const fill = builder.detach();
+    builder.dispose();
     return fill;
   }, [elevationPath, left, chartWidth, chartHeight]);
 

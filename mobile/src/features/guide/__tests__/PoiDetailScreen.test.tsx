@@ -141,7 +141,7 @@ describe('PoiDetailScreen', () => {
     mockOffTrailMeters = null;
     mockPaceKmh = 4;
     mockCommentsProps.length = 0;
-    jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+    jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
     jest.spyOn(Linking, 'canOpenURL').mockResolvedValue(true);
   });
 

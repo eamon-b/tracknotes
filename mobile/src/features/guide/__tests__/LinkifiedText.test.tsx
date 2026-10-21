@@ -18,7 +18,7 @@ function links(renderer: ReactTestRenderer) {
 
 describe('LinkifiedText', () => {
   beforeEach(() => {
-    jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+    jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
   });
   afterEach(() => jest.restoreAllMocks());
 

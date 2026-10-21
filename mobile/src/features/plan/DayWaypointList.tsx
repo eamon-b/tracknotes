@@ -90,7 +90,7 @@ export function DayWaypointList({
           <Text style={[styles.footer, { color: colors.textSecondary }]}>
             {`Rows marked OSM are OpenStreetMap points of interest, not checked trail data · ${OSM_ATTRIBUTION}`}
           </Text>
-        ) : null
+        ) : undefined
       }
       renderItem={({ item }) =>
         item.kind === 'poi' ? (

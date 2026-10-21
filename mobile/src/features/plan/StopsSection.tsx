@@ -26,7 +26,7 @@
  */
 
 import React, { useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Switch, Text, View, type HostInstance } from 'react-native';
 import { formatDistance, formatElevation } from '@lib/format-distance';
 import { findStop, servicesAtStop, type StopServices } from '@lib/plan-editor';
 import { OSM_ATTRIBUTION } from '@lib/poi-display';
@@ -90,7 +90,7 @@ export interface StopsSectionProps {
    */
   currentKm?: number | null;
   /** Called with the divider once it is laid out, so the screen can scroll to it. */
-  onHereLayout?: (marker: View) => void;
+  onHereLayout?: (marker: HostInstance) => void;
   /** Branch and rejoin cards, in active km (`alternateMarkers`). */
   alternates?: AlternateMarker[];
   /** Take an alternate (`true`) or go back to the main route. */
@@ -141,7 +141,7 @@ export function StopsSection(props: StopsSectionProps) {
     const idx = candidates.findIndex((c) => c.activeKm >= currentKm);
     return idx === -1 ? candidates.length : idx;
   }, [candidates, currentKm]);
-  const markerRef = useRef<View>(null);
+  const markerRef = useRef<HostInstance>(null);
 
   // The divider is always inside the revealed rows, with a few places after it.
   const shown = Math.max(visibleCount, hereIndex + 10);
@@ -243,7 +243,7 @@ export function StopsSection(props: StopsSectionProps) {
 }
 
 /** The "You are here" divider between the places behind and ahead of the hiker. */
-const HereMarker = React.forwardRef<View, { onLayout: () => void }>(function HereMarker(
+const HereMarker = React.forwardRef<HostInstance, { onLayout: () => void }>(function HereMarker(
   { onLayout },
   ref,
 ) {

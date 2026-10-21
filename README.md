@@ -110,7 +110,7 @@ The app on the Shikoku Henro, in dark mode:
 | --- | --- |
 | `src/lib/` | Shared TypeScript used by the website, the app, the build and the API: GPX parsing and ingestion, distance/elevation maths, day planner, resupply and water calculators |
 | `src/web/` | The website (Vite + Leaflet + Chart.js) |
-| `mobile/` | Tracknotes (Expo SDK 57, React Native, MapLibre, Skia, SQLite) |
+| `mobile/` | Tracknotes (Expo SDK 58, React Native, MapLibre, Skia, SQLite) |
 | `data/trails/` | Source data for each trail: GPX, `trail.json`, climate, POIs, walk-in routes, curated descriptions |
 | `scripts/` | Build pipeline: trail JSON, mobile assets, climate/POI/elevation fetchers, map tile and contour builds |
 | `workers/` | Cloudflare Workers: the comments/plans/community API (D1 + R2) and the contour tile server |

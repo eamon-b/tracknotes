@@ -38,7 +38,7 @@ import {
   StyleSheet,
   Text,
   View,
-  type ViewToken,
+  type ListViewToken,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -203,7 +203,7 @@ export function WaypointListPane({ trail }: { trail: TrailJson }) {
   // replaced, which is the identity guarantee FlatList wants, and unlike
   // `useRef(fn).current` it isn't a ref read during render.
   const [onViewableItemsChanged] = useState(() => {
-    return ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+    return ({ viewableItems }: { viewableItems: ListViewToken[] }) => {
       visibleItemsRef.current = viewableItems
         .map((token) => token.item as ListRow)
         .filter((item): item is ListRow => item != null);
@@ -360,7 +360,7 @@ export function WaypointListPane({ trail }: { trail: TrailJson }) {
                 {showPrevious ? 'Hide previous' : `Show ${passedCount} previous`}
               </Text>
             </Pressable>
-          ) : null
+          ) : undefined
         }
         ListEmptyComponent={
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
@@ -380,7 +380,7 @@ export function WaypointListPane({ trail }: { trail: TrailJson }) {
             <Text style={[styles.footerText, { color: colors.textSecondary }]}>
               {`Rows marked OSM are OpenStreetMap points of interest · ${OSM_ATTRIBUTION}`}
             </Text>
-          ) : null
+          ) : undefined
         }
         // scrollToIndex can fire before variable-height rows are measured; nudge
         // to an offset estimate, then retry once layout settles.

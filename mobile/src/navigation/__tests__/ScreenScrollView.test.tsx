@@ -22,7 +22,7 @@ function paddingBottom(tree: ReactTestRenderer, type: React.ElementType): number
   const style = StyleSheet.flatten<ViewStyle>(
     tree.root.findAllByType(type)[0].props.contentContainerStyle as ViewStyle,
   );
-  return style.paddingBottom as number | undefined;
+  return style?.paddingBottom as number | undefined;
 }
 
 let insets: jest.SpyInstance;

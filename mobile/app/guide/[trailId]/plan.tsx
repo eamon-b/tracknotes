@@ -38,7 +38,14 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View, type ScrollView } from 'react-native';
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type HostInstance,
+  type ScrollViewInstance,
+} from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { formatDistance } from '@lib/format-distance';
 import { poisBetween } from '@lib/poi-display';
@@ -460,10 +467,10 @@ export default function PlanScreen() {
   // a plan is read from where you are, not from the trail start.
   // The content lives in its own View (not `contentContainerStyle`) so the
   // divider can be measured against something with a ref.
-  const scrollRef = useRef<ScrollView>(null);
-  const contentRef = useRef<View>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
+  const contentRef = useRef<HostInstance>(null);
   const scrolledToHere = useRef(false);
-  const onHereLayout = useCallback((marker: View) => {
+  const onHereLayout = useCallback((marker: HostInstance) => {
     const inner = contentRef.current;
     if (scrolledToHere.current || !inner) return;
     marker.measureLayout(

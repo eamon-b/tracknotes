@@ -7,7 +7,15 @@
 
 import React from 'react';
 import TestRenderer, { act, type ReactTestRenderer } from 'react-test-renderer';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, type ViewStyle } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  type ScrollViewInstance,
+  type ViewStyle,
+} from 'react-native';
 import { HeaderHeightContext } from 'expo-router/react-navigation';
 import {
   KeyboardAvoidingModalContent,
@@ -73,13 +81,13 @@ describe('KeyboardAwareScrollView', () => {
     const style = StyleSheet.flatten<ViewStyle>(
       tree.root.findAllByType(ScrollView)[0].props.contentContainerStyle as ViewStyle,
     );
-    expect(style.paddingBottom).toBe(64);
+    expect(style?.paddingBottom).toBe(64);
     insets.mockRestore();
   });
 
   it('forwards the ref to the ScrollView', () => {
     setOS('android');
-    const ref = React.createRef<ScrollView>();
+    const ref = React.createRef<ScrollViewInstance>();
     render(<KeyboardAwareScrollView ref={ref} />);
     expect(ref.current).not.toBeNull();
   });

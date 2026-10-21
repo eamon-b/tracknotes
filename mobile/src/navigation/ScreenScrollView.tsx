@@ -20,17 +20,23 @@ import {
   FlatList,
   ScrollView,
   SectionList,
-  type DefaultSectionT,
   type FlatListProps,
+  type ScrollViewInstance,
   type ScrollViewProps,
   type SectionListProps,
 } from 'react-native';
 import { useBottomInsetContentStyle } from './bottom-inset';
 
+/**
+ * SectionList's default section shape. React Native's Strict TypeScript API
+ * (the default since 0.87) no longer exports it, so it is restated here.
+ */
+type DefaultSectionT = { [key: string]: unknown };
+
 export function ScreenScrollView({
   contentContainerStyle,
   ...props
-}: ScrollViewProps & { ref?: Ref<ScrollView> }) {
+}: ScrollViewProps & { ref?: Ref<ScrollViewInstance> }) {
   return (
     <ScrollView {...props} contentContainerStyle={useBottomInsetContentStyle(contentContainerStyle)} />
   );
