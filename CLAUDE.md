@@ -100,7 +100,7 @@ npm run typecheck                  # tsc --noEmit
 
 ## Mobile App (Expo / React Native)
 
-The mobile app lives in `mobile/`. It uses **Expo SDK 57** with React Native 0.86 (check `mobile/package.json` for the exact pins), the New Architecture, and development builds (not Expo Go) since MapLibre requires custom native code.
+The mobile app lives in `mobile/`. It uses **Expo SDK 58** with React Native 0.88 (check `mobile/package.json` for the exact pins), the New Architecture, and development builds (not Expo Go) since MapLibre requires custom native code.
 
 ### Mobile Commands
 
