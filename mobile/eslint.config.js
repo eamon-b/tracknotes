@@ -10,6 +10,12 @@ module.exports = defineConfig([
   // function"). Pin the React major until eslint-config-expo's bundled
   // eslint-plugin-react supports ESLint 10.
   { settings: { react: { version: '19' } } },
+  // eslint-import-resolver-typescript is a direct devDependency only for
+  // ESLint 10: eslint-plugin-import's peer range stops at 9, so npm nests the
+  // resolver under eslint-config-expo, where `import/resolver: { typescript:
+  // true }` can't find it (it loads the TypeScript compiler instead). Drop the
+  // devDependency together with the pin above once eslint-config-expo supports
+  // ESLint 10.
   {
     ignores: ['dist/*', 'android/*', 'ios/*', '.expo/*'],
   },
