@@ -144,7 +144,7 @@ function saveState(next: CommunityState): void {
     const root = ensureRoot();
     const temp = new File(root, STATE_TEMP_FILE);
     if (temp.exists) temp.delete();
-    temp.write(JSON.stringify(next));
+    temp.writeSync(JSON.stringify(next));
     const live = new File(root, STATE_FILE);
     if (live.exists) live.delete();
     temp.rename(STATE_FILE);

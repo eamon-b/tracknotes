@@ -54,7 +54,7 @@ jest.mock('expo-file-system', () => {
       if (value === undefined) throw new Error(`ENOENT: ${this.uri}`);
       return value;
     }
-    write(text: string): void {
+    writeSync(text: string): void {
       mockWritten.push({ uri: this.uri, text });
       mockFiles[this.uri] = text;
     }

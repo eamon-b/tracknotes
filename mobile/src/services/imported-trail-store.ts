@@ -92,8 +92,8 @@ export async function saveImportedTrail(
   // an empty array would read as "searched and found nothing".
   const payload = trail.pois ? { ...trail, pois: trail.pois.map(slimPoi) } : trail;
 
-  // `write` truncates, so re-importing the same file is idempotent.
-  importedTrailFile(trail.config.id).write(JSON.stringify(payload));
+  // `writeSync` truncates, so re-importing the same file is idempotent.
+  importedTrailFile(trail.config.id).writeSync(JSON.stringify(payload));
 
   await upsertImportedTrail(db, {
     id: trail.config.id,
@@ -132,7 +132,7 @@ export async function saveImportedTrailPois(
   } else {
     next.pois = pois.map(slimPoi);
   }
-  importedTrailFile(id).write(JSON.stringify(next));
+  importedTrailFile(id).writeSync(JSON.stringify(next));
   return next;
 }
 

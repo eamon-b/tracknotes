@@ -59,7 +59,7 @@ jest.mock('expo-file-system', () => {
         mockFiles[uri] = { exists: false, size: 0 };
         delete mockFileContents[uri];
       }),
-      write: jest.fn((data: string) => {
+      writeSync: jest.fn((data: string) => {
         mockFileContents[uri] = data;
         mockFiles[uri] = { exists: true, size: data.length };
       }),

@@ -54,7 +54,7 @@ jest.mock('expo-file-system', () => {
         if (mockFiles[uri] === undefined) throw new Error('ENOENT');
         return mockFiles[uri];
       }),
-      write: jest.fn((data: string) => {
+      writeSync: jest.fn((data: string) => {
         const parent = uri.slice(0, uri.lastIndexOf('/'));
         if (!mockDirs[parent]) throw new Error('ENOENT: parent directory missing');
         mockFiles[uri] = data;
@@ -282,7 +282,7 @@ describe('saveImportedTrail', () => {
     RealFile.mockImplementationOnce(() => ({
       uri: 'file:///mock/document/trails/u_abc123.json',
       exists: false,
-      write: () => {
+      writeSync: () => {
         throw new Error('ENOSPC');
       },
     }));

@@ -98,7 +98,7 @@ jest.mock('expo-file-system', () => {
       return this.textSync();
     }
 
-    write(data: string): void {
+    writeSync(data: string): void {
       if (!mockDirs[parentOf(this.uri)]) throw new Error('ENOENT: parent directory missing');
       mockFiles[this.uri] = data;
     }
@@ -132,7 +132,7 @@ jest.mock('expo-file-system', () => {
       const body = mockRemote[url];
       mockDownloadTargets.push(destination.uri);
       if (body === undefined) throw new Error(`404 ${url}`);
-      destination.write(body);
+      destination.writeSync(body);
       return destination;
     });
   }
