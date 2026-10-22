@@ -52,7 +52,7 @@ jest.mock('expo-file-system', () => {
         if (mockFiles[uri] === undefined) throw new Error('ENOENT');
         return mockFiles[uri];
       }),
-      write: jest.fn((data: string) => {
+      writeSync: jest.fn((data: string) => {
         mockFiles[uri] = data;
       }),
       delete: jest.fn(() => {

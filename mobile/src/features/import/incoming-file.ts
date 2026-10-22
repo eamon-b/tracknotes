@@ -156,7 +156,7 @@ export async function stageIncomingFile(incoming: IncomingFile): Promise<Incomin
   dir.create({ intermediates: true, idempotent: true });
 
   const staged = new File(dir, stagedFileName(incoming.fileName, text));
-  staged.write(text);
+  staged.writeSync(text);
 
   return { uri: staged.uri, fileName: incoming.fileName };
 }

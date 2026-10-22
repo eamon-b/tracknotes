@@ -151,7 +151,7 @@ export async function provisionGlyphs(): Promise<string> {
       const range = `${start}-${start + 255}`;
       const file = new File(destDir, `${range}.pbf`);
       if (!file.exists) {
-        file.write(emptyPbf);
+        file.writeSync(emptyPbf);
       }
     }
 
@@ -636,7 +636,7 @@ export async function downloadTrailTiles(
       // pack, whose surviving files are on disk under the names the old
       // manifest gave them. Dropping those here would hide a perfectly good
       // file from the skip check below and re-download it for nothing.
-      manifestFile(trailId).write(JSON.stringify({ ...manifest, localNames: currentNames }));
+      manifestFile(trailId).writeSync(JSON.stringify({ ...manifest, localNames: currentNames }));
     }
     // Update: the new manifest is staged in memory and written only after every
     // file has downloaded, validated and been renamed into place. Writing it
@@ -809,7 +809,7 @@ export async function downloadTrailTiles(
   // *stored* manifest when no new one was fetched changes nothing but those
   // names, which is exactly what a manifest-less re-download still has to say.
   if (record) {
-    manifestFile(trailId).write(JSON.stringify({ ...record, localNames: newNames }));
+    manifestFile(trailId).writeSync(JSON.stringify({ ...record, localNames: newNames }));
   }
 
   // ---- Phase 4: sweep superseded generations -------------------------------
