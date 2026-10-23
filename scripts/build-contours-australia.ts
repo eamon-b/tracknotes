@@ -441,7 +441,7 @@ async function main(): Promise<void> {
   console.log('==============================================\n');
 
   console.log('Checking dependencies...');
-  checkDependencies({ skipBase: true });
+  checkDependencies({ skipBase: true, requirePinnedTippecanoe: true });
   console.log('  ✓ All dependencies found\n');
 
   ensureDir(WORK_DIR);

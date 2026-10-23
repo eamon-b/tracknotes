@@ -16,7 +16,7 @@
 #
 # Usage:
 #   ./scripts/remote/bootstrap.sh
-#   REPO_REF=feat/world-contour-tiles ./scripts/remote/bootstrap.sh
+#   REPO_REF=<branch-or-tag> ./scripts/remote/bootstrap.sh
 #   REPO_URL=https://github.com/eamon-b/trail-maps.git ./scripts/remote/bootstrap.sh
 #   CHECKOUT_DIR=/mnt/nvme/trail-maps ./scripts/remote/bootstrap.sh
 #   ./scripts/remote/bootstrap.sh --skip-clone     # tools only

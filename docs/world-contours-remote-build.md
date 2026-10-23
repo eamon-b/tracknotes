@@ -5,8 +5,10 @@ it live behind the contour Worker. The design decisions behind this live in
 `plans/world-contour-tiles.md`; this document is the operational side — what to
 rent, what to run, what breaks, and what it costs.
 
-Everything here assumes the build tooling from the `feat/world-contour-tiles`
-branch:
+Build from `main`. The `feat/world-contour-tiles` branch the first build ran
+from still exists on origin but predates the zoom-tier fix (#132) and the
+#158 safety nets: a box bootstrapped from it builds untiered contours again.
+The tooling:
 
 | Piece | Path |
 | --- | --- |
@@ -43,6 +45,19 @@ Concretely: a **Hetzner AX102-class dedicated box** (32 threads, 128 GB RAM,
 build with retries — or any hourly cloud instance with ≥ 64 GB RAM and ≥ 3 TB
 of local NVMe. Avoid network block storage: tippecanoe's temp spill and the
 FlatGeobuf staging are both IOPS-hungry.
+
+### One box for everything (the 2026-10 rebuild, #135)
+
+The September 2026 build split the work across two machines (section 6a)
+because the cheap box had spinning disks. The re-tiered rebuild uses **one
+AWS i4i.8xlarge** (32 vCPU, 256 GB RAM, 7.5 TB instance-store NVMe, ~$2.75/h,
+about 3 days): the ~800 GB of batches never leave the machine, so the
+completeness markers and disk juggling of 6a do not apply, and the same box
+then re-merges Australia and builds the offline packs (section 7a), on the
+pinned tippecanoe. Instance-store NVMe is lost on stop or termination: run it
+**on-demand, never spot**, and still stream finished batches to R2 as
+insurance. Put the checkout on the NVMe (`CHECKOUT_DIR`) and point `TMPDIR`
+there too.
 
 ### Disk math
 
@@ -133,9 +148,9 @@ fallocate -l 64G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon 
 # Put the checkout on the big NVMe volume, not a small root disk
 export CHECKOUT_DIR=/mnt/nvme/trail-maps
 
-curl -fsSL https://raw.githubusercontent.com/eamon-b/trail-maps/feat/world-contour-tiles/scripts/remote/bootstrap.sh -o bootstrap.sh
+curl -fsSL https://raw.githubusercontent.com/eamon-b/trail-maps/main/scripts/remote/bootstrap.sh -o bootstrap.sh
 REPO_URL=https://github.com/eamon-b/trail-maps.git \
-REPO_REF=feat/world-contour-tiles \
+REPO_REF=main \
 bash bootstrap.sh
 ```
 
@@ -145,7 +160,7 @@ the script updates an existing checkout in place.)
 `bootstrap.sh` installs build essentials, GDAL ≥ 3.6 (it hard-fails on older),
 sqlite3, git, rclone, Node 22 from NodeSource, tippecanoe built from the pinned
 `felt/tippecanoe` release (`TIPPECANOE_REF`, 2.79.0 — the world build refuses
-any other; why that release is in `TIPPECANOE_VERSION`,
+any other, as does the Australia build; why that release is in `TIPPECANOE_VERSION`,
 `scripts/tile-pipeline.ts`), the `pmtiles` CLI from `protomaps/go-pmtiles`, then
 clones the repo and runs `npm ci`. It prints every version at the end — paste
 that block into the build notes for the record. Re-running it is safe.
@@ -421,6 +436,60 @@ upload finishes is safe.
 Edge cache: re-uploading the same key leaves stale bytes cached for up to 24 h.
 
 ---
+
+## 7a. Australia and the offline packs on the same box
+
+The Australia archive and the 20 offline packs are tippecanoe builds too, and
+the box has the pinned release, the RAM and the cores the laptop lacks (the
+laptop's last Australia merge took ~24 h). Neither needs the world's DEM. Do
+not start them while a world shard is in its tippecanoe merge unless you have
+watched that merge's RSS and know both fit.
+
+**Inputs from the laptop.** Copy them while the world shards build; the laptop's
+uplink is the slow part. Paths are relative to the checkout on each machine:
+
+```bash
+# Australia tier files and their .done markers (~61 GB). Skip the per-cell DEM
+# and raw files, logs and tmp/; --merge-only reads only *_z*.fgb + *.done.
+rsync -av --partial --include='*_z*.fgb' --include='*.done' --exclude='*' \
+  data/tiles/contours-australia/ box:/mnt/nvme/trail-maps/data/tiles/contours-australia/
+
+# SRTM cache for the Australian packs (~22 GB) and the Protomaps base source (~2 GB)
+rsync -av --partial data/dem/ box:/mnt/nvme/trail-maps/data/dem/
+rsync -av --partial data/protomaps/planet.pmtiles box:/mnt/nvme/trail-maps/data/protomaps/
+```
+
+(`--protomaps-url <url>` to `build-tiles.ts` replaces the planet file.) The
+CDT, Te Araroa and Shikoku packs read Copernicus GLO-30 from `data/dem-glo30/`,
+which the world shards purge as they go (`--purge-dem`): `build-tiles.ts`
+fails with the exact `fetch-dem-copernicus.ts --bbox ...` command for any
+missing tile, so run what it prints.
+
+**Australia archive:**
+
+```bash
+setsid nohup npx tsx scripts/build-contours-australia.ts --merge-only \
+  > logs/australia-merge-$(date +%Y%m%d-%H%M%S).log 2>&1 < /dev/null &
+```
+
+Then spot-check the Mt Sonder z9 tile (`9/444/290`, only 100 m contours) as in
+section 4 before `npm run upload:tiles -- --contours` and
+`npm run upload:tiles -- --verify-contours`.
+
+**Offline packs:** `npx tsx scripts/build-tiles.ts` (all trails, or
+`--trail <id>`), then `npm run upload:tiles` for the trails under wrangler's
+300 MiB limit and `npm run upload:tiles -- cdt te_araroa` for the two over it
+(rclone, the same `r2:` remote as the world upload). Finish with
+`npm run check:tile-packs`.
+
+**Credentials for the uploads.** `upload-tiles.sh` uses one
+`CLOUDFLARE_API_TOKEN` for two things: wrangler's R2 writes and the
+manifest cache purge, and it refuses to upload anything without it. Give
+that token **Account → Workers R2 Storage: Edit** and **Zone → Cache Purge** on
+the `contour-map-tiles.net` zone (add **Account Settings: Read**, or export
+`CLOUDFLARE_ACCOUNT_ID`, so wrangler can find the account). Export it in the
+shell that runs the upload rather than writing it to a file on the box, and
+revoke it with the R2 token when the box is destroyed.
 
 ## 8. Gotchas (all of these have bitten us)
 
