@@ -61,13 +61,13 @@
     "id": "cdt",
     "name": "Continental Divide Trail",
     "shortName": "CDT",
-    "lengthKm": 4823.2,
+    "lengthKm": 4823.8,
     "country": "US",
     "states": [],
-    "dataVersion": "2026-10-19",
-    "updatedAt": "2026-10-19T07:51:56.985Z",
-    "md5": "6f0a135a16ed1e5199dd5e8699773edd",
-    "bytes": 2525765
+    "dataVersion": "2026-10-23",
+    "updatedAt": "2026-10-23T05:58:43.502Z",
+    "md5": "300bffe2c94caa5bdb9b4fb4891fe721",
+    "bytes": 2537744
   },
   {
     "id": "grampians_peaks",
@@ -245,10 +245,10 @@
       "NI",
       "SI"
     ],
-    "dataVersion": "2026-10-20",
-    "updatedAt": "2026-10-20T00:52:37.639Z",
-    "md5": "45dddd8629bccec6f85ceb132b5fba27",
-    "bytes": 1927256
+    "dataVersion": "2026-10-23",
+    "updatedAt": "2026-10-23T05:58:43.502Z",
+    "md5": "91c3ef3c65c65b1768934149088cb492",
+    "bytes": 1929042
   },
   {
     "id": "thorsborne",
