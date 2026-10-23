@@ -1670,21 +1670,21 @@
     },
     {
       "id": "w_07fbb620",
-      "name": "Parry Beach (paid)",
+      "name": "Parry Beach Campground (paid)",
       "type": "campsite",
       "lat": -35.03915712175282,
       "lon": 117.15996956696142
     },
     {
       "id": "w_08207378",
-      "name": "Greens Island? (non-bibb)",
+      "name": "Greens Island Campground (non-bibb)",
       "type": "campsite",
       "lat": -34.19941,
       "lon": 115.94432
     },
     {
       "id": "w_0b648a94",
-      "name": "Shelly Beach (non-bibb)",
+      "name": "Shelley Beach Campground (non-bibb)",
       "type": "campsite",
       "lat": -35.105070267111984,
       "lon": 117.62703740431566
@@ -1873,7 +1873,7 @@
     },
     {
       "id": "w_6d5a8aa6",
-      "name": "Tree Top Walk",
+      "name": "Valley of the Giants Tree Top Walk",
       "type": "poi",
       "lat": -34.97835,
       "lon": 116.89369
@@ -1887,7 +1887,7 @@
     },
     {
       "id": "w_6da6b772",
-      "name": "Mumballup Forest Tavern",
+      "name": "Mumballup Tavern",
       "type": "food",
       "lat": -33.52828,
       "lon": 116.11252
@@ -2118,7 +2118,7 @@
     },
     {
       "id": "w_d6f5853b",
-      "name": "Canoe crossing",
+      "name": "Irwin Inlet canoe crossing",
       "type": "inlet-crossing",
       "lat": -35.00757,
       "lon": 116.96387
@@ -2132,7 +2132,7 @@
     },
     {
       "id": "w_d80fb0ed",
-      "name": "Willow springs",
+      "name": "Willow Springs",
       "type": "campsite",
       "lat": -34.04674740516123,
       "lon": 115.92593672097028
