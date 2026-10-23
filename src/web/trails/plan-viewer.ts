@@ -249,6 +249,13 @@ let basePolyline: L.Polyline | null = null;
 /** The base line and its break crossings, replaced when the route changes. */
 let routeLineLayer: L.LayerGroup | null = null;
 let dayPolylines: L.Polyline[] = [];
+/**
+ * Each alternate's wide invisible click line, by name. A taken alternate's is
+ * off the map: its day lines run along it and must keep their clicks.
+ */
+let alternateHitLines: Array<{ name: string; line: L.Polyline }> = [];
+/** The popup an alternate's line opened, closed when the page re-renders. */
+let alternatePopup: L.Popup | null = null;
 let stopMarkers: L.LayerGroup | null = null;
 /** The open popup's place's walk in from the route, drawn while the popup is open. */
 let popupAccessPath: L.LayerGroup | null = null;
@@ -692,21 +699,25 @@ function initMap(): void {
   // The main route a taken alternate bypasses is drawn by `redrawRouteLine`.
   // Clicking one opens its popup, with the take / stay choice the Stops tab's
   // branch card offers; a wide invisible line on top makes the 2 px dash easy
-  // to hit.
+  // to hit. It is kept narrow (10 px) because an alternate often runs close
+  // beside the main route, whose day lines must keep their clicks too.
+  alternateHitLines = [];
   (trail.alternates ?? []).forEach((variant, index) => {
     if (!Array.isArray(variant.points) || variant.points.length < 2) return;
     const latLngs = variant.points.map(p => [p.lat, p.lon] as [number, number]);
-    L.polyline(latLngs, { color: '#aaa', weight: 2, opacity: 0.6, dashArray: '4 6' }).addTo(map!);
-    L.polyline(latLngs, { color: '#000', weight: 14, opacity: 0 })
+    L.polyline(latLngs, { color: '#aaa', weight: 2, opacity: 0.6, dashArray: '4 6' })
       .addTo(map!)
+      .bindTooltip(escapeHtml(variant.name));
+    const line = L.polyline(latLngs, { color: '#000', weight: 10, opacity: 0 })
       .bindTooltip(escapeHtml(variant.name))
       .on('click', (event: L.LeafletMouseEvent) => {
         if (!map) return;
-        L.popup({ className: 'plan-wp-popup' })
+        alternatePopup = L.popup({ className: 'plan-wp-popup' })
           .setLatLng(event.latlng)
           .setContent(variantPopupContent(variant, index))
           .openOn(map);
       });
+    alternateHitLines.push({ name: variant.name, line });
   });
   redrawRouteLine();
 
@@ -765,6 +776,14 @@ function redrawRouteLine(): void {
       );
   }
   basePolyline.bringToBack();
+  // A taken alternate is walked, so its day lines are drawn along it; its
+  // click line would swallow their clicks. Its take / stay choice is still in
+  // the popups of the places on it and in the Stops tab.
+  const taken = new Set(plannedRoute.alternates.map(a => a.name));
+  for (const { name, line } of alternateHitLines) {
+    if (taken.has(name)) line.remove();
+    else if (!map.hasLayer(line)) line.addTo(map);
+  }
 }
 
 function drawWaypointMarkers(): void {
@@ -928,13 +947,25 @@ function variantPopupContent(variant: RouteVariant, index: number): HTMLElement 
     bindAlternateChoiceButtons(el);
     return el;
   }
-  const parent = variant.parent?.name;
   const distance = Number(variant.distance);
   el.innerHTML = `
     <div class="wp-popup-name">${escapeHtml(variant.name)}</div>
     ${Number.isFinite(distance) ? `<div class="wp-popup-sub">${distance.toFixed(1)} km</div>` : ''}
-    ${parent ? `<div class="wp-popup-alt-note">It branches off another alternate: ${escapeHtml(parent)}. A plan can only take alternates off the main route.</div>` : ''}`;
+    <div class="wp-popup-alt-note">${escapeHtml(notPlannableReason(variant))}</div>`;
   return el;
+}
+
+/** Why a plan cannot take a line the map draws beside the route. */
+function notPlannableReason(variant: RouteVariant): string {
+  if (variant.type === 'side-trip') return 'A side trip off the main route. A plan only takes alternates.';
+  if (variant.type === 'terminus') return 'A route to or from a trail end. A plan only takes alternates.';
+  if (variant.parent) {
+    return `It branches off another alternate: ${variant.parent.name}. A plan can only take alternates off the main route.`;
+  }
+  if (plannableAlternates(trail).some(o => o.name === variant.name)) {
+    return 'Another alternate has the same name, and a plan can only take the first.';
+  }
+  return 'The trail data does not place both of its ends on the main route, so a plan cannot take it.';
 }
 
 /**
@@ -2267,6 +2298,12 @@ function initTabs(): void {
 // ---------------------------------------------------------------------------
 
 function renderAll(): void {
+  // An open alternate popup shows the plan as it was: whether it takes the
+  // alternate, and what its button would do.
+  if (alternatePopup) {
+    map?.closePopup(alternatePopup);
+    alternatePopup = null;
+  }
   refreshActiveStops();
   // Judged against the data the same way `refreshStopKms` moved the stops
   // (a read-only page refreshes without the guard): a plan saved against data
