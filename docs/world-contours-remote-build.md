@@ -19,72 +19,107 @@ The tooling:
 | Shard driver (detached) | `scripts/remote/run-shard.sh` |
 | Progress summary | `scripts/remote/status.sh` |
 | R2 upload | `scripts/remote/upload-world.sh` |
+| Amazon Linux 2023 setup | `scripts/remote/bootstrap-al2023.sh` |
+| rclone `[r2]` from a Cloudflare token | `scripts/remote/rclone-from-token.sh` |
+| Unattended fetch + cells + merges | `scripts/remote/drive-world.sh` |
+| Unattended cleanup + join + validate + upload | `scripts/remote/finish-world.sh` |
 | Worker | `workers/contour-tiles/` |
 
 ---
 
+## 0. The quickest run (what to do next time)
+
+Distilled from the October 2026 rebuild (section 6b has the numbers). Every
+step runs on the box; the laptop's uplink (~0.9 MB/s) moves nothing.
+
+1. **Rent** an on-demand (never spot) AWS instance with local NVMe on Amazon
+   Linux 2023. CPU is the only thing the build saturates, so buy cores, not
+   RAM: see section 1 for the choice. Note the SSH security group pins your
+   IP.
+2. **Human steps on the box** (an agent's shell refuses `mkfs`, and
+   credentials are yours to place):
+   - stripe the NVMe drives into `/mnt/nvme` (the commands are in the header
+     of `scripts/remote/bootstrap-al2023.sh`);
+   - put one Cloudflare API token at `~/token`: **Account → Workers R2
+     Storage: Edit** and **Zone → Cache Purge** on `contour-map-tiles.net`.
+     It covers rclone, wrangler and the manifest purge. Revoke it at the end.
+3. **Bootstrap** (~10 min): `bash bootstrap-al2023.sh` (curl it from `main`),
+   then `scripts/remote/rclone-from-token.sh`.
+4. **Start everything at once**, detached, from `/mnt/nvme/trail-maps`:
+
+   ```bash
+   . /etc/profile.d/geo.sh
+   setsid nohup bash scripts/remote/drive-world.sh  > logs/drive.log  2>&1 < /dev/null &
+   setsid nohup bash scripts/remote/finish-world.sh > logs/finish.log 2>&1 < /dev/null &
+   ```
+
+   `drive-world.sh` fetches every shard's DEM (retrying the Node HTTP crash),
+   runs one cell lane and a pool of merges side by side; `finish-world.sh`
+   waits for the last merge, frees the intermediates, joins, validates and
+   uploads. Progress is one line per event in `logs/drive-events.log`.
+5. **Australia and the offline packs** on the same box while the world runs
+   (section 7a): packs first (about 45 min), the Australia archive once the
+   cell lane is done (about 2.5 h). Upload each as soon as it validates;
+   neither waits for the world.
+6. **Keep the CPU busy at the end.** Each shard merges its batches one after
+   another, so the biggest shard (asia-east, 8 batches) is the long pole. When
+   the smaller merges finish and cores go idle, pre-tile its last batches in
+   parallel: `build-contours-world.ts --shard asia-east --merge-only
+   --batches-only --batch 7` (and 6, 5…); the running merge reuses each one
+   it reaches with a matching `.done` marker.
+7. **Clean up** (section 11) and destroy the box the moment the world upload
+   verifies.
+
 ## 1. Machine sizing
 
-The Australia archive (248 cells, 13.5 GB of staged FlatGeobufs) was built on a
-15 GB-RAM laptop: **~4 h of tippecanoe tiling followed by ~20 h of
-single-threaded, RAM-starved clustering.** The world is roughly 20× that. RAM
-is the merge bottleneck, not CPU.
+**The build is CPU-bound from start to finish; RAM barely matters.** The
+2026-10 run on an i4i.8xlarge (32 vCPU, 247 GB RAM) sat at 98-100 % user CPU
+with no I/O wait for ~18 h, while every process together used at most ~26 GB
+of RAM (a tippecanoe merge peaks at ~2.5 GB RSS; the old "RAM is the merge
+bottleneck" came from the untiered build, whose z9-z12 tiles carried every
+10 m line). The rest of the RAM only served as page cache.
 
-Recommended:
+What each phase scales with:
 
-| Resource | Minimum | Why |
+| Phase | Bound by | 2026-10 on 32 vCPU |
 | --- | --- | --- |
-| CPU | ≥ 32 threads | per-cell gdalwarp/gdal_contour is embarrassingly parallel (~100 s/cell) |
-| RAM | 64 GB, **128 GB preferred** | tippecanoe clustering; below ~64 GB the merge degrades to the laptop's 20 h behaviour |
-| Disk | ≥ 3 TB NVMe | see the disk math below |
-| Swap | ≥ 64 GB on NVMe | a slow merge beats an OOM-killed merge |
-| Bandwidth | unmetered | ~1.1 TB of DEM downloads if you never purge |
+| DEM fetch (~485 GB, 18,449 tiles) | network, one stream | 74 min |
+| Cells (gdalwarp + gdal_contour) | cores, embarrassingly parallel | ~10 h |
+| Shard merges (tippecanoe, ~92 GB batches) | ~1-6 cores per batch, batches of a shard in sequence | 2.5-3 h per batch under load; asia-east (8) ~24 h |
+| `--join` (tile-join + pmtiles convert) | single-threaded, I/O | ~16 h in Sept 2026 |
+| Upload to R2 | AWS egress | ~35-45 MB/s |
 
-Concretely: a **Hetzner AX102-class dedicated box** (32 threads, 128 GB RAM,
-2× 1.92 TB NVMe, unmetered 1 Gbps, ~€110/month) — one month covers the whole
-build with retries — or any hourly cloud instance with ≥ 64 GB RAM and ≥ 3 TB
-of local NVMe. Avoid network block storage: tippecanoe's temp spill and the
-FlatGeobuf staging are both IOPS-hungry.
+Recommended, AWS on-demand prices in us-east-1 (check them before renting):
 
-### One box for everything (the 2026-10 rebuild, #135)
+| Instance | vCPU / RAM / NVMe | ~$/h | Fit |
+| --- | --- | --- | --- |
+| **c6id.32xlarge** | 128 / 256 GB / 4×1.9 TB | ~6.45 | Fastest: cells in ~2.5 h, and with batch-level merging (step 6) the merges in a few hours. The join, not the cores, then sets the end date. |
+| c6id.24xlarge | 96 / 192 GB / 4×1.4 TB | ~4.84 | Same shape, 5.7 TB disk: enough with `finish-world.sh`'s cleanup |
+| i4i.8xlarge (used 2026-10) | 32 / 256 GB / 2×3.75 TB | ~2.75 | Works; 8× more RAM than needed, a quarter of the cores |
+| c6id.16xlarge / i4i.4xlarge | 64 or 16 / … / ~3.5-3.8 TB | — | Too little disk unless every shard runs `--purge-dem` and `--clean-work` |
 
-The September 2026 build split the work across two machines (section 6a)
-because the cheap box had spinning disks. The re-tiered rebuild uses **one
-AWS i4i.8xlarge** (32 vCPU, 256 GB RAM, 7.5 TB instance-store NVMe, ~$2.75/h,
-about 3 days): the ~800 GB of batches never leave the machine, so the
-completeness markers and disk juggling of 6a do not apply, and the same box
-then re-merges Australia and builds the offline packs (section 7a), on the
-pinned tippecanoe. Instance-store NVMe is lost on stop or termination: run it
-**on-demand, never spot**, and still stream finished batches to R2 as
-insurance. Put the checkout on the NVMe (`CHECKOUT_DIR`) and point `TMPDIR`
-there too.
+A bigger box costs more per hour but rents for fewer of them: the CPU work is
+about 600-700 vCPU-hours either way, so the trade is mostly against the fixed
+~16 h join and the upload. Avoid network block storage (EBS) for the work
+dirs: tippecanoe's temp spill and the FlatGeobuf staging are IOPS-hungry.
+Instance-store NVMe is wiped on stop: never stop the box mid-build.
 
-### Disk math
+### Disk math (measured 2026-10)
 
 | Item | Size |
 | --- | --- |
-| World GLO-30 DEM, all at once | ~1.1 TB |
-| Per-shard DEM peak with `--purge-dem` | 100–200 GB |
-| Staged FlatGeobuf tiers | Australia was 13.5 GB → world ~250–350 GB |
-| tippecanoe temp spill (`-t`, per merge) | tens of GB |
-| `world_{shard}.mbtiles` sum | ~150–350 GB |
-| `world.mbtiles` + `world.pmtiles` (both exist during convert) | 2× the final size |
+| World GLO-30 DEM, every shard except the ice sheets | 485 GB |
+| Staged FlatGeobuf tiers, all shards | **2.3 TB** (asia-east 680 GB, north-america 406, asia-west 403, south-america 280, africa 247, europe 136, oceania 107) |
+| One merge batch | ~30 GB (from ≤ 92 GB of tiers) |
+| `world_{shard}.mbtiles` | oceania 31 GB, europe 44, central-america 17, iceland 1.1 |
+| `world.mbtiles` + convert temp + `world.pmtiles` | ~810 + ~690 + ~640 GB (Sept 2026) |
 
-Peak is the join step: shard mbtiles + `world.mbtiles` + `world.pmtiles`
-coexist. Budget ~3× the estimated final archive size on top of the staging
-dirs. `run-shard.sh` refuses to start below 500 GB free (`MIN_FREE_DISK_GB`).
-
-### Timing estimate
-
-| Phase | Estimate |
-| --- | --- |
-| DEM download (per shard, 1 Gbps) | 1–3 h |
-| Cells, all shards, 32 threads @ `--parallel 16` | 10–13 h total |
-| tippecanoe per shard @ 128 GB RAM | 2–5 h (2–3 shards can run concurrently) |
-| `--join` (tile-join + pmtiles convert) | 2–6 h, mostly I/O |
-| Upload to R2 @ 1 Gbps | 0.5–1 h per 200 GB |
-
-Realistically: **3–5 days wall clock** including one or two restarts.
+Peak is the end of the merges: DEM + every tier + the shard files, ~3.4 TB on
+the 2026-10 run. `finish-world.sh` then deletes the DEM and every merged
+shard's tiers and batches before the join, which needs ~2.2 TB on top of the
+shard files. So a ~3.5 TB box needs `--purge-dem` and `--clean-work` per
+shard (each loses the option of a re-merge without the DEM); ≥ 5.5 TB needs
+neither. `run-shard.sh` refuses to start below 500 GB free (`MIN_FREE_DISK_GB`).
 
 ---
 
@@ -164,6 +199,29 @@ any other, as does the Australia build; why that release is in `TIPPECANOE_VERSI
 `scripts/tile-pipeline.ts`), the `pmtiles` CLI from `protomaps/go-pmtiles`, then
 clones the repo and runs `npm ci`. It prints every version at the end — paste
 that block into the build notes for the record. Re-running it is safe.
+
+### If the box is Amazon Linux 2023 (AWS's default image)
+
+`bootstrap.sh` is apt-only. Use `scripts/remote/bootstrap-al2023.sh` instead
+(the 2026-10 box): it installs the build tools with dnf, the geo stack
+(GDAL 3.13, sqlite, Node 22, rclone) from conda-forge into a micromamba env on
+the NVMe, builds tippecanoe 2.79.0 with the system compiler, and clones the
+repo to `/mnt/nvme/trail-maps`. It needs `/mnt/nvme` mounted first; the
+commands to stripe the instance-store drives are in its header, and a human
+runs them (an agent's shell blocks `mkfs`).
+
+```bash
+ssh -i <key>.pem ec2-user@<box>
+curl -fsSL https://raw.githubusercontent.com/eamon-b/trail-maps/main/scripts/remote/bootstrap-al2023.sh -o bootstrap-al2023.sh
+bash bootstrap-al2023.sh                     # ~10 min
+/mnt/nvme/trail-maps/scripts/remote/rclone-from-token.sh   # [r2] remote from ~/token
+```
+
+It writes `/etc/profile.d/geo.sh`, which only login shells read: **every**
+`ssh box '...'` command and every detached job must start with
+`. /etc/profile.d/geo.sh`, or it runs without GDAL, Node or the NVMe `TMPDIR`.
+To launch a detached job over ssh without the session hanging, use
+`ssh -n -f box 'cd ... && setsid nohup ... > log 2>&1 < /dev/null &'`.
 
 ### If the box is Ubuntu 20.04 (vast.ai and other GPU-container hosts)
 
@@ -269,6 +327,12 @@ The shard names come from `WORLD_SHARDS` in `scripts/lib/world-grid.ts`
 `status.sh` shows the per-shard cell totals; until the Copernicus tile list is
 cached at `data/dem-glo30/.tileList.txt` those totals include ocean cells the
 build will skip, so they look far larger than the work actually queued.
+
+**Unattended:** `scripts/remote/drive-world.sh` replaces the per-shard
+commands below: it fetches every shard's DEM with retries, runs the cell
+phases one shard at a time on all but six cores (largest first), and merges
+up to six shards at once as their cells finish. `scripts/remote/finish-world.sh`
+then joins, validates and uploads (section 0).
 
 Two or three shards can run concurrently on a 32-thread/128 GB box **if their
 cell phases overlap with another shard's merge phase** — do not run two
@@ -413,6 +477,51 @@ Things that bit us on this run, in addition to section 8:
 
 ---
 
+## 6b. What the October 2026 run measured (#135, the re-tier)
+
+One AWS **i4i.8xlarge** (32 vCPU, 247 GB RAM, 2× 3.75 TB instance-store NVMe
+striped to 6.9 TB, Amazon Linux 2023, on-demand ~$2.75/h, us-east-1) did
+everything: the ten world shards (ice sheets skipped), a full Australia
+rebuild and all 20 offline packs. Times are UTC, 2026-10-23 unless noted.
+
+| Step | Measured |
+| --- | --- |
+| Box up → NVMe striped → bootstrap done | ~03:55 → 04:10 → 04:17 |
+| DEM fetch, every shard (485 GB, 18,449 tiles) | 04:18 → 05:32 (74 min; 26 restarts for the Node HTTP crash) |
+| Cells, all shards | 04:25 → 14:43 (~10 h; at 26 cores: asia-east 2 h 19, asia-west 2 h 09, north-america 1 h 15, africa 1 h 15, south-america 1 h 13, central-america 27 min) |
+| Merges | oceania 10:15 (31 GB), europe 11:41 (44 GB), central-america 2 h 55 for its one batch (17 GB), rest 5 min, iceland 18 min; a 92 GB batch takes 2.5-3 h once the CPU is saturated; asia-east has 8 |
+| Offline packs, 19 (3 at a time) | 10:47 → 11:32 (CDT 45 min; the rest under 4 min each) |
+| Australia, full rebuild at `--parallel 24` | 14:44 → 17:21 (157 min, 12.8 GB) |
+| Australia + 19 packs uploaded and verified | 20:17 → 20:32 (12.5 GiB at ~35 MiB/s) |
+| World join, convert, validate, upload | *(filled in when the run ends)* |
+| Box destroyed | *(filled in when the run ends)* |
+
+What we learned, beyond section 8:
+
+- **CPU-bound, not RAM-bound.** 98-100 % user CPU, no I/O wait, at most
+  ~26 GB of RAM in use. See section 1 for the instance to choose.
+- **The first driver idled 29 of 32 cores.** Two lanes that each ran a
+  shard's cells and then its merge left the cores idle while both lanes
+  merged (a merge is ~1.5 cores while reading its input). Splitting cells
+  from merges (`--cells-only` lane + a merge pool, now
+  `scripts/remote/drive-world.sh`) took the load from 3 to ~75.
+- **Batches of a shard merge in sequence**, so the biggest shard sets the end
+  of the merge phase. `--batch` (with `--batches-only`) lets other processes
+  pre-tile its last batches when cores free up; a merge in progress reuses
+  any batch whose `.done` marker matches when it reaches it. If the two do
+  meet on one batch, the sequential run deletes the half-built file and
+  re-tiles it: wasted work, never a wrong archive. The next step is a
+  driver that schedules batches, not shards.
+- **Tier files are ~7× the old estimate**: 2.3 TB for the world.
+- **Nothing should come from the laptop.** Its uplink (~0.9 MB/s) would have
+  taken a day over the Australia inputs; the box fetched SRTM from AWS's
+  public mirror and the basemap from build.protomaps.com in minutes (7a).
+- **Publish what validates as it validates.** The Australia archive and the
+  packs went live the evening of day one rather than after the world upload.
+- **Spot-checking an mbtiles by hand:** tiles are gzipped and `tile_row` is
+  TMS (flip `y` to `2^z - 1 - y`); `tippecanoe-decode` handles both and
+  reads `.pmtiles` too.
+
 ## 7. Deploy the Worker and verify
 
 The Worker serves `/{source}/{z}/{x}/{y}.pbf` and gains a `world` source
@@ -440,56 +549,65 @@ Edge cache: re-uploading the same key leaves stale bytes cached for up to 24 h.
 ## 7a. Australia and the offline packs on the same box
 
 The Australia archive and the 20 offline packs are tippecanoe builds too, and
-the box has the pinned release, the RAM and the cores the laptop lacks (the
-laptop's last Australia merge took ~24 h). Neither needs the world's DEM. Do
-not start them while a world shard is in its tippecanoe merge unless you have
-watched that merge's RSS and know both fit.
+the box has the pinned release and the cores the laptop lacks (the laptop's
+last Australia merge took ~24 h). **Nothing comes from the laptop**: a home
+uplink (~0.9 MB/s on 2026-10) would take a day over the inputs, and the box
+downloads all of them in minutes.
 
-**Inputs from the laptop.** Copy them while the world shards build; the laptop's
-uplink is the slow part. Paths are relative to the checkout on each machine:
+**Inputs, fetched on the box:**
+
+- **SRTM for Australia** (`data/dem`, 885 tiles, 22 GB): the same 1" HGT tiles
+  are on AWS's public `elevation-tiles-prod` bucket ("skadi"), gzipped, at
+  `https://s3.amazonaws.com/elevation-tiles-prod/skadi/<S24>/<S24E132>.hgt.gz`.
+  Fetch the tile names in the laptop's `data/dem` (`ls data/dem > tiles.txt`,
+  then `xargs -P 16` curl + gunzip): two minutes. They are not all
+  byte-identical to the laptop's: 708 of 885 differ, only inside SRTM's
+  filled voids (S38E146: 0.15 % of cells, always higher, mean 5 m, max 74 m,
+  in a few compact patches). Accepted on 2026-10; the contours move only
+  inside those patches.
+- **Copernicus GLO-30** for CDT, Te Araroa and Shikoku (`data/dem-glo30`):
+  already there if the world DEM is unpurged. Otherwise `build-tiles.ts`
+  prints the `fetch-dem-copernicus.ts --bbox` command for what is missing.
+- **Basemap**: `--protomaps-url https://build.protomaps.com/<YYYYMMDD>.pmtiles`
+  (the newest daily build; `pmtiles extract` reads only each trail's bbox).
+  The laptop's `planet.pmtiles` is an Australia-only extract from May 2025.
+- **Te Araroa's GPX** is not in the repo: run `npm run sync:te-araroa` on the
+  box first, or its pack fails with "No GPX file found".
+
+**Australia archive** is a full rebuild from the SRTM (the 61 GB of laptop
+tiers are not worth the upload): 248 cells and the merge in **157 min** at
+`--parallel 24`, alongside the world merges. Start it once the world cell
+lane is done so it does not delay the shards still in their cell phase:
 
 ```bash
-# Australia tier files and their .done markers (~61 GB). Skip the per-cell DEM
-# and raw files, logs and tmp/; --merge-only reads only *_z*.fgb + *.done.
-rsync -av --partial --include='*_z*.fgb' --include='*.done' --exclude='*' \
-  data/tiles/contours-australia/ box:/mnt/nvme/trail-maps/data/tiles/contours-australia/
-
-# SRTM cache for the Australian packs (~22 GB) and the Protomaps base source (~2 GB)
-rsync -av --partial data/dem/ box:/mnt/nvme/trail-maps/data/dem/
-rsync -av --partial data/protomaps/planet.pmtiles box:/mnt/nvme/trail-maps/data/protomaps/
+setsid nohup npx tsx scripts/build-contours-australia.ts --parallel 24 \
+  > logs/australia.log 2>&1 < /dev/null &
 ```
 
-(`--protomaps-url <url>` to `build-tiles.ts` replaces the planet file.) The
-CDT, Te Araroa and Shikoku packs read Copernicus GLO-30 from `data/dem-glo30/`,
-which the world shards purge as they go (`--purge-dem`): `build-tiles.ts`
-fails with the exact `fetch-dem-copernicus.ts --bbox ...` command for any
-missing tile, so run what it prints.
-
-**Australia archive:**
-
-```bash
-setsid nohup npx tsx scripts/build-contours-australia.ts --merge-only \
-  > logs/australia-merge-$(date +%Y%m%d-%H%M%S).log 2>&1 < /dev/null &
-```
-
-Then spot-check the Mt Sonder z9 tile (`9/444/290`, only 100 m contours) as in
-section 4 before `npm run upload:tiles -- --contours` and
+Check the Mt Sonder z9 tile before uploading: `tippecanoe-decode -c
+public/data/tiles/australia-contours.pmtiles 9 444 290` must hold only
+multiples of 100 m (2,468 features, 114 KB raw on 2026-10, against 543 KB
+untiered), and `pmtiles verify` must pass. Then
+`npm run upload:tiles -- --contours` (rclone multipart, 12.5 GiB in 8 min) and
 `npm run upload:tiles -- --verify-contours`.
 
-**Offline packs:** `npx tsx scripts/build-tiles.ts` (all trails, or
-`--trail <id>`), then `npm run upload:tiles` for the trails under wrangler's
-300 MiB limit and `npm run upload:tiles -- cdt te_araroa` for the two over it
-(rclone, the same `r2:` remote as the world upload). Finish with
-`npm run check:tile-packs`.
+**Offline packs:** `build-tiles.ts --trail <dir> --protomaps-url <url>` per
+trail, three at a time (`ls data/trails | xargs -P 3 ...`): trails have their
+own work and output dirs, and the only shared file, `style.json`, is the same
+for all. 19 packs took 45 min, CDT alone 45 min, every other trail under 4.
+Check each pack's z9 tiles hold only multiples of 100 m before uploading,
+then `npm run upload:tiles -- <trail ids>`: one call handles both sizes, wrangler
+under 300 MiB and the `r2` rclone remote over it (CDT, Te Araroa).
 
 **Credentials for the uploads.** `upload-tiles.sh` uses one
-`CLOUDFLARE_API_TOKEN` for two things: wrangler's R2 writes and the
-manifest cache purge, and it refuses to upload anything without it. Give
-that token **Account → Workers R2 Storage: Edit** and **Zone → Cache Purge** on
-the `contour-map-tiles.net` zone (add **Account Settings: Read**, or export
-`CLOUDFLARE_ACCOUNT_ID`, so wrangler can find the account). Export it in the
-shell that runs the upload rather than writing it to a file on the box, and
-revoke it with the R2 token when the box is destroyed.
+`CLOUDFLARE_API_TOKEN` for wrangler's R2 writes and the manifest cache purge,
+and refuses to upload anything without it. The same `~/token` as rclone works:
+
+```bash
+export CLOUDFLARE_API_TOKEN=$(tr -d '[:space:]' < ~/token)
+export CLOUDFLARE_ACCOUNT_ID=<printed by rclone-from-token.sh>
+export RCLONE_REMOTE=r2
+```
 
 ## 8. Gotchas (all of these have bitten us)
 
@@ -528,6 +646,17 @@ revoke it with the R2 token when the box is destroyed.
 
 ---
 
+> **The DEM fetcher dies every few hundred tiles on Node 22.**
+> undici, Node's bundled HTTP client, throws an uncaught
+> `AssertionError [ERR_ASSERTION]: false == true` from `Parser.finish` when a
+> TLS socket ends mid-response. It kills the process outside the fetcher's own
+> retry loop. Tiles land via `.part` files, so nothing is corrupted: re-run
+> it. `drive-world.sh` does, up to `FETCH_ATTEMPTS` times per shard.
+
+> **Login-shell environment.** On the conda-based boxes (Amazon Linux,
+> Ubuntu 20.04) GDAL, Node and `TMPDIR` come from `/etc/profile.d/geo.sh`,
+> which `ssh box 'cmd'` does not read. Source it in every command.
+
 ## 9. Resume after a crash
 
 Everything is resumable; nothing needs to start over.
@@ -552,19 +681,28 @@ cell's contours — if you see those warnings, re-run the shard without
 
 ## 10. Cost
 
+What the builds actually cost (AWS on-demand, us-east-1):
+
+| Run | Machine × hours | Compute | AWS egress to R2 (~$0.09/GB) | Total |
+| --- | --- | --- | --- | --- |
+| Sept 2026 (world only) | vast.ai 80-core ~$0.50/h + i4i.4xlarge $1.50/h, ~4 days | ~$100 | ~640 GB → ~$60 | ~$160 |
+| Oct 2026 (world + Australia + 20 packs) | i4i.8xlarge $2.75/h × *(final hours)* | *(final)* | ~660 GB → ~$60 | *(final)* |
+
+Next time, the instance choice in section 1 trades cost per hour against
+hours: the CPU work is ~600-700 vCPU-hours on any box, while the join (~16 h)
+and the upload (~4 h) take the same wall time on any box. The egress is the
+same everywhere (Hetzner's unmetered bandwidth is the only way to avoid it).
+
+Ongoing:
+
 | Item | Cost |
 | --- | --- |
-| Hetzner AX102-class dedicated box | ~€110 / month (+ ~€90 one-off setup, sometimes waived) |
-| Alternative: hourly cloud, 64 GB RAM + 3 TB NVMe | ~$1–2 / h → ~$100–200 for a 4-day build |
-| Bandwidth (1.1 TB DEM in, 200 GB out) | included / unmetered on Hetzner |
-| R2 storage, 150–350 GB @ $0.015/GB-month | **$2.30–5.30 / month** |
-| R2 Class A ops (upload, multipart) | < $0.10 |
+| R2 storage: `world.pmtiles` ~640 GB + Australia 12.8 GB + packs ~2.5 GB @ $0.015/GB-month | **~$10 / month** |
+| R2 Class A ops (upload, multipart) | < $0.10 per rebuild |
 | R2 egress | **$0** (zero-egress is the whole reason the archive lives there) |
-| **One-off build total** | **~€110–200** |
-| **Ongoing** | **~$3–6 / month** for storage; the Worker stays on the existing plan |
 
-Keeping the Australia SRTM archive alongside the world one adds ~12 GB
-(~$0.18/month) until it is retired — cheap enough to leave in place until the
+Keeping the Australia SRTM archive alongside the world one adds ~13 GB
+(~$0.20/month) until it is retired — cheap enough to leave in place until the
 world tileset is proven on real trails.
 
 ---
