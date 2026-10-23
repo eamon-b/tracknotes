@@ -1,0 +1,156 @@
+{
+  "trailId": "overland",
+  "note": "Curated waypoint descriptions, keyed by the stable ids in data/waypoint-ids.json. Applied by scripts/build-trails.ts (overriding any description from the GPX source) and uploadable to the comments API with scripts/upload-descriptions.ts. Listed in walking order from Ronny Creek to Narcissus, then the side trips and the lakeside walk to Cynthia Bay. Waypoints with no entry keep their GPX text; those with none had nothing a Parks and Wildlife Service Tasmania page confirms. Sources for each fact: plans/waypoint-description-sources.md.",
+  "descriptions": [
+    {
+      "waypointId": "w_9a97dbaa",
+      "name": "Ronny Creek Registration Booth",
+      "description": "The start of the Overland Track, a stop on the Cradle Mountain shuttle bus about 7 km from the Cradle Mountain Visitor Centre, where Overland walkers check in and collect their track pass before setting out. Ronny Creek has picnic tables and limited parking. Log books for walkers' trip intentions are kept at each end of the track and at every hut."
+    },
+    {
+      "waypointId": "w_680e4faa",
+      "name": "Marions Lookout",
+      "description": "Lookout at about 1,220 m, reached by a very steep, short climb after the gradual ascent past Crater Lake. Beyond it most of the first day is on exposed alpine plateau, and almost half the track is above 1,000 m."
+    },
+    {
+      "waypointId": "w_31900bfa",
+      "name": "Cradle Mountain",
+      "description": "Summit of 1,545 m on a side trip of 2 km, 2 to 3 hours return, from the track junction, with boulder scrambling near the top and wide views over mountains and lakes on a clear day. Currawongs at the junction are known to open the zips of packs left there."
+    },
+    {
+      "waypointId": "w_bf4db6de",
+      "name": "Waterfall Valley Hut",
+      "description": "The first night's hut, 10.7 km from Ronny Creek, sleeping 34. Like every main hut on the track it has bunks without mattresses, a communal cooking area, composting toilets and an untreated rainwater tank, with no showers or hot water. The huts cannot be booked and are first come, first served."
+    },
+    {
+      "waypointId": "w_9a56559b",
+      "name": "Waterfall Valley Public Camping Platform",
+      "description": "Tent platforms for independent walkers beside Waterfall Valley Hut: four platforms, with overflow camping on grass."
+    },
+    {
+      "waypointId": "w_54bed341",
+      "name": "Waterfall Valley Group Camping Platform",
+      "description": "Group tent platforms at Waterfall Valley. Educational, school and community groups camp on the group platforms rather than in the huts, and some guided walks use them too."
+    },
+    {
+      "waypointId": "w_005d9e1d",
+      "name": "Windermere Hut tent platforms",
+      "description": "Eight tent platforms beside Windermere Hut. Camping is not permitted around Lake Windermere itself; the sites are about 500 m from its shore."
+    },
+    {
+      "waypointId": "w_c2f70102",
+      "name": "Windermere Hut",
+      "description": "Hut near Lake Windermere sleeping 34, at the end of a 7.8 km stretch from Waterfall Valley over exposed alpine heath, lakes and tarns above 1,000 m. Composting toilets and an untreated rainwater tank."
+    },
+    {
+      "waypointId": "w_3d5c168a",
+      "name": "New Pelion Hut",
+      "description": "The largest hut on the track, sleeping 36, at the end of a 16.8 km day across buttongrass plains and through myrtle-beech rainforest and eucalypt forest, ringed by mountains. There is one tent platform, which takes three tents, and overflow camping on grass; the hut has composting toilets and an untreated rainwater tank. A 1 km return side trip leads to Old Pelion Hut, a miners' hut from 1917 now used by day, with a swimming hole."
+    },
+    {
+      "waypointId": "w_7b02aee3",
+      "name": "New Pelion Hut Group Campsite",
+      "description": "Group tent platforms at Pelion. Educational, school and community groups camp on the group platforms rather than in the huts, and some guided walks use them too."
+    },
+    {
+      "waypointId": "w_33d3a852",
+      "name": "Pelion Gap",
+      "description": "The exposed alpine saddle between Mount Ossa and Mount Pelion East, reached by a climb beside Douglas Creek from Pelion. It is the junction for the side trips to both summits; the forest below the gap is the nearest shelter from the weather."
+    },
+    {
+      "waypointId": "w_78ab9414",
+      "name": "Kia Ora Hut Group Camping Platform",
+      "description": "Group tent platforms at Kia Ora. Educational, school and community groups camp on the group platforms rather than in the huts, and some guided walks use them too."
+    },
+    {
+      "waypointId": "w_0c6a29f2",
+      "name": "Kia Ora Hut",
+      "description": "Hut sleeping 34, after a gradual descent from Pelion Gap across buttongrass plains and eucalypt forest. Composting toilets and an untreated rainwater tank."
+    },
+    {
+      "waypointId": "w_41009bee",
+      "name": "Kia Ora Hut Public Camping Platform",
+      "description": "Tent platforms for independent walkers at Kia Ora, nine in all."
+    },
+    {
+      "waypointId": "w_25663a03",
+      "name": "Du Cane Hut",
+      "description": "Historic hut built in 1910, in rainforest on the way from Kia Ora to Windy Ridge, used as a day stop. Overnight use is for emergencies only."
+    },
+    {
+      "waypointId": "w_28d11af4",
+      "name": "Windy Ridge Group Campsite",
+      "description": "Group tent platforms at Windy Ridge. Educational, school and community groups camp on the group platforms rather than in the huts, and some guided walks use them too."
+    },
+    {
+      "waypointId": "w_66ebb08a",
+      "name": "Bert Nichols Hut tent platforms",
+      "description": "Tent platforms for independent walkers beside Bert Nichols Hut, nine in all."
+    },
+    {
+      "waypointId": "w_bef66643",
+      "name": "Bert Nichols Hut",
+      "description": "The Windy Ridge hut, sleeping 24, at the top of the Narcissus Valley with the Du Cane Range behind it, and a large enclosed dining area. Composting toilets and an untreated rainwater tank. On the way from Kia Ora, about 20 minutes past the junction for D'Alton and Fergusson Falls, a side track drops through rainforest to Hartnett Falls on the Mersey River, 1.5 km return."
+    },
+    {
+      "waypointId": "w_75484c20",
+      "name": "Narcissus Hut",
+      "description": "Hut sleeping 18 on the banks of the Narcissus River at the head of Lake St Clair, the usual end of the Overland Track, reached over a suspension bridge. A ferry runs from the jetty here to Cynthia Bay; it is privately run and booked in advance, and the hut has a radio for confirming bookings. The alternative is the 17.5 km lakeside track to Cynthia Bay."
+    },
+    {
+      "waypointId": "w_be3eb063",
+      "name": "Narcissus Hut Campsite",
+      "description": "Tent platforms beside Narcissus Hut, four in all."
+    },
+    {
+      "waypointId": "w_a835cad6",
+      "name": "Barn Bluff",
+      "description": "Summit of 1,559 m on a side trip of 7 km, 3 to 4 hours return, from the track junction on the first day, with very steep sections and boulder scrambling near the top."
+    },
+    {
+      "waypointId": "w_36a181e3",
+      "name": "Mount Ossa",
+      "description": "Tasmania's highest peak, 1,617 m, on a steep and exposed side trip of 5.2 km, 4 to 5 hours return, from Pelion Gap. The upper slopes are boulder fields, which are dangerous under snow."
+    },
+    {
+      "waypointId": "w_a4a3bbc5",
+      "name": "Mount Pelion East",
+      "description": "Summit on a steep and exposed side trip of 2.4 km, about 2 hours return, from Pelion Gap, over boulder fields that are dangerous under snow. The top looks over Mount Ossa and most of the park's highest peaks."
+    },
+    {
+      "waypointId": "w_4da086ca",
+      "name": "Dalton Falls",
+      "description": "D'Alton Falls, on the Mersey River, reached with Fergusson Falls by a 1 km, hour-long return side trip down through rainforest between Du Cane Hut and Windy Ridge. The track is slippery and there are sheer drops at the top of the falls."
+    },
+    {
+      "waypointId": "w_102735c8",
+      "name": "Fergusson Falls",
+      "description": "Waterfall on the Mersey River, on the same 1 km return side trip through rainforest as D'Alton Falls. The track is slippery and there are sheer drops at the top of the falls."
+    },
+    {
+      "waypointId": "w_c2909936",
+      "name": "Pine Valley Hut",
+      "description": "Hut sleeping 16 on a side trip of 4.7 km, 1.5 to 2 hours one way, from the track between Windy Ridge and Narcissus, usually walked as an overnight trip. It is the base for exploring the Acropolis and the Labyrinth."
+    },
+    {
+      "waypointId": "w_09be7e66",
+      "name": "Pine Valley Hut Tent Platforms",
+      "description": "Four tent platforms beside Pine Valley Hut, with overflow camping on the forest floor."
+    },
+    {
+      "waypointId": "w_258f9675",
+      "name": "Echo Point Hut",
+      "description": "A small, rustic walkers' hut in dense, mossy forest about three-quarters of the way up Lake St Clair, 5 km from Narcissus on the lakeside track. A small jetty is a ferry stop (bookings required), there is a bush toilet, and Mount Ida rises across the lake."
+    },
+    {
+      "waypointId": "w_e7d82fed",
+      "name": "Fergy's Paddock Camp Site",
+      "description": "Fergys campsite, near the southern end of Lake St Clair close to Cynthia Bay, also reached from the visitor centre by the Watersmeet Track and the lakeshore beach."
+    },
+    {
+      "waypointId": "w_55078e91",
+      "name": "Cynthia Bay",
+      "description": "The southern end of the walk at Lake St Clair, Australia's deepest freshwater lake at 167 m, carved out by glaciers. The visitor centre has a cafe and toilets, and the ferry to Narcissus leaves from here. Lake St Clair Road runs 5.5 km out to the Lyell Highway at Derwent Bridge."
+    }
+  ]
+}
