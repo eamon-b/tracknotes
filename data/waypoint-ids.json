@@ -2316,14 +2316,14 @@
     },
     {
       "id": "w_808bb2ce",
-      "name": "Point Rd Campsite",
+      "name": "Point Road Campground",
       "type": "campsite",
       "lat": -34.09255,
       "lon": 115.01712
     },
     {
       "id": "w_888629a6",
-      "name": "Contos Campsite",
+      "name": "Conto Campground",
       "type": "campsite",
       "lat": -34.08352,
       "lon": 115.01543
@@ -2337,7 +2337,7 @@
     },
     {
       "id": "w_9863ffae",
-      "name": "Quinninup Falls",
+      "name": "Quininup Falls",
       "type": "poi",
       "lat": -33.74621,
       "lon": 114.9953
