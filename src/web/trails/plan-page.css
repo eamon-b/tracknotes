@@ -775,7 +775,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
   width: 22px;
   height: 22px;
 }
-.waypoint-marker .map-glyph { width: 13px; height: 13px; }
+/* Largest that clears the Ø17 disc (see .waypoint-marker in styles.css). */
+.waypoint-marker .map-glyph { width: 15px; height: 15px; }
 .waypoint-marker.is-stop { border-color: var(--select); border-width: 3px; }
 /* After .is-stop on purpose: a planned stop that is also a camp stop shows the
  * plan's ring, which is the rarer and more consequential of the two. */
