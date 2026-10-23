@@ -1,22 +1,8 @@
 # Day planner
 
-Status: planned 2026-09-20 on `claude/day-planner-feature-plan-nhcadj`; the open questions were
-answered the same day and rows 1-4c of the sequencing table were implemented on that branch the
-same day. Reviewed 2026-09-21 (four review passes, one per layer) on
-`claude/pr77-maze-review-secrets-emvjvy`, which rebased the work onto `main` — where the
-resupply-selection feature (#77) had landed in the meantime — reconciled the two (see "Where the
-hiker's inputs live" below) and fixed the review findings. Row 5, deploy, was run 2026-09-21
-from `main` at `90dec99` (recipe under "Deploy" at the end of this file): migration
-`0004_plans_devices.sql` applied to the remote D1 and the worker deployed (version
-`079ac798`, `/health` ok); the production Android build finished on EAS (build
-`43180486-a902-4ae9-a9bc-1eb210d91da9`, an `.aab` for store distribution, 0.1.0 build 1, native
-fingerprint unchanged from the August dev client). Still open: `VITE_API_BASE_URL` on the Vercel
-project (no Vercel token in the build container — until it is set the live site is local-only),
-and the iOS build, which `--non-interactive` refuses until the distribution certificate has been
-validated with an interactive Apple sign-in. Note that **the app cannot ship as an EAS Update**
-(expo-updates is not installed and `app.json` has no `updates`/`runtimeVersion`), so the phone
-side needs an `eas build`. Decisions taken with Eamon are marked **[decided]**; the former open
-questions are recorded as decisions at the end.
+Status: implemented and deployed (September 2026). Kept as the spec the code cites. Decisions
+taken with Eamon are marked **[decided]**. Deploying the worker, site and app:
+`docs/mobile-test-build.md` ("Full release").
 
 ## Why
 
@@ -92,10 +78,10 @@ by anyone you send a link to.
   `summarisePoiTags`, `OSM_ATTRIBUTION`. Present for AAWT, Hume & Hovell, Bibbulmun, Cape to
   Cape, Heysen, Larapinta; **absent for CDT and Te Araroa** (no `pois.json` yet). Mobile reads
   them through `features/guide/use-visible-pois.ts`.
-- **Recorded wishes**: `TODO.md:29` ("select campsites for next few days … edit and move points
-  one at a time and auto update stats"); `plans/resupply-selection.md:350-358` lists zero days,
-  days off and stop markers on the profile as out of scope, and :328-329 says "carrying the plan
-  across is a later feature" — this plan supersedes that sentence.
+- **Recorded wishes**: selecting campsites for the next few days and moving points one at a
+  time with live stats; zero days, days off and stop markers on the profile (out of scope in the
+  earlier resupply-selection plan, which also called carrying the plan across "a later feature" —
+  this plan supersedes that).
 
 ## Decisions
 
@@ -467,30 +453,6 @@ stops the drain, `plan_exists` adopts the id), `DaySplitList` with rest days, th
 with `react-test-renderer`, the "Stop here" toggle. Maestro: `plan-stops.yaml` (guide → Plan →
 tick two stops → two day cards).
 
-## Sequencing and delegation
-
-| # | Work | Where | Depends on |
-|---|------|-------|-----------|
-| 1 | Plan document + editor + tests, `overnightCandidates` moved to `src/lib` | `src/lib` | — |
-| 2a | Worker: `plans` table, routes, validation, wire types, tests | `workers/comments-api` | 1 (types) |
-| 2b | Worker: `device_tokens`, link codes, `/devices/link`, `/me/devices`, auth lookup, tests | `workers/comments-api` | — |
-| 3a | Web: single plan shell (no behaviour change) | `src/web` | — |
-| 3b | Web: stops tab (candidates, services, nights/note/booked), day cards, document storage + migration | `src/web` | 1, 3a |
-| 3c | Web: API client, link dialog, sync arm, share page | `src/web` | 2a, 2b, 3b |
-| 4a | Mobile: schema v5, repo, store, Plan screen, waypoint toggle | `mobile/` | 1 |
-| 4b | Mobile: sync branches, `pullPlans`, settings linking, share import | `mobile/` | 2a, 2b, 4a |
-| 4c | Mobile: map ring + profile ticks | `mobile/` | 4a |
-| 5 | Deploy: `migrate:remote`, `deploy`; `VITE_API_BASE_URL` on the site; `eas build` (no EAS Update is configured) — see "Deploy" below | ops | 2, 4 |
-
-1, 2b and 3a have no dependencies and can run as three parallel subagents on the branch (no file
-overlap). 2a and 4a start once 1's types are on the branch; 3b once 3a is. 3c and 4b close the
-loop. Each row is a PR-sized slice; the worker must be deployed (5) before 3c or 4b ship to
-users, and the web can ship 3b alone since without `VITE_API_BASE_URL` it is local-only.
-
-Subagent brief must include: edit `.ts`/`.json` via Bash, not the Edit tool (the global prettier
-hook rewrites whole files); `ALLOWED_TRAILS` stays equal to the bundled index; `src/lib` stays
-RN-safe (no DOM, no Node); `comments-api-types.ts` stays plain types; rebase, never merge.
-
 ## Alternates (added 2026-10)
 
 A plan can take any of a trail's alternates — one that branches off the main route and rejoins
@@ -549,37 +511,3 @@ alternates.
 - A QR in v1; a camera-scan link flow; email accounts.
 - Exporting a plan as GPX/ICS/PDF.
 - Merging concurrent edits from two devices (last-writer-wins, as for comments).
-
-## Open questions, answered 2026-09-20
-
-All six were answered as assumed and are now decisions above: the generator stays as an explicit
-"Suggest stops" button and is never automatic; the services radius is 1 km along the trail; a
-linked browser token lives 180 days, rolling; rest days are nights at a stop; the share page
-shows the owner's display name; the web map marker gets a "Stop here" popup and the silent
-toggle is removed.
-
-## Deploy
-
-Everything below needs credentials the build container does not hold: a Cloudflare API token
-(Workers Scripts + D1 edit; Workers Routes + DNS edit on the `contour-map-tiles.net` zone for
-the custom domain) and account id for `wrangler`, an Expo access token for `eas`, and either the
-Vercel dashboard or a Vercel token for the site variable.
-
-1. **Worker, migration first.** `cd workers/comments-api && npm run migrate:remote && npm run deploy`.
-   The migration must land before the worker because `auth.ts` joins `device_tokens` on every
-   authenticated request; the other order 500s every request until the table exists. A phone
-   that registers in the gap between the two commands gets a `users` row and no `device_tokens`
-   row; `auth.ts` now self-heals that on its first request, so no second backfill is needed.
-   `SITE_BASE` in `wrangler.toml` is the deployed site (`https://trail-maps.vercel.app`, verified
-   2026-09-21) and is baked into every share link. Smoke: `curl https://api.contour-map-tiles.net/health`.
-2. **Site.** Set `VITE_API_BASE_URL=https://api.contour-map-tiles.net` on the Vercel project
-   (Production and Preview) and redeploy; without it the planner is local-only and the Sync/Share
-   controls are removed. Vite's `envDir` is `src/web`, so a repo-root `.env` is ignored — set it
-   in the host, not a file. The site can ship before the worker (local-only) but Sync needs 1.
-3. **App.** A new binary: `cd mobile && eas build --non-interactive --profile production --platform android`
-   (and iOS, which may need an interactive Apple sign-in the first time). EAS Update is not an
-   option until `expo-updates` is installed and `app.json` carries `updates` + `runtimeVersion` —
-   itself a native change and a new build. Nothing in this feature changed native code, so a
-   development client already installed keeps working against Metro. A sideloadable `.apk` for
-   testing comes from the `preview` profile instead; `docs/mobile-test-build.md` is the runbook.
-

@@ -7,6 +7,15 @@ Shared processing modules (used by both web and mobile):
 - `gpx-parser.ts` - Parse GPX XML into structured data; `parseGpx(xml, adapter?, limits?)` is platform-neutral (see XML adapters below) and parses coordinates strictly (throws instead of plotting 0,0)
 - `xml-adapter.ts` - Minimal XML node interface (`querySelectorAll`/`querySelector`/`childElement`/`getAttribute`/`textContent`, tag selectors only) + the DOMParser adapter. `querySelector` searches every descendant, so a field that must be the element's *own* (`<wpt>`'s `<name>`/`<type>`, not its `<link>`'s) goes through `childElement`
 - `xml-adapter-fxp.ts` - fast-xml-parser adapter (the React Native path — Hermes has no DOMParser)
+- `parse-coordinate.ts` - Whole-string decimal parsing for coordinates (`parseFloat` alone accepts `-37.1abc` and `Infinity`)
+- `track-spurs.ts` - Detects and extracts self-retraces ("spurs") folded into the main-route segment, e.g. the Larapinta's Mt Sonder summit return, which name-based classification cannot see
+- `waypoint-dedupe.ts` - Merges near-duplicate waypoints (same cleaned name and type a few tens of metres apart) in built trail data
+- `trail-reverse.ts`, `variant-reverse.ts` - Direction reversal for a whole trail and for its variants (alternates, side trips), shared by web and mobile
+- `plan-direction.ts` - The only sanctioned conversion between stored NOBO-absolute plan km and the active direction's km
+- `format-distance.ts` - Unit-aware distance formatting, the single choke point for km → display string
+- `climate-aggregate.ts` - Aggregates Open-Meteo daily series into monthly averages (shared by `fetch-climate.ts` and the app for imported trails)
+- `escape.ts` - `escapeHtml` (see the hard rule in `CLAUDE.md`)
+- `comments-api-types.ts` - Wire types for the comments API, imported by the app and the worker. Plain types only: no runtime imports, no DOM or Node globals
 - `gpx-optimizer.ts` - Track simplification (Douglas-Peucker), elevation spike removal/smoothing, elevation stats
 - `track-simplify.ts` - Target-point-count simplification + coordinate truncation (the mobile point budget)
 - `track-classification.ts` - Classify main/alternate/side-trip/**terminus** tracks. A `terminus` (`terminusPatterns`, default `['^Terminus:', '\\bTerminus\\b']`, collected into `terminusTracks`) is an *alternative trail end*: it branches off the main line at one end and its other end is deliberately free, 10-31 km off the route (the CDT's Chief Mountain, Columbus and Antelope Wells). It is matched **after** alternate and side trip, so a track a trail already names `Alternate: …` keeps that class. Several main tracks are normally chained by `combineTracksGeographically`, which orders them by proximity and bridges every join. A trail whose `trackClassification.stretches` is set instead uses `concatenateStretches`, which keeps the file's order and records any join wider than `minGapMeters` as a **route break** — somewhere the walking route genuinely stops and resumes (a ferry, an unbridged river). Opt-in per trail: turning it on for a file whose tracks are not in walking order would silently reorder the route

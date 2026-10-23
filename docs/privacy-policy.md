@@ -6,7 +6,8 @@ _Draft for review. The public copy ships with the web app at
 two in sync._
 
 _The mobile app links that same URL from Settings → About
-(`PRIVACY_POLICY_URL` in `mobile/src/features/settings/AboutSection.tsx`);
+(`PRIVACY_POLICY_URL`, defined in `src/lib/contribution-licence.ts` and imported by
+`mobile/src/features/settings/AboutSection.tsx`);
 change one and change the other. Still outstanding before store submission:
 link the URL from the App Store / Play Store listings, and give this draft a
 human read (issue #31)._

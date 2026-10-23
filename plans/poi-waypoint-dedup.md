@@ -4,7 +4,7 @@ OSM POIs and curated GPX waypoints frequently describe the same physical place.
 Rather than dropping the duplicate POI, flag it and let the UI collapse it, so
 the OSM detail stays available and the decision stays reviewable.
 
-Status: implemented on `feat/osm-pois` (PR #63) — `src/lib/poi-dedup.ts`, wired
+Status: implemented (PR #63) — `src/lib/poi-dedup.ts`, wired
 into `scripts/build-trails.ts`, the web viewer, the imported-trail flow and the
 handoff validator. Written against the six trails fetched on 2026-09-08. Mobile
 (PR #67) inherits the flag through the bundled assets and the handoff, hides

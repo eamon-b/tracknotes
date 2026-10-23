@@ -38,8 +38,11 @@ Summary:
   storage is with Cloudflare and may be overseas, rather than to promise
   residency.
 - The app collects minimal personal information (display name, posted
-  content); no email, no precise location server-side. This keeps the APP
-  footprint small regardless of region.
+  content); no email. It does hold location data a hiker chooses to post: a
+  shared waypoint placed with "Use my location", a community route's GPX
+  (timestamps kept) and a published photo's EXIF GPS (see the privacy policy).
+  This keeps the APP footprint small regardless of region, but location is not
+  absent.
 
 ## Check log
 
