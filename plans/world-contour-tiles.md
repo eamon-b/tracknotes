@@ -4,7 +4,7 @@ Expand the contour tileset from Australia to the whole world: best-quality
 settings chosen by experiment, built and merged on a rented remote machine,
 served from R2 alongside (initially) the existing Australia archive.
 
-Status: tooling implemented on `feat/world-contour-tiles` (this plan is the
+Status: tooling on `main` (first built on `feat/world-contour-tiles`; this plan is the
 spec). The actual world build runs on a remote machine per
 `docs/world-contours-remote-build.md`.
 

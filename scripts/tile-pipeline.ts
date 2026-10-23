@@ -566,7 +566,7 @@ export function checkDependencies(opts: {
   skipBase?: boolean;
   /**
    * Refuse any tippecanoe but TIPPECANOE_VERSION, for builds too long to
-   * gamble on another release (the world archive: days of box time).
+   * gamble on another release (the world and Australia archives, which are published as built).
    * `TIPPECANOE_ANY_VERSION=1` overrides it. Without it a different capable
    * release only warns.
    */
