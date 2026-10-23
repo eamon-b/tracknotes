@@ -1,0 +1,76 @@
+{
+  "trailId": "south_coast_track",
+  "note": "Curated waypoint descriptions, keyed by the stable ids in data/waypoint-ids.json. Applied by scripts/build-trails.ts (overriding any description from the GPX source) and uploadable to the comments API with scripts/upload-descriptions.ts. Listed in walking order from Melaleuca to Cockle Creek. Buoy Creek, Louisa Creek, Turua Beach West, Surprise Bay and Trackcutters Camp have no entry: no Parks and Wildlife Service Tasmania page names them. Sources for each fact: plans/waypoint-description-sources.md.",
+  "descriptions": [
+    {
+      "waypointId": "w_4e50d347",
+      "name": "Melaleuca walkers' huts",
+      "description": "The start of the South Coast Track, a tiny settlement in Tasmania's far south-west reached only by light plane, boat or on foot. It has a gravel airstrip, toilets, two walkers' huts sleeping 20, a small campsite, the Deny King Heritage Museum, the Needwonnee Walk and a bird hide. There are no huts on the track beyond Melaleuca."
+    },
+    {
+      "waypointId": "w_40718640",
+      "name": "Freney Lagoon Campsite",
+      "description": "Campsite at Cox Bight, the end of the first day from Melaleuca across buttongrass plains and sandy beaches. The track there is often very muddy, and in wet weather parts of the boardwalk go under water."
+    },
+    {
+      "waypointId": "w_66a3101e",
+      "name": "Point Eric Campsite",
+      "description": "Campsite at Point Eric, a little beyond the Cox Bight campsite and the other stop at the end of the first day. The next stretch starts along the beach at Cox Bight before turning inland across buttongrass plains and forested hills to the Louisa River."
+    },
+    {
+      "waypointId": "w_3e96fe84",
+      "name": "Louisa River Campsite",
+      "description": "Campsite by the Louisa River, at the end of a day with many creek crossings that rise after heavy rain. From here the track climbs about 900 m onto the Ironbound Range."
+    },
+    {
+      "waypointId": "w_c7035d9d",
+      "name": "Ironbound high campground",
+      "description": "Campsite high on the Ironbound Range, at about 820 m. The range top is exposed, with good views in fine weather and rain, wind or snow at other times; from it a long descent through rainforest leads to Little Deadmans Bay."
+    },
+    {
+      "waypointId": "w_b5794870",
+      "name": "Little Deadmans Bay Campsite",
+      "description": "Campsite at the foot of the long rainforest descent from the Ironbound Range. Beyond it the track crosses buttongrass and bush to Prion Beach and the New River Lagoon crossing."
+    },
+    {
+      "waypointId": "w_1112dafe",
+      "name": "New River Lagoon Boat Crossing Campsite",
+      "description": "The Prion Beach campsite, on the far side of the New River Lagoon outlet, which is crossed by rowing a dinghy over the marked crossing. Boats are kept on both banks, so each party rows the crossing three times to leave one on each side."
+    },
+    {
+      "waypointId": "w_d65b6f04",
+      "name": "Osmiridium Beach Campsite",
+      "description": "Campsite on Osmiridium Beach, a short detour off the main track (1.2 km return) and about 2 to 2.5 hours on from the Prion Beach boat crossing. Many walkers camp here."
+    },
+    {
+      "waypointId": "w_86cd15e0",
+      "name": "Granite Beach (east) Campsite",
+      "description": "Campsite at the far end of Granite Beach, a beach of sand mixed with large stones. Next comes the South Cape Range, reputedly the hardest day of the track: a long climb through forest on track that is often boggy and full of tree roots."
+    },
+    {
+      "waypointId": "w_53863551",
+      "name": "South Cape Rivulet Campsite",
+      "description": "Campsite at South Cape Rivulet, on the coast after the crossing of the South Cape Range. The last day to Cockle Creek is beach walking and mud, past Lion Rock, then a set of stairs off the last beach and buttongrass plains through Blowhole Valley."
+    },
+    {
+      "waypointId": "w_77d67cb8",
+      "name": "South Cape Bay Campsite",
+      "description": "Campsite at South Cape Bay, also reached from Cockle Creek on an 18 km return day walk. Inland from here the track crosses the buttongrass plains of Blowhole Valley."
+    },
+    {
+      "waypointId": "w_037443cb",
+      "name": "Cockle Creek campsite",
+      "description": "The Cockle Creek campground of the Recherche Bay Nature Recreation Area, with room for about 20 sites between the cemetery and the bridge, on the north side of the creek outside the national park. Facilities are cleared sites and pit toilets. Dogs on lead are allowed, and fires in firepots outside seasonal fire restrictions."
+    },
+    {
+      "waypointId": "w_fe5e4f78",
+      "name": "Boltons Green Campground",
+      "description": "The end of the South Coast Track, a shady campground in the Southwest National Park just past the Cockle Creek bridge and the Ranger Quarters, with about 10 tent and caravan sites. It has pit toilets and an untreated rainwater tank, and the visitor information shelter has a public payphone. Fuel stoves only; no dogs. Southport is the nearest town for groceries, fuel and meals."
+    },
+    {
+      "waypointId": "w_c0ac40e4",
+      "name": "Drinking water",
+      "description": "Rainwater tank at Boltons Green campground. The water is untreated, and supply is limited when demand is high in the busy season."
+    }
+  ]
+}
