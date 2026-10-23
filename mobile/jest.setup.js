@@ -142,17 +142,6 @@ jest.mock('react-native-gesture-handler', () => {
   };
 });
 
-jest.mock('@gorhom/bottom-sheet', () => {
-  const View = require('react-native').View;
-  return {
-    __esModule: true,
-    default: View,
-    BottomSheetView: View,
-    BottomSheetScrollView: ({ children }) => children,
-    BottomSheetBackdrop: () => null,
-  };
-});
-
 jest.mock('expo-haptics', () => ({
   impactAsync: jest.fn(),
   notificationAsync: jest.fn(),
