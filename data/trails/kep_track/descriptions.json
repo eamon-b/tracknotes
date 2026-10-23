@@ -1,0 +1,21 @@
+{
+  "trailId": "kep_track",
+  "note": "Curated waypoint descriptions, keyed by the stable ids in data/waypoint-ids.json. Applied by scripts/build-trails.ts (overriding any description from the GPX source) and uploadable to the comments API with scripts/upload-descriptions.ts. Listed in walking order from Mundaring Weir to Northam. Waypoints without an entry keep their hand-reviewed GPX text. Sources for each fact: plans/waypoint-description-sources.md.",
+  "descriptions": [
+    {
+      "waypointId": "w_6fc0f8bc",
+      "name": "Mundaring",
+      "description": "Perth Hills town on the track, with supermarkets, a bakery and cafes, and the Mundaring Visitor Centre on the Great Eastern Highway. From Mundaring Weir to Clackline the track follows the formation of the old Eastern Railway."
+    },
+    {
+      "waypointId": "w_6a1bda69",
+      "name": "Clackline",
+      "description": "Small town with a post office, where the track leaves the old Eastern Railway formation. From here to Northam it follows the route of C. Y. O'Connor's Goldfields water pipeline."
+    },
+    {
+      "waypointId": "w_0196c728",
+      "name": "Northam (1 km east)",
+      "description": "End of the track at the Avon River, on the northern side of the Poole Street Bridge on the west side of Northam. Northam, about 1 km east, has supermarkets, a post office and other services."
+    }
+  ]
+}

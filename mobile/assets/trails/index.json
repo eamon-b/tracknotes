@@ -148,10 +148,10 @@
     "states": [
       "WA"
     ],
-    "dataVersion": "2026-10-17",
-    "updatedAt": "2026-10-17T00:01:47.265Z",
-    "md5": "8189f1370b41b79bfdea0f5a3c526015",
-    "bytes": 312912
+    "dataVersion": "2026-10-23",
+    "updatedAt": "2026-10-23T04:04:08.322Z",
+    "md5": "876c08dc97017dcf85dbf352480c2c6f",
+    "bytes": 313358
   },
   {
     "id": "larapinta",
@@ -190,10 +190,10 @@
     "states": [
       "NSW"
     ],
-    "dataVersion": "2026-10-17",
-    "updatedAt": "2026-10-17T00:01:47.265Z",
-    "md5": "4655218b488a5a05c1edf7c5c05ecdce",
-    "bytes": 274870
+    "dataVersion": "2026-10-23",
+    "updatedAt": "2026-10-23T04:04:08.322Z",
+    "md5": "6b51c001ac680f0d99b047f700281187",
+    "bytes": 275970
   },
   {
     "id": "shikoku",

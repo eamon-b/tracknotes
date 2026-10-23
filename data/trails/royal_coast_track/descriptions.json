@@ -1,0 +1,31 @@
+{
+  "trailId": "royal_coast_track",
+  "note": "Curated waypoint descriptions, keyed by the stable ids in data/waypoint-ids.json. Applied by scripts/build-trails.ts (overriding any description from the GPX source) and uploadable to the comments API with scripts/upload-descriptions.ts. Listed in walking order from Bundeena to Otford. Werrong Lookout has no entry: no NSW National Parks page describes it. Sources for each fact: plans/waypoint-description-sources.md.",
+  "descriptions": [
+    {
+      "waypointId": "w_a6fafe41",
+      "name": "Bundeena (1 km north)",
+      "description": "The northern end of the track, which starts at the end of Beachcomber Avenue, with parking, a toilet and a water refill point. Bundeena, about 1 km north, has a supermarket, post office and cafes, and the ferry to Cronulla, where the trains to Sydney run from; the wharf is about 1.5 km from the start of the track."
+    },
+    {
+      "waypointId": "w_b6cd63ff",
+      "name": "Drinking water",
+      "description": "Water refill at the Beachcomber Avenue trackhead. NSW National Parks lists no drinking water along the track itself; the only other water is unpotable, at Wattamolla and Garie Beach."
+    },
+    {
+      "waypointId": "w_fcacbef4",
+      "name": "North Era Beach Campground",
+      "description": "Former campground behind North Era Beach, closed and decommissioned by NSW National Parks in 2023: it was remote, hard to reach in an emergency and to service, and often damp from facing south-east. Overnight walkers now camp at Garie Beach, on booked raised timber platforms, with untreated water, cold beach showers and flush toilets at the Garie Beach picnic area. At North Era the track passes a group of pastel-coloured heritage shacks."
+    },
+    {
+      "waypointId": "w_72be7bbf",
+      "name": "Otford Lookout",
+      "description": "Lookout and car park on Lady Wakehurst Drive at the southern end of the coast walk, with views up and down the coast. The Werrong Beach track also starts here."
+    },
+    {
+      "waypointId": "w_00850a80",
+      "name": "Otford station",
+      "description": "Southern end of the track, on Georges Road, reached from the coast along the Ridge Trail. Trains run to Sydney and Wollongong."
+    }
+  ]
+}
