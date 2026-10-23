@@ -6,18 +6,18 @@
   <wpt lat="-33.554862" lon="151.208066"><ele>80.2</ele><name>Brooklyn Dam Campsite</name><type>campsite</type></wpt>
   <wpt lat="-33.442756" lon="151.265662"><ele>16.1</ele><name>Campsite</name><type>campsite</type></wpt>
   <wpt lat="-33.428244" lon="151.249787"><ele>13.7</ele><name>Campsite</name><type>campsite</type></wpt>
-  <wpt lat="-33.261500" lon="151.264860"><ele>328.0</ele><name>Campsite</name><desc>Free campsite. Suitable for motorhomes, caravans and tents. Gravel road leading right up to the campsite. Excellent 4G and 5G mobile reception. No WiFi.</desc><type>campsite</type></wpt>
+  <wpt lat="-33.261500" lon="151.264860"><ele>328.0</ele><name>Campsite</name><type>campsite</type></wpt>
   <wpt lat="-33.635993" lon="151.108107"><ele>27.9</ele><name>Crosslands Reserve</name><type>campsite</type></wpt>
   <wpt lat="-33.628386" lon="151.107843"><ele>25.4</ele><name>Crosslands Youth Camp</name><desc>Youth camp for booked groups; the public campground is Crosslands Reserve.</desc><type>poi</type></wpt>
   <wpt lat="-32.962059" lon="151.731889"><ele>12.2</ele><name>Glenrock Scout Training Camp</name><desc>Scouts NSW training camp; not a public campsite.</desc><type>poi</type></wpt>
-  <wpt lat="-33.413728" lon="151.243871"><ele>18.0</ele><name>Mooney Mooney (Upper)</name><desc>Flat area is between two creeks. Enough for perhaps 3x tents. Water seems OK to drink from (filtered), unlike from further down the creek where it becomes brackish.</desc><type>campsite</type></wpt>
+  <wpt lat="-33.413728" lon="151.243871"><ele>18.0</ele><name>Mooney Mooney (Upper)</name><type>campsite</type></wpt>
   <wpt lat="-33.029129" lon="151.273438"><ele>198.8</ele><name>Mt Warrawolong Campsite</name><type>campsite</type></wpt>
   <wpt lat="-33.496118" lon="151.274543"><ele>211.2</ele><name>Mt Wondabyne Campsite</name><type>campsite</type></wpt>
   <wpt lat="-33.322995" lon="151.299259"><ele>173.7</ele><name>Palm Grove camping area</name><desc>Camping area part of the Great North Walk.</desc><type>campsite</type></wpt>
   <wpt lat="-33.538104" lon="151.279743"><ele>170.9</ele><name>Patonga Rest Area</name><type>campsite</type></wpt>
   <wpt lat="-33.593883" lon="151.135196"><ele>213.8</ele><name>Ridge Top Campground</name><type>campsite</type></wpt>
   <wpt lat="-33.289398" lon="151.267956"><ele>80.0</ele><name>Stringy Bark Point Campsite</name><type>campsite</type></wpt>
-  <wpt lat="-33.719574" lon="151.057905"><ele>106.4</ele><name>The Jungo</name><desc>A small clearing by the path, room for about one to two small tents.</desc><type>campsite</type></wpt>
+  <wpt lat="-33.719574" lon="151.057905"><ele>106.4</ele><name>The Jungo</name><type>campsite</type></wpt>
   <wpt lat="-33.678711" lon="151.081147"><ele>179.0</ele><name>Tunks Ridge Campground</name><type>campsite</type></wpt>
   <wpt lat="-33.127796" lon="151.255432"><ele>315.9</ele><name>Walkers Rest Campsite</name><type>campsite</type></wpt>
   <wpt lat="-32.975910" lon="151.412305"><ele>482.5</ele><name>Watagan Headquarters Camping Area</name><type>campsite</type></wpt>
