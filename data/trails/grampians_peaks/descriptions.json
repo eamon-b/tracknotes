@@ -1,0 +1,256 @@
+{
+  "trailId": "grampians_peaks",
+  "note": "Curated waypoint descriptions, keyed by the stable ids in data/waypoint-ids.json. Applied by scripts/build-trails.ts (overriding any description from the GPX source) and uploadable to the comments API with scripts/upload-descriptions.ts. Listed in walking order from Mt Zero to Dunkeld, with the off-route waypoints (Jimmy Creek Campground and Dunkeld) appended at the end. Generic OSM features with nothing verifiable to add (rock shelters, unnamed taps, minor viewpoints, the Dials) have no entry. Sources for each fact: plans/waypoint-description-sources.md.",
+  "descriptions": [
+    {
+      "waypointId": "w_4f412c1f",
+      "name": "Water tank",
+      "description": "The northern start of the trail at the Mt Zero Picnic Area, with a water tank serviced regularly by Parks Victoria. The water is untreated."
+    },
+    {
+      "waypointId": "w_dcd3f0d4",
+      "name": "Mount Stapylton (Gunigalk)",
+      "description": "Mt Stapylton (Gunigalg), about 520 m, above the first day's ridgeline walk around and under boulders and across open rock slabs. The day looks over the Stapylton Amphitheatre and the orange wave of Taipan Wall."
+    },
+    {
+      "waypointId": "w_4fd4561f",
+      "name": "Water tank",
+      "description": "Serviced water tank where the trail crosses the Coppermine Track. The water is untreated."
+    },
+    {
+      "waypointId": "w_021d3c74",
+      "name": "Drinking water",
+      "description": "The rainwater tank at Barigar Hike-in Campground. It is untreated, filled only by rain and meant mainly for cooking and washing, and in a dry spell it can run low."
+    },
+    {
+      "waypointId": "w_7509345a",
+      "name": "Barigar Hike-in Campground",
+      "description": "The first night's hike-in campground, at about 230 m, reached by a steep descent past a waterfall that runs after rain. Barigar means 'mountain stream'. Like all eleven hike-in campgrounds it has non-flushing toilets, an untreated water tank, a communal shelter or open gathering area and a solar USB charging point; sites are booked and camping fees apply."
+    },
+    {
+      "waypointId": "w_5ea798e1",
+      "name": "Water tank",
+      "description": "Serviced water tank at the Gar Trailhead on Roses Gap Road. The water is untreated."
+    },
+    {
+      "waypointId": "w_dc8e8669",
+      "name": "Troopers Creek Campground",
+      "description": "Parks Victoria campground off Roses Gap Road, among tall eucalypts and heathy shrubland below the Mt Difficult escarpment, next to the trailhead for the trail's second section. It has tent and vehicle sites, two group areas for up to 16 people, pit toilets, fireplaces with barbecue hotplates and picnic tables; all sites are booked online."
+    },
+    {
+      "waypointId": "w_640963f4",
+      "name": "Drinking water",
+      "description": "The rainwater tank at Gar Hike-in Campground. It is untreated and depends on rainfall."
+    },
+    {
+      "waypointId": "w_b33808a7",
+      "name": "Gar Hike-in Campground",
+      "description": "Hike-in campground at about 700 m below Gar (Mt Difficult), reached by a steep zig-zag up rock steps beside cliff edges and under big rock walls. Its timber tent platforms are 3.5 m or 5 m square, and small huts with bunks for up to four are booked only through licensed tour operators. Like all eleven hike-in campgrounds it has non-flushing toilets, an untreated water tank, a communal shelter or open gathering area and a solar USB charging point; sites are booked and camping fees apply."
+    },
+    {
+      "waypointId": "w_7dd85aad",
+      "name": "Water Tank",
+      "description": "Serviced water tank where the trail crosses Mt Difficult Road, shortly before Werdug Hike-in Campground. The water is untreated."
+    },
+    {
+      "waypointId": "w_917b8a2c",
+      "name": "Werdug Hike-in Campground",
+      "description": "Hike-in campground at about 750 m, on a high knoll looking down to Lake Wartook and across to the western Mt Difficult Range. Werdug means 'his shoulder', the shoulder of an ancestral being. As at Gar, there are timber tent platforms and small four-bunk huts booked only through licensed tour operators. Like all eleven hike-in campgrounds it has non-flushing toilets, an untreated water tank, a communal shelter or open gathering area and a solar USB charging point; sites are booked and camping fees apply."
+    },
+    {
+      "waypointId": "w_16f46ba4",
+      "name": "Drinking water",
+      "description": "The rainwater tank at Werdug Hike-in Campground, untreated, meant mainly for cooking and washing, and dependent on rain. Parks Victoria lists no serviced water tank on the trail between here and Halls Gap."
+    },
+    {
+      "waypointId": "w_de645cbc",
+      "name": "Wartook Lookout",
+      "description": "Lake Wartook Lookout, at 829 m one of the highest points of the Mt Difficult Range. Past it the trail drops off the dry, rocky north through tall wet forest, past Chautauqua Peak and Clematis Falls, into Halls Gap."
+    },
+    {
+      "waypointId": "w_c1cc30ea",
+      "name": "Halls Gap",
+      "description": "The town at the end of the northern section and the start of the central one, in a valley below the Wonderland Range. The trail has no hike-in campground here; the night is in the town's own camping or roofed accommodation, booked separately. It has a general store, bakery, post office, outdoor shop, fuel station, cafes and a pub, and Brambuk, the National Park and Cultural Centre, which sells the trail's topographic maps."
+    },
+    {
+      "waypointId": "w_8ff5b5e7",
+      "name": "Halls Gap Caravan Park",
+      "description": "Caravan park in the middle of Halls Gap. The central section of the trail starts from here."
+    },
+    {
+      "waypointId": "w_009cd0cb",
+      "name": "Venus Baths",
+      "description": "Rock pools on Stony Creek just above Halls Gap. Nearby are views of Elephants Hide and Chautauqua Peak; the trail then goes on through the Grand Canyon and Silent Street to The Pinnacle."
+    },
+    {
+      "waypointId": "w_4e8ad87e",
+      "name": "The Pinnacle",
+      "description": "Lookout at about 715 m in the Wonderland Range, reached through the sculpted sandstone of the Grand Canyon and Silent Street. From here the trail heads through Devils Gap towards the Sundial car park."
+    },
+    {
+      "waypointId": "w_1dc9a795",
+      "name": "Drinking water",
+      "description": "Serviced water tank at the Sundial car park. The water is untreated."
+    },
+    {
+      "waypointId": "w_f3ff599e",
+      "name": "Drinking water",
+      "description": "Serviced water tank at Bugiga Hike-in Campground. The water is untreated."
+    },
+    {
+      "waypointId": "w_5d3f6875",
+      "name": "Bugiga Hike-in Campground",
+      "description": "Hike-in campground at about 625 m, looking up to the cliff line of Mount Rosea; the name refers to the mountain. It has 3.5 m timber tent platforms with chains for tying down tents. Like all eleven hike-in campgrounds it has non-flushing toilets, an untreated water tank, a communal shelter or open gathering area and a solar USB charging point; sites are booked and camping fees apply."
+    },
+    {
+      "waypointId": "w_9bfa57d2",
+      "name": "Gate of the East Wind",
+      "description": "Where the trail crosses a bridge, before climbing through tall forest onto the slopes of Mount Rosea."
+    },
+    {
+      "waypointId": "w_af5a34ba",
+      "name": "Mount Rosea",
+      "description": "Summit of about 1,000 m, reached through wet tall forest and a steep, rocky climb among boulders. A long descent through forest follows to the footbridge over Fyans Creek at Borough Huts."
+    },
+    {
+      "waypointId": "w_6044413a",
+      "name": "Borough Huts Campground",
+      "description": "Parks Victoria campground beside Fyans Creek, about 10 km south of Halls Gap, with 30 tent sites and 5 drive-in sites; sites are booked year-round. The only water is seasonal rainwater, which is not meant for drinking. Workers who maintained Stawell's water supply lived here in the late 1800s."
+    },
+    {
+      "waypointId": "w_8f72dec2",
+      "name": "Barri Yalug Hike-in Campground",
+      "description": "Hike-in campground at about 375 m on rocky slopes past the Grampians Tourist Road. Barri Yalug means 'running river'. It has 3.5 m timber tent platforms. Like all eleven hike-in campgrounds it has non-flushing toilets, an untreated water tank, a communal shelter or open gathering area and a solar USB charging point; sites are booked and camping fees apply."
+    },
+    {
+      "waypointId": "w_11a49b65",
+      "name": "Drinking water",
+      "description": "Serviced water tank at the Redman Road trailhead crossing. The water is untreated."
+    },
+    {
+      "waypointId": "w_e0b1adba",
+      "name": "Red Man Bluff",
+      "description": "Bluff of 1,017 m marked by a historic rock cairn, the top of the trail's biggest single climb, from Barney Creek at about 320 m. The way up passes a section of old raised water flume on dry stone pillars and descends the Seven Dials."
+    },
+    {
+      "waypointId": "w_2787fb48",
+      "name": "Drinking water",
+      "description": "Serviced water tank at the Mt William Road crossing. The water is untreated."
+    },
+    {
+      "waypointId": "w_7419e417",
+      "name": "Drinking water",
+      "description": "The rainwater tank at Duwul Hike-in Campground, untreated, meant mainly for cooking and washing, and dependent on rain."
+    },
+    {
+      "waypointId": "w_9b5865e5",
+      "name": "Duwul Hike-in Campground",
+      "description": "Hike-in campground on the narrow strip between the Mt William Road and the cliff edge. Duwul means 'the mountain'. Like all eleven hike-in campgrounds it has non-flushing toilets, an untreated water tank, a communal shelter or open gathering area and a solar USB charging point; sites are booked and camping fees apply."
+    },
+    {
+      "waypointId": "w_5e1f70d7",
+      "name": "Drinking water",
+      "description": "Serviced water tank near the summit of Mount William (Duwul), at 1,167 m the highest mountain in the park. The water is untreated."
+    },
+    {
+      "waypointId": "w_7ed920ea",
+      "name": "Boundary Gap",
+      "description": "Boundary Gap, at 878 m, separates Mount William from the Major Mitchell Plateau, a steep 'big dipper' of a descent and climb."
+    },
+    {
+      "waypointId": "w_19b18b38",
+      "name": "Durd Durd",
+      "description": "The highest point of the Major Mitchell Plateau, marked by a rock cairn. The plateau trail crosses rock and steel mesh walkway, and snow is possible up here from late autumn to early spring."
+    },
+    {
+      "waypointId": "w_a25c9e1f",
+      "name": "Banksia Hill",
+      "description": "Hill of 1,103 m on the banksia ridgeline south of Durd Durd, where the trail rock-hops across large boulders before dropping to open grassy woodland."
+    },
+    {
+      "waypointId": "w_17bbe834",
+      "name": "Durd Durd Hike-in Campground",
+      "description": "Hike-in campground at about 855 m, reached by a descent from Banksia Hill into open grassy woodland. Durd Durd means 'stars'. Like all eleven hike-in campgrounds it has non-flushing toilets, an untreated water tank, a communal shelter or open gathering area and a solar USB charging point; sites are booked and camping fees apply."
+    },
+    {
+      "waypointId": "w_7152f77b",
+      "name": "Drinking water",
+      "description": "The rainwater tank at Yarram Hike-in Campground, untreated, meant mainly for cooking and washing, and dependent on rain."
+    },
+    {
+      "waypointId": "w_537c722a",
+      "name": "Yarram Hike-in Campground",
+      "description": "Hike-in campground on the lower Mt William Range. Yarram means 'big'. Its tent sites are a mix of 3.5 m timber platforms and granite sand pads. Mobile coverage is patchy to poor between here and Yarram Gap Road. Like all eleven hike-in campgrounds it has non-flushing toilets, an untreated water tank, a communal shelter or open gathering area and a solar USB charging point; sites are booked and camping fees apply."
+    },
+    {
+      "waypointId": "w_99b076df",
+      "name": "Drinking water",
+      "description": "Serviced water tank at the Yarram Gap Road crossing. The water is untreated."
+    },
+    {
+      "waypointId": "w_cc75cbf9",
+      "name": "Drinking water",
+      "description": "Serviced water tank at Wannon Hike-in Campground. The water is untreated."
+    },
+    {
+      "waypointId": "w_944fc0e7",
+      "name": "Wannon Hike-in Campground",
+      "description": "Hike-in campground in a gully of former farmland at the southern end of the Mt William Range, with ridges nearby that look west to the Serra Range. Its tent sites are a mix of timber platforms and granite sand pads. Like all eleven hike-in campgrounds it has non-flushing toilets, an untreated water tank, a communal shelter or open gathering area and a solar USB charging point; sites are booked and camping fees apply."
+    },
+    {
+      "waypointId": "w_b305399f",
+      "name": "Djardji-djawara Hike-in Campground",
+      "description": "Hike-in campground on a small rocky knoll on the Serra Range, with views west to the Victoria Range. The name comes from the word for 'sister'. Like all eleven hike-in campgrounds it has non-flushing toilets, an untreated water tank, a communal shelter or open gathering area and a solar USB charging point; sites are booked and camping fees apply."
+    },
+    {
+      "waypointId": "w_280676fb",
+      "name": "Drinking water",
+      "description": "Serviced water tank at Djardji-djawara Hike-in Campground. The water is untreated."
+    },
+    {
+      "waypointId": "w_344a91cc",
+      "name": "Mount Abrupt",
+      "description": "Mt Abrupt (Mud-Dadjug), an exposed rocky summit of about 820 m marked by a steel trig station, reached from Signal Peak over heathy saddles, rock slabs and steps."
+    },
+    {
+      "waypointId": "w_4b4022c9",
+      "name": "Mud-Dadjug Hike-in Campground",
+      "description": "The last hike-in campground, reached from Mt Abrupt by very steep rock steps. Mud-Dadjug means 'blunt, useless arm'. Like all eleven hike-in campgrounds it has non-flushing toilets, an untreated water tank, a communal shelter or open gathering area and a solar USB charging point; sites are booked and camping fees apply."
+    },
+    {
+      "waypointId": "w_63246697",
+      "name": "Drinking water",
+      "description": "The rainwater tank at Mud-Dadjug Hike-in Campground, untreated, meant mainly for cooking and washing, and dependent on rain."
+    },
+    {
+      "waypointId": "w_9edb5f0f",
+      "name": "Drinking water",
+      "description": "Serviced water tank at the Dunkeld Reservoir Road crossing. The water is untreated."
+    },
+    {
+      "waypointId": "w_d4dca3a5",
+      "name": "Victoria Valley Road Trailhead",
+      "description": "Where the trail crosses Victoria Valley Road, after The Piccaninny (Bainggug) and before the final climb over Mt Sturgeon."
+    },
+    {
+      "waypointId": "w_17d228ed",
+      "name": "Drinking water",
+      "description": "Serviced water tank at the Sturgeon Road crossing. The water is untreated."
+    },
+    {
+      "waypointId": "w_48efd3b2",
+      "name": "Mount Sturgeon",
+      "description": "Mt Sturgeon (Wurgarri), 582 m, the trail's last summit, looking out over the volcanic plains to the south and the sandstone peaks of the southern Grampians. From here the trail drops steeply to farmland and red gum woodland on the way into Dunkeld."
+    },
+    {
+      "waypointId": "w_57cb3bb0",
+      "name": "Jimmy Creek Campground",
+      "description": "Parks Victoria campground beside the Wannon River, on a side trip from the trail and next to one of its trailheads, with serviced water tanks at the campground and at the nearby Jimmy Creek Road crossing (untreated). It has unpowered tent and drive-in sites, pit toilets, a cold shower, fireplaces with barbecue hotplates and picnic tables; sites are booked."
+    },
+    {
+      "waypointId": "w_266c5034",
+      "name": "Dunkeld",
+      "description": "The town at the southern end of the Grampians Peaks Trail. It has a general store, bakery, post office, pharmacy, fuel station, cafes, the Royal Mail Hotel and a caravan park, and both camping and roofed accommodation."
+    }
+  ]
+}
