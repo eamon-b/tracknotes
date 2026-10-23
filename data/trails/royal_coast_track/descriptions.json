@@ -1,6 +1,6 @@
 {
   "trailId": "royal_coast_track",
-  "note": "Curated waypoint descriptions, keyed by the stable ids in data/waypoint-ids.json. Applied by scripts/build-trails.ts (overriding any description from the GPX source) and uploadable to the comments API with scripts/upload-descriptions.ts. Listed in walking order from Bundeena to Otford. Werrong Lookout has no entry: no NSW National Parks page describes it. Sources for each fact: plans/waypoint-description-sources.md.",
+  "note": "Curated waypoint descriptions, keyed by the stable ids in data/waypoint-ids.json. Applied by scripts/build-trails.ts (overriding any description from the GPX source) and uploadable to the comments API with scripts/upload-descriptions.ts. Listed in walking order from Bundeena to Otford. The Garie Beach campground waypoint is placed at the NSW National Parks position of the Garie Beach picnic area, where its amenities are: NPWS publishes no position for the platforms themselves. Werrong Lookout has no entry: no NSW National Parks page describes it. Sources for each fact: plans/waypoint-description-sources.md.",
   "descriptions": [
     {
       "waypointId": "w_a6fafe41",
@@ -13,9 +13,9 @@
       "description": "Water refill at the Beachcomber Avenue trackhead. NSW National Parks lists no drinking water along the track itself; the only other water is unpotable, at Wattamolla and Garie Beach."
     },
     {
-      "waypointId": "w_fcacbef4",
-      "name": "North Era Beach Campground",
-      "description": "Former campground behind North Era Beach, decommissioned by NSW National Parks in 2023 as remote, hard to service or reach in an emergency, and often damp. Overnight walkers now camp at Garie Beach, on booked platforms, with untreated water, cold showers and flush toilets at the picnic area. At North Era the track passes pastel-coloured heritage shacks."
+      "waypointId": "w_abef035e",
+      "name": "Garie Beach campground",
+      "description": "The Coast Track's campground for overnight walkers, at the end of the 17 km first day from Bundeena, booked in advance with limited capacity. Each site is a raised timber platform for two small one-person tents or one two-person tent. The shared amenities are at the Garie Beach picnic area, where this point is placed: untreated water, cold beach showers and flush toilets."
     },
     {
       "waypointId": "w_72be7bbf",
