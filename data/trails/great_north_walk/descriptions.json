@@ -1,0 +1,61 @@
+{
+  "trailId": "great_north_walk",
+  "note": "Curated waypoint descriptions, keyed by the stable ids in data/waypoint-ids.json. Applied by scripts/build-trails.ts (overriding any description from the GPX source) and uploadable to the comments API with scripts/upload-descriptions.ts. Listed in walking order from Sydney to Newcastle. Most of the trail's waypoints are OpenStreetMap features (taps, bubblers, lookouts, informal campsites) that no land manager's page describes, so they have no entry, and waypoints whose existing text was reviewed by hand (Sydney, Thornleigh, Brooklyn, Somersby, Warners Bay and the non-public camps) keep it. Sources for each fact: plans/waypoint-description-sources.md.",
+  "descriptions": [
+    {
+      "waypointId": "w_af0f77ae",
+      "name": "Tunks Ridge Campground",
+      "description": "Campground on Tunks Ridge in Berowra Valley, on the Benowie walking track, the 27 km of the Great North Walk that follows Berowra Creek from Pennant Hills to Berowra Waters. The Hornsby Rifle Range between Quarry trail and Tunks Ridge has no public access, and the signposted route goes round it by Manor Road and Simon trail."
+    },
+    {
+      "waypointId": "w_062bec0d",
+      "name": "Crosslands Reserve",
+      "description": "Hornsby Shire Council reserve in Berowra Valley, reached on foot along the Benowie walking track. Camping is basic and booked through the council: toilets, barbecues, picnic tables and a playground, but no showers or power. The reserve's gate closes at 7.30 pm in daylight saving time and 5 pm the rest of the year."
+    },
+    {
+      "waypointId": "w_86918dab",
+      "name": "Cowan",
+      "description": "Village on the Pacific Highway by Cowan station, where the walk's Ku-ring-gai Chase National Park section starts: the Jerusalem Bay track, 11 km to Brooklyn, steep with many steps and boggy after rain. There are toilets at the station, and a cafe and a convenience store by the highway."
+    },
+    {
+      "waypointId": "w_de32becf",
+      "name": "Mt Wondabyne Campsite",
+      "description": "Remote bush campground below Mount Wondabyne in Brisbane Water National Park, on the 23 km Wondabyne to Patonga section. Drinking and cooking water is limited or unavailable in this area, and campfires and solid-fuel burners are banned in the park."
+    },
+    {
+      "waypointId": "w_afe5e9ce",
+      "name": "Barraba Campsite",
+      "description": "Campsite on private property near Watagans National Park, known as Barraba Trig, which is open to walkers."
+    },
+    {
+      "waypointId": "w_2e79260f",
+      "name": "The Narrow Place Lookout",
+      "description": "Lookout on the walk's Watagans National Park section along Georges Road, looking north over Quorrobolong to Ellalong, Cessnock and Kurri Kurri. The park has no drinking or cooking water."
+    },
+    {
+      "waypointId": "w_3715cb03",
+      "name": "Watagan Headquarters Camping Area",
+      "description": "Open, grassed camping area in the Watagan Mountains state forests, surrounded by native forest and blue-leaved stringybark plantations. In the 1940s it was a camp for workers building the forest roads, and later barracks for maintenance crews trucked in on Monday and out on Saturday."
+    },
+    {
+      "waypointId": "w_39e1f4ab",
+      "name": "Hunter Lookout",
+      "description": "State forest lookout over the Hunter Valley, the Pokolbin Range and the lower Barrington ranges, with the small mining towns of the valley, the Sugarloaf Range and the surrounding Watagan Range also in view."
+    },
+    {
+      "waypointId": "w_9844c362",
+      "name": "MacLeans Lookout",
+      "description": "Lookout in Heaton State Forest with much the same outlook as Hunter Lookout: the Hunter Valley, the Pokolbin Range, the lower Barringtons and the Sugarloaf Range."
+    },
+    {
+      "waypointId": "w_15857c70",
+      "name": "Heaton Lookout",
+      "description": "Lookout and picnic area in Heaton State Forest with coastal and mountain views, named after Richard Heaton, an English convict who became a timber cutter in the area."
+    },
+    {
+      "waypointId": "w_68f80f93",
+      "name": "Newcastle",
+      "description": "The northern end of the Great North Walk, the 250 km track built in 1988 for Australia's bicentenary to link Sydney with the Hunter Valley and Newcastle. The city centre around the finish has cafes, restaurants, pubs, a pharmacy and buses."
+    }
+  ]
+}
