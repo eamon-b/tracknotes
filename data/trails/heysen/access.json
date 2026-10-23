@@ -300,27 +300,6 @@
         [-33.831139, 139.044037]
       ]
     },
-    "w_721d0707": {
-      "name": "Doughboy Reserve",
-      "method": "osm",
-      "junction": [-32.897522, 138.233234],
-      "junctionKm": 770.5,
-      "offTrailKm": 0.78,
-      "ascentM": 0,
-      "descentM": 4,
-      "crossCountryM": 84,
-      "straightLineM": 445,
-      "nearestKm": 770.52,
-      "path": [
-        [-32.897522, 138.233234],
-        [-32.895395, 138.235669],
-        [-32.895355, 138.23626],
-        [-32.895468, 138.23864],
-        [-32.895626, 138.23839],
-        [-32.89613, 138.23815],
-        [-32.896671, 138.237524]
-      ]
-    },
     "w_7c9a0d0c": {
       "name": "The Dutchman Hut",
       "method": "osm",
@@ -493,25 +472,6 @@
         [-31.886756, 138.422294]
       ]
     },
-    "w_aecdaa67": {
-      "name": "Fromms Farm",
-      "method": "osm",
-      "junction": [-34.722894, 138.969353],
-      "junctionKm": 287.13,
-      "offTrailKm": 0.41,
-      "ascentM": 0,
-      "descentM": 61,
-      "crossCountryM": 17,
-      "straightLineM": 395,
-      "nearestKm": 287.04,
-      "path": [
-        [-34.722894, 138.969353],
-        [-34.723346, 138.968096],
-        [-34.723734, 138.967551],
-        [-34.724403, 138.965996],
-        [-34.72469, 138.96555]
-      ]
-    },
     "w_b44ca17e": {
       "name": "Griffiths Retreat and Cottage",
       "method": "osm",
@@ -632,22 +592,6 @@
         [-34.33897, 138.916761],
         [-34.338834, 138.916814],
         [-34.338811, 138.916747]
-      ]
-    },
-    "w_d7d02f6a": {
-      "name": "The Scrub Campsite",
-      "method": "osm",
-      "junction": [-35.526298, 138.513207],
-      "junctionKm": 81.43,
-      "offTrailKm": 0.23,
-      "ascentM": 0,
-      "descentM": 6,
-      "crossCountryM": 231,
-      "straightLineM": 221,
-      "nearestKm": 81.5,
-      "path": [
-        [-35.526298, 138.513207],
-        [-35.52426, 138.5137]
       ]
     },
     "w_e78a9769": {

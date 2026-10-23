@@ -78,10 +78,10 @@
     "states": [
       "VIC"
     ],
-    "dataVersion": "2026-10-20",
-    "updatedAt": "2026-10-20T00:52:37.639Z",
-    "md5": "442d18a5759c910f936d78cd4841e635",
-    "bytes": 682991
+    "dataVersion": "2026-10-23",
+    "updatedAt": "2026-10-23T04:49:06.348Z",
+    "md5": "659e2c1512648a5d967204149d84cf14",
+    "bytes": 693297
   },
   {
     "id": "great_north_walk",
@@ -92,10 +92,10 @@
     "states": [
       "NSW"
     ],
-    "dataVersion": "2026-10-20",
-    "updatedAt": "2026-10-20T00:52:37.639Z",
-    "md5": "ddba12f71d5f48800475aa60ca7548ff",
-    "bytes": 776044
+    "dataVersion": "2026-10-23",
+    "updatedAt": "2026-10-23T04:49:06.348Z",
+    "md5": "046f41f178ab4a3f79f4982cf2a59111",
+    "bytes": 778278
   },
   {
     "id": "great_ocean_walk",
@@ -135,9 +135,9 @@
       "SA"
     ],
     "dataVersion": "2026-10-23",
-    "updatedAt": "2026-10-23T04:38:54.298Z",
-    "md5": "b49dc4c046d6b8868b46b57cb5345dfa",
-    "bytes": 1228654
+    "updatedAt": "2026-10-23T04:55:07.039Z",
+    "md5": "342c9c0a76d4cd8bf945a169f8da04c6",
+    "bytes": 1248002
   },
   {
     "id": "kep_track",
@@ -176,10 +176,10 @@
     "states": [
       "TAS"
     ],
-    "dataVersion": "2026-10-20",
-    "updatedAt": "2026-10-20T00:52:37.639Z",
-    "md5": "dcfb598bd0789efb608e8743a38e78ba",
-    "bytes": 651080
+    "dataVersion": "2026-10-23",
+    "updatedAt": "2026-10-23T04:49:06.348Z",
+    "md5": "ce7e6d6ad72f0dc29f36b81ec9c2d366",
+    "bytes": 659767
   },
   {
     "id": "royal_coast_track",
@@ -191,9 +191,9 @@
       "NSW"
     ],
     "dataVersion": "2026-10-23",
-    "updatedAt": "2026-10-23T04:04:08.322Z",
-    "md5": "6b51c001ac680f0d99b047f700281187",
-    "bytes": 275970
+    "updatedAt": "2026-10-23T04:55:07.039Z",
+    "md5": "bfcd6eb42c85bf41b91233ffcb1c776a",
+    "bytes": 275872
   },
   {
     "id": "shikoku",
@@ -230,10 +230,10 @@
     "states": [
       "TAS"
     ],
-    "dataVersion": "2026-10-20",
-    "updatedAt": "2026-10-20T00:52:37.639Z",
-    "md5": "6ad68f58f337564dfaf98598ea124447",
-    "bytes": 342456
+    "dataVersion": "2026-10-23",
+    "updatedAt": "2026-10-23T04:49:06.348Z",
+    "md5": "cb91be356a536810adc4a0d318027928",
+    "bytes": 345811
   },
   {
     "id": "te_araroa",
