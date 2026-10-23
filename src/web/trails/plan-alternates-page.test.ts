@@ -54,37 +54,66 @@ interface StubMarker {
 
 let markers: StubMarker[] = [];
 
-/** Every clickable line, by the click handler it was given. */
-let lineClicks: Array<(event: { latlng: unknown }) => void> = [];
+interface StubLine {
+  opts: { opacity?: number };
+  onMap: boolean;
+  click: ((event: { latlng: unknown }) => void) | null;
+}
+
+/** Every line drawn, with its options, whether it is on the map and its click handler. */
+let lines: StubLine[] = [];
+const LINE = Symbol('stub line');
 /** The content of the last free-standing popup opened (an alternate's line). */
 let openPopup: HTMLElement | null = null;
+const POPUP = Symbol('stub popup content');
 
 function installLeafletStub(): void {
   const layer = (): object => {
     const obj: object = new Proxy({}, { get: () => () => obj });
     return obj;
   };
-  const mapObj = layer();
+  const mapObj: object = new Proxy({}, {
+    get: (_target, prop) => {
+      if (prop === 'hasLayer') return (l: Record<symbol, StubLine | undefined>) => l[LINE]?.onMap ?? false;
+      if (prop === 'closePopup') {
+        return (p?: Record<symbol, HTMLElement | undefined>) => {
+          if (p?.[POPUP] === openPopup) openPopup = null;
+          return mapObj;
+        };
+      }
+      return () => mapObj;
+    },
+  });
   const L = {
     map: () => mapObj,
     tileLayer: layer,
     control: { scale: layer },
     layerGroup: layer,
-    polyline: () => {
+    polyline: (_latLngs: unknown, opts: StubLine['opts'] = {}) => {
+      const line: StubLine = { opts, onMap: false, click: null };
+      lines.push(line);
       const obj: object = new Proxy({}, {
-        get: (_target, prop) => prop === 'on'
-          ? (event: string, fn: (e: { latlng: unknown }) => void) => {
-            if (event === 'click') lineClicks.push(fn);
-            return obj;
+        get: (_target, prop) => {
+          if (prop === LINE) return line;
+          if (prop === 'on') {
+            return (event: string, fn: StubLine['click']) => {
+              if (event === 'click') line.click = fn;
+              return obj;
+            };
           }
-          : () => obj,
+          if (prop === 'addTo') return () => { line.onMap = true; return obj; };
+          if (prop === 'remove') return () => { line.onMap = false; return obj; };
+          return () => obj;
+        },
       });
       return obj;
     },
     popup: () => {
       const popup = {
+        [POPUP]: undefined as HTMLElement | undefined,
         setLatLng: () => popup,
         setContent: (content: HTMLElement) => {
+          popup[POPUP] = content;
           openPopup = content;
           return popup;
         },
@@ -190,7 +219,7 @@ async function boot(trail: ReturnType<typeof makeTrail> = makeTrail()): Promise<
     .replace(/<\/?html[^>]*>/gi, '');
   vi.resetModules();
   markers = [];
-  lineClicks = [];
+  lines = [];
   openPopup = null;
   const { initPlanViewer } = await import('./plan-viewer');
   await initPlanViewer(TRAIL_ID, trail as never);
@@ -328,10 +357,17 @@ describe('alternates on the map', () => {
     return btn;
   };
 
+  /** The alternate's invisible click line, while it is on the map. */
+  const hitLine = (): StubLine | undefined => lines.find(l => l.opts.opacity === 0 && l.onMap);
+  const clickAlternateLine = (): void => {
+    const line = hitLine();
+    if (!line?.click) throw new Error('no clickable alternate line on the map');
+    line.click({ latlng: [0, 0] });
+  };
+
   it('clicking an alternate\'s line offers to take it', async () => {
     await boot();
-    // The first clickable line is the alternate's; the day lines come later.
-    lineClicks[0]({ latlng: [0, 0] });
+    clickAlternateLine();
     const popup = openPopup!;
     expect(popup.querySelector('.wp-popup-alt-title')?.textContent).toContain(ALT);
     expect(popup.textContent).toContain('10.0 km longer than the main route');
@@ -343,9 +379,20 @@ describe('alternates on the map', () => {
     flushSave();
     expect(savedDocument().alternates).toEqual([ALT]);
 
-    lineClicks[0]({ latlng: [0, 0] });
-    expect(openPopup!.textContent).toContain('Your plan takes this alternate.');
-    expect(choiceButton(openPopup!).textContent?.trim()).toBe('Stay on the main route');
+    // Taken, its day lines run along it: its click line is off the map so
+    // they keep their clicks, and its places offer the way back.
+    expect(hitLine()).toBeUndefined();
+    altButton().click();
+    clickAlternateLine();
+    expect(openPopup!.textContent).toContain('Your plan stays on the main route here.');
+  });
+
+  it('an open alternate popup closes when the plan changes elsewhere', async () => {
+    await boot();
+    clickAlternateLine();
+    expect(openPopup).not.toBeNull();
+    altButton().click();
+    expect(openPopup).toBeNull();
   });
 
   it('a place on a taken alternate offers to go back to the main route', async () => {
