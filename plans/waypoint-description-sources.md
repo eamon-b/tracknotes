@@ -6,14 +6,14 @@ The trails authored before this note (Cape to Cape, AAWT, Bibbulmun, Hume & Hove
 
 ## Rules applied
 
-- **Permanent place only.** A bundled description describes the place as it normally is, with its facilities as normally provided. It says nothing about temporary closures, removals or works. Temporary status belongs in server-synced notes, posted through the comments API's description sync. Where a facility's normal state is unclear, the description leaves it out.
+- **Permanent place only.** A bundled description describes the place as it normally is, with its facilities as normally provided. Where a facility's normal state is unclear, the description leaves it out. A temporary closure goes in the bundled text only as a dated sentence ("As of October 2026, …") so it can be found and removed later: there is no separate synced-only channel, because `upload:descriptions` pushes the same file (owner's decision on #217). The dated sentences are listed under each trail.
 - **Facts, not advice.** Agency advice is turned into the fact behind it. For example, "boiling … is recommended" becomes "the tank water is untreated", and "should not be relied on" becomes "there is no reliable natural water". The agency's own wording stays here in the sources file.
 - **Primary or authoritative sources only.** A primary source here is the land manager's page, or a government tourism body's full page. The track's own long-standing notes site counts as authoritative. A claim that could not be checked against one of these was removed. Blogs, tour operators and search-result snippets do not count.
 - **Own wording.** The descriptions paraphrase their sources. The phrases flagged in review, and every other close echo found in a pass over all 29 descriptions, were rewritten.
 
-## Current temporary closures (for server-side updates, not bundled text)
+## Current temporary closures not in the descriptions
 
-The owner should post these as synced notes, and remove them when they lift:
+These were recorded before the dated-sentence rule above; each could become a dated sentence in its waypoint's description:
 
 - **Jenolan Caves** (Six Foot Track `w_9853df4e`): NSW National Parks [local alerts](https://www.nationalparks.nsw.gov.au/things-to-do/walking-tracks/six-foot-track/local-alerts), reviewed 19 Oct 2026, say the Jenolan Karst Conservation Reserve, "including the Visitor Precinct and walking tracks", is closed until 31 December 2026, with "no access to the Reserve or Jenolan Caves via the Six Foot Track". The track is closed at the reserve boundary. NSW National Parks currently gives Binda Bush cabins as the track's end. Visit NSW says the closure followed flood damage and landslips.
 - **George Point** (Thorsborne `w_fc1b14f4`): a Queensland Parks park alert, seen only as a search-result snippet, says the George Point toilet was removed because of erosion, until 30 June 2027. It is unverified because the page could not be read (see below). Check it before posting.
@@ -157,7 +157,7 @@ All NSW National Parks pages below were read in full with curl on 2026-10-23.
 - NSW National Parks, [Werrong Beach track](https://www.nationalparks.nsw.gov.au/things-to-do/walking-tracks/werrong-beach-track): the track starts at Otford lookout, with coastal views up and down the coast.
 - Bundeena's supermarket, post office and cafes, and Otford's trains, are kept from the waypoints' earlier hand-reviewed text.
 
-**North Era is a permanent closure, not a temporary one**, so it is in the bundled text. The waypoint is still typed `campsite` in the GPX and Garie Beach campground has no waypoint: both are data fixes for the GPX, outside this change.
+**North Era and Garie Beach (2026-10-23, on #217).** The North Era Beach Campground waypoint (`w_fcacbef4`, now retired) was removed from the GPX, since NSW National Parks decommissioned the campground in 2023. A `Garie Beach campground` waypoint (`w_abef035e`, type `campsite`) was added. NSW National Parks publishes no position for the platforms, and OSM has no campground there, so the waypoint sits at the NPWS schema.org position of the [Garie Beach picnic area](https://www.nationalparks.nsw.gov.au/things-to-do/picnic-areas/garie-beach-picnic-area) (-34.170209, 151.066642), where the campers' amenities are; its elevation is the nearest track point's (8.0 m, 18 m away). Its description rests on the Coast Track page: the 17 km first day from Bundeena, advance booking with limited capacity, a raised timber platform per site for two small one-person tents or one two-person tent, and untreated water, cold beach showers and flush toilets at the picnic area. The exact platform position is still to confirm.
 
 No entry: **Werrong Lookout** (no NSW National Parks page describes it).
 
@@ -296,12 +296,14 @@ Covers main-route waypoints after Burra (km > 489.3, Burra Caravan Park to Parac
 - [Parachilna](https://flindersandoutback.com.au/towns/parachilna/): Ediacaran fossil site about 600 million years old; the Prairie Hotel's food and rooms by booking.
 - [Blinman](https://flindersandoutback.com.au/towns/blinman/): copper found by the shepherd Robert Blinman in 1859, the highest town in South Australia, fewer than 50 residents, the North Blinman Hotel, mine tours.
 
-#### Temporary status (for synced notes, not bundled text)
+#### Temporary status (dated "As of October 2026" sentences in the bundled text)
 
 - **Whistling Trig Tank** (`w_37b9b2d5`): FOHT says the tank is leaking and stood at 4% on 28 Sep 2026; volunteers are replacing it.
 - **The Dutchman Hut** (`w_7c9a0d0c`): FOHT says the hut is closed for repairs, with the shearing shed beside it open for overnight use.
 - **Curnows Hut** (`w_3d8a9223`): FOHT lists it "Closed (no longer available)" while the trail is rerouted around the Georgetown wind farm construction.
-- FOHT site banner (Oct 2026): "Fire Danger Season 2026 announcements close the Heysen Trail north of Tanunda."
+- FOHT site banner (Oct 2026): "Fire Danger Season 2026 announcements close the Heysen Trail north of Tanunda." The sentence is on **Tanunda** (`w_0b873c07`).
+- **Rocky Paddock Campground** (`w_45a922a3`): the FOHT page title reads "Rocky Paddock Campground closed for the remainder of 2026".
+- Curnows Hut, previously without an entry, now has one carrying only its closure, on the FOHT page's "Location: Bundaleer" and notes.
 
 #### No entry
 
@@ -380,7 +382,7 @@ Official coverage of this walk is thin: it crosses many land managers and none p
 - Tunks Ridge Campground is named as an NPWS campground only on an NPWS local-alert page seen as a search result; its facilities are not described, so none are given.
 - Crosslands' gate times are from Hornsby Council's page; NPWS's Berowra Valley visitor info gives Crosslands' opening as 8am–7.30pm in daylight saving and 9am–5pm otherwise. The description gives only the closing times, on which both agree.
 - Barraba Trig's facilities and any conditions of use are unknown.
-- Mooney Mooney (Upper) and The Jungo keep OSM-sourced text that reads as a walker's note ("Water seems OK to drink from (filtered)"); it was not verified and could be removed in a later pass.
+- Mooney Mooney (Upper), The Jungo and the unnamed campsite at km 133.7 carried OSM text that read as a walker's note ("Water seems OK to drink from (filtered)", tent counts, phone reception). It could not be verified and was removed from the GPX `<desc>` on #217.
 - Search budget ran out before a Forestry Corporation page for Palm Grove/Ourimbah or a Brooklyn Dam source could be found.
 
 ## South Coast Track (`south_coast_track`)
@@ -461,3 +463,16 @@ All PWS pages below were read in full with curl on 2026-10-23.
 - **Mount Pelion East's height:** PWS's walk notes give 1433 m, while OSM, and the GPX's former text, give 1461 m. The description gives no height.
 - **Hartnett Falls:** the walk notes spell it both "Harnett" and "Hartnett"; the description uses Hartnett.
 - **Group platforms:** PWS says educational and community groups must use them, and guided walks may. It does not say outright that independent walkers may not, so the descriptions do not say so either.
+
+## Heysen data changes on #217 (2026-10-23)
+
+Removed from `Heysen.gpx` and `Heysen.json` (ids kept in the registry as `retired`), because each place's Friends of the Heysen Trail page now returns 404 and the place is no longer in the Friends' campsite listing (`foht_campsite` REST list), and no land-manager page describes it:
+
+- The Scrub Campsite (`w_d7d02f6a`), Mylor Oval tank (`w_557f2087`), Fromms Farm (`w_aecdaa67`), Bethany Reserve (`w_ba586ff7`), Alma's Hem Amphitheatre (`w_680e9539`), Mt Compass township camp site at oval (`w_27ca0270`), Mt Crawford Forest Information Centre (`w_232a40bb`), Tanunda Caravan & Tourist Park (`w_ef4d5138`), Riverton Caravan Park (`w_28963eec`), Doughboy Reserve (`w_721d0707`), Hallett Camping at the Recreation Ground (`w_f862bab0`), Bundaleer Sport & Recreation Grounds (`w_d6cbd9b9`), Cartapo Creek Hobby Farm (`w_f8611294`), Sugargum Dam 'walk-in' site (`w_1ce32055`), Goat Rock 'walk-in' site (`w_800568d1`), Longhill 'walk-in' site (`w_24d49c80`), Stony Creek Bush Camp Caravan Park (`w_d7843d94`).
+- Cape Jervis Tavern (`w_c04ed919`): the Friends' Cape Jervis town page says the tavern has closed.
+
+Retyped: **Cape Jervis** (`w_56bc59b8`) from `town` to `poi` (GeoJSON folder Towns → Other, `<desc>` first line Town → Other), with its registry entry migrated so the id is kept. The Friends' page says the tavern and general store have closed and only the Big4 caravan park's small shop remains, so it no longer counts as a resupply. The trail's terminus, Cape Jervis Trailhead (`w_83a8f54b`), is unchanged.
+
+**Stony Creek 'walk-in' site** (`w_17e91abb`) needed no data change: it is typed `campsite` (not water or hut) and its Friends category is "'Walk-in' site" with no water tank; the description says the shelter and tank were lost after the May 2025 fire.
+
+**Dead links.** Seven descriptions no longer end with a "More info" link because the Friends page returns 404: Burra Caravan and Camping Park, Aroona Hut, Tinjella Hut, Aldgate, Ippinitchie Campground, Acraman Campground and Youngoona Campsite. Every remaining link was checked to return 200 on 2026-10-23.

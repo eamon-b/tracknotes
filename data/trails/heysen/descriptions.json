@@ -1,6 +1,6 @@
 {
   "trailId": "heysen",
-  "note": "Curated waypoint descriptions, keyed by the stable ids in data/waypoint-ids.json. Applied by scripts/build-trails.ts (overriding the Friends of the Heysen Trail facility list from the GPX source) and uploadable to the comments API with scripts/upload-descriptions.ts. Each entry keeps the Friends' 'More info' link from the GPX text. Listed in walking order from Cape Jervis to Parachilna Gorge, with the off-route waypoints appended south to north. Private accommodation businesses (B&Bs, cottages, hotels, motels) have no entry and keep their GPX text. Sources for each fact: plans/waypoint-description-sources.md.",
+  "note": "Curated waypoint descriptions, keyed by the stable ids in data/waypoint-ids.json. Applied by scripts/build-trails.ts (overriding the Friends of the Heysen Trail facility list from the GPX source) and uploadable to the comments API with scripts/upload-descriptions.ts. Each entry keeps the Friends' 'More info' link from the GPX text where that page still resolves. Temporary closures are dated ('As of October 2026') so they can be found and removed. Listed in walking order from Cape Jervis to Parachilna Gorge, with the off-route waypoints appended south to north. Private accommodation businesses (B&Bs, cottages, hotels, motels) have no entry and keep their GPX text. Sources for each fact: plans/waypoint-description-sources.md.",
   "descriptions": [
     {
       "waypointId": "w_83a8f54b",
@@ -109,7 +109,7 @@
     },
     {
       "waypointId": "w_f694954f",
-      "name": "Cudlee Creek North ‘walk-in’ site (Grandpa’s)",
+      "name": "Grandad’s ‘walk-in’ site (South Cudlee Creek)",
       "description": "Bush campsite in Mount Crawford Forest with a fire pit, stone table, walkers' platform, small shelter and an untreated rainwater tank. The forest around it was badly burnt in the December 2019 Cudlee Creek bushfire. Booked through ForestrySA, no fee; open 1 April to 30 November.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/cudlee-creek-north-grandpas-camp/"
     },
     {
@@ -135,7 +135,7 @@
     {
       "waypointId": "w_0b873c07",
       "name": "Tanunda",
-      "description": "Barossa Valley town on the trail with a supermarket, bakeries, cafes, pubs, a post office and a hospital.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/tanunda/"
+      "description": "Barossa Valley town on the trail with a supermarket, bakeries, cafes, pubs, a post office and a hospital. As of October 2026 the Friends report that Fire Danger Season announcements close the trail north of Tanunda.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/tanunda/"
     },
     {
       "waypointId": "w_fbbbcb7c",
@@ -209,8 +209,8 @@
     },
     {
       "waypointId": "w_ddbf354c",
-      "name": "Burra Caravan Park",
-      "description": "Caravan park on the banks of Burra Creek, a two-minute walk from the town's shops, cafes and hotels. It has powered sites, unpowered camping areas, a camp kitchen, barbecues, a coin-operated laundry and self-contained miners' cottages.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/burra-caravan-park/"
+      "name": "Burra Caravan and Camping Park",
+      "description": "Caravan park on the banks of Burra Creek, a two-minute walk from the town's shops, cafes and hotels. It has powered sites, unpowered camping areas, a camp kitchen, barbecues, a coin-operated laundry and self-contained miners' cottages."
     },
     {
       "waypointId": "w_5d96d963",
@@ -245,7 +245,7 @@
     {
       "waypointId": "w_37b9b2d5",
       "name": "Whistling Trig Tank",
-      "description": "A small shelter over a water tank, with a bench, on a windy, exposed site near the wind farms. It sits between the towns, 22.5 km from Hallett and 26 km from Spalding.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/whistling-trig-tank/"
+      "description": "A small shelter over a water tank, with a bench, on a windy, exposed site near the wind farms, 22.5 km from Hallett and 26 km from Spalding. As of October 2026 the tank is leaking and awaiting replacement; the Friends recorded it at 4% of capacity on 28 September 2026.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/whistling-trig-tank/"
     },
     {
       "waypointId": "w_8a67a214",
@@ -261,6 +261,11 @@
       "waypointId": "w_00c67cb1",
       "name": "Baderloo ‘walk-in’ site",
       "description": "Walk-in site with a small shelter that catches rain for a water tank, a bench, a camping platform and a toilet, 18.8 km from Spalding. It was called the Bundaleer Weir walk-in site until November 2024.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/baderloo-walk-in-site/"
+    },
+    {
+      "waypointId": "w_3d8a9223",
+      "name": "Curnows Hut",
+      "description": "Walkers' hut on the trail's old line near Bundaleer. As of October 2026 the Friends of the Heysen Trail list it as closed while the trail is rerouted around the construction of the Georgetown wind farm.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/curnows-hut/"
     },
     {
       "waypointId": "w_024d082e",
@@ -355,7 +360,7 @@
     {
       "waypointId": "w_7c9a0d0c",
       "name": "The Dutchman Hut",
-      "description": "Hut in The Dutchmans Stern Conservation Park, restored by the Adelaide Central Mission, with bunks, a sink, a wood heater, lighting, power points and water. Flush toilets are in the shearing shed next door, with room to camp in front. For Heysen walkers and Mawson cyclists; no vehicle access.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/the-dutchman-hut/"
+      "description": "Hut in The Dutchmans Stern Conservation Park with bunks, a sink, a wood heater, lighting and water; flush toilets are in the shearing shed next door, with room to camp in front. No vehicle access. As of October 2026 the hut is closed for repairs and the shearing shed is open for overnight use.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/the-dutchman-hut/"
     },
     {
       "waypointId": "w_843382b5",
@@ -430,7 +435,7 @@
     {
       "waypointId": "w_b3b79b9f",
       "name": "Aroona Hut",
-      "description": "Water tank at Aroona Hut, beside the Aroona campground.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/aroona-hut/"
+      "description": "Water tank at Aroona Hut, beside the Aroona campground."
     },
     {
       "waypointId": "w_70950a93",
@@ -480,7 +485,7 @@
     {
       "waypointId": "w_0551d8a0",
       "name": "Tinjella Hut (adjacent to Jacks Paddock)",
-      "description": "ForestrySA group hut in Kuitpo Forest on Brookman Road, about 2.5 km south of the Kuitpo Forest Information Centre. It sleeps up to ten, with an open fireplace and a toilet shared with Jacks Paddock; its rainwater is not suitable for drinking. Booked for at least two nights, April to November.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/jacks-paddock/"
+      "description": "ForestrySA group hut in Kuitpo Forest on Brookman Road, about 2.5 km south of the Kuitpo Forest Information Centre. It sleeps up to ten, with an open fireplace and a toilet shared with Jacks Paddock; its rainwater is not suitable for drinking. Booked for at least two nights, April to November."
     },
     {
       "waypointId": "w_b7644849",
@@ -490,7 +495,7 @@
     {
       "waypointId": "w_3a0f6bed",
       "name": "Aldgate",
-      "description": "Adelaide Hills town off the trail with a supermarket, a bakery, cafes, a pub, a post office, a pharmacy and a medical practice.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/aldgate/"
+      "description": "Adelaide Hills town off the trail with a supermarket, a bakery, cafes, a pub, a post office, a pharmacy and a medical practice."
     },
     {
       "waypointId": "w_b5fb287d",
@@ -510,7 +515,7 @@
     {
       "waypointId": "w_45a922a3",
       "name": "Rocky Paddock Campground",
-      "description": "ForestrySA campground in Mount Crawford Forest with a shelter, water, fireplaces, picnic tables and a toilet.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/rocky-paddock/"
+      "description": "ForestrySA campground in Mount Crawford Forest with a shelter, water, fireplaces, picnic tables and a toilet. As of October 2026 the Friends list it as closed for the rest of 2026.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/rocky-paddock/"
     },
     {
       "waypointId": "w_3af0f071",
@@ -540,7 +545,7 @@
     {
       "waypointId": "w_d80be5bc",
       "name": "Ippinitchie Campground",
-      "description": "Campground on the edge of the former Wirrabara Forest, near Wirrabara, with ten sites along Ippinitchie Creek, a water tank and a drop toilet. Each site has its own fire pit.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/ippinitchie-campground/"
+      "description": "Campground on the edge of the former Wirrabara Forest, near Wirrabara, with ten sites along Ippinitchie Creek, a water tank and a drop toilet. Each site has its own fire pit."
     },
     {
       "waypointId": "w_c9e6b917",
@@ -595,12 +600,12 @@
     {
       "waypointId": "w_2054b331",
       "name": "Acraman Campground",
-      "description": "Small campground among native pines between two ranges in Ikara-Flinders Ranges National Park, a short walk from Bunyeroo Gorge. It has four sites, a long-drop toilet and a water tank at the toilet block, but National Parks cannot guarantee the water's quality or supply.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/acraman-campground/"
+      "description": "Small campground among native pines between two ranges in Ikara-Flinders Ranges National Park, a short walk from Bunyeroo Gorge. It has four sites, a long-drop toilet and a water tank at the toilet block, but National Parks cannot guarantee the water's quality or supply."
     },
     {
       "waypointId": "w_22920dd1",
       "name": "Youngoona Campsite",
-      "description": "Campground in Ikara-Flinders Ranges National Park at the eastern end of Brachina Gorge Road, where Oraparinna Creek joins Enorama Creek. It has four partly shaded sites and no facilities.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/youngoona-campsite/"
+      "description": "Campground in Ikara-Flinders Ranges National Park at the eastern end of Brachina Gorge Road, where Oraparinna Creek joins Enorama Creek. It has four partly shaded sites and no facilities."
     },
     {
       "waypointId": "w_84dd5e38",

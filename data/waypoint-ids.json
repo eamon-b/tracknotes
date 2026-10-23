@@ -9213,7 +9213,8 @@
       "name": "Sugargum Dam ‘walk-in’ site",
       "type": "campsite",
       "lat": -32.790304,
-      "lon": 138.10735899999997
+      "lon": 138.10735899999997,
+      "retired": true
     },
     {
       "id": "w_1f8900f9",
@@ -9255,14 +9256,16 @@
       "name": "Mt Crawford Forest Information Centre",
       "type": "water",
       "lat": -34.714056,
-      "lon": 138.945741
+      "lon": 138.945741,
+      "retired": true
     },
     {
       "id": "w_24d49c80",
       "name": "Longhill ‘walk-in’ site",
       "type": "campsite",
       "lat": -32.755444,
-      "lon": 138.07118200000002
+      "lon": 138.07118200000002,
+      "retired": true
     },
     {
       "id": "w_25b66c0e",
@@ -9297,7 +9300,8 @@
       "name": "Mt Compass township camp site at oval",
       "type": "campsite",
       "lat": -35.348412,
-      "lon": 138.61984299999995
+      "lon": 138.61984299999995,
+      "retired": true
     },
     {
       "id": "w_27d4013c",
@@ -9311,7 +9315,8 @@
       "name": "Riverton Caravan Park",
       "type": "caravan-park",
       "lat": -34.1544,
-      "lon": 138.75895000000003
+      "lon": 138.75895000000003,
+      "retired": true
     },
     {
       "id": "w_28e9f112",
@@ -9633,7 +9638,8 @@
       "name": "Mylor Oval tank",
       "type": "water",
       "lat": -35.042375,
-      "lon": 138.76130799999999
+      "lon": 138.76130799999999,
+      "retired": true
     },
     {
       "id": "w_55a36e15",
@@ -9645,7 +9651,7 @@
     {
       "id": "w_56bc59b8",
       "name": "Cape Jervis",
-      "type": "town",
+      "type": "poi",
       "lat": -35.603771,
       "lon": 138.10687299999995
     },
@@ -9773,7 +9779,8 @@
       "name": "Alma’s Hem Amphitheatre",
       "type": "campsite",
       "lat": -35.5008,
-      "lon": 138.4891
+      "lon": 138.4891,
+      "retired": true
     },
     {
       "id": "w_69980790",
@@ -9808,7 +9815,8 @@
       "name": "Doughboy Reserve",
       "type": "campsite",
       "lat": -32.896671,
-      "lon": 138.237524
+      "lon": 138.237524,
+      "retired": true
     },
     {
       "id": "w_73eb3717",
@@ -9906,7 +9914,8 @@
       "name": "Goat Rock ‘walk-in’ site",
       "type": "campsite",
       "lat": -32.777756,
-      "lon": 138.135488
+      "lon": 138.135488,
+      "retired": true
     },
     {
       "id": "w_809aec41",
@@ -10228,7 +10237,8 @@
       "name": "Fromms Farm",
       "type": "hut",
       "lat": -34.72469,
-      "lon": 138.96555
+      "lon": 138.96555,
+      "retired": true
     },
     {
       "id": "w_af3e11f1",
@@ -10326,7 +10336,8 @@
       "name": "Bethany Reserve",
       "type": "hut",
       "lat": -34.542641,
-      "lon": 138.98255900000004
+      "lon": 138.98255900000004,
+      "retired": true
     },
     {
       "id": "w_bb0bb2dc",
@@ -10389,7 +10400,8 @@
       "name": "Cape Jervis Tavern",
       "type": "accommodation",
       "lat": -35.604111,
-      "lon": 138.10794799999996
+      "lon": 138.10794799999996,
+      "retired": true
     },
     {
       "id": "w_c300cbdf",
@@ -10501,7 +10513,8 @@
       "name": "Bundaleer Sport & Recreation Grounds",
       "type": "campsite",
       "lat": -33.278305,
-      "lon": 138.57298000000003
+      "lon": 138.57298000000003,
+      "retired": true
     },
     {
       "id": "w_d6d1bbcb",
@@ -10529,14 +10542,16 @@
       "name": "Stony Creek Bush Camp Caravan Park",
       "type": "caravan-park",
       "lat": -32.6479,
-      "lon": 138.13477
+      "lon": 138.13477,
+      "retired": true
     },
     {
       "id": "w_d7d02f6a",
       "name": "The Scrub Campsite",
       "type": "campsite",
       "lat": -35.52426,
-      "lon": 138.51369999999997
+      "lon": 138.51369999999997,
+      "retired": true
     },
     {
       "id": "w_d80be5bc",
@@ -10662,7 +10677,8 @@
       "name": "Tanunda Caravan & Tourist Park",
       "type": "caravan-park",
       "lat": -34.5318586,
-      "lon": 138.9499197
+      "lon": 138.9499197,
+      "retired": true
     },
     {
       "id": "w_f088ebe3",
@@ -10746,14 +10762,16 @@
       "name": "Cartapo Creek Hobby Farm",
       "type": "campsite",
       "lat": -33.423845,
-      "lon": 138.89929600000005
+      "lon": 138.89929600000005,
+      "retired": true
     },
     {
       "id": "w_f862bab0",
       "name": "Hallett Camping at the Recreation Ground",
       "type": "campsite",
       "lat": -33.408488,
-      "lon": 138.89040999999997
+      "lon": 138.89040999999997,
+      "retired": true
     },
     {
       "id": "w_f968253e",
@@ -11990,6 +12008,13 @@
       "lon": 151.157086
     },
     {
+      "id": "w_abef035e",
+      "name": "Garie Beach campground",
+      "type": "campsite",
+      "lat": -34.170209,
+      "lon": 151.066642
+    },
+    {
       "id": "w_b6cd63ff",
       "name": "Drinking water",
       "type": "water",
@@ -12001,7 +12026,8 @@
       "name": "North Era Beach Campground",
       "type": "campsite",
       "lat": -34.176972,
-      "lon": 151.056453
+      "lon": 151.056453,
+      "retired": true
     }
   ],
   "shikoku": [
