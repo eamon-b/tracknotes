@@ -30,7 +30,7 @@
     },
     {
       "id": "w_018874da",
-      "name": "Wilkinson's Creek Campsite",
+      "name": "Wilkinsons Creek Campsite",
       "type": "campsite",
       "lat": -36.440548742647486,
       "lon": 148.2629907626575
@@ -93,7 +93,7 @@
     },
     {
       "id": "w_0d5727ee",
-      "name": "Spargo Hut",
+      "name": "Spargos Hut",
       "type": "hut",
       "lat": -36.98185702882733,
       "lon": 147.16295907418825
@@ -184,7 +184,7 @@
     },
     {
       "id": "w_16abb09e",
-      "name": "Johnies Top",
+      "name": "Johnnies Top",
       "type": "water-tank",
       "lat": -36.74955,
       "lon": 147.83461
@@ -583,7 +583,7 @@
     },
     {
       "id": "w_5690f0a9",
-      "name": "Disappointment Ridge Hut",
+      "name": "Disappointment Spur Hut",
       "type": "hut",
       "lat": -36.32637788290125,
       "lon": 148.41418419073906
@@ -1045,7 +1045,7 @@
     },
     {
       "id": "w_a9b5ab88",
-      "name": "Glen Wills wilderness retreat",
+      "name": "Glen Wills Wilderness Retreat",
       "type": "waypoint",
       "lat": -36.84926,
       "lon": 147.50497
@@ -1395,7 +1395,7 @@
     },
     {
       "id": "w_d52acf87",
-      "name": "Ryder's Huts",
+      "name": "Ryders Huts",
       "type": "hut",
       "lat": -36.93178643519124,
       "lon": 147.2610501841789
