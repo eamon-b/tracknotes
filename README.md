@@ -143,4 +143,4 @@ npm run typecheck
 npx expo start --dev-client   # needs a development build (MapLibre uses native code)
 ```
 
-See [`CLAUDE.md`](CLAUDE.md) for every build command and the project's conventions, [`docs/architecture/`](docs/architecture/) for the full architecture, and [`docs/mobile-test-build.md`](docs/mobile-test-build.md) for building an installable test APK.
+See [`CLAUDE.md`](CLAUDE.md) for the project's conventions, [`docs/architecture/build-scripts.md`](docs/architecture/build-scripts.md) for every build script, [`docs/architecture/`](docs/architecture/) for the full architecture, and [`docs/mobile-test-build.md`](docs/mobile-test-build.md) for building an installable test APK.
