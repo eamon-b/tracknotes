@@ -1,0 +1,616 @@
+{
+  "trailId": "heysen",
+  "note": "Curated waypoint descriptions, keyed by the stable ids in data/waypoint-ids.json. Applied by scripts/build-trails.ts (overriding the Friends of the Heysen Trail facility list from the GPX source) and uploadable to the comments API with scripts/upload-descriptions.ts. Each entry keeps the Friends' 'More info' link from the GPX text. Listed in walking order from Cape Jervis to Parachilna Gorge, with the off-route waypoints appended south to north. Private accommodation businesses (B&Bs, cottages, hotels, motels) have no entry and keep their GPX text. Sources for each fact: plans/waypoint-description-sources.md.",
+  "descriptions": [
+    {
+      "waypointId": "w_83a8f54b",
+      "name": "Cape Jervis Trailhead",
+      "description": "The southern end of the Heysen Trail, near the SeaLink terminal where ferries cross to Kangaroo Island. The terminal runs on bore water and has no public outside taps; water, drinks and a few snacks are sold from vending machines. A daily public bus runs between Cape Jervis and Adelaide.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/cape-jervis-trailhead/"
+    },
+    {
+      "waypointId": "w_3a4b2997",
+      "name": "Cobbler Hill Camp Site",
+      "description": "Campground in Deep Creek National Park, the largest area of natural bushland left on the Fleurieu Peninsula. It has a shelter, a water tank, fireplaces and a toilet, and the tank water is untreated. Camping fees apply, and sites are booked online through National Parks and Wildlife Service SA.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/cobbler-hill-camp-site/"
+    },
+    {
+      "waypointId": "w_be4d28bb",
+      "name": "Wuldi Krikin Ngawanthi / Eagle Waterhole ‘walk-in’ site",
+      "description": "Hike-in campground in Deep Creek National Park on the Wild South Coast Way, rebuilt and opened in April 2022. There are ten tent pads, a shelter with seating and a sink, waterless toilets and rainwater tanks; the water is untreated and not drinkable as it comes, and park rangers check and top up the supply. Sites are booked and paid for in advance.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/eagle-waterhole-camp-site/"
+    },
+    {
+      "waypointId": "w_85eb1c33",
+      "name": "Trig Campground",
+      "description": "Campground in Deep Creek National Park with a shelter at the picnic area, a water tank, fireplaces and a toilet. The tank water is untreated. Camping fees apply, and sites are booked online.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/trig-campground/"
+    },
+    {
+      "waypointId": "w_d72b6c8c",
+      "name": "Yapari Ngawanthi / Cliffs ‘walk-in’ site",
+      "description": "Hike-in campground on the Wild South Coast Way in Deep Creek National Park, opened in April 2022 beside the Tapanappa campground. It has ten tent pads, a shelter with seating and a sink, waterless toilets and rainwater tanks; the water is untreated and not drinkable as it comes, and rangers keep the supply topped up. Sites are booked and paid for in advance.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/yapari-ngawanthi-cliffs-walk-site/"
+    },
+    {
+      "waypointId": "w_f6ff09a5",
+      "name": "Tapanappa Camp Site",
+      "description": "Campground in Deep Creek National Park with a water tank, fireplaces and a toilet, next to the Cliffs hike-in site. The tank water is untreated. Camping fees apply, and sites are booked online.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/tapanappa-camp-site/"
+    },
+    {
+      "waypointId": "w_19dc110d",
+      "name": "Kurri Ngawanthi / Creek ‘walk in’ site",
+      "description": "Hike-in campground in Ballaparudda Creek Recreation Park on the Wild South Coast Way, opened in April 2022 in place of the old Balquhidder campsite. It has ten tent pads, a shelter with seating and a sink, waterless toilets and rainwater tanks; the water is untreated and not drinkable as it comes, and rangers keep the supply topped up. Sites are booked and paid for in advance.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/balquhidder-camp-site/"
+    },
+    {
+      "waypointId": "w_5dc453f8",
+      "name": "Waitpinga camp site",
+      "description": "Campground in Newland Head Conservation Park with a hut, a shelter at the picnic area, a water tank and a toilet; the tank water is untreated. Wood and solid-fuel fires are prohibited throughout the park. Camping fees apply, and sites are booked online.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/waitpinga-camp-site/"
+    },
+    {
+      "waypointId": "w_f6a01b19",
+      "name": "Natunyuru Ngawanthi / Sand Dunes ‘walk-in’ camp site",
+      "description": "Hike-in campground in Newland Head Conservation Park on the Wild South Coast Way, first opened in April 2022. It has ten tent pads, a shelter with seating and a sink, waterless toilets and rainwater tanks; the water is untreated and not drinkable as it comes, and rangers keep the supply topped up. Sites are booked and paid for in advance.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/natunyuru-ngawanthi-sand-dunes-walk-camp-site/"
+    },
+    {
+      "waypointId": "w_3d1dc7a7",
+      "name": "Kings Beach Road trailhead (Victor Harbor 5 km east)",
+      "description": "The junction where the Wild South Coast Way carries on east to Victor Harbor, about 5 km away, and the Heysen Trail turns north up Kings Beach Road.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/kings-beach-road-victor-harbor-spur-junction/"
+    },
+    {
+      "waypointId": "w_809aec41",
+      "name": "Newland Hill ‘bench’",
+      "description": "A walkers' bench on Newland Hill, put in by the Friends of the Heysen Trail. Camping is not permitted here.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/newland-hill-bench/"
+    },
+    {
+      "waypointId": "w_cf5386d5",
+      "name": "Robinson Hill ‘walk-in’ site",
+      "description": "Walk-in site about 300 m west of the junction of Keens, Handcock and Prouse roads, set up by the Friends of the Heysen Trail in 2011 and 2012. It has a small shelter with seating, a water tank, a toilet and a small platform; the tank water is untreated. Fires are not permitted, only fuel stoves, and the site is closed during the CFS Fire Danger Season. There is no booking or fee.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/robinson-hill-campsite/"
+    },
+    {
+      "waypointId": "w_ab49154b",
+      "name": "Inman Valley",
+      "description": "Small Fleurieu Peninsula locality on the trail, with a general store across the road from the walkers' campsite at the Memorial Hall.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/inman-valley/"
+    },
+    {
+      "waypointId": "w_3753da0b",
+      "name": "Inman Valley town campsite",
+      "description": "Campsite beside the Inman Valley Memorial Hall, across the road from the general store, with a tent pad near the toilet block and a water tank; the tank water is untreated. It is looked after by the Inman Valley Community and Memorial Hall Association, and there is no fee.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/inman-valley-town-campsite/"
+    },
+    {
+      "waypointId": "w_96e1d8a9",
+      "name": "Mt Cone Tank (Water Location Only)",
+      "description": "A seating shelter and water tank in a small reserve above a Y-shaped road junction, built by the Friends of the Heysen Trail in 2011 and 2012. The tank water is untreated. Camping is not permitted here.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/mt-cone-campsite/"
+    },
+    {
+      "waypointId": "w_9d29f990",
+      "name": "Chookarloo Campground",
+      "description": "ForestrySA campground in Kuitpo Forest with a shelter, water, fireplaces, tables, seating and a toilet. Camping is allowed from 1 April to 30 November, outside the fire danger season, and fees apply; two sites are held for hikers.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/chookarloo-campsite/"
+    },
+    {
+      "waypointId": "w_48efa918",
+      "name": "Mylor",
+      "description": "Adelaide Hills village on the trail with a general store, a cafe and a post office. The free Mylor Hampton campsite, with a water tank, is on the corner of Hampton and Strathalbyn roads.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/mylor/"
+    },
+    {
+      "waypointId": "w_8cbf45f2",
+      "name": "Bridgewater",
+      "description": "Adelaide Hills town on the trail with a supermarket, a pub, a pharmacy and a service station.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/bridgewater/"
+    },
+    {
+      "waypointId": "w_8cdc414e",
+      "name": "Woodhouse Activity Centre",
+      "description": "Scouts campsite at 37 Spring Gully Road, Piccadilly, with toilets, showers and water, and a bunkhouse and chalet as well as tent sites. Bookings are required and fees apply.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/woodhouse-activity-centre/"
+    },
+    {
+      "waypointId": "w_2f8080c2",
+      "name": "Mt Lofty Summit cafe",
+      "description": "Mount Lofty Summit in Cleland National Park, with a cafe, toilets, town water and a visitor information centre.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/mt-lofty/"
+    },
+    {
+      "waypointId": "w_b05c73de",
+      "name": "Norton Summit",
+      "description": "Hills village on the trail with the Scenic Hotel, which also has rooms, and a community postal agency.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/norton-summit/"
+    },
+    {
+      "waypointId": "w_f694954f",
+      "name": "Cudlee Creek North ‘walk-in’ site (Grandpa’s)",
+      "description": "Bush campsite in Mount Crawford Forest with a fire pit, a stone table, a walkers' platform, a small shelter with a logbook, a rainwater tank and a large flat camping area above the fire pit; the tank water is untreated. The forest around it was badly burnt in the December 2019 Cudlee Creek bushfire. Walkers book it through ForestrySA, there is no fee, and camping is allowed from 1 April to 30 November.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/cudlee-creek-north-grandpas-camp/"
+    },
+    {
+      "waypointId": "w_ebe3a7cc",
+      "name": "Scotts Shelter",
+      "description": "Walk-in campsite in Mount Crawford Forest reserved for hikers, with a shelter and a water tank; the tank water is untreated. It is booked through ForestrySA, there is no fee, and camping is allowed from 1 April to 30 November, outside the fire danger season.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/scotts-shelter/"
+    },
+    {
+      "waypointId": "w_0c57e230",
+      "name": "Chalks Campground",
+      "description": "ForestrySA campground in Mount Crawford Forest with a shelter, town water, fireplaces, picnic tables and a toilet. Camping fees apply, and sites are booked online.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/chalks/"
+    },
+    {
+      "waypointId": "w_bc550aab",
+      "name": "Centennial Drive",
+      "description": "Walk-in campsite in Mount Crawford Forest reserved for hikers, with no vehicle access, reopened after several years closed for logging. It has a three-sided shelter with a fireplace, picnic tables, a pit toilet and untreated rainwater. Camping is allowed from 1 April to 30 November, outside the fire danger season, and fees apply.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/centennial-drive/"
+    },
+    {
+      "waypointId": "w_64909c66",
+      "name": "Old School House",
+      "description": "The old Mount Crawford school, which ran from 1909 to 1936, now a ForestrySA hut with bunks for ten, a fireplace, water, seating, lighting and a toilet. It is let to groups only, for at least two nights, and individual walkers may not camp nearby; the Centennial Drive walk-in site is the hikers' campsite.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/old-school-house/"
+    },
+    {
+      "waypointId": "w_0b873c07",
+      "name": "Tanunda",
+      "description": "Barossa Valley town on the trail with a supermarket, bakeries, cafes, pubs, a post office and a hospital.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/tanunda/"
+    },
+    {
+      "waypointId": "w_fbbbcb7c",
+      "name": "Greenock",
+      "description": "Small Barossa town on the trail. Heysen and Mawson trail users may camp at the oval in Greenock Centenary Park.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/greenock/"
+    },
+    {
+      "waypointId": "w_5cdf6af5",
+      "name": "Camping at Greenock Oval",
+      "description": "Camping beside the oval at Greenock Centenary Park, Martin Street, set aside for Heysen and Mawson trail users. There are basic facilities including a toilet, and town water from several taps. Open fires are allowed only in the stone barbecue, and a donation is asked for at the box on site.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/camping-greenock-oval/"
+    },
+    {
+      "waypointId": "w_f358f4a0",
+      "name": "Kapunda",
+      "description": "Town on the trail with a supermarket, bakeries, cafes, pubs, a post office, a pharmacy and a hospital. Since a 2019 reroute the trail comes into the town centre at the Kapunda Town Square, on the corner of Main and Crase streets, near the camping ground and caravan park.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/kapunda/"
+    },
+    {
+      "waypointId": "w_7e2e886f",
+      "name": "Kapunda Tourist Park",
+      "description": "Caravan park on Montefiore Street, Kapunda, with self-contained units as well as sites. Bookings are required and fees apply.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/kapunda-tourist-park/"
+    },
+    {
+      "waypointId": "w_a7961ea5",
+      "name": "Lights Hummocks Reserve",
+      "description": "Walk-in site on a parcel of Crown land about 1 km west of the corner of Black Joes and Bridge roads, Allendale North, with a water tank and a platform built in November 2019. The tank water is untreated. There is no booking or fee.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/lights-hummocks-reserve-campsite/"
+    },
+    {
+      "waypointId": "w_54059587",
+      "name": "Marschalls Hut",
+      "description": "Stone hut on private land, kept by Friends of the Heysen Trail volunteers for Heysen walkers and Mawson Trail cyclists, with no vehicle access. It has bunks, a walkers' platform, water, a fireplace, a table, seating and a toilet; the tank water is untreated. The hut was rebuilt in 1995 in the style of the 1850s homestead of Christian and Elise Marschall, using stones from its ruins, and Christian's grave is in the cemetery next door.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/marschalls-hut/"
+    },
+    {
+      "waypointId": "w_cbb4c496",
+      "name": "Marrabel",
+      "description": "Small town on the trail, where the walkers' site is at the Marrabel Rodeo Grounds.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/marrabel/"
+    },
+    {
+      "waypointId": "w_90e6cbb2",
+      "name": "Marrabel ‘Walk-in’ site",
+      "description": "Walk-in site at the Marrabel Rodeo Grounds, on the corner of Main Road 45 and Tarnma Road, set up in July 2021. It has a water tank, a walkers' platform, a picnic table and a toilet about 50 m east of the platform; the tank water is untreated. There is no vehicle access: walkers cross a stile beside the locked gate near the Curio statue and walk about 100 m north across a paddock. No booking or fee.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/marrabel-walk-in-site/"
+    },
+    {
+      "waypointId": "w_86032707",
+      "name": "Smith Hill",
+      "description": "Small walk-in site with a shelter, a water tank, a bench and a walkers' platform, with room for two or three tents. The tank water is untreated. The bushland on either side is private property. No booking or fee.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/smith-hill-walk-in-site/"
+    },
+    {
+      "waypointId": "w_3be34ab5",
+      "name": "Webb Gap",
+      "description": "Walk-in site about 100 m north of Webb Gap Road at its high point, reached over a stile by a trail marker post with a tent symbol; Heysen Trail Mapsheet 3C shows it in the wrong place. It has a shelter with a water tank and bench and a square camping platform, finished in September 2012. The tank water is untreated. No booking or fee.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/webb-gap-walk-in-site/"
+    },
+    {
+      "waypointId": "w_01564388",
+      "name": "Huppatz Hut",
+      "description": "Hut on private land, kept by Friends of the Heysen Trail volunteers for Heysen walkers and Mawson Trail cyclists, with no vehicle access. It has bunks, water, a fireplace for heating and cooking, a table, seating and a toilet; the tank water is untreated. Its southern half was once the Riverton golf club rooms, moved here by the landowner, James Huppatz, and the fireplace is built of stones from the surrounding paddocks.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/huppatz-hut/"
+    },
+    {
+      "waypointId": "w_64050645",
+      "name": "Burra Creek Gorge Reserve (Worlds End)",
+      "description": "Campground with toilets in the Burra Creek Gorge reserve, with no booking or fee. The Friends list no water here; the Worlds End walk-in site, with a tank, is about 1 km further north.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/burra-creek-gorge-reserve-worlds-end/"
+    },
+    {
+      "waypointId": "w_9ffd4a36",
+      "name": "Worlds End ‘walk-in’ site",
+      "description": "Walk-in site midway between the Burra Gorge campground on Burra Creek and Ernedale Road, with a shelter, a water tank and a bench, finished in September 2012. The tank water is untreated. No booking or fee.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/worlds-end-hike-in-site/"
+    },
+    {
+      "waypointId": "w_f4e6e3c9",
+      "name": "Burra",
+      "description": "Historic copper-mining town on the trail, with a supermarket, a bakery, cafes, pubs, a post office, a pharmacy and a hospital.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/burra/"
+    },
+    {
+      "waypointId": "w_ddbf354c",
+      "name": "Burra Caravan Park",
+      "description": "Caravan park on the banks of Burra Creek, a two-minute walk from the town's shops, cafes and hotels. It has powered sites, unpowered camping areas, a camp kitchen, barbecues, a coin-operated laundry and self-contained miners' cottages.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/burra-caravan-park/"
+    },
+    {
+      "waypointId": "w_5d96d963",
+      "name": "Wandallah Creek ‘Walk in’ Shelter",
+      "description": "Walk-in shelter with a water tank, toilet and camping platform, rebuilt in 2024 by Friends of the Heysen Trail volunteers with the help of the local landholder. The site is closed during the CFS Fire Danger Season, whose dates vary each year between October and May. The name is also spelt Wandillah, the spelling the homestead's owners use.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/wandallah-creek-shelter/"
+    },
+    {
+      "waypointId": "w_41f1b560",
+      "name": "Black Jack Hut",
+      "description": "Walkers' hut on private property, reserved for Heysen Trail walkers and Mawson Trail cyclists, with bunks for six, a kitchen bench and sink, a table and chairs, and a walkers' platform. The rainwater tank and toilet are at the campsite 200 m west, where the old shelter still stands. The hut was a donated building, fitted out by Friends volunteers and moved here in 2019.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/black-jacks-shelter/"
+    },
+    {
+      "waypointId": "w_bf2c754a",
+      "name": "Caroona Creek ‘walk-in’ site",
+      "description": "Walk-in site in Caroona Creek Conservation Park with a shelter, a rainwater tank and a toilet. Campfires are not permitted in the park.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/caroona-creek-shelter/"
+    },
+    {
+      "waypointId": "w_0c0b61f1",
+      "name": "Tourilie Gorge hut",
+      "description": "A restored hut in Caroona Creek Conservation Park with no facilities and no overnight use. The old rusted water tank beside it has been replaced with a new one.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/tourilie-gorge-hut/"
+    },
+    {
+      "waypointId": "w_53ab3c7c",
+      "name": "Old Mt Bryan East School",
+      "description": "School and residence built in 1884 and closed in 1947, now a walkers' hut kept by Friends of the Heysen Trail volunteers and reserved for Heysen Trail walkers and Mawson Trail cyclists. It has two bedrooms with bunks, a lounge, a kitchen with a sink and slow-combustion stove, water and a toilet, and is kept locked with a combination lock.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/old-mt-bryan-east-school/"
+    },
+    {
+      "waypointId": "w_010a2412",
+      "name": "Hallett Railway Station",
+      "description": "The old Hallett railway station, refurbished by Friends volunteers in 2018 and 2019 as a hut reserved for Heysen Trail walkers and Mawson Trail cyclists. It has bunks, a combustion stove, a kitchen sink, a water tank and a toilet, but no electricity, and is kept locked with a combination lock.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/hallett-railway-station/"
+    },
+    {
+      "waypointId": "w_37b9b2d5",
+      "name": "Whistling Trig Tank",
+      "description": "A small shelter over a water tank, with a bench, on a windy, exposed site near the wind farms. It sits between the towns, 22.5 km from Hallett and 26 km from Spalding.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/whistling-trig-tank/"
+    },
+    {
+      "waypointId": "w_8a67a214",
+      "name": "Spalding Oval",
+      "description": "Camping beside the Spalding oval, with toilets. No booking is needed and no fee is charged.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/spalding-oval/"
+    },
+    {
+      "waypointId": "w_e5c299a1",
+      "name": "Spalding",
+      "description": "Small town on the trail. The Friends of the Heysen Trail list two places to stay: camping at the oval and the Spalding Hotel.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/spalding/"
+    },
+    {
+      "waypointId": "w_00c67cb1",
+      "name": "Baderloo ‘walk-in’ site",
+      "description": "Walk-in site with a small shelter that catches rain for a water tank, a bench, a camping platform and a toilet, 18.8 km from Spalding. It was called the Bundaleer Weir walk-in site until November 2024.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/baderloo-walk-in-site/"
+    },
+    {
+      "waypointId": "w_024d082e",
+      "name": "Georgetown",
+      "description": "Small town on the trail, about 3 km before Hiskeys Hut.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/georgetown/"
+    },
+    {
+      "waypointId": "w_d6d1bbcb",
+      "name": "Hiskeys Hut",
+      "description": "Old house on private property, kept by Friends volunteers as a hut reserved for Heysen Trail walkers and not reachable by vehicles. It has bunks in two rooms, a table and seats, a sink, a fireplace, water, a toilet and a camping platform. Two generations of butchers lived here in the 1800s and 1900s, with their slaughterhouse on the rise to the east.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/hiskeys-hut/"
+    },
+    {
+      "waypointId": "w_1c2612f7",
+      "name": "Crystal Brook",
+      "description": "Town on the trail. The Friends of the Heysen Trail list the Crystal Brook Caravan Park as its place to stay.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/crystal-brook/"
+    },
+    {
+      "waypointId": "w_623efa4d",
+      "name": "Crystal Brook Caravan Park",
+      "description": "Caravan park in Crystal Brook with campsites. Bookings are required and fees apply.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/crystal-brook-caravan-park/"
+    },
+    {
+      "waypointId": "w_cbc850a9",
+      "name": "Bowman Hut & ‘walk-in’ site",
+      "description": "Hut and campsite kept by Friends volunteers and reserved for Heysen Trail walkers and Mawson Trail cyclists, with bunks, a fireplace, water and toilets. The hut has a combination keypad lock.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/bowman-hut-camp-site/"
+    },
+    {
+      "waypointId": "w_55a36e15",
+      "name": "Beetaloo ‘walk-in’ site (Southern Boundary Track)",
+      "description": "Walk-in site with a walkers' platform and a rainwater tank, put in in October 2021 when the nearby Beetaloo Creek site closed.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/beetaloo-walk-site-south-boundary-track/"
+    },
+    {
+      "waypointId": "w_ce96eb39",
+      "name": "Go-Cart Track Shelter",
+      "description": "Shelter, water tank and campsite in Telowie Gorge Conservation Park, part of Wapma Thura–Southern Flinders Ranges National Park. Camping is otherwise not permitted in the park, but the shelter is open to Heysen Trail walkers.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/go-cart-track-shelter/"
+    },
+    {
+      "waypointId": "w_e1e73ddc",
+      "name": "White Park Tank",
+      "description": "Water tank and walkers' bench, put in by Friends volunteers in June 2022 on private forest land, whose owner suggested the trail's reroute through it.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/white-park-tank/"
+    },
+    {
+      "waypointId": "w_aba67fdf",
+      "name": "Melrose",
+      "description": "Founded in the 1840s, the oldest town in the Flinders Ranges, at the foot of Mount Remarkable (960 m). It has a caravan park, B&Bs, two hotels, cafes and a mountain-bike shop.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/melrose/"
+    },
+    {
+      "waypointId": "w_0db1fe34",
+      "name": "Melrose Caravan Park and Campground",
+      "description": "Caravan park with powered sites, self-contained and budget cabins, a camp kitchen, toilets, showers and a laundry. Unpowered bush camping across the creek has its own camp kitchen, toilets and showers. Bookings are required.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/melrose-caravan-and-tourist-park/"
+    },
+    {
+      "waypointId": "w_624896fd",
+      "name": "The Racecourse Camp",
+      "description": "Backpacking campsite in Mount Remarkable National Park, close to Grays Hut, where the water tanks and toilet are. Camping permits are required, fires are not permitted in the park, and its hike-in campsites are closed during the Fire Danger Season, usually 1 November to 30 April.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/the-racecourse-camp/"
+    },
+    {
+      "waypointId": "w_af3e11f1",
+      "name": "Grays Hut",
+      "description": "Hut in Mount Remarkable National Park with sleeping benches and a solar light, beside a large shelter with a table and benches, two water tanks and a modern toilet. Mark Gray built the first hut and cow yards in the early 1900s; it burnt in 1988, and the present hut was built around the ruins. Fires are not permitted in the park, permits are required, and its hike-in sites are closed during the Fire Danger Season, usually 1 November to 30 April.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/grays-hut/"
+    },
+    {
+      "waypointId": "w_17e91abb",
+      "name": "Stony Creek ‘walk-in’ site",
+      "description": "Walk-in campsite in Mount Remarkable National Park with a table. The shelter and water tank that stood here were lost after fire in May 2025, so there is no water.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/stony-creek-camp-site/"
+    },
+    {
+      "waypointId": "w_025c6ba9",
+      "name": "Hawks Nest Tank",
+      "description": "Water tank and bench, fenced against cattle, on a windy, exposed site where walkers may camp. The next water to the north is at Catninga, about 13 km on. The site is closed during the CFS Fire Danger Season, whose dates vary each year between October and May.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/hawks-nest/"
+    },
+    {
+      "waypointId": "w_33bcba8a",
+      "name": "Mount Brown Bush Camp",
+      "description": "Private bush-camping property beside Mount Brown Conservation Park, with toilets and fire pits; its campsites are spread across the property, and site 6 is the closest to the trail. There is no water tank near the trail, and bookings are required. Mount Brown (964 m) was named by Matthew Flinders in 1802 after the botanist Robert Brown.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/mount-brown-bush-camp/"
+    },
+    {
+      "waypointId": "w_9bca3df9",
+      "name": "Catninga Shed",
+      "description": "Farm shed on private property beside Mount Brown Conservation Park, with four camp beds, a wood stove, a gas barbecue, a camp shower and a flush toilet; staying in it needs a booking. The water tank beside the shed is open to all walkers, a joint project of the farmer, the Friends of the Heysen Trail, the Department for Environment and Water and the CFS.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/catninga-shed/"
+    },
+    {
+      "waypointId": "w_647ba9c6",
+      "name": "Waukarie Creek/Mt Brown North ‘walk-in’ site",
+      "description": "Walk-in campsite in Mount Brown Conservation Park with a small shelter and a water tank.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/waukarie-creekmt-brown-north-camp-site/"
+    },
+    {
+      "waypointId": "w_beb039db",
+      "name": "Pichi Richi Park",
+      "description": "Family-run bush retreat about 10 km by road from Quorn, with self-contained cabins, group accommodation and unpowered campsites. Heysen walkers can use its water, showers and toilets. Bookings are required.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/pichi-richi-park/"
+    },
+    {
+      "waypointId": "w_7c9a0d0c",
+      "name": "The Dutchman Hut",
+      "description": "Hut in The Dutchmans Stern Conservation Park, restored by men from the Adelaide Central Mission, with bunks, a table, a sink, a wood heater, a ceiling fan, lighting, power points and water. Two flush toilets are in the shearing shed next door, and there is room to camp in front of the hut. It is reserved for Heysen Trail walkers and Mawson Trail cyclists, with no vehicle access.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/the-dutchman-hut/"
+    },
+    {
+      "waypointId": "w_843382b5",
+      "name": "Eyre Depot",
+      "description": "Walk-in site with two water tanks, a basic shelter, a toilet and a camping platform. It lies in the rain shadow on the western side of the ranges; the toilet's tank is monitored remotely, but the shelter tank's level is known only from walkers' reports.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/eyre-depot/"
+    },
+    {
+      "waypointId": "w_425a6e39",
+      "name": "Mt Arden South ‘walk-in’ site",
+      "description": "Walk-in campsite with a small shelter that catches rain for the Hunken Tank, named for the Friends walk leader Geoff Hunken. A second campsite 250 m north, on Arden Vale station and a 4WD track, has a barbecue, table and chairs but no water.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/mt-arden-south-camp-site/"
+    },
+    {
+      "waypointId": "w_ab245cf6",
+      "name": "Buckaringa North ‘walk-in’ site",
+      "description": "Walk-in campsite with a rainwater tank, a very basic small shelter that catches the rain, and a camping platform.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/buckaringa-north-camp-site/"
+    },
+    {
+      "waypointId": "w_5062515b",
+      "name": "Calabrinda Creek ‘walk-in’ site",
+      "description": "Walk-in campsite with tank water, a small shelter and a toilet. The shelter gives little protection from wind or weather.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/calabrinda-creek-camp-site/"
+    },
+    {
+      "waypointId": "w_82a87596",
+      "name": "Mt Elm ‘walk-in’ site",
+      "description": "Walk-in campsite with a shelter, a water tank and a toilet.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/mt-elm-camp-site/"
+    },
+    {
+      "waypointId": "w_663bca99",
+      "name": "Mayo Hut",
+      "description": "Cottage on private property, restored from a ruin in 1988 as a Bicentennial project and reserved for Heysen Trail walkers and Mawson Trail cyclists. It has bunks, a fireplace, a table and seating, water and a toilet, with no vehicle access.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/mayo-hut/"
+    },
+    {
+      "waypointId": "w_9f4c59f3",
+      "name": "Red Range ‘walk-in’ site",
+      "description": "Walk-in campsite that the trail passes straight through, reached only along the Heysen Trail. It has a small shelter that catches rain for a water tank, a camping platform and a toilet.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/red-range-camp-site/"
+    },
+    {
+      "waypointId": "w_b04b3186",
+      "name": "Arkaba Stockyard tank",
+      "description": "A water tank only, on private property where camping is not allowed.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/arkaba-stockyard-tank/"
+    },
+    {
+      "waypointId": "w_f65c67d1",
+      "name": "Wilpena Caravan Park",
+      "description": "The Wilpena Pound campground in Ikara-Flinders Ranges National Park, privately run by Wilpena Pound Resort. It has bush and powered sites, permanent tents, toilets, showers, a laundry, fuel, a store, a pool, and a bar and restaurant.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/wilpena-caravan-park/"
+    },
+    {
+      "waypointId": "w_e9197479",
+      "name": "Wilcolo campground",
+      "description": "Walk-in campground for Heysen Trail walkers and Mawson Trail cyclists, among native pines against the eastern wall of Wilpena Pound, with St Mary Peak behind. It has a long-drop toilet and a rainwater tank, but National Parks cannot guarantee the water's quality or supply. There is no vehicle access, campfires are never permitted, and sites are booked through the park.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/wilcolo-campground/"
+    },
+    {
+      "waypointId": "w_4382f414",
+      "name": "Yanyanna Hut",
+      "description": "Basic hut in Ikara-Flinders Ranges National Park with water, a fireplace and a camping platform. Yanyanna was the centre of the Aroona pastoral run: the ruin of an 1850s pug-and-pine shepherd's hut stands here beside an iron shelter from 1937.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/yanyanna-hut/"
+    },
+    {
+      "waypointId": "w_f1db2a42",
+      "name": "Middlesight Water Hut",
+      "description": "Open hut in Ikara-Flinders Ranges National Park with basic sleeping platforms, water, a fireplace and a camping platform.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/middlesight-water-hut/"
+    },
+    {
+      "waypointId": "w_96dafb81",
+      "name": "Trezona Campsite",
+      "description": "Campground on Brachina Gorge Road in Ikara-Flinders Ranges National Park, a short walk from the Ediacaran Golden Spike geological site. It has 15 sites, a long-drop toilet, a picnic area and a water tank at the toilet block, but National Parks cannot guarantee the water's quality or supply. Sites are booked through the park.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/trezona-campsite/"
+    },
+    {
+      "waypointId": "w_273b2eb2",
+      "name": "Aroona campground",
+      "description": "Campground on Aroona Creek between two ranges, at the northern tip of Ikara-Flinders Ranges National Park, and the start of several loop walks. It has 13 sites, a long-drop toilet and a water tank at the toilet block, but National Parks cannot guarantee the water's quality or supply. Sites are booked through the park.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/aroona-ruins-campsite/"
+    },
+    {
+      "waypointId": "w_b3b79b9f",
+      "name": "Aroona Hut",
+      "description": "Water tank at Aroona Hut, beside the Aroona campground.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/aroona-hut/"
+    },
+    {
+      "waypointId": "w_70950a93",
+      "name": "Pigeon Bore",
+      "description": "Water pumped from a bore; a water point only, with no camping. The water has a slight metallic taste.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/pigeon-bore/"
+    },
+    {
+      "waypointId": "w_c300cbdf",
+      "name": "Parachilna Gorge ‘walk-in’ site",
+      "description": "Walk-in site about 500 m south of the Parachilna Gorge trailhead, with a basic shelter around a bench and a water tank. It was set up in 2013 because the trailhead tank, which vehicles can reach, is often drawn down.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/parachilna-gorge-hikers-campsite/"
+    },
+    {
+      "waypointId": "w_15e10335",
+      "name": "Parachilna Gorge Trailhead",
+      "description": "The northern end of the Heysen Trail. The gateway, stone-circle seating and Adnyamathanha interpretive signs were opened in 2024, and there is a water tank, but it is a rest area only, with no camping. The tank sits by the road and car park and is often drawn down; the walk-in site 500 m south has its own.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/parachilna-gorge-trailhead/"
+    },
+    {
+      "waypointId": "w_18100965",
+      "name": "Parachilna Gorge Camping",
+      "description": "Camping spots up and down Parachilna Gorge on public land, many on the banks of Parachilna Creek. The nearest water is the trailhead tank, often drawn down by vehicle traffic, or the walk-in site's tank 500 m south.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/parachilna-gorge-trailhead-campsite/"
+    },
+    {
+      "waypointId": "w_56bc59b8",
+      "name": "Cape Jervis",
+      "description": "Ferry town for Kangaroo Island, near the southern start of the trail. The tavern and general store have closed, and the Big4 caravan park has a small shop. A daily public bus runs to Adelaide.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/cape-jervis/"
+    },
+    {
+      "waypointId": "w_e382acc1",
+      "name": "Victor Harbor",
+      "description": "Seaside regional centre, 83 km from Adelaide. The trail passes a few hundred metres from the edge of Encounter Bay, and the town centre is about 7 km from the corner of Jagger and Kings Beach roads, along the coast from the Bluff and then the foreshore.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/victor-harbor/"
+    },
+    {
+      "waypointId": "w_11665626",
+      "name": "Myponga",
+      "description": "Fleurieu Peninsula township with a general store, a bakery, takeaway food, a pharmacy and a service station.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/myponga/"
+    },
+    {
+      "waypointId": "w_56d7af5e",
+      "name": "Mt Compass Caravan Park",
+      "description": "Caravan park at 83 Heysen Boulevard, Mount Compass, beside the trail. It has cabins, powered and unpowered sites, amenities, a laundry, a camp kitchen and a kiosk with a small range of essentials. Bookings are required.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/mt-compass-caravan-park/"
+    },
+    {
+      "waypointId": "w_9555e0ce",
+      "name": "Mt Compass",
+      "description": "Town near the trail with a supermarket, a bakery, a post office, a pharmacy, a medical centre and a service station.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/mt-compass/"
+    },
+    {
+      "waypointId": "w_0551d8a0",
+      "name": "Tinjella Hut (adjacent to Jacks Paddock)",
+      "description": "ForestrySA group hut in Kuitpo Forest on Brookman Road, about 2.5 km south of the Kuitpo Forest Information Centre. The two-room hut sleeps up to ten, with an open fireplace and a toilet shared with Jacks Paddock; its rainwater is not suitable for drinking. It is booked for exclusive use, for at least two nights, between 1 April and 30 November.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/jacks-paddock/"
+    },
+    {
+      "waypointId": "w_b7644849",
+      "name": "Rocky Creek Hut & ‘Walk in’ site",
+      "description": "ForestrySA hut and walk-in campground in Kuitpo Forest, with no vehicle access. The campground takes up to 16 hikers and shares a toilet, 200 m away, with the hut; the one-room hut sleeps five on two wooden platforms and has a sink, a wood heater and solar lighting. The rainwater is not suitable for drinking. Camping is allowed from 1 April to 30 November, and the hut is booked for at least two nights.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/rocky-creek-hut/"
+    },
+    {
+      "waypointId": "w_3a0f6bed",
+      "name": "Aldgate",
+      "description": "Adelaide Hills town off the trail with a supermarket, a bakery, cafes, a pub, a post office, a pharmacy and a medical practice.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/aldgate/"
+    },
+    {
+      "waypointId": "w_b5fb287d",
+      "name": "Cudlee Creek Restaurant Tavern and Caravan Park",
+      "description": "Tavern and restaurant at 2121 Gorge Road with a caravan park and a kiosk. Bookings are required for the caravan park.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/cudlee-creek-restaurant-tavern-and-caravan-park/"
+    },
+    {
+      "waypointId": "w_b24a5fb6",
+      "name": "Cudlee Creek",
+      "description": "Village on Gorge Road with a cafe and the Cudlee Creek tavern, restaurant and caravan park.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/cudlee-creek/"
+    },
+    {
+      "waypointId": "w_6b179a0d",
+      "name": "Kersbrook",
+      "description": "Small Adelaide Hills town with a pub, a post office and a service station.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/kersbrook/"
+    },
+    {
+      "waypointId": "w_45a922a3",
+      "name": "Rocky Paddock Campground",
+      "description": "ForestrySA campground in Mount Crawford Forest with a shelter, water, fireplaces, picnic tables and a toilet.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/rocky-paddock/"
+    },
+    {
+      "waypointId": "w_3af0f071",
+      "name": "Rossiters Hut",
+      "description": "Walk-in hut in Mount Crawford Forest reserved for hikers, with bunks, water, a fireplace, a table, seating and a toilet; the tank water is untreated. It was built as a shepherd's hut in the late 19th century, rebuilt in 1998 and renovated in 2022. Walkers book it through ForestrySA, there is no fee, and it is open from 1 April to 30 November.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/rossiters-hut/"
+    },
+    {
+      "waypointId": "w_73eb3717",
+      "name": "Hamilton",
+      "description": "Small locality with no shops.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/hamilton/"
+    },
+    {
+      "waypointId": "w_b3fdda1b",
+      "name": "Riverton",
+      "description": "Gilbert Valley town off the trail, with coffee shops, the Riverton Hotel, the Scholz Park Museum and the Rattler Trail.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/riverton/"
+    },
+    {
+      "waypointId": "w_99b44500",
+      "name": "Old Shed – Main Camp – Caroona Creek Conservation Park",
+      "description": "Main camp in Caroona Creek Conservation Park, with a large shed, a campsite, water and a toilet. Campfires are not permitted in the park.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/old-shed-main-camp-caroona-creek-conservation-park/"
+    },
+    {
+      "waypointId": "w_480bdf77",
+      "name": "Hallett",
+      "description": "Small town beside the trail. The Friends of the Heysen Trail list the Hallett Railway Station hut as walkers' accommodation here.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/hallett/"
+    },
+    {
+      "waypointId": "w_d80be5bc",
+      "name": "Ippinitchie Campground",
+      "description": "Campground on the edge of the former Wirrabara Forest, near Wirrabara, with ten sites along Ippinitchie Creek, a water tank and a drop toilet. Each site has its own fire pit.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/ippinitchie-campground/"
+    },
+    {
+      "waypointId": "w_c9e6b917",
+      "name": "Murray Town",
+      "description": "Small town about 2 km off the trail, with a campsite in the park on the main street.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/murray-town/"
+    },
+    {
+      "waypointId": "w_e90489ef",
+      "name": "Murray Town campsite",
+      "description": "Campsite in the park beside the information bay and tennis courts on Murray Town's main street, with a toilet, a hot shower and a picnic shelter. It needs no booking and runs on donations.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/murray-town-campsite/"
+    },
+    {
+      "waypointId": "w_dee5e4c4",
+      "name": "Beautiful Valley Caravan Park",
+      "description": "Caravan park 1.5 km south of Wilmington's centre, with cabins, powered sites and bush camping.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/beautiful-valley-caravan-park/"
+    },
+    {
+      "waypointId": "w_6af99f81",
+      "name": "Wilmington",
+      "description": "Town about 3 km off the trail, settled in the 1850s and first called Beautiful Valley, looking to the southern Flinders Ranges and across the Willochra Plain. The Friends of the Heysen Trail list the Beautiful Valley Caravan Park for walkers.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/wilmington/"
+    },
+    {
+      "waypointId": "w_48af1b86",
+      "name": "Quorn",
+      "description": "Historic railway town about 2 km off the trail, home of the Pichi Richi Railway's heritage trains, with the Flinders Ranges Visitor Information Centre on Railway Terrace. The Friends of the Heysen Trail list a motel, a lodge and the caravan park.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/quorn/"
+    },
+    {
+      "waypointId": "w_3ac34e6b",
+      "name": "Quorn Caravan Park",
+      "description": "Caravan park in Quorn with cabins, campsites and a bunkhouse. Bookings are required.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/quorn-caravan-park/"
+    },
+    {
+      "waypointId": "w_69980790",
+      "name": "Warren Gorge",
+      "description": "Flinders Ranges Council campground in Warren Gorge, with campsites, toilets and water. Fees are paid at the Flinders Ranges Visitor Centre in Quorn or by self-registration at the gorge entrance.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/warren-gorge/"
+    },
+    {
+      "waypointId": "w_9a98f75c",
+      "name": "Argadells",
+      "description": "A water tank only; camping is not permitted.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/argadells/"
+    },
+    {
+      "waypointId": "w_25b66c0e",
+      "name": "Hawker",
+      "description": "Former railway town about 6.6 km off the trail, keeping much of its 1880s character. It has shops, a hospital, vehicle repairs, the century-old Hawker Hotel, and a visitor information centre at Hawker Motors that sells food and fuel.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/hawker/"
+    },
+    {
+      "waypointId": "w_e9772159",
+      "name": "Hawker Caravan Park",
+      "description": "Caravan park in Hawker, run with the town's other caravan park, with self-contained cabins, camp and caravan sites, a camp kitchen, a laundry, a pool and an amenities block. Bookings are required.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/hawker-caravan-park/"
+    },
+    {
+      "waypointId": "w_2054b331",
+      "name": "Acraman Campground",
+      "description": "Small campground among native pines between two ranges in Ikara-Flinders Ranges National Park, a short walk from Bunyeroo Gorge. It has four sites, a long-drop toilet and a water tank at the toilet block, but National Parks cannot guarantee the water's quality or supply.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/acraman-campground/"
+    },
+    {
+      "waypointId": "w_22920dd1",
+      "name": "Youngoona Campsite",
+      "description": "Campground in Ikara-Flinders Ranges National Park at the eastern end of Brachina Gorge Road, where Oraparinna Creek joins Enorama Creek. It has four partly shaded sites and no facilities.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/youngoona-campsite/"
+    },
+    {
+      "waypointId": "w_84dd5e38",
+      "name": "Parachilna",
+      "description": "Small settlement 14 km from the northern end of the trail, with very limited services for walkers. The Prairie Hotel serves meals and has rooms, both taken by booking. Nearby is an Ediacaran fossil site some 600 million years old.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/parachilna/"
+    },
+    {
+      "waypointId": "w_7e187a2a",
+      "name": "Blinman",
+      "description": "Old copper-mining town, named for the shepherd Robert Blinman, who found copper here in 1859, and the highest town in South Australia. Fewer than 50 people live here now; it has the North Blinman Hotel and tours of the old mine.\n\nMore info: https://heysentrail.asn.au/heysen-trail/accommodation/provider/blinman/"
+    }
+  ]
+}
