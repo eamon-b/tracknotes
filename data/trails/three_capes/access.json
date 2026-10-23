@@ -1,0 +1,31 @@
+{
+  "source": "OpenStreetMap ways via Overpass; heights from Copernicus GLO-30",
+  "attribution": "© OpenStreetMap contributors (ODbL); Copernicus DEM © DLR e.V. 2010-2014 and © Airbus 2014-2018",
+  "fetchedAt": "2026-10-23T03:42:24.333Z",
+  "endpoint": "none (manual entries only)",
+  "minDistanceM": 150,
+  "places": {
+    "w_00b86ed2": {
+      "name": "Munro Cabin",
+      "method": "manual",
+      "junction": [-43.184463, 147.948001],
+      "junctionKm": 12.29,
+      "offTrailKm": 2.73,
+      "ascentM": 62,
+      "descentM": 74,
+      "straightLineM": 2158,
+      "reason": "Every walker sleeps here on night 2. The cabin is on the Cape Pillar track, not the main line: day 2 turns off at the junction 0.6 km before Retakunna, and day 3 walks out to Cape Pillar and back past the cabin to the same junction. The walk in is the GPX's own Cape Pillar side trip from the junction; its length and climb are the build's figures for the side trip's Munro row (issue #202)."
+    },
+    "w_22d363ee": {
+      "name": "Drinking water",
+      "method": "manual",
+      "junction": [-43.184463, 147.948001],
+      "junctionKm": 12.29,
+      "offTrailKm": 2.73,
+      "ascentM": 62,
+      "descentM": 74,
+      "straightLineM": 2152,
+      "reason": "The tank beside Munro Cabin; walked to the same way."
+    }
+  }
+}

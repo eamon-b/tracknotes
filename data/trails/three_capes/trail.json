@@ -23,7 +23,7 @@
     ],
     "fallbackToLongest": false
   },
-  "description": "A booked hut walk on the Tasman Peninsula, from Denmans Cove (reached by boat from Port Arthur) past Surveyors, Munro and Retakunna cabins to Fortescue Bay. The out-and-back walks to Cape Pillar and Cape Hauy are carried as side trips; Munro Cabin is 2 km along the Cape Pillar track, so it sits on that side trip rather than on the main line.",
+  "description": "A booked hut walk on the Tasman Peninsula, from Denmans Cove (reached by boat from Port Arthur) past Surveyors, Munro and Retakunna cabins to Fortescue Bay. The out-and-back walks to Cape Pillar and Cape Hauy are carried as side trips; Munro Cabin is 2.7 km along the Cape Pillar track; it is listed on the main route at the junction, with that walk as its distance off the trail.",
   "dataSource": {
     "text": "Track geometry from the LIST Transport Segments layer (© State of Tasmania, NRE Tasmania, CC BY 3.0 AU). Huts, campsites and other waypoints from OpenStreetMap (© OpenStreetMap contributors, ODbL). Elevation from the Copernicus GLO-30 DEM (© DLR e.V. 2010–2014 and © Airbus Defence and Space GmbH 2014–2018, provided under COPERNICUS by the European Union and ESA).",
     "url": "https://www.thelist.tas.gov.au/app/content/data/geo-meta-data-record?detailRecordUID=1ab7e34f-811c-4521-a549-212f295acc97",
