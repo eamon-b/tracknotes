@@ -134,10 +134,10 @@
     "states": [
       "SA"
     ],
-    "dataVersion": "2026-10-20",
-    "updatedAt": "2026-10-20T00:52:37.639Z",
-    "md5": "d27554082e32d24122b3793a167abff2",
-    "bytes": 1239672
+    "dataVersion": "2026-10-23",
+    "updatedAt": "2026-10-23T04:38:54.298Z",
+    "md5": "b49dc4c046d6b8868b46b57cb5345dfa",
+    "bytes": 1228654
   },
   {
     "id": "kep_track",

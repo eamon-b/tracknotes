@@ -9280,7 +9280,7 @@
     },
     {
       "id": "w_26aa4c98",
-      "name": "Hahndorf Resort",
+      "name": "Discovery Parks – Hahndorf",
       "type": "accommodation",
       "lat": -35.02291,
       "lon": 138.79933
@@ -9315,7 +9315,7 @@
     },
     {
       "id": "w_28e9f112",
-      "name": "Wilpena Resort",
+      "name": "Wilpena Pound Resort",
       "type": "accommodation",
       "lat": -31.528069,
       "lon": 138.606354
@@ -9364,7 +9364,7 @@
     },
     {
       "id": "w_32b969ff",
-      "name": "Outback Chapmanton Motor Inn",
+      "name": "The Outback Motel",
       "type": "accommodation",
       "lat": -31.88627,
       "lon": 138.424484
@@ -9714,7 +9714,7 @@
     },
     {
       "id": "w_613317dc",
-      "name": "Kookaburra Creek Bush Retreat",
+      "name": "Kookaburra Creek Retreat",
       "type": "accommodation",
       "lat": -32.75359,
       "lon": 138.15734
@@ -10561,7 +10561,7 @@
     },
     {
       "id": "w_ddbf354c",
-      "name": "Burra Caravan Park",
+      "name": "Burra Caravan and Camping Park",
       "type": "caravan-park",
       "lat": -33.67936,
       "lon": 138.93814
@@ -10687,14 +10687,14 @@
     },
     {
       "id": "w_f3a2f4ea",
-      "name": "Blinman Hotel",
+      "name": "North Blinman Hotel",
       "type": "accommodation",
       "lat": -31.0938728,
       "lon": 138.6778954
     },
     {
       "id": "w_f3a315b2",
-      "name": "The Carriages",
+      "name": "The Carriage on Alfred",
       "type": "accommodation",
       "lat": -33.411914,
       "lon": 138.89234399999998
@@ -10722,7 +10722,7 @@
     },
     {
       "id": "w_f694954f",
-      "name": "Cudlee Creek North ‘walk-in’ site (Grandpa’s)",
+      "name": "Grandad’s ‘walk-in’ site (South Cudlee Creek)",
       "type": "campsite",
       "lat": -34.86686,
       "lon": 138.8226
