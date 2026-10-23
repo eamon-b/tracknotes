@@ -995,6 +995,7 @@ function initMap(trail: Trail): void {
     }).addTo(map);
 
     L.control.scale({ metric: true, imperial: false }).addTo(map);
+    addExpandControl(map);
 
     maxDistance = trail.track.totalDistance;
 
@@ -1022,6 +1023,60 @@ function initMap(trail: Trail): void {
       mapContainer.innerHTML = '<p style="padding: 2rem; text-align: center; color: var(--text-secondary);">Failed to load map. Please try refreshing the page.</p>';
     }
   }
+}
+
+const EXPAND_ICON =
+  '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>';
+const COLLAPSE_ICON =
+  '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>';
+
+/**
+ * A button under the zoom control that blows the map up to fill the window,
+ * for a closer look at the topo detail, and shrinks it back (button or Esc).
+ * A CSS overlay rather than the Fullscreen API, which iOS Safari only grants
+ * to video.
+ */
+function addExpandControl(leafletMap: L.Map): void {
+  const container = leafletMap.getContainer();
+  let button: HTMLButtonElement | null = null;
+
+  const renderButton = (expanded: boolean): void => {
+    if (!button) return;
+    button.innerHTML = expanded ? COLLAPSE_ICON : EXPAND_ICON;
+    const label = expanded ? 'Exit full-window map' : 'Expand map to full window';
+    button.title = label;
+    button.setAttribute('aria-label', label);
+    button.setAttribute('aria-pressed', String(expanded));
+  };
+
+  // Keeps the same spot in the middle of the map as it grows or shrinks.
+  const setExpanded = (expanded: boolean): void => {
+    const center = leafletMap.getCenter();
+    container.classList.toggle('is-expanded', expanded);
+    document.body.classList.toggle('map-expanded', expanded);
+    renderButton(expanded);
+    leafletMap.invalidateSize({ pan: false });
+    leafletMap.panTo(center, { animate: false });
+  };
+
+  const ExpandControl = L.Control.extend({
+    onAdd(): HTMLElement {
+      const bar = L.DomUtil.create('div', 'leaflet-bar map-expand-control');
+      button = L.DomUtil.create('button', 'map-expand-btn', bar) as HTMLButtonElement;
+      button.type = 'button';
+      L.DomEvent.disableClickPropagation(bar);
+      button.addEventListener('click', () => {
+        setExpanded(!container.classList.contains('is-expanded'));
+      });
+      return bar;
+    },
+  });
+  new ExpandControl({ position: 'topleft' }).addTo(leafletMap);
+  renderButton(false);
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && container.classList.contains('is-expanded')) setExpanded(false);
+  });
 }
 
 function drawMainRoute(trail: Trail): void {

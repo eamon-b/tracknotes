@@ -175,15 +175,25 @@ export function poiRowHtml(poi: TrailPOI): string {
 export const POI_FILTER_STORAGE_KEY = 'trail-maps-poi-filter';
 
 /**
+ * The web page's starting state: POIs off until the hiker turns them on, since
+ * on a long trail they swamp the waypoints table. The categories stay ticked so
+ * the master switch alone brings them all back. (The phone keeps the shared
+ * default, POIs on.)
+ */
+export function defaultWebPoiFilterState(): PoiFilterState {
+  return { ...defaultPoiFilterState(), enabled: false };
+}
+
+/**
  * Read the persisted choice. Storage may be unavailable (private mode, blocked
  * site data) — the page still works, it just forgets.
  */
 export function loadPoiFilterState(): PoiFilterState {
   try {
     const raw = localStorage.getItem(POI_FILTER_STORAGE_KEY);
-    return raw ? normalisePoiFilterState(JSON.parse(raw)) : defaultPoiFilterState();
+    return raw ? normalisePoiFilterState(JSON.parse(raw)) : defaultWebPoiFilterState();
   } catch {
-    return defaultPoiFilterState();
+    return defaultWebPoiFilterState();
   }
 }
 
