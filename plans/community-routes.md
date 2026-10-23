@@ -1,6 +1,6 @@
 # Community routes and trail organisation
 
-Status: in progress (2026-10-07). Issue: user request in session, no GitHub issue yet.
+Status: implemented (#163 and earlier). Kept as the spec the code cites.
 
 Two features ship together because the second gives the first somewhere to live:
 
@@ -329,10 +329,3 @@ then Imported. A search field filters by name. Settings → My shared routes
 lists the account's own routes, any status, with the hidden reason, and is
 where a route hidden by the review, reports or a moderator can still be
 deleted.
-
-## Follow-ups (not in this PR)
-
-- ~~Comments and plan sync on community routes~~: done (#163) — see "Ids" above.
-- ~~Server-side OSM POI enrichment for community routes~~: done — see "OSM POI enrichment" above.
-- ~~Map overview of all trails on the landing page~~: done (#163) — markers at each curated trail's and community route's start (`src/web/landing-map.ts`), from the existing list's `start`/`bbox`; no API change.
-- ~~Auto-detecting country/state from coordinates~~: done — `@lib/region-detect` prefills both share forms and backs the worker's `region` check.

@@ -582,5 +582,5 @@ world tileset is proven on real trails.
   a week has passed, the superseded pack objects (`npm run cleanup:tiles`, then
   `-- --delete`).
 - Destroy the build box, revoke the R2 token and any deploy key.
-- Record the actual timings/sizes in `plans/world-contour-tiles.md` so the next
-  rebuild's estimates are real numbers instead of these guesses.
+- Record the actual timings/sizes under "What the September 2026 run measured"
+  above, so the next rebuild's estimates are real numbers.
