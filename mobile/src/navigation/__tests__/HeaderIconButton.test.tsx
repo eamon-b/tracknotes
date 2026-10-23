@@ -1,6 +1,6 @@
 /**
  * Header actions are icon-only, so their accessibility label is the ONLY name a
- * screen reader — and every Maestro flow, which selects by label — can match.
+ * screen reader can match.
  * These assertions guard that contract and the theme-token icon color.
  */
 

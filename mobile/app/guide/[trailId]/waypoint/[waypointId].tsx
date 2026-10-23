@@ -817,8 +817,7 @@ function OsmLink({
  * "Stop here" / "Remove stop", beside the heart.
  *
  * A glyph rather than a labelled button because it sits in a three-icon row in
- * the hero; the words live on the accessibility label, which is also what a
- * Maestro flow taps.
+ * the hero; the words live on the accessibility label.
  */
 function StopHereToggle({ isStop, onPress }: { isStop: boolean; onPress: () => void }) {
   const { colors } = useTheme();

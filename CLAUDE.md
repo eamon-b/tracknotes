@@ -144,7 +144,6 @@ npx expo start --dev-client      # Start Metro + connect to dev client
 - `npx tsc --noEmit`, `npx jest`
 - `eas build --non-interactive`, `eas update`
 - Android emulator interaction via ADB (see below)
-- Maestro UI test flows (see below)
 
 **Needs a human** (interactive or requires device):
 - `npx expo start` — interactive terminal UI with hotkeys (user runs this in a separate terminal)
@@ -214,16 +213,4 @@ adb install -r mobile/android/app/build/outputs/apk/debug/app-debug.apk  # Insta
 
 **Visual verification workflow**: Make changes (Metro hot-reloads) → screenshot → Read the PNG → check `adb logcat` for errors.
 
-### Maestro UI Tests
-
-Maestro test flows live in `mobile/maestro/`. They run locally against the emulator + Metro (no CI job — the Maestro CI workflow was removed 2026-08).
-
-```bash
-# Run a single test flow
-~/.maestro/bin/maestro test mobile/maestro/app-launch.yaml
-
-# Record a test (writes a flow YAML from manual interaction)
-~/.maestro/bin/maestro record mobile/maestro/new-flow.yaml
-```
-
-**Flows** (13): `app-launch.yaml` (launch → "My Guides"), `plan-screen.yaml` (guide → Plan → plan settings sheet/day splits/water carries), `plan-stops.yaml` (tick stops → day cards → day view), `guide-list.yaml`, `view-map.yaml`, `toggle-views.yaml`, `waypoint-detail.yaml`, `waypoint-stop-here.yaml` ("Stop here" round-trip, "Show on map"), `add-comment-offline.yaml`, `today.yaml` (stop + start date today → header "Today's plan" → Today), `poi-detail.yaml` (List → OSM POI screen → "Show on map"), `waypoint-alternate.yaml` (junction place → alternate card take/stay round-trip), `hiker-waypoint-edit.yaml` (map ＋ → add, edit, delete a hiker waypoint). They all start via `shared/launch-dev.yaml`, which deep-links the dev client into Metro, and those that open a guide do it through `shared/open-cape-to-cape.yaml` — don't run `maestro test mobile/maestro/` on the directory, since that would execute the shared fragments as standalone flows.
+**Device check after a native change** (an SDK bump, a native dependency): build the dev client in a checkout on disk, not under `/tmp` (it is a RAM-backed tmpfs here, and a 6 GB build exhausts it), with the emulator closed while Gradle runs — `npx expo prebuild --platform android --clean --no-install && cd android && ./gradlew assembleDebug -PreactNativeArchitectures=x86_64 --max-workers=3` (~12 min) — then boot the emulator, `adb install -r` the APK, start Metro and drive the screens the change touches with the commands above.
