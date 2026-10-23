@@ -54,6 +54,11 @@ interface StubMarker {
 
 let markers: StubMarker[] = [];
 
+/** Every clickable line, by the click handler it was given. */
+let lineClicks: Array<(event: { latlng: unknown }) => void> = [];
+/** The content of the last free-standing popup opened (an alternate's line). */
+let openPopup: HTMLElement | null = null;
+
 function installLeafletStub(): void {
   const layer = (): object => {
     const obj: object = new Proxy({}, { get: () => () => obj });
@@ -65,7 +70,28 @@ function installLeafletStub(): void {
     tileLayer: layer,
     control: { scale: layer },
     layerGroup: layer,
-    polyline: layer,
+    polyline: () => {
+      const obj: object = new Proxy({}, {
+        get: (_target, prop) => prop === 'on'
+          ? (event: string, fn: (e: { latlng: unknown }) => void) => {
+            if (event === 'click') lineClicks.push(fn);
+            return obj;
+          }
+          : () => obj,
+      });
+      return obj;
+    },
+    popup: () => {
+      const popup = {
+        setLatLng: () => popup,
+        setContent: (content: HTMLElement) => {
+          openPopup = content;
+          return popup;
+        },
+        openOn: () => popup,
+      };
+      return popup;
+    },
     divIcon: (opts: { html: string }) => opts,
     marker: (_latLng: unknown, opts: { icon: { html: string } }) => {
       const marker: StubMarker = { html: opts.icon.html, handlers: {}, popup: null };
@@ -157,15 +183,17 @@ function makeTrail() {
   };
 }
 
-async function boot(): Promise<void> {
+async function boot(trail: ReturnType<typeof makeTrail> = makeTrail()): Promise<void> {
   const html = bundledPlanPageHtml();
   document.documentElement.innerHTML = html
     .replace(/<!DOCTYPE html>/i, '')
     .replace(/<\/?html[^>]*>/gi, '');
   vi.resetModules();
   markers = [];
+  lineClicks = [];
+  openPopup = null;
   const { initPlanViewer } = await import('./plan-viewer');
-  await initPlanViewer(TRAIL_ID, makeTrail() as never);
+  await initPlanViewer(TRAIL_ID, trail as never);
   tabButton('stops').click();
 }
 
@@ -281,5 +309,72 @@ describe('alternates in the Stops tab', () => {
     flushSave();
     expect(savedDocument().stops.map(s => s.name)).toEqual(['High Hut']);
     expect(savedDocument().stops[0].km).toBe(45);
+  });
+});
+
+describe('alternates on the map', () => {
+  /** The popup a waypoint marker opens, by the place's name. */
+  const markerPopup = (name: string): HTMLElement => {
+    const marker = markers.find(m => m.html.includes(`title="${name}"`));
+    if (!marker) throw new Error(`no marker for ${name}`);
+    marker.handlers.click();
+    if (!marker.popup) throw new Error(`no popup for ${name}`);
+    return marker.popup;
+  };
+
+  const choiceButton = (popup: HTMLElement): HTMLButtonElement => {
+    const btn = popup.querySelector<HTMLButtonElement>('.wp-popup-alt-btn');
+    if (!btn) throw new Error('no alternate button in the popup');
+    return btn;
+  };
+
+  it('clicking an alternate\'s line offers to take it', async () => {
+    await boot();
+    // The first clickable line is the alternate's; the day lines come later.
+    lineClicks[0]({ latlng: [0, 0] });
+    const popup = openPopup!;
+    expect(popup.querySelector('.wp-popup-alt-title')?.textContent).toContain(ALT);
+    expect(popup.textContent).toContain('10.0 km longer than the main route');
+    expect(popup.textContent).toContain('Your plan stays on the main route here.');
+    expect(choiceButton(popup).textContent?.trim()).toBe('Take this alternate');
+
+    choiceButton(popup).click();
+    expect(listOrder()).toContain('Ridge Camp');
+    flushSave();
+    expect(savedDocument().alternates).toEqual([ALT]);
+
+    lineClicks[0]({ latlng: [0, 0] });
+    expect(openPopup!.textContent).toContain('Your plan takes this alternate.');
+    expect(choiceButton(openPopup!).textContent?.trim()).toBe('Stay on the main route');
+  });
+
+  it('a place on a taken alternate offers to go back to the main route', async () => {
+    await boot();
+    altButton().click();
+    const popup = markerPopup('Ridge Camp');
+    expect(popup.querySelector('.wp-popup-alt-title')?.textContent).toContain(`On ${ALT}`);
+    choiceButton(popup).click();
+    expect(listOrder()).not.toContain('Ridge Camp');
+    flushSave();
+    expect(savedDocument().alternates).toBeUndefined();
+  });
+
+  it('a place where an alternate leaves the main route offers to take it', async () => {
+    const trail = makeTrail();
+    trail.waypoints.splice(2, 0, {
+      id: 'w_fork', name: 'The Fork', type: 'junction', totalDistance: 20, lat: -34.02, lon: 138.02,
+    });
+    await boot(trail);
+    const popup = markerPopup('The Fork');
+    expect(popup.querySelector('.wp-popup-alt-title')?.textContent)
+      .toContain(`${ALT} leaves the main route here`);
+    choiceButton(popup).click();
+    flushSave();
+    expect(savedDocument().alternates).toEqual([ALT]);
+  });
+
+  it('a place away from every alternate has no alternate in its popup', async () => {
+    await boot();
+    expect(markerPopup('Camp One').querySelector('.wp-popup-alt')).toBeNull();
   });
 });

@@ -825,6 +825,25 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
   color: var(--danger);
   border-color: var(--danger);
 }
+/* An alternate at the place (or the line clicked): the phone's waypoint-screen card. */
+.wp-popup-alt { margin-top: 0.5rem; padding-top: 0.45rem; border-top: 1px dashed #d1d5db; }
+.wp-popup-alt:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+.wp-popup-alt-title { font-weight: 700; font-size: 0.8rem; }
+.wp-popup-alt-note { font-size: 0.72rem; color: #4b5563; margin-top: 0.2rem; }
+.wp-popup-alt-btn {
+  margin-top: 0.45rem;
+  width: 100%;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid #2D6A4F;
+  border-radius: 4px;
+  background: #2D6A4F;
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+/* Pinned to the light theme's green: the popup stays light in both themes. */
+.wp-popup-alt-btn.is-taken { background: transparent; color: #2D6A4F; }
 
 /* ---- Header: sync, linking and sharing ---- */
 /*
