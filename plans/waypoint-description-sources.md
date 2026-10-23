@@ -137,3 +137,40 @@ All pages below were read in full with curl or WebFetch on 2026-10-19.
 - **Alum Creek's** dry stretch now starts from Little River.
 
 No entry: **Mount George**, which no source describes beyond a signpost.
+
+## The Coast Track, Royal National Park (`royal_coast_track`)
+
+All NSW National Parks pages below were read in full with curl on 2026-10-23.
+
+- NSW National Parks, [The Coast Track](https://www.nationalparks.nsw.gov.au/things-to-do/walking-tracks/the-coast-track). Gives:
+  - 27 km between Bundeena and Otford, over two days
+  - overnight stays only at Garie Beach campground, booked in advance; a raised timber platform per site, with shared amenities (untreated water, cold beach showers, flush toilets) at the Garie Beach picnic area
+  - the toilet and water refill at the track head on Beachcomber Avenue, Bundeena
+  - the pastel-coloured heritage shacks at North Era
+  - the Ridge Trail to Otford station, with trains to Sydney or Wollongong
+- NSW National Parks, [The Coast Track visitor info](https://www.nationalparks.nsw.gov.au/things-to-do/walking-tracks/the-coast-track/visitor-info). Gives:
+  - the start at Beachcomber Avenue, with parking there and at Otford lookout on Lady Wakehurst Drive
+  - the train to Cronulla and the ferry to Bundeena, 1.5 km from the start of the track
+  - Otford station on Georges Road
+  - "Drinking water is not available along this walking track", and unpotable water at Wattamolla and Garie Beach
+- NSW National Parks, [North Era Beach](https://www.nationalparks.nsw.gov.au/camping-and-accommodation/campgrounds/north-era-campground). Gives: "North Era campground closed in 2023", decommissioned for its remote location, emergency access and servicing, and its damp south-east-facing site; overnight walks now stay at Garie Beach.
+- NSW National Parks, [Werrong Beach track](https://www.nationalparks.nsw.gov.au/things-to-do/walking-tracks/werrong-beach-track): the track starts at Otford lookout, with coastal views up and down the coast.
+- Bundeena's supermarket, post office and cafes, and Otford's trains, are kept from the waypoints' earlier hand-reviewed text.
+
+**North Era is a permanent closure, not a temporary one**, so it is in the bundled text. The waypoint is still typed `campsite` in the GPX and Garie Beach campground has no waypoint: both are data fixes for the GPX, outside this change.
+
+No entry: **Werrong Lookout** (no NSW National Parks page describes it).
+
+## Kep Track (`kep_track`)
+
+Read 2026-10-23.
+
+- Trails WA, [Kep Track, Mundaring to Northam](https://trailswa.com.au/trails/trail/kep-track). Gives:
+  - 75 km on the historic rail formation between Mundaring in the Perth Hills and Northam
+  - the track's alignment with C. Y. O'Connor's pipeline
+  - the trailheads: Mundaring Weir, opposite the hotel, and the northern side of the Poole St Bridge on the west side of Northam
+  - the Mundaring Visitor Centre on the Great Eastern Highway
+- Wikipedia, [Kep Track](https://en.wikipedia.org/wiki/Kep_Track): the former Eastern Railway route from Mundaring to Clackline, then the Goldfields Water Supply Scheme pipeline route to Northam. (Secondary, but consistent with Trails WA.)
+- Mundaring's, Clackline's and Northam's services are kept from the waypoints' earlier hand-reviewed text.
+
+No entry: the three **Drinking water** points (Overpass did not answer, so the taps could not be checked against OSM), **Mount Helena** (nothing sourced beyond the town being on the route), **Bakers Hill** (its hand-reviewed text stands), **Summer Creek Farm Camping** (a private farm campground known only from booking-site listings) and **Northam RV 48hr Stay** (its hand-reviewed text stands).
