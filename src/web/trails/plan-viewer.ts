@@ -51,12 +51,16 @@ import {
 import { findNearestByDistance } from '@lib/track-geometry';
 import {
   alternateMarkers,
+  alternatesOverlap,
+  mainKmToRoute,
+  plannableAlternates,
   plannedRouteFor,
   plannedRouteTrail,
   planFromRoute,
   planToRoute,
   setPlanAlternate,
   type AlternateMarker,
+  type PlanAlternate,
   type PlannedRoute,
 } from '@lib/plan-alternates';
 import {
@@ -686,14 +690,24 @@ function initMap(): void {
 
   // The alternates beside the route, dashed. Drawn once — they never change.
   // The main route a taken alternate bypasses is drawn by `redrawRouteLine`.
-  for (const variant of trail.alternates ?? []) {
-    if (!Array.isArray(variant.points) || variant.points.length < 2) continue;
-    L.polyline(variant.points.map(p => [p.lat, p.lon] as [number, number]), {
-      color: '#aaa', weight: 2, opacity: 0.6, dashArray: '4 6',
-    })
-      .addTo(map)
-      .bindTooltip(escapeHtml(variant.name));
-  }
+  // Clicking one opens its popup, with the take / stay choice the Stops tab's
+  // branch card offers; a wide invisible line on top makes the 2 px dash easy
+  // to hit.
+  (trail.alternates ?? []).forEach((variant, index) => {
+    if (!Array.isArray(variant.points) || variant.points.length < 2) return;
+    const latLngs = variant.points.map(p => [p.lat, p.lon] as [number, number]);
+    L.polyline(latLngs, { color: '#aaa', weight: 2, opacity: 0.6, dashArray: '4 6' }).addTo(map!);
+    L.polyline(latLngs, { color: '#000', weight: 14, opacity: 0 })
+      .addTo(map!)
+      .bindTooltip(escapeHtml(variant.name))
+      .on('click', (event: L.LeafletMouseEvent) => {
+        if (!map) return;
+        L.popup({ className: 'plan-wp-popup' })
+          .setLatLng(event.latlng)
+          .setContent(variantPopupContent(variant, index))
+          .openOn(map);
+      });
+  });
   redrawRouteLine();
 
   // Fit map
@@ -853,12 +867,119 @@ function waypointPopupContent(wp: PlanWaypoint, km: number): HTMLElement {
     <div class="wp-popup-name">${escapeHtml(wp.name)}</div>
     <div class="wp-popup-sub">${escapeHtml(waypointTypeLabel(wp.type))} · ${km.toFixed(1)} km</div>
     ${servicesStripHtml(servicesAt(km))}
-    ${action}`;
+    ${action}
+    ${alternatesAt(km).map(({ alternate, taken, role }) => alternateChoiceHtml(alternate, taken, role)).join('')}`;
   el.querySelector('.wp-popup-btn')?.addEventListener('click', () => {
     toggleStop(km, wp.name ?? 'Stop', wp.id);
     map?.closePopup();
   });
+  bindAlternateChoiceButtons(el);
   return el;
+}
+
+/** How near a junction a place has to be to count as at it (the phone's `JUNCTION_KM`). */
+const JUNCTION_KM = 0.25;
+
+type AlternateRole = 'leaves' | 'rejoins' | 'on' | 'line';
+
+/**
+ * The alternates that bear on a place at active km `km`, for its popup — the
+ * web half of the phone's waypoint-screen alternate cards: one that leaves or
+ * rejoins the line walked here, or the taken one the place is on. Places on
+ * main route a taken alternate bypasses are not on this page's map, so there
+ * is no "bypassed" role here.
+ */
+function alternatesAt(km: number): Array<{ alternate: PlanAlternate; taken: boolean; role: AlternateRole }> {
+  const dir = direction();
+  const toActive = (routeKm: number) => toActiveKm(routeKm, dir, plannedRoute.totalDistance);
+  const found: Array<{ alternate: PlanAlternate; taken: boolean; role: AlternateRole }> = [];
+  for (const alternate of plannableAlternates(trail)) {
+    const segment = plannedRoute.segments.find(
+      s => s.kind === 'alternate' && s.alternate.name === alternate.name,
+    );
+    const taken = segment !== undefined;
+    const from = taken ? segment.routeFromKm : mainKmToRoute(plannedRoute, alternate.startKm);
+    const to = taken ? segment.routeFromKm + alternate.distanceKm : mainKmToRoute(plannedRoute, alternate.endKm);
+    // Not reachable on the route as planned: it starts inside another's bypass.
+    if (from === null || to === null) continue;
+    const a = toActive(from);
+    const b = toActive(to);
+    const leaves = Math.min(a, b);
+    const rejoins = Math.max(a, b);
+    if (Math.abs(km - leaves) <= JUNCTION_KM) found.push({ alternate, taken, role: 'leaves' });
+    else if (Math.abs(km - rejoins) <= JUNCTION_KM) found.push({ alternate, taken, role: 'rejoins' });
+    else if (taken && km > leaves && km < rejoins) found.push({ alternate, taken, role: 'on' });
+  }
+  return found;
+}
+
+/**
+ * The popup an alternate's line opens: what it is against the main route,
+ * whether the plan takes it, and the choice. An alternate a plan cannot take
+ * (it hangs off another alternate) says so and offers nothing.
+ */
+function variantPopupContent(variant: RouteVariant, index: number): HTMLElement {
+  const el = document.createElement('div');
+  el.className = 'wp-popup';
+  const option = plannableAlternates(trail).find(o => o.index === index);
+  if (option) {
+    const taken = plannedRoute.alternates.some(a => a.name === option.name);
+    el.innerHTML = alternateChoiceHtml(option, taken, 'line');
+    bindAlternateChoiceButtons(el);
+    return el;
+  }
+  const parent = variant.parent?.name;
+  const distance = Number(variant.distance);
+  el.innerHTML = `
+    <div class="wp-popup-name">${escapeHtml(variant.name)}</div>
+    ${Number.isFinite(distance) ? `<div class="wp-popup-sub">${distance.toFixed(1)} km</div>` : ''}
+    ${parent ? `<div class="wp-popup-alt-note">It branches off another alternate: ${escapeHtml(parent)}. A plan can only take alternates off the main route.</div>` : ''}`;
+  return el;
+}
+
+/**
+ * One alternate in a map popup, with the "Take this alternate" / "Stay on the
+ * main route" button (none on a shared, read-only plan). Taking one that
+ * covers the same main route as one already taken drops that one, and the
+ * popup says so first, as the phone does.
+ */
+function alternateChoiceHtml(alternate: PlanAlternate, taken: boolean, role: AlternateRole): string {
+  const name = escapeHtml(alternate.name);
+  const title = {
+    leaves: `\u2442 ${name} leaves the main route here`,
+    rejoins: `\u21A9 ${name} rejoins the main route here`,
+    on: `\u2442 On ${name}`,
+    line: `\u2442 ${name}`,
+  }[role];
+  const status = taken ? 'Your plan takes this alternate.' : 'Your plan stays on the main route here.';
+  const replaces = taken
+    ? []
+    : plannedRoute.alternates.filter(a => alternatesOverlap(a, alternate)).map(a => a.name);
+  const replacesNote = replaces.length === 0 || readOnly
+    ? ''
+    : `<div class="wp-popup-alt-note">Taking it drops ${escapeHtml(replaces.join(' and '))}, which covers the same main route.</div>`;
+  const button = readOnly
+    ? ''
+    : `<button type="button" class="wp-popup-alt-btn${taken ? ' is-taken' : ''}" data-alt-take="${taken ? '0' : '1'}">
+        ${taken ? 'Stay on the main route' : 'Take this alternate'}
+      </button>`;
+  return `<div class="wp-popup-alt${taken ? ' is-taken' : ''}" data-alternate="${name}">
+    <div class="wp-popup-alt-title">${title}</div>
+    <div class="wp-popup-sub">${escapeHtml(alternateStatsText(alternate))}</div>
+    <div class="wp-popup-alt-note">${status}</div>
+    ${replacesNote}
+    ${button}
+  </div>`;
+}
+
+function bindAlternateChoiceButtons(el: HTMLElement): void {
+  el.querySelectorAll<HTMLButtonElement>('.wp-popup-alt-btn').forEach(button => {
+    button.addEventListener('click', () => {
+      const name = button.closest<HTMLElement>('.wp-popup-alt')?.dataset.alternate;
+      map?.closePopup();
+      if (name !== undefined) setAlternate(name, button.dataset.altTake === '1');
+    });
+  });
 }
 
 function redrawMapLayers(): void {
@@ -1492,11 +1613,7 @@ function alternateCardHtml(marker: AlternateMarker): string {
       <div class="alt-card-title"><span class="alt-card-glyph" aria-hidden="true">↩</span>${name} rejoins the main route</div>
     </div>`;
   }
-  const delta = alternate.distanceKm - alternate.mainDistanceKm;
-  const deltaText = Math.abs(delta) < 0.05
-    ? 'the same distance as the main route'
-    : `${Math.abs(delta).toFixed(1)} km ${delta > 0 ? 'longer' : 'shorter'} than the main route`;
-  const stats = `${alternate.distanceKm.toFixed(1)} km · +${alternate.ascentM} m / −${alternate.descentM} m · ${deltaText}`;
+  const stats = alternateStatsText(alternate);
   const button = readOnly
     ? ''
     : `<button type="button" class="alt-card-btn${taken ? ' is-taken' : ''}" data-alt-take="${taken ? '0' : '1'}">
@@ -1507,6 +1624,15 @@ function alternateCardHtml(marker: AlternateMarker): string {
     <div class="alt-card-stats">${escapeHtml(stats)}</div>
     ${button}
   </div>`;
+}
+
+/** "30.0 km · +300 m / −300 m · 10.0 km longer than the main route" */
+function alternateStatsText(alternate: PlanAlternate): string {
+  const delta = alternate.distanceKm - alternate.mainDistanceKm;
+  const deltaText = Math.abs(delta) < 0.05
+    ? 'the same distance as the main route'
+    : `${Math.abs(delta).toFixed(1)} km ${delta > 0 ? 'longer' : 'shorter'} than the main route`;
+  return `${alternate.distanceKm.toFixed(1)} km · +${alternate.ascentM} m / −${alternate.descentM} m · ${deltaText}`;
 }
 
 /** Names of the alternates a day walks some of, for its card. */
