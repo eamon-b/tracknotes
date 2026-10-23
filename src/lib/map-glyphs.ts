@@ -9,7 +9,7 @@
  * Each value is the body of a 96x96 SVG, drawn inside a ~76px centred box and
  * inked with `currentColor` (the PNG build substitutes its fixed ink; the web
  * sets `color`). Keep the geometry simple — paths, rects and circles, solid
- * fills or strokes of at least 11 — because the glyph is seen at 11-13 px:
+ * fills or strokes of at least 11 — because the glyph is seen at 10-14 px:
  * finer strokes read lighter than the solid glyphs beside them, and detail
  * smaller than that disappears.
  *

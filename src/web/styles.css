@@ -1558,9 +1558,12 @@ input::placeholder {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
+/* The glyph's ink reaches ~0.53 of its box from the centre (town, summit),
+ * so 17px is the largest box whose ink clears the Ø19 white disc inside the
+ * ring — the same rule the phone's MARKER_ICON_SIZE follows. */
 .waypoint-marker .map-glyph {
-  width: 14px;
-  height: 14px;
+  width: 17px;
+  height: 17px;
   color: #1a1a1a;
 }
 
@@ -1659,9 +1662,10 @@ a.poi-source-badge:hover {
   opacity: 0.92;
 }
 
+/* Largest that clears the Ø15 disc, as for .waypoint-marker above. */
 .poi-marker .map-glyph {
-  width: 11px;
-  height: 11px;
+  width: 13px;
+  height: 13px;
   color: inherit;
 }
 
