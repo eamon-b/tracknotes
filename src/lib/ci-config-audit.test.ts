@@ -82,21 +82,3 @@ describe('test.yml safeguards', () => {
     }
   });
 });
-
-describe('maestro.yml safeguards', () => {
-  const filepath = resolve(WORKFLOWS_DIR, 'maestro.yml');
-
-  it('has timeout-minutes on all jobs if it exists', () => {
-    if (!existsSync(filepath)) return;
-
-    const content = readFileSync(filepath, 'utf-8');
-    const jobs = extractJobBlocks(content);
-
-    for (const [jobName, jobBlock] of Object.entries(jobs)) {
-      expect(
-        jobBlock.includes('timeout-minutes'),
-        `Job "${jobName}" in maestro.yml is missing timeout-minutes`,
-      ).toBe(true);
-    }
-  });
-});

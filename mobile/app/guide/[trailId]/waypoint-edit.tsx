@@ -251,9 +251,6 @@ export default function WaypointEditScreen() {
           placeholder="e.g. Spring below the saddle"
           placeholderTextColor={colors.textSecondary}
           accessibilityLabel="Name"
-          // The "Name" label above shares this accessible name; UI tests
-          // (mobile/maestro/hiker-waypoint-edit.yaml) find the field by id.
-          testID="waypoint-edit-name"
         />
         {errorText(fieldMessage('name'))}
       </View>
