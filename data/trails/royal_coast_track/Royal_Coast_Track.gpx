@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="trail-maps from OpenStreetMap (ODbL) route relation and waypoints; elevation Copernicus GLO-30" xmlns="http://www.topografix.com/GPX/1/1">
   <metadata><name>The Coast Track (Royal National Park)</name></metadata>
-  <wpt lat="-34.176972" lon="151.056453"><ele>6.9</ele><name>North Era Beach Campground</name><type>campsite</type></wpt>
+  <wpt lat="-34.170209" lon="151.066642"><ele>8.0</ele><name>Garie Beach campground</name><type>campsite</type></wpt>
   <wpt lat="-34.211467" lon="151.010581"><ele>178.3</ele><name>Otford Lookout</name><type>poi</type></wpt>
   <wpt lat="-34.198796" lon="151.022575"><ele>221.2</ele><name>Werrong Lookout</name><type>poi</type></wpt>
   <wpt lat="-34.091975" lon="151.157323"><ele>52.8</ele><name>Drinking water</name><type>water</type></wpt>
