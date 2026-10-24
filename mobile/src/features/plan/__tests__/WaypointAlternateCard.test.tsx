@@ -61,9 +61,7 @@ const onRidge: WaypointAlternate = {
 function render(props: Partial<React.ComponentProps<typeof WaypointAlternateCard>>) {
   let tree!: ReactTestRenderer;
   act(() => {
-    tree = TestRenderer.create(
-      <WaypointAlternateCard alternate={onRidge} units="km" {...props} />,
-    );
+    tree = TestRenderer.create(<WaypointAlternateCard alternate={onRidge} units="km" {...props} />);
   });
   return tree;
 }
@@ -114,7 +112,14 @@ it('does not link a junction to the screen it is on', () => {
 
 it('has no choice for an alternate a plan cannot take', () => {
   const tree = render({
-    alternate: { ...onRidge, plannable: null, parentName: 'Ridge', leavesKm: null, rejoinsKm: null, name: 'Spur' },
+    alternate: {
+      ...onRidge,
+      plannable: null,
+      parentName: 'Ridge',
+      leavesKm: null,
+      rejoinsKm: null,
+      name: 'Spur',
+    },
     onAlternate: jest.fn(),
   });
   expect(allText(tree)).toContain('It branches off another alternate: Ridge.');

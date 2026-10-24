@@ -16,26 +16,30 @@ interface IndexEntry {
 
 function loadIndex(): IndexEntry[] {
   const raw = JSON.parse(readFileSync(join(TRAILS_DIR, 'index.json'), 'utf8')) as
-    | IndexEntry[]
-    | { trails: IndexEntry[] };
+    IndexEntry[] | { trails: IndexEntry[] };
   return Array.isArray(raw) ? raw : raw.trails;
 }
 
 function trailPoints(id: string): { lat: number; lon: number }[] {
-  return (JSON.parse(readFileSync(join(TRAILS_DIR, `${id}.json`), 'utf8')) as {
-    track: { points: { lat: number; lon: number }[] };
-  }).track.points;
+  return (
+    JSON.parse(readFileSync(join(TRAILS_DIR, `${id}.json`), 'utf8')) as {
+      track: { points: { lat: number; lon: number }[] };
+    }
+  ).track.points;
 }
 
 describe('region shapes', () => {
   it('cover every listed country and state', () => {
     for (const country of COUNTRIES) {
       if (country.states.length === 0) {
-        expect(REGION_SHAPES.some((s) => s.country === country.code && s.state === null), country.code).toBe(true);
+        expect(
+          REGION_SHAPES.some(s => s.country === country.code && s.state === null),
+          country.code
+        ).toBe(true);
       }
       for (const state of country.states) {
         expect(
-          REGION_SHAPES.some((s) => s.country === country.code && s.state === state.code),
+          REGION_SHAPES.some(s => s.country === country.code && s.state === state.code),
           `${country.code} ${state.code}`
         ).toBe(true);
       }
@@ -104,17 +108,14 @@ describe('regionAt', () => {
 });
 
 describe('detectRegion', () => {
-  it.each(loadIndex().map((t) => [t.id, t] as const))(
-    'matches the curated region of %s',
-    (id, entry) => {
-      const detected = detectRegion(trailPoints(id));
-      expect(detected.country).toBe(entry.country);
-      expect(detected.states).toEqual(entry.states);
-      expect(detected.state === null ? [] : [detected.state]).toEqual(
-        entry.states.length === 0 ? [] : [expect.toBeOneOf(entry.states)]
-      );
-    }
-  );
+  it.each(loadIndex().map(t => [t.id, t] as const))('matches the curated region of %s', (id, entry) => {
+    const detected = detectRegion(trailPoints(id));
+    expect(detected.country).toBe(entry.country);
+    expect(detected.states).toEqual(entry.states);
+    expect(detected.state === null ? [] : [detected.state]).toEqual(
+      entry.states.length === 0 ? [] : [expect.toBeOneOf(entry.states)]
+    );
+  });
 
   it('prefills the state most of the route is in', () => {
     // 10 points in VIC, then 30 in NSW.

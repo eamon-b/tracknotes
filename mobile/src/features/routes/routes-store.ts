@@ -94,9 +94,7 @@ export const useRoutesStore = create<RoutesState>((set, get) => ({
         moved.set(route.id, points);
       }
 
-      const refreshed = new Map(
-        (await routesRepo.listRoutes(db, trailId)).map((r) => [r.id, r]),
-      );
+      const refreshed = new Map((await routesRepo.listRoutes(db, trailId)).map((r) => [r.id, r]));
       set((s) => {
         const activeId = s.activeIdByTrail[trailId];
         const activePoints = activeId ? moved.get(activeId) : undefined;
@@ -145,9 +143,7 @@ export const useRoutesStore = create<RoutesState>((set, get) => ({
           ...s.byTrail,
           [trailId]: (s.byTrail[trailId] ?? []).filter((r) => r.id !== id),
         },
-        activeIdByTrail: wasActive
-          ? { ...s.activeIdByTrail, [trailId]: null }
-          : s.activeIdByTrail,
+        activeIdByTrail: wasActive ? { ...s.activeIdByTrail, [trailId]: null } : s.activeIdByTrail,
         activePointsByTrail: wasActive
           ? { ...s.activePointsByTrail, [trailId]: undefined }
           : s.activePointsByTrail,

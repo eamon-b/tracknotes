@@ -7,18 +7,9 @@ import { classifyWaypoint } from '../src/lib/waypoint-classifier.js';
 import { buildTrail, flattenGpx, type ParsedGpxResult } from '../src/lib/trail-ingest.js';
 import { escapeHtml, escapeJsString } from '../src/lib/escape.js';
 import type { GpxPoint } from '../src/lib/types.js';
-import type {
-  ProcessedTrail,
-  TrackData,
-  TrailConfig,
-  TrailWaypoint as Waypoint,
-} from '../src/lib/trail-types.js';
+import type { ProcessedTrail, TrackData, TrailConfig, TrailWaypoint as Waypoint } from '../src/lib/trail-types.js';
 import { jsdomXmlAdapter } from './lib/xml-adapter-jsdom.js';
-import {
-  assignWaypointIds,
-  stringifyRegistry,
-  type WaypointRegistry,
-} from './lib/waypoint-ids.js';
+import { assignWaypointIds, stringifyRegistry, type WaypointRegistry } from './lib/waypoint-ids.js';
 import {
   applyCuratedDescriptions,
   DESCRIPTIONS_FILENAME,
@@ -56,7 +47,6 @@ interface CaltopoData {
    */
   markers: Map<string, CaltopoMarker[]>;
 }
-
 
 // Handle both Windows and Unix paths from import.meta.url
 const SCRIPTS_DIR = path.dirname(
@@ -113,7 +103,6 @@ function parseCaltopoGeojson(jsonPath: string): CaltopoData {
         else result.markers.set(classification.cleanedName, [marker]);
       }
     }
-
   } catch (e) {
     // GeoJSON parsing failed, fall back to GPX-only
     console.log(`  Warning: Could not parse GeoJSON: ${e instanceof Error ? e.message : 'unknown error'}`);
@@ -148,18 +137,14 @@ function findGeojsonFile(trailDir: string, explicitFile?: string): string | null
 
   // Auto-detect: find JSON files that look like GeoJSON (have features array)
   const files = fs.readdirSync(trailDir);
-  const jsonFiles = files.filter(f =>
-    f.toLowerCase().endsWith('.json') &&
-    f !== 'trail.json' &&
-    f !== 'climate.json'
-  );
+  const jsonFiles = files.filter(f => f.toLowerCase().endsWith('.json') && f !== 'trail.json' && f !== 'climate.json');
 
   for (const file of jsonFiles) {
     try {
       const content = fs.readFileSync(path.join(trailDir, file), 'utf-8');
       const parsed = JSON.parse(content);
       if (Array.isArray(parsed.features)) {
-        return file;  // This is a GeoJSON file
+        return file; // This is a GeoJSON file
       }
     } catch {
       // Not valid JSON or can't read, skip
@@ -172,7 +157,12 @@ function findGeojsonFile(trailDir: string, explicitFile?: string): string | null
 /**
  * Generate trail.json config from GPX file analysis
  */
-function generateTrailConfig(trailDir: string, gpxFile: string, gpxData: ParsedGpxResult, mainRoutePoints: GpxPoint[]): TrailConfig {
+function generateTrailConfig(
+  trailDir: string,
+  gpxFile: string,
+  gpxData: ParsedGpxResult,
+  mainRoutePoints: GpxPoint[]
+): TrailConfig {
   const trailId = path.basename(trailDir).toLowerCase();
 
   // Calculate total distance from main route points
@@ -192,7 +182,7 @@ function generateTrailConfig(trailDir: string, gpxFile: string, gpxData: ParsedG
     id: trailId,
     name,
     shortName: dirName.toUpperCase(),
-    region: 'Unknown',  // User should fill this in
+    region: 'Unknown', // User should fill this in
     // `country` is left out on purpose (the list shows the trail under
     // "Other" and the build warns); fill in `country` and `states` from
     // @lib/trail-regions. scripts/trail-regions-data.test.ts insists on them.
@@ -202,7 +192,6 @@ function generateTrailConfig(trailDir: string, gpxFile: string, gpxData: ParsedG
     description: `Trail data auto-generated from ${gpxFile}. Edit trail.json to customize.`,
   };
 }
-
 
 /**
  * One entry of `public/data/generated/index.json`, the landing page's list.
@@ -325,7 +314,11 @@ function validateTrailDirectory(trailDir: string): { errors: string[]; needsAuto
  */
 const waypointIdWarnings: string[] = [];
 
-async function processTrail(trailDir: string, registry: WaypointRegistry, autoGenConfig: boolean = false): Promise<ProcessedTrail> {
+async function processTrail(
+  trailDir: string,
+  registry: WaypointRegistry,
+  autoGenConfig: boolean = false
+): Promise<ProcessedTrail> {
   const configPath = path.join(trailDir, 'trail.json');
 
   // Find GPX file
@@ -391,8 +384,7 @@ async function processTrail(trailDir: string, registry: WaypointRegistry, autoGe
       : undefined,
 
     // CalTopo categorisation, then the CSV waypoint fallback.
-    resolveWaypoints: (gpxWaypoints, resolvedConfig) =>
-      resolveTrailWaypoints(trailDir, resolvedConfig, gpxWaypoints),
+    resolveWaypoints: (gpxWaypoints, resolvedConfig) => resolveTrailWaypoints(trailDir, resolvedConfig, gpxWaypoints),
 
     // Stable ids come from the committed registry (entries are never deleted;
     // ones this build does not match are marked retired).
@@ -409,8 +401,7 @@ async function processTrail(trailDir: string, registry: WaypointRegistry, autoGe
     variantWaypointAccess: variantAccess(accessFile),
 
     // Curated descriptions are keyed by the ids just assigned.
-    afterWaypointIds: (waypoints, resolvedConfig) =>
-      applyTrailDescriptions(trailDir, resolvedConfig, waypoints),
+    afterWaypointIds: (waypoints, resolvedConfig) => applyTrailDescriptions(trailDir, resolvedConfig, waypoints),
   });
 
   return { ...trail, climate };
@@ -421,11 +412,7 @@ async function processTrail(trailDir: string, registry: WaypointRegistry, autoGe
  * CalTopo GeoJSON categories/descriptions first, then a CSV fallback for trails
  * whose GPX carries no `<wpt>` at all.
  */
-function resolveTrailWaypoints(
-  trailDir: string,
-  config: TrailConfig,
-  gpxWaypoints: Waypoint[]
-): Waypoint[] {
+function resolveTrailWaypoints(trailDir: string, config: TrailConfig, gpxWaypoints: Waypoint[]): Waypoint[] {
   let waypoints = gpxWaypoints;
 
   // If GeoJSON exists, use it to enhance data
@@ -498,9 +485,7 @@ function applyTrailDescriptions(trailDir: string, config: TrailConfig, waypoints
   if (unmatchedIds.length > 0) {
     // Not fatal: an id can go stale when source data moves a waypoint far
     // enough to mint a new id. Loud, because the prose silently disappears.
-    console.warn(
-      `  ⚠ ${unmatchedIds.length} curated description(s) matched no waypoint: ${unmatchedIds.join(', ')}`
-    );
+    console.warn(`  ⚠ ${unmatchedIds.length} curated description(s) matched no waypoint: ${unmatchedIds.join(', ')}`);
   }
 }
 
@@ -525,10 +510,7 @@ function renderDataSource(config: TrailConfig): string {
       ` target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
   }
 
-  return (
-    `<p class="trail-source"><strong>Track data</strong> ` +
-    `${escapeHtml(dataSource.text)}${link}</p>`
-  );
+  return `<p class="trail-source"><strong>Track data</strong> ` + `${escapeHtml(dataSource.text)}${link}</p>`;
 }
 
 /** The placeholders every trail page shares, escaped for where they land. */
@@ -647,7 +629,8 @@ async function main() {
     return;
   }
 
-  const trailDirs = fs.readdirSync(DATA_DIR)
+  const trailDirs = fs
+    .readdirSync(DATA_DIR)
     .map(name => path.join(DATA_DIR, name))
     .filter(p => fs.statSync(p).isDirectory());
 
@@ -772,8 +755,12 @@ async function main() {
         );
       }
       console.log(`    Distance: ${processed.track.totalDistance.toFixed(1)} km`);
-      console.log(`    Elevation: +${Math.round(processed.track.totalAscent)}m / -${Math.round(processed.track.totalDescent)}m`);
-      console.log(`    Waypoints: ${processed.waypoints.length} on-trail, ${processed.offTrailWaypoints.length} off-trail`);
+      console.log(
+        `    Elevation: +${Math.round(processed.track.totalAscent)}m / -${Math.round(processed.track.totalDescent)}m`
+      );
+      console.log(
+        `    Waypoints: ${processed.waypoints.length} on-trail, ${processed.offTrailWaypoints.length} off-trail`
+      );
       if (pois) {
         const duplicates = countDuplicatePois(pois);
         const suffix = duplicates > 0 ? `, ${duplicates} hidden as duplicates of waypoints` : '';

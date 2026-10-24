@@ -222,17 +222,9 @@ describe('waypoint-taxonomy', () => {
 
   describe('families are disjoint', () => {
     it('no type is both water and resupply', () => {
-      const all = [
-        ...WATER_TYPES,
-        ...WATER_TYPE_ALIASES,
-        ...RESUPPLY_TYPES,
-        ...RESUPPLY_TYPE_ALIASES,
-      ];
+      const all = [...WATER_TYPES, ...WATER_TYPE_ALIASES, ...RESUPPLY_TYPES, ...RESUPPLY_TYPE_ALIASES];
       for (const type of all) {
-        expect(
-          isWaterWaypoint(type) && isResupplyWaypoint(type),
-          `${type} is in both families`
-        ).toBe(false);
+        expect(isWaterWaypoint(type) && isResupplyWaypoint(type), `${type} is in both families`).toBe(false);
       }
     });
   });

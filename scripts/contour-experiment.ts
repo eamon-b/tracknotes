@@ -119,13 +119,15 @@ const VARIANTS: Variant[] = [
   },
   {
     name: 'untiered',
-    description: 'Tier minzooms ignored, as every archive built before 2026-10 (world.pmtiles as deployed): every zoom carries every 10 m contour',
+    description:
+      'Tier minzooms ignored, as every archive built before 2026-10 (world.pmtiles as deployed): every zoom carries every 10 m contour',
     ...BASELINE,
     tiered: false,
   },
   {
     name: 'legacy-simp-14',
-    description: 'Pre-2026-08-22 production settings (australia.pmtiles as deployed): polygonal at z12–14, tiers ignored',
+    description:
+      'Pre-2026-08-22 production settings (australia.pmtiles as deployed): polygonal at z12–14, tiers ignored',
     ...BASELINE,
     simplification: 14,
     minimumDetail: 4,
@@ -192,7 +194,7 @@ const VARIANTS: Variant[] = [
   },
   {
     name: 'simp-1',
-    description: 'simplification 1 at z9–14 — tippecanoe\'s own default; effectively unsimplified',
+    description: "simplification 1 at z9–14 — tippecanoe's own default; effectively unsimplified",
     ...BASELINE,
     simplification: 1,
   },
@@ -221,8 +223,10 @@ interface CliArgs {
 function defaultRunName(): string {
   const now = new Date();
   const pad = (n: number): string => String(n).padStart(2, '0');
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-` +
-    `${pad(now.getHours())}${pad(now.getMinutes())}`;
+  return (
+    `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-` +
+    `${pad(now.getHours())}${pad(now.getMinutes())}`
+  );
 }
 
 function parseArgs(): CliArgs {
@@ -257,7 +261,10 @@ function parseArgs(): CliArgs {
         result.demDir = path.resolve(PROJECT_ROOT, argv[++i]);
         break;
       case '--variants':
-        result.variants = argv[++i].split(',').map(s => s.trim()).filter(Boolean);
+        result.variants = argv[++i]
+          .split(',')
+          .map(s => s.trim())
+          .filter(Boolean);
         break;
       case '--list':
         result.list = true;
@@ -308,7 +315,7 @@ function printUsage(): void {
   console.log('  --list             Print the variant matrix and exit');
   console.log('  --keep-work        Keep per-variant intermediates');
   console.log('  --verbose          Stream GDAL/tippecanoe output');
-  console.log('  --html-only        Rewrite --run\'s index.html from its results.json (no builds)');
+  console.log("  --html-only        Rewrite --run's index.html from its results.json (no builds)");
 }
 
 // --- DEM selection ---
@@ -338,9 +345,7 @@ function demTileCorner(fileName: string): { lat: number; lon: number } | null {
 function demFilesForBbox(demDir: string, bbox: Bbox): string[] {
   if (!fs.existsSync(demDir)) return [];
   const [west, south, east, north] = bbox;
-  const all = fs.readdirSync(demDir).filter(f =>
-    DEM_EXTENSIONS.some(ext => f.toLowerCase().endsWith(ext))
-  );
+  const all = fs.readdirSync(demDir).filter(f => DEM_EXTENSIONS.some(ext => f.toLowerCase().endsWith(ext)));
 
   const unparsed = all.filter(f => demTileCorner(f) === null);
   const overlapping = all.filter(f => {
@@ -442,14 +447,8 @@ function featureCount(filePath: string): number {
  * per-tier classify+clip, then tippecanoe — here writing PMTiles directly
  * instead of merging hundreds of cells.
  */
-function buildVariant(
-  variant: Variant,
-  args: CliArgs,
-  runDir: string
-): VariantResult {
-  const demDir = variant.demDir
-    ? path.resolve(PROJECT_ROOT, variant.demDir)
-    : args.demDir;
+function buildVariant(variant: Variant, args: CliArgs, runDir: string): VariantResult {
+  const demDir = variant.demDir ? path.resolve(PROJECT_ROOT, variant.demDir) : args.demDir;
   const tr = trForScale(variant.warpScale);
   const result: VariantResult = {
     name: variant.name,
@@ -503,38 +502,46 @@ function buildVariant(
   // 2: Clip + resample in one warp. Buffered extent so the resampling kernel
   //    sees the same neighbourhood the production cell build gives it.
   const [, warpMs] = timed(() => {
-    run([
-      'gdalwarp',
-      '-overwrite',
-      `-te ${west - CELL_BUFFER_DEG} ${south - CELL_BUFFER_DEG} ${east + CELL_BUFFER_DEG} ${north + CELL_BUFFER_DEG}`,
-      `-r ${variant.resampling}`,
-      `-tr ${tr} ${tr}`,
-      // -tap keeps every warp on the same global -tr lattice, so variants that
-      // share a warpScale sample the DEM at identical points and differences on
-      // the compare page are the settings, not a sub-pixel grid offset.
-      '-tap',
-      '-dstnodata -9999',
-      '-co COMPRESS=LZW',
-      '-co TILED=YES',
-      '-co BIGTIFF=YES',
-      `"${vrtPath}"`,
-      `"${demPath}"`,
-    ].join(' '), { verbose: args.verbose });
+    run(
+      [
+        'gdalwarp',
+        '-overwrite',
+        `-te ${west - CELL_BUFFER_DEG} ${south - CELL_BUFFER_DEG} ${east + CELL_BUFFER_DEG} ${north + CELL_BUFFER_DEG}`,
+        `-r ${variant.resampling}`,
+        `-tr ${tr} ${tr}`,
+        // -tap keeps every warp on the same global -tr lattice, so variants that
+        // share a warpScale sample the DEM at identical points and differences on
+        // the compare page are the settings, not a sub-pixel grid offset.
+        '-tap',
+        '-dstnodata -9999',
+        '-co COMPRESS=LZW',
+        '-co TILED=YES',
+        '-co BIGTIFF=YES',
+        `"${vrtPath}"`,
+        `"${demPath}"`,
+      ].join(' '),
+      { verbose: args.verbose }
+    );
   });
-  console.log(`    warp:   ${formatBytes(fs.statSync(demPath).size)} @ tr=${tr} ${variant.resampling} (${(warpMs / 1000).toFixed(1)}s)`);
+  console.log(
+    `    warp:   ${formatBytes(fs.statSync(demPath).size)} @ tr=${tr} ${variant.resampling} (${(warpMs / 1000).toFixed(1)}s)`
+  );
 
   // 3: Contours
   const [, contourMs] = timed(() => {
     if (fs.existsSync(rawPath)) fs.unlinkSync(rawPath);
-    run([
-      'gdal_contour',
-      '-a elevation',
-      `-i ${CONTOUR_INTERVAL}`,
-      '-snodata -9999',
-      '-f FlatGeobuf',
-      `"${demPath}"`,
-      `"${rawPath}"`,
-    ].join(' '), { verbose: args.verbose });
+    run(
+      [
+        'gdal_contour',
+        '-a elevation',
+        `-i ${CONTOUR_INTERVAL}`,
+        '-snodata -9999',
+        '-f FlatGeobuf',
+        `"${demPath}"`,
+        `"${rawPath}"`,
+      ].join(' '),
+      { verbose: args.verbose }
+    );
   });
   const features = featureCount(rawPath);
   console.log(`    contour: ${features} features (${(contourMs / 1000).toFixed(1)}s)`);
@@ -545,20 +552,23 @@ function buildVariant(
     for (const tier of TIERS) {
       const tierPath = path.join(workDir, `${tier.suffix}.fgb`);
       if (fs.existsSync(tierPath)) fs.unlinkSync(tierPath);
-      run([
-        'ogr2ogr',
-        '-f FlatGeobuf',
-        `"${tierPath}"`,
-        `"${rawPath}"`,
-        `-nln ${CLASSIFIED_LAYER}`,
-        // Clipping can split a contour into a MultiLineString; promote the
-        // layer type so mixed geometries write cleanly.
-        '-nlt PROMOTE_TO_MULTI',
-        `-clipsrc ${west} ${south} ${east} ${north}`,
-        '-dialect sqlite',
-        '-sql',
-        `"SELECT geometry, elevation, CAST(CASE WHEN (CAST(elevation AS INTEGER) % ${INDEX_CONTOUR_INTERVAL}) = 0 THEN 1 ELSE 0 END AS INTEGER) AS is_index FROM 'contour' WHERE ${tier.where}"`,
-      ].join(' '), { verbose: args.verbose });
+      run(
+        [
+          'ogr2ogr',
+          '-f FlatGeobuf',
+          `"${tierPath}"`,
+          `"${rawPath}"`,
+          `-nln ${CLASSIFIED_LAYER}`,
+          // Clipping can split a contour into a MultiLineString; promote the
+          // layer type so mixed geometries write cleanly.
+          '-nlt PROMOTE_TO_MULTI',
+          `-clipsrc ${west} ${south} ${east} ${north}`,
+          '-dialect sqlite',
+          '-sql',
+          `"SELECT geometry, elevation, CAST(CASE WHEN (CAST(elevation AS INTEGER) % ${INDEX_CONTOUR_INTERVAL}) = 0 THEN 1 ELSE 0 END AS INTEGER) AS is_index FROM 'contour' WHERE ${tier.where}"`,
+        ].join(' '),
+        { verbose: args.verbose }
+      );
       tiers.push({
         suffix: tier.suffix,
         minZoom: tier.minZoom,
@@ -585,22 +595,31 @@ function buildVariant(
 
   const [, tippecanoeMs] = timed(() => {
     if (fs.existsSync(tieredPath)) fs.unlinkSync(tieredPath);
-    execFileSync('tippecanoe', [
-      '-t', tmpDir,
-      '-o', tieredPath,
-      ...contourTippecanoeArgs({
-        simplification: variant.simplification,
-        minimumDetail: variant.minimumDetail,
-        simplifyOnlyLowZooms: variant.simplifyOnlyLowZooms,
-        maxTileBytes: variant.maxTileBytes,
-        visvalingam: variant.visvalingam,
-        tiered: variant.tiered,
-      }, { verbose: args.verbose }),
-      ...layerArgs,
-    ], {
-      cwd: PROJECT_ROOT,
-      stdio: ['ignore', 'inherit', 'inherit'],
-    });
+    execFileSync(
+      'tippecanoe',
+      [
+        '-t',
+        tmpDir,
+        '-o',
+        tieredPath,
+        ...contourTippecanoeArgs(
+          {
+            simplification: variant.simplification,
+            minimumDetail: variant.minimumDetail,
+            simplifyOnlyLowZooms: variant.simplifyOnlyLowZooms,
+            maxTileBytes: variant.maxTileBytes,
+            visvalingam: variant.visvalingam,
+            tiered: variant.tiered,
+          },
+          { verbose: args.verbose }
+        ),
+        ...layerArgs,
+      ],
+      {
+        cwd: PROJECT_ROOT,
+        stdio: ['ignore', 'inherit', 'inherit'],
+      }
+    );
     renameContourTiers(tieredPath, pmtilesPath, { verbose: args.verbose });
   });
 
@@ -619,7 +638,9 @@ function buildVariant(
     tippecanoeMs,
     totalMs: Date.now() - totalStart,
   };
-  console.log(`    ✓ ${result.pmtiles} — ${formatBytes(result.pmtilesBytes)} in ${(result.timings.totalMs / 1000).toFixed(1)}s`);
+  console.log(
+    `    ✓ ${result.pmtiles} — ${formatBytes(result.pmtilesBytes)} in ${(result.timings.totalMs / 1000).toFixed(1)}s`
+  );
   return result;
 }
 
@@ -637,9 +658,7 @@ function prodContourLayers(): Record<string, unknown>[] {
   const style = JSON.parse(fs.readFileSync(TOPO_STYLE_PATH, 'utf8')) as {
     layers: Record<string, unknown>[];
   };
-  return style.layers
-    .filter(l => l.source === 'contour' && l.type === 'line')
-    .map(l => ({ ...l, source: 'contours' }));
+  return style.layers.filter(l => l.source === 'contour' && l.type === 'line').map(l => ({ ...l, source: 'contours' }));
 }
 
 function settingsLabel(v: VariantResult): string {
@@ -845,18 +864,18 @@ async function main(): Promise<void> {
     for (const v of VARIANTS) {
       const tr = trForScale(v.warpScale);
       console.log(`  ${v.name.padEnd(16)} ${v.description}`);
-      console.log(`  ${''.padEnd(16)} warp ${v.warpScale}x (tr=${tr}) ${v.resampling}, ` +
-        `simplification=${v.simplification}, minimum-detail=${v.minimumDetail}, ` +
-        `simplify-only-low-zooms=${v.simplifyOnlyLowZooms}, ` +
-        `maximum-tile-bytes=${v.maxTileBytes ?? 'default'}, visvalingam=${v.visvalingam}, ` +
-        `tiered=${v.tiered}, dem=${v.demDir ?? '--dem-dir'}`);
+      console.log(
+        `  ${''.padEnd(16)} warp ${v.warpScale}x (tr=${tr}) ${v.resampling}, ` +
+          `simplification=${v.simplification}, minimum-detail=${v.minimumDetail}, ` +
+          `simplify-only-low-zooms=${v.simplifyOnlyLowZooms}, ` +
+          `maximum-tile-bytes=${v.maxTileBytes ?? 'default'}, visvalingam=${v.visvalingam}, ` +
+          `tiered=${v.tiered}, dem=${v.demDir ?? '--dem-dir'}`
+      );
     }
     return;
   }
 
-  const selected = args.variants
-    ? VARIANTS.filter(v => args.variants!.includes(v.name))
-    : VARIANTS;
+  const selected = args.variants ? VARIANTS.filter(v => args.variants!.includes(v.name)) : VARIANTS;
 
   const runDir = path.join(EXPERIMENTS_DIR, args.run);
 
@@ -894,10 +913,7 @@ async function main(): Promise<void> {
   };
 
   const writeResults = (): void => {
-    fs.writeFileSync(
-      path.join(runDir, 'results.json'),
-      JSON.stringify(results, null, 2)
-    );
+    fs.writeFileSync(path.join(runDir, 'results.json'), JSON.stringify(results, null, 2));
   };
 
   for (let i = 0; i < selected.length; i++) {
@@ -915,9 +931,10 @@ async function main(): Promise<void> {
         status: 'failed',
         note: message.split('\n')[0],
         settings: {
-          demDir: path.relative(PROJECT_ROOT, variant.demDir
-            ? path.resolve(PROJECT_ROOT, variant.demDir)
-            : args.demDir),
+          demDir: path.relative(
+            PROJECT_ROOT,
+            variant.demDir ? path.resolve(PROJECT_ROOT, variant.demDir) : args.demDir
+          ),
           warpScale: variant.warpScale,
           trDeg: trForScale(variant.warpScale),
           resampling: variant.resampling,
@@ -953,8 +970,10 @@ async function main(): Promise<void> {
   console.log('═'.repeat(60));
   for (const v of results.variants) {
     if (v.status === 'ok') {
-      console.log(`  ${v.name.padEnd(16)} ${formatBytes(v.pmtilesBytes ?? 0).padStart(10)}  ` +
-        `${((v.timings?.totalMs ?? 0) / 1000).toFixed(1)}s  ${v.featureCount} contours`);
+      console.log(
+        `  ${v.name.padEnd(16)} ${formatBytes(v.pmtilesBytes ?? 0).padStart(10)}  ` +
+          `${((v.timings?.totalMs ?? 0) / 1000).toFixed(1)}s  ${v.featureCount} contours`
+      );
     } else {
       console.log(`  ${v.name.padEnd(16)} ${v.status}${v.note ? ' — ' + v.note : ''}`);
     }
@@ -965,7 +984,7 @@ async function main(): Promise<void> {
   if (ok.length === 0) process.exit(1);
 }
 
-main().catch((error) => {
+main().catch(error => {
   console.error('Fatal error:', error);
   process.exit(1);
 });

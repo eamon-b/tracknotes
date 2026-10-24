@@ -29,12 +29,12 @@ describe('plan-format', () => {
 });
 
 describe('dryStretchBadge', () => {
-  it('names the threshold in the hiker\'s unit', () => {
+  it("names the threshold in the hiker's unit", () => {
     expect(dryStretchBadge(15, 'km')).toBe('Dry ≥ 15 km');
     expect(dryStretchBadge(15, 'mi')).toBe('Dry ≥ 9.3 mi');
   });
 
-  it('names the hiker\'s own threshold, not a fixed one', () => {
+  it("names the hiker's own threshold, not a fixed one", () => {
     expect(dryStretchBadge(25, 'km')).toBe('Dry ≥ 25 km');
   });
 

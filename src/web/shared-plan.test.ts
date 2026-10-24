@@ -102,7 +102,15 @@ function installFetchStub(): void {
         method === 'GET'
           ? {
               plans: accountPlan
-                ? [{ id: accountPlan.id, trailId: TRAIL_ID, document: accountPlan, shareId: null, updatedAt: accountPlan.updatedAt }]
+                ? [
+                    {
+                      id: accountPlan.id,
+                      trailId: TRAIL_ID,
+                      document: accountPlan,
+                      shareId: null,
+                      updatedAt: accountPlan.updatedAt,
+                    },
+                  ]
                 : [],
               nextCursor: null,
               syncedAt: 'now',
@@ -123,8 +131,7 @@ function installFetchStub(): void {
         ok: sharedReply.status >= 200 && sharedReply.status < 300,
         status: sharedReply.status,
         statusText: '',
-        text: async () =>
-          sharedReply.body === undefined ? '' : JSON.stringify(sharedReply.body),
+        text: async () => (sharedReply.body === undefined ? '' : JSON.stringify(sharedReply.body)),
       } as unknown as Response;
     }
     if (full === `${API}/v1/community/routes/${ROUTE_ID}`) {
@@ -155,11 +162,9 @@ async function boot(search = `?s=${SHARE_ID}`, page = '/shared-plan.html'): Prom
   const html = inlinePlanShell(
     fs.readFileSync(path.join(ROOT, 'src/web/shared-plan.html'), 'utf8'),
     fs.readFileSync(path.join(ROOT, 'src/web/trails/plan-shell.html'), 'utf8'),
-    SHARED_PLAN_FILLS,
+    SHARED_PLAN_FILLS
   );
-  document.documentElement.innerHTML = html
-    .replace(/<!DOCTYPE html>/i, '')
-    .replace(/<\/?html[^>]*>/gi, '');
+  document.documentElement.innerHTML = html.replace(/<!DOCTYPE html>/i, '').replace(/<\/?html[^>]*>/gi, '');
   window.history.replaceState({}, '', `${page}${search}`);
 
   vi.resetModules();
@@ -197,7 +202,7 @@ afterEach(() => {
 const linkBrowser = (): void => {
   localStorage.setItem(
     'tracknotes.webSession',
-    JSON.stringify({ userId: 'u1', token: 'tok', displayName: 'Robin', expiresAt: null }),
+    JSON.stringify({ userId: 'u1', token: 'tok', displayName: 'Robin', expiresAt: null })
   );
 };
 
@@ -228,9 +233,7 @@ describe('the shared plan page', () => {
 
     expect($('shared-by').textContent).toBe(`Shared by ${HOSTILE_NAME}`);
     expect(($('open-in-app') as HTMLAnchorElement).hidden).toBe(false);
-    expect(($('open-in-app') as HTMLAnchorElement).getAttribute('href')).toBe(
-      `tracknotes://plan/${SHARE_ID}`,
-    );
+    expect(($('open-in-app') as HTMLAnchorElement).getAttribute('href')).toBe(`tracknotes://plan/${SHARE_ID}`);
     // Not linked, so there is nowhere to copy it to.
     expect($('copy-to-plans').hidden).toBe(true);
   });
@@ -298,7 +301,7 @@ describe('the shared plan page', () => {
   it('offers to copy the plan once this browser is linked', async () => {
     localStorage.setItem(
       'tracknotes.webSession',
-      JSON.stringify({ userId: 'u1', token: 'tok', displayName: 'Robin', expiresAt: null }),
+      JSON.stringify({ userId: 'u1', token: 'tok', displayName: 'Robin', expiresAt: null })
     );
     await boot();
 
@@ -399,9 +402,7 @@ describe('the shared plan page', () => {
     await boot();
 
     expect($('plan-missing').hidden).toBe(false);
-    expect($('plan-missing-detail').textContent).toBe(
-      'This plan is for a trail this site does not have.',
-    );
+    expect($('plan-missing-detail').textContent).toBe('This plan is for a trail this site does not have.');
   });
 
   it('asks for a link when there is none', async () => {

@@ -15,12 +15,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { formatDistance, formatElevation } from '@lib/format-distance';
 import type { ComputedDay } from '@lib/plan-types';
-import {
-  OSM_ATTRIBUTION,
-  poiCategoryLabel,
-  poiDisplayName,
-  poiRouteKey,
-} from '@lib/poi-display';
+import { OSM_ATTRIBUTION, poiCategoryLabel, poiDisplayName, poiRouteKey } from '@lib/poi-display';
 import type { TrailPOI } from '@lib/trail-types';
 import { waypointTypeLabel } from '@lib/waypoint-taxonomy';
 import { useTheme } from '../../theme';
@@ -68,7 +63,10 @@ export function DayWaypointList({
       ListHeaderComponent={
         <View style={styles.header}>
           <View
-            style={[styles.summary, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            style={[
+              styles.summary,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
             accessible
             accessibilityLabel={`Day ${day.dayNumber}, ${day.startName} to ${day.endName}, ${formatDistance(day.distanceKm, units)}`}
           >

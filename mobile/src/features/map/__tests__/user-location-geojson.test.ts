@@ -1,7 +1,4 @@
-import {
-  buildUserLocationGeoJSON,
-  accuracyCircleRadiusExpression,
-} from '../map-geojson';
+import { buildUserLocationGeoJSON, accuracyCircleRadiusExpression } from '../map-geojson';
 
 describe('buildUserLocationGeoJSON', () => {
   it('places a point feature in [lon, lat] order with accuracy', () => {
@@ -30,7 +27,7 @@ describe('accuracyCircleRadiusExpression', () => {
     expect(expr[expr.length - 2]).toBe(20);
   });
 
-  it('draws the fix at its real ground radius on MapLibre Native\'s 512-point tiles', () => {
+  it("draws the fix at its real ground radius on MapLibre Native's 512-point tiles", () => {
     // At the equator, zoom 16: 40,075,016.686 m / (512 · 2^16) ≈ 1.194 m per
     // point, so a ±30 m fix is ≈ 25.1 points — not the ≈ 12.6 a 256-px
     // tile formula gives, which drew the uncertainty at half its size.
@@ -44,7 +41,11 @@ describe('accuracyCircleRadiusExpression', () => {
   it('grows the radius away from the equator, where a point covers less ground', () => {
     const ppmAt = (lat: number) => {
       const expr = accuracyCircleRadiusExpression(lat);
-      const value = expr[expr.indexOf(16) + 1] as [string, number, [string, number, [string, unknown, number]]];
+      const value = expr[expr.indexOf(16) + 1] as [
+        string,
+        number,
+        [string, number, [string, unknown, number]],
+      ];
       return value[2][2][2];
     };
     // cos(60°) = 0.5: twice the points per metre.

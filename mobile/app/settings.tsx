@@ -35,11 +35,7 @@ export default function SettingsScreen() {
     >
       <View style={styles.section}>
         <Text style={[styles.label, { color: colors.textSecondary }]}>Units</Text>
-        <SegmentedControl<Units>
-          options={UNIT_OPTIONS}
-          value={units}
-          onChange={setUnits}
-        />
+        <SegmentedControl<Units> options={UNIT_OPTIONS} value={units} onChange={setUnits} />
       </View>
 
       <GuideUpdatesSection />

@@ -88,7 +88,12 @@ describe('saveUserWaypoint', () => {
     expect(calls).toHaveLength(0);
     expect(waypoint.id).toMatch(/^hw_/);
     expect(await userWaypointsRepo.listForTrail(d, 'heysen')).toEqual([
-      expect.objectContaining({ id: waypoint.id, visibility: 'private', mine: true, source: 'local' }),
+      expect.objectContaining({
+        id: waypoint.id,
+        visibility: 'private',
+        mine: true,
+        source: 'local',
+      }),
     ]);
     expect(await outboxRepo.count(d)).toBe(0);
     expect(events).toEqual([{ trailId: 'heysen', userWaypoints: true }]);
@@ -97,7 +102,10 @@ describe('saveUserWaypoint', () => {
   it('refuses invalid input and sharing on an imported trail', async () => {
     const d = await db();
     await expect(
-      saveUserWaypoint({ trailId: 'heysen', input: { ...INPUT, name: ' ' }, visibility: 'private' }, { db: d }),
+      saveUserWaypoint(
+        { trailId: 'heysen', input: { ...INPUT, name: ' ' }, visibility: 'private' },
+        { db: d },
+      ),
     ).rejects.toThrow('Give the waypoint a name.');
     await expect(
       saveUserWaypoint({ trailId: 'u_mine', input: INPUT, visibility: 'shared' }, { db: d }),
@@ -118,7 +126,14 @@ describe('saveUserWaypoint', () => {
       {
         url: `/v1/waypoints/${waypoint.id}`,
         method: 'PUT',
-        body: { trailId: 'heysen', name: 'Creek', type: 'water', lat: -34.5, lon: 138.5, description: 'Pools' },
+        body: {
+          trailId: 'heysen',
+          name: 'Creek',
+          type: 'water',
+          lat: -34.5,
+          lon: 138.5,
+          description: 'Pools',
+        },
       },
     ]);
     expect(await userWaypointsRepo.getById(d, waypoint.id)).toMatchObject({
@@ -133,10 +148,18 @@ describe('saveUserWaypoint', () => {
     const d = await db();
     const { fetchImpl } = routedFetch(() => 'offline');
     const deps = { db: d, baseUrl: BASE, fetchImpl, getSessionFn };
-    const first = await saveUserWaypoint({ trailId: 'heysen', input: INPUT, visibility: 'shared' }, deps);
+    const first = await saveUserWaypoint(
+      { trailId: 'heysen', input: INPUT, visibility: 'shared' },
+      deps,
+    );
     await first.drain;
     const second = await saveUserWaypoint(
-      { trailId: 'heysen', existing: first.waypoint, input: { ...INPUT, name: 'Creek (flowing)' }, visibility: 'shared' },
+      {
+        trailId: 'heysen',
+        existing: first.waypoint,
+        input: { ...INPUT, name: 'Creek (flowing)' },
+        visibility: 'shared',
+      },
       deps,
     );
     await second.drain;
@@ -153,7 +176,10 @@ describe('saveUserWaypoint', () => {
         : { status: 204 },
     );
     const deps = { db: d, baseUrl: BASE, fetchImpl, getSessionFn };
-    const shared = await saveUserWaypoint({ trailId: 'heysen', input: INPUT, visibility: 'shared' }, deps);
+    const shared = await saveUserWaypoint(
+      { trailId: 'heysen', input: INPUT, visibility: 'shared' },
+      deps,
+    );
     await shared.drain;
     const made = await saveUserWaypoint(
       { trailId: 'heysen', existing: { ...shared.waypoint }, input: INPUT, visibility: 'private' },
@@ -196,9 +222,15 @@ describe('saveUserWaypoint', () => {
         : { body: {} };
     });
     const deps = { db: d, baseUrl: BASE, fetchImpl, getSessionFn };
-    const a = await saveUserWaypoint({ trailId: 'heysen', input: INPUT, visibility: 'shared' }, deps);
+    const a = await saveUserWaypoint(
+      { trailId: 'heysen', input: INPUT, visibility: 'shared' },
+      deps,
+    );
     await a.drain;
-    const b = await saveUserWaypoint({ trailId: 'larapinta', input: INPUT, visibility: 'shared' }, deps);
+    const b = await saveUserWaypoint(
+      { trailId: 'larapinta', input: INPUT, visibility: 'shared' },
+      deps,
+    );
     await b.drain;
     online = true;
     const events: SyncChange[] = [];
@@ -215,7 +247,10 @@ describe('deleteUserWaypoint', () => {
     const d = await db();
     const { fetchImpl, calls } = routedFetch(() => ({}));
     const deps = { db: d, baseUrl: BASE, fetchImpl, getSessionFn };
-    const { waypoint } = await saveUserWaypoint({ trailId: 'heysen', input: INPUT, visibility: 'private' }, deps);
+    const { waypoint } = await saveUserWaypoint(
+      { trailId: 'heysen', input: INPUT, visibility: 'private' },
+      deps,
+    );
     await favoritesRepo.toggle(d, 'heysen', waypoint.id);
     const { drain } = await deleteUserWaypoint(waypoint, deps);
     expect(drain).toBeNull();
@@ -231,7 +266,10 @@ describe('deleteUserWaypoint', () => {
       online ? { status: 404, body: { error: { code: 'not_found', message: 'x' } } } : 'offline',
     );
     const deps = { db: d, baseUrl: BASE, fetchImpl, getSessionFn };
-    const saved = await saveUserWaypoint({ trailId: 'heysen', input: INPUT, visibility: 'shared' }, deps);
+    const saved = await saveUserWaypoint(
+      { trailId: 'heysen', input: INPUT, visibility: 'shared' },
+      deps,
+    );
     await saved.drain;
     online = true;
     const { drain } = await deleteUserWaypoint(saved.waypoint, deps);
@@ -244,7 +282,20 @@ describe('deleteUserWaypoint', () => {
     const d = await db();
     await expect(
       deleteUserWaypoint(
-        { id: 'hw_x', trailId: 'heysen', name: 'A', type: 'water', lat: 0, lon: 0, description: '', visibility: 'shared', mine: false, authorName: 'B', createdAt: '', updatedAt: '' },
+        {
+          id: 'hw_x',
+          trailId: 'heysen',
+          name: 'A',
+          type: 'water',
+          lat: 0,
+          lon: 0,
+          description: '',
+          visibility: 'shared',
+          mine: false,
+          authorName: 'B',
+          createdAt: '',
+          updatedAt: '',
+        },
         { db: d },
       ),
     ).rejects.toThrow();
@@ -267,7 +318,10 @@ describe('comments on a hiker waypoint', () => {
         return { status, body: serverCopy(id) };
       }
       if (call.method === 'POST' && call.url.endsWith('/photos')) {
-        return { status: 201, body: { photoUrl: 'https://cdn/p.jpg', photoUrls: ['https://cdn/p.jpg'] } };
+        return {
+          status: 201,
+          body: { photoUrl: 'https://cdn/p.jpg', photoUrls: ['https://cdn/p.jpg'] },
+        };
       }
       if (call.method === 'PUT' && call.url.startsWith('/v1/comments/')) {
         const body = call.body as { waypointId: string; text: string };
@@ -309,11 +363,21 @@ describe('comments on a hiker waypoint', () => {
     );
     await first.drain;
     const { id: commentId } = await submitComment(
-      { trailId: 'heysen', waypointId: first.waypoint.id, text: 'Pools were full', session: SESSION },
+      {
+        trailId: 'heysen',
+        waypointId: first.waypoint.id,
+        text: 'Pools were full',
+        session: SESSION,
+      },
       { ...deps, now: () => t0 + 1000 },
     );
     const edit = await saveUserWaypoint(
-      { trailId: 'heysen', existing: first.waypoint, input: { ...INPUT, name: 'Creek (full)' }, visibility: 'shared' },
+      {
+        trailId: 'heysen',
+        existing: first.waypoint,
+        input: { ...INPUT, name: 'Creek (full)' },
+        visibility: 'shared',
+      },
       { ...deps, now: () => t0 + 2000 },
     );
     await edit.drain;
@@ -330,7 +394,10 @@ describe('comments on a hiker waypoint', () => {
     const d = await db();
     const { fetchImpl, calls } = sharingServer(() => 503);
     const deps = { db: d, baseUrl: BASE, fetchImpl, getSessionFn };
-    const saved = await saveUserWaypoint({ trailId: 'heysen', input: INPUT, visibility: 'shared' }, deps);
+    const saved = await saveUserWaypoint(
+      { trailId: 'heysen', input: INPUT, visibility: 'shared' },
+      deps,
+    );
     await saved.drain;
     const { id: commentId } = await submitComment(
       { trailId: 'heysen', waypointId: saved.waypoint.id, text: 'Dry', session: SESSION },
@@ -345,7 +412,10 @@ describe('comments on a hiker waypoint', () => {
     const d = await db();
     const { fetchImpl, calls } = sharingServer(() => 429);
     const deps = { db: d, baseUrl: BASE, fetchImpl, getSessionFn };
-    const saved = await saveUserWaypoint({ trailId: 'heysen', input: INPUT, visibility: 'shared' }, deps);
+    const saved = await saveUserWaypoint(
+      { trailId: 'heysen', input: INPUT, visibility: 'shared' },
+      deps,
+    );
     await saved.drain;
     const shareRow = (await outboxRepo.listPending(d)).find((r) => r.kind === 'waypoint');
     expect(shareRow?.status).toBe('failed');
@@ -396,7 +466,13 @@ describe('comments on a hiker waypoint', () => {
       kind: 'comment',
       trailId: 'heysen',
       waypointId: saved.waypoint.id,
-      payload: { trailId: 'heysen', waypointId: saved.waypoint.id, text: 'Tank full', waterStatus: null, observedAt: null },
+      payload: {
+        trailId: 'heysen',
+        waypointId: saved.waypoint.id,
+        text: 'Tank full',
+        waterStatus: null,
+        observedAt: null,
+      },
       createdAt: at(1000),
     });
     await outboxRepo.enqueue(d, {
@@ -407,7 +483,11 @@ describe('comments on a hiker waypoint', () => {
       payload: { commentId, localUri: 'file:///p.jpg', contentType: 'image/jpeg' },
       createdAt: at(0),
     });
-    expect((await outboxRepo.listPending(d)).map((r) => r.kind)).toEqual(['photo', 'comment', 'waypoint']);
+    expect((await outboxRepo.listPending(d)).map((r) => r.kind)).toEqual([
+      'photo',
+      'comment',
+      'waypoint',
+    ]);
 
     online = true;
     const result = await drainOutbox({
@@ -434,14 +514,31 @@ describe('reportUserWaypoint', () => {
     }));
     await reportUserWaypoint(
       {
-        waypoint: { id: 'hw_x', trailId: 'heysen', name: 'A', type: 'water', lat: 0, lon: 0, description: '', visibility: 'shared', mine: false, authorName: 'B', createdAt: '', updatedAt: '' },
+        waypoint: {
+          id: 'hw_x',
+          trailId: 'heysen',
+          name: 'A',
+          type: 'water',
+          lat: 0,
+          lon: 0,
+          description: '',
+          visibility: 'shared',
+          mine: false,
+          authorName: 'B',
+          createdAt: '',
+          updatedAt: '',
+        },
         reason: 'inaccurate',
         detail: ' Dry since 2020 ',
       },
       { db: d, baseUrl: BASE, fetchImpl, getSessionFn },
     );
     expect(calls).toEqual([
-      { url: '/v1/waypoints/hw_x/report', method: 'POST', body: { reason: 'inaccurate', detail: 'Dry since 2020' } },
+      {
+        url: '/v1/waypoints/hw_x/report',
+        method: 'POST',
+        body: { reason: 'inaccurate', detail: 'Dry since 2020' },
+      },
     ]);
     expect(await outboxRepo.count(d)).toBe(0);
   });
@@ -450,8 +547,10 @@ describe('reportUserWaypoint', () => {
 describe('pullTrail — shared waypoints', () => {
   function pullFetch(waypoints: unknown[], syncedAt = '2026-10-02T00:00:00.000Z') {
     return routedFetch((call) => {
-      if (call.url.startsWith('/v1/trails/heysen/waypoints')) return { body: { waypoints, syncedAt } };
-      if (call.url.startsWith('/v1/trails/heysen/descriptions')) return { body: { descriptions: [], syncedAt } };
+      if (call.url.startsWith('/v1/trails/heysen/waypoints'))
+        return { body: { waypoints, syncedAt } };
+      if (call.url.startsWith('/v1/trails/heysen/descriptions'))
+        return { body: { descriptions: [], syncedAt } };
       return { body: { comments: [], nextCursor: null, syncedAt } };
     });
   }
@@ -466,11 +565,19 @@ describe('pullTrail — shared waypoints', () => {
     const read = first.calls.find((c) => c.url.includes('/waypoints'))!;
     expect(read.url).toBe('/v1/trails/heysen/waypoints');
     expect(await userWaypointsRepo.listForTrail(d, 'heysen')).toEqual([
-      expect.objectContaining({ id: 'hw_a', visibility: 'shared', mine: false, authorName: 'Ana', source: 'server' }),
+      expect.objectContaining({
+        id: 'hw_a',
+        visibility: 'shared',
+        mine: false,
+        authorName: 'Ana',
+        source: 'server',
+      }),
     ]);
     expect(events).toEqual([expect.objectContaining({ trailId: 'heysen', userWaypoints: true })]);
 
-    const second = pullFetch([{ id: 'hw_a', deleted: true, updatedAt: '2026-10-03T00:00:00.000Z' }]);
+    const second = pullFetch([
+      { id: 'hw_a', deleted: true, updatedAt: '2026-10-03T00:00:00.000Z' },
+    ]);
     await pullTrail('heysen', { db: d, baseUrl: BASE, fetchImpl: second.fetchImpl, getSessionFn });
     expect(second.calls.find((c) => c.url.includes('/waypoints'))!.url).toBe(
       `/v1/trails/heysen/waypoints?since=${encodeURIComponent('2026-10-02T00:00:00.000Z')}`,
@@ -482,7 +589,9 @@ describe('pullTrail — shared waypoints', () => {
     const d = await db();
     const first = pullFetch([serverCopy('hw_mine')]);
     await pullTrail('heysen', { db: d, baseUrl: BASE, fetchImpl: first.fetchImpl, getSessionFn });
-    const second = pullFetch([{ id: 'hw_mine', deleted: true, updatedAt: '2026-10-03T00:00:00.000Z' }]);
+    const second = pullFetch([
+      { id: 'hw_mine', deleted: true, updatedAt: '2026-10-03T00:00:00.000Z' },
+    ]);
     await pullTrail('heysen', { db: d, baseUrl: BASE, fetchImpl: second.fetchImpl, getSessionFn });
     expect(await userWaypointsRepo.getById(d, 'hw_mine')).toMatchObject({
       visibility: 'private',
@@ -495,7 +604,13 @@ describe('pullTrail — shared waypoints', () => {
     const { fetchImpl, calls } = routedFetch((call) => {
       if (call.url.startsWith('/v1/trails/heysen/waypoints')) {
         return call.url.includes('cursor=')
-          ? { body: { waypoints: [serverCopy('hw_b', { mine: false })], nextCursor: null, syncedAt: 'later' } }
+          ? {
+              body: {
+                waypoints: [serverCopy('hw_b', { mine: false })],
+                nextCursor: null,
+                syncedAt: 'later',
+              },
+            }
           : {
               body: {
                 waypoints: [serverCopy('hw_a', { mine: false })],

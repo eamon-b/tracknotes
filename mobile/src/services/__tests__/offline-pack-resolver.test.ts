@@ -153,9 +153,7 @@ describe('bundledPackCandidates', () => {
   afterAll(resetBundledPackCandidates);
 
   it('covers every bundled trail, in bundle order', () => {
-    expect(bundledPackCandidates().map((c) => c.trailId)).toEqual(
-      listTrails().map((t) => t.id),
-    );
+    expect(bundledPackCandidates().map((c) => c.trailId)).toEqual(listTrails().map((t) => t.id));
   });
 
   it('memoises the table', () => {

@@ -27,7 +27,12 @@ const snap = (km: number): RoutePointInput => {
   const p = TRACK.find((t) => t.dist === km)!;
   return { kind: 'snap', lat: p.lat, lon: p.lon, km };
 };
-const sketch = (lat: number, lon: number): RoutePointInput => ({ kind: 'sketch', lat, lon, km: null });
+const sketch = (lat: number, lon: number): RoutePointInput => ({
+  kind: 'sketch',
+  lat,
+  lon,
+  km: null,
+});
 
 describe('classifyTap', () => {
   it('snaps a tap within the threshold to the nearest track point', () => {
@@ -185,9 +190,29 @@ describe('route breaks', () => {
       }),
     );
     expect(lines).toEqual([
-      { straight: false, coordinates: [[0, 0], [0.01, 0], [0.02, 0]] },
-      { straight: true, coordinates: [[0.02, 0], [0.5, 0]] },
-      { straight: false, coordinates: [[0.5, 0], [0.51, 0], [0.52, 0]] },
+      {
+        straight: false,
+        coordinates: [
+          [0, 0],
+          [0.01, 0],
+          [0.02, 0],
+        ],
+      },
+      {
+        straight: true,
+        coordinates: [
+          [0.02, 0],
+          [0.5, 0],
+        ],
+      },
+      {
+        straight: false,
+        coordinates: [
+          [0.5, 0],
+          [0.51, 0],
+          [0.52, 0],
+        ],
+      },
     ]);
   });
 
@@ -227,8 +252,8 @@ describe('route km across a direction flip', () => {
   it('draws the overlay over the same ground after a flip', () => {
     const tapped = [classifyTap(0, 0.03, SOBO_TRACK), classifyTap(0, 0.01, SOBO_TRACK)];
     const saved = routePointsToNobo(tapped, 'SOBO', 4);
-    const line = buildRouteOverlayGeoJSON(routePointsToActive(saved, 'NOBO', 4), TRACK)
-      .features[0].geometry as GeoJSON.LineString;
+    const line = buildRouteOverlayGeoJSON(routePointsToActive(saved, 'NOBO', 4), TRACK).features[0]
+      .geometry as GeoJSON.LineString;
     const lons = line.coordinates.map(([lon]) => lon).sort();
     expect(lons).toEqual([0.01, 0.02, 0.03]);
   });

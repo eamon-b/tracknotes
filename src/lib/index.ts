@@ -49,31 +49,14 @@ export {
 
 // Route Breaks
 export type { RouteBreakCrossing, SplittablePoint } from './route-breaks';
-export {
-  routeBreakCrossings,
-  routeBreakStarts,
-  sliceAcrossRouteBreaks,
-  splitAtRouteBreaks,
-} from './route-breaks';
+export { routeBreakCrossings, routeBreakStarts, sliceAcrossRouteBreaks, splitAtRouteBreaks } from './route-breaks';
 
 // Waypoint Dedupe
-export type {
-  DedupableWaypoint,
-  WaypointDedupeOptions,
-  WaypointDedupeResult,
-  WaypointMerge,
-} from './waypoint-dedupe';
-export {
-  dedupeNearDuplicateWaypoints,
-  WAYPOINT_DEDUPE_DEFAULT_RADIUS_METERS,
-} from './waypoint-dedupe';
+export type { DedupableWaypoint, WaypointDedupeOptions, WaypointDedupeResult, WaypointMerge } from './waypoint-dedupe';
+export { dedupeNearDuplicateWaypoints, WAYPOINT_DEDUPE_DEFAULT_RADIUS_METERS } from './waypoint-dedupe';
 
 // Waypoint Classification
-export type {
-  ClassificationResult,
-  WaypointPrefixRule,
-  WaypointKeywordRule,
-} from './waypoint-classifier';
+export type { ClassificationResult, WaypointPrefixRule, WaypointKeywordRule } from './waypoint-classifier';
 export {
   classifyWaypoint,
   inferWaypointTypeFromKeywords,

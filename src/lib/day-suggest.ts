@@ -193,15 +193,11 @@ function scoredRange(range: MetricRange | undefined): Scored | undefined {
   const max = typeof range.max === 'number' && Number.isFinite(range.max) ? range.max : Infinity;
   if (min === -Infinity && max === Infinity && range.target === undefined) return undefined;
   const target =
-    range.target ??
-    (Number.isFinite(min) && Number.isFinite(max) ? (min + max) / 2 : Number.isFinite(min) ? min : max);
+    range.target ?? (Number.isFinite(min) && Number.isFinite(max) ? (min + max) / 2 : Number.isFinite(min) ? min : max);
   // Half the band on the side furthest from the target, so either edge of an
   // off-centre range costs at most 1. A one-sided or zero-width range scales by
   // a quarter of the target instead — still unitless, still the hiker's figure.
-  const reach = Math.max(
-    Number.isFinite(min) ? target - min : 0,
-    Number.isFinite(max) ? max - target : 0,
-  );
+  const reach = Math.max(Number.isFinite(min) ? target - min : 0, Number.isFinite(max) ? max - target : 0);
   const scale = reach > 0 ? reach : Math.max(Math.abs(target) / 4, 1e-6);
   return { min, max, target, scale };
 }
@@ -229,12 +225,7 @@ const METRIC_KEYS = ['distanceKm', 'ascentM', 'hours'] as const;
  * before could have walked out itself — in which case every miss counts, a
  * shortfall below the minimum included.
  */
-function dayCost(
-  metrics: DayMetrics,
-  scored: ScoredCriteria,
-  final: boolean,
-  avoidable = false,
-): number | undefined {
+function dayCost(metrics: DayMetrics, scored: ScoredCriteria, final: boolean, avoidable = false): number | undefined {
   let cost = 0;
   for (const key of METRIC_KEYS) {
     const range = scored[key];

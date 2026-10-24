@@ -147,7 +147,8 @@ describe('VariantInfoCard', () => {
       onDismiss,
     });
     const close = tree.root.findAll(
-      (n) => (n.props as { accessibilityLabel?: string }).accessibilityLabel === 'Dismiss route details',
+      (n) =>
+        (n.props as { accessibilityLabel?: string }).accessibilityLabel === 'Dismiss route details',
     )[0];
     act(() => {
       (close.props as { onPress: () => void }).onPress();

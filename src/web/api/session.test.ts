@@ -35,7 +35,10 @@ function mockFetch(responses: Scripted[]) {
   const calls: Array<{ url: string; init: RequestInit }> = [];
   const impl = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
     calls.push({ url: String(url), init: init ?? {} });
-    const next = responses.shift() ?? { status: 500, body: { error: { code: 'unscripted', message: 'no response scripted' } } };
+    const next = responses.shift() ?? {
+      status: 500,
+      body: { error: { code: 'unscripted', message: 'no response scripted' } },
+    };
     return {
       ok: next.status >= 200 && next.status < 300,
       status: next.status,
@@ -114,12 +117,12 @@ describe('the device label', () => {
   it('names the browser and the system', () => {
     expect(
       defaultDeviceLabel(
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
-      ),
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36'
+      )
     ).toBe('Chrome on macOS');
-    expect(
-      defaultDeviceLabel('Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0'),
-    ).toBe('Firefox on Windows');
+    expect(defaultDeviceLabel('Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0')).toBe(
+      'Firefox on Windows'
+    );
     expect(defaultDeviceLabel('')).toBe('Browser');
   });
 });
@@ -214,8 +217,24 @@ describe('unlinking this browser', () => {
         status: 200,
         body: {
           devices: [
-            { id: 'aaaaaaaaaaaa', kind: 'primary', label: null, createdAt: '', lastSeenAt: null, expiresAt: null, current: false },
-            { id: 'bbbbbbbbbbbb', kind: 'linked', label: 'Chrome', createdAt: '', lastSeenAt: null, expiresAt: null, current: true },
+            {
+              id: 'aaaaaaaaaaaa',
+              kind: 'primary',
+              label: null,
+              createdAt: '',
+              lastSeenAt: null,
+              expiresAt: null,
+              current: false,
+            },
+            {
+              id: 'bbbbbbbbbbbb',
+              kind: 'linked',
+              label: 'Chrome',
+              createdAt: '',
+              lastSeenAt: null,
+              expiresAt: null,
+              current: true,
+            },
           ],
         },
       },
@@ -233,9 +252,7 @@ describe('unlinking this browser', () => {
 
   it('forgets the token even when the server says it is already gone', async () => {
     saveSession(session());
-    const { impl } = mockFetch([
-      { status: 401, body: { error: { code: 'unauthorized', message: 'no' } } },
-    ]);
+    const { impl } = mockFetch([{ status: 401, body: { error: { code: 'unauthorized', message: 'no' } } }]);
 
     const result = await unlinkThisBrowser(session(), { fetchImpl: impl });
 

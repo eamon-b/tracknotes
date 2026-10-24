@@ -44,11 +44,7 @@ export function PlanHeaderCard(props: PlanHeaderCardProps) {
   const { colors } = useTheme();
   return (
     <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      <NameField
-        name={props.name}
-        placeholder={props.namePlaceholder}
-        onName={props.onName}
-      />
+      <NameField name={props.name} placeholder={props.namePlaceholder} onName={props.onName} />
       <StartDateField startDate={props.startDate} onStartDate={props.onStartDate} />
       <Text style={[styles.direction, { color: colors.textSecondary }]}>
         {`Direction: ${props.directionLabel} — set in the guide`}

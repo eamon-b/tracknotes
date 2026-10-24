@@ -51,10 +51,7 @@ export function VariantInfoCard({ info, unit, onDismiss }: VariantInfoCardProps)
     <View
       accessibilityRole="summary"
       accessibilityLabel={`${variantKindLabel(info.kind)}: ${info.name}`}
-      style={[
-        styles.card,
-        { backgroundColor: colors.surfaceElevated, borderColor: colors.border },
-      ]}
+      style={[styles.card, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}
     >
       <View style={styles.header}>
         <View style={styles.heading}>
@@ -82,18 +79,14 @@ export function VariantInfoCard({ info, unit, onDismiss }: VariantInfoCardProps)
 
       {(length || elevation) && (
         <View style={styles.stats}>
-          {length && (
-            <Text style={[styles.stat, { color: colors.textPrimary }]}>{length}</Text>
-          )}
+          {length && <Text style={[styles.stat, { color: colors.textPrimary }]}>{length}</Text>}
           {elevation && (
             <Text style={[styles.stat, { color: colors.textSecondary }]}>{elevation}</Text>
           )}
         </View>
       )}
 
-      {junction && (
-        <Text style={[styles.detail, { color: colors.textSecondary }]}>{junction}</Text>
-      )}
+      {junction && <Text style={[styles.detail, { color: colors.textSecondary }]}>{junction}</Text>}
       {waypoints && (
         <Text style={[styles.detail, { color: colors.textSecondary }]}>{waypoints}</Text>
       )}

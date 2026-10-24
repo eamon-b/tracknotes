@@ -54,8 +54,10 @@ export function initialShareForm(
   region: { country: string | null; state: string | null } | null = null,
 ): ShareForm {
   // Only a listed country: the form offers no other, so it could not show one it prefilled.
-  const country = region?.country && findCountry(region.country) ? region.country.toUpperCase() : null;
-  const state = country && region?.state && isValidState(country, region.state) ? region.state : null;
+  const country =
+    region?.country && findCountry(region.country) ? region.country.toUpperCase() : null;
+  const state =
+    country && region?.state && isValidState(country, region.state) ? region.state : null;
   return {
     name: trailName.trim().slice(0, COMMUNITY_LIMITS.nameMax),
     description: '',

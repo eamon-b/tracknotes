@@ -96,9 +96,7 @@ function installLeafletStub(): void {
 
 /** The waypoint marker for a place, not the ⛺ flag dropped on it once it is a stop. */
 const marker = (name: string): StubMarker => {
-  const found = markers.find(
-    m => m.html.includes('waypoint-marker') && m.html.includes(`title="${name}"`),
-  );
+  const found = markers.find(m => m.html.includes('waypoint-marker') && m.html.includes(`title="${name}"`));
   if (!found) throw new Error(`no marker for ${name}`);
   return found;
 };
@@ -119,7 +117,7 @@ const stopNames = (): string[] =>
 /** One row of the Stops tab, by the name it shows. */
 const stopItem = (name: string): HTMLElement => {
   const found = [...$('stops-list').querySelectorAll<HTMLElement>('.stop-item')].find(
-    item => (item.querySelector('.stop-name')?.textContent ?? '').trim() === name,
+    item => (item.querySelector('.stop-name')?.textContent ?? '').trim() === name
   );
   if (!found) throw new Error(`no stop row for ${name}`);
   return found;
@@ -175,7 +173,7 @@ function makeTrail() {
     name: string,
     category: string,
     tags: Record<string, string>,
-    distanceAlongTrail: number,
+    distanceAlongTrail: number
   ) => ({
     id,
     type: 'node',
@@ -214,9 +212,7 @@ function makeTrail() {
 /** Boot the shipped plan markup with the fixture, on the Stops tab by default. */
 async function boot(tab: 'days' | 'stops' = 'stops'): Promise<void> {
   const html = bundledPlanPageHtml();
-  document.documentElement.innerHTML = html
-    .replace(/<!DOCTYPE html>/i, '')
-    .replace(/<\/?html[^>]*>/gi, '');
+  document.documentElement.innerHTML = html.replace(/<!DOCTYPE html>/i, '').replace(/<\/?html[^>]*>/gi, '');
 
   vi.resetModules();
   markers = [];
@@ -304,9 +300,7 @@ describe('the services strip', () => {
 
   it('says so, rather than showing six grey glyphs, when the trail has no POI data', async () => {
     const html = bundledPlanPageHtml();
-    document.documentElement.innerHTML = html
-      .replace(/<!DOCTYPE html>/i, '')
-      .replace(/<\/?html[^>]*>/gi, '');
+    document.documentElement.innerHTML = html.replace(/<!DOCTYPE html>/i, '').replace(/<\/?html[^>]*>/gi, '');
     vi.resetModules();
     markers = [];
     const { initPlanViewer } = await import('./plan-viewer');
@@ -340,9 +334,7 @@ describe('ticking a stop', () => {
     expect(dayText('.day-card-route')).toEqual(['Trailhead → Salida', 'Salida → Trail End']);
 
     flushSave();
-    expect(savedDocument().stops).toEqual([
-      { waypointId: 'w_town', km: 30, name: 'Salida', nights: 1 },
-    ]);
+    expect(savedDocument().stops).toEqual([{ waypointId: 'w_town', km: 30, name: 'Salida', nights: 1 }]);
   });
 
   it('unticks the same row again', async () => {
@@ -368,11 +360,7 @@ describe('the editor under a ticked row', () => {
     clickRow('Salida');
 
     tabButton('days').click();
-    expect(dayText('.day-card-date')).toEqual([
-      'Sun, 1 Mar 2026',
-      'Mon, 2 Mar 2026',
-      'Tue, 3 Mar 2026',
-    ]);
+    expect(dayText('.day-card-date')).toEqual(['Sun, 1 Mar 2026', 'Mon, 2 Mar 2026', 'Tue, 3 Mar 2026']);
 
     tabButton('stops').click();
     stopItem('Camp One').querySelector<HTMLButtonElement>('.nights-btn[data-nights-delta="1"]')!.click();
@@ -380,11 +368,7 @@ describe('the editor under a ticked row', () => {
 
     tabButton('days').click();
     // Day 1 still ends on the 1st; the rest day at Camp One moves the rest.
-    expect(dayText('.day-card-date')).toEqual([
-      'Sun, 1 Mar 2026',
-      'Tue, 3 Mar 2026',
-      'Wed, 4 Mar 2026',
-    ]);
+    expect(dayText('.day-card-date')).toEqual(['Sun, 1 Mar 2026', 'Tue, 3 Mar 2026', 'Wed, 4 Mar 2026']);
     expect(dayText('.day-card-rest')).toEqual(['+1 rest day at Camp One', '', '']);
 
     // Two nights is one rest day, three is two.
@@ -426,9 +410,7 @@ describe('the editor under a ticked row', () => {
 
     // The datasheet for that day repeats both at the stop it ends on.
     firstCard.click();
-    expect($('datasheet-body').querySelector('.ds-stop-meta')?.textContent).toContain(
-      'rang ahead, 2 beds',
-    );
+    expect($('datasheet-body').querySelector('.ds-stop-meta')?.textContent).toContain('rang ahead, 2 beds');
   });
 
   it('escapes a note rather than letting it into the page as markup', async () => {
@@ -441,9 +423,7 @@ describe('the editor under a ticked row', () => {
 
     tabButton('days').click();
     expect(dayCards()[0].querySelector('img')).toBeNull();
-    expect(dayCards()[0].querySelector('.stop-note-text')?.textContent).toBe(
-      '<img src=x onerror=alert(1)>',
-    );
+    expect(dayCards()[0].querySelector('.stop-note-text')?.textContent).toBe('<img src=x onerror=alert(1)>');
   });
 
   it('brings a note back after a reload', async () => {
@@ -456,9 +436,7 @@ describe('the editor under a ticked row', () => {
 
     await boot();
     expect(stopItem('High Hut').classList.contains('is-stop')).toBe(true);
-    expect(stopItem('High Hut').querySelector<HTMLInputElement>('.stop-note')!.value).toBe(
-      'key under the tank',
-    );
+    expect(stopItem('High Hut').querySelector<HTMLInputElement>('.stop-note')!.value).toBe('key under the tank');
   });
 });
 
@@ -482,9 +460,7 @@ describe('flipping the direction', () => {
     expect(stopItem('Salida').classList.contains('is-stop')).toBe(true);
     expect(stopItem('Salida').querySelector('.stop-km')?.textContent).toBe('40.0 km');
     flushSave();
-    expect(savedDocument().stops).toEqual([
-      { waypointId: 'w_town', km: 30, name: 'Salida', nights: 1 },
-    ]);
+    expect(savedDocument().stops).toEqual([{ waypointId: 'w_town', km: 30, name: 'Salida', nights: 1 }]);
   });
 });
 
@@ -504,7 +480,7 @@ describe('a waypoint marker on the Days tab', () => {
     expect(
       [...popup.querySelectorAll<HTMLElement>('.stop-svc')]
         .filter(el => !el.classList.contains('is-off'))
-        .map(el => el.title),
+        .map(el => el.title)
     ).toEqual(['Lodging', 'Shop', 'Transport']);
 
     // The click itself did nothing — a mis-aimed tap no longer rewrites the plan.
@@ -533,16 +509,14 @@ describe('a plan saved before the day planner', () => {
         name: 'Old plan',
         startDate: '2026-03-01',
         stops: [{ km: 30, waypointName: 'Salida' }],
-      }),
+      })
     );
 
     await boot();
 
     expect(($('plan-name-input') as HTMLInputElement).value).toBe('Old plan');
     expect(stopItem('Salida').classList.contains('is-stop')).toBe(true);
-    expect(savedDocument().stops).toEqual([
-      { waypointId: 'w_town', km: 30, name: 'Salida', nights: 1 },
-    ]);
+    expect(savedDocument().stops).toEqual([{ waypointId: 'w_town', km: 30, name: 'Salida', nights: 1 }]);
 
     tabButton('days').click();
     expect(dayText('.day-card-route')).toEqual(['Trailhead → Salida', 'Salida → Trail End']);
@@ -576,7 +550,7 @@ describe('a tick the plan has no room for', () => {
         stops,
         updatedAt: '2026-01-01T00:00:00.000Z',
         version: 1,
-      }),
+      })
     );
 
     await boot();
@@ -613,9 +587,7 @@ describe('booting the planner', () => {
     window.history.replaceState({}, '', `/trail-maps/trails/${TRAIL_ID}/plan.html`);
     try {
       const html = bundledPlanPageHtml();
-      document.documentElement.innerHTML = html
-        .replace(/<!DOCTYPE html>/i, '')
-        .replace(/<\/?html[^>]*>/gi, '');
+      document.documentElement.innerHTML = html.replace(/<!DOCTYPE html>/i, '').replace(/<\/?html[^>]*>/gi, '');
       vi.resetModules();
       const { initPlanViewer } = await import('./plan-viewer');
       await initPlanViewer(TRAIL_ID);

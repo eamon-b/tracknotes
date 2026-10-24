@@ -12,9 +12,33 @@ function makeTrail(): TrailJson {
       direction: { default: 'North', reversed: 'South' },
     },
     waypoints: [
-      { id: 'w_a', name: 'Start', lat: 0, lon: 0, type: 'trailhead', totalDistance: 0, elevation: 100 },
-      { id: 'w_b', name: 'Middle', lat: 0, lon: 0, type: 'water', totalDistance: 4, elevation: 200 },
-      { id: 'w_c', name: 'End', lat: 0, lon: 0, type: 'trailhead', totalDistance: 10, elevation: 150 },
+      {
+        id: 'w_a',
+        name: 'Start',
+        lat: 0,
+        lon: 0,
+        type: 'trailhead',
+        totalDistance: 0,
+        elevation: 100,
+      },
+      {
+        id: 'w_b',
+        name: 'Middle',
+        lat: 0,
+        lon: 0,
+        type: 'water',
+        totalDistance: 4,
+        elevation: 200,
+      },
+      {
+        id: 'w_c',
+        name: 'End',
+        lat: 0,
+        lon: 0,
+        type: 'trailhead',
+        totalDistance: 10,
+        elevation: 150,
+      },
     ],
     track: {
       points: [

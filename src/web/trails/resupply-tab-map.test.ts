@@ -94,9 +94,7 @@ function installLeafletStub(): void {
  * it once it is a stop, which carries the same `title` and no handlers.
  */
 const marker = (name: string): StubMarker => {
-  const found = markers.find(
-    m => m.html.includes('waypoint-marker') && m.html.includes(`title="${name}"`),
-  );
+  const found = markers.find(m => m.html.includes('waypoint-marker') && m.html.includes(`title="${name}"`));
   if (!found) throw new Error(`no marker for ${name}`);
   return found;
 };
@@ -124,7 +122,12 @@ const pressPopupButton = (name: string): void => {
 function makeTrail() {
   const points = [0, 10, 20, 30].map(km => ({ lat: -34 - km / 1000, lon: 138 + km / 1000, ele: 100, dist: km }));
   const wp = (id: string, name: string, type: string, totalDistance: number) => ({
-    id, name, type, totalDistance, lat: -34 - totalDistance / 1000, lon: 138 + totalDistance / 1000,
+    id,
+    name,
+    type,
+    totalDistance,
+    lat: -34 - totalDistance / 1000,
+    lon: 138 + totalDistance / 1000,
   });
   return {
     config: { id: TRAIL_ID, name: 'Map Fixture', shortName: 'Map' },
@@ -183,9 +186,7 @@ describe('clicking a waypoint marker', () => {
 
     // Re-opened, the popup now offers to take the stop away again.
     marker('Alpha').handlers.click();
-    expect(marker('Alpha').popup?.querySelector('.wp-popup-btn')?.textContent?.trim()).toBe(
-      'Remove stop',
-    );
+    expect(marker('Alpha').popup?.querySelector('.wp-popup-btn')?.textContent?.trim()).toBe('Remove stop');
     pressPopupButton('Alpha');
     expect(savedPlan().stops).toHaveLength(0);
   });
@@ -286,7 +287,7 @@ describe("an off-route place's walk in", () => {
         stops: [{ km: 15, name: 'Camp One', nights: 1 }],
         updatedAt: '2026-07-01T10:00:00.000Z',
         version: 1,
-      }),
+      })
     );
     await boot();
     // The flag is still dropped on the place, matched by km…
@@ -311,7 +312,7 @@ describe('a stop whose waypoint a rebuild has moved', () => {
         stops: [{ waypointId: 'w_alpha', km: 15, name: 'Alpha', nights: 1 }],
         updatedAt: '2026-07-01T10:00:00.000Z',
         version: 1,
-      }),
+      })
     );
     await boot();
 
@@ -325,10 +326,9 @@ describe('a stop whose waypoint a rebuild has moved', () => {
 
     // And the Stops tab says the same.
     tabButton('stops').click();
-    const ticked = [...document.querySelectorAll('#stops-list .stop-item.is-stop .stop-name')].map(
-      node => (node.textContent ?? '').trim(),
+    const ticked = [...document.querySelectorAll('#stops-list .stop-item.is-stop .stop-name')].map(node =>
+      (node.textContent ?? '').trim()
     );
     expect(ticked).toEqual(['Alpha']);
   });
 });
-

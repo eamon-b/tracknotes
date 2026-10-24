@@ -83,11 +83,7 @@ interface DeviceTokenRow {
 // POST /v1/link-codes — the phone mints a code
 // ---------------------------------------------------------------------------
 
-export async function createLinkCode(
-  request: Request,
-  env: Env,
-  ctx: ExecutionContext
-): Promise<Response> {
+export async function createLinkCode(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   // The phone only: a linked browser must not be able to link further browsers.
   const user = await requirePrimaryUser(request, env, ctx);
   // A banned account's codes are refused at the exchange (`linkDevice`), so a
@@ -106,11 +102,7 @@ export async function createLinkCode(
     .bind(user.id, nowIso)
     .first<{ n: number }>();
   if ((live?.n ?? 0) >= MAX_LIVE_CODES) {
-    throw new HttpError(
-      429,
-      'too_many_codes',
-      `At most ${MAX_LIVE_CODES} link codes may be live at once`
-    );
+    throw new HttpError(429, 'too_many_codes', `At most ${MAX_LIVE_CODES} link codes may be live at once`);
   }
 
   const expiresAt = new Date(now.getTime() + CODE_TTL_MS).toISOString();
@@ -159,25 +151,14 @@ function pruneExpiredCodes(env: Env, nowMs: number, ctx?: ExecutionContext): voi
 // POST /v1/devices/link — the browser exchanges the code for a token
 // ---------------------------------------------------------------------------
 
-export async function linkDevice(
-  request: Request,
-  env: Env,
-  ctx: ExecutionContext
-): Promise<Response> {
+export async function linkDevice(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const ip = ipRateKey(request.headers.get('CF-Connecting-IP'));
   const nowMs = Date.now();
 
   // Counted before the code is even looked at: a wrong guess must cost an
   // attempt, otherwise the limit protects nothing. Insert-then-count, so a
   // burst of parallel guesses cannot all read the same count and slip past.
-  await consumeRateLimit(
-    env,
-    RATE_BUCKETS.deviceLink,
-    ip,
-    nowMs,
-    `Too many link attempts; try again later`,
-    ctx
-  );
+  await consumeRateLimit(env, RATE_BUCKETS.deviceLink, ip, nowMs, `Too many link attempts; try again later`, ctx);
 
   const body = await readJson(request);
   const code = normaliseCode(body.code);
@@ -194,18 +175,14 @@ export async function linkDevice(
   }
 
   // Single use, race-safe: only the UPDATE that actually flips `used_at` wins.
-  const claimed = await env.DB.prepare(
-    `UPDATE link_codes SET used_at = ? WHERE code = ? AND used_at IS NULL`
-  )
+  const claimed = await env.DB.prepare(`UPDATE link_codes SET used_at = ? WHERE code = ? AND used_at IS NULL`)
     .bind(now, code)
     .run();
   if ((claimed.meta.changes ?? 0) !== 1) {
     throw invalid;
   }
 
-  const user = await env.DB.prepare(
-    `SELECT id, display_name, is_banned FROM users WHERE id = ?`
-  )
+  const user = await env.DB.prepare(`SELECT id, display_name, is_banned FROM users WHERE id = ?`)
     .bind(row.user_id)
     .first<{ id: string; display_name: string; is_banned: number }>();
   // A deleted account is banned and anonymised; its codes must not mint tokens.
@@ -237,11 +214,7 @@ export async function linkDevice(
 // GET /v1/me/devices — what is signed in to this account
 // ---------------------------------------------------------------------------
 
-export async function listDevices(
-  request: Request,
-  env: Env,
-  ctx: ExecutionContext
-): Promise<Response> {
+export async function listDevices(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const user = await requireUser(request, env, ctx);
 
   const { results } = await env.DB.prepare(
@@ -295,11 +268,7 @@ export async function revokeDevice(
     throw new HttpError(404, 'not_found', 'No such device');
   }
   if (row.kind === 'primary') {
-    throw new HttpError(
-      400,
-      'primary_token',
-      'The primary device cannot be revoked here — delete the account instead'
-    );
+    throw new HttpError(400, 'primary_token', 'The primary device cannot be revoked here — delete the account instead');
   }
 
   await env.DB.prepare(`UPDATE device_tokens SET revoked_at = ? WHERE token_hash = ?`)

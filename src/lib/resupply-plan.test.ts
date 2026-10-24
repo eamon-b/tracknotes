@@ -359,10 +359,7 @@ describe('plannedResupplyIds', () => {
     ]);
 
     it('plans the turn-off alongside the town it serves', () => {
-      expect([...plannedResupplyIds(kerikeri, new Set(['w_0ed51431']))!].sort()).toEqual([
-        'w_0ed51431',
-        'w_fd2ca336',
-      ]);
+      expect([...plannedResupplyIds(kerikeri, new Set(['w_0ed51431']))!].sort()).toEqual(['w_0ed51431', 'w_fd2ca336']);
     });
 
     it('plans a turn-off ticked on its own without dragging the town in', () => {
@@ -401,8 +398,7 @@ describe('computeResupplyLegs', () => {
       listResupplyOptions([{ id: 'town', name: 'Town', type: 'town', totalDistance: 40 }]),
       undefined
     );
-    const call = (opts: Record<string, unknown>) =>
-      () => computeResupplyLegs(flatTrail(100), stops, opts as never);
+    const call = (opts: Record<string, unknown>) => () => computeResupplyLegs(flatTrail(100), stops, opts as never);
 
     // No baseKmh at all — the old silent 4 km/h.
     expect(call({ dailyHours: 8 })).toThrow(RangeError);
@@ -415,15 +411,14 @@ describe('computeResupplyLegs', () => {
   });
 
   it('refuses a long-carry or food figure it would otherwise have to invent', () => {
-    const call = (opts: Record<string, unknown>) =>
-      () => computeResupplyLegs(flatTrail(100), [], { ...HIKER, ...opts } as never);
+    const call = (opts: Record<string, unknown>) => () =>
+      computeResupplyLegs(flatTrail(100), [], { ...HIKER, ...opts } as never);
 
     expect(call({ longThresholdDays: undefined })).toThrow(/longThresholdDays/);
     expect(call({ longThresholdDays: 0 })).toThrow(/longThresholdDays/);
     expect(call({ gramsPerDay: undefined })).toThrow(/gramsPerDay/);
     expect(call({ gramsPerDay: Number.NaN })).toThrow(/gramsPerDay/);
   });
-
 
   it('splits a flat trail into start/stop/end legs with days from hours', () => {
     const stops = resolveResupplyStops(
@@ -823,7 +818,10 @@ describe('resupplyCandidates', () => {
 
   it('keeps the in-spur distance when the trail is walked the other way', () => {
     // transformSideTrips mirrors the junction and moves the waypoints with it.
-    const reversed = spur({ startDistance: 70, waypoints: [{ id: 'spur-town', name: 'Spur Town', type: 'town', totalDistance: 73 }] });
+    const reversed = spur({
+      startDistance: 70,
+      waypoints: [{ id: 'spur-town', name: 'Spur Town', type: 'town', totalDistance: 73 }],
+    });
     const [town] = resupplyCandidates({ sideTrips: [reversed] });
     expect(town).toMatchObject({ totalDistance: 70, offTrailKm: 3 });
   });
@@ -831,16 +829,33 @@ describe('resupplyCandidates', () => {
 
 describe('optionAccess', () => {
   it('walks a side trip, a foot turn-off and an on-trail place with a distance', () => {
-    expect(optionAccess({ name: 'A', offTrailKm: 3, accessMode: 'foot', accessRoute: { name: 'S', ascentM: 300, descentM: 10 } }))
-      .toEqual({ place: 'A', walkKm: 3, walkAscentM: 300, walkDescentM: 10, via: 'S', rideKm: 0 });
-    expect(optionAccess({ name: 'B', offTrailKm: 4, accessMode: 'foot' }))
-      .toEqual({ place: 'B', walkKm: 4, walkAscentM: 0, walkDescentM: 0, rideKm: 0 });
+    expect(
+      optionAccess({
+        name: 'A',
+        offTrailKm: 3,
+        accessMode: 'foot',
+        accessRoute: { name: 'S', ascentM: 300, descentM: 10 },
+      })
+    ).toEqual({ place: 'A', walkKm: 3, walkAscentM: 300, walkDescentM: 10, via: 'S', rideKm: 0 });
+    expect(optionAccess({ name: 'B', offTrailKm: 4, accessMode: 'foot' })).toEqual({
+      place: 'B',
+      walkKm: 4,
+      walkAscentM: 0,
+      walkDescentM: 0,
+      rideKm: 0,
+    });
     expect(optionAccess({ name: 'C', offTrailKm: 0.6, accessMode: 'on-trail' })?.walkKm).toBe(0.6);
   });
 
   it('rides a hitch, a shuttle, a boat and a long distance whose way is not given', () => {
-    expect(optionAccess({ name: 'H', offTrailKm: 35, accessMode: 'hitch' }))
-      .toEqual({ place: 'H', walkKm: 0, walkAscentM: 0, walkDescentM: 0, rideKm: 35, rideMode: 'hitch' });
+    expect(optionAccess({ name: 'H', offTrailKm: 35, accessMode: 'hitch' })).toEqual({
+      place: 'H',
+      walkKm: 0,
+      walkAscentM: 0,
+      walkDescentM: 0,
+      rideKm: 35,
+      rideMode: 'hitch',
+    });
     // Warkworth: 6 km, no mode — past WALKED_WHEN_UNSAID_MAX_KM.
     const unknown = optionAccess({ name: 'U', offTrailKm: 6 });
     expect(unknown).toMatchObject({ walkKm: 0, rideKm: 6 });
@@ -867,11 +882,7 @@ describe('optionAccess', () => {
 describe('stops and legs off the route', () => {
   const trail = flatTrail(100);
   const legsFor = (candidates: ResupplyCandidateWaypoint[], selected?: string[]) =>
-    computeResupplyLegs(
-      trail,
-      resolveResupplyStops(listResupplyOptions(candidates), selected),
-      HIKER
-    );
+    computeResupplyLegs(trail, resolveResupplyStops(listResupplyOptions(candidates), selected), HIKER);
 
   it('walks in to a side-trip town and back out, climb and all', () => {
     const legs = legsFor(resupplyCandidates({ sideTrips: [spur()] }));

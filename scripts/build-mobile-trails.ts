@@ -22,10 +22,7 @@ import { fileURLToPath } from 'url';
 import { slimPoi } from '../src/lib/poi-display.js';
 import { simplifyToTarget, truncatePoints } from '../src/lib/track-simplify.js';
 import { routeBreakStarts, splitAtRouteBreaks } from '../src/lib/route-breaks.js';
-import {
-  annotateCumulativeElevation,
-  findNearestByDistance,
-} from '../src/lib/track-geometry.js';
+import { annotateCumulativeElevation, findNearestByDistance } from '../src/lib/track-geometry.js';
 import type { RouteBreak, TrackPoint, TrailPOI } from '../src/lib/trail-types.js';
 import {
   digestTrailFile,
@@ -68,12 +65,11 @@ const NAME_FIXES: Record<string, { name: string; shortName: string }> = {
 const LIST_ONLY_CONFIG_KEYS = ['country', 'states', 'featured'] as const;
 
 export function stripListOnlyConfig(config: Record<string, unknown>): Record<string, unknown> {
-  if (!LIST_ONLY_CONFIG_KEYS.some((key) => key in config)) return config;
+  if (!LIST_ONLY_CONFIG_KEYS.some(key => key in config)) return config;
   const copy = { ...config };
   for (const key of LIST_ONLY_CONFIG_KEYS) delete copy[key];
   return copy;
 }
-
 
 export interface TrailJson {
   config: Record<string, unknown>;
@@ -100,9 +96,10 @@ function truncateWaypoint(wp: Record<string, unknown>): Record<string, unknown> 
   const result = { ...wp };
   if (typeof result.lat === 'number') result.lat = Math.round(result.lat * 1e6) / 1e6;
   if (typeof result.lon === 'number') result.lon = Math.round(result.lon * 1e6) / 1e6;
-  if (typeof result.elevation === 'number') result.elevation = Math.round(result.elevation as number * 10) / 10;
-  if (typeof result.distance === 'number') result.distance = Math.round(result.distance as number * 10) / 10;
-  if (typeof result.totalDistance === 'number') result.totalDistance = Math.round(result.totalDistance as number * 10) / 10;
+  if (typeof result.elevation === 'number') result.elevation = Math.round((result.elevation as number) * 10) / 10;
+  if (typeof result.distance === 'number') result.distance = Math.round((result.distance as number) * 10) / 10;
+  if (typeof result.totalDistance === 'number')
+    result.totalDistance = Math.round((result.totalDistance as number) * 10) / 10;
   if (typeof result.ascent === 'number') result.ascent = Math.round(result.ascent as number);
   if (typeof result.descent === 'number') result.descent = Math.round(result.descent as number);
   if (typeof result.totalAscent === 'number') result.totalAscent = Math.round(result.totalAscent as number);
@@ -227,16 +224,11 @@ export function processTrail(trail: TrailJson): TrailJson {
   // full-resolution number, and matches the waypoint rows and the web.
   const annotatedPoints = annotateCumulativeElevation(
     trail.track.points,
-    routeBreakStarts(trail.track.breaks, 'points'),
+    routeBreakStarts(trail.track.breaks, 'points')
   );
 
   // Simplify main track points
-  const simplifiedMain = simplifyMainTrack(
-    annotatedPoints,
-    trail.track.breaks,
-    TARGET_POINTS,
-    'points',
-  );
+  const simplifiedMain = simplifyMainTrack(annotatedPoints, trail.track.breaks, TARGET_POINTS, 'points');
   const simplifiedPoints = simplifiedMain.points;
 
   // And the map line to its own budget. Thinning it keeps a subsequence of a
@@ -246,7 +238,7 @@ export function processTrail(trail: TrailJson): TrailJson {
     trail.track.displayPoints,
     trail.track.breaks,
     DISPLAY_TARGET_POINTS,
-    'displayPoints',
+    'displayPoints'
   );
 
   // Custom-route stats are measured over displayPoints, which is thinned too, so
@@ -262,18 +254,20 @@ export function processTrail(trail: TrailJson): TrailJson {
   }));
 
   // Process alternates
-  const alternates = (trail.alternates ?? []).map((alt) => {
+  const alternates = (trail.alternates ?? []).map(alt => {
     if (!alt.points || alt.points.length === 0) return alt;
     return {
       ...alt,
       points: truncatePoints(simplifyToTarget(alt.points, Math.min(alt.points.length, 1000))),
       // A place walked to from the alternate (access.json `variant`) carries its walk in.
-      ...(Array.isArray(alt.waypoints) ? { waypoints: (alt.waypoints as Array<Record<string, unknown>>).map(truncateAccessPath) } : {}),
+      ...(Array.isArray(alt.waypoints)
+        ? { waypoints: (alt.waypoints as Array<Record<string, unknown>>).map(truncateAccessPath) }
+        : {}),
     };
   });
 
   // Process side trips
-  const sideTrips = (trail.sideTrips ?? []).map((st) => {
+  const sideTrips = (trail.sideTrips ?? []).map(st => {
     if (!st.points || st.points.length === 0) return st;
     return {
       ...st,
@@ -338,7 +332,7 @@ export function main() {
   // to download every trail again (see scripts/lib/trail-data-catalog.ts).
   const mobileIndexPath = path.join(MOBILE_TRAILS_DIR, 'index.json');
   const previousById = previousIndexById(
-    fs.existsSync(mobileIndexPath) ? fs.readFileSync(mobileIndexPath, 'utf-8') : undefined,
+    fs.existsSync(mobileIndexPath) ? fs.readFileSync(mobileIndexPath, 'utf-8') : undefined
   );
   const now = new Date();
   // Each entry also carries the trail's `country`/`states` (after `lengthKm`,
@@ -379,7 +373,7 @@ export function main() {
     console.log(
       `  ${entry.id}: ${(originalSize / 1024 / 1024).toFixed(2)}MB -> ${(optimizedSize / 1024 / 1024).toFixed(2)}MB` +
         ` (${originalPointCount} -> ${optimized.track.points.length} pts` +
-        `, POIs: ${poiCount} (${poiKb.toFixed(1)} KB))`,
+        `, POIs: ${poiCount} (${poiKb.toFixed(1)} KB))`
     );
 
     // Build mobile index entry, hashed over the exact bytes just written
@@ -395,7 +389,7 @@ export function main() {
       },
       digestTrailFile(optimizedJson),
       previous,
-      now,
+      now
     );
     if (indexEntry.updatedAt !== previous?.updatedAt) changedCount++;
     mobileIndex.push(indexEntry);
@@ -409,7 +403,7 @@ export function main() {
   console.log(`Wrote ${mobileIndex.length} trails + index.json to ${MOBILE_TRAILS_DIR}`);
   console.log(
     `${changedCount} trail(s) changed content this run` +
-      (changedCount > 0 ? ' — publish them with `npm run publish:trail-data`' : ''),
+      (changedCount > 0 ? ' — publish them with `npm run publish:trail-data`' : '')
   );
 }
 

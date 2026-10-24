@@ -25,9 +25,25 @@ import {
 } from './index';
 
 const curated: CuratedTrailEntry[] = [
-  { id: 'aawt', name: 'Australian Alps Walking Track', shortName: 'AAWT', lengthKm: 688.3, region: 'Alps', country: 'AU', states: ['VIC', 'NSW', 'ACT'] },
+  {
+    id: 'aawt',
+    name: 'Australian Alps Walking Track',
+    shortName: 'AAWT',
+    lengthKm: 688.3,
+    region: 'Alps',
+    country: 'AU',
+    states: ['VIC', 'NSW', 'ACT'],
+  },
   { id: 'six_foot_track', name: 'Six Foot Track', shortName: 'SFT', lengthKm: 44.5, country: 'AU', states: ['NSW'] },
-  { id: 'royal', name: 'The Coast Track', shortName: 'Coast', lengthKm: 25.3, country: 'AU', states: ['NSW'], featured: true },
+  {
+    id: 'royal',
+    name: 'The Coast Track',
+    shortName: 'Coast',
+    lengthKm: 25.3,
+    country: 'AU',
+    states: ['NSW'],
+    featured: true,
+  },
   { id: 'te_araroa', name: 'Te Araroa', shortName: 'TA', lengthKm: 3056.8, country: 'NZ', states: ['NI', 'SI'] },
   { id: 'cdt', name: 'Continental Divide Trail', shortName: 'CDT', lengthKm: 4874.7, country: 'US', states: [] },
 ];
@@ -83,9 +99,9 @@ function memoryStorage(initial: Record<string, string> = {}): Storage {
       return data.size;
     },
     clear: () => data.clear(),
-    getItem: (k) => data.get(k) ?? null,
-    key: (i) => [...data.keys()][i] ?? null,
-    removeItem: (k) => void data.delete(k),
+    getItem: k => data.get(k) ?? null,
+    key: i => [...data.keys()][i] ?? null,
+    removeItem: k => void data.delete(k),
     setItem: (k, v) => void data.set(k, String(v)),
   };
 }
@@ -153,13 +169,13 @@ describe('renderCurated', () => {
     expect(count).toBe(5);
     const doc = new DOMParser().parseFromString(html, 'text/html');
     const groups = [...doc.querySelectorAll('details.country-group')];
-    expect(groups.map((g) => g.querySelector('summary')!.textContent!.replace(/\s+/g, ' ').trim())).toEqual([
+    expect(groups.map(g => g.querySelector('summary')!.textContent!.replace(/\s+/g, ' ').trim())).toEqual([
       'Australia 3',
       'New Zealand 1',
       'United States 1',
     ]);
-    expect(groups.every((g) => g.hasAttribute('open'))).toBe(true);
-    expect([...groups[0].querySelectorAll('.state-heading')].map((h) => h.textContent)).toEqual([
+    expect(groups.every(g => g.hasAttribute('open'))).toBe(true);
+    expect([...groups[0].querySelectorAll('.state-heading')].map(h => h.textContent)).toEqual([
       'New South Wales',
       'Victoria',
     ]);
@@ -196,7 +212,12 @@ describe('renderCurated', () => {
     expect(renderFeatured(curated, base)).toContain('The Coast Track');
     expect(renderFeatured(curated, base)).not.toContain('Six Foot');
     expect(renderFeatured(curated, { ...base, query: 'nothing' })).toBe('');
-    expect(renderFeatured(curated.filter((t) => !t.featured), base)).toBe('');
+    expect(
+      renderFeatured(
+        curated.filter(t => !t.featured),
+        base
+      )
+    ).toBe('');
   });
 });
 
@@ -240,7 +261,7 @@ describe('community cards', () => {
     const { html, count } = renderCommunity(routes, base);
     expect(count).toBe(3);
     const doc = new DOMParser().parseFromString(html, 'text/html');
-    expect([...doc.querySelectorAll('[data-group]')].map((d) => d.getAttribute('data-group'))).toEqual([
+    expect([...doc.querySelectorAll('[data-group]')].map(d => d.getAttribute('data-group'))).toEqual([
       'community:AU',
       'community:NZ',
       'community:CH',
@@ -341,7 +362,7 @@ describe('initLandingPage', () => {
     await initLandingPage(document, {
       storage: memoryStorage(),
       fetchCurated: async () => curated,
-      fetchCommunity: (s) => {
+      fetchCommunity: s => {
         signal = s;
         return new Promise(() => {}); // never answers
       },
@@ -389,7 +410,9 @@ describe('initLandingPage', () => {
   });
 
   it('toggles length chips and restores a saved filter', async () => {
-    const storage = memoryStorage({ [FILTER_STORAGE_KEY]: JSON.stringify({ query: '', bands: ['long'], sort: 'length' }) });
+    const storage = memoryStorage({
+      [FILTER_STORAGE_KEY]: JSON.stringify({ query: '', bands: ['long'], sort: 'length' }),
+    });
     await initLandingPage(document, {
       storage,
       fetchCurated: async () => curated,
@@ -417,7 +440,9 @@ describe('initLandingPage', () => {
     });
     expect($('my-community').hidden).toBe(true);
     // The default (no API in the test build, no session) is the same.
-    document.body.innerHTML = readFileSync(resolve(__dirname, 'index.html'), 'utf-8').split('<body>')[1].split('</body>')[0];
+    document.body.innerHTML = readFileSync(resolve(__dirname, 'index.html'), 'utf-8')
+      .split('<body>')[1]
+      .split('</body>')[0];
     await initLandingPage(document, {
       storage: memoryStorage(),
       fetchCurated: async () => curated,
@@ -442,7 +467,7 @@ describe('initLandingPage', () => {
     expect(block.hidden).toBe(false);
     const cards = block.querySelectorAll('.trail-card');
     expect(cards).toHaveLength(2);
-    const hidden = [...cards].find((c) => c.getAttribute('href')!.includes('c_2'))!;
+    const hidden = [...cards].find(c => c.getAttribute('href')!.includes('c_2'))!;
     expect(hidden.querySelector('.community-badge')!.textContent).toBe('Hidden');
     expect(hidden.textContent).toContain('Hidden after reports from other users');
     expect(hidden.innerHTML).toContain('Taken &lt;down&gt;');
@@ -521,7 +546,7 @@ describe('initLandingPage', () => {
     expect($('my-community-link-form').querySelector('form')).not.toBeNull();
 
     onLinked!({ userId: 'u1', token: 't', displayName: 'R', expiresAt: null });
-    for (let i = 0; i < 10; i++) await new Promise((r) => setTimeout(r, 0));
+    for (let i = 0; i < 10; i++) await new Promise(r => setTimeout(r, 0));
     expect($('my-community-link-form').hidden).toBe(true);
     expect($('my-community-note').hidden).toBe(true);
     expect($('my-community-list').textContent).toContain('Back again');
@@ -566,7 +591,9 @@ describe('initLandingPage', () => {
     it('lists a linked browser’s routes with its token', async () => {
       vi.stubEnv('VITE_API_BASE_URL', 'https://api.example.test');
       window.localStorage.setItem('tracknotes.webSession', JSON.stringify(SESSION));
-      const calls = stubMine(200, { routes: [mine({ id: 'c_1', name: 'Mine', status: 'hidden', hiddenReason: 'admin' })] });
+      const calls = stubMine(200, {
+        routes: [mine({ id: 'c_1', name: 'Mine', status: 'hidden', hiddenReason: 'admin' })],
+      });
       await boot();
       expect(calls[0].url).toBe('https://api.example.test/v1/me/community/routes');
       expect((calls[0].init.headers as Record<string, string>).Authorization).toBe('Bearer tok_mine');
@@ -617,7 +644,7 @@ describe('initLandingPage map overview', () => {
     const updates: string[][] = [];
     const mountMap = vi.fn((_container: HTMLElement) => ({
       update: (points: readonly { id: string }[]) => {
-        updates.push(points.map((p) => p.id));
+        updates.push(points.map(p => p.id));
       },
     }));
     return { mountMap, updates };

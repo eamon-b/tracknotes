@@ -310,10 +310,7 @@ export async function validateMbtiles(
  * written by downloadTrailTiles, which must be validated *before* they are
  * renamed over the live file.
  */
-async function validateMbtilesFile(
-  trailId: string,
-  fileName: string,
-): Promise<MbtilesValidation> {
+async function validateMbtilesFile(trailId: string, fileName: string): Promise<MbtilesValidation> {
   // openDatabaseAsync CREATES an empty SQLite database when the path is
   // missing, which would turn "file absent" into "file present but empty" —
   // an mbtiles with no tiles table, i.e. exactly the shape that SIGABRTs
@@ -393,7 +390,7 @@ export async function validateMbtilesCached(
   let size = 0;
   try {
     const file = new File(trailTilesDir(trailId), diskName);
-    size = file.exists ? file.size ?? 0 : 0;
+    size = file.exists ? (file.size ?? 0) : 0;
   } catch {
     size = 0;
   }
@@ -460,10 +457,7 @@ export function manifestUrl(baseUrl: string, trailId: string, now: number = Date
 /**
  * Fetch the manifest for a trail. Returns null if not available.
  */
-async function fetchManifest(
-  baseUrl: string,
-  trailId: string,
-): Promise<TileManifest | null> {
+async function fetchManifest(baseUrl: string, trailId: string): Promise<TileManifest | null> {
   try {
     const response = await fetch(manifestUrl(baseUrl, trailId), {
       headers: { 'Cache-Control': 'no-cache' },
@@ -580,7 +574,7 @@ export async function downloadTrailTiles(
   const opts: DownloadOptions =
     typeof optionsOrCallback === 'function'
       ? { onProgress: optionsOrCallback }
-      : optionsOrCallback ?? {};
+      : (optionsOrCallback ?? {});
 
   const { onProgress, signal } = opts;
 
@@ -890,10 +884,14 @@ export interface TopoStyleOptions {
  * asserts every id in the palette exists in the template, which is where that
  * drift is meant to be caught.
  */
-function applyDarkPalette(style: { layers: { id: string; paint?: Record<string, unknown> }[] }): void {
+function applyDarkPalette(style: {
+  layers: { id: string; paint?: Record<string, unknown> }[];
+}): void {
   applyNightPalette(style);
   for (const layer of style.layers) {
-    const overrides = (TOPO_STYLE_DARK_PALETTE as Record<string, Record<string, unknown>>)[layer.id];
+    const overrides = (TOPO_STYLE_DARK_PALETTE as Record<string, Record<string, unknown>>)[
+      layer.id
+    ];
     if (!overrides) continue;
     layer.paint = { ...(layer.paint ?? {}), ...overrides };
   }
@@ -936,9 +934,7 @@ export function buildTopoStyle(
     style.sources.contour.url = `mbtiles://${basePath}/${names['contours.mbtiles']}`;
   } else {
     delete style.sources.contour;
-    style.layers = style.layers.filter(
-      (layer: { source?: string }) => layer.source !== 'contour',
-    );
+    style.layers = style.layers.filter((layer: { source?: string }) => layer.source !== 'contour');
   }
 
   // Interpolate glyph path

@@ -139,10 +139,7 @@ export function prepareCorridor(
     CORRIDOR_LIMITS.maxRadiusMeters
   );
   const geometry = buildRouteGeometry(route);
-  const groups = packCorridorChunks(
-    buildCorridorChunks(route, corridorRadiusMeters, maxVertices),
-    maxVertices
-  );
+  const groups = packCorridorChunks(buildCorridorChunks(route, corridorRadiusMeters, maxVertices), maxVertices);
   return { geometry, groups, searchRadiusKm, queryRadiusMeters };
 }
 

@@ -13,7 +13,7 @@ const DRY = DEFAULT_PLAN_THRESHOLDS.dryStretchKm;
 const waypoints: PlanWaypoint[] = [
   { name: 'Spring', type: 'water', totalDistance: 10 },
   { name: 'Town Creek', type: 'water-tank', totalDistance: 30 },
-  { name: 'Township', type: 'town', totalDistance: 20 },  // not water
+  { name: 'Township', type: 'town', totalDistance: 20 }, // not water
   { name: 'Bore', type: 'water', totalDistance: 60 },
 ];
 
@@ -199,7 +199,7 @@ describe('water off the route', () => {
     const analysis = analyzeWaterCarry(
       [water('Tank', 10), water('Creek', 20, { offTrailKm: 2.3, accessMode: 'foot' }), water('Spring', 30)],
       40,
-      DRY,
+      DRY
     );
     const [, toCreek, fromCreek] = analysis.gaps;
     expect(toCreek).toMatchObject({ fromName: 'Tank', toName: 'Creek', distanceKm: 12.3, toOffTrailKm: 2.3 });
@@ -216,7 +216,7 @@ describe('water off the route', () => {
     const { gaps } = analyzeWaterCarry(
       [water('Far tank', 10, { offTrailKm: 2, accessMode: 'foot' }), water('Tap', 10), water('End', 20)],
       20,
-      DRY,
+      DRY
     );
     expect(gaps.map(g => g.toName)).toEqual(['Tap', 'End']);
     expect(gaps[1].distanceKm).toBe(10);
@@ -226,13 +226,17 @@ describe('water off the route', () => {
     const { gaps } = analyzeWaterCarry(
       [water('Tap', 11), water('Far creek', 11.4, { offTrailKm: 2.4, accessMode: 'foot' }), water('End', 20)],
       20,
-      DRY,
+      DRY
     );
     expect(gaps.map(g => g.toName)).toEqual(['Tap', 'End']);
   });
 
   it('does not walk to water reached by a ride', () => {
-    const { gaps } = analyzeWaterCarry([water('A', 0), water('Town tap', 10, { offTrailKm: 8, accessMode: 'hitch' })], 20, DRY);
+    const { gaps } = analyzeWaterCarry(
+      [water('A', 0), water('Town tap', 10, { offTrailKm: 8, accessMode: 'hitch' })],
+      20,
+      DRY
+    );
     expect(gaps[0].distanceKm).toBe(10);
   });
 });

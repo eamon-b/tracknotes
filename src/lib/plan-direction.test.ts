@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { KM_EPSILON, getDirectionLabel, toActiveKm, toNoboKm, stopsToActive, type PlanDirection } from './plan-direction';
+import {
+  KM_EPSILON,
+  getDirectionLabel,
+  toActiveKm,
+  toNoboKm,
+  stopsToActive,
+  type PlanDirection,
+} from './plan-direction';
 
 const TOTAL = 981.6; // Bibbulmun-ish, deliberately non-round
 
@@ -70,7 +77,9 @@ describe('getDirectionLabel', () => {
 
   it('falls back to the caller-provided labels', () => {
     expect(getDirectionLabel(undefined, 'NOBO', fallbacks)).toBe('NOBO');
-    expect(getDirectionLabel(undefined, 'SOBO', { default: 'Start → End', reversed: 'End → Start' })).toBe('End → Start');
+    expect(getDirectionLabel(undefined, 'SOBO', { default: 'Start → End', reversed: 'End → Start' })).toBe(
+      'End → Start'
+    );
   });
 });
 

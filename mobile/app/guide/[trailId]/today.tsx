@@ -31,8 +31,7 @@ export default function TodayScreen() {
   const { colors } = useTheme();
   const { today, entries, pois, date, hasStartDate, hasStops } = useTodayPlan();
 
-  const openPlanner = () =>
-    router.push({ pathname: '/guide/[trailId]/plan', params: { trailId } });
+  const openPlanner = () => router.push({ pathname: '/guide/[trailId]/plan', params: { trailId } });
 
   if (!today || today.kind === 'rest') {
     return (

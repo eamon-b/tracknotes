@@ -35,10 +35,7 @@ interface Camera {
   latitude: number;
 }
 
-export const ScaleBar = forwardRef<ScaleBarHandle, ScaleBarProps>(function ScaleBar(
-  { unit },
-  ref,
-) {
+export const ScaleBar = forwardRef<ScaleBarHandle, ScaleBarProps>(function ScaleBar({ unit }, ref) {
   const { colors } = useTheme();
   const [camera, setCamera] = useState<Camera | null>(null);
 
@@ -54,9 +51,7 @@ export const ScaleBar = forwardRef<ScaleBarHandle, ScaleBarProps>(function Scale
   );
 
   // Nothing to measure until the camera has reported once.
-  const spec = camera
-    ? scaleBarFor(camera.zoom, camera.latitude, unit, SCALE_BAR_MAX_WIDTH)
-    : null;
+  const spec = camera ? scaleBarFor(camera.zoom, camera.latitude, unit, SCALE_BAR_MAX_WIDTH) : null;
   if (!spec) return null;
 
   return (

@@ -163,9 +163,7 @@ function buildDemMosaic(vrtPath: string, verbose: boolean): void {
   }
 
   const demExtensions = ['.tif', '.tiff', '.hgt'];
-  const demFiles = fs.readdirSync(DEM_CACHE_DIR).filter(f =>
-    demExtensions.some(ext => f.toLowerCase().endsWith(ext))
-  );
+  const demFiles = fs.readdirSync(DEM_CACHE_DIR).filter(f => demExtensions.some(ext => f.toLowerCase().endsWith(ext)));
 
   if (demFiles.length === 0) {
     throw new Error(`No DEM files found in ${DEM_CACHE_DIR}`);
@@ -176,10 +174,7 @@ function buildDemMosaic(vrtPath: string, verbose: boolean): void {
   // gdalbuildvrt reads the file list from an argument file to avoid
   // command-line length limits with hundreds of tiles.
   const listPath = vrtPath.replace(/\.vrt$/, '_files.txt');
-  fs.writeFileSync(
-    listPath,
-    demFiles.map(f => path.join(DEM_CACHE_DIR, f)).join('\n')
-  );
+  fs.writeFileSync(listPath, demFiles.map(f => path.join(DEM_CACHE_DIR, f)).join('\n'));
   run(`gdalbuildvrt -vrtnodata -9999 -input_file_list "${listPath}" "${vrtPath}"`, { verbose });
   fs.unlinkSync(listPath);
 
@@ -205,57 +200,66 @@ function processCell(cell: CellDef, args: CliArgs): void {
     // 1: Clip + (optionally) smooth in one warp from the mosaic.
     //    Buffered extent so smoothing matches the neighbouring cell.
     const resampling = args.skipSmooth ? 'near' : 'cubicspline';
-    run([
-      'gdalwarp',
-      '-overwrite',
-      `-te ${cell.west - CELL_BUFFER_DEG} ${latMin - CELL_BUFFER_DEG} ${cell.east + CELL_BUFFER_DEG} ${latMax + CELL_BUFFER_DEG}`,
-      `-r ${resampling}`,
-      `-tr ${WARP_TR_DEG} ${WARP_TR_DEG}`,
-      // -tap aligns every cell's pixel grid to the same global -tr lattice.
-      // Without it, adjacent cells (whose -te origins differ by 2°, not a
-      // multiple of -tr) sample the DEM ~0.24px apart and smoothed elevations
-      // diverge by several metres at the shared edge — contour lines would
-      // dangle at every cell boundary instead of meeting.
-      '-tap',
-      '-dstnodata -9999',
-      '-co COMPRESS=LZW',
-      '-co TILED=YES',
-      '-co BIGTIFF=YES',
-      `"${MOSAIC_VRT_PATH}"`,
-      `"${demPath}"`,
-    ].join(' '), { verbose: args.verbose });
+    run(
+      [
+        'gdalwarp',
+        '-overwrite',
+        `-te ${cell.west - CELL_BUFFER_DEG} ${latMin - CELL_BUFFER_DEG} ${cell.east + CELL_BUFFER_DEG} ${latMax + CELL_BUFFER_DEG}`,
+        `-r ${resampling}`,
+        `-tr ${WARP_TR_DEG} ${WARP_TR_DEG}`,
+        // -tap aligns every cell's pixel grid to the same global -tr lattice.
+        // Without it, adjacent cells (whose -te origins differ by 2°, not a
+        // multiple of -tr) sample the DEM ~0.24px apart and smoothed elevations
+        // diverge by several metres at the shared edge — contour lines would
+        // dangle at every cell boundary instead of meeting.
+        '-tap',
+        '-dstnodata -9999',
+        '-co COMPRESS=LZW',
+        '-co TILED=YES',
+        '-co BIGTIFF=YES',
+        `"${MOSAIC_VRT_PATH}"`,
+        `"${demPath}"`,
+      ].join(' '),
+      { verbose: args.verbose }
+    );
 
     // 2: Generate contours
     if (fs.existsSync(rawPath)) fs.unlinkSync(rawPath);
-    run([
-      'gdal_contour',
-      '-a elevation',
-      `-i ${CONTOUR_INTERVAL}`,
-      '-snodata -9999',
-      '-f FlatGeobuf',
-      `"${demPath}"`,
-      `"${rawPath}"`,
-    ].join(' '), { verbose: args.verbose });
+    run(
+      [
+        'gdal_contour',
+        '-a elevation',
+        `-i ${CONTOUR_INTERVAL}`,
+        '-snodata -9999',
+        '-f FlatGeobuf',
+        `"${demPath}"`,
+        `"${rawPath}"`,
+      ].join(' '),
+      { verbose: args.verbose }
+    );
 
     // 3: Per tier: classify (is_index), filter, and clip back to the exact
     //    cell extent so adjacent cells don't duplicate features.
     for (const tier of TIERS) {
       const tierPath = cellTierPath(cellId, tier);
       if (fs.existsSync(tierPath)) fs.unlinkSync(tierPath);
-      run([
-        'ogr2ogr',
-        '-f FlatGeobuf',
-        `"${tierPath}"`,
-        `"${rawPath}"`,
-        `-nln ${CLASSIFIED_LAYER}`,
-        // Clipping can split a contour into a MultiLineString; promote the
-        // layer type so mixed geometries write cleanly.
-        '-nlt PROMOTE_TO_MULTI',
-        `-clipsrc ${cell.west} ${latMin} ${cell.east} ${latMax}`,
-        '-dialect sqlite',
-        '-sql',
-        `"SELECT geometry, elevation, CAST(CASE WHEN (CAST(elevation AS INTEGER) % ${INDEX_CONTOUR_INTERVAL}) = 0 THEN 1 ELSE 0 END AS INTEGER) AS is_index FROM 'contour' WHERE ${tier.where}"`,
-      ].join(' '), { verbose: args.verbose });
+      run(
+        [
+          'ogr2ogr',
+          '-f FlatGeobuf',
+          `"${tierPath}"`,
+          `"${rawPath}"`,
+          `-nln ${CLASSIFIED_LAYER}`,
+          // Clipping can split a contour into a MultiLineString; promote the
+          // layer type so mixed geometries write cleanly.
+          '-nlt PROMOTE_TO_MULTI',
+          `-clipsrc ${cell.west} ${latMin} ${cell.east} ${latMax}`,
+          '-dialect sqlite',
+          '-sql',
+          `"SELECT geometry, elevation, CAST(CASE WHEN (CAST(elevation AS INTEGER) % ${INDEX_CONTOUR_INTERVAL}) = 0 THEN 1 ELSE 0 END AS INTEGER) AS is_index FROM 'contour' WHERE ${tier.where}"`,
+        ].join(' '),
+        { verbose: args.verbose }
+      );
     }
 
     fs.writeFileSync(cellDoneMarker(cellId), new Date().toISOString());
@@ -304,32 +308,35 @@ async function processCells(
     for (;;) {
       const cell = queue.shift();
       if (!cell) return;
-      await new Promise<void>((resolve) => {
-        execFile('npx', ['tsx', scriptPath, '--cell', cell.id, ...childArgs], {
-          cwd: PROJECT_ROOT,
-          maxBuffer: 50 * 1024 * 1024,
-        }, (error, stdout, stderr) => {
-          completed++;
-          if (args.verbose) {
-            if (stdout) process.stdout.write(stdout);
-            if (stderr) process.stderr.write(stderr);
+      await new Promise<void>(resolve => {
+        execFile(
+          'npx',
+          ['tsx', scriptPath, '--cell', cell.id, ...childArgs],
+          {
+            cwd: PROJECT_ROOT,
+            maxBuffer: 50 * 1024 * 1024,
+          },
+          (error, stdout, stderr) => {
+            completed++;
+            if (args.verbose) {
+              if (stdout) process.stdout.write(stdout);
+              if (stderr) process.stderr.write(stderr);
+            }
+            if (error) {
+              console.error(`  ✗ [${completed}/${cells.length}] ${cell.id}: ${error.message.split('\n')[0]}`);
+              results.push({ cellId: cell.id, success: false, error: error.message });
+            } else {
+              console.log(`  ✓ [${completed}/${cells.length}] ${cell.id}`);
+              results.push({ cellId: cell.id, success: true });
+            }
+            resolve();
           }
-          if (error) {
-            console.error(`  ✗ [${completed}/${cells.length}] ${cell.id}: ${error.message.split('\n')[0]}`);
-            results.push({ cellId: cell.id, success: false, error: error.message });
-          } else {
-            console.log(`  ✓ [${completed}/${cells.length}] ${cell.id}`);
-            results.push({ cellId: cell.id, success: true });
-          }
-          resolve();
-        });
+        );
       });
     }
   };
 
-  await Promise.all(
-    Array.from({ length: Math.min(args.parallel, cells.length) }, () => runNext())
-  );
+  await Promise.all(Array.from({ length: Math.min(args.parallel, cells.length) }, () => runNext()));
 
   return results;
 }
@@ -373,8 +380,7 @@ function mergeToPmtiles(outputPath: string, verbose: boolean): void {
     throw new Error(`No cell tier files found in ${WORK_DIR} — nothing to merge`);
   }
 
-  console.log(`  Merging ${fileCount} tier files from ${WORK_DIR}` +
-    (skipped ? ` (${skipped} skipped)` : ''));
+  console.log(`  Merging ${fileCount} tier files from ${WORK_DIR}` + (skipped ? ` (${skipped} skipped)` : ''));
 
   // tippecanoe spills tens of GB of temporary sort files to /tmp by default;
   // on tmpfs that exhausts the quota mid-merge. Keep temps next to the data.
@@ -386,15 +392,14 @@ function mergeToPmtiles(outputPath: string, verbose: boolean): void {
   // PMTiles. The intermediate stays in the work dir for a tile-join-only retry.
   const tieredPath = path.join(WORK_DIR, 'australia-contours.tiered.mbtiles');
   if (fs.existsSync(tieredPath)) fs.unlinkSync(tieredPath);
-  execFileSync('tippecanoe', [
-    '-t', tmpDir,
-    '-o', tieredPath,
-    ...contourTippecanoeArgs({}, { verbose }),
-    ...layerArgs,
-  ], {
-    cwd: PROJECT_ROOT,
-    stdio: ['ignore', 'inherit', 'inherit'],
-  });
+  execFileSync(
+    'tippecanoe',
+    ['-t', tmpDir, '-o', tieredPath, ...contourTippecanoeArgs({}, { verbose }), ...layerArgs],
+    {
+      cwd: PROJECT_ROOT,
+      stdio: ['ignore', 'inherit', 'inherit'],
+    }
+  );
   console.log(`  ✓ Tiered mbtiles: ${tieredPath} (${formatBytes(fileSizeBytes(tieredPath))})`);
 
   console.log('  Folding tier layers into `contour` (tile-join)...');
@@ -458,13 +463,13 @@ async function main(): Promise<void> {
       // Enumerate land cells (those with DEM coverage)
       const allCells = enumerateCells();
       const landCells = allCells.filter(c => demFilesForCell(c).length > 0);
-      const pendingCells = args.force
-        ? landCells
-        : landCells.filter(c => !fs.existsSync(cellDoneMarker(c.id)));
+      const pendingCells = args.force ? landCells : landCells.filter(c => !fs.existsSync(cellDoneMarker(c.id)));
 
-      console.log(`\nStep 2: Processing cells (${landCells.length} land cells, ` +
-        `${landCells.length - pendingCells.length} already built, ` +
-        `${pendingCells.length} to process, parallelism ${args.parallel})...`);
+      console.log(
+        `\nStep 2: Processing cells (${landCells.length} land cells, ` +
+          `${landCells.length - pendingCells.length} already built, ` +
+          `${pendingCells.length} to process, parallelism ${args.parallel})...`
+      );
 
       const results = await processCells(pendingCells, args);
       const failed = results.filter(r => !r.success);
@@ -507,7 +512,7 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((error) => {
+main().catch(error => {
   console.error('Fatal error:', error);
   process.exit(1);
 });

@@ -81,10 +81,7 @@ describe('source validation', () => {
 
 describe('CORS configuration audit', () => {
   it('worker uses configurable CORS origin, not hardcoded wildcard', () => {
-    const workerSource = readFileSync(
-      resolve(__dirname, '../../workers/contour-tiles/src/index.ts'),
-      'utf-8',
-    );
+    const workerSource = readFileSync(resolve(__dirname, '../../workers/contour-tiles/src/index.ts'), 'utf-8');
     // Should NOT have a hardcoded wildcard CORS constant
     const hasHardcodedWildcard = workerSource.includes("'Access-Control-Allow-Origin': '*'");
     expect(hasHardcodedWildcard).toBe(false);

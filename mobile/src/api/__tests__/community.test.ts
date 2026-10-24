@@ -156,7 +156,10 @@ describe('authenticated routes', () => {
     expect(call(fetchImpl, 0)[1].method).toBe('PATCH');
     expect(call(fetchImpl, 1)[1].method).toBe('DELETE');
     expect(call(fetchImpl, 2)[0]).toBe(`${BASE}/v1/community/routes/${ID}/report`);
-    expect(JSON.parse(call(fetchImpl, 2)[1].body as string)).toEqual({ reason: 'spam', note: null });
+    expect(JSON.parse(call(fetchImpl, 2)[1].body as string)).toEqual({
+      reason: 'spam',
+      note: null,
+    });
   });
 
   it('listMyCommunityRoutes reads the user-scoped list', async () => {

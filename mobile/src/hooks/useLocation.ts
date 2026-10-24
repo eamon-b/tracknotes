@@ -81,7 +81,9 @@ export function useLocation(
 
   // Check permission on mount (non-prompting).
   useEffect(() => {
-    getLocationPermissionStatus().then(setPermissionStatus).catch(() => {});
+    getLocationPermissionStatus()
+      .then(setPermissionStatus)
+      .catch(() => {});
   }, []);
 
   const handleLocationUpdate = useCallback((update: LocationUpdate) => {

@@ -239,9 +239,7 @@ export function ReportDialog({
                 onPress={needsName ? savePromptedName : handleReport}
                 disabled={busy}
                 accessibilityRole="button"
-                accessibilityLabel={
-                  needsName ? 'Save display name and report' : 'Send report'
-                }
+                accessibilityLabel={needsName ? 'Save display name and report' : 'Send report'}
                 style={[styles.button, styles.send, { backgroundColor: colors.accent }]}
               >
                 {busy ? (

@@ -57,14 +57,7 @@ export interface CommunityAiReview {
   error?: string;
 }
 
-export const COMMUNITY_REPORT_REASONS = [
-  'spam',
-  'offensive',
-  'inaccurate',
-  'unsafe',
-  'copyright',
-  'other',
-] as const;
+export const COMMUNITY_REPORT_REASONS = ['spam', 'offensive', 'inaccurate', 'unsafe', 'copyright', 'other'] as const;
 export type CommunityReportReason = (typeof COMMUNITY_REPORT_REASONS)[number];
 
 /** Distinct user reports that hide a route until an admin looks. */

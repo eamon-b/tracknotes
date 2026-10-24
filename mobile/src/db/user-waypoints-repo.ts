@@ -60,7 +60,10 @@ function toWaypoint(row: Row): StoredUserWaypoint | null {
 }
 
 /** Every hiker waypoint on a trail, oldest first. */
-export async function listForTrail(db: SqlDatabase, trailId: string): Promise<StoredUserWaypoint[]> {
+export async function listForTrail(
+  db: SqlDatabase,
+  trailId: string,
+): Promise<StoredUserWaypoint[]> {
   const rows = await db.getAllAsync<Row>(
     'SELECT * FROM user_waypoints WHERE trail_id = ? ORDER BY created_at, id',
     [trailId],
@@ -215,11 +218,10 @@ export async function rekeyOwnAsPrivate(
           WHERE id = ?`,
         [id, row.id],
       );
-      await db.runAsync('UPDATE favorites SET waypoint_id = ? WHERE trail_id = ? AND waypoint_id = ?', [
-        id,
-        row.trail_id,
-        row.id,
-      ]);
+      await db.runAsync(
+        'UPDATE favorites SET waypoint_id = ? WHERE trail_id = ? AND waypoint_id = ?',
+        [id, row.trail_id, row.id],
+      );
       trails.add(row.trail_id);
     }
     return [...trails];
@@ -234,7 +236,11 @@ export async function readSyncedAt(db: SqlDatabase, trailId: string): Promise<st
   return row?.waypoints_synced_at ?? undefined;
 }
 
-export async function writeSyncedAt(db: SqlDatabase, trailId: string, syncedAt: string): Promise<void> {
+export async function writeSyncedAt(
+  db: SqlDatabase,
+  trailId: string,
+  syncedAt: string,
+): Promise<void> {
   await db.runAsync(
     `INSERT INTO sync_state (trail_id, waypoints_synced_at) VALUES (?, ?)
      ON CONFLICT(trail_id) DO UPDATE SET waypoints_synced_at = excluded.waypoints_synced_at`,

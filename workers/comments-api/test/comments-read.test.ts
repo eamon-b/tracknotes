@@ -1,11 +1,7 @@
 import { SELF, env } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
 import { authHeaders, createComment, registerDevice, url, wpId } from './helpers';
-import type {
-  BulkSyncResponse,
-  FeedResponse,
-  SyncTombstone,
-} from '../../../src/lib/comments-api-types';
+import type { BulkSyncResponse, FeedResponse, SyncTombstone } from '../../../src/lib/comments-api-types';
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -33,12 +29,8 @@ describe('per-waypoint feed pagination', () => {
     let cursor: string | null = null;
     let pages = 0;
     do {
-      const q = cursor
-        ? `?limit=2&cursor=${encodeURIComponent(cursor)}`
-        : '?limit=2';
-      const res: Response = await SELF.fetch(
-        url(`/v1/trails/heysen/waypoints/${wp}/comments${q}`)
-      );
+      const q = cursor ? `?limit=2&cursor=${encodeURIComponent(cursor)}` : '?limit=2';
+      const res: Response = await SELF.fetch(url(`/v1/trails/heysen/waypoints/${wp}/comments${q}`));
       expect(res.status).toBe(200);
       const body = (await res.json()) as FeedResponse;
       expect(body.comments.length).toBeLessThanOrEqual(2);
@@ -90,15 +82,11 @@ describe('trail-wide bulk / delta sync', () => {
     expect(d.res.status).toBe(201);
 
     // Delta since snapshot: exactly the tombstone for A and the new row D.
-    const deltaRes = await SELF.fetch(
-      url(`/v1/trails/${trail}/comments?since=${encodeURIComponent(since)}`)
-    );
+    const deltaRes = await SELF.fetch(url(`/v1/trails/${trail}/comments?since=${encodeURIComponent(since)}`));
     const delta = (await deltaRes.json()) as BulkSyncResponse;
     expect(delta.comments).toHaveLength(2);
 
-    const tombstone = delta.comments.find(
-      (c): c is SyncTombstone => 'deleted' in c && c.deleted === true
-    );
+    const tombstone = delta.comments.find((c): c is SyncTombstone => 'deleted' in c && c.deleted === true);
     expect(tombstone).toBeDefined();
     expect(tombstone).toEqual({
       id: a.id,
@@ -175,7 +163,10 @@ describe('trail-wide bulk / delta sync', () => {
     await SELF.fetch(url(`/v1/comments/${gone.id}`), { method: 'DELETE', headers: authHeaders(author) });
 
     const read = async (headers: Record<string, string> = {}) => {
-      const res = await SELF.fetch(url(`/v1/trails/${trail}/comments?since=${encodeURIComponent('1970-01-01T00:00:00.000Z')}`), { headers });
+      const res = await SELF.fetch(
+        url(`/v1/trails/${trail}/comments?since=${encodeURIComponent('1970-01-01T00:00:00.000Z')}`),
+        { headers }
+      );
       expect(res.status).toBe(200);
       return { res, body: (await res.json()) as BulkSyncResponse };
     };

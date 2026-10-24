@@ -1,10 +1,4 @@
-import {
-  SELF,
-  createExecutionContext,
-  createScheduledController,
-  env,
-  waitOnExecutionContext,
-} from 'cloudflare:test';
+import { SELF, createExecutionContext, createScheduledController, env, waitOnExecutionContext } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
 import { authHeaders, banUser, registerDevice, url } from './helpers';
 import worker from '../src/index';
@@ -149,9 +143,7 @@ describe('POST /v1/devices rate limit', () => {
     await waitOnExecutionContext(ctx);
 
     const count = async (key: string) =>
-      (await env.DB.prepare(`SELECT COUNT(*) AS n FROM rate_events WHERE key = ?`)
-        .bind(key)
-        .first<{ n: number }>())?.n;
+      (await env.DB.prepare(`SELECT COUNT(*) AS n FROM rate_events WHERE key = ?`).bind(key).first<{ n: number }>())?.n;
     expect(await count(stale)).toBe(0);
     expect(await count(fresh)).toBe(1);
   });

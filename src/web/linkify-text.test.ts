@@ -7,7 +7,7 @@ describe('linkifyText', () => {
     expect(html).toBe(
       'See <a href="https://henro.org/a" target="_blank" rel="noopener noreferrer">https://henro.org/a</a>. ' +
         'Mail <a href="mailto:inn@example.jp">inn@example.jp</a> or ' +
-        'Tel: <a href="tel:0885-42-4655">0885-42-4655</a> &lt;b&gt;',
+        'Tel: <a href="tel:0885-42-4655">0885-42-4655</a> &lt;b&gt;'
     );
   });
 

@@ -108,7 +108,12 @@ describe('the plan outbox branch', () => {
     await plansRepo.upsertLocal(d, local);
     const fetchImpl = scriptedFetch([{ status: 200, body: entry(local, '2026-05-05T00:00:00Z') }]);
 
-    const res = await submitPlan('heysen', local, { db: d, baseUrl: BASE, fetchImpl, getSessionFn });
+    const res = await submitPlan('heysen', local, {
+      db: d,
+      baseUrl: BASE,
+      fetchImpl,
+      getSessionFn,
+    });
 
     expect(res).toMatchObject({ outcome: 'drained', sent: 1, failed: 0 });
     expect(requests(fetchImpl)[0][0]).toBe(`${BASE}/v1/plans/p1`);
@@ -206,7 +211,12 @@ describe('the plan outbox branch', () => {
       { status: 403, body: { error: { code: 'banned', message: 'This account is suspended.' } } },
     ]);
 
-    const res = await submitPlan('heysen', local, { db: d, baseUrl: BASE, fetchImpl, getSessionFn });
+    const res = await submitPlan('heysen', local, {
+      db: d,
+      baseUrl: BASE,
+      fetchImpl,
+      getSessionFn,
+    });
 
     // Permanent, like any other 4xx: one attempt, no retry loop, and the row
     // stays so the Plan screen can say the server has not got this copy.
@@ -232,7 +242,12 @@ describe('the plan outbox branch', () => {
       },
     ]);
 
-    const res = await submitPlan('heysen', local, { db: d, baseUrl: BASE, fetchImpl, getSessionFn });
+    const res = await submitPlan('heysen', local, {
+      db: d,
+      baseUrl: BASE,
+      fetchImpl,
+      getSessionFn,
+    });
 
     expect(res).toMatchObject({ outcome: 'drained', sent: 0, failed: 1 });
     expect(requests(fetchImpl)).toHaveLength(2);
@@ -244,7 +259,12 @@ describe('the plan outbox branch', () => {
     await plansRepo.upsertLocal(d, local);
     const fetchImpl = scriptedFetch([{ throw: true }]);
 
-    const res = await submitPlan('heysen', local, { db: d, baseUrl: BASE, fetchImpl, getSessionFn });
+    const res = await submitPlan('heysen', local, {
+      db: d,
+      baseUrl: BASE,
+      fetchImpl,
+      getSessionFn,
+    });
 
     expect(res.outcome).toBe('offline');
     const rows = await outboxRepo.listPending(d);
@@ -262,7 +282,12 @@ describe('the plan outbox branch', () => {
       { status: 413, body: { error: { code: 'plan_too_large', message: 'too big' } } },
     ]);
 
-    const res = await submitPlan('heysen', local, { db: d, baseUrl: BASE, fetchImpl, getSessionFn });
+    const res = await submitPlan('heysen', local, {
+      db: d,
+      baseUrl: BASE,
+      fetchImpl,
+      getSessionFn,
+    });
 
     expect(res).toMatchObject({ outcome: 'drained', sent: 0, failed: 1 });
     const row = (await outboxRepo.listPending(d))[0];
@@ -371,10 +396,14 @@ describe('pullPlans', () => {
     const d = await db();
     const remote = doc({ updatedAt: '2026-03-01T00:00:00Z' });
     const fetchImpl = scriptedFetch([
-      { body: { plans: [entry(remote, '2026-03-01T00:00:00Z')], nextCursor: null, syncedAt: 'T1' } },
+      {
+        body: { plans: [entry(remote, '2026-03-01T00:00:00Z')], nextCursor: null, syncedAt: 'T1' },
+      },
       {
         body: {
-          plans: [{ id: 'p1', trailId: 'heysen', deleted: true, updatedAt: '2026-03-02T00:00:00Z' }],
+          plans: [
+            { id: 'p1', trailId: 'heysen', deleted: true, updatedAt: '2026-03-02T00:00:00Z' },
+          ],
           nextCursor: null,
           syncedAt: 'T2',
         },
@@ -403,7 +432,9 @@ describe('pullPlans', () => {
     const fetchImpl = scriptedFetch([
       {
         body: {
-          plans: [{ id: 'p1', trailId: 'heysen', deleted: true, updatedAt: '2026-05-01T00:00:00Z' }],
+          plans: [
+            { id: 'p1', trailId: 'heysen', deleted: true, updatedAt: '2026-05-01T00:00:00Z' },
+          ],
           nextCursor: null,
           syncedAt: 'T1',
         },
@@ -546,7 +577,12 @@ describe('the store hook', () => {
 describe('drainOutbox with nothing queued', () => {
   it('is idle', async () => {
     const d = await db();
-    const res = await drainOutbox({ db: d, baseUrl: BASE, fetchImpl: scriptedFetch([]), getSessionFn });
+    const res = await drainOutbox({
+      db: d,
+      baseUrl: BASE,
+      fetchImpl: scriptedFetch([]),
+      getSessionFn,
+    });
     expect(res.outcome).toBe('idle');
   });
 });

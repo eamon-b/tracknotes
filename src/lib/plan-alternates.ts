@@ -224,10 +224,7 @@ export interface PlannedRoute {
  * that branches first is taken: the editor never stores such a pair, but a
  * hand-edited document could.
  */
-export function buildPlannedRoute(
-  trail: PlannableTrail,
-  names: readonly string[] | undefined,
-): PlannedRoute {
+export function buildPlannedRoute(trail: PlannableTrail, names: readonly string[] | undefined): PlannedRoute {
   const total = trail.track.totalDistance;
   const wanted = new Set(names ?? []);
   const chosen: PlanAlternate[] = [];
@@ -389,12 +386,12 @@ interface SplicedLine<P extends RoutePoint> {
 function spliceLine<P extends RoutePoint>(
   source: readonly P[],
   route: PlannedRoute,
-  variants: readonly PlannableVariant[],
+  variants: readonly PlannableVariant[]
 ): SplicedLine<P> {
   const out: P[] = [];
   const pieces: SplicedLine<P>['pieces'] = [];
-  const cumulative = source.length > 0 && typeof source[0].cumAscent === 'number'
-    && typeof source[0].cumDescent === 'number';
+  const cumulative =
+    source.length > 0 && typeof source[0].cumAscent === 'number' && typeof source[0].cumDescent === 'number';
   let runAscent = 0;
   let runDescent = 0;
 
@@ -662,7 +659,11 @@ function splitForRoute(plan: PlanDocument, route: PlannedRoute): { shown: PlanSt
     else placed.push({ stored: stop, view: { ...omitAlternate(stop), km } });
   }
   placed.sort((a, b) => a.view.km - b.view.km);
-  const { kept, dropped } = partitionDuplicates(placed, entry => entry.view, () => '');
+  const { kept, dropped } = partitionDuplicates(
+    placed,
+    entry => entry.view,
+    () => ''
+  );
   return { shown: kept.map(entry => entry.view), hidden: [...hidden, ...dropped.map(entry => entry.stored)] };
 }
 
@@ -730,10 +731,12 @@ function withStopDetails(stop: PlanStop, from: PlanStop): PlanStop {
 
 /** The stored order: by km, a main-route stop before an alternate's at the same km. */
 export function sortPlanStops(stops: readonly PlanStop[]): PlanStop[] {
-  return [...stops].sort((a, b) =>
-    a.km - b.km
-    || (a.alternate === undefined ? 0 : 1) - (b.alternate === undefined ? 0 : 1)
-    || (a.alternate ?? '').localeCompare(b.alternate ?? ''));
+  return [...stops].sort(
+    (a, b) =>
+      a.km - b.km ||
+      (a.alternate === undefined ? 0 : 1) - (b.alternate === undefined ? 0 : 1) ||
+      (a.alternate ?? '').localeCompare(b.alternate ?? '')
+  );
 }
 
 /**
@@ -743,7 +746,7 @@ export function sortPlanStops(stops: readonly PlanStop[]): PlanStop[] {
 function partitionDuplicates<E>(
   entries: E[],
   stopOf: (entry: E) => PlanStop,
-  lineOf: (stop: PlanStop) => string,
+  lineOf: (stop: PlanStop) => string
 ): { kept: E[]; dropped: E[] } {
   const ids = new Set<string>();
   const lastKm = new Map<string, number>();
@@ -753,8 +756,10 @@ function partitionDuplicates<E>(
     const stop = stopOf(entry);
     const line = lineOf(stop);
     const previous = lastKm.get(line);
-    if ((stop.waypointId && ids.has(stop.waypointId))
-      || (previous !== undefined && Math.abs(stop.km - previous) < KM_EPSILON)) {
+    if (
+      (stop.waypointId && ids.has(stop.waypointId)) ||
+      (previous !== undefined && Math.abs(stop.km - previous) < KM_EPSILON)
+    ) {
       dropped.push(entry);
       continue;
     }
@@ -806,7 +811,7 @@ export function plannedRouteFor(trail: PlannableTrail, plan: PlanDocument | unde
 export function editPlanOnRoute(
   plan: PlanDocument,
   trail: PlannableTrail,
-  edit: (routePlan: PlanDocument) => PlanDocument,
+  edit: (routePlan: PlanDocument) => PlanDocument
 ): PlanDocument {
   const route = plannedRouteFor(trail, plan);
   const routePlan = planToRoute(plan, route);
@@ -837,7 +842,7 @@ export function setPlanAlternate(
   trail: PlannableTrail,
   name: string,
   take: boolean,
-  opts?: { now?: () => string },
+  opts?: { now?: () => string }
 ): PlanDocument {
   const options = plannableAlternates(trail);
   const option = options.find(o => o.name === name);
@@ -890,9 +895,9 @@ export function setPlanAlternate(
     const moved = stop.waypointId ? idPosition.get(stop.waypointId) : undefined;
     if (!moved) continue;
     const base = omitAlternate(stop);
-    stops.push(moved.alternate === undefined
-      ? { ...base, km: moved.km }
-      : { ...base, km: moved.km, alternate: moved.alternate });
+    stops.push(
+      moved.alternate === undefined ? { ...base, km: moved.km } : { ...base, km: moved.km, alternate: moved.alternate }
+    );
   }
 
   const sorted = sortPlanStops(stops);
@@ -937,15 +942,12 @@ export interface AlternateMarker {
 export function alternateMarkers(
   trail: PlannableTrail,
   route: PlannedRoute,
-  direction: 'NOBO' | 'SOBO',
+  direction: 'NOBO' | 'SOBO'
 ): AlternateMarker[] {
-  const toActive = (routeKm: number) =>
-    direction === 'SOBO' ? route.totalDistance - routeKm : routeKm;
+  const toActive = (routeKm: number) => (direction === 'SOBO' ? route.totalDistance - routeKm : routeKm);
   const markers: AlternateMarker[] = [];
   for (const alternate of plannableAlternates(trail)) {
-    const segment = route.segments.find(
-      s => s.kind === 'alternate' && s.alternate.name === alternate.name,
-    );
+    const segment = route.segments.find(s => s.kind === 'alternate' && s.alternate.name === alternate.name);
     if (segment) {
       const a = toActive(segment.routeFromKm);
       const b = toActive(segment.routeFromKm + alternate.distanceKm);
@@ -968,6 +970,7 @@ export function alternateMarkers(
   // At one km a rejoin comes before a branch (the route comes back, then
   // leaves again); two of a kind keep the trail's order of alternates.
   const kindRank = (m: AlternateMarker) => (m.kind === 'rejoin' ? 0 : 1);
-  return markers.sort((a, b) =>
-    a.activeKm - b.activeKm || kindRank(a) - kindRank(b) || a.alternate.index - b.alternate.index);
+  return markers.sort(
+    (a, b) => a.activeKm - b.activeKm || kindRank(a) - kindRank(b) || a.alternate.index - b.alternate.index
+  );
 }

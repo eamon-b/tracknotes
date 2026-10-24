@@ -37,7 +37,9 @@ async function reportedComment(n: number, trailId = 'heysen'): Promise<{ owner: 
   const { id, res } = await createComment(owner, { trailId });
   expect(res.status).toBe(201);
   for (let i = 0; i < n; i++) {
-    expect((await reportComment(await registerAgedDevice(), id, { reason: 'offensive', detail: `r${i}` })).status).toBe(201);
+    expect((await reportComment(await registerAgedDevice(), id, { reason: 'offensive', detail: `r${i}` })).status).toBe(
+      201
+    );
   }
   return { owner, id };
 }
@@ -111,7 +113,9 @@ describe('POST /v1/admin/comments/:id/restore', () => {
     await env.DB.prepare(`UPDATE comments SET photo_urls_json = ?, photo_hashes_json = ? WHERE id = ?`)
       .bind('["https://photos.test/a.jpg"]', '["00"]', hidden)
       .run();
-    expect((await SELF.fetch(url(`/v1/comments/${hidden}`), { method: 'DELETE', headers: authHeaders(admin) })).status).toBe(204);
+    expect(
+      (await SELF.fetch(url(`/v1/comments/${hidden}`), { method: 'DELETE', headers: authHeaders(admin) })).status
+    ).toBe(204);
     expect((await commentState(hidden))?.deleted_by).toBe('admin');
     // The photos are purged, so the row no longer names them.
     const photos = await env.DB.prepare(`SELECT photo_urls_json, photo_hashes_json FROM comments WHERE id = ?`)

@@ -17,10 +17,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { HeaderHeightContext } from 'expo-router/react-navigation';
-import {
-  KeyboardAvoidingModalContent,
-  KeyboardAwareScrollView,
-} from '../KeyboardAwareScrollView';
+import { KeyboardAvoidingModalContent, KeyboardAwareScrollView } from '../KeyboardAwareScrollView';
 
 function render(element: React.ReactElement): ReactTestRenderer {
   let tree!: ReactTestRenderer;
@@ -69,7 +66,9 @@ describe('KeyboardAwareScrollView', () => {
     setOS('ios');
     const tree = render(withHeader(96, <KeyboardAwareScrollView />));
     expect(tree.root.findAllByType(KeyboardAvoidingView)).toHaveLength(0);
-    expect(tree.root.findAllByType(ScrollView)[0].props.automaticallyAdjustKeyboardInsets).toBe(true);
+    expect(tree.root.findAllByType(ScrollView)[0].props.automaticallyAdjustKeyboardInsets).toBe(
+      true,
+    );
   });
 
   it('pads its content for the bottom system bar', () => {

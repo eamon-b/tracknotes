@@ -151,7 +151,8 @@ export function waypointAlternates(
     const option = plannable.find((o) => o.index === index) ?? null;
     const offMain = !variant.parent && typeof variant.startDistance === 'number';
     const leavesKm = offMain ? (variant.startDistance as number) : null;
-    const rejoinsKm = offMain && typeof variant.endDistance === 'number' ? variant.endDistance : null;
+    const rejoinsKm =
+      offMain && typeof variant.endDistance === 'number' ? variant.endDistance : null;
     return {
       role,
       name: variant.name ?? 'Alternate',

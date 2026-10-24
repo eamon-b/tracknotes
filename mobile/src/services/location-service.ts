@@ -217,9 +217,7 @@ function startWatch(): Promise<void> {
  * Start continuous foreground location tracking. Multiple callers may subscribe;
  * the OS watch is created once and shared.
  */
-export async function startLocationTracking(
-  callback: ForegroundLocationCallback,
-): Promise<void> {
+export async function startLocationTracking(callback: ForegroundLocationCallback): Promise<void> {
   foregroundSubscribers.add(callback);
   if (!subscription && !subscriptionStarting) {
     startWatch();
@@ -288,9 +286,7 @@ export async function setTrackingProfile(profile: TrackingProfile): Promise<void
  * With a callback: unsubscribes only that caller; the OS watch stops once the
  * last subscriber is gone. Without a callback: stops everything.
  */
-export async function stopLocationTracking(
-  callback?: ForegroundLocationCallback,
-): Promise<void> {
+export async function stopLocationTracking(callback?: ForegroundLocationCallback): Promise<void> {
   if (callback) {
     foregroundSubscribers.delete(callback);
   } else {
@@ -364,9 +360,7 @@ export async function stopBackgroundTracking(): Promise<void> {
 }
 
 /** Subscribe to updates from the background task. Returns an unsubscribe fn. */
-export function subscribeToBackgroundLocation(
-  callback: BackgroundLocationCallback,
-): () => void {
+export function subscribeToBackgroundLocation(callback: BackgroundLocationCallback): () => void {
   backgroundSubscribers.add(callback);
   return () => {
     backgroundSubscribers.delete(callback);
@@ -422,7 +416,9 @@ function reconcileAutoBattery(): void {
       handleBatteryLevel(batteryLevel);
     });
     // The listener only fires on change, so seed it with the current level.
-    Battery.getBatteryLevelAsync().then(handleBatteryLevel).catch(() => {});
+    Battery.getBatteryLevelAsync()
+      .then(handleBatteryLevel)
+      .catch(() => {});
   } else if (!shouldListen && batteryListener) {
     removeBatteryListener();
   }
@@ -433,9 +429,7 @@ function reconcileAutoBattery(): void {
  * a fixed profile; for 'auto' it resolves the current battery level now and
  * keeps watching for the rest of the session.
  */
-export async function setTrackingPreference(
-  preference: TrackingProfilePreference,
-): Promise<void> {
+export async function setTrackingPreference(preference: TrackingProfilePreference): Promise<void> {
   trackingPreference = preference;
   const resolved = await resolveTrackingProfile(preference);
   await setTrackingProfile(resolved);

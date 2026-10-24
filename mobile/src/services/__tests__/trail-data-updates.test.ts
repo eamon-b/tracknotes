@@ -363,11 +363,9 @@ describe('updating a bundled trail', () => {
       expect.stringMatching(new RegExp(`^${TRAILS_URL}/catalog\\.json\\?m=\\d+$`)),
       expect.anything(),
     );
-    expect(mockDownload).toHaveBeenCalledWith(
-      `${TRAILS_URL}/${entry.key}`,
-      expect.anything(),
-      { idempotent: true },
-    );
+    expect(mockDownload).toHaveBeenCalledWith(`${TRAILS_URL}/${entry.key}`, expect.anything(), {
+      idempotent: true,
+    });
     // Written to a part file first, never straight over a working copy.
     expect(mockDownloadTargets).toEqual([`${ROOT}/${entry.key}.part`]);
 
@@ -375,7 +373,9 @@ describe('updating a bundled trail', () => {
     expect(filesInRoot()).toEqual([entry.key, 'state.json'].sort());
     const state = savedState();
     expect(state.lastCheckedAt).toBe(T0);
-    expect(state.installed.alpha).toEqual(expect.objectContaining({ file: entry.key, md5: entry.md5 }));
+    expect(state.installed.alpha).toEqual(
+      expect.objectContaining({ file: entry.key, md5: entry.md5 }),
+    );
 
     expect(activeDownload('alpha')).toEqual(
       expect.objectContaining({ id: 'alpha', name: 'Alpha Track (fixed)', file: entry.key }),
@@ -656,7 +656,11 @@ describe('throttling', () => {
   });
 
   it('treats a non-OK response and an unreadable catalog as failures', async () => {
-    fetchMock.mockImplementationOnce(async () => ({ ok: false, status: 503, json: async () => ({}) }));
+    fetchMock.mockImplementationOnce(async () => ({
+      ok: false,
+      status: 503,
+      json: async () => ({}),
+    }));
     await expect(checkForTrailDataUpdates({ force: true, now: T0 })).resolves.toEqual(
       expect.objectContaining({ checked: false, error: 'Catalog request failed (503)' }),
     );
@@ -738,12 +742,17 @@ describe('catalog-only trails', () => {
     serveCatalog([gamma]);
     await checkForTrailDataUpdates({ now: T0 });
 
-    const [a, b] = await Promise.all([ensureTrailDownloaded('gamma'), ensureTrailDownloaded('gamma')]);
+    const [a, b] = await Promise.all([
+      ensureTrailDownloaded('gamma'),
+      ensureTrailDownloaded('gamma'),
+    ]);
 
     expect([a, b]).toEqual([true, true]);
     expect(mockDownload).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledTimes(1); // the stored catalog was enough
-    expect(listRemoteTrails()).toEqual([expect.objectContaining({ id: 'gamma', downloaded: true })]);
+    expect(listRemoteTrails()).toEqual([
+      expect.objectContaining({ id: 'gamma', downloaded: true }),
+    ]);
     await expect(readDownloadedTrail('gamma')).resolves.toEqual(
       expect.objectContaining({ config: expect.objectContaining({ id: 'gamma' }) }),
     );
@@ -818,7 +827,9 @@ describe('catalog-only trails', () => {
     serveCatalog([]);
     await checkForTrailDataUpdates({ force: true, now: T0 });
 
-    expect(listRemoteTrails()).toEqual([expect.objectContaining({ id: 'gamma', downloaded: true })]);
+    expect(listRemoteTrails()).toEqual([
+      expect.objectContaining({ id: 'gamma', downloaded: true }),
+    ]);
     expect(isServerKnown('gamma')).toBe(true);
     await expect(readDownloadedTrail('gamma')).resolves.not.toBeNull();
   });

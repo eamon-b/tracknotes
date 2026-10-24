@@ -38,11 +38,7 @@ import {
   type ResupplyTrail,
 } from '@lib/resupply-plan';
 import { setResupplyStops } from '@lib/plan-editor';
-import {
-  selectResupplyStops,
-  usePlansStore,
-  type PlanDefaults,
-} from '../../state/plans-store';
+import { selectResupplyStops, usePlansStore, type PlanDefaults } from '../../state/plans-store';
 import { selectPrefs, usePlanInputsStore } from './plan-inputs-store';
 
 /**

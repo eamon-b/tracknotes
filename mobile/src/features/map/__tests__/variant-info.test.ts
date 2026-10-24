@@ -142,11 +142,7 @@ describe('variantJunctionLine', () => {
   });
 
   it('treats start == end as out-and-back for either class', () => {
-    const info = variantInfo(
-      { startDistance: 40, endDistance: 40 },
-      'alternate',
-      'alternate-0',
-    );
+    const info = variantInfo({ startDistance: 40, endDistance: 40 }, 'alternate', 'alternate-0');
     expect(variantJunctionLine(info, 'km')).toBe('Branches at 40.0 km · out-and-back');
   });
 

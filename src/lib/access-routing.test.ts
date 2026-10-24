@@ -14,8 +14,19 @@ const ROUTE: AccessRoutePoint[] = Array.from({ length: 21 }, (_, i) => ({
   dist: i * 0.1112,
 }));
 const CAMP = { lat: -34.015, lon: 138.02 };
-const TO_SUMMIT: WalkWay = { coords: [[CAMP.lat, CAMP.lon], [-34.02, 138.0]] };
-const TO_VALLEY: WalkWay = { coords: [[CAMP.lat, CAMP.lon], [-34.0, 138.02], [-34.0, 138.0]] };
+const TO_SUMMIT: WalkWay = {
+  coords: [
+    [CAMP.lat, CAMP.lon],
+    [-34.02, 138.0],
+  ],
+};
+const TO_VALLEY: WalkWay = {
+  coords: [
+    [CAMP.lat, CAMP.lon],
+    [-34.0, 138.02],
+    [-34.0, 138.0],
+  ],
+};
 
 /** The ridge the route climbs: 50 m in the valley, 500 m at the summit, flat to the east. */
 function hill(lat: number, lon: number): number {
@@ -57,11 +68,24 @@ describe('findAccess', () => {
 
   it('counts the climb of a walk that goes up to the place', () => {
     const summitHut = { lat: -34.02, lon: 138.0 };
-    const spur = buildWalkNetwork([{ coords: [[-34.01, 138.0], [-34.02, 138.0]] }]);
+    const spur = buildWalkNetwork([
+      {
+        coords: [
+          [-34.01, 138.0],
+          [-34.02, 138.0],
+        ],
+      },
+    ]);
     // Off to the side: the route here is a separate line further west.
     const route = ROUTE.map(p => ({ ...p, lon: 137.99 }));
     const link = buildWalkNetwork([
-      { coords: [[-34.01, 137.99], [-34.01, 138.0], [-34.02, 138.0]] },
+      {
+        coords: [
+          [-34.01, 137.99],
+          [-34.01, 138.0],
+          [-34.02, 138.0],
+        ],
+      },
     ]);
     expect(findAccess(spur, summitHut, route, { elevationAt: hill }).ok).toBe(false);
     const access = findAccess(link, summitHut, route, { elevationAt: hill });
@@ -72,25 +96,52 @@ describe('findAccess', () => {
 
   it('starts from any way near the place, not only the nearest', () => {
     // A stub of driveway right beside the camp that joins nothing.
-    const stub: WalkWay = { coords: [[-34.015, 138.0201], [-34.0151, 138.0202]] };
+    const stub: WalkWay = {
+      coords: [
+        [-34.015, 138.0201],
+        [-34.0151, 138.0202],
+      ],
+    };
     const access = findAccess(buildWalkNetwork([stub, TO_VALLEY]), CAMP, ROUTE, { elevationAt: hill });
     expect(access.ok).toBe(true);
   });
 
   it('walks cross-country to a way that does not quite reach the place', () => {
-    const access = findAccess(buildWalkNetwork([{ coords: [[-34.0, 138.018], [-34.0, 138.0]] }]),
-      { lat: -34.001, lon: 138.018 }, ROUTE);
+    const access = findAccess(
+      buildWalkNetwork([
+        {
+          coords: [
+            [-34.0, 138.018],
+            [-34.0, 138.0],
+          ],
+        },
+      ]),
+      { lat: -34.001, lon: 138.018 },
+      ROUTE
+    );
     if (!access.ok) throw new Error(access.reason);
     expect(access.offNetworkM).toBeGreaterThan(100);
     expect(access.lengthM).toBeGreaterThan(access.offNetworkM);
   });
 
-  it('walks the place\'s own lane, not straight across to a road the route follows', () => {
+  it("walks the place's own lane, not straight across to a road the route follows", () => {
     // The route runs along a road; the lodge is 230 m east of it across a
     // river, reached by its lane north and round to the bridge.
-    const routeRoad: WalkWay = { coords: [[-34.0, 138.0], [-34.02, 138.0]] };
+    const routeRoad: WalkWay = {
+      coords: [
+        [-34.0, 138.0],
+        [-34.02, 138.0],
+      ],
+    };
     const lodge = { lat: -34.01, lon: 138.0025 };
-    const lane: WalkWay = { coords: [[lodge.lat, lodge.lon], [-34.01, 138.004], [-34.0, 138.004], [-34.0, 138.0]] };
+    const lane: WalkWay = {
+      coords: [
+        [lodge.lat, lodge.lon],
+        [-34.01, 138.004],
+        [-34.0, 138.004],
+        [-34.0, 138.0],
+      ],
+    };
     const access = findAccess(buildWalkNetwork([routeRoad, lane]), lodge, ROUTE);
     if (!access.ok) throw new Error(access.reason);
     expect(access.lengthM).toBeGreaterThan(1400);
@@ -98,8 +149,18 @@ describe('findAccess', () => {
   });
 
   it('tries further ways when the nearest ones lead nowhere', () => {
-    const stub: WalkWay = { coords: [[-34.0151, 138.0201], [-34.0152, 138.0202]] };
-    const road: WalkWay = { coords: [[-34.0162, 138.0201], [-34.0162, 138.0]] };
+    const stub: WalkWay = {
+      coords: [
+        [-34.0151, 138.0201],
+        [-34.0152, 138.0202],
+      ],
+    };
+    const road: WalkWay = {
+      coords: [
+        [-34.0162, 138.0201],
+        [-34.0162, 138.0],
+      ],
+    };
     const access = findAccess(buildWalkNetwork([stub, road]), CAMP, ROUTE);
     if (!access.ok) throw new Error(access.reason);
     expect(access.offNetworkM).toBeGreaterThan(100);
@@ -108,7 +169,12 @@ describe('findAccess', () => {
   it('refuses a straight line all the way to the route', () => {
     // Nothing mapped reaches the falls; the route road is 225 m away up a 70 m cliff.
     const falls = { lat: -34.01, lon: 138.0025 };
-    const routeRoad: WalkWay = { coords: [[-34.0, 138.0], [-34.02, 138.0]] };
+    const routeRoad: WalkWay = {
+      coords: [
+        [-34.0, 138.0],
+        [-34.02, 138.0],
+      ],
+    };
     const cliff = (_lat: number, lon: number) => (lon > 138.002 ? 0 : 70);
     expect(findAccess(buildWalkNetwork([routeRoad]), falls, ROUTE, { elevationAt: cliff }).ok).toBe(false);
     // The same 225 m over flat bush is a walk.
@@ -130,7 +196,12 @@ describe('findAccess', () => {
 
   it('never joins the route across a route break', () => {
     // The only way meets the route between points 9 and 10, a ferry crossing.
-    const ferryLanding: WalkWay = { coords: [[-34.0095, 138.02], [-34.0095, 138.0]] };
+    const ferryLanding: WalkWay = {
+      coords: [
+        [-34.0095, 138.02],
+        [-34.0095, 138.0],
+      ],
+    };
     const net = buildWalkNetwork([ferryLanding]);
     const place = { lat: -34.0095, lon: 138.02 };
     expect(findAccess(net, place, ROUTE).ok).toBe(true);
@@ -150,7 +221,14 @@ describe('findAccess', () => {
     for (const offsetM of [31, 32, 33, 34]) {
       const end = 20 + offsetM / mPerDegLon;
       const place = { lat: lat0 + 0.005, lon: 20 + 300 / mPerDegLon };
-      const lane = buildWalkNetwork([{ coords: [[place.lat, place.lon], [place.lat, end]] }]);
+      const lane = buildWalkNetwork([
+        {
+          coords: [
+            [place.lat, place.lon],
+            [place.lat, end],
+          ],
+        },
+      ]);
       const access = findAccess(lane, place, north);
       expect(access.ok, `${offsetM} m`).toBe(true);
       if (access.ok) expect(access.junctionKm).toBeCloseTo(0.5565, 2);
@@ -161,8 +239,20 @@ describe('findAccess', () => {
 describe('buildWalkNetwork', () => {
   it('joins ways at shared nodes and splits long edges', () => {
     const network = buildWalkNetwork([
-      { coords: [[0, 0], [0, 0.001]], nodeIds: [1, 2] },
-      { coords: [[0, 0.001], [0.001, 0.001]], nodeIds: [2, 3] },
+      {
+        coords: [
+          [0, 0],
+          [0, 0.001],
+        ],
+        nodeIds: [1, 2],
+      },
+      {
+        coords: [
+          [0, 0.001],
+          [0.001, 0.001],
+        ],
+        nodeIds: [2, 3],
+      },
     ]);
     // Two ~111 m edges in 25 m pieces: five pieces each, three shared ends.
     expect(network.lat.length).toBe(3 + 4 + 4);

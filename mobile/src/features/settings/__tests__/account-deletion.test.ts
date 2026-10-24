@@ -132,9 +132,7 @@ describe('purgeLocalAccountData', () => {
   });
 
   it('leaves device-local content that was never on the server', async () => {
-    await db.runAsync(
-      `INSERT INTO favorites (trail_id, waypoint_id) VALUES ('larapinta', 'wp-1')`,
-    );
+    await db.runAsync(`INSERT INTO favorites (trail_id, waypoint_id) VALUES ('larapinta', 'wp-1')`);
     await db.runAsync(
       `INSERT INTO routes (id, trail_id, name) VALUES ('r-1', 'larapinta', 'Day 1 loop')`,
     );
@@ -164,9 +162,12 @@ describe('purgeLocalAccountData', () => {
     const trails = await purgeLocalAccountData(db as unknown as SqlDatabase, ME);
 
     expect(trails.sort()).toEqual(['heysen', 'larapinta']);
-    const rows = await db.getAllAsync<{ id: string; trail_id: string; visibility: string; author_name: string | null }>(
-      'SELECT id, trail_id, visibility, author_name FROM user_waypoints ORDER BY trail_id, mine',
-    );
+    const rows = await db.getAllAsync<{
+      id: string;
+      trail_id: string;
+      visibility: string;
+      author_name: string | null;
+    }>('SELECT id, trail_id, visibility, author_name FROM user_waypoints ORDER BY trail_id, mine');
     const ids = rows.map((r) => r.id);
     expect(ids).toContain('hw_mine_import');
     expect(ids).toContain('hw_theirs');

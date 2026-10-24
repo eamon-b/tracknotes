@@ -46,7 +46,9 @@ describe('assetToSelectedPhoto', () => {
 
 describe('selectedPhotoFromResult', () => {
   it('returns null when the picker was canceled', () => {
-    expect(selectedPhotoFromResult({ canceled: true, assets: [{ uri: 'file:///a.jpg' }] })).toBeNull();
+    expect(
+      selectedPhotoFromResult({ canceled: true, assets: [{ uri: 'file:///a.jpg' }] }),
+    ).toBeNull();
   });
 
   it('returns null for a null/empty result', () => {
@@ -59,7 +61,10 @@ describe('selectedPhotoFromResult', () => {
     expect(
       selectedPhotoFromResult({
         canceled: false,
-        assets: [{ uri: 'file:///first.jpg', mimeType: 'image/jpeg' }, { uri: 'file:///second.jpg' }],
+        assets: [
+          { uri: 'file:///first.jpg', mimeType: 'image/jpeg' },
+          { uri: 'file:///second.jpg' },
+        ],
       }),
     ).toEqual({ uri: 'file:///first.jpg', contentType: 'image/jpeg' });
   });

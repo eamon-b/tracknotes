@@ -62,10 +62,11 @@ export class TileManager {
     if (!root.exists) return [];
     try {
       // Each subdirectory in tiles/ is a trail ID
-      return root.list()
+      return root
+        .list()
         .filter((entry): entry is Directory => entry instanceof Directory)
-        .map(dir => dir.name)
-        .filter(id => getTrailTileStatus(id).complete);
+        .map((dir) => dir.name)
+        .filter((id) => getTrailTileStatus(id).complete);
     } catch {
       return [];
     }

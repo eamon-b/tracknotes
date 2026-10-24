@@ -253,12 +253,7 @@ export async function listAllTrails(): Promise<TrailIndexEntry[]> {
   } catch {
     community = [];
   }
-  return [
-    ...listTrails(),
-    ...listRemoteTrails().map(remoteIndexEntry),
-    ...community,
-    ...imported,
-  ];
+  return [...listTrails(), ...listRemoteTrails().map(remoteIndexEntry), ...community, ...imported];
 }
 
 /**

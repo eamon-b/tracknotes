@@ -55,7 +55,9 @@ export function WaterCarryCard({
             </Text>
             {gap.isDryStretch && (
               <View style={[styles.badge, { backgroundColor: colors.danger }]}>
-                <Text style={[styles.badgeText, { color: colors.dangerText }]}>{dryStretchBadge(dryStretchKm, units)}</Text>
+                <Text style={[styles.badgeText, { color: colors.dangerText }]}>
+                  {dryStretchBadge(dryStretchKm, units)}
+                </Text>
               </View>
             )}
           </View>

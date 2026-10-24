@@ -27,7 +27,10 @@ describe('validateShareForm', () => {
   });
 
   it('starts invalid: the rights box is unticked and no country is chosen', () => {
-    const errors = validateShareForm({ ...initialShareForm('Lake Loop'), description: VALID.description });
+    const errors = validateShareForm({
+      ...initialShareForm('Lake Loop'),
+      description: VALID.description,
+    });
     expect(Object.keys(errors).sort()).toEqual(['country', 'rights']);
   });
 
@@ -35,7 +38,9 @@ describe('validateShareForm', () => {
     expect(validateShareForm({ ...VALID, name: 'ab' }).name).toBeDefined();
     expect(validateShareForm({ ...VALID, name: 'x'.repeat(81) }).name).toBeDefined();
     expect(validateShareForm({ ...VALID, description: 'too short' }).description).toBeDefined();
-    expect(validateShareForm({ ...VALID, description: 'x'.repeat(2001) }).description).toBeDefined();
+    expect(
+      validateShareForm({ ...VALID, description: 'x'.repeat(2001) }).description,
+    ).toBeDefined();
     expect(validateShareForm({ ...VALID, credit: 'x'.repeat(301) }).credit).toBeDefined();
   });
 
@@ -55,9 +60,7 @@ describe('validateShareForm', () => {
 describe('buildSubmitRequest', () => {
   it('trims the text and sends a blank credit as null', () => {
     const trail = { config: {} };
-    expect(
-      buildSubmitRequest({ ...VALID, name: '  Lake Loop ', credit: '   ' }, trail),
-    ).toEqual({
+    expect(buildSubmitRequest({ ...VALID, name: '  Lake Loop ', credit: '   ' }, trail)).toEqual({
       name: 'Lake Loop',
       description: VALID.description,
       credit: null,
@@ -88,7 +91,8 @@ describe('utf8ByteLength', () => {
     // @ts-expect-error -- simulating a runtime without it
     delete globalThis.TextEncoder;
     try {
-      for (const text of samples) expect(utf8ByteLength(text)).toBe(Buffer.byteLength(text, 'utf8'));
+      for (const text of samples)
+        expect(utf8ByteLength(text)).toBe(Buffer.byteLength(text, 'utf8'));
     } finally {
       globalThis.TextEncoder = original;
     }
@@ -110,19 +114,26 @@ describe('shareFailure', () => {
     const published = 'You can share at most 10 routes a day. Try again tomorrow.';
     const duplicate = 'This exact track has been shared before';
     expect(
-      shareFailure(new ApiError(429, 'rate_limited', attempts, envelope('rate_limited', attempts))).message,
+      shareFailure(new ApiError(429, 'rate_limited', attempts, envelope('rate_limited', attempts)))
+        .message,
     ).toBe(attempts);
     expect(
-      shareFailure(new ApiError(429, 'rate_limited', published, envelope('rate_limited', published))).message,
+      shareFailure(
+        new ApiError(429, 'rate_limited', published, envelope('rate_limited', published)),
+      ).message,
     ).toBe(published);
     expect(
-      shareFailure(new ApiError(409, 'duplicate', duplicate, envelope('duplicate', duplicate))).message,
+      shareFailure(new ApiError(409, 'duplicate', duplicate, envelope('duplicate', duplicate)))
+        .message,
     ).toBe(duplicate);
   });
 
   it('carries the existing id of the caller’s own duplicate, and only a community id', () => {
     const duplicate = 'This exact track has been shared before';
-    const body = (extra: object) => ({ error: { code: 'duplicate', message: duplicate }, ...extra });
+    const body = (extra: object) => ({
+      error: { code: 'duplicate', message: duplicate },
+      ...extra,
+    });
     const own = shareFailure(
       new ApiError(409, 'duplicate', duplicate, body({ existingId: 'c_AAAAAAAAAAAAAAAA' })),
     );
@@ -132,18 +143,22 @@ describe('shareFailure', () => {
       message: duplicate,
     });
     expect(
-      shareFailure(new ApiError(409, 'duplicate', duplicate, body({ existingId: '../x' }))).existingId,
+      shareFailure(new ApiError(409, 'duplicate', duplicate, body({ existingId: '../x' })))
+        .existingId,
     ).toBeUndefined();
   });
 
   it('falls back to its own words when the server gives none', () => {
-    expect(shareFailure(new ApiError(409, 'duplicate', 'Conflict')).message).toMatch(/already been shared/);
+    expect(shareFailure(new ApiError(409, 'duplicate', 'Conflict')).message).toMatch(
+      /already been shared/,
+    );
     expect(shareFailure(new ApiError(429, 'http_error', 'Too Many Requests')).message).toMatch(
       /today’s limit/,
     );
     expect(
-      shareFailure(new ApiError(429, 'rate_limited', '', { error: { code: 'rate_limited', message: '  ' } }))
-        .message,
+      shareFailure(
+        new ApiError(429, 'rate_limited', '', { error: { code: 'rate_limited', message: '  ' } }),
+      ).message,
     ).toMatch(/today’s limit/);
   });
 
@@ -171,19 +186,34 @@ describe('validateReport', () => {
 
 describe('initialShareForm region prefill', () => {
   it('takes the detected country and state', () => {
-    expect(initialShareForm('Loop', { country: 'au', state: 'VIC' })).toMatchObject({ country: 'AU', state: 'VIC' });
+    expect(initialShareForm('Loop', { country: 'au', state: 'VIC' })).toMatchObject({
+      country: 'AU',
+      state: 'VIC',
+    });
   });
 
   it('starts empty without a detection, and drops a state the country does not list', () => {
     expect(initialShareForm('Loop')).toMatchObject({ country: null, state: null });
-    expect(initialShareForm('Loop', { country: null, state: null })).toMatchObject({ country: null, state: null });
-    expect(initialShareForm('Loop', { country: 'JP', state: 'VIC' })).toMatchObject({ country: 'JP', state: null });
+    expect(initialShareForm('Loop', { country: null, state: null })).toMatchObject({
+      country: null,
+      state: null,
+    });
+    expect(initialShareForm('Loop', { country: 'JP', state: 'VIC' })).toMatchObject({
+      country: 'JP',
+      state: null,
+    });
     // A detected country the form does not offer (Lesotho) is not prefilled.
-    expect(initialShareForm('Loop', { country: 'LS', state: null })).toMatchObject({ country: null, state: null });
+    expect(initialShareForm('Loop', { country: 'LS', state: null })).toMatchObject({
+      country: null,
+      state: null,
+    });
   });
 
   it('prefills a valid form once the text is filled in', () => {
-    const form = { ...initialShareForm('Lake Loop', { country: 'NZ', state: 'SI' }), description: VALID.description };
+    const form = {
+      ...initialShareForm('Lake Loop', { country: 'NZ', state: 'SI' }),
+      description: VALID.description,
+    };
     expect(validateShareForm({ ...form, rightsConfirmed: true })).toEqual({});
   });
 });

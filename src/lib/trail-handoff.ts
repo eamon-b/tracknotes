@@ -134,10 +134,7 @@ export function parseHandoffJson(text: string): ProcessedTrail {
     fail('This is not a Tracknotes trail file: expected a JSON object at the top level.');
   }
   if (parsed.format !== HANDOFF_FORMAT) {
-    fail(
-      'This is not a Tracknotes trail file ' +
-        `(format ${describe(parsed.format)}, expected "${HANDOFF_FORMAT}").`
-    );
+    fail('This is not a Tracknotes trail file ' + `(format ${describe(parsed.format)}, expected "${HANDOFF_FORMAT}").`);
   }
 
   const version = parsed.version;
@@ -369,10 +366,8 @@ function readTrackPoint(value: unknown, where: string): TrackPoint {
   const lon = requireFinite(value.lon, `${where}.lon`);
   const ele = requireFinite(value.ele, `${where}.ele`);
   const dist = requireFinite(value.dist, `${where}.dist`);
-  if (lat < -90 || lat > 90)
-    fail(`This Tracknotes trail file has an out-of-range ${where}.lat (${lat}).`);
-  if (lon < -180 || lon > 180)
-    fail(`This Tracknotes trail file has an out-of-range ${where}.lon (${lon}).`);
+  if (lat < -90 || lat > 90) fail(`This Tracknotes trail file has an out-of-range ${where}.lat (${lat}).`);
+  if (lon < -180 || lon > 180) fail(`This Tracknotes trail file has an out-of-range ${where}.lon (${lon}).`);
   return { lat, lon, ele, dist };
 }
 
@@ -432,8 +427,7 @@ function readPOIs(value: unknown): TrailPOI[] | undefined {
       ...(typeof entry.duplicateOf === 'string' && entry.duplicateOf.length > 0
         ? { duplicateOf: entry.duplicateOf }
         : {}),
-      ...(typeof entry.duplicateDistanceM === 'number' &&
-      Number.isFinite(entry.duplicateDistanceM)
+      ...(typeof entry.duplicateDistanceM === 'number' && Number.isFinite(entry.duplicateDistanceM)
         ? { duplicateDistanceM: entry.duplicateDistanceM }
         : {}),
     });
@@ -478,12 +472,7 @@ function readRouteBreak(value: unknown, where: string): RouteBreak {
  * contains nothing the server has ever heard of. Re-minting is deterministic on
  * (trail id, index, name, position), so re-importing the same file is idempotent.
  */
-function readWaypoint(
-  value: unknown,
-  index: number,
-  trailId: string,
-  reminted: Map<string, string>
-): EnrichedWaypoint {
+function readWaypoint(value: unknown, index: number, trailId: string, reminted: Map<string, string>): EnrichedWaypoint {
   const where = `waypoints[${index}]`;
   if (!isRecord(value)) fail(`This Tracknotes trail file has a malformed ${where}.`);
 
@@ -561,7 +550,8 @@ function readAccessPath(value: unknown): Array<[number, number]> | null {
   for (const pair of value) {
     if (!Array.isArray(pair) || pair.length !== 2) return null;
     const [lat, lon] = pair;
-    if (typeof lat !== 'number' || typeof lon !== 'number' || !Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+    if (typeof lat !== 'number' || typeof lon !== 'number' || !Number.isFinite(lat) || !Number.isFinite(lon))
+      return null;
     if (Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
     path.push([lat, lon]);
   }
@@ -572,10 +562,8 @@ function readAccessPath(value: unknown): Array<[number, number]> | null {
 function readLatLon(value: Record<string, unknown>, where: string): { lat: number; lon: number } {
   const lat = requireFinite(value.lat, `${where}.lat`);
   const lon = requireFinite(value.lon, `${where}.lon`);
-  if (lat < -90 || lat > 90)
-    fail(`This Tracknotes trail file has an out-of-range ${where}.lat (${lat}).`);
-  if (lon < -180 || lon > 180)
-    fail(`This Tracknotes trail file has an out-of-range ${where}.lon (${lon}).`);
+  if (lat < -90 || lat > 90) fail(`This Tracknotes trail file has an out-of-range ${where}.lat (${lat}).`);
+  if (lon < -180 || lon > 180) fail(`This Tracknotes trail file has an out-of-range ${where}.lon (${lon}).`);
   return { lat, lon };
 }
 
@@ -713,9 +701,7 @@ function readVariant(value: unknown, where: string, ids: WaypointIdContext): Rou
     variant.parent = { name: parent.name, index: parent.index as number };
   }
   if (value.waypoints !== undefined) {
-    variant.waypoints = readList(value.waypoints, `${where}.waypoints`, (w, at) =>
-      readVariantWaypoint(w, at, ids)
-    );
+    variant.waypoints = readList(value.waypoints, `${where}.waypoints`, (w, at) => readVariantWaypoint(w, at, ids));
   }
   return variant;
 }

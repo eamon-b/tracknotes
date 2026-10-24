@@ -54,15 +54,23 @@ function reportsHtml(reports: readonly AdminCommentReport[]): string {
     .map(
       r =>
         `<li><strong>${escapeHtml(r.reason)}</strong>${r.detail ? `: ${escapeHtml(r.detail)}` : ''} <span class="community-hint">— ${escapeHtml(
-          r.reporterDisplayName,
-        )} · ${escapeHtml(r.createdAt)}</span></li>`,
+          r.reporterDisplayName
+        )} · ${escapeHtml(r.createdAt)}</span></li>`
     )
     .join('')}</ul>`;
 }
 
-function button(kind: string, id: string, action: string, label: string, enabled: boolean, cls = '', userId = ''): string {
+function button(
+  kind: string,
+  id: string,
+  action: string,
+  label: string,
+  enabled: boolean,
+  cls = '',
+  userId = ''
+): string {
   return `<button type="button" class="community-btn ${cls}" data-kind="${kind}" data-action="${action}" data-id="${escapeHtml(
-    id,
+    id
   )}"${userId ? ` data-user="${escapeHtml(userId)}"` : ''}${enabled ? '' : ' disabled'}>${label}</button>`;
 }
 
@@ -92,7 +100,7 @@ function banButtons(kind: string, id: string, author: Author): string {
         'Ban and remove all their posts',
         true,
         'is-danger',
-        userId,
+        userId
       )}`;
 }
 
@@ -134,19 +142,19 @@ export function waypointRowHtml(waypoint: AdminSharedWaypoint): string {
   return `
     <article class="admin-row${waypoint.deletedBy === 'reports' ? ' admin-row-attention' : ''}" data-row="${escapeHtml(id)}">
       <h3>${escapeHtml(waypoint.name)} <span class="community-hint">(${escapeHtml(waypoint.type)})</span> · ${escapeHtml(
-        stateLabel(waypoint.deletedBy, waypoint.deletedAt),
+        stateLabel(waypoint.deletedBy, waypoint.deletedAt)
       )}${waypoint.userBanned && !waypoint.userDeleted ? ' · <span class="community-hint">owner banned</span>' : ''}</h3>
       ${waypoint.description ? `<p class="community-description">${escapeHtml(waypoint.description).replace(/\r?\n/g, '<br>')}</p>` : ''}
       <dl>
         <dt>Id</dt><dd><code>${escapeHtml(id)}</code></dd>
         <dt>Trail</dt><dd><code>${escapeHtml(waypoint.trailId)}</code></dd>
         <dt>Position</dt><dd><a href="https://www.openstreetmap.org/?mlat=${escapeHtml(waypoint.lat)}&amp;mlon=${escapeHtml(
-          waypoint.lon,
+          waypoint.lon
         )}#map=16/${escapeHtml(waypoint.lat)}/${escapeHtml(waypoint.lon)}" target="_blank" rel="noopener noreferrer">${escapeHtml(
-          waypoint.lat.toFixed(5),
+          waypoint.lat.toFixed(5)
         )}, ${escapeHtml(waypoint.lon.toFixed(5))}</a></dd>
         <dt>Shared</dt><dd>${escapeHtml(waypoint.displayName)} · ${escapeHtml(waypoint.createdAt)} · owner <code>${escapeHtml(
-          waypoint.userId,
+          waypoint.userId
         )}</code></dd>
         ${waypoint.restoredAt ? `<dt>Restored</dt><dd>${escapeHtml(waypoint.restoredAt)}</dd>` : ''}
         <dt>Reports</dt><dd>${escapeHtml(waypoint.reportCount)}${reportsHtml(waypoint.reports)}</dd>
@@ -194,11 +202,15 @@ function init(): void {
     toolbar.hidden = true;
     clearLists();
     linkBox.hidden = false;
-    renderLinkForm(linkBox, 'Moderation needs an admin account. Link this browser to the Tracknotes app on that phone.', linked => {
-      linkBox.hidden = true;
-      linkBox.innerHTML = '';
-      void load(linked);
-    });
+    renderLinkForm(
+      linkBox,
+      'Moderation needs an admin account. Link this browser to the Tracknotes app on that phone.',
+      linked => {
+        linkBox.hidden = true;
+        linkBox.innerHTML = '';
+        void load(linked);
+      }
+    );
   };
 
   /** (Re)load both lists; see `admin-community.ts` for why a fresh link is passed in. */
@@ -214,7 +226,10 @@ function init(): void {
     let comments: AdminComment[];
     let waypoints: AdminSharedWaypoint[];
     try {
-      [comments, waypoints] = await Promise.all([adminListReportedComments(session), adminListSharedWaypoints(session)]);
+      [comments, waypoints] = await Promise.all([
+        adminListReportedComments(session),
+        adminListSharedWaypoints(session),
+      ]);
     } catch (err) {
       status.hidden = true;
       clearLists();
@@ -235,73 +250,81 @@ function init(): void {
     }
     status.hidden = true;
     toolbar.hidden = false;
-    const hiddenCount = comments.filter(c => c.deletedBy === 'reports').length + waypoints.filter(w => w.deletedBy === 'reports').length;
-    $('admin-identity').textContent = `Linked as ${session.displayName || 'this account'} · ${comments.length} reported comment${
-      comments.length === 1 ? '' : 's'
-    } · ${waypoints.length} shared waypoint${waypoints.length === 1 ? '' : 's'} · ${hiddenCount} hidden by reports`;
+    const hiddenCount =
+      comments.filter(c => c.deletedBy === 'reports').length + waypoints.filter(w => w.deletedBy === 'reports').length;
+    $('admin-identity').textContent =
+      `Linked as ${session.displayName || 'this account'} · ${comments.length} reported comment${
+        comments.length === 1 ? '' : 's'
+      } · ${waypoints.length} shared waypoint${waypoints.length === 1 ? '' : 's'} · ${hiddenCount} hidden by reports`;
     commentsSection.hidden = false;
     waypointsSection.hidden = false;
     commentsList.innerHTML =
       comments.length > 0 ? comments.map(commentRowHtml).join('') : '<p class="import-note">No reported comments.</p>';
     waypointsList.innerHTML =
-      waypoints.length > 0 ? waypoints.map(waypointRowHtml).join('') : '<p class="import-note">No shared waypoints.</p>';
+      waypoints.length > 0
+        ? waypoints.map(waypointRowHtml).join('')
+        : '<p class="import-note">No shared waypoints.</p>';
   };
 
-  const onClick = (list: HTMLElement) => (event: Event): void => {
-    const target = (event.target as HTMLElement).closest<HTMLButtonElement>('button[data-action]');
-    if (!target || !session) return;
-    const id = target.dataset.id!;
-    const action = target.dataset.action!;
-    const kind = target.dataset.kind!;
-    const userId = target.dataset.user ?? '';
-    const rowError = list.querySelector<HTMLElement>(`[data-error="${CSS.escape(id)}"]`);
-    const current = session;
-    const noun = kind === 'comment' ? 'comment' : 'waypoint';
+  const onClick =
+    (list: HTMLElement) =>
+    (event: Event): void => {
+      const target = (event.target as HTMLElement).closest<HTMLButtonElement>('button[data-action]');
+      if (!target || !session) return;
+      const id = target.dataset.id!;
+      const action = target.dataset.action!;
+      const kind = target.dataset.kind!;
+      const userId = target.dataset.user ?? '';
+      const rowError = list.querySelector<HTMLElement>(`[data-error="${CSS.escape(id)}"]`);
+      const current = session;
+      const noun = kind === 'comment' ? 'comment' : 'waypoint';
 
-    if (action === 'delete' && !window.confirm(`Delete this ${noun}? This cannot be undone.`)) return;
-    if (action === 'ban' && !window.confirm('Ban this account? It will no longer be able to post.')) return;
-    if (
-      action === 'ban-remove' &&
-      !window.confirm('Ban this account and delete every comment and shared waypoint it has up? This cannot be undone.')
-    ) {
-      return;
-    }
-
-    const run = async (): Promise<void> => {
-      switch (action) {
-        case 'restore':
-          return kind === 'comment' ? adminRestoreComment(current, id) : adminRestoreSharedWaypoint(current, id);
-        case 'delete':
-          return kind === 'comment' ? adminDeleteComment(current, id) : adminDeleteSharedWaypoint(current, id);
-        case 'ban':
-          await adminSetBanned(current, userId, true);
-          return;
-        case 'ban-remove':
-          await adminSetBanned(current, userId, true, true);
-          return;
-        case 'unban':
-          await adminSetBanned(current, userId, false);
-          return;
-        default:
-          return;
+      if (action === 'delete' && !window.confirm(`Delete this ${noun}? This cannot be undone.`)) return;
+      if (action === 'ban' && !window.confirm('Ban this account? It will no longer be able to post.')) return;
+      if (
+        action === 'ban-remove' &&
+        !window.confirm(
+          'Ban this account and delete every comment and shared waypoint it has up? This cannot be undone.'
+        )
+      ) {
+        return;
       }
-    };
 
-    const buttons = list.querySelectorAll<HTMLButtonElement>(`button[data-id="${CSS.escape(id)}"]`);
-    for (const b of buttons) b.disabled = true;
-    void run()
-      .then(() => load())
-      .catch((err: unknown) => {
-        if (rowError) {
-          rowError.textContent =
-            err instanceof ApiError
-              ? `Failed (${err.code}): ${err.message}`
-              : `Failed: ${err instanceof Error ? err.message : String(err)}`;
-          rowError.hidden = false;
+      const run = async (): Promise<void> => {
+        switch (action) {
+          case 'restore':
+            return kind === 'comment' ? adminRestoreComment(current, id) : adminRestoreSharedWaypoint(current, id);
+          case 'delete':
+            return kind === 'comment' ? adminDeleteComment(current, id) : adminDeleteSharedWaypoint(current, id);
+          case 'ban':
+            await adminSetBanned(current, userId, true);
+            return;
+          case 'ban-remove':
+            await adminSetBanned(current, userId, true, true);
+            return;
+          case 'unban':
+            await adminSetBanned(current, userId, false);
+            return;
+          default:
+            return;
         }
-        for (const b of buttons) b.disabled = false;
-      });
-  };
+      };
+
+      const buttons = list.querySelectorAll<HTMLButtonElement>(`button[data-id="${CSS.escape(id)}"]`);
+      for (const b of buttons) b.disabled = true;
+      void run()
+        .then(() => load())
+        .catch((err: unknown) => {
+          if (rowError) {
+            rowError.textContent =
+              err instanceof ApiError
+                ? `Failed (${err.code}): ${err.message}`
+                : `Failed: ${err instanceof Error ? err.message : String(err)}`;
+            rowError.hidden = false;
+          }
+          for (const b of buttons) b.disabled = false;
+        });
+    };
 
   commentsList.addEventListener('click', onClick(commentsList));
   waypointsList.addEventListener('click', onClick(waypointsList));

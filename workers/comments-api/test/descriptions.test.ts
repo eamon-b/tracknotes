@@ -1,10 +1,7 @@
 import { SELF, env } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
 import { authHeaders, makeAdmin, putDescription, registerDevice, url } from './helpers';
-import type {
-  TrailDescriptionsResponse,
-  WaypointDescription,
-} from '../../../src/lib/comments-api-types';
+import type { TrailDescriptionsResponse, WaypointDescription } from '../../../src/lib/comments-api-types';
 
 function errorCode(body: unknown): string {
   return (body as { error: { code: string } }).error.code;
@@ -17,10 +14,7 @@ async function adminDevice(name = 'Editor') {
   return device;
 }
 
-async function readDescriptions(
-  trailId: string,
-  since?: string
-): Promise<TrailDescriptionsResponse> {
+async function readDescriptions(trailId: string, since?: string): Promise<TrailDescriptionsResponse> {
   const query = since === undefined ? '' : `?since=${encodeURIComponent(since)}`;
   const res = await SELF.fetch(url(`/v1/trails/${trailId}/descriptions${query}`));
   expect(res.status).toBe(200);
@@ -56,9 +50,7 @@ describe('PUT /v1/admin/trails/:trailId/descriptions/:waypointId', () => {
     ).json()) as WaypointDescription;
 
     // Force a distinguishable clock gap so the bump is observable.
-    await env.DB.prepare(
-      `UPDATE waypoint_descriptions SET updated_at = ? WHERE trail_id = ? AND waypoint_id = ?`
-    )
+    await env.DB.prepare(`UPDATE waypoint_descriptions SET updated_at = ? WHERE trail_id = ? AND waypoint_id = ?`)
       .bind(new Date(Date.now() - 60_000).toISOString(), 'heysen', 'desc-upsert-wp')
       .run();
 
@@ -68,9 +60,7 @@ describe('PUT /v1/admin/trails/:trailId/descriptions/:waypointId', () => {
     expect(second.description).toBe('v2');
     expect(Date.parse(second.updatedAt)).toBeGreaterThan(Date.parse(first.updatedAt) - 60_000);
 
-    const count = await env.DB.prepare(
-      `SELECT COUNT(*) AS n FROM waypoint_descriptions WHERE waypoint_id = ?`
-    )
+    const count = await env.DB.prepare(`SELECT COUNT(*) AS n FROM waypoint_descriptions WHERE waypoint_id = ?`)
       .bind('desc-upsert-wp')
       .first<{ n: number }>();
     expect(count?.n).toBe(1);
@@ -82,9 +72,7 @@ describe('PUT /v1/admin/trails/:trailId/descriptions/:waypointId', () => {
     const admin = await adminDevice();
     await putDescription(admin, 'heysen', 'desc-same-wp', { description: 'same' });
     const stamp = new Date(Date.now() - 60_000).toISOString();
-    await env.DB.prepare(
-      `UPDATE waypoint_descriptions SET updated_at = ? WHERE trail_id = ? AND waypoint_id = ?`
-    )
+    await env.DB.prepare(`UPDATE waypoint_descriptions SET updated_at = ? WHERE trail_id = ? AND waypoint_id = ?`)
       .bind(stamp, 'heysen', 'desc-same-wp')
       .run();
 
@@ -178,9 +166,7 @@ describe('PUT /v1/admin/trails/:trailId/descriptions/:waypointId', () => {
     expect(errorCode(await res.json())).toBe('forbidden');
 
     // Nothing was written by either attempt.
-    const count = await env.DB.prepare(
-      `SELECT COUNT(*) AS n FROM waypoint_descriptions WHERE waypoint_id = ?`
-    )
+    const count = await env.DB.prepare(`SELECT COUNT(*) AS n FROM waypoint_descriptions WHERE waypoint_id = ?`)
       .bind('desc-auth-wp')
       .first<{ n: number }>();
     expect(count?.n).toBe(0);
@@ -222,9 +208,7 @@ describe('GET /v1/trails/:trailId/descriptions', () => {
 
     // Backdate the first row and take a watermark between the two writes.
     const oldStamp = new Date(Date.now() - 120_000).toISOString();
-    await env.DB.prepare(
-      `UPDATE waypoint_descriptions SET updated_at = ? WHERE trail_id = ? AND waypoint_id = ?`
-    )
+    await env.DB.prepare(`UPDATE waypoint_descriptions SET updated_at = ? WHERE trail_id = ? AND waypoint_id = ?`)
       .bind(oldStamp, 'bibbulmun', 'desc-since-old-wp')
       .run();
     const since = new Date(Date.now() - 60_000).toISOString();
@@ -236,10 +220,7 @@ describe('GET /v1/trails/:trailId/descriptions', () => {
 
     // The full read still returns both.
     const full = await readDescriptions('bibbulmun');
-    expect(full.descriptions.map((d) => d.waypointId)).toEqual([
-      'desc-since-new-wp',
-      'desc-since-old-wp',
-    ]);
+    expect(full.descriptions.map((d) => d.waypointId)).toEqual(['desc-since-new-wp', 'desc-since-old-wp']);
 
     // A watermark past every row yields an empty delta with a fresh syncedAt.
     // (+1 ms: the boundary is inclusive, and a row may share `syncedAt`'s ms.)
@@ -267,9 +248,7 @@ describe('GET /v1/trails/:trailId/descriptions', () => {
 
     // Backdate the original write so the clear is unambiguously newer than the
     // watermark even if both requests land in the same millisecond.
-    await env.DB.prepare(
-      `UPDATE waypoint_descriptions SET updated_at = ? WHERE trail_id = ? AND waypoint_id = ?`
-    )
+    await env.DB.prepare(`UPDATE waypoint_descriptions SET updated_at = ? WHERE trail_id = ? AND waypoint_id = ?`)
       .bind(new Date(Date.now() - 120_000).toISOString(), 'aawt', 'desc-delta-clear-wp')
       .run();
     const before = new Date(Date.now() - 60_000).toISOString();

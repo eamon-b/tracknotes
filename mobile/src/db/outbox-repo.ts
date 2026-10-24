@@ -116,7 +116,14 @@ export async function enqueue(db: SqlDatabase, input: EnqueueInput): Promise<voi
        attempts = 0,
        last_error = NULL,
        status = 'pending'`,
-    [input.id, input.kind, input.trailId ?? null, input.waypointId ?? null, payloadJson, input.createdAt],
+    [
+      input.id,
+      input.kind,
+      input.trailId ?? null,
+      input.waypointId ?? null,
+      payloadJson,
+      input.createdAt,
+    ],
   );
 }
 

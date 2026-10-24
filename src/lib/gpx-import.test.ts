@@ -71,12 +71,13 @@ describe('importGpx', () => {
   });
 
   it('falls back to the track name, then a generic name', () => {
-    const noMetadata = '<gpx><trk><name>Track Name Only</name><trkseg>' +
+    const noMetadata =
+      '<gpx><trk><name>Track Name Only</name><trkseg>' +
       '<trkpt lat="-33" lon="151"/><trkpt lat="-33.01" lon="151.01"/></trkseg></trk></gpx>';
     expect(importGpx(noMetadata).report.name).toBe('Track Name Only');
 
-    const anonymous = '<gpx><trk><trkseg>' +
-      '<trkpt lat="-33" lon="151"/><trkpt lat="-33.01" lon="151.01"/></trkseg></trk></gpx>';
+    const anonymous =
+      '<gpx><trk><trkseg>' + '<trkpt lat="-33" lon="151"/><trkpt lat="-33.01" lon="151.01"/></trkseg></trk></gpx>';
     expect(importGpx(anonymous).report.name).toBe('Imported trail');
   });
 
@@ -149,8 +150,9 @@ describe('importGpx', () => {
     // Day 1 runs A → B (5.5 km), Day 2 B → C (16.7 km), due north.
     const leg = (name: string, fromLat: number, toLat: number) => {
       const steps = Math.round((toLat - fromLat) / 0.001);
-      const pts = Array.from({ length: steps + 1 }, (_, i) =>
-        `<trkpt lat="${(fromLat + i * 0.001).toFixed(3)}" lon="151"><ele>10</ele></trkpt>`
+      const pts = Array.from(
+        { length: steps + 1 },
+        (_, i) => `<trkpt lat="${(fromLat + i * 0.001).toFixed(3)}" lon="151"><ele>10</ele></trkpt>`
       ).join('');
       return `<trk><name>${name}</name><trkseg>${pts}</trkseg></trk>`;
     };
@@ -260,9 +262,7 @@ describe('importGpx', () => {
   });
 
   it('honours the parser caps', () => {
-    expect(() => importGpx(fixture('simple-trail'), { limits: { maxPointCount: 2 } })).toThrow(
-      /too many points/
-    );
+    expect(() => importGpx(fixture('simple-trail'), { limits: { maxPointCount: 2 } })).toThrow(/too many points/);
   });
 
   it('produces the same trail through the fast-xml-parser adapter', () => {
@@ -308,9 +308,7 @@ describe('mintImportedWaypointIds', () => {
     );
     expect(ids[0]).toMatch(/^uw_/);
     expect(ids[0]).not.toBe(ids[1]);
-    expect(mintImportedWaypointIds([{ name: 'Same', lat: 1, lon: 2, type: 'waypoint' }], config)[0]).toBe(
-      ids[0]
-    );
+    expect(mintImportedWaypointIds([{ name: 'Same', lat: 1, lon: 2, type: 'waypoint' }], config)[0]).toBe(ids[0]);
   });
 
   describe('waypoint type inference from names', () => {

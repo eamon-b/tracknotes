@@ -19,11 +19,7 @@ import {
   smoothElevation,
   cumulativeElevationChange,
 } from './gpx-optimizer';
-import {
-  classifyTracks,
-  combineTracksGeographically,
-  concatenateStretches,
-} from './track-classification';
+import { classifyTracks, combineTracksGeographically, concatenateStretches } from './track-classification';
 import { classifyWaypoint, inferWaypointTypeFromKeywords } from './waypoint-classifier';
 import { cumulativeKm, detectSelfRetraces, extractSpur, type SelfRetrace } from './track-spurs';
 import {
@@ -31,13 +27,7 @@ import {
   WAYPOINT_DEDUPE_DEFAULT_RADIUS_METERS,
   type DedupableWaypoint,
 } from './waypoint-dedupe';
-import type {
-  CombineTracksWarning,
-  GpxData,
-  GpxPoint,
-  TrackBreak,
-  WaypointAccess,
-} from './types';
+import type { CombineTracksWarning, GpxData, GpxPoint, TrackBreak, WaypointAccess } from './types';
 import type {
   EnrichedWaypoint,
   KnownRetraceConfig,
@@ -292,9 +282,7 @@ function selectMainRoute(
   // back to the start of Day 1.
   const classification = classifyTracks(
     sourceTracks,
-    combineUnclassified
-      ? { ...config.trackClassification, fallbackToLongest: false }
-      : config.trackClassification || {}
+    combineUnclassified ? { ...config.trackClassification, fallbackToLongest: false } : config.trackClassification || {}
   );
 
   if (combineUnclassified && classification.unclassifiedTracks.length > 0) {
@@ -303,9 +291,7 @@ function selectMainRoute(
     classification.unclassifiedTracks = [];
     // The file's own order, so the chain starts from the file's first track.
     const fileOrder = new Map(sourceTracks.map((t, i) => [t.points, i]));
-    classification.mainTracks.sort(
-      (a, b) => (fileOrder.get(a.points) ?? 0) - (fileOrder.get(b.points) ?? 0)
-    );
+    classification.mainTracks.sort((a, b) => (fileOrder.get(a.points) ?? 0) - (fileOrder.get(b.points) ?? 0));
   }
 
   const parts: string[] = [];
@@ -314,7 +300,8 @@ function selectMainRoute(
   if (classification.sideTripTracks.length > 0) parts.push(`${classification.sideTripTracks.length} side trips`);
   if (classification.terminusTracks.length > 0) parts.push(`${classification.terminusTracks.length} termini`);
   if (classification.ignoredTracks.length > 0) parts.push(`${classification.ignoredTracks.length} ignored`);
-  if (classification.unclassifiedTracks.length > 0) parts.push(`${classification.unclassifiedTracks.length} unclassified`);
+  if (classification.unclassifiedTracks.length > 0)
+    parts.push(`${classification.unclassifiedTracks.length} unclassified`);
   const classificationSummary = parts.length > 0 ? parts.join(', ') : 'no tracks';
 
   const alternateTracks: ParsedGpxTrack[] = classification.alternateTracks.map(t => ({
@@ -397,16 +384,17 @@ export function calculateAdaptiveTolerance(
   // and reduction ratio (more points to remove = higher tolerance)
   const scaleFactor = Math.log2(reductionRatio) * (1 + totalDistanceKm / DISTANCE_SCALE_FACTOR_KM);
 
-  return Math.min(
-    MIN_TOLERANCE_METERS + scaleFactor * TOLERANCE_MULTIPLIER,
-    MAX_TOLERANCE_METERS
-  );
+  return Math.min(MIN_TOLERANCE_METERS + scaleFactor * TOLERANCE_MULTIPLIER, MAX_TOLERANCE_METERS);
 }
 
 /**
  * Calculate distance and elevation for a set of points
  */
-function calculateRouteStats(points: { lat: number; lon: number; ele: number }[]): { distance: number; ascent: number; descent: number } {
+function calculateRouteStats(points: { lat: number; lon: number; ele: number }[]): {
+  distance: number;
+  ascent: number;
+  descent: number;
+} {
   let distance = 0;
   let ascent = 0;
   let descent = 0;
@@ -463,9 +451,7 @@ const METERS_PER_DEGREE_LAT = 111320;
  * an offset on it would rewrite every existing trail's variants for nothing.
  */
 function junctionOffset(distanceFromTrack: number): number | undefined {
-  return distanceFromTrack > DEFAULT_MAX_JUNCTION_DISTANCE_METERS
-    ? Math.round(distanceFromTrack)
-    : undefined;
+  return distanceFromTrack > DEFAULT_MAX_JUNCTION_DISTANCE_METERS ? Math.round(distanceFromTrack) : undefined;
 }
 
 /**
@@ -559,10 +545,7 @@ function findTerminusJunction(
   maxJunctionDistance: number
 ): RouteVariant {
   const firstJunction = findNearestTrackPoint(variant.points[0], trackPoints);
-  const lastJunction = findNearestTrackPoint(
-    variant.points[variant.points.length - 1],
-    trackPoints
-  );
+  const lastJunction = findNearestTrackPoint(variant.points[variant.points.length - 1], trackPoints);
   const junctionIsAtEnd = lastJunction.distanceFromTrack < firstJunction.distanceFromTrack;
   const junction = junctionIsAtEnd ? lastJunction : firstJunction;
 
@@ -572,9 +555,7 @@ function findTerminusJunction(
     return { ...variant };
   }
 
-  const enriched: RouteVariant = junctionIsAtEnd
-    ? reverseVariantPoints(variant)
-    : { ...variant };
+  const enriched: RouteVariant = junctionIsAtEnd ? reverseVariantPoints(variant) : { ...variant };
   enriched.startTrackIndex = junction.trackIndex;
   enriched.startDistance = Math.round(trackPoints[junction.trackIndex].dist * 100) / 100;
   const offset = junctionOffset(junction.distanceFromTrack);
@@ -754,8 +735,7 @@ export function attachVariantsToParents(
       if (variant.type === 'terminus') {
         const fromFirst = nearestParent(variant.points[0], i);
         const fromLast = nearestParent(variant.points[variant.points.length - 1], i);
-        const useLast =
-          fromLast !== null && (fromFirst === null || fromLast.distance < fromFirst.distance);
+        const useLast = fromLast !== null && (fromFirst === null || fromLast.distance < fromFirst.distance);
         const chosen = useLast ? fromLast : fromFirst;
         if (chosen === null) continue;
         if (useLast) {
@@ -1024,13 +1004,7 @@ export function enrichWaypoints(
   let runningDescent = 0;
 
   for (const visit of visits) {
-    const segmentStats = calculateSegmentStats(
-      trackPoints,
-      prevTrackIndex,
-      visit.trackIndex,
-      breakStarts,
-      climb
-    );
+    const segmentStats = calculateSegmentStats(trackPoints, prevTrackIndex, visit.trackIndex, breakStarts, climb);
 
     runningDistance += segmentStats.distance;
     runningAscent += segmentStats.ascent;
@@ -1295,7 +1269,8 @@ export function placeAtJunctionKm<T extends JunctionRow>(
     if (!reordered && !moved.has(row) && !(prev !== undefined && moved.has(prev))) return row;
     const distance = Math.round((row.totalDistance - (prev?.totalDistance ?? startKm)) * 100) / 100;
     // Climb is read at the vertex, so only a leg whose ends changed vertex needs it again.
-    if (!reordered && !revertexed.has(row) && !(prev !== undefined && revertexed.has(prev))) return { ...row, distance };
+    if (!reordered && !revertexed.has(row) && !(prev !== undefined && revertexed.has(prev)))
+      return { ...row, distance };
     return {
       ...row,
       distance,
@@ -1374,8 +1349,12 @@ export function enrichVariantWaypoints(
 
     const own = variant.type === 'alternate' ? access.get(variant.name) : undefined;
     const placements = own?.placements ?? NO_PLACEMENTS;
-    const matched = matchAtJunctions(waypoints, placements, variant.points, VARIANT_WAYPOINT_MAX_DISTANCE_METERS, message =>
-      warn(`alternate "${variant.name}": ${message}`)
+    const matched = matchAtJunctions(
+      waypoints,
+      placements,
+      variant.points,
+      VARIANT_WAYPOINT_MAX_DISTANCE_METERS,
+      message => warn(`alternate "${variant.name}": ${message}`)
     );
     const visits = findWaypointVisits(matched, variant.points, VARIANT_WAYPOINT_MAX_DISTANCE_METERS);
     if (visits.length === 0) return variant;
@@ -1465,10 +1444,7 @@ function applyVariantAccess(
 // ---------------------------------------------------------------------------
 
 /** Mints a stable id per source waypoint (registry-backed, or deterministic). */
-export type WaypointIdMinter = (
-  waypoints: TrailWaypoint[],
-  config: TrailConfig
-) => (string | undefined)[];
+export type WaypointIdMinter = (waypoints: TrailWaypoint[], config: TrailConfig) => (string | undefined)[];
 
 /** Opt-in elevation cleaning. Off for the build script (output must not move). */
 export interface ElevationCleaningOptions {
@@ -1645,14 +1621,12 @@ export function buildTrail(gpx: ParsedGpxResult, options: BuildTrailOptions): Pr
     // A break sits *between* points i-1 and i. Reversing an n-point array sends
     // index i to n-1-i, so that same seam lands between n-i-1 and n-i, and the
     // first point after it is n-i. The two sides swap names with the direction.
-    breaks = [...breaks]
-      .reverse()
-      .map(b => ({
-        index: mainRoutePoints.length - b.index,
-        fromTrack: b.toTrack,
-        toTrack: b.fromTrack,
-        gapMeters: b.gapMeters,
-      }));
+    breaks = [...breaks].reverse().map(b => ({
+      index: mainRoutePoints.length - b.index,
+      fromTrack: b.toTrack,
+      toTrack: b.fromTrack,
+      gapMeters: b.gapMeters,
+    }));
     log('  ✓ Reversed track direction (reverseTrack)');
   }
 
@@ -1748,9 +1722,10 @@ export function buildTrail(gpx: ParsedGpxResult, options: BuildTrailOptions): Pr
   // Noise-thresholded climb, when asked for. The waypoints' segment ascent and
   // descent come from the same running count as the totals, so the last
   // waypoint's running total never claims more climb than the whole trail.
-  const climb = options.elevation?.ascentThreshold !== undefined
-    ? cumulativeElevationChange(points, options.elevation.ascentThreshold, breakStarts)
-    : undefined;
+  const climb =
+    options.elevation?.ascentThreshold !== undefined
+      ? cumulativeElevationChange(points, options.elevation.ascentThreshold, breakStarts)
+      : undefined;
   if (climb) {
     totalAscent = climb.ascent[climb.ascent.length - 1] ?? 0;
     totalDescent = climb.descent[climb.descent.length - 1] ?? 0;
@@ -1920,12 +1895,20 @@ export function buildTrail(gpx: ParsedGpxResult, options: BuildTrailOptions): Pr
   );
   const applied = appliedAccessIds(waypoints, atJunctions);
   // Every access-listed place without a junction applied is walked as the straight line.
-  const unrouted = new Set([...(options.waypointAccessUnrouted ?? []), ...[...placements.keys()].filter(id => !applied.has(id))]);
+  const unrouted = new Set([
+    ...(options.waypointAccessUnrouted ?? []),
+    ...[...placements.keys()].filter(id => !applied.has(id)),
+  ]);
   const enrichedWaypoints = straightLineAccess(
     restoreJunctionPositions(
       placeAtJunctionKm(
-        enrichWaypoints(atJunctions, mainRoutePoints, waypointMaxDist, breakStarts, climb, wp =>
-          wp.id !== undefined && applied.has(wp.id)
+        enrichWaypoints(
+          atJunctions,
+          mainRoutePoints,
+          waypointMaxDist,
+          breakStarts,
+          climb,
+          wp => wp.id !== undefined && applied.has(wp.id)
         ),
         applied,
         points,
@@ -1947,12 +1930,7 @@ export function buildTrail(gpx: ParsedGpxResult, options: BuildTrailOptions): Pr
   // consumer that keys by id (React list keys, elevation-profile markers,
   // comment lookups). The minter cannot catch this: it runs on the source list,
   // before the fan-out happens.
-  resolveDuplicateWaypointIds(
-    enrichedWaypoints,
-    config,
-    waypointMaxDist,
-    options.duplicateWaypointIds ?? 'throw'
-  );
+  resolveDuplicateWaypointIds(enrichedWaypoints, config, waypointMaxDist, options.duplicateWaypointIds ?? 'throw');
 
   // Merge near-duplicate waypoints: some sources mark one physical feature with
   // two <wpt>s of the same name and type a few tens of metres apart, which shows
@@ -1967,9 +1945,8 @@ export function buildTrail(gpx: ParsedGpxResult, options: BuildTrailOptions): Pr
   // survivor as `mergedIds`.
   const dedupeConfig = config.dedupeWaypoints;
   const dedupeEnabled = dedupeConfig === true || (typeof dedupeConfig === 'object' && dedupeConfig !== null);
-  const dedupeRadiusMeters = typeof dedupeConfig === 'object' && dedupeConfig !== null
-    ? dedupeConfig.radiusMeters
-    : undefined;
+  const dedupeRadiusMeters =
+    typeof dedupeConfig === 'object' && dedupeConfig !== null ? dedupeConfig.radiusMeters : undefined;
 
   // Ids kept by an earlier view win survivor selection in later views, so one
   // feature never surfaces under two different ids across main/variant/off-trail.
@@ -2021,15 +1998,19 @@ export function buildTrail(gpx: ParsedGpxResult, options: BuildTrailOptions): Pr
   // up twice here too and needs the same merge (preferring the main route's
   // survivor) to stay consistent with the main list.
   const dedupeVariants = (variants: RouteVariant[]): RouteVariant[] =>
-    variants.map(variant => variant.waypoints === undefined
-      ? variant
-      : { ...variant, waypoints: applyWaypointDedupe(variant.waypoints, `variant "${variant.name}"`) });
+    variants.map(variant =>
+      variant.waypoints === undefined
+        ? variant
+        : { ...variant, waypoints: applyWaypointDedupe(variant.waypoints, `variant "${variant.name}"`) }
+    );
 
   const variantAccess = options.variantWaypointAccess ?? NO_VARIANT_ACCESS;
   const alternateNames = new Set(enrichedAlternates.map(variant => variant.name));
   for (const name of variantAccess.keys()) {
     if (!alternateNames.has(name)) {
-      warn(`  Warning: access for alternate "${name}" ignored: the trail has no alternate of that name — re-run fetch-access`);
+      warn(
+        `  Warning: access for alternate "${name}" ignored: the trail has no alternate of that name — re-run fetch-access`
+      );
     }
   }
   const alternatesWithWaypoints = dedupeVariants(
@@ -2143,10 +2124,7 @@ export function buildTrail(gpx: ParsedGpxResult, options: BuildTrailOptions): Pr
  *
  * Returns a new trail; the input is not mutated.
  */
-export function recomputeTrailElevation(
-  trail: ProcessedTrail,
-  options?: ElevationCleaningOptions
-): ProcessedTrail {
+export function recomputeTrailElevation(trail: ProcessedTrail, options?: ElevationCleaningOptions): ProcessedTrail {
   const source = trail.track.points;
   if (source.length === 0) return trail;
 
@@ -2172,9 +2150,10 @@ export function recomputeTrailElevation(
     if (diff > 0) totalAscent += diff;
     else totalDescent += Math.abs(diff);
   }
-  const climb = options?.ascentThreshold !== undefined
-    ? cumulativeElevationChange(points, options.ascentThreshold, breakStarts)
-    : undefined;
+  const climb =
+    options?.ascentThreshold !== undefined
+      ? cumulativeElevationChange(points, options.ascentThreshold, breakStarts)
+      : undefined;
   if (climb) {
     totalAscent = climb.ascent[climb.ascent.length - 1] ?? 0;
     totalDescent = climb.descent[climb.descent.length - 1] ?? 0;

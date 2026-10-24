@@ -282,7 +282,11 @@ export function ElevationPane() {
               pressed && styles.pressed,
             ]}
           >
-            <MaterialCommunityIcons name="arrow-collapse-vertical" size={18} color={colors.accent} />
+            <MaterialCommunityIcons
+              name="arrow-collapse-vertical"
+              size={18}
+              color={colors.accent}
+            />
           </Pressable>
         </View>
 

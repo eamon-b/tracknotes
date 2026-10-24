@@ -35,7 +35,13 @@ describe('community-ui', () => {
   });
 
   it('escapes the review text', () => {
-    const html = reviewHtml({ status: 'done', verdict: 'reject', confidence: 0.9, summary: '<b>x</b>', concerns: ['<i>'] });
+    const html = reviewHtml({
+      status: 'done',
+      verdict: 'reject',
+      confidence: 0.9,
+      summary: '<b>x</b>',
+      concerns: ['<i>'],
+    });
     expect(html).toContain('Reject (confidence 90%)');
     expect(html).not.toContain('<b>x');
     expect(html).not.toContain('<i>');

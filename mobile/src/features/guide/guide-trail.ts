@@ -19,7 +19,5 @@ export function resolveGuideTrail(trail: TrailJson, direction: Direction): Trail
 
 /** Waypoints ordered by cumulative distance for list rendering. */
 export function orderedWaypoints(trail: TrailJson): TrailJson['waypoints'] {
-  return [...trail.waypoints].sort(
-    (a, b) => (a.totalDistance ?? 0) - (b.totalDistance ?? 0),
-  );
+  return [...trail.waypoints].sort((a, b) => (a.totalDistance ?? 0) - (b.totalDistance ?? 0));
 }

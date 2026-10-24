@@ -56,15 +56,15 @@ const TILES_OUTPUT_DIR = path.join(PROJECT_ROOT, 'public/data/tiles');
 // MGA (EPSG:283XX, XX = zone) in Australia, UTM elsewhere.
 
 const TRAIL_TILE_CONFIGS: Record<string, TrailTileConfig> = {
-  'bibbulmun':       { epsg: 28350 },
-  'cape_to_cape':    { epsg: 28350 },
-  'heysen':          { epsg: 28354 },
-  'larapinta':       { epsg: 28353 },
-  'aawt':            { epsg: 28355 },
+  bibbulmun: { epsg: 28350 },
+  cape_to_cape: { epsg: 28350 },
+  heysen: { epsg: 28354 },
+  larapinta: { epsg: 28353 },
+  aawt: { epsg: 28355 },
   'hume-and-hovell': { epsg: 28355 },
   // NZTM2000: one transverse Mercator for all of New Zealand. The route spans
   // UTM zones 58-60, so the centroid's UTM zone would stretch both ends.
-  'te_araroa':       { epsg: 2193 },
+  te_araroa: { epsg: 2193 },
 };
 
 const BUFFER_DISTANCE_METERS = 20_000; // 20km corridor buffer
@@ -72,12 +72,12 @@ const BUFFER_DISTANCE_METERS = 20_000; // 20km corridor buffer
 // --- CLI argument parsing ---
 
 interface CliArgs {
-  trail: string | null;      // --trail <id> to process single trail
-  skipBase: boolean;         // --skip-base
-  skipContours: boolean;     // --skip-contours
+  trail: string | null; // --trail <id> to process single trail
+  skipBase: boolean; // --skip-base
+  skipContours: boolean; // --skip-contours
   protomapsUrl: string | null; // --protomaps-url <url> (remote PMTiles URL)
   protomapsFile: string | null; // --protomaps-file <path> (local PMTiles file)
-  verbose: boolean;          // --verbose
+  verbose: boolean; // --verbose
 }
 
 function parseArgs(): CliArgs {
@@ -129,7 +129,6 @@ interface TrackPoint {
   lon: number;
 }
 
-
 function readGpxTrackPoints(gpxPath: string): TrackPoint[] {
   const xml = fs.readFileSync(gpxPath, 'utf-8');
   const dom = new JSDOM(xml, { contentType: 'text/xml' });
@@ -162,7 +161,10 @@ function readGpxTrackPoints(gpxPath: string): TrackPoint[] {
 }
 
 function computeBounds(points: TrackPoint[]): { west: number; south: number; east: number; north: number } {
-  let west = Infinity, south = Infinity, east = -Infinity, north = -Infinity;
+  let west = Infinity,
+    south = Infinity,
+    east = -Infinity,
+    north = -Infinity;
   for (const p of points) {
     if (p.lon < west) west = p.lon;
     if (p.lon > east) east = p.lon;
@@ -215,20 +217,17 @@ function glo30TilesForBounds(bounds: { west: number; south: number; east: number
  * Buffers the track by BUFFER_DISTANCE_METERS in the trail's MGA zone,
  * then transforms back to WGS84.
  */
-function generateCorridor(
-  gpxPath: string,
-  corridorPath: string,
-  epsg: number,
-  verbose: boolean
-): void {
+function generateCorridor(gpxPath: string, corridorPath: string, epsg: number, verbose: boolean): void {
   console.log('  Step 1: Generating corridor polygon...');
 
   const cmd = [
     'ogr2ogr',
-    '-f', 'GeoJSON',
+    '-f',
+    'GeoJSON',
     `"${corridorPath}"`,
     `"${gpxPath}"`,
-    '-dialect', 'sqlite',
+    '-dialect',
+    'sqlite',
     '-sql',
     `"SELECT ST_Union(ST_Transform(ST_Buffer(ST_Transform(geometry, ${epsg}), ${BUFFER_DISTANCE_METERS}), 4326)) AS geometry FROM tracks"`,
   ].join(' ');
@@ -269,10 +268,7 @@ function loadTrailConfig(trailDir: string): TrailConfig {
   return { id: raw.id, gpxFile };
 }
 
-async function processTrail(
-  trailDir: string,
-  args: CliArgs
-): Promise<void> {
+async function processTrail(trailDir: string, args: CliArgs): Promise<void> {
   const config = loadTrailConfig(trailDir);
   const trailId = config.id;
   const dirName = path.basename(trailDir);
@@ -293,7 +289,9 @@ async function processTrail(
     const latCenter = pts.reduce((sum, p) => sum + p.lat, 0) / pts.length;
     const epsg = projectedEpsgFor(lonCenter, latCenter);
     tileConfig = { epsg };
-    console.log(`  Projection auto-detected: EPSG:${epsg} from centroid ${lonCenter.toFixed(2)}, ${latCenter.toFixed(2)}`);
+    console.log(
+      `  Projection auto-detected: EPSG:${epsg} from centroid ${lonCenter.toFixed(2)}, ${latCenter.toFixed(2)}`
+    );
   }
 
   // Set up working directories
@@ -313,7 +311,9 @@ async function processTrail(
   console.log(`  Track points: ${trackPoints.length}`);
 
   const bounds = computeBounds(trackPoints);
-  console.log(`  Bounds: ${bounds.west.toFixed(2)}°E, ${bounds.south.toFixed(2)}°S to ${bounds.east.toFixed(2)}°E, ${bounds.north.toFixed(2)}°S`);
+  console.log(
+    `  Bounds: ${bounds.west.toFixed(2)}°E, ${bounds.south.toFixed(2)}°S to ${bounds.east.toFixed(2)}°E, ${bounds.north.toFixed(2)}°S`
+  );
 
   // File paths
   const corridorPath = path.join(workDir, 'corridor.geojson');
@@ -352,9 +352,8 @@ async function processTrail(
 
   // Step 5: Extract base map tiles
   if (!args.skipBase) {
-    const protomapsSource = args.protomapsUrl
-      || args.protomapsFile
-      || path.join(PROJECT_ROOT, 'data/protomaps/planet.pmtiles');
+    const protomapsSource =
+      args.protomapsUrl || args.protomapsFile || path.join(PROJECT_ROOT, 'data/protomaps/planet.pmtiles');
 
     if (!args.protomapsUrl && !fs.existsSync(protomapsSource)) {
       console.error(`  ✗ Protomaps source not found: ${protomapsSource}`);
@@ -415,7 +414,8 @@ async function main(): Promise<void> {
     let trailDir = path.join(TRAILS_DATA_DIR, args.trail);
     if (!fs.existsSync(trailDir)) {
       // Search by trail ID in trail.json files
-      const allDirs = fs.readdirSync(TRAILS_DATA_DIR)
+      const allDirs = fs
+        .readdirSync(TRAILS_DATA_DIR)
         .map(name => path.join(TRAILS_DATA_DIR, name))
         .filter(p => fs.statSync(p).isDirectory());
 
@@ -443,7 +443,8 @@ async function main(): Promise<void> {
     trailDirs = [trailDir];
   } else {
     // Process all trails
-    trailDirs = fs.readdirSync(TRAILS_DATA_DIR)
+    trailDirs = fs
+      .readdirSync(TRAILS_DATA_DIR)
       .map(name => path.join(TRAILS_DATA_DIR, name))
       .filter(p => fs.statSync(p).isDirectory());
   }
@@ -497,7 +498,7 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((error) => {
+main().catch(error => {
   console.error('Fatal error:', error);
   process.exit(1);
 });

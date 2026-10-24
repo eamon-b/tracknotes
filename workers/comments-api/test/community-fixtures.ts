@@ -93,7 +93,9 @@ export function makeTrail(
   };
 }
 
-export function submitBody(overrides: Partial<CommunitySubmitRequest> & Record<string, unknown> = {}): Record<string, unknown> {
+export function submitBody(
+  overrides: Partial<CommunitySubmitRequest> & Record<string, unknown> = {}
+): Record<string, unknown> {
   return {
     name: 'Ridge and river loop',
     description: 'A day along the ridge to the lookout, then down to the creek camp and out.',

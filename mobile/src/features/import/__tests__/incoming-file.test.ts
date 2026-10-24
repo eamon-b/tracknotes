@@ -43,7 +43,10 @@ jest.mock('expo-file-system', () => {
     uri: string;
     constructor(...parts: (string | { uri: string })[]) {
       const joined = parts.map((p) => (typeof p === 'string' ? p : p.uri));
-      this.uri = joined.length === 1 ? joined[0] : `${joined[0].replace(/\/$/, '')}/${joined.slice(1).join('/')}`;
+      this.uri =
+        joined.length === 1
+          ? joined[0]
+          : `${joined[0].replace(/\/$/, '')}/${joined.slice(1).join('/')}`;
     }
     get size(): number | null {
       return mockSizes[this.uri] ?? null;
@@ -144,12 +147,13 @@ describe('classifyIncomingUrl', () => {
     expect(classifyIncomingUrl(url)).toBeNull();
   });
 
-  it.each(['file:///tmp/photo.jpg', 'content://media/external/images/1/snap.png', 'file:///a/b.pdf'])(
-    'ignores another app\'s file type: %s',
-    (url) => {
-      expect(classifyIncomingUrl(url)).toBeNull();
-    },
-  );
+  it.each([
+    'file:///tmp/photo.jpg',
+    'content://media/external/images/1/snap.png',
+    'file:///a/b.pdf',
+  ])("ignores another app's file type: %s", (url) => {
+    expect(classifyIncomingUrl(url)).toBeNull();
+  });
 
   it('ignores null and undefined', () => {
     expect(classifyIncomingUrl(null)).toBeNull();
@@ -211,7 +215,10 @@ describe('stageIncomingFile', () => {
   it('copies the file into the cache and reports the staged URI', async () => {
     mockFiles['content://provider/doc/1'] = GPX;
 
-    const staged = await stageIncomingFile({ uri: 'content://provider/doc/1', fileName: 'walk.gpx' });
+    const staged = await stageIncomingFile({
+      uri: 'content://provider/doc/1',
+      fileName: 'walk.gpx',
+    });
 
     expect(staged.uri).toBe(`file:///cache/${INCOMING_DIR}/incoming.gpx`);
     expect(mockWritten).toEqual([{ uri: staged.uri, text: GPX }]);
@@ -253,7 +260,9 @@ describe('stageIncomingFile', () => {
 
 describe('incomingImportRoute', () => {
   it('builds the params app/import.tsx reads', () => {
-    expect(incomingImportRoute({ uri: 'file:///cache/incoming/incoming.gpx', fileName: 'walk.gpx' })).toEqual({
+    expect(
+      incomingImportRoute({ uri: 'file:///cache/incoming/incoming.gpx', fileName: 'walk.gpx' }),
+    ).toEqual({
       pathname: '/import',
       params: { uri: 'file:///cache/incoming/incoming.gpx', fileName: 'walk.gpx' },
     });
@@ -324,6 +333,9 @@ describe('useIncomingFile', () => {
     await render();
 
     expect(mockPush).not.toHaveBeenCalled();
-    expect(mockAlert).toHaveBeenCalledWith('Could not open that file', expect.stringMatching(/ENOENT/));
+    expect(mockAlert).toHaveBeenCalledWith(
+      'Could not open that file',
+      expect.stringMatching(/ENOENT/),
+    );
   });
 });

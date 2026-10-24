@@ -34,14 +34,16 @@ function allText(tree: ReactTestRenderer): string {
 
 function press(tree: ReactTestRenderer, accessibilityLabel: string): void {
   const target = tree.root.findAll(
-    (n) => n.props.accessibilityLabel === accessibilityLabel && typeof n.props.onPress === 'function',
+    (n) =>
+      n.props.accessibilityLabel === accessibilityLabel && typeof n.props.onPress === 'function',
   )[0];
   act(() => (target.props.onPress as () => void)());
 }
 
 function findByLabel(tree: ReactTestRenderer, accessibilityLabel: string) {
   return tree.root.findAll(
-    (n) => n.props.accessibilityLabel === accessibilityLabel && typeof n.props.onPress === 'function',
+    (n) =>
+      n.props.accessibilityLabel === accessibilityLabel && typeof n.props.onPress === 'function',
   );
 }
 

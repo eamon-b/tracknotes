@@ -92,9 +92,10 @@ export const OFF_TRAIL_M = 50;
 /** The Stops tab's divider text for a located fix. */
 export function hereLabel(here: LocatedPoint): string {
   if (here.offTrailMeters <= OFF_TRAIL_M) return 'You are here';
-  const off = here.offTrailMeters < 1000
-    ? `${Math.round(here.offTrailMeters)} m`
-    : `${(here.offTrailMeters / 1000).toFixed(1)} km`;
+  const off =
+    here.offTrailMeters < 1000
+      ? `${Math.round(here.offTrailMeters)} m`
+      : `${(here.offTrailMeters / 1000).toFixed(1)} km`;
   return `Level with you \u00B7 you are ${off} off the trail`;
 }
 
@@ -126,7 +127,7 @@ export function suggestForTrail(
   start: SuggestStart,
   prefs: SuggestPrefs,
   dailyHours: number,
-  baseKmh: number,
+  baseKmh: number
 ): SuggestDaysResult<NextDaysCandidate> | null {
   const criteria = suggestionCriteria(prefs, dailyHours);
   if (!criteria || !isSearchable(criteria)) return null;
@@ -156,7 +157,7 @@ export function applyNextDaysPlan(
   plan: PlanDocument,
   startKm: number,
   chosen: NextDaysPlan,
-  totalDistance: number,
+  totalDistance: number
 ): PlanDocument {
   const targets: ToggleTarget[] = chosen.stops.map(stop => ({
     ...(stop.waypoint.id ? { id: stop.waypoint.id } : {}),
@@ -212,7 +213,7 @@ export function initNextDays(container: HTMLElement, host: NextDaysHost): NextDa
       wholeTrailSection(trail),
       trail.track.totalDistance,
       located()?.km ?? null,
-      from === 'last-stop',
+      from === 'last-stop'
     );
   };
 
@@ -305,9 +306,10 @@ export function initNextDays(container: HTMLElement, host: NextDaysHost): NextDa
         : '';
     // Last stop vs location is only a choice when there is a stop to start from.
     const hasLastStop = lastStopStart().kind === 'stop';
-    const toggle = here && hasLastStop
-      ? `<button type="button" class="nd-link" data-nd-action="toggle-from">${from === 'last-stop' ? 'From my location' : 'From last stop'}</button>`
-      : '';
+    const toggle =
+      here && hasLastStop
+        ? `<button type="button" class="nd-link" data-nd-action="toggle-from">${from === 'last-stop' ? 'From my location' : 'From last stop'}</button>`
+        : '';
     const locateLabel = locating ? 'Locating…' : here ? 'Update location' : 'Use my location';
     const locateBtn = `<button type="button" class="nd-link" data-nd-action="locate"${locating ? ' disabled' : ''}>${locateLabel}</button>`;
     return `
@@ -321,7 +323,13 @@ export function initNextDays(container: HTMLElement, host: NextDaysHost): NextDa
       ${locateError ? `<p class="nd-hint nd-warn">${escapeHtml(locateError)}</p>` : ''}`;
   }
 
-  function rangeHtml(key: 'distance' | 'ascent' | 'hours', label: string, unit: string, range: RangePref, step: number): string {
+  function rangeHtml(
+    key: 'distance' | 'ascent' | 'hours',
+    label: string,
+    unit: string,
+    range: RangePref,
+    step: number
+  ): string {
     return `
       <div class="nd-range" data-range="${key}">
         <label class="nd-range-on"><input type="checkbox" data-nd="range-on"${range.on ? ' checked' : ''} /> ${label}</label>
@@ -353,14 +361,14 @@ export function initNextDays(container: HTMLElement, host: NextDaysHost): NextDa
             <div class="nd-day">
               <span class="nd-day-name">Day ${d + 1} → ${escapeHtml(day.end ? (day.end.waypoint.name ?? 'Stop') : 'Trail end')}</span>
               <span class="nd-day-stats">${day.distanceKm.toFixed(1)} km · +${day.ascentM} m · ${(Math.round(day.hours * 10) / 10).toFixed(1)} h</span>
-            </div>`,
+            </div>`
             )
             .join('')}
           <div class="nd-option-actions">
             <button type="button" class="nd-link" data-nd-action="preview">${selected === i ? 'Shown on map' : 'Show on map'}</button>
             <button type="button" class="plan-header-btn is-primary" data-nd-action="apply">Use this plan</button>
           </div>
-        </div>`,
+        </div>`
         )
         .join('')
     );
@@ -403,7 +411,7 @@ export function initNextDays(container: HTMLElement, host: NextDaysHost): NextDa
         locateError = 'Could not get your location.';
         render();
       },
-      { enableHighAccuracy: true, timeout: 15000 },
+      { enableHighAccuracy: true, timeout: 15000 }
     );
   }
 
@@ -460,7 +468,8 @@ export function initNextDays(container: HTMLElement, host: NextDaysHost): NextDa
     if (field === 'mode' && (target.value === 'hours' || target.value === 'ranges')) {
       return setPrefs({ mode: target.value });
     }
-    const key = target.closest<HTMLElement>('[data-range]')?.dataset.range as 'distance' | 'ascent' | 'hours' | undefined;
+    const key = target.closest<HTMLElement>('[data-range]')?.dataset.range as
+      'distance' | 'ascent' | 'hours' | undefined;
     if (!key) return;
     const range = p[key];
     if (field === 'range-on') return setPrefs({ [key]: { ...range, on: target.checked } });

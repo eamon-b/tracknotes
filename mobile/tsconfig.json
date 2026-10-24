@@ -15,15 +15,6 @@
       "fast-xml-parser": ["./node_modules/fast-xml-parser"]
     }
   },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    ".expo/types/**/*.ts",
-    "expo-env.d.ts",
-    "../src/lib/**/*.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "../src/lib/**/*.test.ts"
-  ]
+  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts", "../src/lib/**/*.ts"],
+  "exclude": ["node_modules", "../src/lib/**/*.test.ts"]
 }

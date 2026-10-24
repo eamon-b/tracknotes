@@ -68,15 +68,18 @@ const OFM_FONT = 'Noto Sans Regular';
  * match the offline dark palette (assets/topo-style-dark.json) so the two base
  * maps agree about what a 200 m index line looks like.
  */
-const CONTOUR_INK: Record<MapTheme, {
-  regular: string;
-  index: string;
-  major: string;
-  label: string;
-  labelHalo: string;
-  /** Multiplier on every line-opacity stop below. */
-  opacityScale: number;
-}> = {
+const CONTOUR_INK: Record<
+  MapTheme,
+  {
+    regular: string;
+    index: string;
+    major: string;
+    label: string;
+    labelHalo: string;
+    /** Multiplier on every line-opacity stop below. */
+    opacityScale: number;
+  }
+> = {
   light: {
     regular: 'rgb(179, 134, 89)',
     index: 'rgb(166, 116, 66)',
@@ -249,7 +252,12 @@ function findContourInsertIndex(layers: { id: string; type?: string }[]): number
   for (let i = 0; i < layers.length; i++) {
     const { id, type } = layers[i];
     if (type === 'symbol') return i;
-    if (id.includes('road') || id.includes('highway') || id.includes('bridge') || id.includes('tunnel')) {
+    if (
+      id.includes('road') ||
+      id.includes('highway') ||
+      id.includes('bridge') ||
+      id.includes('tunnel')
+    ) {
       return i;
     }
   }
@@ -308,7 +316,7 @@ async function isContourServiceHealthy(
     const readable = response.ok || (source !== 'contours' && response.status === 503);
     if (!readable) return false;
 
-    const body = await response.json() as {
+    const body = (await response.json()) as {
       ok?: boolean;
       sources?: Partial<Record<ContourSource, { ok?: boolean }>>;
     };
@@ -354,7 +362,10 @@ function injectContours(
  * by the no-contours or unhealthy-archive branches. Contours are injected after
  * this, in their own per-theme ink, so the palette never touches them.
  */
-function prepareBaseStyle(style: Record<string, unknown>, theme: MapTheme): Record<string, unknown> {
+function prepareBaseStyle(
+  style: Record<string, unknown>,
+  theme: MapTheme,
+): Record<string, unknown> {
   const cloned = cloneStyle(style);
   if (theme === 'dark') applyNightPalette(cloned as { layers: { id: string }[] });
   return cloned;

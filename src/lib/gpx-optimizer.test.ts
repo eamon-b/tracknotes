@@ -10,7 +10,7 @@ import {
   truncateTrack,
   roundCoordinates,
   optimizeGpx,
-  GPX_OPTIMIZER_DEFAULTS
+  GPX_OPTIMIZER_DEFAULTS,
 } from './gpx-optimizer';
 import type { GpxPoint } from './types';
 
@@ -18,7 +18,7 @@ describe('douglasPeucker', () => {
   it('should return same points when 2 or fewer points', () => {
     const points: GpxPoint[] = [
       { lat: -37.8136, lon: 144.9631, ele: 50, time: null },
-      { lat: -37.8200, lon: 144.9700, ele: 60, time: null }
+      { lat: -37.82, lon: 144.97, ele: 60, time: null },
     ];
 
     const result = douglasPeucker(points, 10);
@@ -31,8 +31,8 @@ describe('douglasPeucker', () => {
   it('should preserve endpoints', () => {
     const points: GpxPoint[] = [
       { lat: -37.8136, lon: 144.9631, ele: 50, time: null },
-      { lat: -37.8150, lon: 144.9650, ele: 55, time: null },
-      { lat: -37.8200, lon: 144.9700, ele: 60, time: null }
+      { lat: -37.815, lon: 144.965, ele: 55, time: null },
+      { lat: -37.82, lon: 144.97, ele: 60, time: null },
     ];
 
     const result = douglasPeucker(points, 1000);
@@ -46,7 +46,7 @@ describe('douglasPeucker', () => {
     const points: GpxPoint[] = [
       { lat: -37.8136, lon: 144.9631, ele: 0, time: null },
       { lat: -37.8168, lon: 144.9665, ele: 0, time: null }, // midpoint
-      { lat: -37.8200, lon: 144.9700, ele: 0, time: null }
+      { lat: -37.82, lon: 144.97, ele: 0, time: null },
     ];
 
     const result = douglasPeucker(points, 100);
@@ -59,8 +59,8 @@ describe('douglasPeucker', () => {
     // L-shaped path - middle point should be preserved
     const points: GpxPoint[] = [
       { lat: -37.8136, lon: 144.9631, ele: 0, time: null },
-      { lat: -37.8136, lon: 145.0000, ele: 0, time: null }, // significant deviation
-      { lat: -37.8200, lon: 145.0000, ele: 0, time: null }
+      { lat: -37.8136, lon: 145.0, ele: 0, time: null }, // significant deviation
+      { lat: -37.82, lon: 145.0, ele: 0, time: null },
     ];
 
     const result = douglasPeucker(points, 10);
@@ -72,13 +72,13 @@ describe('douglasPeucker', () => {
   it('should handle switchback pattern', () => {
     // Switchback pattern - should preserve turn points
     const points: GpxPoint[] = [
-      { lat: -37.8000, lon: 144.9000, ele: 0, time: null },
-      { lat: -37.8001, lon: 144.9010, ele: 0, time: null },
-      { lat: -37.8002, lon: 144.9020, ele: 0, time: null },
-      { lat: -37.8000, lon: 144.9030, ele: 0, time: null }, // turn
-      { lat: -37.7998, lon: 144.9020, ele: 0, time: null },
-      { lat: -37.7997, lon: 144.9010, ele: 0, time: null },
-      { lat: -37.8000, lon: 144.9000, ele: 0, time: null }  // back to start
+      { lat: -37.8, lon: 144.9, ele: 0, time: null },
+      { lat: -37.8001, lon: 144.901, ele: 0, time: null },
+      { lat: -37.8002, lon: 144.902, ele: 0, time: null },
+      { lat: -37.8, lon: 144.903, ele: 0, time: null }, // turn
+      { lat: -37.7998, lon: 144.902, ele: 0, time: null },
+      { lat: -37.7997, lon: 144.901, ele: 0, time: null },
+      { lat: -37.8, lon: 144.9, ele: 0, time: null }, // back to start
     ];
 
     const result = douglasPeucker(points, 5);
@@ -91,15 +91,13 @@ describe('douglasPeucker', () => {
 
 describe('removeElevationSpikes', () => {
   it('should return same points when less than 3 points', () => {
-    const singlePoint: GpxPoint[] = [
-      { lat: -37.8136, lon: 144.9631, ele: 50, time: null }
-    ];
+    const singlePoint: GpxPoint[] = [{ lat: -37.8136, lon: 144.9631, ele: 50, time: null }];
     expect(removeElevationSpikes(singlePoint, 50)).toHaveLength(1);
     expect(removeElevationSpikes(singlePoint, 50)[0].ele).toBe(50);
 
     const twoPoints: GpxPoint[] = [
       { lat: -37.8136, lon: 144.9631, ele: 50, time: null },
-      { lat: -37.8200, lon: 144.9700, ele: 150, time: null }
+      { lat: -37.82, lon: 144.97, ele: 150, time: null },
     ];
     const result = removeElevationSpikes(twoPoints, 50);
     expect(result).toHaveLength(2);
@@ -110,8 +108,8 @@ describe('removeElevationSpikes', () => {
   it('should not modify points within threshold', () => {
     const points: GpxPoint[] = [
       { lat: -37.8136, lon: 144.9631, ele: 50, time: null },
-      { lat: -37.8150, lon: 144.9650, ele: 55, time: null },
-      { lat: -37.8200, lon: 144.9700, ele: 60, time: null }
+      { lat: -37.815, lon: 144.965, ele: 55, time: null },
+      { lat: -37.82, lon: 144.97, ele: 60, time: null },
     ];
 
     const result = removeElevationSpikes(points, 50);
@@ -124,8 +122,8 @@ describe('removeElevationSpikes', () => {
   it('should interpolate elevation spikes linearly', () => {
     const points: GpxPoint[] = [
       { lat: -37.8136, lon: 144.9631, ele: 100, time: null },
-      { lat: -37.8150, lon: 144.9650, ele: 200, time: null }, // spike (+100m)
-      { lat: -37.8200, lon: 144.9700, ele: 105, time: null }
+      { lat: -37.815, lon: 144.965, ele: 200, time: null }, // spike (+100m)
+      { lat: -37.82, lon: 144.97, ele: 105, time: null },
     ];
 
     const result = removeElevationSpikes(points, 50);
@@ -140,12 +138,12 @@ describe('removeElevationSpikes', () => {
     // Create a pattern with two isolated spikes separated by valid points
     // Each spike is higher than BOTH its immediate neighbors
     const points: GpxPoint[] = [
-      { lat: -37.8100, lon: 144.9600, ele: 100, time: null },  // valid
-      { lat: -37.8110, lon: 144.9610, ele: 250, time: null },  // spike: 250 > 100 and 250 > 102
-      { lat: -37.8120, lon: 144.9620, ele: 102, time: null },  // valid
-      { lat: -37.8130, lon: 144.9630, ele: 103, time: null },  // valid
-      { lat: -37.8140, lon: 144.9640, ele: 280, time: null },  // spike: 280 > 103 and 280 > 105
-      { lat: -37.8150, lon: 144.9650, ele: 105, time: null }   // valid
+      { lat: -37.81, lon: 144.96, ele: 100, time: null }, // valid
+      { lat: -37.811, lon: 144.961, ele: 250, time: null }, // spike: 250 > 100 and 250 > 102
+      { lat: -37.812, lon: 144.962, ele: 102, time: null }, // valid
+      { lat: -37.813, lon: 144.963, ele: 103, time: null }, // valid
+      { lat: -37.814, lon: 144.964, ele: 280, time: null }, // spike: 280 > 103 and 280 > 105
+      { lat: -37.815, lon: 144.965, ele: 105, time: null }, // valid
     ];
 
     const result = removeElevationSpikes(points, 50);
@@ -165,10 +163,10 @@ describe('removeElevationSpikes', () => {
     // the middle points should NOT be treated as spikes since they're part
     // of a consistent trend, not isolated outliers
     const points: GpxPoint[] = [
-      { lat: -37.8100, lon: 144.9600, ele: 100, time: null },
-      { lat: -37.8120, lon: 144.9620, ele: 200, time: null }, // +100 from prev
-      { lat: -37.8140, lon: 144.9640, ele: 300, time: null }, // +100 from prev
-      { lat: -37.8160, lon: 144.9660, ele: 105, time: null }  // -195 from prev
+      { lat: -37.81, lon: 144.96, ele: 100, time: null },
+      { lat: -37.812, lon: 144.962, ele: 200, time: null }, // +100 from prev
+      { lat: -37.814, lon: 144.964, ele: 300, time: null }, // +100 from prev
+      { lat: -37.816, lon: 144.966, ele: 105, time: null }, // -195 from prev
     ];
 
     const result = removeElevationSpikes(points, 50);
@@ -188,9 +186,9 @@ describe('removeElevationSpikes', () => {
   it('should handle downward spikes (dips)', () => {
     // Test that the algorithm also catches downward spikes (valleys)
     const points: GpxPoint[] = [
-      { lat: -37.8100, lon: 144.9600, ele: 200, time: null },
-      { lat: -37.8120, lon: 144.9620, ele: 50, time: null },  // dip: 50 < 200 and 50 < 195
-      { lat: -37.8140, lon: 144.9640, ele: 195, time: null }
+      { lat: -37.81, lon: 144.96, ele: 200, time: null },
+      { lat: -37.812, lon: 144.962, ele: 50, time: null }, // dip: 50 < 200 and 50 < 195
+      { lat: -37.814, lon: 144.964, ele: 195, time: null },
     ];
 
     const result = removeElevationSpikes(points, 50);
@@ -205,9 +203,9 @@ describe('removeElevationSpikes', () => {
     // First and last points should never be modified since they can't be
     // compared to both neighbors
     const points: GpxPoint[] = [
-      { lat: -37.8100, lon: 144.9600, ele: 500, time: null },  // high start
-      { lat: -37.8120, lon: 144.9620, ele: 100, time: null },
-      { lat: -37.8140, lon: 144.9640, ele: 600, time: null }   // high end
+      { lat: -37.81, lon: 144.96, ele: 500, time: null }, // high start
+      { lat: -37.812, lon: 144.962, ele: 100, time: null },
+      { lat: -37.814, lon: 144.964, ele: 600, time: null }, // high end
     ];
 
     const result = removeElevationSpikes(points, 50);
@@ -221,10 +219,10 @@ describe('removeElevationSpikes', () => {
 
   it('should handle all points at same elevation', () => {
     const points: GpxPoint[] = [
-      { lat: -37.8100, lon: 144.9600, ele: 100, time: null },
-      { lat: -37.8120, lon: 144.9620, ele: 100, time: null },
-      { lat: -37.8140, lon: 144.9640, ele: 100, time: null },
-      { lat: -37.8160, lon: 144.9660, ele: 100, time: null }
+      { lat: -37.81, lon: 144.96, ele: 100, time: null },
+      { lat: -37.812, lon: 144.962, ele: 100, time: null },
+      { lat: -37.814, lon: 144.964, ele: 100, time: null },
+      { lat: -37.816, lon: 144.966, ele: 100, time: null },
     ];
 
     const result = removeElevationSpikes(points, 50);
@@ -238,7 +236,7 @@ describe('smoothElevation', () => {
   it('should return same points when fewer than window size', () => {
     const points: GpxPoint[] = [
       { lat: -37.8136, lon: 144.9631, ele: 50, time: null },
-      { lat: -37.8200, lon: 144.9700, ele: 60, time: null }
+      { lat: -37.82, lon: 144.97, ele: 60, time: null },
     ];
 
     const result = smoothElevation(points, 5);
@@ -248,11 +246,11 @@ describe('smoothElevation', () => {
 
   it('should smooth elevation data with moving average', () => {
     const points: GpxPoint[] = [
-      { lat: -37.8100, lon: 144.9600, ele: 100, time: null },
-      { lat: -37.8110, lon: 144.9610, ele: 100, time: null },
-      { lat: -37.8120, lon: 144.9620, ele: 150, time: null }, // outlier
-      { lat: -37.8130, lon: 144.9630, ele: 100, time: null },
-      { lat: -37.8140, lon: 144.9640, ele: 100, time: null }
+      { lat: -37.81, lon: 144.96, ele: 100, time: null },
+      { lat: -37.811, lon: 144.961, ele: 100, time: null },
+      { lat: -37.812, lon: 144.962, ele: 150, time: null }, // outlier
+      { lat: -37.813, lon: 144.963, ele: 100, time: null },
+      { lat: -37.814, lon: 144.964, ele: 100, time: null },
     ];
 
     const result = smoothElevation(points, 3);
@@ -264,15 +262,15 @@ describe('smoothElevation', () => {
 
   it('should preserve coordinates while smoothing', () => {
     const points: GpxPoint[] = [
-      { lat: -37.8100, lon: 144.9600, ele: 100, time: '2024-01-01T10:00:00Z' },
-      { lat: -37.8110, lon: 144.9610, ele: 110, time: '2024-01-01T10:01:00Z' },
-      { lat: -37.8120, lon: 144.9620, ele: 120, time: '2024-01-01T10:02:00Z' }
+      { lat: -37.81, lon: 144.96, ele: 100, time: '2024-01-01T10:00:00Z' },
+      { lat: -37.811, lon: 144.961, ele: 110, time: '2024-01-01T10:01:00Z' },
+      { lat: -37.812, lon: 144.962, ele: 120, time: '2024-01-01T10:02:00Z' },
     ];
 
     const result = smoothElevation(points, 3);
 
-    expect(result[0].lat).toBe(-37.8100);
-    expect(result[0].lon).toBe(144.9600);
+    expect(result[0].lat).toBe(-37.81);
+    expect(result[0].lon).toBe(144.96);
     expect(result[0].time).toBe('2024-01-01T10:00:00Z');
   });
 });
@@ -280,16 +278,14 @@ describe('smoothElevation', () => {
 describe('calculateTrackDistance', () => {
   it('should return 0 for empty or single point track', () => {
     expect(calculateTrackDistance([])).toBe(0);
-    expect(calculateTrackDistance([
-      { lat: -37.8136, lon: 144.9631, ele: 0, time: null }
-    ])).toBe(0);
+    expect(calculateTrackDistance([{ lat: -37.8136, lon: 144.9631, ele: 0, time: null }])).toBe(0);
   });
 
   it('should calculate distance between two points', () => {
     // Melbourne to Sydney is approximately 714 km
     const points: GpxPoint[] = [
       { lat: -37.8136, lon: 144.9631, ele: 0, time: null }, // Melbourne
-      { lat: -33.8688, lon: 151.2093, ele: 0, time: null }  // Sydney
+      { lat: -33.8688, lon: 151.2093, ele: 0, time: null }, // Sydney
     ];
 
     const distance = calculateTrackDistance(points);
@@ -302,8 +298,8 @@ describe('calculateTrackDistance', () => {
   it('should sum distances for multiple points', () => {
     const points: GpxPoint[] = [
       { lat: -37.8136, lon: 144.9631, ele: 0, time: null },
-      { lat: -37.8200, lon: 144.9700, ele: 0, time: null },
-      { lat: -37.8300, lon: 144.9800, ele: 0, time: null }
+      { lat: -37.82, lon: 144.97, ele: 0, time: null },
+      { lat: -37.83, lon: 144.98, ele: 0, time: null },
     ];
 
     const distance = calculateTrackDistance(points);
@@ -315,16 +311,14 @@ describe('calculateTrackDistance', () => {
 describe('calculateElevationStats', () => {
   it('should return zero for empty or single point', () => {
     expect(calculateElevationStats([])).toEqual({ gain: 0, loss: 0 });
-    expect(calculateElevationStats([
-      { lat: 0, lon: 0, ele: 100, time: null }
-    ])).toEqual({ gain: 0, loss: 0 });
+    expect(calculateElevationStats([{ lat: 0, lon: 0, ele: 100, time: null }])).toEqual({ gain: 0, loss: 0 });
   });
 
   it('should calculate elevation gain', () => {
     const points: GpxPoint[] = [
       { lat: 0, lon: 0, ele: 100, time: null },
       { lat: 0, lon: 0, ele: 110, time: null },
-      { lat: 0, lon: 0, ele: 120, time: null }
+      { lat: 0, lon: 0, ele: 120, time: null },
     ];
 
     const stats = calculateElevationStats(points);
@@ -337,7 +331,7 @@ describe('calculateElevationStats', () => {
     const points: GpxPoint[] = [
       { lat: 0, lon: 0, ele: 120, time: null },
       { lat: 0, lon: 0, ele: 110, time: null },
-      { lat: 0, lon: 0, ele: 100, time: null }
+      { lat: 0, lon: 0, ele: 100, time: null },
     ];
 
     const stats = calculateElevationStats(points);
@@ -351,7 +345,7 @@ describe('calculateElevationStats', () => {
       { lat: 0, lon: 0, ele: 100, time: null },
       { lat: 0, lon: 0, ele: 150, time: null }, // +50 gain
       { lat: 0, lon: 0, ele: 130, time: null }, // -20 loss
-      { lat: 0, lon: 0, ele: 160, time: null }  // +30 gain
+      { lat: 0, lon: 0, ele: 160, time: null }, // +30 gain
     ];
 
     const stats = calculateElevationStats(points);
@@ -365,7 +359,7 @@ describe('calculateElevationStats', () => {
       { lat: 0, lon: 0, ele: 100, time: null },
       { lat: 0, lon: 0, ele: 101, time: null }, // +1, below threshold
       { lat: 0, lon: 0, ele: 102, time: null }, // +1, below threshold
-      { lat: 0, lon: 0, ele: 110, time: null }  // +8, above default threshold (3)
+      { lat: 0, lon: 0, ele: 110, time: null }, // +8, above default threshold (3)
     ];
 
     const stats = calculateElevationStats(points, 3);
@@ -421,7 +415,12 @@ describe('douglasPeuckerIndices', () => {
     expect(kept[0]).toBe(0);
     expect(kept[kept.length - 1]).toBe(points.length - 1);
     for (let i = 1; i < kept.length; i++) expect(kept[i]).toBeGreaterThan(kept[i - 1]);
-    expect(douglasPeucker(points.map(p => ({ ...p, ele: 0, time: null })), 5)).toHaveLength(kept.length);
+    expect(
+      douglasPeucker(
+        points.map(p => ({ ...p, ele: 0, time: null })),
+        5
+      )
+    ).toHaveLength(kept.length);
   });
 });
 
@@ -439,7 +438,7 @@ describe('truncateTrack', () => {
   it('should return same points when no truncation specified', () => {
     const points: GpxPoint[] = [
       { lat: -37.8136, lon: 144.9631, ele: 0, time: null },
-      { lat: -37.8200, lon: 144.9700, ele: 0, time: null }
+      { lat: -37.82, lon: 144.97, ele: 0, time: null },
     ];
 
     const result = truncateTrack(points, 0, 0);
@@ -448,9 +447,7 @@ describe('truncateTrack', () => {
   });
 
   it('should return same points when fewer than 2 points', () => {
-    const points: GpxPoint[] = [
-      { lat: -37.8136, lon: 144.9631, ele: 0, time: null }
-    ];
+    const points: GpxPoint[] = [{ lat: -37.8136, lon: 144.9631, ele: 0, time: null }];
 
     const result = truncateTrack(points, 100, 100);
 
@@ -460,22 +457,22 @@ describe('truncateTrack', () => {
   it('should truncate from start', () => {
     // Create points about 1km apart
     const points: GpxPoint[] = [
-      { lat: -37.8000, lon: 144.9000, ele: 0, time: null },
-      { lat: -37.8100, lon: 144.9000, ele: 0, time: null }, // ~1.1km from start
-      { lat: -37.8200, lon: 144.9000, ele: 0, time: null }  // ~2.2km from start
+      { lat: -37.8, lon: 144.9, ele: 0, time: null },
+      { lat: -37.81, lon: 144.9, ele: 0, time: null }, // ~1.1km from start
+      { lat: -37.82, lon: 144.9, ele: 0, time: null }, // ~2.2km from start
     ];
 
     const result = truncateTrack(points, 500, 0); // truncate 500m from start
 
     expect(result.length).toBeLessThanOrEqual(points.length);
-    expect(result[0].lat).not.toBe(-37.8000); // start should be removed
+    expect(result[0].lat).not.toBe(-37.8); // start should be removed
   });
 
   it('should truncate from end', () => {
     const points: GpxPoint[] = [
-      { lat: -37.8000, lon: 144.9000, ele: 0, time: null },
-      { lat: -37.8100, lon: 144.9000, ele: 0, time: null },
-      { lat: -37.8200, lon: 144.9000, ele: 0, time: null }
+      { lat: -37.8, lon: 144.9, ele: 0, time: null },
+      { lat: -37.81, lon: 144.9, ele: 0, time: null },
+      { lat: -37.82, lon: 144.9, ele: 0, time: null },
     ];
 
     const result = truncateTrack(points, 0, 500);
@@ -485,9 +482,9 @@ describe('truncateTrack', () => {
 
   it('should preserve at least 2 points', () => {
     const points: GpxPoint[] = [
-      { lat: -37.8000, lon: 144.9000, ele: 0, time: null },
-      { lat: -37.8010, lon: 144.9000, ele: 0, time: null },
-      { lat: -37.8020, lon: 144.9000, ele: 0, time: null }
+      { lat: -37.8, lon: 144.9, ele: 0, time: null },
+      { lat: -37.801, lon: 144.9, ele: 0, time: null },
+      { lat: -37.802, lon: 144.9, ele: 0, time: null },
     ];
 
     // Truncate more than track length
@@ -499,9 +496,7 @@ describe('truncateTrack', () => {
 
 describe('roundCoordinates', () => {
   it('should round coordinates to specified precision', () => {
-    const points: GpxPoint[] = [
-      { lat: -37.81361234567, lon: 144.96311234567, ele: 50.123, time: null }
-    ];
+    const points: GpxPoint[] = [{ lat: -37.81361234567, lon: 144.96311234567, ele: 50.123, time: null }];
 
     const result = roundCoordinates(points, 6);
 
@@ -511,9 +506,7 @@ describe('roundCoordinates', () => {
   });
 
   it('should preserve time values', () => {
-    const points: GpxPoint[] = [
-      { lat: -37.81361234567, lon: 144.96311234567, ele: 50, time: '2024-01-01T10:00:00Z' }
-    ];
+    const points: GpxPoint[] = [{ lat: -37.81361234567, lon: 144.96311234567, ele: 50, time: '2024-01-01T10:00:00Z' }];
 
     const result = roundCoordinates(points, 6);
 
@@ -647,7 +640,7 @@ describe('optimizeGpx', () => {
 
     const result = optimizeGpx(spikyGpx, 'spiky.gpx', {
       elevationSmoothing: true,
-      spikeThreshold: 50
+      spikeThreshold: 50,
     });
 
     // Elevation gain should be reduced due to spike removal
@@ -698,16 +691,18 @@ describe('optimizeGpx', () => {
 
     // Use high tolerance to aggressively simplify, which will remove zigzag points
     const result = optimizeGpx(gpx, 'zigzag.gpx', {
-      simplificationTolerance: 500,     // Very high - will remove all zigzag points
-      maxDistanceChangeRatio: 0.05,     // 5% threshold
-      elevationSmoothing: false         // Disable to isolate the simplification effect
+      simplificationTolerance: 500, // Very high - will remove all zigzag points
+      maxDistanceChangeRatio: 0.05, // 5% threshold
+      elevationSmoothing: false, // Disable to isolate the simplification effect
     });
 
     // Verify that simplification removed significant points
     expect(result.optimized.pointCount).toBeLessThan(result.original.pointCount);
 
     // Verify that a distance warning was generated (shows increased or decreased)
-    const hasDistanceWarning = result.warnings.some(w => w.includes('Distance increased') || w.includes('Distance decreased'));
+    const hasDistanceWarning = result.warnings.some(
+      w => w.includes('Distance increased') || w.includes('Distance decreased')
+    );
     expect(hasDistanceWarning).toBe(true);
     expect(result.passed).toBe(false);
   });
@@ -806,9 +801,7 @@ describe('optimizeGpx', () => {
   </trk>
 </gpx>`;
 
-    expect(() =>
-      optimizeGpx(smallGpx, 'test.gpx', { maxFileSize: 100 })
-    ).toThrow('exceeds maximum allowed size');
+    expect(() => optimizeGpx(smallGpx, 'test.gpx', { maxFileSize: 100 })).toThrow('exceeds maximum allowed size');
   });
 
   it('should throw error when point count exceeds limit', () => {
@@ -831,9 +824,7 @@ describe('optimizeGpx', () => {
   </trk>
 </gpx>`;
 
-    expect(() =>
-      optimizeGpx(gpx, 'large.gpx', { maxPointCount: 50 })
-    ).toThrow('Point count');
+    expect(() => optimizeGpx(gpx, 'large.gpx', { maxPointCount: 50 })).toThrow('Point count');
   });
 });
 
@@ -857,9 +848,7 @@ describe('GPX_OPTIMIZER_DEFAULTS', () => {
 
 describe('edge cases', () => {
   it('douglasPeucker with single point returns that point', () => {
-    const points: GpxPoint[] = [
-      { lat: -37.8136, lon: 144.9631, ele: 50, time: null },
-    ];
+    const points: GpxPoint[] = [{ lat: -37.8136, lon: 144.9631, ele: 50, time: null }];
     const result = douglasPeucker(points, 10);
     expect(result).toHaveLength(1);
     expect(result[0]).toEqual(points[0]);
@@ -889,8 +878,8 @@ describe('edge cases', () => {
   it('douglasPeucker with zero tolerance keeps all points', () => {
     const points: GpxPoint[] = [
       { lat: -37.8136, lon: 144.9631, ele: 50, time: null },
-      { lat: -37.8140, lon: 144.9640, ele: 55, time: null },
-      { lat: -37.8150, lon: 144.9650, ele: 60, time: null },
+      { lat: -37.814, lon: 144.964, ele: 55, time: null },
+      { lat: -37.815, lon: 144.965, ele: 60, time: null },
     ];
     const result = douglasPeucker(points, 0);
     expect(result).toHaveLength(3);
@@ -901,9 +890,7 @@ describe('edge cases', () => {
   });
 
   it('calculateTrackDistance with single point returns 0', () => {
-    const points: GpxPoint[] = [
-      { lat: -37.8136, lon: 144.9631, ele: 50, time: null },
-    ];
+    const points: GpxPoint[] = [{ lat: -37.8136, lon: 144.9631, ele: 50, time: null }];
     expect(calculateTrackDistance(points)).toBe(0);
   });
 

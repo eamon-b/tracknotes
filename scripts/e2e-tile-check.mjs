@@ -70,12 +70,8 @@ import { gunzipSync } from 'node:zlib';
 import { httpRangeReader, readZoomTiles } from './lib/http-mbtiles.mjs';
 import { checkZ9Tiered } from './lib/mvt-contours.mjs';
 
-const CONTOUR_URL = (
-  process.env.CONTOUR_TILE_URL || 'https://tiles.contour-map-tiles.net'
-).replace(/\/$/, '');
-const TILE_BASE_URL = (
-  process.env.TILE_BASE_URL || 'https://data.contour-map-tiles.net'
-).replace(/\/$/, '');
+const CONTOUR_URL = (process.env.CONTOUR_TILE_URL || 'https://tiles.contour-map-tiles.net').replace(/\/$/, '');
+const TILE_BASE_URL = (process.env.TILE_BASE_URL || 'https://data.contour-map-tiles.net').replace(/\/$/, '');
 
 // ---------------------------------------------------------------------------
 // Tile math + candidate tiles over high-relief Australian land (contours exist)
@@ -85,9 +81,7 @@ function lonLatToTile(lon, lat, z) {
   const n = 2 ** z;
   const x = Math.floor(((lon + 180) / 360) * n);
   const latRad = (lat * Math.PI) / 180;
-  const y = Math.floor(
-    ((1 - Math.asinh(Math.tan(latRad)) / Math.PI) / 2) * n
-  );
+  const y = Math.floor(((1 - Math.asinh(Math.tan(latRad)) / Math.PI) / 2) * n);
   return { z, x, y };
 }
 
@@ -254,9 +248,7 @@ async function checkContourHealth() {
 
   const tiles = body.tiles || {};
   if (!Number.isFinite(tiles.minZoom) || !Number.isFinite(tiles.maxZoom)) {
-    failures.push(
-      `/health did not report numeric tiles.minZoom/maxZoom (got ${JSON.stringify(tiles)})`
-    );
+    failures.push(`/health did not report numeric tiles.minZoom/maxZoom (got ${JSON.stringify(tiles)})`);
     return;
   }
 
@@ -269,7 +261,7 @@ async function checkContourHealth() {
   }
 
   const bboxFields = ['minLon', 'minLat', 'maxLon', 'maxLat'];
-  if (bboxFields.every((f) => Number.isFinite(tiles[f]))) {
+  if (bboxFields.every(f => Number.isFinite(tiles[f]))) {
     console.log(
       `      ✓ archive bbox: ${tiles.minLon.toFixed(2)},${tiles.minLat.toFixed(2)} → ` +
         `${tiles.maxLon.toFixed(2)},${tiles.maxLat.toFixed(2)}`
@@ -334,8 +326,7 @@ async function checkContourWorker() {
 
   if (ce !== 'gzip') {
     failures.push(
-      `Worker did not advertise Content-Encoding: gzip to a gzip-accepting ` +
-        `client (got "${ce || 'none'}").`
+      `Worker did not advertise Content-Encoding: gzip to a gzip-accepting ` + `client (got "${ce || 'none'}").`
     );
   } else {
     console.log(`      ✓ Content-Encoding: gzip header present`);
@@ -355,9 +346,7 @@ async function checkContourWorker() {
   if (mvtBytes) {
     const v = isValidMvt(mvtBytes);
     if (v.ok) {
-      console.log(
-        `      ✓ decoded ${mvtBytes.length} bytes → valid MVT with ${v.layerCount} layer(s)`
-      );
+      console.log(`      ✓ decoded ${mvtBytes.length} bytes → valid MVT with ${v.layerCount} layer(s)`);
     } else {
       failures.push(`Decoded tile is not a valid vector tile: ${v.reason}`);
     }
@@ -434,9 +423,7 @@ async function checkHighZoomTiles() {
 
     const v = isValidMvt(mvtBytes);
     if (v.ok) {
-      console.log(
-        `      ✓ ${label}: ${mvtBytes.length} bytes → valid MVT with ${v.layerCount} layer(s)`
-      );
+      console.log(`      ✓ ${label}: ${mvtBytes.length} bytes → valid MVT with ${v.layerCount} layer(s)`);
     } else {
       failures.push(`${label} is not a valid vector tile: ${v.reason}`);
     }
@@ -460,9 +447,9 @@ async function checkHighZoomTiles() {
 // Every bundled trail, read from the app's own index rather than a list kept
 // here: a hand-kept list missed Shikoku, which shipped with no pack and a
 // Download button that 404'd.
-const TRAIL_IDS = JSON.parse(
-  readFileSync(new URL('../mobile/assets/trails/index.json', import.meta.url), 'utf8')
-).map((trail) => trail.id);
+const TRAIL_IDS = JSON.parse(readFileSync(new URL('../mobile/assets/trails/index.json', import.meta.url), 'utf8')).map(
+  trail => trail.id
+);
 // The app installs exactly these (TILE_FILES in mobile/src/services/tile-paths.ts)
 // and treats a pack missing either as never downloaded, so a base-only manifest
 // is as unusable as none.
@@ -493,7 +480,7 @@ async function checkTrailOfflineArtifacts() {
     }
 
     const failuresBefore = failures.length;
-    const listed = new Set(manifest.files.map((file) => file.name));
+    const listed = new Set(manifest.files.map(file => file.name));
     for (const name of REQUIRED_FILES) {
       if (!listed.has(name)) {
         failures.push(`[${trailId}] manifest.json does not list ${name} — the app cannot install the pack`);
@@ -527,14 +514,10 @@ async function checkTrailOfflineArtifacts() {
             ? parseInt(contentRange.split('/')[1] ?? '', 10)
             : parseInt(res.headers.get('content-length') ?? '', 10);
         if (Number.isFinite(totalSize) && totalSize !== file.size) {
-          failures.push(
-            `[${trailId}] ${label} size mismatch: manifest says ${file.size}, object is ${totalSize}`
-          );
+          failures.push(`[${trailId}] ${label} size mismatch: manifest says ${file.size}, object is ${totalSize}`);
         }
         if (file.size < MIN_MBTILES_BYTES) {
-          failures.push(
-            `[${trailId}] ${label} is suspiciously small (${file.size} bytes) — likely an empty stub`
-          );
+          failures.push(`[${trailId}] ${label} is suspiciously small (${file.size} bytes) — likely an empty stub`);
         }
 
         const head = Buffer.from(await res.arrayBuffer());
@@ -635,7 +618,7 @@ const TIERED_PACK_CONCURRENCY = 4;
 /** Check one pack's z9: `{ line }` to print, or `{ failure }` to record. */
 async function checkTieredPack(trailId) {
   const manifest = await fetchPackManifest(trailId);
-  const file = Array.isArray(manifest?.files) && manifest.files.find((f) => f?.name === 'contours.mbtiles');
+  const file = Array.isArray(manifest?.files) && manifest.files.find(f => f?.name === 'contours.mbtiles');
   if (!file) {
     // The pack check reports a missing manifest or file; don't count it twice.
     return { line: `      - ${trailId}: no contours.mbtiles to read (see the pack check)` };
@@ -666,17 +649,22 @@ async function checkTieredPack(trailId) {
     }
   }
   if (bad.length > 0) {
-    return { failure: `[tiered] [${trailId}] ${bad.length} of ${tiles.length} z9 tiles not tiered (v${manifest.version}); first: ${bad[0]}` };
+    return {
+      failure: `[tiered] [${trailId}] ${bad.length} of ${tiles.length} z9 tiles not tiered (v${manifest.version}); first: ${bad[0]}`,
+    };
   }
   // But a whole pack without it is one whose tiers were never folded into
   // `contour` (renameContourTiers), and the app's style draws nothing from it.
   if (withLayer === 0 || features === 0) {
     return {
-      failure: `[tiered] [${trailId}] none of its ${tiles.length} z9 tiles has a contour feature ` +
+      failure:
+        `[tiered] [${trailId}] none of its ${tiles.length} z9 tiles has a contour feature ` +
         `(v${manifest.version}): layers not folded into \`contour\`, or no contours at all`,
     };
   }
-  return { line: `      ✓ ${trailId}: ${tiles.length} z9 tiles, ${features} features, all 100 m lines (v${manifest.version})` };
+  return {
+    line: `      ✓ ${trailId}: ${tiles.length} z9 tiles, ${features} features, all 100 m lines (v${manifest.version})`,
+  };
 }
 
 async function checkTieredPacks() {
@@ -709,9 +697,7 @@ async function checkGridBaseReachable() {
     const res = await fetch(url);
     if (res.status === 200) {
       const json = await res.json();
-      const cells = Array.isArray(json?.cells)
-        ? json.cells.length
-        : Object.keys(json || {}).length;
+      const cells = Array.isArray(json?.cells) ? json.cells.length : Object.keys(json || {}).length;
       console.log(`\n[grid] ✓ ${url} reachable (index lists ${cells} entries)`);
     } else {
       notes.push(`[grid] ${url} → HTTP ${res.status} (grid upload may be pending)`);
@@ -760,7 +746,7 @@ async function main() {
   }
 }
 
-main().catch((e) => {
+main().catch(e => {
   console.error('Unexpected error:', e);
   process.exit(2);
 });

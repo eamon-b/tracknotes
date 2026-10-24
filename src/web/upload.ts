@@ -8,19 +8,11 @@
  * uploaded anywhere.
  */
 
-import {
-  applyElevation,
-  backfillElevation,
-  estimateElevationRequests,
-} from '@lib/elevation-backfill';
+import { applyElevation, backfillElevation, estimateElevationRequests } from '@lib/elevation-backfill';
 import { importGpx, type ImportGpxResult } from '@lib/gpx-import';
 import { getApiBase } from './api/client';
 import type { CommunityShareController } from './community-share';
-import {
-  isIndexedDbAvailable,
-  putTrail,
-  type ImportedTrailSummary,
-} from './imported-trails-db';
+import { isIndexedDbAvailable, putTrail, type ImportedTrailSummary } from './imported-trails-db';
 import { escapeHtml, formatKm } from './web-utils';
 
 /**
@@ -159,7 +151,10 @@ function renderStats(ui: Elements, result: ImportGpxResult): void {
   const rows: Array<[string, string]> = [
     ['Distance', `${formatKm(trail.track.totalDistance)} km`],
     ['Ascent / descent', `${Math.round(trail.track.totalAscent)} m / ${Math.round(trail.track.totalDescent)} m`],
-    ['Track points', `${report.pointCount.toLocaleString()}${report.simplified ? ` (simplified from ${report.sourcePointCount.toLocaleString()})` : ''}`],
+    [
+      'Track points',
+      `${report.pointCount.toLocaleString()}${report.simplified ? ` (simplified from ${report.sourcePointCount.toLocaleString()})` : ''}`,
+    ],
     ['Waypoints', String(report.waypointCount)],
   ];
 
@@ -206,9 +201,7 @@ function renderStats(ui: Elements, result: ImportGpxResult): void {
 function renderWarnings(ui: Elements, result: ImportGpxResult): void {
   const { warnings } = result.report;
   show(ui.reportWarnings, warnings.length > 0);
-  ui.reportWarningList.innerHTML = warnings
-    .map(warning => `<li>${escapeHtml(warning)}</li>`)
-    .join('');
+  ui.reportWarningList.innerHTML = warnings.map(warning => `<li>${escapeHtml(warning)}</li>`).join('');
 }
 
 function resetOutput(ui: Elements): void {
@@ -269,8 +262,7 @@ async function handleFetchElevation(ui: Elements): Promise<void> {
   try {
     const elevations = await backfillElevation(target.trail.track.points, {
       onProgress: (done, total) => {
-        ui.elevationProgress.textContent =
-          `Fetching elevation… ${done.toLocaleString()} / ${total.toLocaleString()} points`;
+        ui.elevationProgress.textContent = `Fetching elevation… ${done.toLocaleString()} / ${total.toLocaleString()} points`;
       },
     });
     withElevation = applyElevation(target.trail, elevations);
@@ -295,9 +287,7 @@ async function handleFetchElevation(ui: Elements): Promise<void> {
   pending.report.hasElevation = true;
   // The "no elevation data" warning is now false; replace it with a note saying
   // where the numbers actually came from.
-  pending.report.warnings = pending.report.warnings.filter(
-    warning => !warning.startsWith(NO_ELEVATION_WARNING_PREFIX)
-  );
+  pending.report.warnings = pending.report.warnings.filter(warning => !warning.startsWith(NO_ELEVATION_WARNING_PREFIX));
   pending.report.warnings.push(BACKFILLED_ELEVATION_NOTE);
 
   renderStats(ui, pending);

@@ -158,16 +158,13 @@ export async function reportComment(
   id: string,
   payload: ReportCommentRequest,
 ): Promise<ReportCommentResponse> {
-  return apiRequest<ReportCommentResponse>(
-    `/v1/comments/${encodeURIComponent(id)}/report`,
-    {
-      baseUrl: ctx.baseUrl,
-      fetchImpl: ctx.fetchImpl,
-      token: ctx.token,
-      method: 'POST',
-      body: payload,
-    },
-  );
+  return apiRequest<ReportCommentResponse>(`/v1/comments/${encodeURIComponent(id)}/report`, {
+    baseUrl: ctx.baseUrl,
+    fetchImpl: ctx.fetchImpl,
+    token: ctx.token,
+    method: 'POST',
+    body: payload,
+  });
 }
 
 export interface GetTrailDescriptionsParams {
@@ -189,8 +186,7 @@ export async function getTrailDescriptions(
   if (params.since) qs.set('since', params.since);
   const query = qs.toString();
   const path =
-    `/v1/trails/${encodeURIComponent(params.trailId)}/descriptions` +
-    (query ? `?${query}` : '');
+    `/v1/trails/${encodeURIComponent(params.trailId)}/descriptions` + (query ? `?${query}` : '');
   return apiRequest<TrailDescriptionsResponse>(path, {
     baseUrl: ctx.baseUrl,
     fetchImpl: ctx.fetchImpl,

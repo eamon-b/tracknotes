@@ -92,7 +92,8 @@ export function variantInfo(variant: MapVariant, kind: VariantKind, id: string):
     endOffsetM: num(variant.endOffsetMeters),
     parentName: variant.parent?.name?.trim() || undefined,
     waypointCount: variant.waypoints?.length ?? 0,
-    endName: kind === 'terminus' ? terminusEndWaypoint(variant)?.name?.trim() || undefined : undefined,
+    endName:
+      kind === 'terminus' ? terminusEndWaypoint(variant)?.name?.trim() || undefined : undefined,
   };
 }
 

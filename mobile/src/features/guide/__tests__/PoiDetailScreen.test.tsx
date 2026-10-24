@@ -114,8 +114,7 @@ function controls(tree: ReactTestRenderer): Map<string, () => void> {
   tree.root
     .findAll(
       (n) =>
-        typeof n.props.onPress === 'function' &&
-        typeof n.props.accessibilityLabel === 'string',
+        typeof n.props.onPress === 'function' && typeof n.props.accessibilityLabel === 'string',
     )
     .forEach((n) => {
       const label = n.props.accessibilityLabel as string;

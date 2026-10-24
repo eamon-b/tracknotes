@@ -40,12 +40,7 @@ export function decodeCursor(raw: string | null): { sortValue: string; id: strin
  * upsert / tombstone (and plans are last-writer-wins with an equal `updatedAt`
  * a no-op), so a row seen twice changes nothing.
  */
-export function appendSinceFilter(
-  conditions: string[],
-  binds: unknown[],
-  column: string,
-  since: string
-): void {
+export function appendSinceFilter(conditions: string[], binds: unknown[], column: string, since: string): void {
   conditions.push(`${column} >= ?`);
   binds.push(since);
 }

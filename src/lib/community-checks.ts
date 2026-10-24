@@ -197,7 +197,11 @@ export function checkCommunityRegion(
   const detected = detectRegion(points);
   const chosen = country.toUpperCase();
   if (detected.country === null) {
-    return check('region', 'pass', 'The route is outside the regions the app can recognise, so the region was not checked.');
+    return check(
+      'region',
+      'pass',
+      'The route is outside the regions the app can recognise, so the region was not checked.'
+    );
   }
   // Checked against every region any sampled point is in, not the majority:
   // a route along a border, or with a short real stretch over one, is never
@@ -209,9 +213,9 @@ export function checkCommunityRegion(
       `The route's coordinates are in ${countryName(detected.country)}, but it is filed under ${countryName(chosen)}.`
     );
   }
-  const statesSeen = detected.seen.states.filter((s) => s.startsWith(`${chosen}:`));
+  const statesSeen = detected.seen.states.filter(s => s.startsWith(`${chosen}:`));
   if (state !== null && statesSeen.length > 0 && !statesSeen.includes(`${chosen}:${state}`)) {
-    const where = statesSeen.map((s) => stateName(chosen, s.slice(chosen.length + 1))).join(', ');
+    const where = statesSeen.map(s => stateName(chosen, s.slice(chosen.length + 1))).join(', ');
     return check(
       'region',
       'warn',
@@ -223,7 +227,7 @@ export function checkCommunityRegion(
 
 /** True when any check failed (a submission with one is rejected). */
 export function hasFailures(checks: readonly CommunityCheck[]): boolean {
-  return checks.some((c) => c.level === 'fail');
+  return checks.some(c => c.level === 'fail');
 }
 
 function check(id: string, level: CommunityCheckLevel, message: string): CommunityCheck {
@@ -258,7 +262,7 @@ export function runCommunityChecks(trail: unknown, meta: CommunityChecksMeta): C
     speedCheck(meta.gpxText),
     elevationCheck(clean, lengthKm),
     gapsCheck(points),
-    metadata.level === 'pass' ? waypointTextCheck(clean) ?? metadata : metadata,
+    metadata.level === 'pass' ? (waypointTextCheck(clean) ?? metadata) : metadata,
     waypointsCheck(clean),
   ];
 
@@ -277,13 +281,25 @@ function formatKm(km: number): string {
 function lengthCheck(lengthKm: number): CommunityCheck {
   const t = COMMUNITY_CHECK_THRESHOLDS;
   if (lengthKm < t.minLengthKm) {
-    return check('length', 'fail', `The route is ${formatKm(lengthKm)} long; a shared route must be at least ${t.minLengthKm} km.`);
+    return check(
+      'length',
+      'fail',
+      `The route is ${formatKm(lengthKm)} long; a shared route must be at least ${t.minLengthKm} km.`
+    );
   }
   if (lengthKm > t.maxLengthKm) {
-    return check('length', 'fail', `The route is ${formatKm(lengthKm)} long; a shared route can be at most ${t.maxLengthKm.toLocaleString('en')} km.`);
+    return check(
+      'length',
+      'fail',
+      `The route is ${formatKm(lengthKm)} long; a shared route can be at most ${t.maxLengthKm.toLocaleString('en')} km.`
+    );
   }
   if (lengthKm < t.shortLengthKm) {
-    return check('length', 'warn', `The route is only ${formatKm(lengthKm)} long. Check that the whole walk was recorded.`);
+    return check(
+      'length',
+      'warn',
+      `The route is only ${formatKm(lengthKm)} long. Check that the whole walk was recorded.`
+    );
   }
   return check('length', 'pass', `The route is ${formatKm(lengthKm)} long.`);
 }
@@ -291,7 +307,11 @@ function lengthCheck(lengthKm: number): CommunityCheck {
 function pointsCheck(points: TrackPoint[]): CommunityCheck {
   const t = COMMUNITY_CHECK_THRESHOLDS;
   if (points.length < t.minPoints) {
-    return check('points', 'fail', `The route has only ${points.length} points; at least ${t.minPoints} are needed to draw it.`);
+    return check(
+      'points',
+      'fail',
+      `The route has only ${points.length} points; at least ${t.minPoints} are needed to draw it.`
+    );
   }
   const spacings = new Float64Array(points.length - 1);
   for (let i = 1; i < points.length; i++) {
@@ -452,7 +472,7 @@ function timeIn(xml: string, from: number, to: number): number | null {
 
 function trailHasElevation(trail: ProcessedTrail): boolean {
   if (trail.config.elevationSource === 'none') return false;
-  return trail.track.points.some((p) => p.ele !== 0);
+  return trail.track.points.some(p => p.ele !== 0);
 }
 
 function elevationCheck(trail: ProcessedTrail, lengthKm: number): CommunityCheck {
@@ -471,7 +491,11 @@ function elevationCheck(trail: ProcessedTrail, lengthKm: number): CommunityCheck
       `The route climbs ${Math.round(perKm)} m per km on average, which suggests noisy elevation data.`
     );
   }
-  return check('elevation', 'pass', `The route climbs ${Math.round(trail.track.totalAscent).toLocaleString('en')} m in total.`);
+  return check(
+    'elevation',
+    'pass',
+    `The route climbs ${Math.round(trail.track.totalAscent).toLocaleString('en')} m in total.`
+  );
 }
 
 function gapsCheck(points: TrackPoint[]): CommunityCheck {
@@ -504,7 +528,11 @@ function metadataCheck(meta: CommunityChecksMeta): CommunityCheck {
   const description = typeof meta.description === 'string' ? meta.description.trim() : '';
   const L = COMMUNITY_LIMITS;
   if (name.length < L.nameMin || name.length > L.nameMax) {
-    return check('metadata', 'fail', `The name must be ${L.nameMin} to ${L.nameMax} characters long (it is ${name.length}).`);
+    return check(
+      'metadata',
+      'fail',
+      `The name must be ${L.nameMin} to ${L.nameMax} characters long (it is ${name.length}).`
+    );
   }
   if (description.length < L.descriptionMin || description.length > L.descriptionMax) {
     return check(
@@ -989,7 +1017,10 @@ function arr(v: unknown, path: string, max: number): unknown[] {
 
 function num(v: unknown, path: string, min = -Infinity, max = Infinity): number {
   if (typeof v !== 'number' || !Number.isFinite(v) || v < min || v > max) {
-    fail(path, Number.isFinite(min) || Number.isFinite(max) ? `is not a number between ${min} and ${max}` : 'is not a number');
+    fail(
+      path,
+      Number.isFinite(min) || Number.isFinite(max) ? `is not a number between ${min} and ${max}` : 'is not a number'
+    );
   }
   return v;
 }
@@ -1044,7 +1075,8 @@ function copyAccess(w: Obj, path: string, out: AccessFields): void {
     }
     out.accessMode = w.accessMode as AccessMode;
   }
-  if (w.acceptsBoxes !== undefined && w.acceptsBoxes !== null) out.acceptsBoxes = bool(w.acceptsBoxes, `${path}.acceptsBoxes`);
+  if (w.acceptsBoxes !== undefined && w.acceptsBoxes !== null)
+    out.acceptsBoxes = bool(w.acceptsBoxes, `${path}.acceptsBoxes`);
   const accessName = optStr(w.accessName, `${path}.accessName`, S.shortString);
   if (accessName !== undefined) out.accessName = accessName;
   const ascent = optNum(w.offTrailAscentM, `${path}.offTrailAscentM`, 0, 10_000);
@@ -1059,7 +1091,11 @@ function mergedIds(v: unknown, path: string): string[] | undefined {
 }
 
 /** The text and identity fields every kind of waypoint carries. */
-function copyWaypointText(w: Obj, path: string, out: { id?: string; description?: string; mergedIds?: string[] }): void {
+function copyWaypointText(
+  w: Obj,
+  path: string,
+  out: { id?: string; description?: string; mergedIds?: string[] }
+): void {
   const id = optStr(w.id, `${path}.id`, S.idString);
   if (id !== undefined) out.id = id;
   const description = optStr(w.description, `${path}.description`, S.longString);
@@ -1074,7 +1110,10 @@ function copyWaypointText(w: Obj, path: string, out: { id?: string; description?
  * `distance-consistency` compares), then dropped; `cumAscent`/`cumDescent`,
  * `time` and anything else on a point are never read.
  */
-function mainPoints(v: unknown, path: string): { points: TrackPoint[]; lastPointDist: number; backwardsAt: number | null } {
+function mainPoints(
+  v: unknown,
+  path: string
+): { points: TrackPoint[]; lastPointDist: number; backwardsAt: number | null } {
   const raw = arr(v, path, S.trackPoints);
   if (raw.length < 2) fail(path, 'has fewer than 2 points');
   const points: TrackPoint[] = new Array(raw.length);
@@ -1349,7 +1388,12 @@ const METERS_PER_DEGREE_LAT = 111_320;
  * here: an honest upload is already the right way round, so only the first,
  * main-route pass orients.
  */
-function attachVariants(drafts: DraftVariant[], alternateCount: number, main: TrackPoint[], mainIndex: NearestPoints): void {
+function attachVariants(
+  drafts: DraftVariant[],
+  alternateCount: number,
+  main: TrackPoint[],
+  mainIndex: NearestPoints
+): void {
   const onMain = (p: { lat: number; lon: number }): { trackIndex: number; meters: number } => {
     const i = mainIndex.nearest(p.lat, p.lon);
     return { trackIndex: i, meters: haversineDistance(p.lat, p.lon, main[i].lat, main[i].lon) };
@@ -1407,7 +1451,10 @@ function attachVariants(drafts: DraftVariant[], alternateCount: number, main: Tr
       const i = parent.nearest.nearest(p.lat, p.lon);
       const meters = haversineDistance(p.lat, p.lon, parent.points[i].lat, parent.points[i].lon);
       // Ties go to the lower index, whatever order the two attached in.
-      if (meters <= JUNCTION_M && (best === null || meters < best.meters || (meters === best.meters && a < best.parent))) {
+      if (
+        meters <= JUNCTION_M &&
+        (best === null || meters < best.meters || (meters === best.meters && a < best.parent))
+      ) {
         best = { parent: a, point: i, meters };
       }
     }
@@ -1418,7 +1465,7 @@ function attachVariants(drafts: DraftVariant[], alternateCount: number, main: Tr
 
   // Each round attaches at least one end or stops, and there are at most two
   // loose ends per variant, so this ends after at most 2 × variants rounds.
-  for (let progress = true; progress; ) {
+  for (let progress = true; progress;) {
     progress = false;
     for (let i = 0; i < drafts.length; i++) {
       const v = drafts[i];
@@ -1478,7 +1525,7 @@ function finishVariant(v: DraftVariant, drafts: DraftVariant[]): RouteVariant {
   const parentIndex = start.parent ?? v.end?.parent;
   if (parentIndex !== undefined) out.parent = { name: drafts[parentIndex].name, index: parentIndex };
   if (v.waypoints) {
-    out.waypoints = enrichRows(v.waypoints, (w) => w.variantTrackIndex, v.points, km, climb, start.km);
+    out.waypoints = enrichRows(v.waypoints, w => w.variantTrackIndex, v.points, km, climb, start.km);
   }
   return out;
 }
@@ -1499,7 +1546,10 @@ function config(v: unknown, lengthKm: number): TrailConfig {
     direction: { ...COMMUNITY_DIRECTION },
   };
   if (c.elevationSource !== undefined && c.elevationSource !== null) {
-    if (typeof c.elevationSource !== 'string' || !(ELEVATION_SOURCES as readonly string[]).includes(c.elevationSource)) {
+    if (
+      typeof c.elevationSource !== 'string' ||
+      !(ELEVATION_SOURCES as readonly string[]).includes(c.elevationSource)
+    ) {
       fail('config.elevationSource', "is not 'gpx', 'backfilled' or 'none'");
     }
     out.elevationSource = c.elevationSource as TrailConfig['elevationSource'];
@@ -1553,7 +1603,8 @@ export function sanitiseCommunityTrail(
     // limit, which fails `waypoints` and is never stored, keeps the client's
     // validated placement and figures rather than paying for up to 10,000 of
     // them.
-    const total = waypoints.length + offTrailWaypoints.length + drafts.reduce((s, v) => s + (v.waypoints?.length ?? 0), 0);
+    const total =
+      waypoints.length + offTrailWaypoints.length + drafts.reduce((s, v) => s + (v.waypoints?.length ?? 0), 0);
     if (total <= COMMUNITY_CHECK_THRESHOLDS.maxWaypoints) {
       // Variants first: a waypoint that is not on its variant joins the main
       // route's rows, to be placed there or moved off-trail below.
@@ -1562,19 +1613,19 @@ export function sanitiseCommunityTrail(
         v.waypoints = placeOnLine(
           v.waypoints,
           v.points,
-          { get: (w) => w.variantTrackIndex, set: (w, i) => (w.variantTrackIndex = i) },
+          { get: w => w.variantTrackIndex, set: (w, i) => (w.variantTrackIndex = i) },
           () => (v.nearest ??= new NearestPoints(v.points)),
           VARIANT_WAYPOINT_M,
-          (w) => waypoints.push(asMainRoute(w))
+          w => waypoints.push(asMainRoute(w))
         );
       }
       waypoints = placeOnLine(
         waypoints,
         points,
-        { get: (w) => w.trackIndex, set: (w, i) => (w.trackIndex = i) },
+        { get: w => w.trackIndex, set: (w, i) => (w.trackIndex = i) },
         () => mainIndex,
         MAIN_WAYPOINT_M,
-        (w) => offTrailWaypoints.push(asOffTrail(w))
+        w => offTrailWaypoints.push(asOffTrail(w))
       );
       for (const w of offTrailWaypoints) {
         const near = points[mainIndex.nearest(w.lat, w.lon)];
@@ -1584,19 +1635,19 @@ export function sanitiseCommunityTrail(
 
     const km = new Float64Array(points.length);
     for (let i = 0; i < points.length; i++) km[i] = points[i].dist;
-    const variants = drafts.map((v) => finishVariant(v, drafts));
+    const variants = drafts.map(v => finishVariant(v, drafts));
 
     const cfg = config(t.config, totalDistance);
     const trail: ProcessedTrail = {
       config: cfg,
       track: {
         points,
-        displayPoints: kept ? kept.map((i) => points[i]) : points,
+        displayPoints: kept ? kept.map(i => points[i]) : points,
         totalDistance,
         totalAscent: climb.ascent[points.length - 1],
         totalDescent: climb.descent[points.length - 1],
       },
-      waypoints: enrichRows(waypoints, (w) => w.trackIndex, points, km, climb, 0),
+      waypoints: enrichRows(waypoints, w => w.trackIndex, points, km, climb, 0),
       offTrailWaypoints,
       alternates: variants.slice(0, alternates.length),
       sideTrips: variants.slice(alternates.length),

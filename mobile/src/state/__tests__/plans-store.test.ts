@@ -249,10 +249,7 @@ describe('plans-store cache consistency', () => {
     expect(first).not.toBeNull();
     expect(second).not.toBeNull();
     const stored = await plansRepo.getByTrail(db, TRAIL);
-    expect(stored?.stops.map((stop) => stop.name)).toEqual([
-      'Standley Chasm',
-      'Serpentine Chalet',
-    ]);
+    expect(stored?.stops.map((stop) => stop.name)).toEqual(['Standley Chasm', 'Serpentine Chalet']);
     // The second edit started from the first one's result, so the cache and
     // the row agree.
     expect(selectPlan(TRAIL)(usePlansStore.getState())?.stops).toHaveLength(2);

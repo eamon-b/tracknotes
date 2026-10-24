@@ -20,17 +20,13 @@ function poi(overrides: Partial<TrailPOI> = {}): TrailPOI {
 
 describe('noiseReason: bus stops', () => {
   it('drops a bus stop', () => {
-    expect(noiseReason(poi({ category: 'transport', tags: { highway: 'bus_stop' } }))).toBe(
-      'bus-stop'
-    );
+    expect(noiseReason(poi({ category: 'transport', tags: { highway: 'bus_stop' } }))).toBe('bus-stop');
   });
 
   it('keeps the rail and ferry POIs the category exists for', () => {
     expect(noiseReason(poi({ category: 'transport', tags: { railway: 'station' } }))).toBeNull();
     expect(noiseReason(poi({ category: 'transport', tags: { railway: 'halt' } }))).toBeNull();
-    expect(
-      noiseReason(poi({ category: 'transport', tags: { amenity: 'ferry_terminal' } }))
-    ).toBeNull();
+    expect(noiseReason(poi({ category: 'transport', tags: { amenity: 'ferry_terminal' } }))).toBeNull();
   });
 });
 
@@ -42,15 +38,11 @@ describe('noiseReason: shelters', () => {
   });
 
   it('keeps weather shelters, which are real trail infrastructure', () => {
-    expect(
-      noiseReason(poi({ tags: { amenity: 'shelter', shelter_type: 'weather_shelter' } }))
-    ).toBeNull();
+    expect(noiseReason(poi({ tags: { amenity: 'shelter', shelter_type: 'weather_shelter' } }))).toBeNull();
   });
 
   it('keeps huts and lean-tos', () => {
-    expect(
-      noiseReason(poi({ tags: { amenity: 'shelter', shelter_type: 'basic_hut' } }))
-    ).toBeNull();
+    expect(noiseReason(poi({ tags: { amenity: 'shelter', shelter_type: 'basic_hut' } }))).toBeNull();
     expect(noiseReason(poi({ tags: { amenity: 'shelter', shelter_type: 'lean_to' } }))).toBeNull();
   });
 
@@ -58,27 +50,21 @@ describe('noiseReason: shelters', () => {
     // Ponderosa and YHA on the Heysen: shelter_type=picnic_shelter, and nothing
     // but the name says they are campgrounds.
     for (const name of ['Ponderosa Campground', 'YHA Campground']) {
-      expect(
-        noiseReason(poi({ name, tags: { amenity: 'shelter', shelter_type: 'picnic_shelter' } }))
-      ).toBeNull();
+      expect(noiseReason(poi({ name, tags: { amenity: 'shelter', shelter_type: 'picnic_shelter' } }))).toBeNull();
     }
   });
 
   it('does not spare a gazebo whose name agrees it is a gazebo', () => {
-    expect(
-      noiseReason(
-        poi({ name: 'Centenary Gazebo', tags: { amenity: 'shelter', shelter_type: 'gazebo' } })
-      )
-    ).toBe('minor-shelter');
+    expect(noiseReason(poi({ name: 'Centenary Gazebo', tags: { amenity: 'shelter', shelter_type: 'gazebo' } }))).toBe(
+      'minor-shelter'
+    );
   });
 
   it('judges a wilderness hut that carries no amenity=shelter by the same rule', () => {
     // Opera House, Old Currango Homestead, William Bay all tag shelter_type
     // without amenity=shelter.
     expect(
-      noiseReason(
-        poi({ name: 'Opera House', tags: { shelter_type: 'basic_hut', tourism: 'wilderness_hut' } })
-      )
+      noiseReason(poi({ name: 'Opera House', tags: { shelter_type: 'basic_hut', tourism: 'wilderness_hut' } }))
     ).toBeNull();
   });
 });
@@ -97,12 +83,8 @@ describe('noiseReason: emergency', () => {
   });
 
   it('keeps hospitals that have one, and those that say nothing either way', () => {
-    expect(
-      noiseReason(poi({ category: 'emergency', tags: { amenity: 'hospital', emergency: 'yes' } }))
-    ).toBeNull();
-    expect(
-      noiseReason(poi({ category: 'emergency', tags: { amenity: 'hospital' } }))
-    ).toBeNull();
+    expect(noiseReason(poi({ category: 'emergency', tags: { amenity: 'hospital', emergency: 'yes' } }))).toBeNull();
+    expect(noiseReason(poi({ category: 'emergency', tags: { amenity: 'hospital' } }))).toBeNull();
   });
 
   it('keeps the rest of the emergency category', () => {
@@ -161,39 +143,33 @@ describe('countNoiseByReason', () => {
 });
 
 describe('noiseReason: walker shuttles, picnic roofs, road phones', () => {
-  it('keeps a bus stop whose name says it is a walkers\' shuttle or pickup', () => {
+  it("keeps a bus stop whose name says it is a walkers' shuttle or pickup", () => {
     for (const name of ['Ronny Creek - Cradle Shuttle Bus', 'Three Capes Walk pickup']) {
       expect(noiseReason(poi({ category: 'transport', name, tags: { highway: 'bus_stop' } }))).toBeNull();
     }
+    expect(noiseReason(poi({ category: 'transport', name: 'Pickering Rd', tags: { highway: 'bus_stop' } }))).toBe(
+      'bus-stop'
+    );
     expect(
-      noiseReason(poi({ category: 'transport', name: 'Pickering Rd', tags: { highway: 'bus_stop' } }))
-    ).toBe('bus-stop');
-    expect(
-      noiseReason(
-        poi({ category: 'transport', name: 'Long Term Parking Shuttle', tags: { highway: 'bus_stop' } })
-      )
+      noiseReason(poi({ category: 'transport', name: 'Long Term Parking Shuttle', tags: { highway: 'bus_stop' } }))
     ).toBe('bus-stop');
   });
 
   it('drops a roof named "picnic shelter" although "shelter" is a keep-word', () => {
     expect(
-      noiseReason(
-        poi({ name: 'picnic shelter', tags: { amenity: 'shelter', shelter_type: 'picnic_shelter' } })
-      )
+      noiseReason(poi({ name: 'picnic shelter', tags: { amenity: 'shelter', shelter_type: 'picnic_shelter' } }))
     ).toBe('minor-shelter');
   });
 
   it('treats a pergola as a minor shelter', () => {
-    expect(noiseReason(poi({ tags: { amenity: 'shelter', shelter_type: 'pergola' } }))).toBe(
-      'minor-shelter'
-    );
+    expect(noiseReason(poi({ tags: { amenity: 'shelter', shelter_type: 'pergola' } }))).toBe('minor-shelter');
   });
 
   it('drops help phones on motorways and in road tunnels, keeps other phones', () => {
     for (const street of ['Pacific Motorway', 'Lane Cove Tunnel', 'Warringah Freeway', 'Macquarie Street Offramp']) {
-      expect(
-        noiseReason(poi({ category: 'emergency', tags: { emergency: 'phone', 'addr:street': street } }))
-      ).toBe('road-emergency-phone');
+      expect(noiseReason(poi({ category: 'emergency', tags: { emergency: 'phone', 'addr:street': street } }))).toBe(
+        'road-emergency-phone'
+      );
     }
     expect(noiseReason(poi({ category: 'emergency', tags: { emergency: 'phone' } }))).toBeNull();
   });
@@ -224,10 +200,7 @@ describe("noiseReason: a trail's own exclude list", () => {
   });
 
   it('counts and drops through the same rule', () => {
-    const pois = [
-      poi({ id: 1, tags: { amenity: 'fuel' } }),
-      poi({ id: 2, tags: { shop: 'convenience' } }),
-    ];
+    const pois = [poi({ id: 1, tags: { amenity: 'fuel' } }), poi({ id: 2, tags: { shop: 'convenience' } })];
     expect(countNoiseByReason(pois, config)['excluded-by-trail']).toBe(1);
     expect(dropNoisePois(pois, config)!.map(p => p.id)).toEqual([2]);
   });

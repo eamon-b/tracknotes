@@ -266,9 +266,14 @@ export function CommentsSection({
               if (!displayName) return; // guarded by the composer prompt
               activeSession = await useIdentityStore.getState().register(displayName);
             }
-            await submitComment(
-              { trailId, waypointId: commentWaypointId, text, waterStatus, photo, session: activeSession },
-            );
+            await submitComment({
+              trailId,
+              waypointId: commentWaypointId,
+              text,
+              waterStatus,
+              photo,
+              session: activeSession,
+            });
             // Keep the whole window visible: the new row is the newest, so
             // widen by one rather than pushing the oldest out of the page.
             setVisibleCount((count) => count + 1);
@@ -316,12 +321,7 @@ export function CommentsSection({
 function PhotoViewer({ uri, onClose }: { uri: string | null; onClose: () => void }) {
   const { colors } = useTheme();
   return (
-    <Modal
-      visible={uri !== null}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
+    <Modal visible={uri !== null} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable
         style={[styles.viewerBackdrop, { backgroundColor: colors.scrim }]}
         onPress={onClose}
@@ -362,13 +362,7 @@ function WaterBadge({ status }: { status: WaterStatus }) {
   );
 }
 
-function PhotoThumbnails({
-  urls,
-  onOpen,
-}: {
-  urls: string[];
-  onOpen: (uri: string) => void;
-}) {
+function PhotoThumbnails({ urls, onOpen }: { urls: string[]; onOpen: (uri: string) => void }) {
   const { colors } = useTheme();
   return (
     <ScrollView

@@ -22,14 +22,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { COMMUNITY_LIMITS, type CommunityCheck } from '@lib/community-types';
@@ -49,7 +42,10 @@ import { getBaseUrl } from '../src/api/client';
 import { submitCommunityRoute } from '../src/api/community';
 import { useIdentityStore } from '../src/state/identity-store';
 import { upsertCommunitySummary } from '../src/services/community-routes';
-import { validateDisplayName, MAX_DISPLAY_NAME_LENGTH } from '../src/features/comments/display-name';
+import {
+  validateDisplayName,
+  MAX_DISPLAY_NAME_LENGTH,
+} from '../src/features/comments/display-name';
 import {
   NO_STATE_CHOICE,
   RIGHTS_TEXT,
@@ -136,7 +132,11 @@ export default function ShareRouteScreen() {
         }
         // The region is prefilled from the coordinates; the hiker can change it.
         const initial = initialShareForm(result.config.name, detectRegion(result.track.points));
-        setLoaded({ id: shareableId, trail: result, prefill: { country: initial.country, state: initial.state } });
+        setLoaded({
+          id: shareableId,
+          trail: result,
+          prefill: { country: initial.country, state: initial.state },
+        });
         setForm(initial);
       })
       .catch(() => {
@@ -237,9 +237,7 @@ export default function ShareRouteScreen() {
   }
 
   const fieldError = (msg: string | undefined | null) =>
-    showErrors && msg ? (
-      <Text style={[styles.error, { color: colors.danger }]}>{msg}</Text>
-    ) : null;
+    showErrors && msg ? <Text style={[styles.error, { color: colors.danger }]}>{msg}</Text> : null;
   const inputStyle = [
     styles.input,
     { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.surface },
@@ -285,7 +283,9 @@ export default function ShareRouteScreen() {
       </View>
 
       <View style={styles.field}>
-        <Text style={[styles.label, { color: colors.textSecondary }]}>Credit or source (optional)</Text>
+        <Text style={[styles.label, { color: colors.textSecondary }]}>
+          Credit or source (optional)
+        </Text>
         <TextInput
           style={inputStyle}
           value={form.credit}
@@ -364,7 +364,9 @@ export default function ShareRouteScreen() {
       {fieldError(errors.rights)}
 
       {checks && (
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View
+          style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
+        >
           <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>Automatic checks</Text>
           <ChecksList checks={checks.checks} />
         </View>
@@ -373,9 +375,7 @@ export default function ShareRouteScreen() {
       {failure && (
         <ShareFailureCard
           failure={failure}
-          onViewMyRoutes={(id) =>
-            router.replace({ pathname: '/my-shared-routes', params: { id } })
-          }
+          onViewMyRoutes={(id) => router.replace({ pathname: '/my-shared-routes', params: { id } })}
         />
       )}
 

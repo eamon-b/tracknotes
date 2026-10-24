@@ -46,8 +46,7 @@ import type { ImportGpxResult } from '@lib/gpx-import';
 const NO_ELEVATION_WARNING_PREFIX = 'No elevation data';
 
 /** What replaces it once a profile has been fetched — provenance, not a warning. */
-const BACKFILLED_NOTE =
-  'Elevation came from Open-Elevation (terrain data), not from the file.';
+const BACKFILLED_NOTE = 'Elevation came from Open-Elevation (terrain data), not from the file.';
 
 export interface BackfillElevationFlowOptions {
   /** Called after every batch with (points fetched, points total). */

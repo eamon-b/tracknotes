@@ -38,7 +38,13 @@ const INDEX_JSON = [
     country: 'AU',
     states: ['WA'],
   },
-  { id: 'heysen', name: 'Heysen Trail', shortName: 'Heysen', lengthKm: 1200, dataVersion: '2026-07-29' },
+  {
+    id: 'heysen',
+    name: 'Heysen Trail',
+    shortName: 'Heysen',
+    lengthKm: 1200,
+    dataVersion: '2026-07-29',
+  },
 ];
 
 const BIBBULMUN_JSON = {
@@ -51,9 +57,22 @@ const BIBBULMUN_JSON = {
     direction: { default: 'SOBO', reversed: 'NOBO' },
   },
   waypoints: [
-    { id: 'w_abc123', name: 'Kalamunda', lat: -31.974, lon: 116.058, type: 'town', totalDistance: 0 },
+    {
+      id: 'w_abc123',
+      name: 'Kalamunda',
+      lat: -31.974,
+      lon: 116.058,
+      type: 'town',
+      totalDistance: 0,
+    },
   ],
-  track: { points: [], displayPoints: [], totalDistance: 981600, totalAscent: 25000, totalDescent: 25200 },
+  track: {
+    points: [],
+    displayPoints: [],
+    totalDistance: 981600,
+    totalAscent: 25000,
+    totalDescent: 25200,
+  },
 };
 
 const HEYSEN_JSON = {
@@ -315,9 +334,7 @@ describe('trail-loader', () => {
       const all = await listAllTrails();
       expect(all.map((t) => t.id)).toEqual(['bibbulmun', 'heysen', 'u_abc123']);
       expect(all.map((t) => t.source)).toEqual(['bundled', 'bundled', 'imported']);
-      expect(all[2]).toEqual(
-        expect.objectContaining({ name: 'My Weekend Loop', lengthKm: 42.5 }),
-      );
+      expect(all[2]).toEqual(expect.objectContaining({ name: 'My Weekend Loop', lengthKm: 42.5 }));
     });
 
     it('is just the bundled list when nothing has been imported', async () => {
@@ -392,7 +409,9 @@ describe('trail-loader', () => {
 
     it('loadTrail resolves a downloaded catalog-only trail', async () => {
       const gammaJson = { ...HEYSEN_JSON, config: { ...HEYSEN_JSON.config, id: 'gamma' } };
-      mockReadDownloaded.mockImplementation(async (id: string) => (id === 'gamma' ? gammaJson : null));
+      mockReadDownloaded.mockImplementation(async (id: string) =>
+        id === 'gamma' ? gammaJson : null,
+      );
       await expect(loadTrail('gamma')).resolves.toBe(gammaJson);
       expect(mockReadImported).not.toHaveBeenCalled();
     });
@@ -417,7 +436,11 @@ describe('trail-loader', () => {
 
     it("getTrailIndexEntry overlays a newer download's metadata", () => {
       expect(getTrailIndexEntry('heysen')).toEqual(
-        expect.objectContaining({ name: 'Heysen Trail (rerouted)', lengthKm: 1210.5, source: 'bundled' }),
+        expect.objectContaining({
+          name: 'Heysen Trail (rerouted)',
+          lengthKm: 1210.5,
+          source: 'bundled',
+        }),
       );
       // Bundled ids never fall through to the catalog lookup.
       expect(mockGetRemoteTrail).not.toHaveBeenCalled();
@@ -456,7 +479,13 @@ describe('trail-loader', () => {
       const all = await listAllTrails();
 
       expect(all.map((t) => t.id)).toEqual(['bibbulmun', 'heysen', 'gamma', 'delta', 'u_abc123']);
-      expect(all.map((t) => t.source)).toEqual(['bundled', 'bundled', 'remote', 'remote', 'imported']);
+      expect(all.map((t) => t.source)).toEqual([
+        'bundled',
+        'bundled',
+        'remote',
+        'remote',
+        'imported',
+      ]);
       expect(all.map((t) => t.downloaded)).toEqual([undefined, undefined, false, true, undefined]);
       expect(all[1].name).toBe('Heysen Trail (rerouted)');
       // The version fields the list does not show stay out of the index entry.
@@ -502,7 +531,9 @@ describe('trail-loader', () => {
     });
 
     it('carries the "no longer shared" flag of a taken-down download', async () => {
-      mockListCommunity.mockReturnValue([{ ...COMMUNITY_ROUTE, downloaded: true, takenDown: true }]);
+      mockListCommunity.mockReturnValue([
+        { ...COMMUNITY_ROUTE, downloaded: true, takenDown: true },
+      ]);
       const all = await listAllTrails();
       expect(all.find((t) => t.source === 'community')).toEqual(
         expect.objectContaining({ downloaded: true, communityTakenDown: true }),
@@ -519,7 +550,10 @@ describe('trail-loader', () => {
     });
 
     it('loadTrail reads a community id from the community store, never the import store', async () => {
-      const json = { ...IMPORTED_JSON, config: { ...IMPORTED_JSON.config, id: COMMUNITY_ROUTE.id } };
+      const json = {
+        ...IMPORTED_JSON,
+        config: { ...IMPORTED_JSON.config, id: COMMUNITY_ROUTE.id },
+      };
       mockReadCommunity.mockResolvedValue(json);
       await expect(loadTrail(COMMUNITY_ROUTE.id)).resolves.toBe(json);
       expect(mockReadImported).not.toHaveBeenCalled();

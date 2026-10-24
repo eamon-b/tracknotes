@@ -152,7 +152,7 @@ interface OffTrailWaypoint {
   lon: number;
   type?: string;
   description?: string;
-  distanceFromTrail: number;  // meters
+  distanceFromTrail: number; // meters
 }
 
 interface Trail {
@@ -248,7 +248,7 @@ const trailState = {
   reversedTrail: null as Trail | null,
   get currentTrail(): Trail | null {
     return this.isReversed ? this.reversedTrail : this.originalTrail;
-  }
+  },
 };
 
 // === OpenStreetMap points of interest ===
@@ -352,7 +352,7 @@ function poiControlHost(): HTMLElement | null {
   host.hidden = true;
   container.parentNode.insertBefore(host, container);
 
-  host.addEventListener('change', (e) => {
+  host.addEventListener('change', e => {
     const input = e.target as HTMLInputElement;
     const category = input.dataset.poiCategory;
     if (input.id === 'poi-enabled') {
@@ -476,25 +476,25 @@ const FILTER_NOUNS: Record<WaypointFamily, { one: string; many: string }> = {
  */
 function getTypeClass(type?: string): string {
   const typeMap: Record<string, string> = {
-    'town': 'type-town',
-    'hut': 'type-hut',
-    'campsite': 'type-campsite',
-    'water': 'type-water',
+    town: 'type-town',
+    hut: 'type-hut',
+    campsite: 'type-campsite',
+    water: 'type-water',
     'water-tank': 'type-water-tank',
-    'mountain': 'type-mountain',
+    mountain: 'type-mountain',
     'side-trip': 'type-side-trip',
-    'accommodation': 'type-accommodation',
+    accommodation: 'type-accommodation',
     'caravan-park': 'type-caravan-park',
-    'trailhead': 'type-trailhead',
-    'food': 'type-food',
+    trailhead: 'type-trailhead',
+    food: 'type-food',
     'road-crossing': 'type-road-crossing',
     'inlet-crossing': 'type-inlet-crossing',
-    'gap': 'type-gap',
-    'beach': 'type-beach',
-    'poi': 'type-poi',
-    'resupply': 'type-resupply',
-    'endpoint': 'type-endpoint',
-    'terminus': 'type-terminus'
+    gap: 'type-gap',
+    beach: 'type-beach',
+    poi: 'type-poi',
+    resupply: 'type-resupply',
+    endpoint: 'type-endpoint',
+    terminus: 'type-terminus',
   };
   // A turn-off takes the colour of the place it serves, plus `type-access`,
   // which outlines the chip. So the colour says what kind of place and the
@@ -556,7 +556,7 @@ function typeOptionsHtml(current: string): string {
 
   if (current && !currentIsCanonical) {
     options.push(
-      `<option value="${escapeHtml(current)}" selected>${escapeHtml(waypointTypeLabel(current))} (from your file)</option>`,
+      `<option value="${escapeHtml(current)}" selected>${escapeHtml(waypointTypeLabel(current))} (from your file)</option>`
     );
   }
 
@@ -720,11 +720,7 @@ async function handleWaypointTypeChange(select: HTMLSelectElement): Promise<void
   } catch (err) {
     select.value = previous;
     select.disabled = false;
-    setSelectStatus(
-      select,
-      `Not saved: ${err instanceof Error ? err.message : String(err)}`,
-      'error',
-    );
+    setSelectStatus(select, `Not saved: ${err instanceof Error ? err.message : String(err)}`, 'error');
     return;
   }
 
@@ -865,11 +861,7 @@ function computeWaypointLegs(waypoints: Waypoint[], filter: WaypointFilter): Way
  * position; pass 0 or omit it when it is unknown and the bounding stretches are
  * simply left out.
  */
-function summariseLegs(
-  legs: WaypointLeg[],
-  family: WaypointFamily,
-  trailLengthKm = 0,
-): string {
+function summariseLegs(legs: WaypointLeg[], family: WaypointFamily, trailLengthKm = 0): string {
   const noun = FILTER_NOUNS[family];
   if (legs.length === 0) {
     return `No ${noun.many} on this trail.`;
@@ -919,7 +911,7 @@ function summariseLegs(
 
   const longest = candidates.reduce<(typeof candidates)[number] | null>(
     (best, c) => (best === null || c.km > best.km ? c : best),
-    null,
+    null
   );
   if (longest) {
     const label = family === 'water' ? 'longest dry stretch' : 'longest leg';
@@ -935,7 +927,8 @@ function summariseLegs(
 // Safe min/max for large arrays (avoids stack overflow with spread operator)
 function getMinMax(arr: number[]): { min: number; max: number } {
   if (arr.length === 0) return { min: 0, max: 0 };
-  let min = arr[0], max = arr[0];
+  let min = arr[0],
+    max = arr[0];
   for (let i = 1; i < arr.length; i++) {
     if (arr[i] < min) min = arr[i];
     if (arr[i] > max) max = arr[i];
@@ -972,12 +965,12 @@ function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): (.
   };
 }
 
-
 function initMap(trail: Trail): void {
   if (typeof L === 'undefined') {
     const mapContainer = document.getElementById('trail-map');
     if (mapContainer) {
-      mapContainer.innerHTML = '<p style="padding: 2rem; text-align: center; color: var(--text-secondary);">Map unavailable. Please check your internet connection or try disabling ad blockers.</p>';
+      mapContainer.innerHTML =
+        '<p style="padding: 2rem; text-align: center; color: var(--text-secondary);">Map unavailable. Please check your internet connection or try disabling ad blockers.</p>';
     }
     console.error('Leaflet library failed to load');
     return;
@@ -986,12 +979,12 @@ function initMap(trail: Trail): void {
   try {
     map = L.map('trail-map', {
       zoomControl: true,
-      scrollWheelZoom: true
+      scrollWheelZoom: true,
     });
 
     L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
       maxZoom: 17,
-      attribution: 'Map data: &copy; OpenStreetMap contributors, SRTM | Map style: &copy; OpenTopoMap'
+      attribution: 'Map data: &copy; OpenStreetMap contributors, SRTM | Map style: &copy; OpenTopoMap',
     }).addTo(map);
 
     L.control.scale({ metric: true, imperial: false }).addTo(map);
@@ -1011,8 +1004,8 @@ function initMap(trail: Trail): void {
       icon: L.divIcon({
         className: 'elevation-hover-marker',
         iconSize: [12, 12],
-        iconAnchor: [6, 6]
-      })
+        iconAnchor: [6, 6],
+      }),
     });
 
     fitMapToBounds(trail);
@@ -1020,7 +1013,8 @@ function initMap(trail: Trail): void {
     console.error('Failed to initialize map:', error);
     const mapContainer = document.getElementById('trail-map');
     if (mapContainer) {
-      mapContainer.innerHTML = '<p style="padding: 2rem; text-align: center; color: var(--text-secondary);">Failed to load map. Please try refreshing the page.</p>';
+      mapContainer.innerHTML =
+        '<p style="padding: 2rem; text-align: center; color: var(--text-secondary);">Failed to load map. Please try refreshing the page.</p>';
     }
   }
 }
@@ -1097,7 +1091,7 @@ function drawMainRoute(trail: Trail): void {
   mainRoutePolyline = L.polyline(mainRouteLatLngs(trail), {
     color: MAIN_ROUTE_COLOR,
     weight: 3,
-    opacity: 0.9
+    opacity: 0.9,
   }).addTo(map!);
 
   drawRouteBreaks(trail);
@@ -1154,8 +1148,10 @@ function drawAlternates(alternates: RouteVariant[]): void {
     L.polyline(latLngs, {
       color: '#ff9800',
       weight: 3,
-      opacity: 0.8
-    }).addTo(map!).bindPopup(`<strong>${escapeHtml(alt.name)}</strong><br>${escapeHtml(alt.distance)} km`);
+      opacity: 0.8,
+    })
+      .addTo(map!)
+      .bindPopup(`<strong>${escapeHtml(alt.name)}</strong><br>${escapeHtml(alt.distance)} km`);
   });
 }
 
@@ -1167,8 +1163,10 @@ function drawSideTrips(sideTrips: RouteVariant[]): void {
     L.polyline(latLngs, {
       color: '#9c27b0',
       weight: 3,
-      opacity: 0.8
-    }).addTo(map!).bindPopup(`<strong>${escapeHtml(trip.name)}</strong><br>${escapeHtml(trip.distance)} km`);
+      opacity: 0.8,
+    })
+      .addTo(map!)
+      .bindPopup(`<strong>${escapeHtml(trip.name)}</strong><br>${escapeHtml(trip.distance)} km`);
   });
 }
 
@@ -1198,19 +1196,23 @@ function drawTermini(termini: RouteVariant[]): void {
       color: '#ff9800',
       weight: 3,
       opacity: 0.9,
-      dashArray: '10 6'
-    }).addTo(map!).bindPopup(
-      `<strong>${escapeHtml(terminus.name)}</strong><br>Alternative trail end` +
-        `<br>${escapeHtml(terminus.distance)} km to ${escapeHtml(endName)}`
-    );
+      dashArray: '10 6',
+    })
+      .addTo(map!)
+      .bindPopup(
+        `<strong>${escapeHtml(terminus.name)}</strong><br>Alternative trail end` +
+          `<br>${escapeHtml(terminus.distance)} km to ${escapeHtml(endName)}`
+      );
 
     const end = terminus.points[terminus.points.length - 1];
     L.marker([end.lat, end.lon], {
-      icon: createWaypointIcon(endWaypoint?.type ?? 'endpoint')
-    }).addTo(map!).bindPopup(
-      `<strong>${escapeHtml(endName)}</strong><br>End of ${escapeHtml(terminus.name)}` +
-        `<br>${escapeHtml(terminus.distance)} km from the junction`
-    );
+      icon: createWaypointIcon(endWaypoint?.type ?? 'endpoint'),
+    })
+      .addTo(map!)
+      .bindPopup(
+        `<strong>${escapeHtml(endName)}</strong><br>End of ${escapeHtml(terminus.name)}` +
+          `<br>${escapeHtml(terminus.distance)} km from the junction`
+      );
   });
 }
 
@@ -1221,7 +1223,7 @@ function createWaypointIcon(type?: string): L.DivIcon {
     html: waypointIcon(type),
     iconSize: [24, 24],
     iconAnchor: [12, 12],
-    popupAnchor: [0, -12]
+    popupAnchor: [0, -12],
   });
 }
 
@@ -1279,8 +1281,10 @@ function drawWaypointMarkers(waypoints: Waypoint[]): void {
 
   waypoints.forEach((wp, index) => {
     const marker = L.marker([wp.lat, wp.lon], {
-      icon: createWaypointIcon(wp.type)
-    }).addTo(map!).bindPopup(waypointPopupHtml(wp, index));
+      icon: createWaypointIcon(wp.type),
+    })
+      .addTo(map!)
+      .bindPopup(waypointPopupHtml(wp, index));
 
     const path = wp.offTrailPath;
     if (hasAccessPath(path)) {
@@ -1293,7 +1297,9 @@ function drawWaypointMarkers(waypoints: Waypoint[]): void {
 }
 
 function drawOffTrailWaypointMarkers(waypoints: OffTrailWaypoint[]): void {
-  offTrailMarkers.forEach(m => { if (map && map.hasLayer(m)) map.removeLayer(m); });
+  offTrailMarkers.forEach(m => {
+    if (map && map.hasLayer(m)) map.removeLayer(m);
+  });
   offTrailMarkers = [];
   if (!map) return;
   if (!waypoints || waypoints.length === 0) return;
@@ -1301,7 +1307,7 @@ function drawOffTrailWaypointMarkers(waypoints: OffTrailWaypoint[]): void {
   waypoints.forEach(wp => {
     const marker = L.marker([wp.lat, wp.lon], {
       icon: createWaypointIcon(wp.type),
-      opacity: 1
+      opacity: 1,
     }).addTo(map!).bindPopup(`
       <strong>${escapeHtml(wp.name || 'Waypoint')}</strong><br>
       ${escapeHtml(wp.type || 'waypoint')}<br>
@@ -1454,9 +1460,7 @@ function expandWaypointDetail(waypointIndex: number, wp: Waypoint): void {
 
   // Build detail panel HTML
   const hasDesc = !!wp.description;
-  const descHtml = hasDesc
-    ? `<div class="waypoint-detail-description">${linkifyText(wp.description!)}</div>`
-    : '';
+  const descHtml = hasDesc ? `<div class="waypoint-detail-description">${linkifyText(wp.description!)}</div>` : '';
   const coordsHtml = `<span class="waypoint-detail-coords">${wp.lat.toFixed(5)}, ${wp.lon.toFixed(5)} · <a href="https://www.google.com/maps?q=${wp.lat},${wp.lon}" target="_blank" rel="noopener noreferrer">Google Maps</a></span>`;
 
   const detailHtml = `
@@ -1619,11 +1623,12 @@ function expandVariantDetail(variantKey: string, variant: RouteVariant): void {
   // Waypoints table
   let waypointsHtml: string;
   if (wps.length > 0) {
-    const wpRows = wps.map((wp, i) => {
-      const descIndicator = wp.description
-        ? ' <span class="has-description-indicator" title="Has additional info"></span>'
-        : '';
-      return `
+    const wpRows = wps
+      .map((wp, i) => {
+        const descIndicator = wp.description
+          ? ' <span class="has-description-indicator" title="Has additional info"></span>'
+          : '';
+        return `
         <tr class="variant-waypoint-row" data-variant-key="${escapeHtml(variantKey)}" data-variant-wp-index="${i}"
             tabindex="0" role="button" aria-expanded="false">
           <td><span class="expand-chevron">&#9654;</span> ${escapeHtml(wp.name)}${descIndicator}</td>
@@ -1635,7 +1640,8 @@ function expandVariantDetail(variantKey: string, variant: RouteVariant): void {
           <td class="numeric">-${wp.descent}</td>
         </tr>
       `;
-    }).join('');
+      })
+      .join('');
 
     waypointsHtml = `
       <div class="variant-waypoints">
@@ -1724,9 +1730,7 @@ function expandVariantWaypointDetail(variantKey: string, wpIndex: number, wp: Va
 
   const colspan = 7; // variant waypoints table has 7 columns
   const hasDesc = !!wp.description;
-  const descHtml = hasDesc
-    ? `<div class="waypoint-detail-description">${linkifyText(wp.description!)}</div>`
-    : '';
+  const descHtml = hasDesc ? `<div class="waypoint-detail-description">${linkifyText(wp.description!)}</div>` : '';
   const coordsHtml = `<span class="waypoint-detail-coords">${wp.lat.toFixed(5)}, ${wp.lon.toFixed(5)} · <a href="https://www.google.com/maps?q=${wp.lat},${wp.lon}" target="_blank" rel="noopener noreferrer">Google Maps</a></span>`;
 
   const detailHtml = `
@@ -1804,9 +1808,7 @@ function expandOffTrailDetail(index: number, wp: OffTrailWaypoint): void {
   const colspan = headerCells.length || 9;
 
   const hasDesc = !!wp.description;
-  const descHtml = hasDesc
-    ? `<div class="waypoint-detail-description">${linkifyText(wp.description!)}</div>`
-    : '';
+  const descHtml = hasDesc ? `<div class="waypoint-detail-description">${linkifyText(wp.description!)}</div>` : '';
   const coordsHtml = `<span class="waypoint-detail-coords">${wp.lat.toFixed(5)}, ${wp.lon.toFixed(5)} · <a href="https://www.google.com/maps?q=${wp.lat},${wp.lon}" target="_blank" rel="noopener noreferrer">Google Maps</a></span>`;
 
   const detailHtml = `
@@ -1887,7 +1889,7 @@ function setupElevationHover(): void {
   tooltip.className = 'hover-tooltip';
   profileDiv.appendChild(tooltip);
 
-  canvas.addEventListener('mousemove', (e) => {
+  canvas.addEventListener('mousemove', e => {
     if (!trackPoints.length || !map) return;
 
     const rect = canvas.getBoundingClientRect();
@@ -1922,7 +1924,7 @@ function setupElevationHover(): void {
     hideElevationHover();
   });
 
-  canvas.addEventListener('click', (e) => {
+  canvas.addEventListener('click', e => {
     if (!trackPoints.length || !map) return;
 
     const rect = canvas.getBoundingClientRect();
@@ -1955,9 +1957,7 @@ async function loadTrailData(trailId: string): Promise<Trail | null> {
   try {
     // Relative to the page (`trails/<id>/index.html`), as index.html's fetch
     // is, so a site served from a sub-path still finds its data.
-    const response = await fetch(
-      generatedDataUrl(`${trailId}.json`, SITE_ROOT.trailPage, document.baseURI)
-    );
+    const response = await fetch(generatedDataUrl(`${trailId}.json`, SITE_ROOT.trailPage, document.baseURI));
     if (!response.ok) throw new Error('Trail data not found');
     return await response.json();
   } catch (error) {
@@ -2066,7 +2066,12 @@ function drawElevationProfile(points: TrackPoint[]): void {
   ctx.fill();
 }
 
-function renderWaypoints(waypoints: Waypoint[] | undefined, alternates: RouteVariant[] | undefined, sideTrips: RouteVariant[] | undefined, offTrailWaypoints?: OffTrailWaypoint[]): void {
+function renderWaypoints(
+  waypoints: Waypoint[] | undefined,
+  alternates: RouteVariant[] | undefined,
+  sideTrips: RouteVariant[] | undefined,
+  offTrailWaypoints?: OffTrailWaypoint[]
+): void {
   const container = document.getElementById('waypoints-container')!;
 
   if ((!waypoints || waypoints.length === 0) && (!offTrailWaypoints || offTrailWaypoints.length === 0)) {
@@ -2121,7 +2126,7 @@ function renderWaypoints(waypoints: Waypoint[] | undefined, alternates: RouteVar
           rowType: 'variant-start',
           distance: variant.startDistance,
           data: variant,
-          variantIndex
+          variantIndex,
         });
       }
       if (variant.type === 'alternate' && variant.endDistance != null) {
@@ -2129,7 +2134,7 @@ function renderWaypoints(waypoints: Waypoint[] | undefined, alternates: RouteVar
           rowType: 'variant-end',
           distance: variant.endDistance,
           data: variant,
-          variantIndex
+          variantIndex,
         });
       }
     });
@@ -2145,8 +2150,9 @@ function renderWaypoints(waypoints: Waypoint[] | undefined, alternates: RouteVar
   // Under a family filter only the matching POI family stays, for the same
   // reason the waypoint rows are filtered — a "where is water?" reading should
   // not be broken up by bus stops.
-  const poiRows = visiblePois(trailState.currentTrail?.pois, poiFilter)
-    .filter(poi => !isFiltered || poi.category === filter);
+  const poiRows = visiblePois(trailState.currentTrail?.pois, poiFilter).filter(
+    poi => !isFiltered || poi.category === filter
+  );
   const interleaved = interleavePoisByDistance(tableRows, poiRows, row => row.distance);
 
   const numeric = (value: number | null | undefined, digits = 0): string =>
@@ -2180,9 +2186,7 @@ function renderWaypoints(waypoints: Waypoint[] | undefined, alternates: RouteVar
   function renderVariantRow(variant: RouteVariant, variantIndex: number, isStart: boolean): string {
     const typeClass = variantTypeClass(variant.type);
     const typeLabel = variantTypeLabel(variant.type);
-    const actionLabel = isStart
-      ? (variant.type === 'side-trip' ? 'starts' : 'branches')
-      : 'rejoins';
+    const actionLabel = isStart ? (variant.type === 'side-trip' ? 'starts' : 'branches') : 'rejoins';
     const distance = isStart ? variant.startDistance : variant.endDistance;
 
     const variantKey = makeVariantKey(variant, variantIndex);
@@ -2193,9 +2197,8 @@ function renderWaypoints(waypoints: Waypoint[] | undefined, alternates: RouteVar
       : '';
     const expandableClass = isExpandable ? ' variant-expandable' : '';
     const chevronHtml = isExpandable ? '<span class="expand-chevron">&#9654;</span> ' : '';
-    const waypointDot = isExpandable && hasWaypoints
-      ? ` <span class="has-waypoints-indicator" title="Has waypoints"></span>`
-      : '';
+    const waypointDot =
+      isExpandable && hasWaypoints ? ` <span class="has-waypoints-indicator" title="Has waypoints"></span>` : '';
 
     return `
       <tr class="variant-row ${typeClass}${expandableClass}" ${expandableAttrs}>
@@ -2225,18 +2228,15 @@ function renderWaypoints(waypoints: Waypoint[] | undefined, alternates: RouteVar
   // point has no position along the track, so no honest leg can be derived.
   const allOffTrail = offTrailWaypoints || [];
   const offTrail = isFiltered
-    ? allOffTrail
-        .map((wp, index) => ({ wp, index }))
-        .filter(({ wp }) => matchesWaypointFamily(wp.type, filter))
+    ? allOffTrail.map((wp, index) => ({ wp, index })).filter(({ wp }) => matchesWaypointFamily(wp.type, filter))
     : allOffTrail.map((wp, index) => ({ wp, index }));
 
   function renderOffTrailRow(wp: OffTrailWaypoint, index: number): string {
     const descIndicator = wp.description
       ? ' <span class="has-description-indicator" title="Has additional info"></span>'
       : '';
-    const distLabel = wp.distanceFromTrail >= 1000
-      ? `${(wp.distanceFromTrail / 1000).toFixed(1)} km`
-      : `${wp.distanceFromTrail}m`;
+    const distLabel =
+      wp.distanceFromTrail >= 1000 ? `${(wp.distanceFromTrail / 1000).toFixed(1)} km` : `${wp.distanceFromTrail}m`;
     return `
       <tr class="off-trail-row"
           id="off-trail-row-${index}"
@@ -2257,12 +2257,15 @@ function renderWaypoints(waypoints: Waypoint[] | undefined, alternates: RouteVar
     `;
   }
 
-  const offTrailSection = offTrail.length > 0 ? `
+  const offTrailSection =
+    offTrail.length > 0
+      ? `
     <tr class="off-trail-header-row">
       <td colspan="9"><strong>Off-trail waypoints</strong> <span class="off-trail-count">(${offTrail.length})</span></td>
     </tr>
     ${offTrail.map(({ wp, index }) => renderOffTrailRow(wp, index)).join('')}
-  ` : '';
+  `
+      : '';
 
   // Retitled under a filter so nobody reads a between-visible-rows gap as the
   // per-waypoint leg it is not.
@@ -2270,9 +2273,10 @@ function renderWaypoints(waypoints: Waypoint[] | undefined, alternates: RouteVar
   const gainHeader = isFiltered ? 'Leg Gain (m)' : 'Gain (m)';
   const lossHeader = isFiltered ? 'Leg Loss (m)' : 'Loss (m)';
 
-  const emptyRow = tableRows.length === 0 && offTrail.length === 0
-    ? `<tr class="waypoints-empty-row"><td colspan="9">No ${escapeHtml(FILTER_LABELS[filter])} waypoints on this trail.</td></tr>`
-    : '';
+  const emptyRow =
+    tableRows.length === 0 && offTrail.length === 0
+      ? `<tr class="waypoints-empty-row"><td colspan="9">No ${escapeHtml(FILTER_LABELS[filter])} waypoints on this trail.</td></tr>`
+      : '';
 
   const tableHtml = `
     <table class="waypoints-table">
@@ -2290,27 +2294,33 @@ function renderWaypoints(waypoints: Waypoint[] | undefined, alternates: RouteVar
         </tr>
       </thead>
       <tbody>
-        ${interleaved.map(entry => {
-          if (entry.kind === 'poi') return poiRowHtml(entry.poi);
-          const row = entry.item;
-          if (row.rowType === 'waypoint') {
-            return renderWaypointRow(row.data as Waypoint, row.waypointIndex!, row.leg!);
-          } else if (row.rowType === 'variant-start') {
-            return renderVariantRow(row.data as RouteVariant, row.variantIndex!, true);
-          } else {
-            return renderVariantRow(row.data as RouteVariant, row.variantIndex!, false);
-          }
-        }).join('')}
+        ${interleaved
+          .map(entry => {
+            if (entry.kind === 'poi') return poiRowHtml(entry.poi);
+            const row = entry.item;
+            if (row.rowType === 'waypoint') {
+              return renderWaypointRow(row.data as Waypoint, row.waypointIndex!, row.leg!);
+            } else if (row.rowType === 'variant-start') {
+              return renderVariantRow(row.data as RouteVariant, row.variantIndex!, true);
+            } else {
+              return renderVariantRow(row.data as RouteVariant, row.variantIndex!, false);
+            }
+          })
+          .join('')}
         ${offTrailSection}
         ${emptyRow}
       </tbody>
     </table>
-    ${poiRows.length > 0 ? `
+    ${
+      poiRows.length > 0
+        ? `
       <p class="poi-table-attribution">
         Rows badged <span class="poi-source-badge">OSM</span> are uncurated points of interest.
         ${escapeHtml(OSM_ATTRIBUTION)}.
       </p>
-    ` : ''}
+    `
+        : ''
+    }
   `;
 
   container.innerHTML = tableHtml;
@@ -2321,9 +2331,7 @@ function renderWaypoints(waypoints: Waypoint[] | undefined, alternates: RouteVar
     // Read the length off the trail rather than the module's `maxDistance`,
     // which the chart sets later in the boot sequence and is still 0 on the
     // first render.
-    isFiltered
-      ? summariseLegs(legs, filter, trailState.currentTrail?.track.totalDistance ?? 0)
-      : null,
+    isFiltered ? summariseLegs(legs, filter, trailState.currentTrail?.track.totalDistance ?? 0) : null
   );
 }
 
@@ -2339,9 +2347,8 @@ function updateFilterChrome(visible: number, total: number, summary: string | nu
 
   const count = document.getElementById('waypoint-filter-count');
   if (count) {
-    count.textContent = waypointFilter === 'all'
-      ? `${total} waypoint${total === 1 ? '' : 's'}`
-      : `${visible} of ${total} waypoints`;
+    count.textContent =
+      waypointFilter === 'all' ? `${total} waypoint${total === 1 ? '' : 's'}` : `${visible} of ${total} waypoints`;
   }
 
   const summaryEl = document.getElementById('waypoint-filter-summary');
@@ -2352,9 +2359,7 @@ function updateFilterChrome(visible: number, total: number, summary: string | nu
 
   const csvBtn = document.getElementById('export-csv-btn');
   if (csvBtn) {
-    csvBtn.textContent = waypointFilter === 'all'
-      ? 'Download CSV'
-      : `Download CSV (${FILTER_LABELS[waypointFilter]})`;
+    csvBtn.textContent = waypointFilter === 'all' ? 'Download CSV' : `Download CSV (${FILTER_LABELS[waypointFilter]})`;
   }
 }
 
@@ -2394,13 +2399,17 @@ function exportDatasheet(trail: Trail): void {
   if (isFiltered) {
     lines.push(`# View: ${FILTER_LABELS[filter]} only (${legs.length} of ${(waypoints || []).length} waypoints)`);
     lines.push(`# ${summariseLegs(legs, filter, track.totalDistance)}`);
-    lines.push('# Leg columns are measured from the previous row in this file, not from the previous waypoint on the trail.');
+    lines.push(
+      '# Leg columns are measured from the previous row in this file, not from the previous waypoint on the trail.'
+    );
   }
   lines.push('');
 
-  lines.push(isFiltered
-    ? 'Location,Type,Elevation (m),Leg (km),Total (km),Leg Gain (m),Leg Loss (m),Total Gain (m),Total Loss (m),Notes'
-    : 'Location,Type,Elevation (m),Distance (km),Total (km),Gain (m),Loss (m),Total Gain (m),Total Loss (m),Notes');
+  lines.push(
+    isFiltered
+      ? 'Location,Type,Elevation (m),Leg (km),Total (km),Leg Gain (m),Leg Loss (m),Total Gain (m),Total Loss (m),Notes'
+      : 'Location,Type,Elevation (m),Distance (km),Total (km),Gain (m),Loss (m),Total Gain (m),Total Loss (m),Notes'
+  );
 
   for (const leg of legs) {
     const wp = leg.wp;
@@ -2414,7 +2423,7 @@ function exportDatasheet(trail: Trail): void {
       isFiltered ? (leg.legDescent?.toFixed(0) ?? '') : (wp.descent ?? ''),
       wp.totalAscent ?? '',
       wp.totalDescent ?? '',
-      csvQuote(wp.description || '')
+      csvQuote(wp.description || ''),
     ];
     lines.push(row.join(','));
   }
@@ -2433,7 +2442,7 @@ function exportDatasheet(trail: Trail): void {
         alt.elevation?.ascent ?? '',
         alt.elevation?.descent ?? '',
         alt.startDistance?.toFixed(1) ?? '',
-        alt.endDistance?.toFixed(1) ?? ''
+        alt.endDistance?.toFixed(1) ?? '',
       ];
       lines.push(row.join(','));
     }
@@ -2450,7 +2459,7 @@ function exportDatasheet(trail: Trail): void {
         trip.distance ?? '',
         trip.elevation?.ascent ?? '',
         trip.elevation?.descent ?? '',
-        trip.startDistance?.toFixed(1) ?? ''
+        trip.startDistance?.toFixed(1) ?? '',
       ];
       lines.push(row.join(','));
     }
@@ -2458,9 +2467,7 @@ function exportDatasheet(trail: Trail): void {
 
   // Off-trail waypoints stay visible under a filter (a spring 200 m off-trail is
   // a real water source), so they stay in the export — filtered to the family.
-  const offTrail = (trail.offTrailWaypoints || []).filter(
-    wp => !isFiltered || matchesWaypointFamily(wp.type, filter),
-  );
+  const offTrail = (trail.offTrailWaypoints || []).filter(wp => !isFiltered || matchesWaypointFamily(wp.type, filter));
   if (offTrail.length > 0) {
     lines.push('');
     lines.push('# Off-Trail Waypoints');
@@ -2470,7 +2477,7 @@ function exportDatasheet(trail: Trail): void {
         csvQuote(wp.name || 'Unnamed'),
         csvQuote(wp.type || 'waypoint'),
         wp.distanceFromTrail,
-        csvQuote(wp.description || '')
+        csvQuote(wp.description || ''),
       ];
       lines.push(row.join(','));
     }
@@ -2572,11 +2579,10 @@ function refreshDisplay(trail: Trail): void {
 }
 
 function getDirectionLabel(isReversed: boolean): string {
-  return directionLabelFor(
-    trailState.originalTrail?.config.direction,
-    isReversed ? 'SOBO' : 'NOBO',
-    { default: 'Start → End', reversed: 'End → Start' },
-  );
+  return directionLabelFor(trailState.originalTrail?.config.direction, isReversed ? 'SOBO' : 'NOBO', {
+    default: 'Start → End',
+    reversed: 'End → Start',
+  });
 }
 
 function saveDirectionPreference(trailId: string, isReversed: boolean): void {
@@ -2663,7 +2669,7 @@ function toggleDirection(): void {
 export async function initTrailViewer(
   trailId: string,
   preloadedTrail?: Trail,
-  options?: TrailViewerOptions,
+  options?: TrailViewerOptions
 ): Promise<void> {
   // One boot per page load, as every host page does: a second call would bind
   // the table, filter, export and document listeners twice and `L.map` would
@@ -2671,7 +2677,7 @@ export async function initTrailViewer(
   if (trailViewerBooted) throw new Error('initTrailViewer: the trail viewer is already booted on this page');
   trailViewerBooted = true;
   viewerOptions = options ?? {};
-  const trail = preloadedTrail ?? await loadTrailData(trailId);
+  const trail = preloadedTrail ?? (await loadTrailData(trailId));
   if (!trail) {
     const panel = document.querySelector('.panel');
     if (panel) panel.innerHTML = '<p>Failed to load trail data.</p>';
@@ -2701,7 +2707,12 @@ export async function initTrailViewer(
     initMap(reversedTrail);
     drawElevationProfile(reversedTrail.track.points);
     setupElevationHover();
-    renderWaypoints(reversedTrail.waypoints, reversedTrail.alternates, reversedTrail.sideTrips, reversedTrail.offTrailWaypoints);
+    renderWaypoints(
+      reversedTrail.waypoints,
+      reversedTrail.alternates,
+      reversedTrail.sideTrips,
+      reversedTrail.offTrailWaypoints
+    );
   } else {
     updateStats(trail);
     initMap(trail);
@@ -2725,7 +2736,7 @@ export async function initTrailViewer(
   // expanding. `#waypoints-container` is in the page markup and outlives them.
   const waypointsContainer = document.getElementById('waypoints-container');
 
-  waypointsContainer?.addEventListener('click', (e) => {
+  waypointsContainer?.addEventListener('click', e => {
     const target = e.target as HTMLElement;
 
     // POI rows are not expandable — their only interaction is this link.
@@ -2767,7 +2778,10 @@ export async function initTrailViewer(
     // Handle variant waypoint row clicks (nested inside variant detail)
     const variantWpRow = target.closest('tr.variant-waypoint-row') as HTMLElement;
     if (variantWpRow) {
-      toggleVariantWaypointExpansion(variantWpRow.dataset.variantKey!, parseInt(variantWpRow.dataset.variantWpIndex!, 10));
+      toggleVariantWaypointExpansion(
+        variantWpRow.dataset.variantKey!,
+        parseInt(variantWpRow.dataset.variantWpIndex!, 10)
+      );
       return;
     }
 
@@ -2795,7 +2809,7 @@ export async function initTrailViewer(
   // The category editor. Delegated like everything else in this table, because
   // the detail panel carrying the <select> is created and destroyed on every
   // expand/collapse and on every re-render.
-  waypointsContainer?.addEventListener('change', (e) => {
+  waypointsContainer?.addEventListener('change', e => {
     const select = (e.target as HTMLElement).closest<HTMLSelectElement>('select.waypoint-type-select');
     if (select) void handleWaypointTypeChange(select);
   });
@@ -2810,7 +2824,10 @@ export async function initTrailViewer(
       const variantWpRow = target.closest('tr.variant-waypoint-row') as HTMLElement;
       if (variantWpRow) {
         e.preventDefault();
-        toggleVariantWaypointExpansion(variantWpRow.dataset.variantKey!, parseInt(variantWpRow.dataset.variantWpIndex!, 10));
+        toggleVariantWaypointExpansion(
+          variantWpRow.dataset.variantKey!,
+          parseInt(variantWpRow.dataset.variantWpIndex!, 10)
+        );
         return;
       }
 
@@ -2839,7 +2856,7 @@ export async function initTrailViewer(
     }
   });
 
-  document.addEventListener('click', (e) => {
+  document.addEventListener('click', e => {
     const target = e.target as HTMLElement;
     if (target.classList.contains('popup-show-in-table')) {
       e.preventDefault();
@@ -2851,7 +2868,7 @@ export async function initTrailViewer(
 
   // Datasheet filter. Delegated from the group so the three buttons need no
   // individual wiring, and keyboard use comes free — they are real <button>s.
-  document.getElementById('waypoint-filter')?.addEventListener('click', (e) => {
+  document.getElementById('waypoint-filter')?.addEventListener('click', e => {
     const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-filter]');
     const next = btn?.dataset.filter;
     if (next === 'all' || next === 'water' || next === 'resupply') {
@@ -2874,12 +2891,15 @@ export async function initTrailViewer(
     });
   }
 
-  window.addEventListener('resize', debounce(() => {
-    if (trailState.currentTrail) {
-      drawElevationProfile(trailState.currentTrail.track.points);
-    }
-    if (map) map.invalidateSize();
-  }, 150));
+  window.addEventListener(
+    'resize',
+    debounce(() => {
+      if (trailState.currentTrail) {
+        drawElevationProfile(trailState.currentTrail.track.points);
+      }
+      if (map) map.invalidateSize();
+    }, 150)
+  );
 
   // The elevation profile is canvas-drawn, so it has to be repainted by hand
   // when the theme changes.

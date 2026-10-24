@@ -86,20 +86,39 @@ interface CaltopoFeature {
 
 /** CalTopo folder title → GPX `<type>`. A folder not listed here is skipped. */
 const FOLDER_TYPES: Record<string, string> = {
-  'Temples': 'poi',
+  Temples: 'poi',
   'Henro Houses': 'accommodation',
   'Other accomodation': 'accommodation',
   'Rest areas': 'hut',
-  'Campgrounds': 'campsite',
-  'Onsen': 'poi',
+  Campgrounds: 'campsite',
+  Onsen: 'poi',
 };
 
 /** Japanese names of the section's temples, added to each temple's description. */
 const TEMPLE_KANJI: Record<number, string> = {
-  1: '霊山寺', 2: '極楽寺', 3: '金泉寺', 4: '大日寺', 5: '地蔵寺', 6: '安楽寺',
-  7: '十楽寺', 8: '熊谷寺', 9: '法輪寺', 10: '切幡寺', 11: '藤井寺', 12: '焼山寺',
-  13: '大日寺', 14: '常楽寺', 15: '国分寺', 16: '観音寺', 17: '井戸寺', 18: '恩山寺',
-  19: '立江寺', 20: '鶴林寺', 21: '太龍寺', 22: '平等寺', 23: '薬王寺',
+  1: '霊山寺',
+  2: '極楽寺',
+  3: '金泉寺',
+  4: '大日寺',
+  5: '地蔵寺',
+  6: '安楽寺',
+  7: '十楽寺',
+  8: '熊谷寺',
+  9: '法輪寺',
+  10: '切幡寺',
+  11: '藤井寺',
+  12: '焼山寺',
+  13: '大日寺',
+  14: '常楽寺',
+  15: '国分寺',
+  16: '観音寺',
+  17: '井戸寺',
+  18: '恩山寺',
+  19: '立江寺',
+  20: '鶴林寺',
+  21: '太龍寺',
+  22: '平等寺',
+  23: '薬王寺',
 };
 
 /** Temples with no marker on the source map, positioned from OpenStreetMap. */
@@ -175,7 +194,7 @@ const CURATED_WAYPOINTS: GpxWaypoint[] = [
       'Pilgrim inn お宿すだち庵 at Nabeiwa, on the route 2.7 km below Temple 12 - the only open lodging between Fujiidera and Kamiyama since the Shosanji shukubo and Nabeiwa-so closed. ' +
       '¥4,900 room only, ¥5,900 with breakfast, ¥6,900 with dinner, ¥7,900 with both (Oct 2026); cash only. Six rooms, curry dinner, shuttle to the Kamiyama Onsen bath. ' +
       'Bookings by phone in Japanese (Tel: 090-2677-8000), or in English by email to null1903@gmail.com with name, dates, number of people, gender, ' +
-      'the previous night\'s lodging and whether vegetarian. No fixed check-in time; arrivals before 14:00 phone ahead. ' +
+      "the previous night's lodging and whether vegetarian. No fixed check-in time; arrivals before 14:00 phone ahead. " +
       'Bags are carried free from Ryokan Yoshino, Guest House Channel-kan, Awarakuya and Hostel OE near Temple 11 to Sudachi-an, so the Shosanji climb can be walked light. ' +
       'https://sudachian.com/book/',
   },
@@ -205,8 +224,7 @@ const CURATED_WAYPOINTS: GpxWaypoint[] = [
     lon: 134.338321,
     ele: 0,
     type: 'accommodation',
-    desc:
-      'Inn at Shimobun, about 1.7 km off the path. ¥11,000 with breakfast, ¥14,300 with dinner and breakfast (Oct 2026). Tel: 088-677-0313 https://week-kamiyama.jp',
+    desc: 'Inn at Shimobun, about 1.7 km off the path. ¥11,000 with breakfast, ¥14,300 with dinner and breakfast (Oct 2026). Tel: 088-677-0313 https://week-kamiyama.jp',
   },
   {
     name: 'Ryokan Sakuraya',
@@ -254,8 +272,7 @@ const CURATED_WAYPOINTS: GpxWaypoint[] = [
     lon: 134.463297,
     ele: 0,
     type: 'accommodation',
-    desc:
-      'Ryokan かどや旅館 beside Temple 13. ¥5,500 room only, ¥8,800 with dinner and breakfast (Oct 2026). Cash only; check-in 15:00-18:00. Tel: 088-644-0411',
+    desc: 'Ryokan かどや旅館 beside Temple 13. ¥5,500 room only, ¥8,800 with dinner and breakfast (Oct 2026). Cash only; check-in 15:00-18:00. Tel: 088-644-0411',
   },
   {
     name: 'Myozai Ryokan Hana',
@@ -263,8 +280,7 @@ const CURATED_WAYPOINTS: GpxWaypoint[] = [
     lon: 134.463249,
     ele: 0,
     type: 'accommodation',
-    desc:
-      'Ryokan 名西旅館 花 beside Temple 13. ¥5,000 room only, ¥5,500 with breakfast, ¥7,500 with dinner and breakfast (Oct 2026). Tel: 088-644-0025',
+    desc: 'Ryokan 名西旅館 花 beside Temple 13. ¥5,000 room only, ¥5,500 with breakfast, ¥7,500 with dinner and breakfast (Oct 2026). Tel: 088-644-0025',
   },
 ];
 
@@ -317,18 +333,22 @@ function readHenroyadoFile(file: string): HenroyadoFile {
   for (const [i, inn] of (Array.isArray(data.inns) ? data.inns : []).entries()) {
     const label = typeof inn?.name === 'string' && inn.name ? `"${inn.name}"` : `inns[${i}]`;
     if (typeof inn?.name !== 'string' || !inn.name.trim()) problems.push(`${label}: no name`);
-    if (!(WAYPOINT_TYPES as readonly string[]).includes(inn?.type)) problems.push(`${label}: unknown type "${inn?.type}"`);
+    if (!(WAYPOINT_TYPES as readonly string[]).includes(inn?.type))
+      problems.push(`${label}: unknown type "${inn?.type}"`);
     // Within Tokushima, so a swapped or mistyped coordinate cannot slip through.
-    if (!(Number.isFinite(inn?.lat) && inn.lat > 33.5 && inn.lat < 34.5)) problems.push(`${label}: lat ${inn?.lat} is not in Tokushima`);
-    if (!(Number.isFinite(inn?.lon) && inn.lon > 133.5 && inn.lon < 135)) problems.push(`${label}: lon ${inn?.lon} is not in Tokushima`);
+    if (!(Number.isFinite(inn?.lat) && inn.lat > 33.5 && inn.lat < 34.5))
+      problems.push(`${label}: lat ${inn?.lat} is not in Tokushima`);
+    if (!(Number.isFinite(inn?.lon) && inn.lon > 133.5 && inn.lon < 135))
+      problems.push(`${label}: lon ${inn?.lon} is not in Tokushima`);
     if (typeof inn?.position !== 'string' || !inn.position.trim()) problems.push(`${label}: no \`position\` source`);
     if (typeof inn?.desc !== 'string') problems.push(`${label}: no desc`);
   }
   if (typeof data.listed !== 'object' || data.listed === null || Array.isArray(data.listed)) {
     problems.push('`listed` is not an object of marker name -> details');
-  } else for (const [name, line] of Object.entries(data.listed)) {
-    if (typeof line !== 'string' || !line.trim()) problems.push(`listed "${name}": no details`);
-  }
+  } else
+    for (const [name, line] of Object.entries(data.listed)) {
+      if (typeof line !== 'string' || !line.trim()) problems.push(`listed "${name}": no details`);
+    }
   if (problems.length > 0) throw new Error(`${path.basename(file)}:\n  ${problems.join('\n  ')}`);
   return data;
 }
@@ -378,7 +398,13 @@ export function applyCuratedWaypoints(waypoints: GpxWaypoint[]): GpxWaypoint[] {
     .map(w => (w.name in TITLE_FIXES ? { ...w, name: TITLE_FIXES[w.name] } : w))
     .filter(w => !(w.name in CLOSED_MARKERS) && !curatedNames.has(w.name))
     .map(w => (w.name in DESCRIPTION_OVERRIDES ? { ...w, desc: DESCRIPTION_OVERRIDES[w.name] } : w))
-    .map(w => ({ ...w, desc: withHenroyadoLine(w.desc, Object.prototype.hasOwnProperty.call(HENROYADO.listed, w.name) ? HENROYADO.listed[w.name] : undefined) }));
+    .map(w => ({
+      ...w,
+      desc: withHenroyadoLine(
+        w.desc,
+        Object.prototype.hasOwnProperty.call(HENROYADO.listed, w.name) ? HENROYADO.listed[w.name] : undefined
+      ),
+    }));
   const missing = Object.keys(HENROYADO.listed).filter(name => !kept.some(w => w.name === name));
   if (missing.length > 0) {
     throw new Error(`henroyado.com details for markers that are not on the map: ${missing.join(', ')}`);

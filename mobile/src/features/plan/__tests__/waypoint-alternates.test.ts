@@ -16,14 +16,25 @@ const wp = (id: string, name: string, km: number, type = 'campsite') => ({
   totalDistance: km,
 });
 const altPoints = (from: number, to: number) =>
-  Array.from({ length: to - from + 1 }, (_, i) => ({ lat: 0.01, lon: (from + i) * DEG_PER_KM, ele: 100 }));
+  Array.from({ length: to - from + 1 }, (_, i) => ({
+    lat: 0.01,
+    lon: (from + i) * DEG_PER_KM,
+    ele: 100,
+  }));
 
 /**
  * A 100 km trail with two overlapping alternates off the main route (Ridge,
  * km 20-40, and Valley, km 30-50) and one that hangs off Ridge.
  */
 const stored = {
-  config: { id: 'syn', name: 'Syn', shortName: 'Syn', region: '', lengthKm: 100, direction: { default: 'N', reversed: 'S' } },
+  config: {
+    id: 'syn',
+    name: 'Syn',
+    shortName: 'Syn',
+    region: '',
+    lengthKm: 100,
+    direction: { default: 'N', reversed: 'S' },
+  },
   track: {
     points: Array.from({ length: 101 }, (_, km) => point(km)),
     totalDistance: 100,
@@ -76,8 +87,14 @@ const cardsFor = (guide: TrailJson, id: string, names: string[] = []) =>
 
 describe('findGuideWaypoint', () => {
   it('finds the main route first, then alternates by id', () => {
-    expect(findGuideWaypoint(stored, 'mid')).toMatchObject({ waypoint: { name: 'Mid Camp' }, alternateIndex: null });
-    expect(findGuideWaypoint(stored, 'valley-hut')).toMatchObject({ waypoint: { name: 'Valley Hut' }, alternateIndex: 1 });
+    expect(findGuideWaypoint(stored, 'mid')).toMatchObject({
+      waypoint: { name: 'Mid Camp' },
+      alternateIndex: null,
+    });
+    expect(findGuideWaypoint(stored, 'valley-hut')).toMatchObject({
+      waypoint: { name: 'Valley Hut' },
+      alternateIndex: 1,
+    });
     expect(findGuideWaypoint(stored, 'nope')).toBeNull();
   });
 });
@@ -102,7 +119,10 @@ describe('waypointAlternates', () => {
   });
 
   it('names the taken alternate an untaken one would drop', () => {
-    expect(cardsFor(stored, 'valley-hut', ['Ridge'])[0]).toMatchObject({ taken: false, replaces: ['Ridge'] });
+    expect(cardsFor(stored, 'valley-hut', ['Ridge'])[0]).toMatchObject({
+      taken: false,
+      replaces: ['Ridge'],
+    });
   });
 
   it('marks the junctions on the main route', () => {
@@ -124,7 +144,13 @@ describe('waypointAlternates', () => {
 
   it('offers no choice for an alternate off another alternate', () => {
     const [card] = cardsFor(stored, 'summit');
-    expect(card).toMatchObject({ role: 'on', plannable: null, parentName: 'Ridge', leavesKm: null, rejoinsKm: null });
+    expect(card).toMatchObject({
+      role: 'on',
+      plannable: null,
+      parentName: 'Ridge',
+      leavesKm: null,
+      rejoinsKm: null,
+    });
   });
 
   it('reads the junctions in the direction walked', () => {

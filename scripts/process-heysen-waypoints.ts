@@ -46,21 +46,12 @@ const FOLDER_DEFS: FolderDef[] = [
   {
     id: 'folder-campsites',
     title: 'Campsites',
-    patterns: [
-      /^campsite$/i,
-      /^['']walk-in[''] site$/i,
-      /^walk-in site$/i,
-      /^shelter\s*\(small\)$/i,
-    ],
+    patterns: [/^campsite$/i, /^['']walk-in[''] site$/i, /^walk-in site$/i, /^shelter\s*\(small\)$/i],
   },
   {
     id: 'folder-huts-shelters',
     title: 'Huts & Shelters',
-    patterns: [
-      /^hut$/i,
-      /^shelter\s*\(medium\)$/i,
-      /^shelter\s*\(large\)$/i,
-    ],
+    patterns: [/^hut$/i, /^shelter\s*\(medium\)$/i, /^shelter\s*\(large\)$/i],
   },
   {
     id: 'folder-accommodation',
@@ -78,46 +69,32 @@ const FOLDER_DEFS: FolderDef[] = [
   {
     id: 'folder-caravan-parks',
     title: 'Caravan Parks',
-    patterns: [
-      /^caravan park$/i,
-    ],
+    patterns: [/^caravan park$/i],
   },
   {
     id: 'folder-towns',
     title: 'Towns',
-    patterns: [
-      /^town$/i,
-    ],
+    patterns: [/^town$/i],
   },
   {
     id: 'folder-water',
     title: 'Water',
-    patterns: [
-      /^water only location$/i,
-      /^water tank$/i,
-    ],
+    patterns: [/^water only location$/i, /^water tank$/i],
   },
   {
     id: 'folder-trailheads',
     title: 'Trailheads',
-    patterns: [
-      /^trailhead$/i,
-    ],
+    patterns: [/^trailhead$/i],
   },
   {
     id: 'folder-closed',
     title: 'Closed',
-    patterns: [
-      /no longer available/i,
-      /^this facility is no longer available/i,
-    ],
+    patterns: [/no longer available/i, /^this facility is no longer available/i],
   },
   {
     id: 'folder-other',
     title: 'Other',
-    patterns: [
-      /^other$/i,
-    ],
+    patterns: [/^other$/i],
   },
 ];
 
@@ -294,9 +271,9 @@ function detectCategoryFromTitle(title: string): FolderDef | undefined {
  * Generate a UUID v4.
  */
 function generateUUID(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
 }
@@ -339,11 +316,11 @@ function main() {
   // Separate features by type
   const existingFolders = data.features.filter(f => f.properties.class === 'Folder');
   const markers = data.features.filter(f => f.properties.class === 'Marker');
-  const otherFeatures = data.features.filter(f =>
-    f.properties.class !== 'Folder' && f.properties.class !== 'Marker'
-  );
+  const otherFeatures = data.features.filter(f => f.properties.class !== 'Folder' && f.properties.class !== 'Marker');
 
-  console.log(`Found ${markers.length} markers, ${existingFolders.length} existing folders, ${otherFeatures.length} other features`);
+  console.log(
+    `Found ${markers.length} markers, ${existingFolders.length} existing folders, ${otherFeatures.length} other features`
+  );
   console.log('');
 
   // Create a map of existing folder IDs by title (use first match for duplicates)
@@ -470,8 +447,7 @@ function main() {
   console.log('');
 
   console.log('=== Category Breakdown ===');
-  const sortedCategories = Object.entries(categoryBreakdown)
-    .sort((a, b) => b[1].count - a[1].count);
+  const sortedCategories = Object.entries(categoryBreakdown).sort((a, b) => b[1].count - a[1].count);
 
   for (const [cat, info] of sortedCategories) {
     const folderStr = info.folder ? ` -> ${info.folder}` : ' -> (unassigned)';

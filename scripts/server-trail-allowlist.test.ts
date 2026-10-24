@@ -16,20 +16,17 @@ import * as path from 'path';
 const ROOT = path.resolve(__dirname, '..');
 
 function allowedTrails(): string[] {
-  const source = fs.readFileSync(
-    path.join(ROOT, 'workers/comments-api/src/validation.ts'),
-    'utf-8'
-  );
+  const source = fs.readFileSync(path.join(ROOT, 'workers/comments-api/src/validation.ts'), 'utf-8');
   const literal = source.match(/ALLOWED_TRAILS[^=]*=\s*\[([\s\S]*?)\]/);
   if (!literal) throw new Error('ALLOWED_TRAILS array literal not found in validation.ts');
-  return [...literal[1].matchAll(/['"]([^'"]+)['"]/g)].map((m) => m[1]);
+  return [...literal[1].matchAll(/['"]([^'"]+)['"]/g)].map(m => m[1]);
 }
 
 function bundledTrails(): string[] {
-  const index = JSON.parse(
-    fs.readFileSync(path.join(ROOT, 'mobile/assets/trails/index.json'), 'utf-8')
-  ) as { id: string }[];
-  return index.map((entry) => entry.id);
+  const index = JSON.parse(fs.readFileSync(path.join(ROOT, 'mobile/assets/trails/index.json'), 'utf-8')) as {
+    id: string;
+  }[];
+  return index.map(entry => entry.id);
 }
 
 describe('comments API trail allowlist', () => {

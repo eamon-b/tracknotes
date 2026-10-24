@@ -64,12 +64,17 @@ beforeEach(() => {
   window.localStorage.clear();
   window.localStorage.setItem(
     'tracknotes.webSession',
-    JSON.stringify({ userId: 'u1', token: 'tok', displayName: 'Admin', expiresAt: null }),
+    JSON.stringify({ userId: 'u1', token: 'tok', displayName: 'Admin', expiresAt: null })
   );
   vi.stubEnv('VITE_API_BASE_URL', 'https://api.example.test');
   vi.stubGlobal(
     'fetch',
-    vi.fn(async () => ({ ok: true, status: 200, statusText: '', text: async () => JSON.stringify({ routes: [route] }) })),
+    vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      statusText: '',
+      text: async () => JSON.stringify({ routes: [route] }),
+    }))
   );
   loadPage();
 });
@@ -88,7 +93,18 @@ describe('admin-community.html', () => {
     expect(list.querySelector('.admin-row')).not.toBeNull();
     expect(list.querySelector('img')).toBeNull();
     const text = list.textContent ?? '';
-    for (const label of ['Name', 'Sam', 'Description', 'Credit', 'Check', 'Note', 'Report', 'Summary', 'Concern', 'Error']) {
+    for (const label of [
+      'Name',
+      'Sam',
+      'Description',
+      'Credit',
+      'Check',
+      'Note',
+      'Report',
+      'Summary',
+      'Concern',
+      'Error',
+    ]) {
       expect(text, label).toContain(`${label} ${XSS}`);
     }
     expect(document.getElementById('admin-identity')!.textContent).toContain('Admin');

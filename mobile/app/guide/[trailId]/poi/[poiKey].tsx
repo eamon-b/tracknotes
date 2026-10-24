@@ -32,15 +32,7 @@
  */
 
 import React, { useMemo } from 'react';
-import {
-  Image,
-  Linking,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Image, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { formatDistance } from '@lib/format-distance';
 import {
@@ -80,10 +72,7 @@ export default function PoiDetailScreen() {
   const showOnMap = useShowOnMap(trailId ?? '');
   const units = useSettingsStore((s) => s.units);
 
-  const poi = useMemo(
-    () => findPoiByRouteKey(trail.pois, poiKey ?? ''),
-    [trail.pois, poiKey],
-  );
+  const poi = useMemo(() => findPoiByRouteKey(trail.pois, poiKey ?? ''), [trail.pois, poiKey]);
 
   const lines = useMemo(() => summarisePoiTags(poi?.tags), [poi]);
 
@@ -186,9 +175,9 @@ export default function PoiDetailScreen() {
       </View>
 
       <Text style={[styles.note, { color: colors.textSecondary }]}>
-        Uncurated OpenStreetMap data. The trail’s own waypoints are the checked ones. Closed,
-        moved or wrong? Leave a comment for other hikers, and report it on OpenStreetMap so it
-        gets fixed at the source.
+        Uncurated OpenStreetMap data. The trail’s own waypoints are the checked ones. Closed, moved
+        or wrong? Leave a comment for other hikers, and report it on OpenStreetMap so it gets fixed
+        at the source.
       </Text>
       <Text style={[styles.attribution, { color: colors.textSecondary }]}>{OSM_ATTRIBUTION}</Text>
 
@@ -288,7 +277,6 @@ const styles = StyleSheet.create({
   },
   pillText: { ...typography.caption },
   meta: { ...typography.bodySmall },
-
 
   divider: { height: StyleSheet.hairlineWidth },
   sectionTitle: { ...typography.titleLarge },

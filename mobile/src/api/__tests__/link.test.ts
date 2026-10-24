@@ -57,7 +57,21 @@ describe('link routes', () => {
 
   it('unwraps the devices envelope, and tolerates an empty body', async () => {
     const fetchImpl = scriptedFetch([
-      { body: { devices: [{ id: 'aaaaaaaaaaaa', kind: 'primary', label: null, createdAt: 'T', lastSeenAt: null, expiresAt: null, current: true }] } },
+      {
+        body: {
+          devices: [
+            {
+              id: 'aaaaaaaaaaaa',
+              kind: 'primary',
+              label: null,
+              createdAt: 'T',
+              lastSeenAt: null,
+              expiresAt: null,
+              current: true,
+            },
+          ],
+        },
+      },
     ]);
     const devices = await listDevices({ baseUrl: BASE, fetchImpl, token: 'tok' });
     expect(devices).toHaveLength(1);
@@ -93,7 +107,9 @@ describe('session wrappers', () => {
   it('refuses to issue a request when the device has no identity', async () => {
     mockGetSession.mockResolvedValue(null);
     const fetchImpl = scriptedFetch([{ status: 201, body: {} }]);
-    await expect(requestLinkCode({ baseUrl: BASE, fetchImpl })).rejects.toThrow(NO_IDENTITY_MESSAGE);
+    await expect(requestLinkCode({ baseUrl: BASE, fetchImpl })).rejects.toThrow(
+      NO_IDENTITY_MESSAGE,
+    );
     expect(calls(fetchImpl)).toHaveLength(0);
   });
 });

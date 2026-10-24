@@ -191,7 +191,12 @@ export function resnapRoutePoints<P extends RoutePointInput>(
     }
     const snapped = classifyTap(p.lat, p.lon, track, thresholdM);
     if (snapped.kind === 'sketch') return { kind: 'gone' };
-    return { kind: 'snapped', lat: snapped.lat, lon: snapped.lon, passes: passesAt(track, snapped) };
+    return {
+      kind: 'snapped',
+      lat: snapped.lat,
+      lon: snapped.lon,
+      passes: passesAt(track, snapped),
+    };
   });
 
   // How far the km moved under each point the track passes only once (or
@@ -229,7 +234,11 @@ export function resnapRoutePoints<P extends RoutePointInput>(
     const km = landing.passes.reduce((best, pass) =>
       Math.abs(pass - expected) < Math.abs(best - expected) ? pass : best,
     );
-    if (Math.abs(km - storedKm) < RESNAP_EPSILON_KM && landing.lat === p.lat && landing.lon === p.lon) {
+    if (
+      Math.abs(km - storedKm) < RESNAP_EPSILON_KM &&
+      landing.lat === p.lat &&
+      landing.lon === p.lon
+    ) {
       return p;
     }
     changed = true;
@@ -244,7 +253,9 @@ export function resnapRoutePoints<P extends RoutePointInput>(
  */
 function passesAt(track: readonly RouteTrackPoint[], snapped: RoutePointInput): number[] {
   const passes = track
-    .filter((t) => haversineDistance(t.lat, t.lon, snapped.lat, snapped.lon) <= RESNAP_SAME_VERTEX_M)
+    .filter(
+      (t) => haversineDistance(t.lat, t.lon, snapped.lat, snapped.lon) <= RESNAP_SAME_VERTEX_M,
+    )
     .map((t) => t.dist);
   return passes.length > 0 ? passes : [snapped.km as number];
 }
@@ -302,10 +313,7 @@ export interface RouteLeg {
 }
 
 /** Haversine distance between two vertices, in km. */
-function legHaversineKm(
-  a: { lat: number; lon: number },
-  b: { lat: number; lon: number },
-): number {
+function legHaversineKm(a: { lat: number; lon: number }, b: { lat: number; lon: number }): number {
   return haversineDistance(a.lat, a.lon, b.lat, b.lon) / 1000;
 }
 
@@ -447,7 +455,12 @@ export function buildRouteOverlayGeoJSON(
             );
           }
           if (piece.length >= 2) {
-            features.push(lineFeature(piece.map((p) => [p.lon, p.lat]), false));
+            features.push(
+              lineFeature(
+                piece.map((p) => [p.lon, p.lat]),
+                false,
+              ),
+            );
           }
         });
         continue;

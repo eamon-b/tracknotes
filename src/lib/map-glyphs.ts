@@ -75,7 +75,7 @@ export const MAP_GLYPHS: Readonly<Record<MapGlyphName, string>> = {
 
   // Town: two houses either side of a steepled hall, spaced apart. Pitched
   // roofs, so it is a settlement rather than a bar chart.
-town: `
+  town: `
     <path fill="${INK}" d="M8 56 L21 43 L34 56 V80 H8 Z"/>
     <path fill="${INK}" fill-rule="evenodd" d="M39 36 L48 20 L57 36 V80 H39 Z M44 44 H52 V54 H44 Z"/>
     <path fill="${INK}" d="M62 56 L75 43 L88 56 V80 H62 Z"/>`,
@@ -101,12 +101,12 @@ town: `
 
   // Milestone: a distance post — a plate reading "10" on a stake (the CDT's
   // every-10-mile markers).
-milestone: `
+  milestone: `
     <path fill="${INK}" fill-rule="evenodd" d="M22 18 A6 6 0 0 1 28 12 H68 A6 6 0 0 1 74 18 V52 A6 6 0 0 1 68 58 H28 A6 6 0 0 1 22 52 Z M32 22 H40 V48 H32 Z M47 26 A4 4 0 0 1 51 22 H60 A4 4 0 0 1 64 26 V44 A4 4 0 0 1 60 48 H51 A4 4 0 0 1 47 44 Z M53 28 H58 V42 H53 Z"/>
     <rect fill="${INK}" x="42" y="54" width="12" height="30" rx="3"/>`,
 
   // Trail gap: a bar broken in two, the ends cut on a slant like a tear.
-gap: `
+  gap: `
     <path fill="${INK}" d="M8 40 H42 L34 58 H8 Z"/>
     <path fill="${INK}" d="M62 40 H88 V58 H54 Z"/>`,
 

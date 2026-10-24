@@ -40,10 +40,7 @@ import {
   type ResupplyStop,
   type ResupplySummary,
 } from '@lib/resupply-plan';
-import {
-  analyzeWaterCarryForSection,
-  type WaterCarryAnalysis,
-} from '@lib/water-carry-calculator';
+import { analyzeWaterCarryForSection, type WaterCarryAnalysis } from '@lib/water-carry-calculator';
 import {
   PACE_KMH,
   type ComputedDay,

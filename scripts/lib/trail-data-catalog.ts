@@ -175,11 +175,7 @@ export function catalogKey(id: string, md5: string): string {
  * The catalog for an index, trails in index order. `sourceCommit` is written
  * only when known, so a publish without git produces the same shape as before.
  */
-export function buildCatalog(
-  index: MobileIndexEntry[],
-  generatedAt: Date,
-  sourceCommit?: string | null
-): TrailCatalog {
+export function buildCatalog(index: MobileIndexEntry[], generatedAt: Date, sourceCommit?: string | null): TrailCatalog {
   return {
     format: TRAIL_DATA_FORMAT,
     generatedAt: generatedAt.toISOString(),
@@ -219,17 +215,22 @@ export function indexEntryProblems(entry: unknown): string[] {
   const idProblem = trailIdProblem(e.id);
   if (idProblem) problems.push(idProblem);
   if (typeof e.name !== 'string' || e.name === '') problems.push(`${label}: name must be a non-empty string`);
-  if (typeof e.shortName !== 'string' || e.shortName === '') problems.push(`${label}: shortName must be a non-empty string`);
-  if (typeof e.lengthKm !== 'number' || !Number.isFinite(e.lengthKm)) problems.push(`${label}: lengthKm must be a number`);
-  if (e.country !== undefined && (typeof e.country !== 'string' || !/^[A-Z]{2}$/.test(e.country))) problems.push(`${label}: country must be a two-letter upper-case code`);
-  if (e.states !== undefined && (!Array.isArray(e.states) || !e.states.every((st) => typeof st === 'string'))) problems.push(`${label}: states must be an array of strings`);
+  if (typeof e.shortName !== 'string' || e.shortName === '')
+    problems.push(`${label}: shortName must be a non-empty string`);
+  if (typeof e.lengthKm !== 'number' || !Number.isFinite(e.lengthKm))
+    problems.push(`${label}: lengthKm must be a number`);
+  if (e.country !== undefined && (typeof e.country !== 'string' || !/^[A-Z]{2}$/.test(e.country)))
+    problems.push(`${label}: country must be a two-letter upper-case code`);
+  if (e.states !== undefined && (!Array.isArray(e.states) || !e.states.every(st => typeof st === 'string')))
+    problems.push(`${label}: states must be an array of strings`);
   if (typeof e.dataVersion !== 'string' || !DATA_VERSION_RE.test(e.dataVersion)) {
     problems.push(`${label}: dataVersion must be YYYY-MM-DD`);
   }
   if (typeof e.updatedAt !== 'string' || Number.isNaN(Date.parse(e.updatedAt))) {
     problems.push(`${label}: updatedAt must be an ISO timestamp`);
   }
-  if (typeof e.md5 !== 'string' || !MD5_RE.test(e.md5)) problems.push(`${label}: md5 must be 32 lowercase hex characters`);
+  if (typeof e.md5 !== 'string' || !MD5_RE.test(e.md5))
+    problems.push(`${label}: md5 must be 32 lowercase hex characters`);
   if (typeof e.bytes !== 'number' || !Number.isInteger(e.bytes) || e.bytes <= 0) {
     problems.push(`${label}: bytes must be a positive integer`);
   }
@@ -341,9 +342,7 @@ export function diffCatalogs(local: TrailCatalog, live: TrailCatalog | null): Ca
   }
   const removed = liveTrails.filter(trail => !localIds.has(trail.id)).map(trail => trail.id);
   const reordered =
-    added.length === 0 &&
-    removed.length === 0 &&
-    local.trails.some((trail, i) => liveTrails[i]?.id !== trail.id);
+    added.length === 0 && removed.length === 0 && local.trails.some((trail, i) => liveTrails[i]?.id !== trail.id);
   return { added, changed, removed, reordered };
 }
 
@@ -365,7 +364,11 @@ export interface UploadPlan {
  * `all` re-uploads every file. The catalog goes up when anything about it
  * differs (or with `all`).
  */
-export function planUpload(local: TrailCatalog, live: TrailCatalog | null, options: { all?: boolean } = {}): UploadPlan {
+export function planUpload(
+  local: TrailCatalog,
+  live: TrailCatalog | null,
+  options: { all?: boolean } = {}
+): UploadPlan {
   const liveKeys = new Set((live?.trails ?? []).map(trail => trail.key));
   const diff = diffCatalogs(local, live);
   return {
@@ -388,9 +391,7 @@ export function unapprovedRemovals(diff: CatalogDiff, approved: ReadonlySet<stri
 
 /** What the source-commit guard decided, and why. */
 export type SourceCommitVerdict =
-  | { kind: 'ok' }
-  | { kind: 'warn'; message: string }
-  | { kind: 'refuse'; message: string };
+  { kind: 'ok' } | { kind: 'warn'; message: string } | { kind: 'refuse'; message: string };
 
 /**
  * Whether a publish from `head` may replace a live catalog published from

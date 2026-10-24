@@ -129,7 +129,17 @@ export async function createRoute(db: SqlDatabase, input: NewRoute): Promise<Rou
     await db.runAsync(
       `INSERT INTO routes (id, trail_id, name, total_km, ascent_m, descent_m, track_key, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, input.trailId, input.name, input.totalKm, input.ascentM, input.descentM, trackKey, now, now],
+      [
+        id,
+        input.trailId,
+        input.name,
+        input.totalKm,
+        input.ascentM,
+        input.descentM,
+        trackKey,
+        now,
+        now,
+      ],
     );
     await insertPoints(db, id, input.points);
   });

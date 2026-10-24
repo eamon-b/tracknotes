@@ -131,21 +131,29 @@ export const LINK_CODE_LENGTH = 8;
  * most a handful, and the field is editable before it is sent.
  */
 export function defaultDeviceLabel(userAgent: string): string {
-  const browser =
-    /\bEdg\//.test(userAgent) ? 'Edge'
-    : /\bOPR\//.test(userAgent) ? 'Opera'
-    : /\bFirefox\//.test(userAgent) ? 'Firefox'
-    : /\bChrome\//.test(userAgent) ? 'Chrome'
-    : /\bSafari\//.test(userAgent) ? 'Safari'
-    : 'Browser';
+  const browser = /\bEdg\//.test(userAgent)
+    ? 'Edge'
+    : /\bOPR\//.test(userAgent)
+      ? 'Opera'
+      : /\bFirefox\//.test(userAgent)
+        ? 'Firefox'
+        : /\bChrome\//.test(userAgent)
+          ? 'Chrome'
+          : /\bSafari\//.test(userAgent)
+            ? 'Safari'
+            : 'Browser';
 
-  const os =
-    /\bWindows\b/.test(userAgent) ? 'Windows'
-    : /\b(iPhone|iPad|iPod)\b/.test(userAgent) ? 'iOS'
-    : /\bMac OS X\b|\bMacintosh\b/.test(userAgent) ? 'macOS'
-    : /\bAndroid\b/.test(userAgent) ? 'Android'
-    : /\bLinux\b|\bX11\b/.test(userAgent) ? 'Linux'
-    : null;
+  const os = /\bWindows\b/.test(userAgent)
+    ? 'Windows'
+    : /\b(iPhone|iPad|iPod)\b/.test(userAgent)
+      ? 'iOS'
+      : /\bMac OS X\b|\bMacintosh\b/.test(userAgent)
+        ? 'macOS'
+        : /\bAndroid\b/.test(userAgent)
+          ? 'Android'
+          : /\bLinux\b|\bX11\b/.test(userAgent)
+            ? 'Linux'
+            : null;
 
   return os ? `${browser} on ${os}` : browser;
 }
@@ -173,11 +181,7 @@ export function thisBrowserLabel(): string {
  * `SessionStorageError` is thrown. Callers use the returned session rather
  * than reading storage back.
  */
-export async function linkDevice(
-  code: string,
-  label: string,
-  deps: SessionDeps = {},
-): Promise<WebSession> {
+export async function linkDevice(code: string, label: string, deps: SessionDeps = {}): Promise<WebSession> {
   if (!getApiBase()) {
     throw new Error('Cannot link a browser: API base URL is not configured');
   }
@@ -213,10 +217,7 @@ export async function linkDevice(
  * actually reached, so the UI can be honest about a token the phone may still
  * list.
  */
-export async function unlinkThisBrowser(
-  session: WebSession,
-  deps: SessionDeps = {},
-): Promise<{ revoked: boolean }> {
+export async function unlinkThisBrowser(session: WebSession, deps: SessionDeps = {}): Promise<{ revoked: boolean }> {
   let revoked = false;
   try {
     const { devices } = await apiRequest<DevicesResponse>('/v1/me/devices', {

@@ -15,7 +15,7 @@ describe('categoryToken', () => {
     expect(categoryToken('hazard')).toBe('waypointHazard');
   });
 
-  it('colours every alias of a glyph with that glyph\'s family', () => {
+  it("colours every alias of a glyph with that glyph's family", () => {
     // These used to get the water / bed / shop glyph on a grey ring.
     expect(categoryToken('tank')).toBe('waypointWater');
     expect(categoryToken('rainwater')).toBe('waypointWater');

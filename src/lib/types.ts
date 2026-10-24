@@ -206,70 +206,70 @@ export interface GpxProcessOptions {
 
 export interface WaypointVisit {
   waypoint: GpxWaypoint;
-  trackIndex: number;           // position along track where visit occurs
-  distanceFromTrack: number;    // actual distance from track point to waypoint
+  trackIndex: number; // position along track where visit occurs
+  distanceFromTrack: number; // actual distance from track point to waypoint
 }
 
 // GPX Optimizer Types
 export interface OptimizationOptions {
   // Simplification
-  simplificationTolerance: number;  // meters - Douglas-Peucker epsilon
+  simplificationTolerance: number; // meters - Douglas-Peucker epsilon
 
   // Elevation smoothing
   elevationSmoothing: boolean;
   elevationSmoothingWindow: number; // number of points for moving average
-  spikeThreshold: number;           // meters - max elevation change to consider valid
+  spikeThreshold: number; // meters - max elevation change to consider valid
 
   // Privacy
-  truncateStart: number;            // meters to remove from start (0 = disabled)
-  truncateEnd: number;              // meters to remove from end (0 = disabled)
-  stripExtensions: boolean;         // remove proprietary extensions
+  truncateStart: number; // meters to remove from start (0 = disabled)
+  truncateEnd: number; // meters to remove from end (0 = disabled)
+  stripExtensions: boolean; // remove proprietary extensions
 
   // Data retention
-  preserveTimestamps: boolean;      // keep <time> elements (default: true)
-  coordinatePrecision: number;      // decimal places (default: 6)
+  preserveTimestamps: boolean; // keep <time> elements (default: true)
+  coordinatePrecision: number; // decimal places (default: 6)
 
   // Validation thresholds
-  maxDistanceChangeRatio: number;   // fraction (0-1) - warn if distance changes by more than this
-  maxElevationChangeRatio: number;  // fraction (0-1) - warn if elevation gain changes by more than this
-  maxPointCount: number;            // maximum number of points to process (0 = unlimited)
-  maxFileSize: number;              // maximum input file size in bytes (0 = unlimited)
+  maxDistanceChangeRatio: number; // fraction (0-1) - warn if distance changes by more than this
+  maxElevationChangeRatio: number; // fraction (0-1) - warn if elevation gain changes by more than this
+  maxPointCount: number; // maximum number of points to process (0 = unlimited)
+  maxFileSize: number; // maximum input file size in bytes (0 = unlimited)
 }
 
 export interface OptimizationStats {
   pointCount: number;
-  fileSize: number;               // bytes
-  distance: number;               // meters
-  elevationGain: number;          // meters
-  elevationLoss: number;          // meters
+  fileSize: number; // bytes
+  distance: number; // meters
+  elevationGain: number; // meters
+  elevationLoss: number; // meters
 }
 
 export interface OptimizationResult {
   filename: string;
-  content: string;                  // optimized GPX XML
+  content: string; // optimized GPX XML
 
   // Statistics
   original: OptimizationStats;
   optimized: OptimizationStats;
 
   // Validation
-  warnings: string[];               // issues detected during processing
-  passed: boolean;                  // true if within acceptable tolerances
+  warnings: string[]; // issues detected during processing
+  passed: boolean; // true if within acceptable tolerances
 }
 
 export interface BatchOptimizationStats {
   filesProcessed: number;
   totalOriginalSize: number;
   totalOptimizedSize: number;
-  averageReduction: number;         // percentage
+  averageReduction: number; // percentage
   warnings: string[];
 }
 
 // Track Classification Types
 export interface TrackClassificationConfig {
-  mainRoutePatterns?: string[];     // Regex patterns for main route tracks
-  alternatePatterns?: string[];     // Regex patterns for alternate routes
-  sideTripPatterns?: string[];      // Regex patterns for side trips/spurs
+  mainRoutePatterns?: string[]; // Regex patterns for main route tracks
+  alternatePatterns?: string[]; // Regex patterns for alternate routes
+  sideTripPatterns?: string[]; // Regex patterns for side trips/spurs
   /**
    * Regex patterns for *alternative trail ends* - a route that branches off the
    * main line at one end and whose other end is deliberately free, somewhere
@@ -286,9 +286,9 @@ export interface TrackClassificationConfig {
    * the class its file gave it. Defaults to
    * {@link TRACK_CLASSIFICATION_DEFAULTS.terminusPatterns}.
    */
-  terminusPatterns?: string[];      // Regex patterns for alternative trail ends
-  ignorePatterns?: string[];        // Regex patterns to ignore completely
-  fallbackToLongest?: boolean;      // Use longest track if no patterns match (default: true)
+  terminusPatterns?: string[]; // Regex patterns for alternative trail ends
+  ignorePatterns?: string[]; // Regex patterns to ignore completely
+  fallbackToLongest?: boolean; // Use longest track if no patterns match (default: true)
   /** The main tracks are consecutive walkable stretches - see {@link RouteStretchConfig}. */
   stretches?: RouteStretchConfig;
   /**
@@ -414,14 +414,14 @@ export interface TrailTileConfig {
 // Grid Tile Types
 
 export interface GridCell {
-  id: string;                                     // e.g. "E114_S34"
-  bounds: [number, number, number, number];        // [west, south, east, north]
-  totalSize: number;                               // bytes (base + contours)
+  id: string; // e.g. "E114_S34"
+  bounds: [number, number, number, number]; // [west, south, east, north]
+  totalSize: number; // bytes (base + contours)
 }
 
 export interface GridIndex {
-  version: string;                                 // ISO date
-  cellSizeDeg: [number, number];                   // [lonDeg, latDeg] e.g. [2, 2]
-  bounds: [number, number, number, number];        // [west, south, east, north] of full grid
+  version: string; // ISO date
+  cellSizeDeg: [number, number]; // [lonDeg, latDeg] e.g. [2, 2]
+  bounds: [number, number, number, number]; // [west, south, east, north] of full grid
   cells: GridCell[];
 }

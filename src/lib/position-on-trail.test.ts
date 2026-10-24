@@ -1,12 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { haversineDistance } from './distance';
 import { routeBreakStarts } from './route-breaks';
-import {
-  snapToTrail,
-  isOffTrail,
-  OFF_TRAIL_THRESHOLD_M,
-  type SnapPoint,
-} from './position-on-trail';
+import { snapToTrail, isOffTrail, OFF_TRAIL_THRESHOLD_M, type SnapPoint } from './position-on-trail';
 
 // A straight track along the equator: 0.001° lon ≈ 111.3 m apart.
 const TRACK: SnapPoint[] = [

@@ -346,13 +346,16 @@ describe('fetchCommunityTrail', () => {
   it('rejects a non-http URL before fetching', async () => {
     const { impl, calls } = mockFetch([]);
     await expect(
-      fetchCommunityTrail({ ...SUMMARY, trailUrl: 'javascript:alert(1)' }, { fetchImpl: impl }),
+      fetchCommunityTrail({ ...SUMMARY, trailUrl: 'javascript:alert(1)' }, { fetchImpl: impl })
     ).rejects.toThrow();
     expect(calls).toHaveLength(0);
   });
 
   it('rejects an HTTP error and a body that is not a trail', async () => {
-    const bad = mockFetch([{ status: 404, body: { error: 'nope' } }, { status: 200, body: { hello: 1 } }]);
+    const bad = mockFetch([
+      { status: 404, body: { error: 'nope' } },
+      { status: 200, body: { hello: 1 } },
+    ]);
     await expect(fetchCommunityTrail(SUMMARY, { fetchImpl: bad.impl })).rejects.toBeInstanceOf(ApiError);
     await expect(fetchCommunityTrail(SUMMARY, { fetchImpl: bad.impl })).rejects.toThrow(/not a usable trail/);
   });
@@ -360,7 +363,9 @@ describe('fetchCommunityTrail', () => {
   it('isUsableCommunityTrail wants a config, two points and a waypoint array', () => {
     expect(isUsableCommunityTrail(TRAIL)).toBe(true);
     expect(isUsableCommunityTrail({ ...TRAIL, waypoints: undefined })).toBe(false);
-    expect(isUsableCommunityTrail({ ...TRAIL, track: { ...TRAIL.track, points: [TRAIL.track.points[0]] } })).toBe(false);
+    expect(isUsableCommunityTrail({ ...TRAIL, track: { ...TRAIL.track, points: [TRAIL.track.points[0]] } })).toBe(
+      false
+    );
     expect(isUsableCommunityTrail(null)).toBe(false);
   });
 });

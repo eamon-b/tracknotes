@@ -112,7 +112,10 @@ describe('backfillElevation', () => {
 
   it('aborts between batches without applying anything', async () => {
     const controller = new AbortController();
-    const { fetch, batches } = stubFetch(() => 5, () => controller.abort());
+    const { fetch, batches } = stubFetch(
+      () => 5,
+      () => controller.abort()
+    );
 
     await expect(
       backfillElevation(line(300), {
@@ -131,9 +134,9 @@ describe('backfillElevation', () => {
     controller.abort();
     const { fetch, batches } = stubFetch(() => 5);
 
-    await expect(
-      backfillElevation(line(10), { fetch, delayMs: 0, signal: controller.signal })
-    ).rejects.toMatchObject({ name: 'AbortError' });
+    await expect(backfillElevation(line(10), { fetch, delayMs: 0, signal: controller.signal })).rejects.toMatchObject({
+      name: 'AbortError',
+    });
     expect(batches).toHaveLength(0);
   });
 
@@ -155,9 +158,7 @@ describe('backfillElevation', () => {
       json: async () => ({ results: [{ elevation: 1 }] }),
     });
 
-    await expect(backfillElevation(line(5), { fetch: short, delayMs: 0 })).rejects.toThrow(
-      /1 results for 5 points/
-    );
+    await expect(backfillElevation(line(5), { fetch: short, delayMs: 0 })).rejects.toThrow(/1 results for 5 points/);
   });
 
   it('treats DEM voids as no data rather than NaN', async () => {
@@ -373,7 +374,10 @@ describe('applyElevation', () => {
     expect(stale.track.displayPoints.some((dp, i, arr) => i > 0 && dp.dist < arr[i - 1].dist)).toBe(true);
 
     // Heights that climb with the index, so the two passes never agree.
-    const updated = applyElevation(stale, points.map((_, i) => i));
+    const updated = applyElevation(
+      stale,
+      points.map((_, i) => i)
+    );
 
     const byPlace = new Map(updated.track.points.map(p => [`${p.lat},${p.lon},${p.dist}`, p.ele]));
     expect(trailHasElevation(updated.track.displayPoints)).toBe(true);

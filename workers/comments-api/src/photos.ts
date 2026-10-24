@@ -12,10 +12,7 @@ import { HttpError, json } from './http';
 import type { Env } from './http';
 import { requireUser, sha256HexBytes } from './auth';
 import type { CommentRow } from './comments';
-import type {
-  PhotoContentType,
-  UploadCommentPhotoResponse,
-} from '../../../src/lib/comments-api-types';
+import type { PhotoContentType, UploadCommentPhotoResponse } from '../../../src/lib/comments-api-types';
 
 /** Max photos attachable to a single comment. */
 const MAX_PHOTOS_PER_COMMENT = 4;
@@ -81,11 +78,7 @@ function requirePhotoContentType(request: Request): PhotoContentType {
   if (type === 'image/jpeg' || type === 'image/webp') {
     return type;
   }
-  throw new HttpError(
-    415,
-    'unsupported_media_type',
-    'Photo Content-Type must be image/jpeg or image/webp'
-  );
+  throw new HttpError(415, 'unsupported_media_type', 'Photo Content-Type must be image/jpeg or image/webp');
 }
 
 // ---------------------------------------------------------------------------
@@ -94,9 +87,7 @@ function requirePhotoContentType(request: Request): PhotoContentType {
 
 /** The comment a photo is being attached to: it must exist, be live, and be the caller's. */
 async function readOwnLiveComment(env: Env, id: string, userId: string): Promise<CommentRow> {
-  const row = await env.DB.prepare(`SELECT * FROM comments WHERE id = ?`)
-    .bind(id)
-    .first<CommentRow>();
+  const row = await env.DB.prepare(`SELECT * FROM comments WHERE id = ?`).bind(id).first<CommentRow>();
   if (!row) {
     throw new HttpError(404, 'not_found', 'Comment not found');
   }
@@ -176,11 +167,7 @@ export async function uploadCommentPhoto(
       }
 
       if (existing.length >= MAX_PHOTOS_PER_COMMENT) {
-        throw new HttpError(
-          409,
-          'too_many_photos',
-          `A comment may have at most ${MAX_PHOTOS_PER_COMMENT} photos`
-        );
+        throw new HttpError(409, 'too_many_photos', `A comment may have at most ${MAX_PHOTOS_PER_COMMENT} photos`);
       }
 
       // Daily upload cap — mirror the comment rate-limit pattern, summing the
@@ -195,11 +182,7 @@ export async function uploadCommentPhoto(
         .bind(user.id, windowStart)
         .first<{ n: number }>();
       if ((countRow?.n ?? 0) >= PHOTO_RATE_LIMIT_PER_DAY) {
-        throw new HttpError(
-          429,
-          'rate_limited',
-          `Photo upload limit of ${PHOTO_RATE_LIMIT_PER_DAY} per day reached`
-        );
+        throw new HttpError(429, 'rate_limited', `Photo upload limit of ${PHOTO_RATE_LIMIT_PER_DAY} per day reached`);
       }
 
       if (!stored) {

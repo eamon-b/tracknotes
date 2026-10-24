@@ -12,12 +12,7 @@
  * ("victoria") finds the trails in it as well as a trail name does.
  */
 
-import {
-  countryName,
-  groupTrails,
-  matchesFilter,
-  stateName,
-} from '@lib/trail-regions';
+import { countryName, groupTrails, matchesFilter, stateName } from '@lib/trail-regions';
 import type { TrailSource } from '../../services/trail-loader';
 
 /** What sectioning reads off a list entry (`TrailIndexEntry` fits). */
@@ -93,7 +88,9 @@ export function buildGuideSections<T extends SectionableTrail>(
       key: 'community',
       kind: 'community',
       title: 'Community',
-      data: grouped(community).flatMap((c) => c.states.flatMap((s) => s.trails.map((t) => t.trail))),
+      data: grouped(community).flatMap((c) =>
+        c.states.flatMap((s) => s.trails.map((t) => t.trail)),
+      ),
     });
   }
 

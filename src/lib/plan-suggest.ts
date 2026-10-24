@@ -160,14 +160,14 @@ export function suggestionStart(
   section: SectionConfig,
   totalDistance: number,
   hereKm: number | null,
-  preferLastStop: boolean,
+  preferLastStop: boolean
 ): SuggestStart {
   const inSection = (km: number) => km >= section.startKm && km < section.endKm - KM_EPSILON;
   if (!preferLastStop && hereKm !== null && inSection(hereKm)) {
     return { kind: 'here', km: hereKm, name: 'Your location' };
   }
   const active = stopsToActive(plan.stops, plan.direction, totalDistance).filter(
-    stop => inSection(stop.km) && stop.km > section.startKm + KM_EPSILON,
+    stop => inSection(stop.km) && stop.km > section.startKm + KM_EPSILON
   );
   const last = active[active.length - 1];
   if (last) {
@@ -190,7 +190,7 @@ export function applySuggestedPlan(
   startKm: number,
   endKm: number,
   targets: readonly ToggleTarget[],
-  totalDistance: number,
+  totalDistance: number
 ): PlanDocument {
   return replaceStopsInRange(
     plan,
@@ -199,6 +199,6 @@ export function applySuggestedPlan(
       toKm: toNoboKm(endKm, plan.direction, totalDistance),
     },
     targets,
-    { totalKm: totalDistance },
+    { totalKm: totalDistance }
   );
 }

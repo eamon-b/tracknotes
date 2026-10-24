@@ -26,9 +26,7 @@ for (let i = 0; i < 256; i++) {
 export function uuidv4(): string {
   const g = globalThis.crypto;
   if (!g || typeof g.getRandomValues !== 'function') {
-    const nativeUuidv4 = (
-      globalThis as { expo?: { uuidv4?: () => string } }
-    ).expo?.uuidv4;
+    const nativeUuidv4 = (globalThis as { expo?: { uuidv4?: () => string } }).expo?.uuidv4;
     if (typeof nativeUuidv4 === 'function') {
       return nativeUuidv4().toLowerCase();
     }

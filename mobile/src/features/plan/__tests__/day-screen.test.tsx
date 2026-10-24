@@ -29,7 +29,12 @@ jest.mock('../../../theme', () => ({
 let mockFilter: PoiFilterState;
 jest.mock('../../../state/settings-store', () => ({
   useSettingsStore: (selector: (s: unknown) => unknown) =>
-    selector({ units: 'km', poiFilter: mockFilter, setPoiEnabled: jest.fn(), setPoiCategory: jest.fn() }),
+    selector({
+      units: 'km',
+      poiFilter: mockFilter,
+      setPoiEnabled: jest.fn(),
+      setPoiCategory: jest.fn(),
+    }),
   selectPoiFilter: (s: { poiFilter: PoiFilterState }) => s.poiFilter,
 }));
 
@@ -43,11 +48,51 @@ const mockTrail = {
     points: Array.from({ length: 101 }, (_, i) => ({ lat: 0, lon: i * 0.009, ele: 100, dist: i })),
   },
   waypoints: [
-    { id: 'c0', name: 'Camp 0', lat: 0, lon: 0.045, type: 'campsite', totalDistance: 5, trackIndex: 5 },
-    { id: 'c1', name: 'Camp A', lat: 0, lon: 0.18, type: 'campsite', totalDistance: 20, trackIndex: 20 },
-    { id: 'wa', name: 'Creek', lat: 0, lon: 0.27, type: 'water', totalDistance: 30, trackIndex: 30 },
-    { id: 'c2', name: 'Camp B', lat: 0, lon: 0.54, type: 'campsite', totalDistance: 60, trackIndex: 60 },
-    { id: 'c3', name: 'Camp C', lat: 0, lon: 0.72, type: 'campsite', totalDistance: 80, trackIndex: 80 },
+    {
+      id: 'c0',
+      name: 'Camp 0',
+      lat: 0,
+      lon: 0.045,
+      type: 'campsite',
+      totalDistance: 5,
+      trackIndex: 5,
+    },
+    {
+      id: 'c1',
+      name: 'Camp A',
+      lat: 0,
+      lon: 0.18,
+      type: 'campsite',
+      totalDistance: 20,
+      trackIndex: 20,
+    },
+    {
+      id: 'wa',
+      name: 'Creek',
+      lat: 0,
+      lon: 0.27,
+      type: 'water',
+      totalDistance: 30,
+      trackIndex: 30,
+    },
+    {
+      id: 'c2',
+      name: 'Camp B',
+      lat: 0,
+      lon: 0.54,
+      type: 'campsite',
+      totalDistance: 60,
+      trackIndex: 60,
+    },
+    {
+      id: 'c3',
+      name: 'Camp C',
+      lat: 0,
+      lon: 0.72,
+      type: 'campsite',
+      totalDistance: 80,
+      trackIndex: 80,
+    },
   ],
 } as unknown as TrailJson;
 let mockPlan: PlanDocument;

@@ -27,7 +27,8 @@ function allText(tree: ReactTestRenderer): string {
 
 function button(tree: ReactTestRenderer, accessibilityLabel: string) {
   return tree.root.findAll(
-    (n) => n.props.accessibilityLabel === accessibilityLabel && typeof n.props.onPress === 'function',
+    (n) =>
+      n.props.accessibilityLabel === accessibilityLabel && typeof n.props.onPress === 'function',
   )[0];
 }
 
@@ -82,7 +83,8 @@ describe('PlanThresholdsCard', () => {
   it('keeps every step on the grid, so a figure stepped away from can be stepped back to', () => {
     // Down to the floor and back up returns to 680 g.
     let grams = DEFAULT_PLAN_THRESHOLDS.foodGramsPerDay;
-    for (let i = 0; i < 30; i++) grams = Math.max(200, stepThreshold('foodGramsPerDay', grams, -1, 'km'));
+    for (let i = 0; i < 30; i++)
+      grams = Math.max(200, stepThreshold('foodGramsPerDay', grams, -1, 'km'));
     expect(grams).toBe(200);
     for (let i = 0; i < 24; i++) grams = stepThreshold('foodGramsPerDay', grams, 1, 'km');
     expect(grams).toBe(680);

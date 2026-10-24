@@ -143,10 +143,13 @@ export function TripCard({
             ? `Includes ${walkText(walk, walkClimbKnown, units)}`
             : `Then ${walkText(walk, walkClimbKnown, units)}, ${formatEtaMinutes(etaMinutes)}`}
         </Text>
-      ) : placeOff && placeOffTrailM != null && (
-        <Text style={[styles.note, { color: colors.offTrail }]}>
-          {`Then ${formatDistance(placeOffTrailM / 1000, units, { decimals: 2 })} ${beyondWord(placeAccessMode)} to reach it`}
-        </Text>
+      ) : (
+        placeOff &&
+        placeOffTrailM != null && (
+          <Text style={[styles.note, { color: colors.offTrail }]}>
+            {`Then ${formatDistance(placeOffTrailM / 1000, units, { decimals: 2 })} ${beyondWord(placeAccessMode)} to reach it`}
+          </Text>
+        )
       )}
     </View>
   );

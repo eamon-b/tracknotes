@@ -56,9 +56,9 @@ function text(element: React.ReactElement): string {
 
 describe('TripCard — the way off the trail', () => {
   it('says a hitch is a hitch', () => {
-    expect(text(<TripCard placeKm={20} placeOffTrailM={35000} placeAccessMode="hitch" />)).toContain(
-      'Then 35.00 km by hitch to reach it',
-    );
+    expect(
+      text(<TripCard placeKm={20} placeOffTrailM={35000} placeAccessMode="hitch" />),
+    ).toContain('Then 35.00 km by hitch to reach it');
   });
 
   it('calls a walk, or an unsaid way, off the trail', () => {
@@ -72,12 +72,19 @@ describe('TripCard — the way off the trail', () => {
 });
 
 describe('TripCard — the walk in to the place', () => {
-  const place = { offTrailKm: 1.2, accessMode: 'foot' as const, offTrailAscentM: 80, offTrailDescentM: 10 };
+  const place = {
+    offTrailKm: 1.2,
+    accessMode: 'foot' as const,
+    offTrailAscentM: 80,
+    offTrailDescentM: 10,
+  };
 
   it('adds the walk to the distance, climb and time, and says how much of it is the walk', () => {
     // 10 km of flat trail and the 1.2 km walk, 80 m up, timed as one 11.2 km
     // trip at 4 km/h: 2.8 h + 80/600 h = 2.9 h.
-    const out = text(<TripCard placeKm={20} placeOffTrailM={1200} placeAccessMode="foot" place={place} />);
+    const out = text(
+      <TripCard placeKm={20} placeOffTrailM={1200} placeAccessMode="foot" place={place} />,
+    );
     expect(out).toContain('11.2 km ahead');
     expect(out).toContain('↑ 80 m');
     expect(out).toContain('↓ 10 m');
@@ -127,13 +134,17 @@ describe('TripCard — along the route as planned', () => {
   it('measures from the fix on that line, not the guide snap', () => {
     // The guide reads km 10; on the planned route the hiker is at km 30.
     expect(
-      text(<TripCard placeKm={70} placeOffTrailM={0} along={{ trail: routeTrail, currentKm: 30 }} />),
+      text(
+        <TripCard placeKm={70} placeOffTrailM={0} along={{ trail: routeTrail, currentKm: 30 }} />,
+      ),
     ).toContain('40.0 km ahead');
   });
 
   it('shows nothing while the hiker is not on that line', () => {
     expect(
-      text(<TripCard placeKm={70} placeOffTrailM={0} along={{ trail: routeTrail, currentKm: null }} />),
+      text(
+        <TripCard placeKm={70} placeOffTrailM={0} along={{ trail: routeTrail, currentKm: null }} />,
+      ),
     ).toBe('');
   });
 });

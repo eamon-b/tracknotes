@@ -97,11 +97,7 @@ function firstFreeId(hex: string, existingIds: Set<string>): string | null {
  * position keeps the position-only id it has always had, so no existing id in
  * the committed registry moves.
  */
-function mintId(
-  trailId: string,
-  wp: WaypointForId,
-  existingIds: Set<string>,
-): string {
+function mintId(trailId: string, wp: WaypointForId, existingIds: Set<string>): string {
   const basis = `${trailId}|${wp.type}|${wp.lat.toFixed(5)}|${wp.lon.toFixed(5)}`;
   let id = firstFreeId(sha1Hex(basis), existingIds);
   if (!id) {
@@ -112,7 +108,7 @@ function mintId(
     throw new Error(
       `Waypoint id collision for "${wp.name}" (${basis}): neither the position ` +
         `nor the position+name hash has a free 8- or 12-hex form. Widen the ` +
-        `mint hash length.`,
+        `mint hash length.`
     );
   }
   if (!ID_PATTERN.test(id)) {
@@ -170,10 +166,10 @@ export function assignWaypointIds(
   trailId: string,
   waypoints: WaypointForId[],
   registry: WaypointRegistry,
-  warn: (message: string) => void = () => {},
+  warn: (message: string) => void = () => {}
 ): string[] {
   const entries = registry[trailId] ?? (registry[trailId] = []);
-  const existingIds = new Set(entries.map((e) => e.id));
+  const existingIds = new Set(entries.map(e => e.id));
   // Only entries that already existed in the committed registry are match
   // candidates. Entries minted during this run belong solely to the waypoint
   // that minted them, so two genuinely-distinct waypoints sitting within the
@@ -229,7 +225,7 @@ export function assignWaypointIds(
   // pair first, so of two same-name waypoints the one on the entry keeps it
   // whichever comes first in the input.
   const namePairs = candidatesByWaypoint.flatMap((candidates, wpIndex) =>
-    candidates.filter((c) => c.exactName).map((c) => ({ wpIndex, c })),
+    candidates.filter(c => c.exactName).map(c => ({ wpIndex, c }))
   );
   namePairs.sort((a, b) => {
     if (a.c.distance !== b.c.distance) return a.c.distance - b.c.distance;
@@ -257,8 +253,8 @@ export function assignWaypointIds(
       const b = namePicks[j];
       if (waypoints[a.wpIndex].name !== waypoints[b.wpIndex].name) continue;
       if (a.c.distance <= UNMOVED_METERS || b.c.distance <= UNMOVED_METERS) continue;
-      const aToB = candidatesByWaypoint[a.wpIndex].find((c) => c.exactName && c.entryIndex === b.c.entryIndex);
-      const bToA = candidatesByWaypoint[b.wpIndex].find((c) => c.exactName && c.entryIndex === a.c.entryIndex);
+      const aToB = candidatesByWaypoint[a.wpIndex].find(c => c.exactName && c.entryIndex === b.c.entryIndex);
+      const bToA = candidatesByWaypoint[b.wpIndex].find(c => c.exactName && c.entryIndex === a.c.entryIndex);
       if (!aToB || !bToA) continue;
       const wpA = waypoints[a.wpIndex];
       const wpB = waypoints[b.wpIndex];
@@ -270,7 +266,7 @@ export function assignWaypointIds(
           `${MATCH_RADIUS_METERS} m of both registry entries ${a.c.id} and ` +
           `${b.c.id}, so their positions cannot say which id is whose. Set each ` +
           `entry's lat/lon in data/waypoint-ids.json to its waypoint's new ` +
-          `position (or give the two waypoints distinct names) and build again.`,
+          `position (or give the two waypoints distinct names) and build again.`
       );
     }
   }
@@ -279,7 +275,7 @@ export function assignWaypointIds(
   waypoints.forEach((wp, wpIndex) => {
     if (results[wpIndex] !== undefined) return;
     const candidates = candidatesByWaypoint[wpIndex];
-    const pick = candidates.find((c) => !claimedBy.has(c.entryIndex));
+    const pick = candidates.find(c => !claimedBy.has(c.entryIndex));
 
     if (pick) {
       claim(wp, wpIndex, pick.entryIndex);
@@ -288,7 +284,7 @@ export function assignWaypointIds(
 
     // Entries their own names claimed say nothing about this waypoint: it is
     // a different place nearby. Anything else claimed first is ambiguous.
-    const conflict = candidates.find((c) => c.exactName || !claimedByName.has(c.entryIndex));
+    const conflict = candidates.find(c => c.exactName || !claimedByName.has(c.entryIndex));
     if (conflict?.exactName) {
       // Another waypoint of this type and name kept the entry: names are the
       // only identity the registry has inside the radius, so it cannot tell a
@@ -301,20 +297,19 @@ export function assignWaypointIds(
           `which another ${wp.type} of the same name at ` +
           `(${other.lat.toFixed(5)}, ${other.lon.toFixed(5)}) keeps. Within ` +
           `${MATCH_RADIUS_METERS} m, two places of one type need distinct names ` +
-          `(e.g. "${wp.name} 2"); if they are the same place, drop the duplicate.`,
+          `(e.g. "${wp.name} 2"); if they are the same place, drop the duplicate.`
       );
     }
     if (conflict) {
       // Every nearby same-type entry was already claimed by another waypoint.
       const otherWpIndex = claimedBy.get(conflict.entryIndex);
-      const otherName =
-        otherWpIndex !== undefined ? waypoints[otherWpIndex].name : '(unknown)';
+      const otherName = otherWpIndex !== undefined ? waypoints[otherWpIndex].name : '(unknown)';
       throw new Error(
         `Ambiguous waypoint identity for trail "${trailId}": "${wp.name}" ` +
           `(${wp.lat.toFixed(5)}, ${wp.lon.toFixed(5)}) resolves to registry ` +
           `entry ${conflict.id} which was already claimed by "${otherName}". ` +
           `Two built waypoints map to the same stored waypoint — resolve by ` +
-          `hand (move/rename one, or split the registry entry).`,
+          `hand (move/rename one, or split the registry entry).`
       );
     }
 
@@ -323,12 +318,12 @@ export function assignWaypointIds(
     // minted below by its own name and looks like any other.
     if (candidates.length > 0) {
       const neighbours = candidates
-        .map((c) => `"${waypoints[claimedBy.get(c.entryIndex)!].name}" (${Math.round(c.distance)} m)`)
+        .map(c => `"${waypoints[claimedBy.get(c.entryIndex)!].name}" (${Math.round(c.distance)} m)`)
         .join(', ');
       warn(
         `  ! ${trailId}: new ${wp.type} "${wp.name}" is within ` +
           `${MATCH_RADIUS_METERS} m of ${neighbours}; if it is the same place ` +
-          `under another name, drop one of them`,
+          `under another name, drop one of them`
       );
     }
 
@@ -366,10 +361,8 @@ export function assignWaypointIds(
 export function stringifyRegistry(registry: WaypointRegistry): string {
   const ordered: WaypointRegistry = {};
   for (const trailId of Object.keys(registry).sort()) {
-    const entries = [...registry[trailId]].sort((a, b) =>
-      a.id < b.id ? -1 : a.id > b.id ? 1 : 0,
-    );
-    ordered[trailId] = entries.map((e) => ({
+    const entries = [...registry[trailId]].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+    ordered[trailId] = entries.map(e => ({
       id: e.id,
       name: e.name,
       type: e.type,

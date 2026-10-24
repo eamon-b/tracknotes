@@ -54,10 +54,7 @@ import {
   type CuratedDescription,
   type LiveDescription,
 } from './lib/waypoint-descriptions.js';
-import type {
-  TrailDescriptionsResponse,
-  UpsertDescriptionRequest,
-} from '../src/lib/comments-api-types.js';
+import type { TrailDescriptionsResponse, UpsertDescriptionRequest } from '../src/lib/comments-api-types.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -208,9 +205,7 @@ async function main(): Promise<void> {
     // Without a live read (a dry run with no API base) every entry is a PUT
     // and nothing is known to withdraw.
     const live = apiBase ? await fetchLiveDescriptions(apiBase, trailId) : null;
-    const plan = live
-      ? planDescriptionSync(entries, live)
-      : { puts: entries, withdrawals: [], unchanged: 0 };
+    const plan = live ? planDescriptionSync(entries, live) : { puts: entries, withdrawals: [], unchanged: 0 };
     const withdrawals = options.withdraw ? plan.withdrawals : [];
     console.log(
       `\n${trailId}: ${entries.length} description(s) — ${plan.puts.length} to send, ` +

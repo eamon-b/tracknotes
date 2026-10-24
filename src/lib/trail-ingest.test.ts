@@ -124,9 +124,7 @@ describe('buildTrail', () => {
       expect(field in garmin).toBe(false);
     }
 
-    const onAlternate = trail.alternates[0].waypoints!.find(
-      wp => wp.name === 'Mesopotamia Station'
-    )!;
+    const onAlternate = trail.alternates[0].waypoints!.find(wp => wp.name === 'Mesopotamia Station')!;
     expect(onAlternate).toMatchObject({
       offTrailKm: 2.5,
       accessMode: 'shuttle',
@@ -193,11 +191,7 @@ describe('buildTrail', () => {
 
     expect(trail.waypoints.every(w => w.type === 'poi')).toBe(true);
     expect(afterWaypointIds).toHaveBeenCalledTimes(1);
-    expect(afterWaypointIds.mock.calls[0][0].map((w: { id?: string }) => w.id)).toEqual([
-      'w_0',
-      'w_1',
-      'w_2',
-    ]);
+    expect(afterWaypointIds.mock.calls[0][0].map((w: { id?: string }) => w.id)).toEqual(['w_0', 'w_1', 'w_2']);
   });
 
   it('lets the caller re-derive the config before distances are computed', () => {
@@ -399,9 +393,7 @@ describe('buildTrail', () => {
       const trail = buildTrail(load('simple-trail'), {
         config: config(),
         inferWaypointTypesFromKeywords: true,
-        resolveWaypoints: () => [
-          { name: 'Riverside Campground', lat: -33.9, lon: 151.25, type: 'waypoint' },
-        ],
+        resolveWaypoints: () => [{ name: 'Riverside Campground', lat: -33.9, lon: 151.25, type: 'waypoint' }],
       });
       expect(trail.waypoints[0].type).toBe('campsite');
     });
@@ -825,7 +817,11 @@ describe('waypointAccess', () => {
   });
 
   it('carries the routed walk in for the map to draw', () => {
-    const path: Array<[number, number]> = [[-34.005, 138], [-34.02, 138.006], [-34.03, 138.012]];
+    const path: Array<[number, number]> = [
+      [-34.005, 138],
+      [-34.02, 138.006],
+      [-34.03, 138.012],
+    ];
     const trail = buildTrail(climb(), {
       config: config({ waypointMaxDistance: 3000 }),
       waypointAccess: new Map([['w_camp', { ...atValley.get('w_camp')!, path }]]),
@@ -904,7 +900,12 @@ describe('waypointAccess', () => {
     // A hairpin: up the road from the trailhead, across, and back down beside
     // it. The camp's junction is beside the first leg (25 m off it), but the
     // vertex nearest it is on the way back down, past the Saddle.
-    const m = (x: number, y: number, ele: number) => ({ lat: -34 + y / 111_320, lon: 138 + x / 92_288, ele, time: null });
+    const m = (x: number, y: number, ele: number) => ({
+      lat: -34 + y / 111_320,
+      lon: 138 + x / 92_288,
+      ele,
+      time: null,
+    });
     const points = [m(0, -1000, 0), m(0, 0, 0), m(60, 0, 100), m(60, -480, 200), m(60, -1000, 200)];
     const junction = m(25, -500, 0);
     const trail = buildTrail(
@@ -1013,12 +1014,21 @@ describe('variantWaypointAccess', () => {
   it('ignores, with a warning, a junction off the alternate or an alternate the trail lacks', () => {
     const warnings: string[] = [];
     const stale = new Map([
-      ['Alternative: east loop', { placements: new Map([['w_camp', { ...camp, junction: { lat: -34.02, lon: 138.021 } }]]) }],
+      [
+        'Alternative: east loop',
+        { placements: new Map([['w_camp', { ...camp, junction: { lat: -34.02, lon: 138.021 } }]]) },
+      ],
       ['Alternative: gone', { placements: new Map([['w_camp', camp]]) }],
     ]);
-    const trail = buildTrail(withAlternate(), { config: trailConfig(), variantWaypointAccess: stale, warn: m => warnings.push(m) });
+    const trail = buildTrail(withAlternate(), {
+      config: trailConfig(),
+      variantWaypointAccess: stale,
+      warn: m => warnings.push(m),
+    });
     expect(trail.alternates[0].waypoints!.map(w => w.name)).toEqual(['Hut']);
-    expect(warnings.join('\n')).toMatch(/alternate "Alternative: east loop": access for "Camp" \(w_camp\) ignored: its junction is \d+m from the route/);
+    expect(warnings.join('\n')).toMatch(
+      /alternate "Alternative: east loop": access for "Camp" \(w_camp\) ignored: its junction is \d+m from the route/
+    );
     expect(warnings.join('\n')).toMatch(/access for alternate "Alternative: gone" ignored/);
   });
 });
@@ -1036,7 +1046,10 @@ describe('the display copy of an out-and-back route', () => {
       ele: 100 + i * 0.1,
       time: null,
     }));
-    const back = out.slice(0, -1).reverse().map(p => ({ ...p }));
+    const back = out
+      .slice(0, -1)
+      .reverse()
+      .map(p => ({ ...p }));
     return { tracks: [{ name: 'There and back', points: [...out, ...back] }], waypoints: [], name: null };
   }
 

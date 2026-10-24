@@ -87,7 +87,14 @@ describe('nightLayer', () => {
     const layer = nightLayer({
       id: 'x',
       type: 'fill',
-      paint: { 'fill-color': { stops: [[5, '#fff'], [10, '#000']] } },
+      paint: {
+        'fill-color': {
+          stops: [
+            [5, '#fff'],
+            [10, '#000'],
+          ],
+        },
+      },
     });
     const stops = (layer.paint!['fill-color'] as { stops: [number, string][] }).stops;
     expect(stops[0][0]).toBe(5);
@@ -98,9 +105,11 @@ describe('nightLayer', () => {
     const relief = nightLayer({ id: 'ne', type: 'raster', paint: {} as Record<string, unknown> });
     expect(relief.paint!['raster-brightness-max']).toBeLessThan(0.5);
     expect(
-      nightLayer({ id: 'w', type: 'fill', paint: { 'fill-pattern': 'wetland', 'fill-opacity': 0.8 } }).paint![
-        'fill-opacity'
-      ],
+      nightLayer({
+        id: 'w',
+        type: 'fill',
+        paint: { 'fill-pattern': 'wetland', 'fill-opacity': 0.8 },
+      }).paint!['fill-opacity'],
     ).toBeCloseTo(0.28);
   });
 

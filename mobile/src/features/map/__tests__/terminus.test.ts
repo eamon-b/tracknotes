@@ -16,11 +16,7 @@ import {
   variantFeatureId,
   type MapVariant,
 } from '../map-geojson';
-import {
-  variantInfo,
-  variantJunctionLine,
-  variantKindLabel,
-} from '../variant-info';
+import { variantInfo, variantJunctionLine, variantKindLabel } from '../variant-info';
 
 /** The CDT's Chief Mountain Route: branches at km 55.9, ends at the border. */
 const TERMINUS: MapVariant = {
@@ -48,7 +44,10 @@ describe('terminusEndWaypoint', () => {
   it('falls back to the last waypoint when no endpoint is typed', () => {
     const v: MapVariant = {
       ...TERMINUS,
-      waypoints: [{ name: 'First', type: 'junction' }, { name: 'Last', type: 'town' }],
+      waypoints: [
+        { name: 'First', type: 'junction' },
+        { name: 'Last', type: 'town' },
+      ],
     };
     expect(terminusEndWaypoint(v)?.name).toBe('Last');
   });

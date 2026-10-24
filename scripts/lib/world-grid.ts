@@ -125,8 +125,10 @@ export function isAlignedWorldCellId(id: string): boolean {
   return (
     parsed.west % WORLD_CELL_SIZE_DEG === 0 &&
     parsed.south % WORLD_CELL_SIZE_DEG === 0 &&
-    parsed.west >= WORLD_LON_MIN && parsed.west < WORLD_LON_MAX &&
-    parsed.south >= WORLD_LAT_MIN && parsed.south < WORLD_LAT_MAX
+    parsed.west >= WORLD_LON_MIN &&
+    parsed.west < WORLD_LON_MAX &&
+    parsed.south >= WORLD_LAT_MIN &&
+    parsed.south < WORLD_LAT_MAX
   );
 }
 
@@ -163,12 +165,7 @@ function ceilToLattice(value: number): number {
  * edge does not pull that cell in; a degenerate (zero-width or zero-height)
  * bbox still yields the cell containing it.
  */
-export function enumerateWorldCells(bbox?: {
-  west: number;
-  south: number;
-  east: number;
-  north: number;
-}): WorldCell[] {
+export function enumerateWorldCells(bbox?: { west: number; south: number; east: number; north: number }): WorldCell[] {
   let lonStart = WORLD_LON_MIN;
   let lonEnd = WORLD_LON_MAX;
   let latStart = WORLD_LAT_MIN;
@@ -176,9 +173,7 @@ export function enumerateWorldCells(bbox?: {
 
   if (bbox) {
     if (bbox.east < bbox.west || bbox.north < bbox.south) {
-      throw new Error(
-        `Invalid bbox: west=${bbox.west} south=${bbox.south} east=${bbox.east} north=${bbox.north}`
-      );
+      throw new Error(`Invalid bbox: west=${bbox.west} south=${bbox.south} east=${bbox.east} north=${bbox.north}`);
     }
     lonStart = Math.max(WORLD_LON_MIN, floorToLattice(bbox.west));
     lonEnd = Math.min(WORLD_LON_MAX, ceilToLattice(bbox.east));
@@ -221,10 +216,7 @@ export function dem1DegTiles(cell: WorldCell): DemTile[] {
  * `dem1DegTiles` for any of those three is the bug this function exists to
  * prevent.
  */
-export function bufferedDem1DegTiles(
-  cell: WorldCell,
-  bufferDeg: number = CELL_BUFFER_DEG
-): DemTile[] {
+export function bufferedDem1DegTiles(cell: WorldCell, bufferDeg: number = CELL_BUFFER_DEG): DemTile[] {
   const tiles: DemTile[] = [];
   const lonStart = Math.floor(cell.west - bufferDeg);
   const lonEnd = Math.ceil(cell.east + bufferDeg);
@@ -340,13 +332,9 @@ export const WORLD_SHARDS: WorldShard[] = [
 export function shardForCell(cell: WorldCell): string {
   const lon = (cell.west + cell.east) / 2;
   const lat = (cell.south + cell.north) / 2;
-  const shard = WORLD_SHARDS.find(
-    s => lon >= s.west && lon < s.east && lat >= s.south && lat < s.north
-  );
+  const shard = WORLD_SHARDS.find(s => lon >= s.west && lon < s.east && lat >= s.south && lat < s.north);
   if (!shard) {
-    throw new Error(
-      `No shard for cell ${cell.id} — WORLD_SHARDS must end with a world-covering catch-all`
-    );
+    throw new Error(`No shard for cell ${cell.id} — WORLD_SHARDS must end with a world-covering catch-all`);
   }
   return shard.name;
 }

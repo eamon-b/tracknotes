@@ -214,10 +214,7 @@ export function savePoiFilterState(state: PoiFilterState): void {
  * `pois` renders no control at all, rather than an empty one implying the
  * enrichment ran and found nothing.
  */
-export function poiControlHtml(
-  pois: readonly TrailPOI[] | undefined,
-  state: PoiFilterState
-): string {
+export function poiControlHtml(pois: readonly TrailPOI[] | undefined, state: PoiFilterState): string {
   if (!pois || pois.length === 0) return '';
   const counts = countPoisByCategory(pois);
   const shown = visiblePois(pois, state).length;

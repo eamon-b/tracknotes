@@ -89,10 +89,7 @@ describe('plans-repo', () => {
       // one already stored comes back on every delta — it must be a no-op.
       expect(await plansRepo.upsertServer(d, doc({ name: 'Same clock' }))).toBe(false);
       expect(
-        await plansRepo.upsertServer(
-          d,
-          doc({ name: 'Older', updatedAt: '2026-09-19T00:00:00Z' }),
-        ),
+        await plansRepo.upsertServer(d, doc({ name: 'Older', updatedAt: '2026-09-19T00:00:00Z' })),
       ).toBe(false);
 
       const stored = await plansRepo.getByTrail(d, TRAIL);

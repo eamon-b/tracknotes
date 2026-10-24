@@ -4,13 +4,12 @@
  */
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { addShareIntent, PRECISE_SHARE_TYPES, SHARED_NAME_SUFFIXES } = require(
-  '../lib/share-intent-source',
-) as {
-  addShareIntent: (src: string) => string;
-  PRECISE_SHARE_TYPES: string[];
-  SHARED_NAME_SUFFIXES: string[];
-};
+const { addShareIntent, PRECISE_SHARE_TYPES, SHARED_NAME_SUFFIXES } =
+  require('../lib/share-intent-source') as {
+    addShareIntent: (src: string) => string;
+    PRECISE_SHARE_TYPES: string[];
+    SHARED_NAME_SUFFIXES: string[];
+  };
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const appJson = require('../../app.json') as {
   expo: { android: { intentFilters: { action: string; data: { mimeType?: string }[] }[] } };
@@ -73,7 +72,9 @@ describe('addShareIntent', () => {
     expect(out).toContain('Build.VERSION.SDK_INT >= 34');
     expect(out).toContain('getParcelableExtra<Parcelable>(Intent.EXTRA_STREAM) as? Uri');
     expect(out).not.toMatch(/getParcelableExtra<Uri>/);
-    expect(out).toMatch(/try \{[\s\S]*intent\.action = Intent\.ACTION_VIEW[\s\S]*\} catch \(e: Exception\)/);
+    expect(out).toMatch(
+      /try \{[\s\S]*intent\.action = Intent\.ACTION_VIEW[\s\S]*\} catch \(e: Exception\)/,
+    );
   });
 
   it('gates a generic type on the shared file name', () => {

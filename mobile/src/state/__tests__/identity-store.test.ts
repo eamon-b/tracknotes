@@ -8,12 +8,7 @@
  */
 
 import { useIdentityStore } from '../identity-store';
-import {
-  deleteAccount,
-  getSession,
-  registerDevice,
-  updateDisplayName,
-} from '../../api/auth';
+import { deleteAccount, getSession, registerDevice, updateDisplayName } from '../../api/auth';
 import { getDatabase } from '../../db/database';
 import { purgeLocalAccountData } from '../../features/settings/account-deletion';
 import { onSyncChange, type SyncChange } from '../../sync/sync-events';

@@ -28,7 +28,7 @@ const $ = (id: string): HTMLElement => {
 
 const rowText = (): string[] =>
   [...$('waypoints-container').querySelectorAll('tbody tr')].map(tr =>
-    (tr.textContent ?? '').replace(/\s+/g, ' ').trim(),
+    (tr.textContent ?? '').replace(/\s+/g, ' ').trim()
   );
 
 /** The cells of one waypoint row, by its index in the unfiltered array. */
@@ -75,7 +75,7 @@ function makeTrail() {
     ascent: number,
     descent: number,
     totalAscent: number,
-    totalDescent: number,
+    totalDescent: number
   ) => ({
     name,
     type,
@@ -149,9 +149,7 @@ function wpLike(name: string, type: string, km: number) {
 
 async function boot(trail: ReturnType<typeof makeTrail> = makeTrail()): Promise<void> {
   const html = fs.readFileSync(path.join(ROOT, 'src/web/my-trail.html'), 'utf8');
-  document.documentElement.innerHTML = html
-    .replace(/<!DOCTYPE html>/i, '')
-    .replace(/<\/?html[^>]*>/gi, '');
+  document.documentElement.innerHTML = html.replace(/<!DOCTYPE html>/i, '').replace(/<\/?html[^>]*>/gi, '');
 
   vi.resetModules();
   const { initTrailViewer } = await import('./trail-viewer');
@@ -235,8 +233,15 @@ describe('the waypoints datasheet filter', () => {
     expect(text.some(t => t.includes('Old Ruin'))).toBe(true);
 
     expect(headers()).toEqual([
-      'Location', 'Type', 'Elev (m)', 'Dist (km)', 'Total (km)',
-      'Gain (m)', 'Loss (m)', 'Total Gain', 'Total Loss',
+      'Location',
+      'Type',
+      'Elev (m)',
+      'Dist (km)',
+      'Total (km)',
+      'Gain (m)',
+      'Loss (m)',
+      'Total Gain',
+      'Total Loss',
     ]);
     expect($('waypoint-filter-count').textContent).toBe('7 waypoints');
     expect($('waypoint-filter-summary').hidden).toBe(true);
@@ -312,12 +317,10 @@ describe('the waypoints datasheet filter', () => {
     expect(headers()[3]).toBe('Dist (km)');
     expect(cells(4).slice(3, 7)).toEqual(['13.0', '33.0', '200', '180']);
     expect($('waypoint-filter-summary').hidden).toBe(true);
-    expect(
-      document.querySelector('#waypoint-filter [data-filter="all"]')?.getAttribute('aria-pressed'),
-    ).toBe('true');
-    expect(
-      document.querySelector('#waypoint-filter [data-filter="water"]')?.getAttribute('aria-pressed'),
-    ).toBe('false');
+    expect(document.querySelector('#waypoint-filter [data-filter="all"]')?.getAttribute('aria-pressed')).toBe('true');
+    expect(document.querySelector('#waypoint-filter [data-filter="water"]')?.getAttribute('aria-pressed')).toBe(
+      'false'
+    );
   });
 
   it('says so plainly when nothing matches', async () => {
@@ -347,7 +350,7 @@ describe('the leg summary', () => {
     // between two water sources, so it is not averaged in: (28 + 37) / 2 = 32.5.
     expect($('waypoint-filter-summary').hidden).toBe(false);
     expect($('waypoint-filter-summary').textContent).toBe(
-      '3 water sources · 2 legs · longest dry stretch 37.0 km (Tank Hill → Spring Gully) · average 32.5 km',
+      '3 water sources · 2 legs · longest dry stretch 37.0 km (Tank Hill → Spring Gully) · average 32.5 km'
     );
   });
 
@@ -356,7 +359,7 @@ describe('the leg summary', () => {
     clickFilter('resupply');
 
     expect($('waypoint-filter-summary').textContent).toBe(
-      '2 resupply points · 1 leg · longest leg 49.0 km (Melrose → Hawker) · average 49.0 km',
+      '2 resupply points · 1 leg · longest leg 49.0 km (Melrose → Hawker) · average 49.0 km'
     );
   });
 
@@ -367,14 +370,12 @@ describe('the leg summary', () => {
     // 37 km from Tank Hill to the finish — reporting 28 as the "longest dry
     // stretch" would send someone out short of water.
     const trail = makeTrail();
-    trail.waypoints = trail.waypoints.map(w =>
-      w.name === 'Spring Gully' ? { ...w, type: 'poi' } : w,
-    );
+    trail.waypoints = trail.waypoints.map(w => (w.name === 'Spring Gully' ? { ...w, type: 'poi' } : w));
     await boot(trail);
     clickFilter('water');
 
     expect($('waypoint-filter-summary').textContent).toBe(
-      '2 water sources · 1 leg · longest dry stretch 37.0 km (Tank Hill → trail end) · average 28.0 km',
+      '2 water sources · 1 leg · longest dry stretch 37.0 km (Tank Hill → trail end) · average 28.0 km'
     );
   });
 
@@ -383,13 +384,13 @@ describe('the leg summary', () => {
     // the dry stretch a hiker needs to know about.
     const trail = makeTrail();
     trail.waypoints = trail.waypoints.map(w =>
-      w.name === 'Spring Gully' || w.name === 'Creek Crossing' ? { ...w, type: 'poi' } : w,
+      w.name === 'Spring Gully' || w.name === 'Creek Crossing' ? { ...w, type: 'poi' } : w
     );
     await boot(trail);
     clickFilter('water');
 
     expect($('waypoint-filter-summary').textContent).toBe(
-      '1 water source · longest dry stretch 37.0 km (Tank Hill → trail end)',
+      '1 water source · longest dry stretch 37.0 km (Tank Hill → trail end)'
     );
   });
 
@@ -400,7 +401,7 @@ describe('the leg summary', () => {
     clickFilter('resupply');
 
     expect($('waypoint-filter-summary').textContent).toBe(
-      'Only one resupply point on this trail — no legs to measure.',
+      'Only one resupply point on this trail — no legs to measure.'
     );
   });
 });
@@ -545,9 +546,7 @@ describe('row expansion survives a re-render', () => {
     await boot();
     clickFilter('water');
 
-    $('waypoint-row-6').dispatchEvent(
-      new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }),
-    );
+    $('waypoint-row-6').dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     expect(document.getElementById('waypoint-detail-6')).not.toBeNull();
   });
 
@@ -569,15 +568,12 @@ describe('row expansion survives a re-render', () => {
 });
 
 describe('turn-off badges', () => {
-  it('take the served type\'s colour and an outline of their own', async () => {
+  it("take the served type's colour and an outline of their own", async () => {
     // A turn-off is a point on the route where you leave it for a place that is
     // somewhere else. The reader has to be able to tell it from the place: the
     // colour says what kind of place, the outline says you are not there yet.
     const trail = makeTrail();
-    trail.waypoints.push(
-      wpLike('Te Anau turnoff', 'town-access', 75),
-      wpLike('Blyth Hut turnoff', 'hut-access', 80),
-    );
+    trail.waypoints.push(wpLike('Te Anau turnoff', 'town-access', 75), wpLike('Blyth Hut turnoff', 'hut-access', 80));
     await boot(trail);
 
     const badge = (i: number): Element =>
@@ -600,10 +596,7 @@ describe('turn-off badges', () => {
 
   it('puts a turn-off to a shop in the resupply filter, and a hut turn-off not', async () => {
     const trail = makeTrail();
-    trail.waypoints.push(
-      wpLike('Te Anau turnoff', 'town-access', 75),
-      wpLike('Blyth Hut turnoff', 'hut-access', 80),
-    );
+    trail.waypoints.push(wpLike('Te Anau turnoff', 'town-access', 75), wpLike('Blyth Hut turnoff', 'hut-access', 80));
     await boot(trail);
 
     clickFilter('resupply');
@@ -631,9 +624,7 @@ describe('booting the trail viewer', () => {
     window.history.replaceState({}, '', '/trail-maps/trails/heysen/');
     try {
       const html = fs.readFileSync(path.join(ROOT, 'src/web/my-trail.html'), 'utf8');
-      document.documentElement.innerHTML = html
-        .replace(/<!DOCTYPE html>/i, '')
-        .replace(/<\/?html[^>]*>/gi, '');
+      document.documentElement.innerHTML = html.replace(/<!DOCTYPE html>/i, '').replace(/<\/?html[^>]*>/gi, '');
       vi.resetModules();
       const { initTrailViewer } = await import('./trail-viewer');
       await initTrailViewer('heysen');

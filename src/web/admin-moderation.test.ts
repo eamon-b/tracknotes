@@ -80,7 +80,7 @@ beforeEach(() => {
   window.localStorage.clear();
   window.localStorage.setItem(
     'tracknotes.webSession',
-    JSON.stringify({ userId: 'u1', token: 'tok', displayName: 'Admin', expiresAt: null }),
+    JSON.stringify({ userId: 'u1', token: 'tok', displayName: 'Admin', expiresAt: null })
   );
   vi.stubEnv('VITE_API_BASE_URL', 'https://api.example.test');
   fetchMock = vi.fn(async (input: string) => {
@@ -143,7 +143,9 @@ describe('admin-moderation.html', () => {
     expect(restore[0]).toBe(`https://api.example.test/v1/admin/comments/${comment.id}/restore`);
     expect(restore[1].method).toBe('POST');
 
-    await waitFor(() => document.querySelector('#admin-comments button[data-action="ban-remove"]:not([disabled])') !== null);
+    await waitFor(
+      () => document.querySelector('#admin-comments button[data-action="ban-remove"]:not([disabled])') !== null
+    );
     click('#admin-comments button[data-action="ban-remove"]');
     await waitFor(() => fetchMock.mock.calls.some(([u]) => String(u).includes('/ban')));
     const ban = fetchMock.mock.calls.find(([u]) => String(u).includes('/ban'))!;

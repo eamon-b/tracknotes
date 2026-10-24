@@ -224,7 +224,12 @@ function listFetch(routes: unknown[], details: Record<string, unknown> = {}) {
   return jest.fn(async (url: string) => {
     const path = url.slice(API.length);
     if (path === '/v1/community/routes') {
-      return { ok: true, status: 200, statusText: '', text: async () => JSON.stringify({ routes }) };
+      return {
+        ok: true,
+        status: 200,
+        statusText: '',
+        text: async () => JSON.stringify({ routes }),
+      };
     }
     const id = decodeURIComponent(path.replace('/v1/community/routes/', ''));
     const detail = details[id];
@@ -353,7 +358,11 @@ describe('planCommunitySync', () => {
       [ID]: { summary: a, file: communityFileName(ID, a.md5) },
     };
     const flagged = 'c_flaggedflaggedfl';
-    installed[flagged] = { summary: { ...a, id: flagged }, file: communityFileName(flagged, a.md5), takenDown: true };
+    installed[flagged] = {
+      summary: { ...a, id: flagged },
+      file: communityFileName(flagged, a.md5),
+      takenDown: true,
+    };
     for (let i = 0; i < MAX_COMMUNITY_PROBES + 5; i++) {
       const id = `c_${String(i).padStart(16, 'x')}`;
       installed[id] = { summary: { ...a, id }, file: communityFileName(id, a.md5) };
@@ -371,7 +380,9 @@ describe('classifyCommunityProbe', () => {
     expect(classifyCommunityProbe({ ok: false, status: 404 }).kind).toBe('gone');
     expect(classifyCommunityProbe({ ok: false, status: 500 }).kind).toBe('unknown');
     expect(classifyCommunityProbe({ ok: false }).kind).toBe('unknown');
-    expect(classifyCommunityProbe({ ok: true, detail: { ...publish(ID), status: 'hidden' } }).kind).toBe('gone');
+    expect(
+      classifyCommunityProbe({ ok: true, detail: { ...publish(ID), status: 'hidden' } }).kind,
+    ).toBe('gone');
     expect(classifyCommunityProbe({ ok: true, detail: publish(ID) }).kind).toBe('live');
     expect(classifyCommunityProbe({ ok: true, detail: 'nonsense' }).kind).toBe('unknown');
   });
@@ -424,7 +435,11 @@ describe('refreshCommunityRoutes', () => {
   it('keeps a download on an empty list, and on a 5xx from its detail', async () => {
     await refreshCommunityRoutes({ now: T0, fetchImpl: listFetch([publish(ID)]) });
     await ensureCommunityRouteDownloaded(ID);
-    await refreshCommunityRoutes({ now: T0 + 1, force: true, fetchImpl: listFetch([], { [ID]: 503 }) });
+    await refreshCommunityRoutes({
+      now: T0 + 1,
+      force: true,
+      fetchImpl: listFetch([], { [ID]: 503 }),
+    });
     expect(fileOf(ID)).toBeDefined();
     expect(getCommunityRouteInfo(ID)?.takenDown).toBe(false);
   });
@@ -433,7 +448,11 @@ describe('refreshCommunityRoutes', () => {
     await refreshCommunityRoutes({ now: T0, fetchImpl: listFetch([publish(ID), publish(ID2)]) });
     await ensureCommunityRouteDownloaded(ID);
 
-    await refreshCommunityRoutes({ now: T0 + 1, force: true, fetchImpl: listFetch([publish(ID2)]) });
+    await refreshCommunityRoutes({
+      now: T0 + 1,
+      force: true,
+      fetchImpl: listFetch([publish(ID2)]),
+    });
     expect(fileOf(ID)).toBeDefined();
     expect(getCommunityRouteInfo(ID)).toMatchObject({ downloaded: true, takenDown: true });
     // Still opens: the hiker may be on it.
@@ -443,7 +462,11 @@ describe('refreshCommunityRoutes', () => {
     expect(getCommunityRouteInfo(ID)?.takenDown).toBe(true);
 
     // An admin restored it: the next list names it again.
-    await refreshCommunityRoutes({ now: T0 + 2, force: true, fetchImpl: listFetch([publish(ID), publish(ID2)]) });
+    await refreshCommunityRoutes({
+      now: T0 + 2,
+      force: true,
+      fetchImpl: listFetch([publish(ID), publish(ID2)]),
+    });
     expect(getCommunityRouteInfo(ID)?.takenDown).toBe(false);
   });
 
@@ -486,7 +509,10 @@ describe('refreshCommunityRoutes', () => {
     await ensureCommunityRouteDownloaded(ID);
     await ensureCommunityRouteDownloaded(ID2);
     useSettingsStore.setState({ currentTrailId: ID });
-    await plansRepo.upsertLocal(db as never, newPlan(ID2, 'Plan', 'NOBO', { idFactory: () => 'p1' }));
+    await plansRepo.upsertLocal(
+      db as never,
+      newPlan(ID2, 'Plan', 'NOBO', { idFactory: () => 'p1' }),
+    );
 
     // Both gone from the list, and from the server.
     await refreshCommunityRoutes({ now: T0 + 1, force: true, fetchImpl: listFetch([]) });
@@ -551,9 +577,9 @@ describe('downloading on open', () => {
       caught = err;
     }
     expect((caught as Error).message).toMatch(/Checksum/);
-    expect(Object.keys(mockFiles).filter((k) => k.startsWith(ROOT) && !k.endsWith('state.json'))).toEqual(
-      [],
-    );
+    expect(
+      Object.keys(mockFiles).filter((k) => k.startsWith(ROOT) && !k.endsWith('state.json')),
+    ).toEqual([]);
     expect(await readCommunityTrail(ID)).toBeNull();
   });
 
@@ -613,7 +639,9 @@ describe('a route this phone just shared', () => {
     expect(await ensureCommunityRouteDownloaded(ID)).toBe(true);
     expect(mockDownloadTargets).toHaveLength(1);
     // The file under the server's md5 holds the server's bytes.
-    const file = Object.keys(mockFiles).find((k) => k.endsWith(communityFileName(ID, md5(serverCopy))));
+    const file = Object.keys(mockFiles).find((k) =>
+      k.endsWith(communityFileName(ID, md5(serverCopy))),
+    );
     expect(file && mockFiles[file]).toBe(serverCopy);
   });
 
@@ -621,7 +649,10 @@ describe('a route this phone just shared', () => {
     const db = await createMigratedTestDb();
     upsertCommunitySummary(publish(ID));
     await ensureCommunityRouteDownloaded(ID);
-    await plansRepo.upsertLocal(db as never, newPlan(ID, 'Plan', 'NOBO', { idFactory: () => 'p1' }));
+    await plansRepo.upsertLocal(
+      db as never,
+      newPlan(ID, 'Plan', 'NOBO', { idFactory: () => 'p1' }),
+    );
     useSettingsStore.setState({ currentTrailId: ID });
 
     await forgetCommunityRoute(ID, { db: db as never });
@@ -663,7 +694,10 @@ describe('removing a route from this phone', () => {
     const db = await createMigratedTestDb();
     await refreshCommunityRoutes({ now: T0, fetchImpl: listFetch([publish(ID)]) });
     await ensureCommunityRouteDownloaded(ID);
-    await plansRepo.upsertLocal(db as never, newPlan(ID, 'Plan', 'NOBO', { idFactory: () => 'p1' }));
+    await plansRepo.upsertLocal(
+      db as never,
+      newPlan(ID, 'Plan', 'NOBO', { idFactory: () => 'p1' }),
+    );
 
     await removeCommunityRouteFromDevice(ID, { db: db as never });
     expect(fileOf(ID)).toBeUndefined();
@@ -759,7 +793,11 @@ describe('removing a route while it downloads', () => {
     mockRemote[row.trailUrl as string] = edited;
 
     const hold = holdNextDownload();
-    const refreshing = refreshCommunityRoutes({ now: T0 + 1, force: true, fetchImpl: listFetch([row]) });
+    const refreshing = refreshCommunityRoutes({
+      now: T0 + 1,
+      force: true,
+      fetchImpl: listFetch([row]),
+    });
     await hold.started;
     const removing = removeCommunityRouteFromDevice(ID, { db: db as never });
     hold.release();
@@ -809,7 +847,11 @@ describe('opening a route the server no longer has', () => {
     await refreshCommunityRoutes({ now: T0, fetchImpl: listFetch([publish(ID)]) });
     await ensureCommunityRouteDownloaded(ID);
     const edited = trailBody('c_edited');
-    const row = publish(ID, { trailUrl: 'https://data.test/missing.json', md5: md5(edited) }, edited);
+    const row = publish(
+      ID,
+      { trailUrl: 'https://data.test/missing.json', md5: md5(edited) },
+      edited,
+    );
     delete mockRemote['https://data.test/missing.json'];
     // Listed under a new md5, and the refresh's own attempt fails too.
     await refreshCommunityRoutes({ now: T0 + 1, force: true, fetchImpl: listFetch([row]) });

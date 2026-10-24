@@ -11,11 +11,7 @@
  * by it.
  */
 
-import {
-  StyleSheet,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native';
+import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 /** `style` with `inset` added to its bottom padding; unchanged for no inset. */
@@ -32,9 +28,7 @@ export function padForBottomInset(
 }
 
 /** A scroll view's `contentContainerStyle` padded for the bottom system bar. */
-export function useBottomInsetContentStyle(
-  style?: StyleProp<ViewStyle>,
-): StyleProp<ViewStyle> {
+export function useBottomInsetContentStyle(style?: StyleProp<ViewStyle>): StyleProp<ViewStyle> {
   const { bottom } = useSafeAreaInsets();
   return padForBottomInset(style, bottom);
 }

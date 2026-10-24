@@ -242,11 +242,17 @@ function putObject(bucket: string, key: string, file: string, cacheControl: stri
   const result = spawnSync(
     'wrangler',
     [
-      'r2', 'object', 'put', `${bucket}/${key}`,
+      'r2',
+      'object',
+      'put',
+      `${bucket}/${key}`,
       '--remote',
-      '--file', file,
-      '--content-type', 'application/json',
-      '--cache-control', cacheControl,
+      '--file',
+      file,
+      '--content-type',
+      'application/json',
+      '--cache-control',
+      cacheControl,
     ],
     { stdio: 'inherit' }
   );
@@ -329,11 +335,7 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
   // The rollback check above only sees stamps, and a stale checkout that
   // rebuilt has fresh ones; ancestry is what tells it apart.
   const liveCommit = live?.sourceCommit;
-  const verdict = sourceCommitVerdict(
-    liveCommit,
-    head,
-    liveCommit && head ? gitIsAncestor(liveCommit, head) : null
-  );
+  const verdict = sourceCommitVerdict(liveCommit, head, liveCommit && head ? gitIsAncestor(liveCommit, head) : null);
   if (verdict.kind === 'warn') {
     console.warn(`Warning: ${verdict.message}.`);
   } else if (verdict.kind === 'refuse' && !options.force) {
@@ -349,9 +351,7 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     console.error('This publish would remove trails the live catalog lists:');
     for (const id of removals) console.error(`  - ${id}`);
     console.error(
-      'If that is intended, name each one: ' +
-        removals.map(id => `--remove ${id}`).join(' ') +
-        ' (or pass --force).'
+      'If that is intended, name each one: ' + removals.map(id => `--remove ${id}`).join(' ') + ' (or pass --force).'
     );
     return 1;
   }

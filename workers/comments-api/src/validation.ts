@@ -49,8 +49,7 @@ export const ALLOWED_TRAILS: readonly string[] = [
 
 const WAYPOINT_ID_RE = /^[a-z0-9_-]{4,64}$/;
 
-const UUID_V4_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const WATER_STATUSES: readonly WaterStatus[] = ['flowing', 'low', 'dry'];
 
@@ -79,11 +78,7 @@ export function validateDisplayName(raw: unknown): string {
     throw new HttpError(400, 'invalid_display_name', 'displayName must not be empty');
   }
   if (trimmed.length > MAX_DISPLAY_NAME_LEN) {
-    throw new HttpError(
-      400,
-      'invalid_display_name',
-      `displayName must be at most ${MAX_DISPLAY_NAME_LEN} characters`
-    );
+    throw new HttpError(400, 'invalid_display_name', `displayName must be at most ${MAX_DISPLAY_NAME_LEN} characters`);
   }
   return trimmed;
 }
@@ -104,11 +99,7 @@ export function validateTrailId(raw: unknown): string {
 
 export function validateWaypointId(raw: unknown): string {
   if (typeof raw !== 'string' || !WAYPOINT_ID_RE.test(raw)) {
-    throw new HttpError(
-      400,
-      'invalid_waypoint',
-      'waypointId must match ^[a-z0-9_-]{4,64}$'
-    );
+    throw new HttpError(400, 'invalid_waypoint', 'waypointId must match ^[a-z0-9_-]{4,64}$');
   }
   return raw;
 }
@@ -157,11 +148,7 @@ export function validateText(raw: unknown): string | null {
 export function validateWaterStatus(raw: unknown): WaterStatus | null {
   if (raw === undefined || raw === null) return null;
   if (typeof raw !== 'string' || !WATER_STATUSES.includes(raw as WaterStatus)) {
-    throw new HttpError(
-      400,
-      'invalid_water_status',
-      "waterStatus must be one of 'flowing', 'low', 'dry'"
-    );
+    throw new HttpError(400, 'invalid_water_status', "waterStatus must be one of 'flowing', 'low', 'dry'");
   }
   return raw as WaterStatus;
 }
@@ -169,11 +156,7 @@ export function validateWaterStatus(raw: unknown): WaterStatus | null {
 /** Validate a report reason against the enum. */
 export function validateReportReason(raw: unknown): ReportReason {
   if (typeof raw !== 'string' || !REPORT_REASONS.includes(raw as ReportReason)) {
-    throw new HttpError(
-      400,
-      'invalid_reason',
-      "reason must be one of 'spam', 'offensive', 'inaccurate', 'other'"
-    );
+    throw new HttpError(400, 'invalid_reason', "reason must be one of 'spam', 'offensive', 'inaccurate', 'other'");
   }
   return raw as ReportReason;
 }
@@ -186,11 +169,7 @@ export function validateReportDetail(raw: unknown): string | null {
   }
   const trimmed = raw.trim();
   if (trimmed.length > MAX_REPORT_DETAIL_LEN) {
-    throw new HttpError(
-      400,
-      'invalid_detail',
-      `detail must be at most ${MAX_REPORT_DETAIL_LEN} characters`
-    );
+    throw new HttpError(400, 'invalid_detail', `detail must be at most ${MAX_REPORT_DETAIL_LEN} characters`);
   }
   return trimmed.length === 0 ? null : trimmed;
 }
@@ -205,11 +184,7 @@ export function validateDescription(raw: unknown): string {
   }
   const trimmed = raw.trim();
   if (trimmed.length > MAX_DESCRIPTION_LEN) {
-    throw new HttpError(
-      400,
-      'invalid_description',
-      `description must be at most ${MAX_DESCRIPTION_LEN} characters`
-    );
+    throw new HttpError(400, 'invalid_description', `description must be at most ${MAX_DESCRIPTION_LEN} characters`);
   }
   return trimmed;
 }
@@ -269,8 +244,7 @@ export function assertClientPlanId(id: string): void {
 /** The refusal for a plan on a trail the server does not have. */
 export const PLAN_TRAIL_REFUSAL = {
   code: 'trail_not_allowed',
-  message:
-    'trailId must be a bundled trail or a community route (imported trails stay on the device)',
+  message: 'trailId must be a bundled trail or a community route (imported trails stay on the device)',
 } as const;
 
 /**
@@ -311,16 +285,8 @@ function validatePlanStop(raw: unknown, index: number): PlanStop {
   }
 
   const nights = value.nights;
-  if (
-    typeof nights !== 'number' ||
-    !Number.isInteger(nights) ||
-    nights < 1 ||
-    nights > PLAN_LIMITS.nightsMax
-  ) {
-    throw planError(
-      'invalid_stop',
-      `stops[${index}].nights must be an integer between 1 and ${PLAN_LIMITS.nightsMax}`
-    );
+  if (typeof nights !== 'number' || !Number.isInteger(nights) || nights < 1 || nights > PLAN_LIMITS.nightsMax) {
+    throw planError('invalid_stop', `stops[${index}].nights must be an integer between 1 and ${PLAN_LIMITS.nightsMax}`);
   }
 
   const stop: PlanStop = { km, name: name.trim(), nights };
@@ -335,10 +301,7 @@ function validatePlanStop(raw: unknown, index: number): PlanStop {
     }
     const note = value.note.trim();
     if (note.length > PLAN_LIMITS.noteMax) {
-      throw planError(
-        'invalid_stop',
-        `stops[${index}].note must be at most ${PLAN_LIMITS.noteMax} characters`
-      );
+      throw planError('invalid_stop', `stops[${index}].note must be at most ${PLAN_LIMITS.noteMax} characters`);
     }
     if (note.length > 0) stop.note = note;
   }
@@ -363,10 +326,7 @@ function validateAlternateName(raw: unknown, field: string): string {
     throw planError('invalid_alternate', `${field} must be a non-empty string`);
   }
   if (raw.length > PLAN_LIMITS.alternateNameMax) {
-    throw planError(
-      'invalid_alternate',
-      `${field} must be at most ${PLAN_LIMITS.alternateNameMax} characters`
-    );
+    throw planError('invalid_alternate', `${field} must be at most ${PLAN_LIMITS.alternateNameMax} characters`);
   }
   return raw;
 }
@@ -379,11 +339,7 @@ function validateAlternateName(raw: unknown, field: string): string {
  * nothing a client invents is persisted and the 64 KB ceiling is measured on
  * exactly the bytes we store.
  */
-export function validatePlanDocument(
-  body: Record<string, unknown>,
-  pathId: string,
-  updatedAt: string
-): PlanDocument {
+export function validatePlanDocument(body: Record<string, unknown>, pathId: string, updatedAt: string): PlanDocument {
   if (typeof body.id !== 'string' || body.id !== pathId) {
     throw planError('id_mismatch', 'Body id must equal the id in the path');
   }
@@ -432,10 +388,7 @@ export function validatePlanDocument(
       throw planError('invalid_alternates', 'alternates must be an array of names');
     }
     if (body.alternates.length > PLAN_LIMITS.alternatesMax) {
-      throw planError(
-        'invalid_alternates',
-        `alternates may have at most ${PLAN_LIMITS.alternatesMax} entries`
-      );
+      throw planError('invalid_alternates', `alternates may have at most ${PLAN_LIMITS.alternatesMax} entries`);
     }
     alternates = body.alternates.map((name, i) => validateAlternateName(name, `alternates[${i}]`));
     if (new Set(alternates).size !== alternates.length) {
@@ -498,10 +451,7 @@ export function validatePlanDocument(
       throw planError('invalid_resupply_stops', 'resupplyStops must be an array of waypoint ids');
     }
     if (body.resupplyStops.length > PLAN_LIMITS.stopsMax) {
-      throw planError(
-        'invalid_resupply_stops',
-        `resupplyStops may have at most ${PLAN_LIMITS.stopsMax} entries`
-      );
+      throw planError('invalid_resupply_stops', `resupplyStops may have at most ${PLAN_LIMITS.stopsMax} entries`);
     }
     document.resupplyStops = body.resupplyStops.map((id) => validateWaypointId(id));
   }
@@ -533,11 +483,7 @@ export function serialisePlanDocument(document: PlanDocument): string {
   const json = JSON.stringify(document);
   const bytes = new TextEncoder().encode(json).byteLength;
   if (bytes > PLAN_LIMITS.documentBytes) {
-    throw new HttpError(
-      413,
-      'plan_too_large',
-      `A plan document must be at most ${PLAN_LIMITS.documentBytes} bytes`
-    );
+    throw new HttpError(413, 'plan_too_large', `A plan document must be at most ${PLAN_LIMITS.documentBytes} bytes`);
   }
   return json;
 }

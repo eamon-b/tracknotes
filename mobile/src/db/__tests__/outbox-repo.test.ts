@@ -128,7 +128,7 @@ describe('outbox-repo', () => {
     expect(await outboxRepo.hasQueued(d, 'plan', 'p1')).toBe(true);
   });
 
-  it('removePhotosFor drops one comment\'s photo rows, sparing in-flight ones', async () => {
+  it("removePhotosFor drops one comment's photo rows, sparing in-flight ones", async () => {
     const d = await db();
     const photo = (id: string, commentId: string) =>
       outboxRepo.enqueue(d, {

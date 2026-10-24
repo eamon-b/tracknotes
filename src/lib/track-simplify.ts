@@ -24,11 +24,7 @@ export interface LatLonPoint {
  * Perpendicular distance from a point to a line segment (equirectangular
  * approximation). Same approach as `gpx-optimizer.ts`.
  */
-function perpendicularDistance(
-  point: LatLonPoint,
-  lineStart: LatLonPoint,
-  lineEnd: LatLonPoint,
-): number {
+function perpendicularDistance(point: LatLonPoint, lineStart: LatLonPoint, lineEnd: LatLonPoint): number {
   const toRadians = (deg: number) => (deg * Math.PI) / 180;
 
   const lat1 = toRadians(lineStart.lat);

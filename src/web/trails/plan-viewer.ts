@@ -9,14 +9,7 @@
 import type * as Leaflet from 'leaflet';
 declare const L: typeof Leaflet;
 
-import type {
-  PlanTrackPoint,
-  PlanWaypoint,
-  ComputedDay,
-  PlanDocument,
-  PlanStop,
-  Pace,
-} from '@lib/plan-types';
+import type { PlanTrackPoint, PlanWaypoint, ComputedDay, PlanDocument, PlanStop, Pace } from '@lib/plan-types';
 import {
   DEFAULT_PLAN_THRESHOLDS,
   PACE_KMH,
@@ -63,12 +56,7 @@ import {
   type PlanAlternate,
   type PlannedRoute,
 } from '@lib/plan-alternates';
-import {
-  routeBreakCrossings,
-  routeBreakStarts,
-  sliceAcrossRouteBreaks,
-  splitAtRouteBreaks,
-} from '@lib/route-breaks';
+import { routeBreakCrossings, routeBreakStarts, sliceAcrossRouteBreaks, splitAtRouteBreaks } from '@lib/route-breaks';
 import type { RouteBreak, RouteVariant, TrailPOI } from '@lib/trail-types';
 import { OSM_ATTRIBUTION } from '@lib/poi-display';
 import {
@@ -93,7 +81,14 @@ import {
 import { analyzeWaterCarry } from '@lib/water-carry-calculator';
 import { createReversedTrail } from '@lib/trail-reverse';
 import { trailElevationIsUsable } from '@lib/elevation-backfill';
-import { KM_EPSILON, getDirectionLabel, stopsToActive, toActiveKm, toNoboKm, type PlanDirection } from '@lib/plan-direction';
+import {
+  KM_EPSILON,
+  getDirectionLabel,
+  stopsToActive,
+  toActiveKm,
+  toNoboKm,
+  type PlanDirection,
+} from '@lib/plan-direction';
 import {
   planStopIssues,
   STOP_ISSUES_HINT,
@@ -106,17 +101,17 @@ import { baseWaypointType, waypointTypeLabel } from '@lib/waypoint-taxonomy';
 import { waypointFamilyClass, waypointIcon } from './waypoint-icons';
 import { accessPathLayer, hasAccessPath } from './access-path';
 import { stopWalk } from '@lib/day-calculator';
-import {
-  loadOrMigratePlan,
-  loadPlanUiPrefs,
-  savePlanDocument,
-  savePlanUiPrefs,
-  type PlanUiPrefs,
-} from './plan-state';
+import { loadOrMigratePlan, loadPlanUiPrefs, savePlanDocument, savePlanUiPrefs, type PlanUiPrefs } from './plan-state';
 import { initPlanSync, type PlanSyncController, type PlanSyncHost } from './plan-sync';
 import { finalDayMaxHours } from '@lib/plan-suggest';
 import { eleAxis, eleBounds } from '@lib/elevation-axis';
-import { hereLabel, initNextDays, type NextDaysController, type NextDaysPlan, type NextDaysTrail } from './plan-next-days';
+import {
+  hereLabel,
+  initNextDays,
+  type NextDaysController,
+  type NextDaysPlan,
+  type NextDaysTrail,
+} from './plan-next-days';
 // Escapes quotes as well as angle brackets, unlike a `textContent` round trip
 // through a detached div — this file interpolates waypoint names and types into
 // `title="…"` and `class="…"`, and an imported GPX supplies both.
@@ -317,7 +312,6 @@ function servicesStripHtml(services: StopServices | undefined): string {
 // Helpers
 // ---------------------------------------------------------------------------
 
-
 function niceAxisTicks(min: number, max: number, maxTicks: number): number[] {
   const range = max - min;
   if (range <= 0) return [min];
@@ -339,13 +333,22 @@ function niceAxisTicks(min: number, max: number, maxTicks: number): number[] {
 
 function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): (...args: Parameters<T>) => void {
   let t: ReturnType<typeof setTimeout>;
-  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+  return (...args) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn(...args), ms);
+  };
 }
 
 function formatDate(iso: string): string {
   const [y, m, d] = iso.split('-').map(Number);
   const date = new Date(Date.UTC(y, m - 1, d));
-  return date.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+  return date.toLocaleDateString('en-AU', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
 }
 
 /** The first line of a note — all a day card or a datasheet row has room for. */
@@ -502,7 +505,7 @@ function directionLabel(dir: PlanDirection): string {
 }
 
 function getDayColors(count: number): string[] {
-  const palette = ['#ef4444','#f97316','#eab308','#22c55e','#06b6d4','#3b82f6','#8b5cf6','#ec4899'];
+  const palette = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'];
   const colors: string[] = [];
   for (let i = 0; i < count; i++) colors.push(palette[i % palette.length]);
   return colors;
@@ -620,9 +623,8 @@ function plannedNamesBetween(startKm: number, endKm: number): string[] {
  * waypoint; `title` is what makes the badge self-explanatory without a legend.
  */
 function plannedBadge(names: readonly string[] = []): string {
-  const title = names.length > 0
-    ? `Planned resupply: ${names.join(', ')}`
-    : 'Planned resupply — ticked in the Resupply tab';
+  const title =
+    names.length > 0 ? `Planned resupply: ${names.join(', ')}` : 'Planned resupply — ticked in the Resupply tab';
   return `<span class="planned-badge" title="${escapeHtml(title)}">Planned resupply</span>`;
 }
 
@@ -662,9 +664,7 @@ async function loadTrailData(trailId: string): Promise<Trail | null> {
   try {
     // Relative to the page (`trails/<id>/plan.html`), as index.html's fetch is,
     // so a site served from a sub-path still finds its data.
-    const response = await fetch(
-      generatedDataUrl(`${trailId}.json`, SITE_ROOT.trailPage, document.baseURI)
-    );
+    const response = await fetch(generatedDataUrl(`${trailId}.json`, SITE_ROOT.trailPage, document.baseURI));
     if (!response.ok) throw new Error('Trail data not found');
     return await response.json();
   } catch {
@@ -750,9 +750,12 @@ function redrawRouteLine(): void {
     const mainWhich = main.displayPoints ? 'displayPoints' : 'points';
     L.polyline(
       splitAtRouteBreaks(mainPoints, main.breaks, mainWhich).map(stretch =>
-        stretch.map(p => [p.lat, p.lon] as [number, number])),
-      { color: '#aaa', weight: 2, opacity: 0.6, dashArray: '4 6' },
-    ).addTo(routeLineLayer).bringToBack();
+        stretch.map(p => [p.lat, p.lon] as [number, number])
+      ),
+      { color: '#aaa', weight: 2, opacity: 0.6, dashArray: '4 6' }
+    )
+      .addTo(routeLineLayer)
+      .bringToBack();
   }
   const { track } = routeTrail;
   const displayPoints = track.displayPoints ?? track.points;
@@ -814,7 +817,8 @@ function drawWaypointMarkers(): void {
     // camp-stop border where a marker is both. The ring is the whole marking —
     // the title stays the plain name, which is what the map's tooltip is for.
     const isPlanned = isPlannedResupply(wp);
-    const className = `waypoint-marker ${type} ${waypointFamilyClass(type)}` +
+    const className =
+      `waypoint-marker ${type} ${waypointFamilyClass(type)}` +
       `${isSelected || isPicked ? ' is-stop' : ''}` +
       `${isPlanned ? ' planned-resupply' : ''}`;
     const divIcon = L.divIcon({
@@ -878,7 +882,9 @@ function waypointPopupContent(wp: PlanWaypoint, km: number): HTMLElement {
   // A shared plan's popup says what the place is and whether it is a stop of
   // that plan; there is nothing here for a reader to press.
   const action = readOnly
-    ? (selected ? '<div class="wp-popup-flag">Stop on this plan</div>' : '')
+    ? selected
+      ? '<div class="wp-popup-flag">Stop on this plan</div>'
+      : ''
     : `<button type="button" class="wp-popup-btn${selected ? ' is-stop' : ''}">
       ${selected ? 'Remove stop' : 'Stop here'}
     </button>`;
@@ -887,7 +893,9 @@ function waypointPopupContent(wp: PlanWaypoint, km: number): HTMLElement {
     <div class="wp-popup-sub">${escapeHtml(waypointTypeLabel(wp.type))} · ${km.toFixed(1)} km</div>
     ${servicesStripHtml(servicesAt(km))}
     ${action}
-    ${alternatesAt(km).map(({ alternate, taken, role }) => alternateChoiceHtml(alternate, taken, role)).join('')}`;
+    ${alternatesAt(km)
+      .map(({ alternate, taken, role }) => alternateChoiceHtml(alternate, taken, role))
+      .join('')}`;
   el.querySelector('.wp-popup-btn')?.addEventListener('click', () => {
     toggleStop(km, wp.name ?? 'Stop', wp.id);
     map?.closePopup();
@@ -913,9 +921,7 @@ function alternatesAt(km: number): Array<{ alternate: PlanAlternate; taken: bool
   const toActive = (routeKm: number) => toActiveKm(routeKm, dir, plannedRoute.totalDistance);
   const found: Array<{ alternate: PlanAlternate; taken: boolean; role: AlternateRole }> = [];
   for (const alternate of plannableAlternates(trail)) {
-    const segment = plannedRoute.segments.find(
-      s => s.kind === 'alternate' && s.alternate.name === alternate.name,
-    );
+    const segment = plannedRoute.segments.find(s => s.kind === 'alternate' && s.alternate.name === alternate.name);
     const taken = segment !== undefined;
     const from = taken ? segment.routeFromKm : mainKmToRoute(plannedRoute, alternate.startKm);
     const to = taken ? segment.routeFromKm + alternate.distanceKm : mainKmToRoute(plannedRoute, alternate.endKm);
@@ -983,12 +989,11 @@ function alternateChoiceHtml(alternate: PlanAlternate, taken: boolean, role: Alt
     line: `\u2442 ${name}`,
   }[role];
   const status = taken ? 'Your plan takes this alternate.' : 'Your plan stays on the main route here.';
-  const replaces = taken
-    ? []
-    : plannedRoute.alternates.filter(a => alternatesOverlap(a, alternate)).map(a => a.name);
-  const replacesNote = replaces.length === 0 || readOnly
-    ? ''
-    : `<div class="wp-popup-alt-note">Taking it drops ${escapeHtml(replaces.join(' and '))}, which covers the same main route.</div>`;
+  const replaces = taken ? [] : plannedRoute.alternates.filter(a => alternatesOverlap(a, alternate)).map(a => a.name);
+  const replacesNote =
+    replaces.length === 0 || readOnly
+      ? ''
+      : `<div class="wp-popup-alt-note">Taking it drops ${escapeHtml(replaces.join(' and '))}, which covers the same main route.</div>`;
   const button = readOnly
     ? ''
     : `<button type="button" class="wp-popup-alt-btn${taken ? ' is-taken' : ''}" data-alt-take="${taken ? '0' : '1'}">
@@ -1228,7 +1233,11 @@ function setupElevationHover(): void {
     const rect = canvas.getBoundingClientRect();
     const width = rect.width - PAD.left - PAD.right;
     const x = e.clientX - rect.left - PAD.left;
-    if (x < 0 || x > width) { hoverLine.style.display = 'none'; tooltip.style.display = 'none'; return; }
+    if (x < 0 || x > width) {
+      hoverLine.style.display = 'none';
+      tooltip.style.display = 'none';
+      return;
+    }
 
     const fracDist = Math.max(0, Math.min(1, x / width));
     const km = fracDist * elevMaxDist;
@@ -1259,8 +1268,9 @@ function setupElevationHover(): void {
 /** The placed issue whose stop ends a day at `activeKm`, if any. */
 function issueEndingAt(activeKm: number): StopIssue | undefined {
   const total = routeTrail.track.totalDistance;
-  return stopIssues.find(issue =>
-    issue.routeKm !== null && Math.abs(toActiveKm(issue.routeKm, direction(), total) - activeKm) < KM_EPSILON);
+  return stopIssues.find(
+    issue => issue.routeKm !== null && Math.abs(toActiveKm(issue.routeKm, direction(), total) - activeKm) < KM_EPSILON
+  );
 }
 
 /**
@@ -1272,21 +1282,22 @@ function issueEndingAt(activeKm: number): StopIssue | undefined {
 function stopIssuesHtml(): string {
   const notice = stopIssuesNotice(stopIssues);
   if (notice === null) return '';
-  const rows = stopIssues.map((issue, i) => {
-    const activeKm = issue.routeKm === null
-      ? null
-      : toActiveKm(issue.routeKm, direction(), routeTrail.track.totalDistance);
-    const day = activeKm === null ? undefined : currentDays.find(d => Math.abs(d.endKm - activeKm) < KM_EPSILON);
-    const where = stopIssueWhere(issue, day ? day.dayNumber : null);
-    const remove = readOnly
-      ? ''
-      : `<button type="button" class="stop-issue-remove" data-issue-index="${i}">Remove</button>`;
-    return `<li class="stop-issue">
+  const rows = stopIssues
+    .map((issue, i) => {
+      const activeKm =
+        issue.routeKm === null ? null : toActiveKm(issue.routeKm, direction(), routeTrail.track.totalDistance);
+      const day = activeKm === null ? undefined : currentDays.find(d => Math.abs(d.endKm - activeKm) < KM_EPSILON);
+      const where = stopIssueWhere(issue, day ? day.dayNumber : null);
+      const remove = readOnly
+        ? ''
+        : `<button type="button" class="stop-issue-remove" data-issue-index="${i}">Remove</button>`;
+      return `<li class="stop-issue">
         <span class="stop-issue-name">${escapeHtml(issue.stop.name)}</span>
         <span class="stop-issue-reason">${escapeHtml(stopIssueText(issue.reason))} \u00B7 ${escapeHtml(where)}</span>
         ${remove}
       </li>`;
-  }).join('');
+    })
+    .join('');
   const hint = readOnly ? '' : `<p class="stop-issues-hint">${escapeHtml(STOP_ISSUES_HINT)}</p>`;
   return `<div class="stop-issues" role="status">
       <p class="stop-issues-notice">\u26A0 ${escapeHtml(notice)}</p>
@@ -1349,25 +1360,31 @@ function renderDayList(): void {
     return;
   }
 
-  container.innerHTML = issuesBlock + elevationNote + days.map((day, i) => {
-    const dateStr = day.date ? `<span class="day-card-date">${formatDate(day.date)}</span>` : '';
-    const waterStr = day.waterSources > 0
-      ? `<span class="water-info">${waypointIcon('water')} ${day.waterSources} water</span>`
-      : `<span>${waypointIcon('water')} 0 water</span>`;
-    const selected = selectedDayIndex === i ? ' selected' : '';
-    // A day is "planned resupply" when one of the ticked stops falls inside it,
-    // its own ends included: the day you walk into town is the day it matters.
-    const plannedNames = plannedNamesBetween(day.startKm, day.endKm);
-    const planned = plannedNames.length > 0;
-    // A rest day is not a card of its own — it is nights at the stop this day
-    // ends at, and the reason every later date has moved on.
-    // Through `Number` for the same reason as the stepper above: the count
-    // comes from a document that may have arrived over the network.
-    const rest = Number(day.restDays ?? 0);
-    const restLine = rest > 0
-      ? `<div class="day-card-rest">+${rest} rest day${rest === 1 ? '' : 's'} at ${escapeHtml(day.endName)}</div>`
-      : '';
-    return `
+  container.innerHTML =
+    issuesBlock +
+    elevationNote +
+    days
+      .map((day, i) => {
+        const dateStr = day.date ? `<span class="day-card-date">${formatDate(day.date)}</span>` : '';
+        const waterStr =
+          day.waterSources > 0
+            ? `<span class="water-info">${waypointIcon('water')} ${day.waterSources} water</span>`
+            : `<span>${waypointIcon('water')} 0 water</span>`;
+        const selected = selectedDayIndex === i ? ' selected' : '';
+        // A day is "planned resupply" when one of the ticked stops falls inside it,
+        // its own ends included: the day you walk into town is the day it matters.
+        const plannedNames = plannedNamesBetween(day.startKm, day.endKm);
+        const planned = plannedNames.length > 0;
+        // A rest day is not a card of its own — it is nights at the stop this day
+        // ends at, and the reason every later date has moved on.
+        // Through `Number` for the same reason as the stepper above: the count
+        // comes from a document that may have arrived over the network.
+        const rest = Number(day.restDays ?? 0);
+        const restLine =
+          rest > 0
+            ? `<div class="day-card-rest">+${rest} rest day${rest === 1 ? '' : 's'} at ${escapeHtml(day.endName)}</div>`
+            : '';
+        return `
       <div class="day-card${selected}${planned ? ' planned-resupply' : ''}" data-day-index="${i}">
         <div class="day-card-header">
           <span class="day-card-number">Day ${day.dayNumber}</span>
@@ -1387,7 +1404,9 @@ function renderDayList(): void {
         ${restLine}
         ${stopFooterHtml(stopAtActiveKm(day.endKm), issueEndingAt(day.endKm))}
       </div>`;
-  }).join('') + unplanned;
+      })
+      .join('') +
+    unplanned;
 
   container.querySelectorAll('.day-card[data-day-index]').forEach(card => {
     card.addEventListener('click', () => {
@@ -1404,9 +1423,7 @@ function renderDayList(): void {
 /** "via Mt Bogong", for a day that walks some of an alternate the plan takes. */
 function viaLine(day: ComputedDay): string {
   const names = alternatesWalkedBetween(day.startKm, day.endKm);
-  return names.length === 0
-    ? ''
-    : `<div class="day-card-via">via ${names.map(escapeHtml).join(', ')}</div>`;
+  return names.length === 0 ? '' : `<div class="day-card-via">via ${names.map(escapeHtml).join(', ')}</div>`;
 }
 
 /**
@@ -1459,16 +1476,18 @@ function renderWaterCarrySection(): void {
   }
   section.hidden = false;
 
-  body.innerHTML = analysis.gaps.map(g => {
-    const cls = g.isDryStretch ? ' gap-warn' : ' gap-ok';
-    const badge = g.isDryStretch ? ' 🔴 DRY' : '';
-    const offRoute = (g.fromOffTrailKm ?? 0) + (g.toOffTrailKm ?? 0);
-    const offRouteText = offRoute > 0 ? ` (incl. ${offRoute.toFixed(1)} km off route to water)` : '';
-    return `<div class="gap-item">
+  body.innerHTML = analysis.gaps
+    .map(g => {
+      const cls = g.isDryStretch ? ' gap-warn' : ' gap-ok';
+      const badge = g.isDryStretch ? ' 🔴 DRY' : '';
+      const offRoute = (g.fromOffTrailKm ?? 0) + (g.toOffTrailKm ?? 0);
+      const offRouteText = offRoute > 0 ? ` (incl. ${offRoute.toFixed(1)} km off route to water)` : '';
+      return `<div class="gap-item">
       <span class="${cls}">${waypointIcon('water')}${badge}</span>
       <span>${escapeHtml(g.fromName)} → ${escapeHtml(g.toName)}: ${g.distanceKm} km${offRouteText}</span>
     </div>`;
-  }).join('');
+    })
+    .join('');
 }
 
 // ---------------------------------------------------------------------------
@@ -1533,14 +1552,14 @@ function renderStopList(): void {
 
   const candidates = stopCandidates();
   const needle = stopsFilter.trim().toLowerCase();
-  const waypoints = needle
-    ? candidates.filter(wp => (wp.name ?? '').toLowerCase().includes(needle))
-    : candidates;
+  const waypoints = needle ? candidates.filter(wp => (wp.name ?? '').toLowerCase().includes(needle)) : candidates;
 
   if (waypoints.length === 0) {
-    container.innerHTML = stopIssuesHtml() + (candidates.length === 0
-      ? '<p class="days-empty">This trail names nowhere to spend a night. Tick \u201CShow all waypoints\u201D to pick from every point on the route.</p>'
-      : '<p class="days-empty">No waypoints match.</p>');
+    container.innerHTML =
+      stopIssuesHtml() +
+      (candidates.length === 0
+        ? '<p class="days-empty">This trail names nowhere to spend a night. Tick \u201CShow all waypoints\u201D to pick from every point on the route.</p>'
+        : '<p class="days-empty">No waypoints match.</p>');
     bindStopIssueButtons(container);
     return;
   }
@@ -1550,42 +1569,45 @@ function renderStopList(): void {
   // Off the trail, the divider marks the km the hiker is level with and says
   // so, rather than "You are here" between two places they are nowhere near.
   const here = nextDays?.here() ?? null;
-  const hereIndex = here === null
-    ? -1
-    : (() => {
-      const idx = waypoints.findIndex(wp => (wp.totalDistance ?? 0) >= here.km);
-      return idx === -1 ? waypoints.length : idx;
-    })();
-  const hereDivider = here === null
-    ? ''
-    : `<div class="stops-here" id="stops-here">${escapeHtml(hereLabel(here))}</div>`;
+  const hereIndex =
+    here === null
+      ? -1
+      : (() => {
+          const idx = waypoints.findIndex(wp => (wp.totalDistance ?? 0) >= here.km);
+          return idx === -1 ? waypoints.length : idx;
+        })();
+  const hereDivider =
+    here === null ? '' : `<div class="stops-here" id="stops-here">${escapeHtml(hereLabel(here))}</div>`;
 
   // Where an alternate branches off and rejoins, between the places either
   // side of it: a branch after the places at its km, a rejoin before them.
   const cards = new Map<number, string[]>();
   for (const marker of currentAlternateMarkers()) {
-    const index = marker.kind === 'branch'
-      ? waypoints.findIndex(wp => (wp.totalDistance ?? 0) > marker.activeKm + KM_EPSILON / 2)
-      : waypoints.findIndex(wp => (wp.totalDistance ?? 0) >= marker.activeKm - KM_EPSILON / 2);
+    const index =
+      marker.kind === 'branch'
+        ? waypoints.findIndex(wp => (wp.totalDistance ?? 0) > marker.activeKm + KM_EPSILON / 2)
+        : waypoints.findIndex(wp => (wp.totalDistance ?? 0) >= marker.activeKm - KM_EPSILON / 2);
     const at = index === -1 ? waypoints.length : index;
     cards.set(at, [...(cards.get(at) ?? []), alternateCardHtml(marker)]);
   }
   const cardsAt = (i: number) => (cards.get(i) ?? []).join('');
 
-  container.innerHTML = waypoints.map((wp, i) => {
-    const km = wp.totalDistance ?? 0;
-    const stop = findStop(plan, stopKeyFor({ id: wp.id, km }));
-    const selected = stop !== undefined;
-    const checkmark = selected ? '\u2713' : '\u00A0';
-    const icon = waypointIcon(wp.type ?? 'waypoint');
-    // Gap from the previous row on screen, so a filtered or candidates-only
-    // list reads as the distances you would actually walk between them.
-    const prevKm = i > 0 ? (waypoints[i - 1].totalDistance ?? 0) : 0;
-    const gap = i > 0 ? `+${(km - prevKm).toFixed(1)}` : '';
-    const planned = isPlannedResupply(wp);
-    const idAttr = wp.id ? ` data-id="${escapeHtml(wp.id)}"` : '';
-    const rowClass = `stop-row${selected ? ' is-stop' : ''}${planned ? ' planned-resupply' : ''}`;
-    return `${cardsAt(i)}${i === hereIndex ? hereDivider : ''}<div class="stop-item${selected ? ' is-stop' : ''}" data-km="${km}"${idAttr}>
+  container.innerHTML =
+    waypoints
+      .map((wp, i) => {
+        const km = wp.totalDistance ?? 0;
+        const stop = findStop(plan, stopKeyFor({ id: wp.id, km }));
+        const selected = stop !== undefined;
+        const checkmark = selected ? '\u2713' : '\u00A0';
+        const icon = waypointIcon(wp.type ?? 'waypoint');
+        // Gap from the previous row on screen, so a filtered or candidates-only
+        // list reads as the distances you would actually walk between them.
+        const prevKm = i > 0 ? (waypoints[i - 1].totalDistance ?? 0) : 0;
+        const gap = i > 0 ? `+${(km - prevKm).toFixed(1)}` : '';
+        const planned = isPlannedResupply(wp);
+        const idAttr = wp.id ? ` data-id="${escapeHtml(wp.id)}"` : '';
+        const rowClass = `stop-row${selected ? ' is-stop' : ''}${planned ? ' planned-resupply' : ''}`;
+        return `${cardsAt(i)}${i === hereIndex ? hereDivider : ''}<div class="stop-item${selected ? ' is-stop' : ''}" data-km="${km}"${idAttr}>
       <div class="${rowClass}" data-km="${km}"${idAttr}>
         <div class="stop-line">
           <span class="stop-check">${checkmark}</span>
@@ -1599,7 +1621,10 @@ function renderStopList(): void {
       </div>
       ${stop ? stopEditorHtml(stop) : ''}
     </div>`;
-  }).join('') + cardsAt(waypoints.length) + (hereIndex === waypoints.length ? hereDivider : '');
+      })
+      .join('') +
+    cardsAt(waypoints.length) +
+    (hereIndex === waypoints.length ? hereDivider : '');
   container.insertAdjacentHTML('afterbegin', stopIssuesHtml());
   bindStopIssueButtons(container);
 
@@ -1660,9 +1685,10 @@ function alternateCardHtml(marker: AlternateMarker): string {
 /** "30.0 km · +300 m / −300 m · 10.0 km longer than the main route" */
 function alternateStatsText(alternate: PlanAlternate): string {
   const delta = alternate.distanceKm - alternate.mainDistanceKm;
-  const deltaText = Math.abs(delta) < 0.05
-    ? 'the same distance as the main route'
-    : `${Math.abs(delta).toFixed(1)} km ${delta > 0 ? 'longer' : 'shorter'} than the main route`;
+  const deltaText =
+    Math.abs(delta) < 0.05
+      ? 'the same distance as the main route'
+      : `${Math.abs(delta).toFixed(1)} km ${delta > 0 ? 'longer' : 'shorter'} than the main route`;
   return `${alternate.distanceKm.toFixed(1)} km · +${alternate.ascentM} m / −${alternate.descentM} m · ${deltaText}`;
 }
 
@@ -1753,10 +1779,7 @@ function renderResupplyList(): void {
   const total = groups.reduce((n, group) => n + group.options.length, 0);
   // Counted over the options the trail actually has, so ids left over from an
   // older build of it are never reported as ticked.
-  const tickedCount = groups.reduce(
-    (n, group) => n + group.options.filter(option => picked.has(option.id)).length,
-    0
-  );
+  const tickedCount = groups.reduce((n, group) => n + group.options.filter(option => picked.has(option.id)).length, 0);
   if (count) count.textContent = `${tickedCount} of ${total} selected`;
 
   if (total === 0) {
@@ -1770,13 +1793,15 @@ function renderResupplyList(): void {
     return;
   }
 
-  container.innerHTML = visible.map(group => {
-    const header = group.label
-      ? `<div class="resupply-group-header">⤴ ${escapeHtml(group.label)} · km ${group.km.toFixed(1)}</div>`
-      : '';
-    const rows = group.options.map(option => renderResupplyRow(option, picked)).join('');
-    return `<div class="resupply-group">${header}${rows}</div>`;
-  }).join('');
+  container.innerHTML = visible
+    .map(group => {
+      const header = group.label
+        ? `<div class="resupply-group-header">⤴ ${escapeHtml(group.label)} · km ${group.km.toFixed(1)}</div>`
+        : '';
+      const rows = group.options.map(option => renderResupplyRow(option, picked)).join('');
+      return `<div class="resupply-group">${header}${rows}</div>`;
+    })
+    .join('');
 }
 
 /**
@@ -1785,8 +1810,7 @@ function renderResupplyList(): void {
  */
 function resupplyDistanceCell(leg: ResupplyLeg): string {
   const rides = legRidesText(leg, formatKm);
-  return escapeHtml(legDistanceText(leg, formatKm)) +
-    (rides ? `<div class="rs-rides">${escapeHtml(rides)}</div>` : '');
+  return escapeHtml(legDistanceText(leg, formatKm)) + (rides ? `<div class="rs-rides">${escapeHtml(rides)}</div>` : '');
 }
 
 function renderResupplyRow(option: ResupplyOption, picked: ReadonlySet<string>): string {
@@ -1826,17 +1850,19 @@ function renderDayDatasheet(day: ComputedDay | null): void {
   if (!day) {
     title.textContent = 'All waypoints';
     subtitle.textContent = '';
-    body.innerHTML = waypoints.map((wp, i) => {
-      const km = wp.totalDistance ?? 0;
-      const prevKm = i > 0 ? (waypoints[i - 1].totalDistance ?? 0) : null;
-      const deltaStr = prevKm !== null ? `+${(km - prevKm).toFixed(1)} km` : 'start';
-      const planned = isPlannedResupply(wp);
-      return `<div class="ds-row${planned ? ' planned-resupply' : ''}">
+    body.innerHTML = waypoints
+      .map((wp, i) => {
+        const km = wp.totalDistance ?? 0;
+        const prevKm = i > 0 ? (waypoints[i - 1].totalDistance ?? 0) : null;
+        const deltaStr = prevKm !== null ? `+${(km - prevKm).toFixed(1)} km` : 'start';
+        const planned = isPlannedResupply(wp);
+        return `<div class="ds-row${planned ? ' planned-resupply' : ''}">
         <span class="ds-type-icon" title="${escapeHtml(waypointTypeLabel(wp.type))}">${waypointIcon(wp.type)}</span>
         <span class="ds-name" title="${escapeHtml(wp.name)}">${escapeHtml(wp.name)}${planned ? plannedBadge() : ''}</span>
         <span class="ds-km">${km.toFixed(1)}<br><small style="color:var(--text-secondary)">${deltaStr}</small></span>
       </div>`;
-    }).join('');
+      })
+      .join('');
     return;
   }
 
@@ -1921,11 +1947,12 @@ function renderResupplyDatasheet(): void {
   // No ticked stop in range is still a carry: the calculator reports the whole
   // range as one leg, so the hiker who carries everything gets a food figure.
   // The note says which of the three reasons put them there.
-  const fullCarryNote = summary.stops === 0
-    ? resupplyGroups().length === 0
-      ? '<p class="days-empty">This trail has no resupply points — this is the full carry.</p>'
-      : '<p class="days-empty">No resupply stops ticked — this is the full carry. Tick the ones you plan to use.</p>'
-    : '';
+  const fullCarryNote =
+    summary.stops === 0
+      ? resupplyGroups().length === 0
+        ? '<p class="days-empty">This trail has no resupply points — this is the full carry.</p>'
+        : '<p class="days-empty">No resupply stops ticked — this is the full carry. Tick the ones you plan to use.</p>'
+      : '';
 
   // The arrival day only means anything once the camp plan has stops and a date
   // to count them from; without both the column would be a row of dashes.
@@ -1936,11 +1963,12 @@ function renderResupplyDatasheet(): void {
     .map(label => `<th>${escapeHtml(label)}</th>`)
     .join('');
 
-  const rows = legs.map((leg, i) => {
-    const arrive = leg.arrival
-      ? `Day ${leg.arrival.day}${leg.arrival.date ? ` (${formatShortDate(leg.arrival.date)})` : ''}`
-      : '—';
-    return `<tr class="resupply-leg${leg.isLong ? ' is-long' : ''}">
+  const rows = legs
+    .map((leg, i) => {
+      const arrive = leg.arrival
+        ? `Day ${leg.arrival.day}${leg.arrival.date ? ` (${formatShortDate(leg.arrival.date)})` : ''}`
+        : '—';
+      return `<tr class="resupply-leg${leg.isLong ? ' is-long' : ''}">
       <td>${i + 1}</td>
       <td class="rs-route">${escapeHtml(leg.fromName)} → ${escapeHtml(leg.toName)}</td>
       <td class="rs-distance">${resupplyDistanceCell(leg)}</td>
@@ -1950,7 +1978,8 @@ function renderResupplyDatasheet(): void {
       <td>${leg.food.weightKg.toFixed(1)} kg</td>
       ${showArrive ? `<td>${escapeHtml(arrive)}</td>` : ''}
     </tr>`;
-  }).join('');
+    })
+    .join('');
 
   body.innerHTML = `${fullCarryNote}<div class="ds-table-wrap">
     <table class="resupply-table">
@@ -1996,11 +2025,7 @@ function toggleStop(km: number, name: string, id?: string): void {
   if (readOnly) return;
   const noboKm = toNoboKm(km, direction(), routeTrail.track.totalDistance);
   tryEdit(() =>
-    editToggleStop(
-      plan,
-      { ...(id ? { id } : {}), km: noboKm, name },
-      { totalKm: routeTrail.track.totalDistance },
-    ),
+    editToggleStop(plan, { ...(id ? { id } : {}), km: noboKm, name }, { totalKm: routeTrail.track.totalDistance })
   );
 }
 
@@ -2279,9 +2304,9 @@ function initCollapsibles(): void {
  */
 function switchTab(tab: PlanTab): void {
   activeTab = tab;
-  document.querySelectorAll('.tab-btn').forEach(b =>
-    b.classList.toggle('active', (b as HTMLElement).dataset.tab === tab)
-  );
+  document
+    .querySelectorAll('.tab-btn')
+    .forEach(b => b.classList.toggle('active', (b as HTMLElement).dataset.tab === tab));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.getElementById(`tab-${tab}`)?.classList.add('active');
   renderAll();
@@ -2324,7 +2349,7 @@ function renderAll(): void {
   // hiker's own hours; until then it is the part of the trail not planned yet.
   const split = splitUnplannedTail(
     computePlanDays(activeTrail(), plan, { baseKmh: baseKmh() }),
-    finalDayMaxHours(dailyHours()),
+    finalDayMaxHours(dailyHours())
   );
   currentDays = split.days;
   unplannedDay = split.unplanned;
@@ -2340,7 +2365,7 @@ function renderAll(): void {
   if (activeTab === 'resupply') {
     renderResupplyDatasheet();
   } else {
-    const selectedDay = selectedDayIndex !== null ? currentDays[selectedDayIndex] ?? null : null;
+    const selectedDay = selectedDayIndex !== null ? (currentDays[selectedDayIndex] ?? null) : null;
     renderDayDatasheet(selectedDay);
   }
 
@@ -2373,9 +2398,7 @@ function initHeader(): void {
     replaceWithStatic(nameInput, plan.name, 'plan-name-static');
     const dateGroup = document.getElementById('plan-date-group');
     if (dateGroup) {
-      dateGroup.textContent = plan.startDate
-        ? `Start: ${formatDate(plan.startDate)}`
-        : 'No start date';
+      dateGroup.textContent = plan.startDate ? `Start: ${formatDate(plan.startDate)}` : 'No start date';
       dateGroup.classList.add('is-static');
     }
     const saveStatus = document.getElementById('save-status');
@@ -2721,7 +2744,7 @@ export interface PlanViewerOptions {
 export async function initPlanViewer(
   trailId: string,
   preloadedTrail?: Trail,
-  options: PlanViewerOptions = {},
+  options: PlanViewerOptions = {}
 ): Promise<void> {
   // One boot per page load. Every page that hosts the planner (a trail's
   // plan.html, my-plan.html, shared-plan.html) calls this exactly once; a second
@@ -2729,7 +2752,7 @@ export async function initPlanViewer(
   // throw on the already-initialised container. Say so rather than half-boot.
   if (booted) throw new Error('initPlanViewer: the planner is already booted on this page');
   booted = true;
-  const data = preloadedTrail ?? await loadTrailData(trailId);
+  const data = preloadedTrail ?? (await loadTrailData(trailId));
   if (!data) {
     document.body.innerHTML = `<div style="padding:2rem;text-align:center">
       <h2>Trail data not found</h2>
@@ -2794,10 +2817,13 @@ export async function initPlanViewer(
   if (!readOnly && stored !== loaded) scheduleSave();
 
   // Redraw elevation on resize
-  window.addEventListener('resize', debounce(() => {
-    drawElevationProfile();
-    map?.invalidateSize();
-  }, 150));
+  window.addEventListener(
+    'resize',
+    debounce(() => {
+      drawElevationProfile();
+      map?.invalidateSize();
+    }, 150)
+  );
 
   // The elevation profile is canvas-drawn, so it has to be repainted by hand
   // when the theme changes.

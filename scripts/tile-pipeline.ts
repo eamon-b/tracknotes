@@ -66,12 +66,24 @@ export interface ContourTier {
  * The clauses partition the elevations exactly once each — see the z13 note.
  */
 export const CONTOUR_TIERS: ContourTier[] = [
-  { suffix: 'z9',  minZoom: CONTOUR_MIN_ZOOM, where: `(CAST(elevation AS INTEGER) % 100) = 0` },
-  { suffix: 'z10', minZoom: 10, where: `(CAST(elevation AS INTEGER) % 50) = 0 AND (CAST(elevation AS INTEGER) % 100) != 0` },
-  { suffix: 'z12', minZoom: 12, where: `(CAST(elevation AS INTEGER) % 20) = 0 AND (CAST(elevation AS INTEGER) % 50) != 0` },
+  { suffix: 'z9', minZoom: CONTOUR_MIN_ZOOM, where: `(CAST(elevation AS INTEGER) % 100) = 0` },
+  {
+    suffix: 'z10',
+    minZoom: 10,
+    where: `(CAST(elevation AS INTEGER) % 50) = 0 AND (CAST(elevation AS INTEGER) % 100) != 0`,
+  },
+  {
+    suffix: 'z12',
+    minZoom: 12,
+    where: `(CAST(elevation AS INTEGER) % 20) = 0 AND (CAST(elevation AS INTEGER) % 50) != 0`,
+  },
   // %50 != 0 as well: odd multiples of 50 (50, 150, ...) have %20 = 10 and are
   // already emitted by the z10 tier — without it they'd appear twice.
-  { suffix: 'z13', minZoom: 13, where: `(CAST(elevation AS INTEGER) % 20) != 0 AND (CAST(elevation AS INTEGER) % 50) != 0` },
+  {
+    suffix: 'z13',
+    minZoom: 13,
+    where: `(CAST(elevation AS INTEGER) % 20) != 0 AND (CAST(elevation AS INTEGER) % 50) != 0`,
+  },
 ];
 
 /** The one vector-tile layer every contour archive serves (public schema). */
@@ -162,10 +174,7 @@ export const CONTOUR_TIPPECANOE_DEFAULTS: Required<ContourTippecanoeOptions> = {
  * `-L` tier layers: zoom range, attributes, the quality bundle above and the
  * tier filter. Build one tiered archive, then `renameContourTiers()` it.
  */
-export function contourTippecanoeArgs(
-  options: ContourTippecanoeOptions = {},
-  opts?: { verbose?: boolean }
-): string[] {
+export function contourTippecanoeArgs(options: ContourTippecanoeOptions = {}, opts?: { verbose?: boolean }): string[] {
   const o = { ...CONTOUR_TIPPECANOE_DEFAULTS, ...options };
   return [
     // Quiet the progress indicator unless verbose. Output also streams to the
@@ -176,8 +185,10 @@ export function contourTippecanoeArgs(
     `-Z${CONTOUR_MIN_ZOOM}`,
     `-z${MAX_ZOOM}`,
     '-P',
-    '-y', 'elevation',
-    '-y', 'is_index',
+    '-y',
+    'elevation',
+    '-y',
+    'is_index',
     '--drop-smallest-as-needed',
     `--simplification=${o.simplification}`,
     ...(o.simplifyOnlyLowZooms ? ['--simplify-only-low-zooms'] : []),
@@ -216,17 +227,22 @@ export function renameContourTiers(
 ): void {
   const inputs = Array.isArray(inputPaths) ? inputPaths : [inputPaths];
   if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
-  execFileSync('tile-join', [
-    '-o', outputPath,
-    '--no-tile-size-limit',
-    '--force',
-    ...(opts?.verbose ? [] : ['-q']),
-    ...contourTierRenameArgs(),
-    ...inputs,
-  ], {
-    cwd: PROJECT_ROOT,
-    stdio: ['ignore', 'inherit', 'inherit'],
-  });
+  execFileSync(
+    'tile-join',
+    [
+      '-o',
+      outputPath,
+      '--no-tile-size-limit',
+      '--force',
+      ...(opts?.verbose ? [] : ['-q']),
+      ...contourTierRenameArgs(),
+      ...inputs,
+    ],
+    {
+      cwd: PROJECT_ROOT,
+      stdio: ['ignore', 'inherit', 'inherit'],
+    }
+  );
 }
 
 // --- Utility functions ---
@@ -348,14 +364,14 @@ export function formatBytes(bytes: number): string {
  * MGA (Map Grid of Australia) zones use EPSG:283XX where XX is the zone number.
  */
 export function mgaEpsgForLon(lonCenter: number): number {
-  if (lonCenter < 114) return 28349;  // Zone 49
-  if (lonCenter < 120) return 28350;  // Zone 50
-  if (lonCenter < 126) return 28351;  // Zone 51
-  if (lonCenter < 132) return 28352;  // Zone 52
-  if (lonCenter < 138) return 28353;  // Zone 53
-  if (lonCenter < 144) return 28354;  // Zone 54
-  if (lonCenter < 150) return 28355;  // Zone 55
-  return 28356;                        // Zone 56
+  if (lonCenter < 114) return 28349; // Zone 49
+  if (lonCenter < 120) return 28350; // Zone 50
+  if (lonCenter < 126) return 28351; // Zone 51
+  if (lonCenter < 132) return 28352; // Zone 52
+  if (lonCenter < 138) return 28353; // Zone 53
+  if (lonCenter < 144) return 28354; // Zone 54
+  if (lonCenter < 150) return 28355; // Zone 55
+  return 28356; // Zone 56
 }
 
 /**
@@ -365,8 +381,12 @@ export function mgaEpsgForLon(lonCenter: number): number {
 export const AUSTRALIA_BOUNDS = { west: 112, south: -44, east: 154, north: -10 };
 
 export function isWithinAustralia(bounds: { west: number; south: number; east: number; north: number }): boolean {
-  return bounds.west >= AUSTRALIA_BOUNDS.west && bounds.east <= AUSTRALIA_BOUNDS.east
-    && bounds.south >= AUSTRALIA_BOUNDS.south && bounds.north <= AUSTRALIA_BOUNDS.north;
+  return (
+    bounds.west >= AUSTRALIA_BOUNDS.west &&
+    bounds.east <= AUSTRALIA_BOUNDS.east &&
+    bounds.south >= AUSTRALIA_BOUNDS.south &&
+    bounds.north <= AUSTRALIA_BOUNDS.north
+  );
 }
 
 /**
@@ -378,8 +398,12 @@ export function isWithinAustralia(bounds: { west: number; south: number; east: n
  * set its own EPSG in build-tiles.ts's TRAIL_TILE_CONFIGS.
  */
 export function projectedEpsgFor(lonCenter: number, latCenter: number): number {
-  if (lonCenter >= AUSTRALIA_BOUNDS.west && lonCenter <= AUSTRALIA_BOUNDS.east
-    && latCenter >= AUSTRALIA_BOUNDS.south && latCenter <= AUSTRALIA_BOUNDS.north) {
+  if (
+    lonCenter >= AUSTRALIA_BOUNDS.west &&
+    lonCenter <= AUSTRALIA_BOUNDS.east &&
+    latCenter >= AUSTRALIA_BOUNDS.south &&
+    latCenter <= AUSTRALIA_BOUNDS.north
+  ) {
     return mgaEpsgForLon(lonCenter);
   }
   const zone = Math.min(60, Math.floor((lonCenter + 180) / 6) + 1);
@@ -391,8 +415,8 @@ export function projectedEpsgFor(lonCenter: number, latCenter: number): number {
 export const CELL_SIZE_DEG = 2;
 export const GRID_LON_MIN = 112;
 export const GRID_LON_MAX = 154; // exclusive: last cell starts at 152
-export const GRID_LAT_MIN = 10;  // 10°S
-export const GRID_LAT_MAX = 44;  // 44°S (exclusive: last cell starts at 42)
+export const GRID_LAT_MIN = 10; // 10°S
+export const GRID_LAT_MAX = 44; // 44°S (exclusive: last cell starts at 42)
 
 export interface CellDef {
   id: string;
@@ -453,8 +477,10 @@ export function isAlignedCellId(cellId: string): boolean {
   return (
     (parsed.lon - GRID_LON_MIN) % CELL_SIZE_DEG === 0 &&
     (parsed.lat - GRID_LAT_MIN) % CELL_SIZE_DEG === 0 &&
-    parsed.lon >= GRID_LON_MIN && parsed.lon < GRID_LON_MAX &&
-    parsed.lat >= GRID_LAT_MIN && parsed.lat < GRID_LAT_MAX
+    parsed.lon >= GRID_LON_MIN &&
+    parsed.lon < GRID_LON_MAX &&
+    parsed.lat >= GRID_LAT_MIN &&
+    parsed.lat < GRID_LAT_MAX
   );
 }
 
@@ -540,7 +566,8 @@ export function checkTippecanoeVersion(
     };
   }
   if (installed === TIPPECANOE_VERSION) return { status: 'ok' };
-  const message = `tippecanoe ${installed} is installed; the contour builds are verified against ${TIPPECANOE_VERSION}` +
+  const message =
+    `tippecanoe ${installed} is installed; the contour builds are verified against ${TIPPECANOE_VERSION}` +
     ' (scripts/remote/bootstrap.sh builds it)';
   return requirePinned ? { status: 'fail', message } : { status: 'warn', message };
 }
@@ -621,7 +648,9 @@ export function checkDependencies(opts: {
     if (check.status === 'fail') {
       console.error(`\n${check.message}.`);
       if (requirePinned) {
-        console.error(`Build tippecanoe ${TIPPECANOE_VERSION} (scripts/remote/bootstrap.sh), or set TIPPECANOE_ANY_VERSION=1 to run anyway.`);
+        console.error(
+          `Build tippecanoe ${TIPPECANOE_VERSION} (scripts/remote/bootstrap.sh), or set TIPPECANOE_ANY_VERSION=1 to run anyway.`
+        );
       }
       process.exit(1);
     }
@@ -656,7 +685,8 @@ export function clipDem(
     }
 
     const demExtensions = ['.tif', '.tiff', '.hgt'];
-    demPathList = fs.readdirSync(DEM_CACHE_DIR)
+    demPathList = fs
+      .readdirSync(DEM_CACHE_DIR)
       .filter(f => demExtensions.some(ext => f.toLowerCase().endsWith(ext)))
       .map(f => path.join(DEM_CACHE_DIR, f));
     if (demPathList.length === 0) {
@@ -673,18 +703,21 @@ export function clipDem(
   run(`gdalbuildvrt -vrtnodata -9999 "${vrtPath}" ${demPaths}`, { verbose });
 
   // Clip to region polygon (overwrite if re-running)
-  run([
-    'gdalwarp',
-    '-overwrite',
-    `-cutline "${regionPath}"`,
-    '-crop_to_cutline',
-    '-dstnodata -9999',
-    '-co COMPRESS=LZW',
-    '-co TILED=YES',
-    '-co BIGTIFF=YES',
-    `"${vrtPath}"`,
-    `"${demOutputPath}"`,
-  ].join(' '), { verbose });
+  run(
+    [
+      'gdalwarp',
+      '-overwrite',
+      `-cutline "${regionPath}"`,
+      '-crop_to_cutline',
+      '-dstnodata -9999',
+      '-co COMPRESS=LZW',
+      '-co TILED=YES',
+      '-co BIGTIFF=YES',
+      `"${vrtPath}"`,
+      `"${demOutputPath}"`,
+    ].join(' '),
+    { verbose }
+  );
 
   // Clean up VRT
   if (fs.existsSync(vrtPath)) fs.unlinkSync(vrtPath);
@@ -699,29 +732,28 @@ export function clipDem(
  * source resolution (CONTOUR_WARP_TR_DEG) so contours traced from the result
  * follow smooth interpolated curves rather than the 30m DEM lattice.
  */
-export function smoothDem(
-  demPath: string,
-  smoothedPath: string,
-  verbose: boolean
-): void {
+export function smoothDem(demPath: string, smoothedPath: string, verbose: boolean): void {
   console.log('  Smoothing DEM (cubicspline)...');
 
   if (fs.existsSync(smoothedPath)) fs.unlinkSync(smoothedPath);
 
-  run([
-    'gdalwarp',
-    '-overwrite',
-    '-r cubicspline',
-    `-tr ${CONTOUR_WARP_TR_DEG} ${CONTOUR_WARP_TR_DEG}`,
-    // Align the output pixel grid to -tr multiples so separately-warped
-    // regions sample the DEM identically and contours meet at shared edges.
-    '-tap',
-    '-co COMPRESS=LZW',
-    '-co TILED=YES',
-    '-co BIGTIFF=YES',
-    `"${demPath}"`,
-    `"${smoothedPath}"`,
-  ].join(' '), { verbose });
+  run(
+    [
+      'gdalwarp',
+      '-overwrite',
+      '-r cubicspline',
+      `-tr ${CONTOUR_WARP_TR_DEG} ${CONTOUR_WARP_TR_DEG}`,
+      // Align the output pixel grid to -tr multiples so separately-warped
+      // regions sample the DEM identically and contours meet at shared edges.
+      '-tap',
+      '-co COMPRESS=LZW',
+      '-co TILED=YES',
+      '-co BIGTIFF=YES',
+      `"${demPath}"`,
+      `"${smoothedPath}"`,
+    ].join(' '),
+    { verbose }
+  );
 
   console.log(`    ✓ Smoothed DEM: ${smoothedPath} (${formatBytes(fileSizeBytes(smoothedPath))})`);
 }
@@ -750,15 +782,18 @@ export function generateContours(
   // Remove existing output (gdal_contour won't overwrite)
   if (fs.existsSync(contoursRawPath)) fs.unlinkSync(contoursRawPath);
 
-  run([
-    'gdal_contour',
-    '-a elevation',
-    `-i ${CONTOUR_INTERVAL}`,
-    '-snodata -9999',
-    '-f FlatGeobuf',
-    `"${contourInputPath}"`,
-    `"${contoursRawPath}"`,
-  ].join(' '), { verbose });
+  run(
+    [
+      'gdal_contour',
+      '-a elevation',
+      `-i ${CONTOUR_INTERVAL}`,
+      '-snodata -9999',
+      '-f FlatGeobuf',
+      `"${contourInputPath}"`,
+      `"${contoursRawPath}"`,
+    ].join(' '),
+    { verbose }
+  );
 
   // Clean up smoothed DEM
   if (fs.existsSync(smoothedPath)) fs.unlinkSync(smoothedPath);
@@ -786,16 +821,19 @@ export function classifyAndTileContours(
   // 4a: Add is_index field
   if (fs.existsSync(contoursClassifiedPath)) fs.unlinkSync(contoursClassifiedPath);
   const rawLayerName = 'contour';
-  run([
-    'ogr2ogr',
-    '-f FlatGeobuf',
-    `"${contoursClassifiedPath}"`,
-    `"${contoursRawPath}"`,
-    `-nln ${CONTOUR_LAYER}`,
-    '-dialect sqlite',
-    '-sql',
-    `"SELECT geometry, elevation, CAST(CASE WHEN (CAST(elevation AS INTEGER) % ${INDEX_CONTOUR_INTERVAL}) = 0 THEN 1 ELSE 0 END AS INTEGER) AS is_index FROM '${rawLayerName}'"`,
-  ].join(' '), { verbose });
+  run(
+    [
+      'ogr2ogr',
+      '-f FlatGeobuf',
+      `"${contoursClassifiedPath}"`,
+      `"${contoursRawPath}"`,
+      `-nln ${CONTOUR_LAYER}`,
+      '-dialect sqlite',
+      '-sql',
+      `"SELECT geometry, elevation, CAST(CASE WHEN (CAST(elevation AS INTEGER) % ${INDEX_CONTOUR_INTERVAL}) = 0 THEN 1 ELSE 0 END AS INTEGER) AS is_index FROM '${rawLayerName}'"`,
+    ].join(' '),
+    { verbose }
+  );
 
   // 4b: Split into zoom-tier files for density control
   const workDir = path.dirname(contoursMbtilesPath);
@@ -804,15 +842,18 @@ export function classifyAndTileContours(
   const layerArgs: string[] = [];
   for (const tier of CONTOUR_TIERS) {
     if (fs.existsSync(tierPath(tier))) fs.unlinkSync(tierPath(tier));
-    run([
-      'ogr2ogr',
-      '-f FlatGeobuf',
-      `"${tierPath(tier)}"`,
-      `"${contoursClassifiedPath}"`,
-      '-dialect sqlite',
-      '-sql',
-      `"SELECT * FROM '${CONTOUR_LAYER}' WHERE ${tier.where}"`,
-    ].join(' '), { verbose });
+    run(
+      [
+        'ogr2ogr',
+        '-f FlatGeobuf',
+        `"${tierPath(tier)}"`,
+        `"${contoursClassifiedPath}"`,
+        '-dialect sqlite',
+        '-sql',
+        `"SELECT * FROM '${CONTOUR_LAYER}' WHERE ${tier.where}"`,
+      ].join(' '),
+      { verbose }
+    );
 
     if (fs.existsSync(tierPath(tier)) && fileSizeBytes(tierPath(tier)) > 0) {
       layerArgs.push('-L', contourTierLayerArg(tierPath(tier), tier));
@@ -824,11 +865,7 @@ export function classifyAndTileContours(
   //     argv form: the -j filter carries `$zoom`, which a shell would expand.
   const tieredPath = contoursMbtilesPath.replace(/\.mbtiles$/, '.tiered.mbtiles');
   if (fs.existsSync(tieredPath)) fs.unlinkSync(tieredPath);
-  execFileSync('tippecanoe', [
-    '-o', tieredPath,
-    ...contourTippecanoeArgs({}, { verbose }),
-    ...layerArgs,
-  ], {
+  execFileSync('tippecanoe', ['-o', tieredPath, ...contourTippecanoeArgs({}, { verbose }), ...layerArgs], {
     cwd: PROJECT_ROOT,
     stdio: ['ignore', 'inherit', 'inherit'],
   });
@@ -859,22 +896,21 @@ export function extractBaseTiles(
   console.log('  Extracting base map tiles...');
 
   // Extract region from Protomaps
-  run([
-    'pmtiles', 'extract',
-    `"${protomapsSource}"`,
-    `"${basePmtilesPath}"`,
-    `--region="${regionPath}"`,
-    `--minzoom=${MIN_ZOOM}`,
-    `--maxzoom=${MAX_ZOOM}`,
-  ].join(' '), { verbose });
+  run(
+    [
+      'pmtiles',
+      'extract',
+      `"${protomapsSource}"`,
+      `"${basePmtilesPath}"`,
+      `--region="${regionPath}"`,
+      `--minzoom=${MIN_ZOOM}`,
+      `--maxzoom=${MAX_ZOOM}`,
+    ].join(' '),
+    { verbose }
+  );
 
   // Convert PMTiles to MBTiles for React Native compatibility
-  run([
-    'tile-join',
-    `-o "${baseMbtilesPath}"`,
-    '--force',
-    `"${basePmtilesPath}"`,
-  ].join(' '), { verbose });
+  run(['tile-join', `-o "${baseMbtilesPath}"`, '--force', `"${basePmtilesPath}"`].join(' '), { verbose });
 
   console.log(`    ✓ Base tiles: ${baseMbtilesPath} (${formatBytes(fileSizeBytes(baseMbtilesPath))})`);
 }
@@ -924,10 +960,7 @@ export const BASE_ZOOM_EXPECTATION: MbtilesZoomExpectation = {
  * @param filePath - Path to the .mbtiles file
  * @param expected - Optional zoom range the tiles table must actually cover
  */
-export function validateMbtilesArtifact(
-  filePath: string,
-  expected?: MbtilesZoomExpectation
-): void {
+export function validateMbtilesArtifact(filePath: string, expected?: MbtilesZoomExpectation): void {
   const name = path.basename(filePath);
   const sql = (query: string): string => run(`sqlite3 "${filePath}" "${query}"`);
 
@@ -950,9 +983,7 @@ export function validateMbtilesArtifact(
     throw new Error(`${name} has unreadable zoom levels in tiles table: "${zoomOut}"`);
   }
 
-  const metaOut = sql(
-    "SELECT name, value FROM metadata WHERE name IN ('minzoom', 'maxzoom', 'scale', 'bounds');"
-  );
+  const metaOut = sql("SELECT name, value FROM metadata WHERE name IN ('minzoom', 'maxzoom', 'scale', 'bounds');");
   let metaMinZoom: number | null = null;
   let metaMaxZoom: number | null = null;
   for (const line of metaOut.split('\n').filter(l => l.length > 0)) {
@@ -981,14 +1012,10 @@ export function validateMbtilesArtifact(
   // uses metadata zooms to decide which tiles to request, so a mismatch means
   // either requests for tiles that don't exist or tiles that are never asked for.
   if (metaMinZoom !== null && metaMinZoom !== actualMinZoom) {
-    throw new Error(
-      `${name} metadata minzoom=${metaMinZoom} but lowest tile zoom is ${actualMinZoom}`
-    );
+    throw new Error(`${name} metadata minzoom=${metaMinZoom} but lowest tile zoom is ${actualMinZoom}`);
   }
   if (metaMaxZoom !== null && metaMaxZoom !== actualMaxZoom) {
-    throw new Error(
-      `${name} metadata maxzoom=${metaMaxZoom} but highest tile zoom is ${actualMaxZoom}`
-    );
+    throw new Error(`${name} metadata maxzoom=${metaMaxZoom} but highest tile zoom is ${actualMaxZoom}`);
   }
 
   // Caller-declared expectations: catches a build that ran with the wrong
@@ -996,19 +1023,17 @@ export function validateMbtilesArtifact(
   if (expected?.minZoom !== undefined && actualMinZoom !== expected.minZoom) {
     throw new Error(
       `${name} lowest tile zoom is ${actualMinZoom}, expected ${expected.minZoom} ` +
-      `(built with the wrong minimum-zoom flag?)`
+        `(built with the wrong minimum-zoom flag?)`
     );
   }
   if (expected?.maxZoom !== undefined && actualMaxZoom !== expected.maxZoom) {
     throw new Error(
       `${name} highest tile zoom is ${actualMaxZoom}, expected ${expected.maxZoom} ` +
-      `(built with the wrong maximum-zoom flag?)`
+        `(built with the wrong maximum-zoom flag?)`
     );
   }
 
-  console.log(
-    `    ✓ Validated ${name}: ${tileCount} tiles, z${actualMinZoom}–z${actualMaxZoom}, integrity ok`
-  );
+  console.log(`    ✓ Validated ${name}: ${tileCount} tiles, z${actualMinZoom}–z${actualMaxZoom}, integrity ok`);
 }
 
 export interface ManifestFileInput {
@@ -1060,9 +1085,7 @@ export function writeManifest(
         key: contentAddressedKey(file.name, sha256),
       });
     } else {
-      console.warn(
-        `    ⚠ ${id}: listed tile file is missing, omitting from manifest: ${file.path}`
-      );
+      console.warn(`    ⚠ ${id}: listed tile file is missing, omitting from manifest: ${file.path}`);
     }
   }
 
@@ -1072,7 +1095,7 @@ export function writeManifest(
   if (manifestFiles.length === 0) {
     throw new Error(
       `${id}: refusing to write an empty manifest — none of the ${files.length} ` +
-      `listed tile file(s) exist in ${outputDir}`
+        `listed tile file(s) exist in ${outputDir}`
     );
   }
 

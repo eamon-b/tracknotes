@@ -58,9 +58,7 @@ export function StopIssuesCard({ notice, rows, onRemove }: StopIssuesCardProps) 
         </View>
       ))}
       {onRemove && (
-        <Text style={[styles.hint, { color: colors.textSecondary }]}>
-          {STOP_ISSUES_HINT}
-        </Text>
+        <Text style={[styles.hint, { color: colors.textSecondary }]}>{STOP_ISSUES_HINT}</Text>
       )}
     </View>
   );

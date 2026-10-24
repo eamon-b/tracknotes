@@ -49,9 +49,7 @@ export async function adminBanUser(
   const banned = body.banned;
   const removeContent = banned && body.removeContent === true;
 
-  const user = await env.DB.prepare(
-    `SELECT id, is_admin, is_banned, deleted_at FROM users WHERE id = ?`
-  )
+  const user = await env.DB.prepare(`SELECT id, is_admin, is_banned, deleted_at FROM users WHERE id = ?`)
     .bind(userId)
     .first<UserBanRow>();
   if (!user) throw new HttpError(404, 'not_found', 'User not found');
@@ -63,9 +61,7 @@ export async function adminBanUser(
     if (user.deleted_at !== null) {
       throw new HttpError(409, 'account_deleted', 'This account was deleted, not banned');
     }
-    await env.DB.prepare(
-      `UPDATE users SET is_banned = 0, banned_at = NULL WHERE id = ? AND deleted_at IS NULL`
-    )
+    await env.DB.prepare(`UPDATE users SET is_banned = 0, banned_at = NULL WHERE id = ? AND deleted_at IS NULL`)
       .bind(userId)
       .run();
     const payload: BanUserResponse = { userId, banned: false, removedComments: 0, removedWaypoints: 0 };
@@ -96,9 +92,7 @@ export async function adminBanUser(
   const now = new Date().toISOString();
   // A repeat ban keeps the first `banned_at`.
   const statements = [
-    env.DB.prepare(
-      `UPDATE users SET is_banned = 1, banned_at = COALESCE(banned_at, ?) WHERE id = ?`
-    ).bind(now, userId),
+    env.DB.prepare(`UPDATE users SET is_banned = 1, banned_at = COALESCE(banned_at, ?) WHERE id = ?`).bind(now, userId),
   ];
   if (removeContent) {
     statements.push(
@@ -118,9 +112,7 @@ export async function adminBanUser(
   const results = await env.DB.batch(statements);
 
   if (withPhotos.length > 0) {
-    ctx.waitUntil(
-      Promise.all(withPhotos.map((row) => deleteCommentPhotos(env, row.id))).then(() => undefined)
-    );
+    ctx.waitUntil(Promise.all(withPhotos.map((row) => deleteCommentPhotos(env, row.id))).then(() => undefined));
   }
 
   const payload: BanUserResponse = {

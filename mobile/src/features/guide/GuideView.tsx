@@ -117,11 +117,7 @@ function GuidePanes() {
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <View style={styles.segmented}>
-          <SegmentedControl<GuidePaneKey>
-            options={OPTIONS}
-            value={pane}
-            onChange={switchPane}
-          />
+          <SegmentedControl<GuidePaneKey> options={OPTIONS} value={pane} onChange={switchPane} />
         </View>
         <DirectionToggle />
       </View>

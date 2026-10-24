@@ -65,9 +65,7 @@ describe('XML adapter parity', () => {
     ];
     for (const name of flattenable) {
       const xml = readFileSync(resolve(FIXTURES, name), 'utf-8');
-      expect(flattenGpx(parseGpx(xml, fxpXmlAdapter))).toEqual(
-        flattenGpx(parseGpx(xml, domParserXmlAdapter))
-      );
+      expect(flattenGpx(parseGpx(xml, fxpXmlAdapter))).toEqual(flattenGpx(parseGpx(xml, domParserXmlAdapter)));
     }
   });
 
@@ -106,8 +104,8 @@ describe('XML adapter parity', () => {
   it('decodes numeric character references the same way, and only once', () => {
     const xml = readFileSync(resolve(FIXTURES, 'character-references.gpx'), 'utf-8');
     const viaFxp = parseGpx(xml, fxpXmlAdapter);
-    expect(viaFxp.metadataName).toBe('O\'Connor&Sons Track');
-    expect(viaFxp.waypoints[0].name).toBe('Bill\'s Hut – café');
+    expect(viaFxp.metadataName).toBe("O'Connor&Sons Track");
+    expect(viaFxp.waypoints[0].name).toBe("Bill's Hut – café");
     expect(viaFxp.waypoints[0].desc).toBe('Literal &#39; stays literal; so does &amp; in CDATA');
     expect(viaFxp.tracks[0].name).toBe('Day 1 \u{1F3D5}');
     expect(viaFxp).toEqual(parseGpx(xml, domParserXmlAdapter));

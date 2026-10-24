@@ -19,11 +19,7 @@
 import type { TrailPOI, TrailPoiConfig } from './trail-types';
 
 export type NoiseReason =
-  | 'bus-stop'
-  | 'minor-shelter'
-  | 'no-emergency-department'
-  | 'road-emergency-phone'
-  | 'excluded-by-trail';
+  'bus-stop' | 'minor-shelter' | 'no-emergency-department' | 'road-emergency-phone' | 'excluded-by-trail';
 
 /**
  * `shelter_type` values that describe a roof over a bench rather than somewhere
@@ -147,10 +143,7 @@ function isWalkerShuttle(name: string): boolean {
 }
 
 /** Drop every POI a rule rejects. Returns a new array; `undefined` passes through. */
-export function dropNoisePois(
-  pois: readonly TrailPOI[] | undefined,
-  config?: TrailPoiConfig
-): TrailPOI[] | undefined {
+export function dropNoisePois(pois: readonly TrailPOI[] | undefined, config?: TrailPoiConfig): TrailPOI[] | undefined {
   if (!pois) return undefined;
   return pois.filter(poi => noiseReason(poi, config) === null);
 }

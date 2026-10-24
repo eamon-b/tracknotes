@@ -153,10 +153,7 @@ function ruleMatches(tags: Record<string, string>, rule: POITagRule): boolean {
  * matched is classified as that type (a sheltered bus stop asked for as
  * Transport is transport, not camping).
  */
-export function categorizePOI(
-  tags: Record<string, string>,
-  preferred?: readonly POIType[]
-): POIType | null {
+export function categorizePOI(tags: Record<string, string>, preferred?: readonly POIType[]): POIType | null {
   if (!tags) {
     return null;
   }
@@ -201,9 +198,7 @@ export interface BBox {
  * Either a bbox or a polyline corridor. Corridor is the preferred mode; one
  * query may carry several polylines (`packCorridorChunks`).
  */
-export type OverpassArea =
-  | { bounds: BBox }
-  | { corridor: LatLon[] | LatLon[][]; radiusMeters: number };
+export type OverpassArea = { bounds: BBox } | { corridor: LatLon[] | LatLon[][]; radiusMeters: number };
 
 export interface OverpassQueryOptions {
   /** Overpass `[timeout:]` value in seconds. Default 22. */
@@ -316,8 +311,7 @@ export function buildOverpassQuery(
 ): string {
   const timeout = opts.timeoutSeconds ?? 22;
   const filters = areaFilters(area);
-  const bboxSetting =
-    'corridor' in area ? corridorBBoxSetting(toPolylines(area.corridor), area.radiusMeters) : '';
+  const bboxSetting = 'corridor' in area ? corridorBBoxSetting(toPolylines(area.corridor), area.radiusMeters) : '';
   const statements: string[] = [];
   const seen = new Set<string>();
 
@@ -369,9 +363,7 @@ export function buildOverpassQuery(
   }
 
   if (statements.length === 0) {
-    throw new Error(
-      `No POI types to query (got ${JSON.stringify(types)}); known types: ${POI_TYPES.join(', ')}`
-    );
+    throw new Error(`No POI types to query (got ${JSON.stringify(types)}); known types: ${POI_TYPES.join(', ')}`);
   }
 
   return `[out:json][timeout:${timeout}]${bboxSetting};\n(\n${statements.join('\n')}\n);\nout center;`;
@@ -796,10 +788,7 @@ const RING = 3;
  * would fill more than `MAX_INDEX_CELLS` cells is not gridded: every POI then
  * goes through `nearestPointOnRoute` itself.
  */
-export function createRouteIndex(
-  geom: RouteGeometry,
-  radiusKm: number
-): (poi: LatLon) => RouteProximity | null {
+export function createRouteIndex(geom: RouteGeometry, radiusKm: number): (poi: LatLon) => RouteProximity | null {
   const { points, cumulativeKm, segmentBreaks, coarseIndices } = geom;
   const n = points.length;
   const within = (proximity: RouteProximity): RouteProximity | null =>

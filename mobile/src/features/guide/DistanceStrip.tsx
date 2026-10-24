@@ -176,7 +176,9 @@ export function DistanceStrip() {
         contentContainerStyle={styles.scrollContent}
       >
         {status === 'off-trail' && offTrailMeters != null && (
-          <View style={[styles.chip, { backgroundColor: colors.warning, borderColor: colors.warning }]}>
+          <View
+            style={[styles.chip, { backgroundColor: colors.warning, borderColor: colors.warning }]}
+          >
             <Text style={[styles.chipValue, { color: colors.warningText }]}>
               {`${formatShortDistance(offTrailMeters, units)} off trail`}
             </Text>
@@ -185,7 +187,10 @@ export function DistanceStrip() {
         {chips.map((chip) => (
           <View
             key={chip.key}
-            style={[styles.chip, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}
+            style={[
+              styles.chip,
+              { backgroundColor: colors.surfaceElevated, borderColor: colors.border },
+            ]}
           >
             {chip.label !== '' && (
               <Text style={[styles.chipLabel, { color: colors.textSecondary }]}>{chip.label}</Text>

@@ -36,16 +36,10 @@ export function SegmentedControl<T extends string>({
             onPress={() => onChange(opt.value)}
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
-            style={[
-              styles.segment,
-              active && { backgroundColor: colors.accent },
-            ]}
+            style={[styles.segment, active && { backgroundColor: colors.accent }]}
           >
             <Text
-              style={[
-                styles.label,
-                { color: active ? colors.accentText : colors.textSecondary },
-              ]}
+              style={[styles.label, { color: active ? colors.accentText : colors.textSecondary }]}
             >
               {opt.label}
             </Text>

@@ -123,10 +123,7 @@ interface LatLon {
  * HTTP failure / malformed response. Nothing is partially applied: the caller
  * either gets a complete elevation array or an exception.
  */
-export async function backfillElevation(
-  points: LatLon[],
-  options: BackfillElevationOptions = {}
-): Promise<number[]> {
+export async function backfillElevation(points: LatLon[], options: BackfillElevationOptions = {}): Promise<number[]> {
   if (points.length === 0) return [];
 
   const doFetch = options.fetch ?? (globalThis.fetch as unknown as ElevationFetch | undefined);
@@ -201,9 +198,7 @@ export function estimateElevationRequests(
 export function applyElevation(trail: ProcessedTrail, elevations: number[]): ProcessedTrail {
   const points = trail.track.points;
   if (elevations.length !== points.length) {
-    throw new Error(
-      `Elevation backfill returned ${elevations.length} values for ${points.length} track points`
-    );
+    throw new Error(`Elevation backfill returned ${elevations.length} values for ${points.length} track points`);
   }
 
   const withElevation: ProcessedTrail = {
@@ -382,9 +377,7 @@ async function fetchElevationBatch(
       typeof elevation === 'number' || (typeof elevation === 'string' && elevation.trim() !== '')
         ? Number(elevation)
         : NaN;
-    return Number.isFinite(value) &&
-      value >= MIN_PLAUSIBLE_ELEVATION_M &&
-      value <= MAX_PLAUSIBLE_ELEVATION_M
+    return Number.isFinite(value) && value >= MIN_PLAUSIBLE_ELEVATION_M && value <= MAX_PLAUSIBLE_ELEVATION_M
       ? value
       : NaN;
   });

@@ -27,16 +27,8 @@ import { useTheme } from '../../theme';
 import { KeyboardAvoidingModalContent } from '../../navigation/KeyboardAwareScrollView';
 import { radii, spacing, typography } from '../../tokens';
 import { apiErrorMessage } from '../../api/error-message';
-import {
-  WATER_STATUS_OPTIONS,
-  isWaterFamily,
-  waterStatusMeta,
-} from '../guide/waypoint-detail';
-import {
-  hasComposerContent,
-  selectedPhotoFromResult,
-  type SelectedPhoto,
-} from './photo-upload';
+import { WATER_STATUS_OPTIONS, isWaterFamily, waterStatusMeta } from '../guide/waypoint-detail';
+import { hasComposerContent, selectedPhotoFromResult, type SelectedPhoto } from './photo-upload';
 import { MAX_DISPLAY_NAME_LENGTH, validateDisplayName } from './display-name';
 import { ContributionLicence } from './ContributionLicence';
 
@@ -162,7 +154,9 @@ export function Composer({
   ) : null;
 
   return (
-    <View style={[styles.composer, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+    <View
+      style={[styles.composer, { borderColor: colors.border, backgroundColor: colors.surface }]}
+    >
       {showWater && (
         <View style={styles.waterChips}>
           {WATER_STATUS_OPTIONS.map((status) => {
@@ -181,7 +175,9 @@ export function Composer({
                   active && { backgroundColor: color },
                 ]}
               >
-                <Text style={[styles.waterChipText, { color: active ? colors.textInverse : color }]}>
+                <Text
+                  style={[styles.waterChipText, { color: active ? colors.textInverse : color }]}
+                >
                   {meta.label}
                 </Text>
               </Pressable>
@@ -254,7 +250,10 @@ export function Composer({
           is repeated inside the modal, which is what the user is looking at. */}
       {!promptOpen && errorText}
 
-      <ContributionLicence verb="posting" what={photo ? 'your comment and photo' : 'your comment'} />
+      <ContributionLicence
+        verb="posting"
+        what={photo ? 'your comment and photo' : 'your comment'}
+      />
 
       <Pressable
         onPress={handleSubmit}
@@ -287,7 +286,9 @@ export function Composer({
         <KeyboardAvoidingModalContent>
           <View style={[styles.modalBackdrop, { backgroundColor: colors.scrim }]}>
             <View style={[styles.modalCard, { backgroundColor: colors.surfaceElevated }]}>
-              <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Choose a display name</Text>
+              <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
+                Choose a display name
+              </Text>
               <Text style={[styles.modalHint, { color: colors.textSecondary }]}>
                 Shown next to your comments. You can change it later in Settings.
               </Text>
@@ -318,7 +319,9 @@ export function Composer({
                   onPress={savePromptedName}
                   disabled={busy}
                   accessibilityRole="button"
-                  accessibilityLabel={error ? 'Retry posting comment' : 'Save display name and post'}
+                  accessibilityLabel={
+                    error ? 'Retry posting comment' : 'Save display name and post'
+                  }
                   style={[styles.modalButton, styles.modalSave, { backgroundColor: colors.accent }]}
                 >
                   {busy ? (

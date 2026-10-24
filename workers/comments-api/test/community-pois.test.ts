@@ -114,7 +114,13 @@ function elementsAlong(start: { lat: number; lon: number }): unknown[] {
       tags: { tourism: 'camp_site', name: 'Creek Camp', fee: 'no' },
     },
     // Noise: a plain bus stop.
-    { type: 'node', id: 3, lat: at(20).lat, lon: at(20).lon, tags: { highway: 'bus_stop', name: 'Main Rd After Creek Rd' } },
+    {
+      type: 'node',
+      id: 3,
+      lat: at(20).lat,
+      lon: at(20).lon,
+      tags: { highway: 'bus_stop', name: 'Main Rd After Creek Rd' },
+    },
     // A supermarket mapped as a building: kept, with only its display tags.
     {
       type: 'way',
@@ -160,7 +166,11 @@ function zigzagTrail(start: { lat: number; lon: number }, count: number): Proces
 const noSleep = async (): Promise<void> => undefined;
 
 /** Run the enrichment as a scheduled run would, `aheadMs` from now. */
-async function run(fetchImpl: typeof fetch, deps: Partial<PoiEnrichDeps> = {}, aheadMs = 10 * 60 * 1000): Promise<void> {
+async function run(
+  fetchImpl: typeof fetch,
+  deps: Partial<PoiEnrichDeps> = {},
+  aheadMs = 10 * 60 * 1000
+): Promise<void> {
   await enrichCommunityRoutePois(testEnv, {
     endpoints: [ENDPOINT_A, ENDPOINT_B],
     fetchImpl,
@@ -399,14 +409,13 @@ describe('POI enrichment', () => {
     expect(r.pois_status).toBe('skipped');
     expect(r.pois_error).toBe('route_too_long');
     expect(r.pois_hash).toBe(r.content_hash);
-   }, 60_000);
+  }, 60_000);
 
   it('skips a route whose answer is a city’s worth of POIs', async () => {
     const owner = await registerDevice();
     const route = await submitAt(owner, freshStart());
     await onlyCandidate(route.id);
-    const huge = () =>
-      new Response('{}', { headers: { 'Content-Length': String(POI_LIMITS.maxResponseBytes + 1) } });
+    const huge = () => new Response('{}', { headers: { 'Content-Length': String(POI_LIMITS.maxResponseBytes + 1) } });
     await run(overpass([huge]));
     const r = await row(route.id);
     expect(r.pois_status).toBe('skipped');
@@ -457,7 +466,9 @@ describe('POI enrichment', () => {
     await waitOnExecutionContext(ctx);
     expect(res.status).toBe(200);
     expect(await poisOf()).toBe(3);
-    expect((await storedTrail((await row(route.id)).r2_key as string)).config.name).toBe('Ridge and river loop, renamed');
+    expect((await storedTrail((await row(route.id)).r2_key as string)).config.name).toBe(
+      'Ridge and river loop, renamed'
+    );
 
     // Hide, then restore: republished from the private copy.
     const status = (body: unknown) =>
@@ -541,7 +552,6 @@ describe('POI enrichment', () => {
     expect(privates.filter((k) => k.includes('/overpass-'))).toHaveLength(1);
   });
 });
-
 
 /** A clock the test moves: `now()` for the run's budget, `sleep` advances it. */
 function fakeClock(start = Date.now()): {
@@ -662,9 +672,7 @@ describe('POI enrichment: budgets, retries and leftovers', () => {
     const other = await submitAt(owner, freshStart());
     await onlyCandidate(other.id);
     const clock2 = fakeClock();
-    const hours = overpass([
-      new Response('come back tomorrow', { status: 429, headers: { 'Retry-After': '3600' } }),
-    ]);
+    const hours = overpass([new Response('come back tomorrow', { status: 429, headers: { 'Retry-After': '3600' } })]);
     await run(hours, { endpoints: [ENDPOINT_A], now: clock2.now, sleep: clock2.sleep });
     expect(hours.calls).toHaveLength(1);
     expect(clock2.slept.every((ms) => ms <= POI_LIMITS.maxRetryAfterMs)).toBe(true);
@@ -739,7 +747,9 @@ describe('POI enrichment: budgets, retries and leftovers', () => {
     expect(r.pois_error).toBe('gave_up');
     // Recoverable: due again in two weeks, attempts reset.
     expect(r.pois_attempts).toBe(0);
-    expect(Date.parse(r.pois_due_at as string) - Date.now()).toBeGreaterThan(POI_RUN_LIMITS.failedRetryAfterMs - 60_000);
+    expect(Date.parse(r.pois_due_at as string) - Date.now()).toBeGreaterThan(
+      POI_RUN_LIMITS.failedRetryAfterMs - 60_000
+    );
     expect(await env.PHOTOS.get(orphan)).toBeNull();
   });
 

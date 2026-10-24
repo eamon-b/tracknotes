@@ -14,10 +14,7 @@
 
 import type { DeviceTokenSummary } from '@lib/comments-api-types';
 
-const MONTHS = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 /** `2027-03-20T…` → `20 Mar 2027`. Empty string for anything unparseable. */
 export function shortDate(iso: string | null | undefined): string {

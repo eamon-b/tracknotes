@@ -83,7 +83,7 @@ export function cumulativeKm(points: SpurPoint[]): number[] {
  */
 function buildGrid(
   points: SpurPoint[],
-  proximityMeters: number,
+  proximityMeters: number
 ): { cells: Map<string, number[]>; latCell: number; lonCell: number } {
   const latCell = proximityMeters / METERS_PER_DEGREE_LAT;
   let latSum = 0;
@@ -115,10 +115,7 @@ function buildGrid(
  *
  * Detection is advisory: it reports, it never modifies the track.
  */
-export function detectSelfRetraces(
-  points: SpurPoint[],
-  options: DetectSelfRetracesOptions = {},
-): SelfRetrace[] {
+export function detectSelfRetraces(points: SpurPoint[], options: DetectSelfRetracesOptions = {}): SelfRetrace[] {
   const proximityMeters = options.proximityMeters ?? DEFAULT_PROXIMITY_METERS;
   const minRetraceKm = options.minRetraceKm ?? DEFAULT_MIN_RETRACE_KM;
   const terminalToleranceKm = options.terminalToleranceKm ?? DEFAULT_TERMINAL_TOLERANCE_KM;
@@ -164,10 +161,7 @@ export function detectSelfRetraces(
     // also swallow every real retrace on the loop in the merge below. Drop it
     // here; a loop that does walk part of its way out and back still pairs
     // those points away from the two ends.
-    if (
-      earliest !== -1 &&
-      !(km[earliest] <= terminalToleranceKm && totalKm - km[j] <= terminalToleranceKm)
-    ) {
+    if (earliest !== -1 && !(km[earliest] <= terminalToleranceKm && totalKm - km[j] <= terminalToleranceKm)) {
       pairs.push({ start: earliest, end: j });
     }
   }
@@ -213,9 +207,7 @@ export function detectSelfRetraces(
       startIndex: episode.start,
       turnaroundIndex,
       endIndex: episode.end,
-      terminal:
-        km[episode.start] <= terminalToleranceKm ||
-        totalKm - km[episode.end] <= terminalToleranceKm,
+      terminal: km[episode.start] <= terminalToleranceKm || totalKm - km[episode.end] <= terminalToleranceKm,
     });
   }
 
@@ -254,11 +246,7 @@ function indexAtKm(km: number[], targetKm: number): number {
  * `fromKm`/`toKm` are in the track's own km space, i.e. after any build-time
  * reversal has already been applied.
  */
-export function extractSpur<P extends SpurPoint>(
-  points: P[],
-  fromKm: number,
-  toKm: number,
-): ExtractedSpur<P> {
+export function extractSpur<P extends SpurPoint>(points: P[], fromKm: number, toKm: number): ExtractedSpur<P> {
   if (points.length < 2) {
     throw new Error(`extractSpur: need at least 2 points, got ${points.length}`);
   }
@@ -273,7 +261,7 @@ export function extractSpur<P extends SpurPoint>(
   if (endIndex <= startIndex) {
     throw new Error(
       `extractSpur: km range ${fromKm}–${toKm} resolves to a single point ` +
-        `(index ${startIndex}) on a ${km[km.length - 1].toFixed(2)} km track`,
+        `(index ${startIndex}) on a ${km[km.length - 1].toFixed(2)} km track`
     );
   }
 
@@ -282,14 +270,10 @@ export function extractSpur<P extends SpurPoint>(
   // `startIndex`, so the trimmed route starts there instead of keeping the
   // spur's far terminus.
   const trimmedMain =
-    startIndex === 0
-      ? points.slice(endIndex)
-      : [...points.slice(0, startIndex + 1), ...points.slice(endIndex + 1)];
+    startIndex === 0 ? points.slice(endIndex) : [...points.slice(0, startIndex + 1), ...points.slice(endIndex + 1)];
 
   if (trimmedMain.length < 2) {
-    throw new Error(
-      `extractSpur: km range ${fromKm}–${toKm} would leave ${trimmedMain.length} main-route point(s)`,
-    );
+    throw new Error(`extractSpur: km range ${fromKm}–${toKm} would leave ${trimmedMain.length} main-route point(s)`);
   }
 
   return { trimmedMain, spurPoints };

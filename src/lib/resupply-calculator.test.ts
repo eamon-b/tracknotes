@@ -1,10 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  extractResupplyPoints,
-  computeResupplyGaps,
-  analyzeResupply,
-  DEFAULT_DAILY_KM,
-} from './resupply-calculator';
+import { extractResupplyPoints, computeResupplyGaps, analyzeResupply, DEFAULT_DAILY_KM } from './resupply-calculator';
 import { DEFAULT_PLAN_THRESHOLDS, type PlanWaypoint } from './plan-types';
 
 /** The long-carry input's initial value, which these cases were written against. */
@@ -13,7 +8,7 @@ const LONG = DEFAULT_PLAN_THRESHOLDS.longCarryDays;
 const waypoints: PlanWaypoint[] = [
   { name: 'Springfield', type: 'town', totalDistance: 50 },
   { name: 'Shelbyville', type: 'food', totalDistance: 120 },
-  { name: 'Shelby Creek', type: 'water', totalDistance: 80 },   // not a resupply
+  { name: 'Shelby Creek', type: 'water', totalDistance: 80 }, // not a resupply
   { name: 'Capitol City', type: 'town', totalDistance: 200 },
 ];
 
@@ -35,9 +30,7 @@ describe('extractResupplyPoints', () => {
   });
 
   it('returns empty array when no resupply waypoints', () => {
-    const noResupply: PlanWaypoint[] = [
-      { name: 'Creek', type: 'water', totalDistance: 30 },
-    ];
+    const noResupply: PlanWaypoint[] = [{ name: 'Creek', type: 'water', totalDistance: 30 }];
     expect(extractResupplyPoints(noResupply)).toHaveLength(0);
   });
 
@@ -122,7 +115,9 @@ describe('computeResupplyGaps', () => {
 
 describe('analyzeResupply', () => {
   it('returns hasResupplyData=false when no town/food waypoints', () => {
-    const result = analyzeResupply([{ name: 'Creek', type: 'water', totalDistance: 10 }], 100, { longThresholdDays: LONG });
+    const result = analyzeResupply([{ name: 'Creek', type: 'water', totalDistance: 10 }], 100, {
+      longThresholdDays: LONG,
+    });
     expect(result.hasResupplyData).toBe(false);
     expect(result.gaps).toHaveLength(0);
   });
@@ -159,9 +154,7 @@ describe('computeResupplyGaps edge cases', () => {
   });
 
   it('does not produce Infinity or NaN for estimatedDays with zero dailyKm', () => {
-    const points = extractResupplyPoints([
-      { name: 'Town A', type: 'town', totalDistance: 50 },
-    ]);
+    const points = extractResupplyPoints([{ name: 'Town A', type: 'town', totalDistance: 50 }]);
     // dailyKm = 0 would cause division by zero
     const gaps = computeResupplyGaps(points, 0, 100, { longThresholdDays: LONG, dailyKm: 0 });
     for (const gap of gaps) {
@@ -209,12 +202,7 @@ describe('Larapinta resupply caches', () => {
   });
 
   it('splits Ormiston→Standley into three legs, not one', () => {
-    const gaps = computeResupplyGaps(
-      extractResupplyPoints(larapinta),
-      49.7,
-      166.8,
-      { longThresholdDays: LONG },
-    );
+    const gaps = computeResupplyGaps(extractResupplyPoints(larapinta), 49.7, 166.8, { longThresholdDays: LONG });
     // Ormiston→Serpentine, Serpentine→Ellery, Ellery→Standley.
     expect(gaps).toHaveLength(3);
     expect(gaps.map(g => g.distanceKm)).toEqual([42.2, 13.2, 61.7]);

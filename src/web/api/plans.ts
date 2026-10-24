@@ -48,11 +48,7 @@ export interface MyPlanResult {
  * last live entry for the trail — later pages are more recently updated, and a
  * tombstone for the same trail means it was deleted after that.
  */
-export async function fetchMyPlan(
-  session: WebSession,
-  trailId: string,
-  deps: PlanApiDeps = {},
-): Promise<MyPlanResult> {
+export async function fetchMyPlan(session: WebSession, trailId: string, deps: PlanApiDeps = {}): Promise<MyPlanResult> {
   let cursor: string | null = null;
   let entry: PlanSyncEntry | null = null;
   let syncedAt = new Date().toISOString();
@@ -60,10 +56,10 @@ export async function fetchMyPlan(
   for (let page = 0; page < MAX_PAGES; page++) {
     const query = new URLSearchParams({ limit: String(PAGE_LIMIT) });
     if (cursor) query.set('cursor', cursor);
-    const response: PlansSyncResponse = await apiRequest<PlansSyncResponse>(
-      `/v1/plans?${query.toString()}`,
-      { token: session.token, fetchImpl: deps.fetchImpl },
-    );
+    const response: PlansSyncResponse = await apiRequest<PlansSyncResponse>(`/v1/plans?${query.toString()}`, {
+      token: session.token,
+      fetchImpl: deps.fetchImpl,
+    });
     syncedAt = response.syncedAt;
 
     for (const row of response.plans) {
@@ -90,7 +86,7 @@ export async function fetchMyPlan(
 export async function putPlan(
   session: WebSession,
   document: PlanDocument,
-  deps: PlanApiDeps = {},
+  deps: PlanApiDeps = {}
 ): Promise<PlanSyncEntry> {
   // Field by field rather than a rest-spread: this is the wire shape, and
   // anything a future field adds to the document should be a deliberate
@@ -121,7 +117,7 @@ export async function putPlan(
 export async function sharePlan(
   session: WebSession,
   planId: string,
-  deps: PlanApiDeps = {},
+  deps: PlanApiDeps = {}
 ): Promise<SharePlanResponse> {
   return apiRequest<SharePlanResponse>(`/v1/plans/${encodeURIComponent(planId)}/share`, {
     method: 'POST',
@@ -131,11 +127,7 @@ export async function sharePlan(
 }
 
 /** Revoke the public link. Idempotent: an unshared plan is a 204 too. */
-export async function unsharePlan(
-  session: WebSession,
-  planId: string,
-  deps: PlanApiDeps = {},
-): Promise<void> {
+export async function unsharePlan(session: WebSession, planId: string, deps: PlanApiDeps = {}): Promise<void> {
   await apiRequest<void>(`/v1/plans/${encodeURIComponent(planId)}/share`, {
     method: 'DELETE',
     token: session.token,
@@ -148,10 +140,7 @@ export async function unsharePlan(
  * the whole credential, and it belongs to someone who is not necessarily this
  * browser's user.
  */
-export async function fetchSharedPlan(
-  shareId: string,
-  deps: PlanApiDeps = {},
-): Promise<SharedPlanResponse> {
+export async function fetchSharedPlan(shareId: string, deps: PlanApiDeps = {}): Promise<SharedPlanResponse> {
   return apiRequest<SharedPlanResponse>(`/v1/shared/plans/${encodeURIComponent(shareId)}`, {
     fetchImpl: deps.fetchImpl,
   });

@@ -234,14 +234,18 @@ function recomputeSegments<T extends DedupableWaypoint>(row: T, droppedRun: read
   const updated: T = { ...row };
   updated.distance = roundKm(row.totalDistance - (origin.totalDistance - origin.distance));
   if (
-    row.totalAscent !== undefined && row.ascent !== undefined &&
-    origin.totalAscent !== undefined && origin.ascent !== undefined
+    row.totalAscent !== undefined &&
+    row.ascent !== undefined &&
+    origin.totalAscent !== undefined &&
+    origin.ascent !== undefined
   ) {
     updated.ascent = Math.round(row.totalAscent - (origin.totalAscent - origin.ascent));
   }
   if (
-    row.totalDescent !== undefined && row.descent !== undefined &&
-    origin.totalDescent !== undefined && origin.descent !== undefined
+    row.totalDescent !== undefined &&
+    row.descent !== undefined &&
+    origin.totalDescent !== undefined &&
+    origin.descent !== undefined
   ) {
     updated.descent = Math.round(row.totalDescent - (origin.totalDescent - origin.descent));
   }
@@ -286,10 +290,7 @@ export function dedupeNearDuplicateWaypoints<T extends DedupableWaypoint>(
         for (let b = a + 1; b < cluster.length; b++) {
           const wpA = waypoints[cluster[a]];
           const wpB = waypoints[cluster[b]];
-          maxSeparationMeters = Math.max(
-            maxSeparationMeters,
-            haversineDistance(wpA.lat, wpA.lon, wpB.lat, wpB.lon)
-          );
+          maxSeparationMeters = Math.max(maxSeparationMeters, haversineDistance(wpA.lat, wpA.lon, wpB.lat, wpB.lon));
         }
       }
 
@@ -312,9 +313,7 @@ export function dedupeNearDuplicateWaypoints<T extends DedupableWaypoint>(
   }
 
   // Report in input order so the merge log reads top-to-bottom along the trail.
-  const merges = found
-    .sort((a, b) => a.survivorIndex - b.survivorIndex)
-    .map(entry => entry.merge);
+  const merges = found.sort((a, b) => a.survivorIndex - b.survivorIndex).map(entry => entry.merge);
 
   if (merges.length === 0) {
     return { waypoints: [...waypoints], merges: [], droppedIds: [] };

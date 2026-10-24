@@ -96,13 +96,13 @@ function syntheticAnswer(points: { lat: number; lon: number }[], count: number):
 /** The trail's committed `pois.json`, turned back into an Overpass answer. */
 function realAnswer(id: string): Uint8Array | null {
   const dirs = readdirSync(join(ROOT, 'data/trails'));
-  const dir = dirs.find((d) => d.toLowerCase().replace(/[-_]/g, '') === id.toLowerCase().replace(/[-_]/g, ''));
+  const dir = dirs.find(d => d.toLowerCase().replace(/[-_]/g, '') === id.toLowerCase().replace(/[-_]/g, ''));
   const file = dir ? join(ROOT, 'data/trails', dir, 'pois.json') : null;
   if (!file || !existsSync(file)) return null;
   const { pois } = JSON.parse(readFileSync(file, 'utf8')) as {
     pois: { id: number; type: string; lat: number; lon: number; tags?: Record<string, string> }[];
   };
-  const elements = pois.map((p) =>
+  const elements = pois.map(p =>
     p.type === 'node'
       ? { type: p.type, id: p.id, lat: p.lat, lon: p.lon, tags: p.tags ?? {} }
       : { type: p.type, id: p.id, center: { lat: p.lat, lon: p.lon }, tags: p.tags ?? {} }
@@ -125,12 +125,14 @@ async function measure(id: string): Promise<void> {
   const { pois: _bundled, ...withoutPois } = raw;
   const storedText = JSON.stringify(withoutPois);
   const mb = storedText.length / 1e6;
-  console.log(`\n${id}: stored JSON ${mb.toFixed(1)} MB (community routes are capped at 4 MB), ${raw.track.points.length} track points`);
+  console.log(
+    `\n${id}: stored JSON ${mb.toFixed(1)} MB (community routes are capped at 4 MB), ${raw.track.points.length} track points`
+  );
 
   const parse = await time(() => JSON.parse(storedText) as ProcessedTrail);
   const trail = parse.result;
   const plan = await time(() => planPoiQueries(trail));
-  const hashes = await time(() => Promise.all(plan.result.queries.map((q) => queryHash('salt', q))));
+  const hashes = await time(() => Promise.all(plan.result.queries.map(q => queryHash('salt', q))));
   console.log(`  parse stored trail      ${fmt(parse.timing)}`);
   console.log(`  plan ${String(plan.result.queries.length).padStart(2)} queries         ${fmt(plan.timing)}`);
   console.log(`  hash queries            ${fmt(hashes.timing)}`);
@@ -138,7 +140,10 @@ async function measure(id: string): Promise<void> {
 
   const answers: [string, Uint8Array | null][] = [
     ['real POIs', realAnswer(id)],
-    [`synthetic ${POI_LIMITS.maxFetchedPois}`, syntheticAnswer(plan.result.corridor.geometry.points, POI_LIMITS.maxFetchedPois)],
+    [
+      `synthetic ${POI_LIMITS.maxFetchedPois}`,
+      syntheticAnswer(plan.result.corridor.geometry.points, POI_LIMITS.maxFetchedPois),
+    ],
   ];
   for (const [label, answer] of answers) {
     if (!answer) continue;
@@ -152,7 +157,9 @@ async function measure(id: string): Promise<void> {
       return createHash('md5').update(body).digest('hex');
     });
     const total = fixed + parsed.timing.median + finished.timing.median + compare.timing.median + encode.timing.median;
-    console.log(`  — ${label}: ${(answer.byteLength / 1e6).toFixed(2)} MB answer, ${fetched.length} elements → ${pois.length} POIs (${finished.result.kind})`);
+    console.log(
+      `  — ${label}: ${(answer.byteLength / 1e6).toFixed(2)} MB answer, ${fetched.length} elements → ${pois.length} POIs (${finished.result.kind})`
+    );
     console.log(`    parse answer          ${fmt(parsed.timing)}`);
     console.log(`    place + finish        ${fmt(finished.timing)}`);
     console.log(`    change check          ${fmt(compare.timing)}`);

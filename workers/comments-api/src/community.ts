@@ -312,9 +312,7 @@ function toDetail(
 
 async function loadRoute(env: Env, id: string): Promise<CommunityRouteRow | null> {
   if (!isCommunityRouteId(id)) return null;
-  return env.DB.prepare(`SELECT * FROM community_routes WHERE id = ?`)
-    .bind(id)
-    .first<CommunityRouteRow>();
+  return env.DB.prepare(`SELECT * FROM community_routes WHERE id = ?`).bind(id).first<CommunityRouteRow>();
 }
 
 async function reportsFor(env: Env, id: string): Promise<ReportRow[]> {
@@ -341,13 +339,7 @@ function assertNotBanned(user: AuthUser, what: string): void {
 // Validation
 // ---------------------------------------------------------------------------
 
-function cleanText(
-  raw: unknown,
-  field: string,
-  min: number,
-  max: number,
-  allowLineBreaks: boolean
-): string {
+function cleanText(raw: unknown, field: string, min: number, max: number, allowLineBreaks: boolean): string {
   if (typeof raw !== 'string') {
     throw new HttpError(400, `invalid_${field}`, `${field} must be a string`);
   }
@@ -450,7 +442,10 @@ function decodeGpx(raw: unknown): DecodedGpx | null {
   // Sniff the head only: an XML declaration, a comment or two, then `<gpx`.
   // Decoding all of a 5 MB file to text just to look at its start would hold
   // a third copy of it for nothing.
-  const head = binary.slice(0, GPX_SNIFF_BYTES).replace(/^\xEF\xBB\xBF/, '').trimStart();
+  const head = binary
+    .slice(0, GPX_SNIFF_BYTES)
+    .replace(/^\xEF\xBB\xBF/, '')
+    .trimStart();
   if (head.charAt(0) !== '<' || !head.includes('<gpx')) return null;
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
@@ -553,7 +548,10 @@ function conflict(message = 'The route changed while you were editing it; reload
 async function discardUnclaimed(env: Env, id: string, keys: (string | null)[]): Promise<void> {
   const current = await loadRoute(env, id);
   const named = new Set([current?.r2_key, current?.private_key, current?.gpx_key]);
-  await deleteObjects(env, keys.filter((k) => k && !named.has(k)));
+  await deleteObjects(
+    env,
+    keys.filter((k) => k && !named.has(k))
+  );
 }
 
 /**
@@ -568,9 +566,7 @@ async function discardUnclaimed(env: Env, id: string, keys: (string | null)[]): 
  * public domain from its private copy.
  */
 async function unpublish(env: Env, id: string): Promise<void> {
-  await env.DB.prepare(`UPDATE community_routes SET r2_key = NULL WHERE id = ? AND status = 'hidden'`)
-    .bind(id)
-    .run();
+  await env.DB.prepare(`UPDATE community_routes SET r2_key = NULL WHERE id = ? AND status = 'hidden'`).bind(id).run();
   await purgePublic(env, id);
 
   const row = await loadRoute(env, id);
@@ -1149,7 +1145,13 @@ export async function patchCommunityRoute(
   const description =
     body.description === undefined
       ? row.description
-      : cleanText(body.description, 'description', COMMUNITY_LIMITS.descriptionMin, COMMUNITY_LIMITS.descriptionMax, true);
+      : cleanText(
+          body.description,
+          'description',
+          COMMUNITY_LIMITS.descriptionMin,
+          COMMUNITY_LIMITS.descriptionMax,
+          true
+        );
   const credit = body.credit === undefined ? row.credit : cleanCredit(body.credit);
   const region =
     body.country === undefined && body.state === undefined
@@ -1326,9 +1328,7 @@ export async function reportCommunityRoute(
     throw new HttpError(400, 'own_route', 'You cannot report your own route');
   }
 
-  const already = await env.DB.prepare(
-    `SELECT id FROM community_route_reports WHERE route_id = ? AND user_id = ?`
-  )
+  const already = await env.DB.prepare(`SELECT id FROM community_route_reports WHERE route_id = ? AND user_id = ?`)
     .bind(id, user.id)
     .first<{ id: number }>();
   if (already) return json({ ok: true }, 200);
@@ -1365,13 +1365,7 @@ export async function reportCommunityRoute(
                 WHERE r.route_id = community_routes.id
                   AND r.created_at > community_routes.status_changed_at
                   AND (julianday(r.created_at) - julianday(u.created_at)) * 86400000.0 >= ?) >= ?`
-    ).bind(
-      REPORTS_HIDE_NOTE,
-      stampAfter(row.updated_at),
-      id,
-      REPORTER_MIN_ACCOUNT_AGE_MS,
-      COMMUNITY_REPORTS_TO_HIDE
-    ),
+    ).bind(REPORTS_HIDE_NOTE, stampAfter(row.updated_at), id, REPORTER_MIN_ACCOUNT_AGE_MS, COMMUNITY_REPORTS_TO_HIDE),
   ]);
   if (hidden.meta.changes > 0) await unpublish(env, id);
   return json({ ok: true }, inserted.meta.changes > 0 ? 201 : 200);
@@ -1404,14 +1398,10 @@ export async function listMyCommunityRoutes(
 // ---------------------------------------------------------------------------
 
 /** GET /v1/admin/community/routes — the moderation queue. */
-export async function adminListCommunityRoutes(
-  request: Request,
-  env: Env,
-  ctx: ExecutionContext
-): Promise<Response> {
+export async function adminListCommunityRoutes(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const admin = await requireAdmin(request, env, ctx);
   const { results: rows } = await env.DB.prepare(
-      `SELECT * FROM community_routes WHERE status != 'removed'
+    `SELECT * FROM community_routes WHERE status != 'removed'
         ORDER BY CASE
                    WHEN status = 'hidden' AND review_status = 'done'
                         AND json_extract(review_json, '$.verdict') = 'reject' THEN 0
@@ -1613,9 +1603,7 @@ async function deattributeRoute(env: Env, first: CommunityRouteRow, graceMs: num
     if (!row || row.deattribute_pending !== 1) return;
     if (row.status === 'removed') {
       // Its objects are purged by the delete; nothing names the account.
-      await env.DB.prepare(
-        `UPDATE community_routes SET deattribute_pending = 0 WHERE id = ? AND status = 'removed'`
-      )
+      await env.DB.prepare(`UPDATE community_routes SET deattribute_pending = 0 WHERE id = ? AND status = 'removed'`)
         .bind(row.id)
         .run();
       return;
@@ -1651,7 +1639,16 @@ async function deattributeRoute(env: Env, first: CommunityRouteRow, graceMs: num
           SET md5 = ?, bytes = ?, r2_key = ?, private_key = ?, gpx_key = NULL, updated_at = ?
         WHERE id = ? AND status = ? AND updated_at = ?`
     )
-      .bind(put.md5, put.bytes, put.publicKey, put.privateKey, stampAfter(row.updated_at), row.id, row.status, row.updated_at)
+      .bind(
+        put.md5,
+        put.bytes,
+        put.publicKey,
+        put.privateKey,
+        stampAfter(row.updated_at),
+        row.id,
+        row.status,
+        row.updated_at
+      )
       .run();
     if (written.meta.changes > 0) {
       // Every older copy names the account: drop the old private one, the
@@ -1667,9 +1664,7 @@ async function deattributeRoute(env: Env, first: CommunityRouteRow, graceMs: num
       await purgePublicOrThrow(env, row.id, put.publicKey);
       // Guarded by the private copy written here: whatever changed the row
       // since, the copy it names is this de-attributed one.
-      await env.DB.prepare(
-        `UPDATE community_routes SET deattribute_pending = 0 WHERE id = ? AND private_key = ?`
-      )
+      await env.DB.prepare(`UPDATE community_routes SET deattribute_pending = 0 WHERE id = ? AND private_key = ?`)
         .bind(row.id, put.privateKey)
         .run();
       return;
@@ -1679,7 +1674,6 @@ async function deattributeRoute(env: Env, first: CommunityRouteRow, graceMs: num
   }
   console.error(`De-attributing ${first.id} gave up for now: the route kept changing`);
 }
-
 
 // ---------------------------------------------------------------------------
 // Scheduled maintenance (the Cron Trigger in wrangler.toml)

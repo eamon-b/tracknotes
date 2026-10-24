@@ -108,8 +108,8 @@ export function PoiLayersSheet({ visible, onClose, pois, onFindPois }: PoiLayers
               <View style={styles.findBlock}>
                 <Text style={[styles.note, styles.findNote, { color: colors.textSecondary }]}>
                   This guide has no points of interest yet. Search OpenStreetMap along the route to
-                  add water, campsites, shops, transport and more. You’ll see how much data it
-                  uses before anything is sent.
+                  add water, campsites, shops, transport and more. You’ll see how much data it uses
+                  before anything is sent.
                 </Text>
                 <FindButton onPress={onFindPois} primary />
               </View>
@@ -177,9 +177,7 @@ function FindButton({ onPress, primary = false }: { onPress: () => void; primary
       <Text style={[styles.findLabel, { color: primary ? colors.accentText : colors.accent }]}>
         {primary ? 'Find places along this route' : 'Search OpenStreetMap again'}
       </Text>
-      <Text
-        style={[styles.findSub, { color: primary ? colors.accentText : colors.textSecondary }]}
-      >
+      <Text style={[styles.findSub, { color: primary ? colors.accentText : colors.textSecondary }]}>
         OpenStreetMap
       </Text>
     </Pressable>

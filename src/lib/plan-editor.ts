@@ -30,14 +30,7 @@
 
 import type { PlanDirection } from './plan-direction';
 import { KM_EPSILON, stopsToActive } from './plan-direction';
-import type {
-  ComputedDay,
-  PlanDocument,
-  PlanState,
-  PlanStop,
-  PlanWaypoint,
-  SectionConfig,
-} from './plan-types';
+import type { ComputedDay, PlanDocument, PlanState, PlanStop, PlanWaypoint, SectionConfig } from './plan-types';
 import { PLAN_LIMITS, PLAN_WAYPOINT_ID_PATTERN } from './plan-types';
 import { computeDays, isStopAtPlace, stopWalk, type PlanStopInput, type PlanTrail } from './day-calculator';
 import type { TrailPOI } from './trail-types';
@@ -89,8 +82,7 @@ function defaultIdFactory(): string {
     return webCrypto.randomUUID();
   }
   throw new Error(
-    'plan-editor: no uuid source available — pass opts.idFactory ' +
-      '(React Native: globalThis.expo.uuidv4)',
+    'plan-editor: no uuid source available — pass opts.idFactory ' + '(React Native: globalThis.expo.uuidv4)'
   );
 }
 
@@ -168,11 +160,7 @@ export function isStopSelected(plan: PlanDocument, key: StopKey): boolean {
 // Document creation and whole-document edits
 // ---------------------------------------------------------------------------
 
-function withStops(
-  plan: PlanDocument,
-  stops: PlanStop[],
-  opts?: PlanEditOptions,
-): PlanDocument {
+function withStops(plan: PlanDocument, stops: PlanStop[], opts?: PlanEditOptions): PlanDocument {
   return { ...plan, stops, updatedAt: stamp(opts, plan.updatedAt) };
 }
 
@@ -215,7 +203,7 @@ export function newPlan(
   trailId: string,
   name: string,
   direction: PlanDirection,
-  opts?: PlanCreateOptions,
+  opts?: PlanCreateOptions
 ): PlanDocument {
   return {
     id: mintId(opts),
@@ -250,11 +238,7 @@ export function isIsoDate(value: unknown): value is string {
  * `YYYY-MM-DD` day, so a bad value can never reach the date cascade and
  * silently produce `Invalid Date` in every day card.
  */
-export function setStartDate(
-  plan: PlanDocument,
-  iso: string | null,
-  opts?: PlanEditOptions,
-): PlanDocument {
+export function setStartDate(plan: PlanDocument, iso: string | null, opts?: PlanEditOptions): PlanDocument {
   if (iso !== null && !isIsoDate(iso)) {
     throw new Error(`plan-editor: startDate must be YYYY-MM-DD, got ${JSON.stringify(iso)}`);
   }
@@ -267,11 +251,7 @@ export function setStartDate(
  * NOBO-absolute (`plan-direction.ts`), and `computePlanDays` mirrors them for
  * the render.
  */
-export function setDirection(
-  plan: PlanDocument,
-  direction: PlanDirection,
-  opts?: PlanEditOptions,
-): PlanDocument {
+export function setDirection(plan: PlanDocument, direction: PlanDirection, opts?: PlanEditOptions): PlanDocument {
   if (direction === plan.direction) return plan;
   return { ...plan, direction, updatedAt: stamp(opts, plan.updatedAt) };
 }
@@ -306,11 +286,7 @@ export function setDirection(
  * @throws when adding a stop at a trail end (`isTrailEnd`).
  * @throws when the plan is already at `PLAN_LIMITS.stopsMax`.
  */
-export function toggleStop(
-  plan: PlanDocument,
-  waypoint: ToggleTarget,
-  opts?: StopEditOptions,
-): PlanDocument {
+export function toggleStop(plan: PlanDocument, waypoint: ToggleTarget, opts?: StopEditOptions): PlanDocument {
   // A NaN km matches nothing, sorts nowhere and slips past the limits check,
   // but `isPlanDocument` rejects it on the next load — so a single bad number
   // costs the hiker the whole plan. Refuse it here, while the caller still has
@@ -321,7 +297,11 @@ export function toggleStop(
   const key: StopKey = { waypointId: waypoint.id, km: waypoint.km };
   const index = findStopIndex(plan, key);
   if (index !== -1) {
-    return withStops(plan, plan.stops.filter((_, i) => i !== index), opts);
+    return withStops(
+      plan,
+      plan.stops.filter((_, i) => i !== index),
+      opts
+    );
   }
   // Uniqueness is a document rule, not just a lookup convenience: two stops
   // never share a waypoint id and never share a km within KM_EPSILON. `index`
@@ -338,7 +318,7 @@ export function toggleStop(
   // changes nothing with no word why reads as a broken checkbox.
   if (isTrailEnd(waypoint.km, opts?.totalKm)) {
     throw new Error(
-      'plan-editor: the start and the end of the trail are not stops — a night there is not a day boundary',
+      'plan-editor: the start and the end of the trail are not stops — a night there is not a day boundary'
     );
   }
   if (plan.stops.length >= PLAN_LIMITS.stopsMax) {
@@ -365,15 +345,21 @@ export function toggleStop(
 export function removeStoredStop(
   plan: PlanDocument,
   target: Pick<PlanStop, 'km' | 'waypointId' | 'alternate'>,
-  opts?: PlanEditOptions,
+  opts?: PlanEditOptions
 ): PlanDocument {
-  const index = plan.stops.findIndex(stop =>
-    stop.alternate === target.alternate
-    && (target.waypointId
-      ? stop.waypointId === target.waypointId
-      : stop.waypointId === undefined && stop.km === target.km));
+  const index = plan.stops.findIndex(
+    stop =>
+      stop.alternate === target.alternate &&
+      (target.waypointId
+        ? stop.waypointId === target.waypointId
+        : stop.waypointId === undefined && stop.km === target.km)
+  );
   if (index === -1) return plan;
-  return withStops(plan, plan.stops.filter((_, i) => i !== index), opts);
+  return withStops(
+    plan,
+    plan.stops.filter((_, i) => i !== index),
+    opts
+  );
 }
 
 /**
@@ -394,7 +380,7 @@ function editStop(
   plan: PlanDocument,
   key: StopKey,
   edit: (stop: PlanStop) => PlanStop,
-  opts?: PlanEditOptions,
+  opts?: PlanEditOptions
 ): PlanDocument {
   const index = findStopIndex(plan, key);
   if (index === -1) return plan;
@@ -410,12 +396,7 @@ function editStop(
  * one rest day: the walking days are unchanged, every later date moves on one.
  * A non-finite value is treated as 1.
  */
-export function setNights(
-  plan: PlanDocument,
-  key: StopKey,
-  nights: number,
-  opts?: PlanEditOptions,
-): PlanDocument {
+export function setNights(plan: PlanDocument, key: StopKey, nights: number, opts?: PlanEditOptions): PlanDocument {
   const clamped = clampNights(nights);
   return editStop(plan, key, stop => (stop.nights === clamped ? stop : { ...stop, nights: clamped }), opts);
 }
@@ -430,12 +411,7 @@ function clampNights(nights: number): number {
  * removes the key rather than storing `''` — the document is size-capped and
  * travels over the wire on every edit.
  */
-export function setStopNote(
-  plan: PlanDocument,
-  key: StopKey,
-  note: string,
-  opts?: PlanEditOptions,
-): PlanDocument {
+export function setStopNote(plan: PlanDocument, key: StopKey, note: string, opts?: PlanEditOptions): PlanDocument {
   const trimmed = note.trim().slice(0, PLAN_LIMITS.noteMax);
   return editStop(
     plan,
@@ -446,17 +422,12 @@ export function setStopNote(
       }
       return stop.note === trimmed ? stop : { ...stop, note: trimmed };
     },
-    opts,
+    opts
   );
 }
 
 /** Tick or untick "booked". `false` drops the key, for the same reason as an empty note. */
-export function setStopBooked(
-  plan: PlanDocument,
-  key: StopKey,
-  booked: boolean,
-  opts?: PlanEditOptions,
-): PlanDocument {
+export function setStopBooked(plan: PlanDocument, key: StopKey, booked: boolean, opts?: PlanEditOptions): PlanDocument {
   return editStop(
     plan,
     key,
@@ -466,7 +437,7 @@ export function setStopBooked(
       }
       return stop.booked === true ? stop : { ...stop, booked: true };
     },
-    opts,
+    opts
   );
 }
 
@@ -489,7 +460,7 @@ export function replaceStopsInRange(
   plan: PlanDocument,
   range: { fromKm: number; toKm: number },
   targets: readonly ToggleTarget[],
-  opts?: StopEditOptions,
+  opts?: StopEditOptions
 ): PlanDocument {
   const lo = Math.min(range.fromKm, range.toKm);
   const hi = Math.max(range.fromKm, range.toKm);
@@ -537,13 +508,11 @@ export function replaceStopsInRange(
 export function setResupplyStops(
   plan: PlanDocument,
   ids: readonly string[] | undefined,
-  opts?: PlanEditOptions,
+  opts?: PlanEditOptions
 ): PlanDocument {
   const current = plan.resupplyStops;
   if (ids === undefined) {
-    return current === undefined
-      ? plan
-      : { ...omitKey(plan, 'resupplyStops'), updatedAt: stamp(opts, plan.updatedAt) };
+    return current === undefined ? plan : { ...omitKey(plan, 'resupplyStops'), updatedAt: stamp(opts, plan.updatedAt) };
   }
   if (current !== undefined && current.length === ids.length && current.every((id, i) => id === ids[i])) {
     return plan;
@@ -619,7 +588,7 @@ export function migratePlanState(
   state: PlanState,
   trailId: string,
   waypoints: PlanWaypoint[],
-  opts?: PlanCreateOptions,
+  opts?: PlanCreateOptions
 ): PlanDocument {
   const stops: PlanStop[] = [];
   for (const legacy of state.stops ?? []) {
@@ -628,9 +597,7 @@ export function migratePlanState(
     const stop: PlanStop = {
       ...(match?.id ? { waypointId: match.id } : {}),
       km: match?.totalDistance ?? legacy.km,
-      name: clampStopName(
-        (typeof legacy.waypointName === 'string' ? legacy.waypointName.trim() : '') || match?.name,
-      ),
+      name: clampStopName((typeof legacy.waypointName === 'string' ? legacy.waypointName.trim() : '') || match?.name),
       nights: 1,
     };
     if (stop.km < 0) continue;
@@ -703,10 +670,7 @@ export interface OvernightOptions {
  * roadside. That check comes before the type match, so a turn-off cannot slip
  * through via `baseWaypointType`.
  */
-export function overnightCandidates<W extends PlanWaypoint>(
-  waypoints: readonly W[],
-  opts?: OvernightOptions,
-): W[] {
+export function overnightCandidates<W extends PlanWaypoint>(waypoints: readonly W[], opts?: OvernightOptions): W[] {
   const includeTowns = opts?.includeTowns ?? true;
   return waypoints
     .filter(wp => {
@@ -757,11 +721,7 @@ function addDays(startDate: string, days: number): string {
  * card can read "2 nights at Salida". The final day's `restDays` is 0: the
  * trail end is not a stop you linger at.
  */
-export function computePlanDays(
-  trail: PlanTrail,
-  plan: PlanDocument,
-  opts: ComputePlanDaysOptions,
-): ComputedDay[] {
+export function computePlanDays(trail: PlanTrail, plan: PlanDocument, opts: ComputePlanDaysOptions): ComputedDay[] {
   const total = trail.track.totalDistance;
   const active = stopsToActive(plan.stops, plan.direction, total);
 
@@ -825,7 +785,7 @@ function dataTime(value: string | null | undefined): number | null {
  */
 export function planDataIsCurrent(
   plan: Pick<PlanDocument, 'dataUpdatedAt'>,
-  dataUpdatedAt: string | null | undefined,
+  dataUpdatedAt: string | null | undefined
 ): boolean {
   const saved = dataTime(plan.dataUpdatedAt);
   if (saved === null) return true;
@@ -839,10 +799,7 @@ export function planDataIsCurrent(
  * look older. Returns the same document when the stamp stays as it is.
  * Leaves `updatedAt` alone — call it on a document that is being saved anyway.
  */
-export function stampPlanData(
-  plan: PlanDocument,
-  dataUpdatedAt: string | null | undefined,
-): PlanDocument {
+export function stampPlanData(plan: PlanDocument, dataUpdatedAt: string | null | undefined): PlanDocument {
   const mine = dataTime(dataUpdatedAt);
   if (mine === null) return plan;
   const saved = dataTime(plan.dataUpdatedAt);
@@ -892,11 +849,7 @@ export interface StopPlacesTrail {
  * stops back to where that data has the places, and sync it over the newer
  * device's correction; `opts.dataUpdatedAt` stops it (issue 143).
  */
-export function refreshStopKms(
-  plan: PlanDocument,
-  trail: StopPlacesTrail,
-  opts?: RefreshStopKmsOptions,
-): PlanDocument {
+export function refreshStopKms(plan: PlanDocument, trail: StopPlacesTrail, opts?: RefreshStopKmsOptions): PlanDocument {
   if (opts?.dataUpdatedAt !== undefined && !planDataIsCurrent(plan, opts.dataUpdatedAt)) return plan;
   const index = (places: readonly StopPlace[] | undefined) => {
     const byId = new Map<string, number>();
@@ -922,7 +875,7 @@ export function refreshStopKms(
     if (km === undefined || isStopAtPlace(km, stop.km)) continue;
     const line = stop.alternate ?? '';
     const taken = stops.some(
-      (other, j) => j !== i && (other.alternate ?? '') === line && Math.abs(other.km - km) < KM_EPSILON,
+      (other, j) => j !== i && (other.alternate ?? '') === line && Math.abs(other.km - km) < KM_EPSILON
     );
     if (taken) continue;
     if (stops === plan.stops) stops = [...plan.stops];
@@ -1042,7 +995,7 @@ function tagValue(value: string | undefined): string | undefined {
 export function servicesAtStop(
   stop: { km: number },
   pois: readonly TrailPOI[] | undefined,
-  radiusKm = 1,
+  radiusKm = 1
 ): StopServices | undefined {
   if (pois === undefined) return undefined;
   const near = pois.filter(poi => Math.abs(poi.distanceAlongTrail - stop.km) <= radiusKm);
@@ -1156,9 +1109,7 @@ export function assertPlanDocumentWithinLimits(plan: PlanDocument): void {
       throw new Error(`plan-editor: "${stop.name}" has an invalid waypoint id ${JSON.stringify(stop.waypointId)}`);
     }
     if (!Number.isFinite(stop.nights) || stop.nights < 1 || stop.nights > PLAN_LIMITS.nightsMax) {
-      throw new Error(
-        `plan-editor: "${stop.name}" has ${stop.nights} nights, outside 1..${PLAN_LIMITS.nightsMax}`,
-      );
+      throw new Error(`plan-editor: "${stop.name}" has ${stop.nights} nights, outside 1..${PLAN_LIMITS.nightsMax}`);
     }
     if (stop.note !== undefined && stop.note.length > PLAN_LIMITS.noteMax) {
       throw new Error(`plan-editor: note on "${stop.name}" exceeds ${PLAN_LIMITS.noteMax} characters`);
@@ -1173,7 +1124,7 @@ export function assertPlanDocumentWithinLimits(plan: PlanDocument): void {
   if (plan.resupplyStops !== undefined) {
     if (plan.resupplyStops.length > PLAN_LIMITS.resupplyStopsMax) {
       throw new Error(
-        `plan-editor: ${plan.resupplyStops.length} resupply stops exceeds ${PLAN_LIMITS.resupplyStopsMax}`,
+        `plan-editor: ${plan.resupplyStops.length} resupply stops exceeds ${PLAN_LIMITS.resupplyStopsMax}`
       );
     }
     for (const id of plan.resupplyStops) {
@@ -1184,9 +1135,7 @@ export function assertPlanDocumentWithinLimits(plan: PlanDocument): void {
   }
   if (plan.alternates !== undefined) {
     if (plan.alternates.length > PLAN_LIMITS.alternatesMax) {
-      throw new Error(
-        `plan-editor: ${plan.alternates.length} alternates exceeds ${PLAN_LIMITS.alternatesMax}`,
-      );
+      throw new Error(`plan-editor: ${plan.alternates.length} alternates exceeds ${PLAN_LIMITS.alternatesMax}`);
     }
     for (const name of plan.alternates) {
       if (name.trim().length === 0 || name.length > PLAN_LIMITS.alternateNameMax) {
@@ -1207,9 +1156,7 @@ export function assertPlanDocumentWithinLimits(plan: PlanDocument): void {
     const line = stop.alternate ?? '';
     const previous = lastOnLine.get(line);
     if (previous && Math.abs(stop.km - previous.km) < KM_EPSILON) {
-      throw new Error(
-        `plan-editor: two stops share km ${stop.km} ("${previous.name}" and "${stop.name}")`,
-      );
+      throw new Error(`plan-editor: two stops share km ${stop.km} ("${previous.name}" and "${stop.name}")`);
     }
     lastOnLine.set(line, stop);
   }

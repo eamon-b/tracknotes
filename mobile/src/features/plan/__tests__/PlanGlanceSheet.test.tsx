@@ -41,7 +41,13 @@ function press(tree: ReactTestRenderer, label: string): void {
   act(() => (node.props.onPress as () => void)());
 }
 
-function day(n: number, startKm: number, endKm: number, startName: string, endName: string): ComputedDay {
+function day(
+  n: number,
+  startKm: number,
+  endKm: number,
+  startName: string,
+  endName: string,
+): ComputedDay {
   return {
     dayNumber: n,
     startName,
@@ -75,7 +81,10 @@ describe('PlanGlanceSheet', () => {
         units="km"
         onOpenPlanner={noop}
         glance={{
-          days: [day(1, 0, 20, 'Start', 'Camp A'), { ...day(2, 20, 42, 'Camp A', 'Hut B'), restDays: 1 }],
+          days: [
+            day(1, 0, 20, 'Start', 'Camp A'),
+            { ...day(2, 20, 42, 'Camp A', 'Hut B'), restDays: 1 },
+          ],
           unplanned: day(3, 42, 100, 'Hut B', 'Finish'),
         }}
       />,

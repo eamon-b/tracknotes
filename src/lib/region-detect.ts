@@ -69,7 +69,7 @@ let prepared: PreparedShape[] | null = null;
 function prepare(shape: RegionShape): PreparedShape {
   const bbox: [number, number, number, number] = [Infinity, Infinity, -Infinity, -Infinity];
   const ringBoxes: [number, number, number, number][] = [];
-  const rings = shape.rings.map((ring) => {
+  const rings = shape.rings.map(ring => {
     const out = new Float64Array(ring.length);
     const box: [number, number, number, number] = [Infinity, Infinity, -Infinity, -Infinity];
     let x = 0;
@@ -212,7 +212,7 @@ export function detectRegion(points: readonly LatLon[]): DetectedRegion {
     if (n > countryCounts.get(country)!) country = code;
   }
 
-  const inCountry = hits.filter((h) => h.country === country && h.state !== null);
+  const inCountry = hits.filter(h => h.country === country && h.state !== null);
   const stateCounts = new Map<string, number>();
   for (const h of inCountry) stateCounts.set(h.state!, (stateCounts.get(h.state!) ?? 0) + 1);
   const minCount = Math.max(1, Math.ceil(MIN_STATE_SHARE * hits.length));
@@ -224,7 +224,7 @@ export function detectRegion(points: readonly LatLon[]): DetectedRegion {
   }
   const seen = {
     countries: [...countryCounts.keys()],
-    states: [...new Set(hits.filter((h) => h.state !== null).map((h) => `${h.country}:${h.state}`))],
+    states: [...new Set(hits.filter(h => h.state !== null).map(h => `${h.country}:${h.state}`))],
   };
   return { country, states, state, seen };
 }

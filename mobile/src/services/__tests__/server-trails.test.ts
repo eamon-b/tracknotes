@@ -13,11 +13,7 @@ import {
   registerRemoteTrailIds,
   serverTrailIds,
 } from '../server-trails';
-import {
-  hasTrail,
-  isServerKnown as loaderIsServerKnown,
-  listTrails,
-} from '../trail-loader';
+import { hasTrail, isServerKnown as loaderIsServerKnown, listTrails } from '../trail-loader';
 
 describe('isServerKnown', () => {
   it('accepts every bundled trail', () => {

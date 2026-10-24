@@ -7,12 +7,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { importGpx } from './gpx-import';
-import {
-  gpxMovingSpeedKmh,
-  hasFailures,
-  runCommunityChecks,
-  sanitiseCommunityTrail,
-} from './community-checks';
+import { gpxMovingSpeedKmh, hasFailures, runCommunityChecks, sanitiseCommunityTrail } from './community-checks';
 import { haversineDistance } from './distance';
 import { douglasPeuckerIndices } from './gpx-optimizer';
 import { calculateAdaptiveTolerance, DEFAULT_TARGET_DISPLAY_POINTS } from './trail-ingest';
@@ -34,7 +29,7 @@ function thorsborne(): ProcessedTrail {
 }
 
 function byId(checks: CommunityCheck[], id: string): CommunityCheck {
-  const found = checks.find((c) => c.id === id);
+  const found = checks.find(c => c.id === id);
   if (!found) throw new Error(`no check ${id}`);
   return found;
 }
@@ -44,7 +39,7 @@ describe('runCommunityChecks on a real trail', () => {
     const result = runCommunityChecks(thorsborne(), META);
     expect(hasFailures(result.checks)).toBe(false);
     expect(result.ok).toBe(true);
-    expect(result.checks.map((c) => c.id)).toEqual([
+    expect(result.checks.map(c => c.id)).toEqual([
       'shape',
       'length',
       'points',
@@ -95,14 +90,63 @@ describe('shape', () => {
   it.each([
     ['not an object', () => 'hello'],
     ['missing track', () => ({ ...thorsborne(), track: undefined })],
-    ['lat out of range', () => { const t = thorsborne(); t.track.points[3].lat = 91; return t; }],
-    ['lon out of range', () => { const t = thorsborne(); t.track.points[3].lon = -181; return t; }],
-    ['NaN dist', () => { const t = thorsborne() as unknown as { track: { points: { dist: unknown }[] } }; t.track.points[3].dist = 'NaN'; return t; }],
+    [
+      'lat out of range',
+      () => {
+        const t = thorsborne();
+        t.track.points[3].lat = 91;
+        return t;
+      },
+    ],
+    [
+      'lon out of range',
+      () => {
+        const t = thorsborne();
+        t.track.points[3].lon = -181;
+        return t;
+      },
+    ],
+    [
+      'NaN dist',
+      () => {
+        const t = thorsborne() as unknown as { track: { points: { dist: unknown }[] } };
+        t.track.points[3].dist = 'NaN';
+        return t;
+      },
+    ],
     ['waypoints not a list', () => ({ ...thorsborne(), waypoints: {} })],
-    ['waypoint name not text', () => { const t = thorsborne() as unknown as { waypoints: { name: unknown }[] }; t.waypoints[0].name = 5; return t; }],
-    ['trackIndex out of range', () => { const t = thorsborne(); t.waypoints[0].trackIndex = 1e6; return t; }],
-    ['too many points', () => { const t = thorsborne(); t.track.points = new Array(100_001).fill(t.track.points[0]); return t; }],
-    ['bad variant type', () => { const t = thorsborne() as unknown as { sideTrips: unknown[] }; t.sideTrips = [{ type: 'teleport' }]; return t; }],
+    [
+      'waypoint name not text',
+      () => {
+        const t = thorsborne() as unknown as { waypoints: { name: unknown }[] };
+        t.waypoints[0].name = 5;
+        return t;
+      },
+    ],
+    [
+      'trackIndex out of range',
+      () => {
+        const t = thorsborne();
+        t.waypoints[0].trackIndex = 1e6;
+        return t;
+      },
+    ],
+    [
+      'too many points',
+      () => {
+        const t = thorsborne();
+        t.track.points = new Array(100_001).fill(t.track.points[0]);
+        return t;
+      },
+    ],
+    [
+      'bad variant type',
+      () => {
+        const t = thorsborne() as unknown as { sideTrips: unknown[] };
+        t.sideTrips = [{ type: 'teleport' }];
+        return t;
+      },
+    ],
   ])('fails on %s', (_label, make) => {
     const result = runCommunityChecks(make(), META);
     expect(result.ok).toBe(false);
@@ -181,7 +225,9 @@ describe('points', () => {
         const a = kept[i - 1];
         const dLat = ((p.lat - a.lat) * Math.PI) / 180;
         const dLon = ((p.lon - a.lon) * Math.PI) / 180;
-        const h = Math.sin(dLat / 2) ** 2 + Math.cos((a.lat * Math.PI) / 180) * Math.cos((p.lat * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+        const h =
+          Math.sin(dLat / 2) ** 2 +
+          Math.cos((a.lat * Math.PI) / 180) * Math.cos((p.lat * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
         d += 2 * 6371 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
       }
       return { ...p, dist: d };
@@ -213,7 +259,7 @@ describe('distance-consistency', () => {
   });
   it('fails an offset km ladder even when totalDistance is honest, and stores the real km', () => {
     const t = thorsborne();
-    const honest = t.track.points.map((p) => p.dist);
+    const honest = t.track.points.map(p => p.dist);
     for (const p of t.track.points) p.dist += 50;
     const result = runCommunityChecks(t, META);
     expect(byId(result.checks, 'distance-consistency').level).toBe('fail');
@@ -225,7 +271,7 @@ describe('distance-consistency', () => {
 function timedGpx(kmh: number, points: TrackPoint[] = thorsborne().track.points): string {
   const start = Date.parse('2026-05-01T00:00:00Z');
   const rows = points.map(
-    (p) =>
+    p =>
       `<trkpt lat="${p.lat}" lon="${p.lon}"><ele>${p.ele}</ele>` +
       `<time>${new Date(start + (p.dist / kmh) * 3_600_000).toISOString()}</time></trkpt>`
   );
@@ -248,7 +294,9 @@ describe('speed', () => {
     expect(byId(result.checks, 'speed').level).toBe('warn');
   });
   it('passes walking-pace timestamps', () => {
-    expect(byId(runCommunityChecks(thorsborne(), { ...META, gpxText: timedGpx(4) }).checks, 'speed').level).toBe('pass');
+    expect(byId(runCommunityChecks(thorsborne(), { ...META, gpxText: timedGpx(4) }).checks, 'speed').level).toBe(
+      'pass'
+    );
   });
   it('never reads or keeps a time on the processed points', () => {
     const t = thorsborne();
@@ -268,9 +316,11 @@ describe('gpxMovingSpeedKmh', () => {
     expect(drive.timedPoints).toBe(thorsborne().track.points.length);
   });
   it('reads a small hand-written file, with single quotes and whitespace', () => {
-    const rows = Array.from({ length: 12 }, (_, i) =>
-      // ~111 m north every 100 s: 4 km/h.
-      `<trkpt  lon='146.0' lat='${(-18 + i * 0.001).toFixed(3)}'>\n  <time> 2026-05-01T00:${String(Math.floor((i * 100) / 60)).padStart(2, '0')}:${String((i * 100) % 60).padStart(2, '0')}Z </time>\n</trkpt>`
+    const rows = Array.from(
+      { length: 12 },
+      (_, i) =>
+        // ~111 m north every 100 s: 4 km/h.
+        `<trkpt  lon='146.0' lat='${(-18 + i * 0.001).toFixed(3)}'>\n  <time> 2026-05-01T00:${String(Math.floor((i * 100) / 60)).padStart(2, '0')}:${String((i * 100) % 60).padStart(2, '0')}Z </time>\n</trkpt>`
     );
     const speed = gpxMovingSpeedKmh(`<gpx><trk><trkseg>${rows.join('')}</trkseg></trk></gpx>`)!;
     expect(speed.timedPoints).toBe(12);
@@ -288,7 +338,7 @@ describe('gpxMovingSpeedKmh', () => {
     // first ended but 40 km further on: one hop at 240 km/h if the segments ran together.
     const first = timedGpx(4, pts.slice(0, 200)).replace('</trkseg></trk></gpx>', '');
     const lastTime = Date.parse('2026-05-01T00:00:00Z') + (pts[199].dist / 4) * 3_600_000;
-    const second = pts.slice(200).map((p) => {
+    const second = pts.slice(200).map(p => {
       const t = lastTime + 600_000 + ((p.dist - pts[200].dist) / 4) * 3_600_000;
       return `<trkpt lat="${p.lat + 0.36}" lon="${p.lon}"><time>${new Date(t).toISOString()}</time></trkpt>`;
     });
@@ -425,13 +475,19 @@ describe('metadata', () => {
     expect(byId(runCommunityChecks(thorsborne(), { ...META, name: 'ab' }).checks, 'metadata').level).toBe('fail');
   });
   it('fails a long name', () => {
-    expect(byId(runCommunityChecks(thorsborne(), { ...META, name: 'x'.repeat(81) }).checks, 'metadata').level).toBe('fail');
+    expect(byId(runCommunityChecks(thorsborne(), { ...META, name: 'x'.repeat(81) }).checks, 'metadata').level).toBe(
+      'fail'
+    );
   });
   it('fails a short description', () => {
-    expect(byId(runCommunityChecks(thorsborne(), { ...META, description: 'Nice walk.' }).checks, 'metadata').level).toBe('fail');
+    expect(
+      byId(runCommunityChecks(thorsborne(), { ...META, description: 'Nice walk.' }).checks, 'metadata').level
+    ).toBe('fail');
   });
   it('fails a long description', () => {
-    expect(byId(runCommunityChecks(thorsborne(), { ...META, description: 'x'.repeat(2001) }).checks, 'metadata').level).toBe('fail');
+    expect(
+      byId(runCommunityChecks(thorsborne(), { ...META, description: 'x'.repeat(2001) }).checks, 'metadata').level
+    ).toBe('fail');
   });
   it('warns when the description is mostly links', () => {
     const description = 'See https://example.com/a-very-long-link-to-somewhere and https://example.org/another-one';
@@ -449,7 +505,8 @@ describe('metadata', () => {
   it('passes waypoint descriptions that mention a link among real text', () => {
     const t = thorsborne();
     for (const w of t.waypoints) {
-      w.description = 'Tank water beside the shelter; reliable after rain, otherwise treat creek water. See www.parks.example';
+      w.description =
+        'Tank water beside the shelter; reliable after rain, otherwise treat creek water. See www.parks.example';
     }
     expect(byId(runCommunityChecks(t, META).checks, 'metadata').level).toBe('pass');
   });
@@ -526,7 +583,7 @@ describe('the rebuild', () => {
     const { trail } = runCommunityChecks(t, META);
     const points = trail!.track.points;
     const tolerance = calculateAdaptiveTolerance(points, DEFAULT_TARGET_DISPLAY_POINTS, trail!.track.totalDistance);
-    const expected = douglasPeuckerIndices(points, tolerance).map((i) => points[i]);
+    const expected = douglasPeuckerIndices(points, tolerance).map(i => points[i]);
     expect(trail!.track.displayPoints.length).toBeLessThan(points.length);
     expect(trail!.track.displayPoints).toHaveLength(expected.length);
     trail!.track.displayPoints.forEach((p, i) => expect(p).toBe(expected[i]));
@@ -556,7 +613,17 @@ describe('the rebuild', () => {
   it('drops POIs', () => {
     const t = thorsborne();
     t.pois = [
-      { id: 1, type: 'node', category: 'water', lat: -18.3, lon: 146.2, name: 'Fake tap', tags: {}, distanceAlongTrail: 1, distanceFromTrail: 0 },
+      {
+        id: 1,
+        type: 'node',
+        category: 'water',
+        lat: -18.3,
+        lon: 146.2,
+        name: 'Fake tap',
+        tags: {},
+        distanceAlongTrail: 1,
+        distanceFromTrail: 0,
+      },
     ];
     const result = runCommunityChecks(t, META);
     expect(result.ok).toBe(true);
@@ -595,7 +662,7 @@ describe('the rebuild', () => {
     expect(w.elevation).toBe(Math.round(trail!.track.points[w.trackIndex].ele));
   });
 
-  it('recomputes an off-trail waypoint\'s distance from the route', () => {
+  it("recomputes an off-trail waypoint's distance from the route", () => {
     const t = thorsborne();
     const p = t.track.points[50];
     t.offTrailWaypoints = [{ name: 'Far camp', type: 'campsite', lat: p.lat + 0.03, lon: p.lon, distanceFromTrail: 0 }];
@@ -611,7 +678,7 @@ describe('the rebuild', () => {
     const t = thorsborne();
     const pts = t.track.points;
     let seed = 7;
-    const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
     t.offTrailWaypoints = Array.from({ length: 300 }, (_, k) => {
       const p = pts[Math.floor(rand() * pts.length)];
       // Two thirds within ~5 km of the route, the rest anywhere on Earth.
@@ -645,9 +712,9 @@ describe('waypoint placement', () => {
     const result = runCommunityChecks(t, META);
     expect(result.ok).toBe(true);
     const trail = result.trail!;
-    expect(trail.waypoints.some((w) => w.name === 'Water tank')).toBe(false);
+    expect(trail.waypoints.some(w => w.name === 'Water tank')).toBe(false);
     expect(trail.waypoints).toHaveLength(honest.waypoints.length - 1);
-    const moved = trail.offTrailWaypoints.find((w) => w.name === 'Water tank')!;
+    const moved = trail.offTrailWaypoints.find(w => w.name === 'Water tank')!;
     expect(moved).toBeDefined();
     expect(moved.type).toBe('water');
     expect(moved.lat).toBe(forged.lat);
@@ -663,20 +730,27 @@ describe('waypoint placement', () => {
     Object.assign(w, latLon(t.track.points[target]));
     w.trackIndex = t.track.points.length - 1;
     const trail = runCommunityChecks(t, META).trail!;
-    const placed = trail.waypoints.find((x) => x.name === w.name && x.lat === w.lat)!;
+    const placed = trail.waypoints.find(x => x.name === w.name && x.lat === w.lat)!;
     expect(placed.trackIndex).toBe(nearestIndex(trail.track.points, w));
-    expect(haversineDistance(w.lat, w.lon, trail.track.points[placed.trackIndex].lat, trail.track.points[placed.trackIndex].lon)).toBe(0);
+    expect(
+      haversineDistance(
+        w.lat,
+        w.lon,
+        trail.track.points[placed.trackIndex].lat,
+        trail.track.points[placed.trackIndex].lon
+      )
+    ).toBe(0);
     expect(placed.totalDistance).toBe(Math.round(trail.track.points[placed.trackIndex].dist * 100) / 100);
   });
 
-  it('keeps an honest waypoint\'s index on a route that retraces itself', () => {
+  it("keeps an honest waypoint's index on a route that retraces itself", () => {
     const imported = JSON.parse(JSON.stringify(importGpx(OUT_AND_BACK).trail)) as ProcessedTrail;
-    const visits = imported.waypoints.filter((w) => w.name === 'Creek');
+    const visits = imported.waypoints.filter(w => w.name === 'Creek');
     // One row per pass; the return pass is not the nearest point.
     expect(visits).toHaveLength(2);
     const points = imported.track.points;
-    expect(visits.map((w) => w.trackIndex)).not.toContain(-1);
-    expect(visits.some((w) => w.trackIndex !== nearestIndex(points, w))).toBe(true);
+    expect(visits.map(w => w.trackIndex)).not.toContain(-1);
+    expect(visits.some(w => w.trackIndex !== nearestIndex(points, w))).toBe(true);
     const result = runCommunityChecks(imported, { ...META, name: 'Out and back' });
     expect(result.trail!.waypoints).toEqual(imported.waypoints);
     expect(result.trail!.offTrailWaypoints).toEqual(imported.offTrailWaypoints);
@@ -686,17 +760,28 @@ describe('waypoint placement', () => {
     const t = thorsborne();
     const variant = slicedVariant(t, 100, 200, 'side-trip');
     const onMain = { ...t.waypoints[0], ...latLon(t.track.points[20]), name: 'On the route', variantTrackIndex: 5 };
-    const far = { ...t.waypoints[0], lat: t.track.points[20].lat - 2, lon: t.track.points[20].lon, name: 'Far away', variantTrackIndex: 6 };
-    const honest = { ...t.waypoints[0], ...latLon(variant.points[30]), name: 'On the side trip', variantTrackIndex: 30 };
+    const far = {
+      ...t.waypoints[0],
+      lat: t.track.points[20].lat - 2,
+      lon: t.track.points[20].lon,
+      name: 'Far away',
+      variantTrackIndex: 6,
+    };
+    const honest = {
+      ...t.waypoints[0],
+      ...latLon(variant.points[30]),
+      name: 'On the side trip',
+      variantTrackIndex: 30,
+    };
     variant.waypoints = [onMain, far, honest];
     t.sideTrips = [variant];
     const result = runCommunityChecks(t, META);
     expect(result.ok).toBe(true);
     const trail = result.trail!;
-    expect(trail.sideTrips[0].waypoints!.map((w) => [w.name, w.variantTrackIndex])).toEqual([['On the side trip', 30]]);
-    const main = trail.waypoints.find((w) => w.name === 'On the route')!;
+    expect(trail.sideTrips[0].waypoints!.map(w => [w.name, w.variantTrackIndex])).toEqual([['On the side trip', 30]]);
+    const main = trail.waypoints.find(w => w.name === 'On the route')!;
     expect(main.trackIndex).toBe(nearestIndex(trail.track.points, onMain));
-    const off = trail.offTrailWaypoints.find((w) => w.name === 'Far away')!;
+    const off = trail.offTrailWaypoints.find(w => w.name === 'Far away')!;
     expect(off.distanceFromTrail).toBeGreaterThan(200_000);
     expect(result.stats!.waypointCount).toBe(t.waypoints.length + t.offTrailWaypoints.length + 3);
   });
@@ -730,16 +815,20 @@ const OUT_AND_BACK = (() => {
   const pts: string[] = [];
   const step = 30 / 111_320;
   const n = 200;
-  for (let i = 0; i <= n; i++) pts.push(`<trkpt lat="${(-33 + i * step).toFixed(7)}" lon="151.0000000"><ele>${100 + i}</ele></trkpt>`);
-  for (let i = n - 1; i >= 0; i--) pts.push(`<trkpt lat="${(-33 + i * step).toFixed(7)}" lon="151.0001000"><ele>${100 + i}</ele></trkpt>`);
+  for (let i = 0; i <= n; i++)
+    pts.push(`<trkpt lat="${(-33 + i * step).toFixed(7)}" lon="151.0000000"><ele>${100 + i}</ele></trkpt>`);
+  for (let i = n - 1; i >= 0; i--)
+    pts.push(`<trkpt lat="${(-33 + i * step).toFixed(7)}" lon="151.0001000"><ele>${100 + i}</ele></trkpt>`);
   const creek = (-33 + 66 * step).toFixed(7);
-  return `<?xml version="1.0"?><gpx version="1.1" creator="test" xmlns="http://www.topografix.com/GPX/1/1">` +
+  return (
+    `<?xml version="1.0"?><gpx version="1.1" creator="test" xmlns="http://www.topografix.com/GPX/1/1">` +
     `<wpt lat="${creek}" lon="151.0000500"><name>Creek</name><type>water</type></wpt>` +
-    `<trk><name>Out and back</name><trkseg>${pts.join('')}</trkseg></trk></gpx>`;
+    `<trk><name>Out and back</name><trkseg>${pts.join('')}</trkseg></trk></gpx>`
+  );
 })();
 
 describe('variants', () => {
-  it('rebuilds an alternate\'s junctions, length, climb and waypoints', () => {
+  it("rebuilds an alternate's junctions, length, climb and waypoints", () => {
     const t = thorsborne();
     const variant = slicedVariant(t, 100, 200, 'alternate');
     variant.distance = 999;
@@ -748,8 +837,30 @@ describe('variants', () => {
     variant.endDistance = 4000;
     variant.parent = { name: 'nonsense', index: 7 };
     variant.waypoints = [
-      { ...t.waypoints[0], ...latLon(variant.points[40]), variantTrackIndex: 40, distance: 1, totalDistance: 9999, ascent: 1, descent: 1, totalAscent: 1, totalDescent: 1, elevation: 1 },
-      { ...t.waypoints[1], ...latLon(variant.points[10]), variantTrackIndex: 10, distance: 1, totalDistance: 9999, ascent: 1, descent: 1, totalAscent: 1, totalDescent: 1, elevation: 1 },
+      {
+        ...t.waypoints[0],
+        ...latLon(variant.points[40]),
+        variantTrackIndex: 40,
+        distance: 1,
+        totalDistance: 9999,
+        ascent: 1,
+        descent: 1,
+        totalAscent: 1,
+        totalDescent: 1,
+        elevation: 1,
+      },
+      {
+        ...t.waypoints[1],
+        ...latLon(variant.points[10]),
+        variantTrackIndex: 10,
+        distance: 1,
+        totalDistance: 9999,
+        ascent: 1,
+        descent: 1,
+        totalAscent: 1,
+        totalDescent: 1,
+        elevation: 1,
+      },
     ];
     t.alternates = [variant];
     const result = runCommunityChecks(t, META);
@@ -766,7 +877,7 @@ describe('variants', () => {
     expect(alt.distance).toBeLessThan(length + 0.5);
     expect(alt.elevation.ascent).toBeLessThan(2000);
     // Sorted by index, km from the junction.
-    expect(alt.waypoints!.map((w) => w.variantTrackIndex)).toEqual([10, 40]);
+    expect(alt.waypoints!.map(w => w.variantTrackIndex)).toEqual([10, 40]);
     const km10 = alongKm(alt.points, 10);
     expect(alt.waypoints![0].totalDistance).toBe(Math.round((alt.startDistance! + km10) * 100) / 100);
     expect(alt.waypoints![1].distance).toBe(Math.round((alongKm(alt.points, 40) - km10) * 100) / 100);
@@ -831,16 +942,18 @@ describe('variants', () => {
     const N = 30;
     const centre = { lat: m0.lat + 0.3, lon: m0.lon };
     const start = (k: number) =>
-      k === N
-        ? latLon(m0)
-        : { lat: centre.lat + 0.1 * Math.cos(k / 6), lon: centre.lon + 0.1 * Math.sin(k / 6) };
+      k === N ? latLon(m0) : { lat: centre.lat + 0.1 * Math.cos(k / 6), lon: centre.lon + 0.1 * Math.sin(k / 6) };
     t.alternates = Array.from({ length: N }, (_, k): RouteVariant => {
       const way = [start(k + 1), centre, start(k)];
       const points = [];
       for (let s = 0; s < 2; s++) {
         for (let i = 0; i < 10; i++) {
           const g = i / 10;
-          points.push({ lat: way[s].lat + (way[s + 1].lat - way[s].lat) * g, lon: way[s].lon + (way[s + 1].lon - way[s].lon) * g, ele: 0 });
+          points.push({
+            lat: way[s].lat + (way[s + 1].lat - way[s].lat) * g,
+            lon: way[s].lon + (way[s + 1].lon - way[s].lon) * g,
+            ele: 0,
+          });
         }
       }
       points.push({ ...start(k), ele: 0 });
@@ -853,7 +966,9 @@ describe('variants', () => {
     expect(alts[N - 1].startTrackIndex).toBe(0);
     for (let k = 0; k < N - 1; k++) {
       expect(alts[k].parent).toEqual({ name: `Link ${k + 1}`, index: k + 1 });
-      expect(alts[k].startDistance).toBe(Math.round((alts[k + 1].startDistance! + alongKm(alts[k + 1].points, 20)) * 100) / 100);
+      expect(alts[k].startDistance).toBe(
+        Math.round((alts[k + 1].startDistance! + alongKm(alts[k + 1].points, 20)) * 100) / 100
+      );
     }
   });
 
@@ -885,7 +1000,8 @@ function slicedVariant(t: ProcessedTrail, from: number, to: number, type: RouteV
 /** Haversine km along `points` from the first to `index`. */
 function alongKm(points: { lat: number; lon: number }[], index: number): number {
   let km = 0;
-  for (let i = 1; i <= index; i++) km += haversineDistance(points[i - 1].lat, points[i - 1].lon, points[i].lat, points[i].lon) / 1000;
+  for (let i = 1; i <= index; i++)
+    km += haversineDistance(points[i - 1].lat, points[i - 1].lon, points[i].lat, points[i].lon) / 1000;
   return km;
 }
 

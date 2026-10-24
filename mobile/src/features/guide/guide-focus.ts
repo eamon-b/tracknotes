@@ -88,9 +88,7 @@ const DEGENERATE_BOX_DEGREES = 0.001;
 export function isValidFocus(focus: FocusWindow | null | undefined): focus is FocusWindow {
   if (!focus) return false;
   const { startKm, endKm } = focus;
-  return (
-    Number.isFinite(startKm) && Number.isFinite(endKm) && startKm >= 0 && endKm >= startKm
-  );
+  return Number.isFinite(startKm) && Number.isFinite(endKm) && startKm >= 0 && endKm >= startKm;
 }
 
 /**
@@ -121,9 +119,7 @@ export function isSameFocus(
   if (!a || !b) return false;
   const span = Math.max(a.endKm - a.startKm, b.endKm - b.startKm);
   const tolerance = Math.max(span * 0.02, 0.05);
-  return (
-    Math.abs(a.startKm - b.startKm) <= tolerance && Math.abs(a.endKm - b.endKm) <= tolerance
-  );
+  return Math.abs(a.startKm - b.startKm) <= tolerance && Math.abs(a.endKm - b.endKm) <= tolerance;
 }
 
 /** A lat/lon rectangle, unpacked from MapLibre's [ne, sw] corner pair. */

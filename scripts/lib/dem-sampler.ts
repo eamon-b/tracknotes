@@ -127,7 +127,9 @@ function tileKey(lat: number, lon: number): string {
 }
 
 function contains(outer: Bbox, inner: Bbox): boolean {
-  return outer.west <= inner.west && outer.south <= inner.south && outer.east >= inner.east && outer.north >= inner.north;
+  return (
+    outer.west <= inner.west && outer.south <= inner.south && outer.east >= inner.east && outer.north >= inner.north
+  );
 }
 
 /**

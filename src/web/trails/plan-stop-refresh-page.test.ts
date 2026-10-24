@@ -44,7 +44,7 @@ function bundledPlanPageHtml(): string {
   return inlinePlanShell(
     fs.readFileSync(path.join(ROOT, 'src/web/trails/plan-template.html'), 'utf8'),
     fs.readFileSync(path.join(ROOT, 'src/web/trails/plan-shell.html'), 'utf8'),
-    BUNDLED_PLAN_FILLS,
+    BUNDLED_PLAN_FILLS
   );
 }
 

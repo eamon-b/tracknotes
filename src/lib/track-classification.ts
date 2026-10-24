@@ -15,10 +15,7 @@ import type {
  * These cover common naming conventions used in trail GPX files.
  */
 export const TRACK_CLASSIFICATION_DEFAULTS: Required<
-  Omit<
-    TrackClassificationConfig,
-    'mainRoutePatterns' | 'ignorePatterns' | 'stretches' | 'maxJunctionDistanceMeters'
-  >
+  Omit<TrackClassificationConfig, 'mainRoutePatterns' | 'ignorePatterns' | 'stretches' | 'maxJunctionDistanceMeters'>
 > = {
   alternatePatterns: ['\\bAlt\\b', 'Alternative', 'Detour', 'Reroute'],
   sideTripPatterns: ['^ST:', 'Spur', 'Side Trip', 'side trip'],
@@ -211,9 +208,7 @@ function findBestConnection(
     },
   ];
 
-  return connections.reduce((best, curr) =>
-    curr.distance < best.distance ? curr : best
-  );
+  return connections.reduce((best, curr) => (curr.distance < best.distance ? curr : best));
 }
 
 /**
@@ -243,9 +238,7 @@ function appendPoints(target: GpxPoint[], source: GpxPoint[]): void {
  *
  * Warnings are generated for gaps larger than 100m between consecutive tracks.
  */
-export function combineTracksGeographically(
-  tracks: Array<{ name: string; points: GpxPoint[] }>
-): CombineTracksResult {
+export function combineTracksGeographically(tracks: Array<{ name: string; points: GpxPoint[] }>): CombineTracksResult {
   if (tracks.length === 0) {
     return {
       combinedPoints: [],
@@ -282,10 +275,7 @@ export function combineTracksGeographically(
   // Greedily add remaining tracks by finding best connection
   while (remaining.length > 0) {
     let bestIdx = 0;
-    let bestConnection = findBestConnection(
-      { points: combinedPoints },
-      remaining[0]
-    );
+    let bestConnection = findBestConnection({ points: combinedPoints }, remaining[0]);
 
     // Find the track with the best connection
     for (let i = 1; i < remaining.length; i++) {

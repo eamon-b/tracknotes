@@ -38,7 +38,7 @@ function sortAdminQueue(routes: readonly CommunityRouteDetail[]): CommunityRoute
   const rank = (r: CommunityRouteDetail): number =>
     needsAttention(r) ? 0 : r.status === 'unverified' ? 1 : r.status === 'verified' ? 2 : 3;
   return [...routes].sort(
-    (a, b) => rank(a) - rank(b) || (b.reportCount ?? 0) - (a.reportCount ?? 0) || b.createdAt.localeCompare(a.createdAt),
+    (a, b) => rank(a) - rank(b) || (b.reportCount ?? 0) - (a.reportCount ?? 0) || b.createdAt.localeCompare(a.createdAt)
   );
 }
 
@@ -51,8 +51,8 @@ function rowHtml(route: CommunityRouteDetail): string {
           .map(
             r =>
               `<li>${escapeHtml(r.reason)}${r.note ? `: ${escapeHtml(r.note)}` : ''} <span class="community-hint">${escapeHtml(
-                r.createdAt,
-              )}</span></li>`,
+                r.createdAt
+              )}</span></li>`
           )
           .join('')}</ul>`
       : '';
@@ -62,13 +62,13 @@ function rowHtml(route: CommunityRouteDetail): string {
   return `
     <article class="admin-row${needsAttention(route) ? ' admin-row-attention' : ''}" data-row="${id}">
       <h3><a href="./${escapeHtml(communityRouteHref(route.id))}" target="_blank" rel="noopener">${escapeHtml(
-        route.name,
+        route.name
       )}</a> ${statusBadgeHtml(route.status)}</h3>
       <dl>
         <dt>Id</dt><dd><code>${id}</code></dd>
         <dt>Region</dt><dd>${escapeHtml(regionLabel(route.country, route.state))}</dd>
         <dt>Length</dt><dd>${escapeHtml(route.lengthKm.toFixed(1))} km · ${escapeHtml(Math.round(route.ascentM))} m ascent · ${escapeHtml(
-          route.waypointCount,
+          route.waypointCount
         )} waypoints</dd>
         <dt>Submitted</dt><dd>${escapeHtml(route.submittedBy ?? '(no name)')} · ${escapeHtml(route.createdAt)}</dd>
         <dt>Credit</dt><dd>${escapeHtml(route.credit ?? '—')}</dd>
@@ -85,7 +85,7 @@ function rowHtml(route: CommunityRouteDetail): string {
         ${
           route.review?.suggestedCountry
             ? `<p class="import-note">Suggested region: ${escapeHtml(
-                regionLabel(route.review.suggestedCountry, route.review.suggestedState ?? null),
+                regionLabel(route.review.suggestedCountry, route.review.suggestedState ?? null)
               )}</p>`
             : ''
         }
@@ -132,11 +132,15 @@ function init(): void {
     toolbar.hidden = true;
     list.innerHTML = '';
     linkBox.hidden = false;
-    renderLinkForm(linkBox, 'The review queue needs an admin account. Link this browser to the Tracknotes app on that phone.', linked => {
-      linkBox.hidden = true;
-      linkBox.innerHTML = '';
-      void load(linked);
-    });
+    renderLinkForm(
+      linkBox,
+      'The review queue needs an admin account. Link this browser to the Tracknotes app on that phone.',
+      linked => {
+        linkBox.hidden = true;
+        linkBox.innerHTML = '';
+        void load(linked);
+      }
+    );
   };
 
   /**
@@ -177,7 +181,8 @@ function init(): void {
     $('admin-identity').textContent = `Linked as ${session.displayName || 'this account'} · ${routes.length} route${
       routes.length === 1 ? '' : 's'
     }`;
-    list.innerHTML = routes.length > 0 ? routes.map(rowHtml).join('') : '<p class="import-note">The queue is empty.</p>';
+    list.innerHTML =
+      routes.length > 0 ? routes.map(rowHtml).join('') : '<p class="import-note">The queue is empty.</p>';
   };
 
   list.addEventListener('click', event => {
@@ -222,7 +227,8 @@ function init(): void {
               : `Failed: ${err instanceof Error ? err.message : String(err)}`;
           rowError.hidden = false;
         }
-        for (const b of list.querySelectorAll<HTMLButtonElement>(`button[data-id="${CSS.escape(id)}"]`)) b.disabled = false;
+        for (const b of list.querySelectorAll<HTMLButtonElement>(`button[data-id="${CSS.escape(id)}"]`))
+          b.disabled = false;
       });
   });
 

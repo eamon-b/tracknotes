@@ -8,11 +8,7 @@
 
 import React from 'react';
 import { FlatList } from 'react-native';
-import TestRenderer, {
-  act,
-  type ReactTestRenderer,
-  type TestInstance,
-} from 'react-test-renderer';
+import TestRenderer, { act, type ReactTestRenderer, type TestInstance } from 'react-test-renderer';
 import type { TrailPOI } from '@lib/trail-types';
 import { WaypointListPane } from '../WaypointListPane';
 import { useVisiblePois } from '../use-visible-pois';
@@ -161,13 +157,29 @@ describe('WaypointListPane POI rows', () => {
 
   it('says "Here" only for a POI on the trail, level with an on-trail hiker', () => {
     mockVisiblePois.mockImplementation(() => [
-      poi({ id: 9, category: 'water', name: 'Trailside Tank', distanceAlongTrail: 6, distanceFromTrail: 0.017 }),
-      poi({ id: 10, category: 'restaurant', name: 'Town Cafe', distanceAlongTrail: 6, distanceFromTrail: 2 }),
+      poi({
+        id: 9,
+        category: 'water',
+        name: 'Trailside Tank',
+        distanceAlongTrail: 6,
+        distanceFromTrail: 0.017,
+      }),
+      poi({
+        id: 10,
+        category: 'restaurant',
+        name: 'Town Cafe',
+        distanceAlongTrail: 6,
+        distanceFromTrail: 2,
+      }),
     ]);
     mockPosition = { currentKm: 6, status: 'fix' };
     const tree = render();
     const row = (name: string) =>
-      textOf(tree.root.findAll((n) => String(n.props.accessibilityLabel).startsWith(`Open ${name} (OpenStreetMap)`))[0]);
+      textOf(
+        tree.root.findAll((n) =>
+          String(n.props.accessibilityLabel).startsWith(`Open ${name} (OpenStreetMap)`),
+        )[0],
+      );
     // The tank is on the line: here. The cafe is 2 km off it: level, not here.
     expect(row('Trailside Tank')).toContain('Here');
     expect(row('Town Cafe')).toContain('Level with you');
@@ -176,7 +188,13 @@ describe('WaypointListPane POI rows', () => {
 
   it('never says "Here" while the hiker is off the trail', () => {
     mockVisiblePois.mockImplementation(() => [
-      poi({ id: 9, category: 'water', name: 'Trailside Tank', distanceAlongTrail: 6, distanceFromTrail: 0.017 }),
+      poi({
+        id: 9,
+        category: 'water',
+        name: 'Trailside Tank',
+        distanceAlongTrail: 6,
+        distanceFromTrail: 0.017,
+      }),
     ]);
     mockPosition = { currentKm: 6, status: 'off-trail' };
     const text = allText(render());
@@ -190,12 +208,20 @@ describe('WaypointListPane POI rows', () => {
       ...trail,
       waypoints: [
         ...trail.waypoints,
-        { id: 'w_town', name: 'Mount Pleasant', type: 'town-access', totalDistance: 26, offTrailKm: 2.5 },
+        {
+          id: 'w_town',
+          name: 'Mount Pleasant',
+          type: 'town-access',
+          totalDistance: 26,
+          offTrailKm: 2.5,
+        },
       ],
     } as unknown as TrailJson;
     const tree = render(withTurnOff);
     const row = (name: string) =>
-      textOf(tree.root.findAll((n) => String(n.props.accessibilityLabel).startsWith(`Open ${name}`))[0]);
+      textOf(
+        tree.root.findAll((n) => String(n.props.accessibilityLabel).startsWith(`Open ${name}`))[0],
+      );
     expect(row('Mount Pleasant')).toContain('2.5 km off trail');
     // The row is one accessible element, so its label carries the badge's words.
     expect(rowLabels(tree)).toContain('Open Mount Pleasant, 2.5 km off trail');
@@ -229,7 +255,13 @@ describe('WaypointListPane POI rows', () => {
 
   it('drops the off-trail line for a POI that is on the trail', () => {
     mockVisiblePois.mockImplementation(() => [
-      poi({ id: 9, category: 'water', name: 'Trailside Tank', distanceAlongTrail: 6, distanceFromTrail: 0.017 }),
+      poi({
+        id: 9,
+        category: 'water',
+        name: 'Trailside Tank',
+        distanceAlongTrail: 6,
+        distanceFromTrail: 0.017,
+      }),
     ]);
     const text = allText(render());
     expect(text).toContain('Trailside Tank');
@@ -263,7 +295,8 @@ describe('WaypointListPane POI rows', () => {
     const tree = render();
     const [row] = tree.root.findAll(
       (n) =>
-        n.props.accessibilityLabel === 'Open Bakery (OpenStreetMap), 400 m off trail' && n.props.onPress != null,
+        n.props.accessibilityLabel === 'Open Bakery (OpenStreetMap), 400 m off trail' &&
+        n.props.onPress != null,
     );
     press(row);
     expect(mockPush).toHaveBeenCalledWith({

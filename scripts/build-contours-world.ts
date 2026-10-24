@@ -275,9 +275,7 @@ export function parseArgs(argv: string[]): CliArgs {
   }
 
   if (args.shard !== null && !worldShardNames().includes(args.shard)) {
-    throw new Error(
-      `Unknown shard "${args.shard}". Known shards: ${worldShardNames().join(', ')}`
-    );
+    throw new Error(`Unknown shard "${args.shard}". Known shards: ${worldShardNames().join(', ')}`);
   }
 
   if (!args.join && !args.shard && !args.bbox && !args.cell) {
@@ -338,9 +336,7 @@ export function selectCells(args: CliArgs): WorldCell[] {
   if (args.cell) {
     const cell = worldCellFromId(args.cell);
     if (!cell) {
-      throw new Error(
-        `Invalid cell ID: ${args.cell} (expected an even-degree world cell like S26E132)`
-      );
+      throw new Error(`Invalid cell ID: ${args.cell} (expected an even-degree world cell like S26E132)`);
     }
     return [cell];
   }
@@ -381,7 +377,8 @@ let settingsLabel: string | undefined;
  * (TIPPECANOE_ANY_VERSION=1, another box) is re-tiled rather than shipped.
  */
 function batchSettingsLabel(): string {
-  settingsLabel ??= `tippecanoe ${installedTippecanoeVersion() ?? 'unknown'} ` +
+  settingsLabel ??=
+    `tippecanoe ${installedTippecanoeVersion() ?? 'unknown'} ` +
     `settings ${contourSettingsHash(WORLD_CONTOUR_OPTIONS)}`;
   return settingsLabel;
 }
@@ -429,12 +426,7 @@ export function demRefCounts(cells: WorldCell[]): Map<string, number> {
  * The mosaic VRT keeps listing the deleted files, which is fine: GDAL opens VRT
  * sources lazily and no remaining cell reads a window that overlaps them.
  */
-export function purgeCellDem(
-  cell: WorldCell,
-  counts: Map<string, number>,
-  demDir: string,
-  verbose: boolean
-): number {
+export function purgeCellDem(cell: WorldCell, counts: Map<string, number>, demDir: string, verbose: boolean): number {
   let freed = 0;
   for (const tile of bufferedDemTilesForCell(cell)) {
     const name = demTileName(tile);
@@ -531,59 +523,68 @@ function processCell(cell: WorldCell, args: CliArgs, workDir: string): void {
     // 1: Clip + (optionally) smooth in one warp from the mosaic.
     //    Buffered extent so smoothing matches the neighbouring cell.
     const resampling = args.skipSmooth ? 'near' : 'cubicspline';
-    run([
-      'gdalwarp',
-      '-overwrite',
-      `-te ${cell.west - CELL_BUFFER_DEG} ${cell.south - CELL_BUFFER_DEG} ${cell.east + CELL_BUFFER_DEG} ${cell.north + CELL_BUFFER_DEG}`,
-      `-r ${resampling}`,
-      `-tr ${WARP_TR_DEG} ${WARP_TR_DEG}`,
-      // -tap aligns every cell's pixel grid to the same global -tr lattice.
-      // Without it, adjacent cells (whose -te origins differ by 2°, not a
-      // multiple of -tr) sample the DEM ~0.24px apart and smoothed elevations
-      // diverge by several metres at the shared edge — contour lines would
-      // dangle at every cell boundary instead of meeting.
-      '-tap',
-      '-dstnodata -9999',
-      '-co COMPRESS=LZW',
-      '-co TILED=YES',
-      '-co BIGTIFF=YES',
-      `"${mosaicVrtPath(workDir)}"`,
-      `"${demPath}"`,
-    ].join(' '), { verbose: args.verbose });
+    run(
+      [
+        'gdalwarp',
+        '-overwrite',
+        `-te ${cell.west - CELL_BUFFER_DEG} ${cell.south - CELL_BUFFER_DEG} ${cell.east + CELL_BUFFER_DEG} ${cell.north + CELL_BUFFER_DEG}`,
+        `-r ${resampling}`,
+        `-tr ${WARP_TR_DEG} ${WARP_TR_DEG}`,
+        // -tap aligns every cell's pixel grid to the same global -tr lattice.
+        // Without it, adjacent cells (whose -te origins differ by 2°, not a
+        // multiple of -tr) sample the DEM ~0.24px apart and smoothed elevations
+        // diverge by several metres at the shared edge — contour lines would
+        // dangle at every cell boundary instead of meeting.
+        '-tap',
+        '-dstnodata -9999',
+        '-co COMPRESS=LZW',
+        '-co TILED=YES',
+        '-co BIGTIFF=YES',
+        `"${mosaicVrtPath(workDir)}"`,
+        `"${demPath}"`,
+      ].join(' '),
+      { verbose: args.verbose }
+    );
 
     // 2: Generate contours. GLO-30 samples are float32 metres, so the interval
     //    and the integer tier arithmetic below mean the same thing they do for
     //    the SRTM-based Australia build.
     if (fs.existsSync(rawPath)) fs.unlinkSync(rawPath);
-    run([
-      'gdal_contour',
-      '-a elevation',
-      `-i ${CONTOUR_INTERVAL}`,
-      '-snodata -9999',
-      '-f FlatGeobuf',
-      `"${demPath}"`,
-      `"${rawPath}"`,
-    ].join(' '), { verbose: args.verbose });
+    run(
+      [
+        'gdal_contour',
+        '-a elevation',
+        `-i ${CONTOUR_INTERVAL}`,
+        '-snodata -9999',
+        '-f FlatGeobuf',
+        `"${demPath}"`,
+        `"${rawPath}"`,
+      ].join(' '),
+      { verbose: args.verbose }
+    );
 
     // 3: Per tier: classify (is_index), filter, and clip back to the exact
     //    cell extent so adjacent cells don't duplicate features.
     for (const tier of CONTOUR_TIERS) {
       const tierPath = cellTierPath(workDir, cellId, tier);
       if (fs.existsSync(tierPath)) fs.unlinkSync(tierPath);
-      run([
-        'ogr2ogr',
-        '-f FlatGeobuf',
-        `"${tierPath}"`,
-        `"${rawPath}"`,
-        `-nln ${CLASSIFIED_LAYER}`,
-        // Clipping can split a contour into a MultiLineString; promote the
-        // layer type so mixed geometries write cleanly.
-        '-nlt PROMOTE_TO_MULTI',
-        `-clipsrc ${cell.west} ${cell.south} ${cell.east} ${cell.north}`,
-        '-dialect sqlite',
-        '-sql',
-        `"SELECT geometry, elevation, CAST(CASE WHEN (CAST(elevation AS INTEGER) % ${INDEX_CONTOUR_INTERVAL}) = 0 THEN 1 ELSE 0 END AS INTEGER) AS is_index FROM 'contour' WHERE ${tier.where}"`,
-      ].join(' '), { verbose: args.verbose });
+      run(
+        [
+          'ogr2ogr',
+          '-f FlatGeobuf',
+          `"${tierPath}"`,
+          `"${rawPath}"`,
+          `-nln ${CLASSIFIED_LAYER}`,
+          // Clipping can split a contour into a MultiLineString; promote the
+          // layer type so mixed geometries write cleanly.
+          '-nlt PROMOTE_TO_MULTI',
+          `-clipsrc ${cell.west} ${cell.south} ${cell.east} ${cell.north}`,
+          '-dialect sqlite',
+          '-sql',
+          `"SELECT geometry, elevation, CAST(CASE WHEN (CAST(elevation AS INTEGER) % ${INDEX_CONTOUR_INTERVAL}) = 0 THEN 1 ELSE 0 END AS INTEGER) AS is_index FROM 'contour' WHERE ${tier.where}"`,
+        ].join(' '),
+        { verbose: args.verbose }
+      );
     }
 
     fs.writeFileSync(cellDoneMarker(workDir, cellId), new Date().toISOString());
@@ -637,33 +638,36 @@ async function processCells(
     for (;;) {
       const cell = queue.shift();
       if (!cell) return;
-      await new Promise<void>((resolve) => {
-        execFile('npx', ['tsx', scriptPath, '--cell', cell.id, ...childArgs], {
-          cwd: PROJECT_ROOT,
-          maxBuffer: 50 * 1024 * 1024,
-        }, (error, stdout, stderr) => {
-          completed++;
-          if (args.verbose) {
-            if (stdout) process.stdout.write(stdout);
-            if (stderr) process.stderr.write(stderr);
+      await new Promise<void>(resolve => {
+        execFile(
+          'npx',
+          ['tsx', scriptPath, '--cell', cell.id, ...childArgs],
+          {
+            cwd: PROJECT_ROOT,
+            maxBuffer: 50 * 1024 * 1024,
+          },
+          (error, stdout, stderr) => {
+            completed++;
+            if (args.verbose) {
+              if (stdout) process.stdout.write(stdout);
+              if (stderr) process.stderr.write(stderr);
+            }
+            if (error) {
+              console.error(`  ✗ [${completed}/${cells.length}] ${cell.id}: ${error.message.split('\n')[0]}`);
+              results.push({ cellId: cell.id, success: false, error: error.message });
+            } else {
+              console.log(`  ✓ [${completed}/${cells.length}] ${cell.id}`);
+              results.push({ cellId: cell.id, success: true });
+              onCellDone(cell);
+            }
+            resolve();
           }
-          if (error) {
-            console.error(`  ✗ [${completed}/${cells.length}] ${cell.id}: ${error.message.split('\n')[0]}`);
-            results.push({ cellId: cell.id, success: false, error: error.message });
-          } else {
-            console.log(`  ✓ [${completed}/${cells.length}] ${cell.id}`);
-            results.push({ cellId: cell.id, success: true });
-            onCellDone(cell);
-          }
-          resolve();
-        });
+        );
       });
     }
   };
 
-  await Promise.all(
-    Array.from({ length: Math.min(args.parallel, cells.length) }, () => runNext())
-  );
+  await Promise.all(Array.from({ length: Math.min(args.parallel, cells.length) }, () => runNext()));
 
   return results;
 }
@@ -709,11 +713,7 @@ const MERGE_BATCH_BYTES = 90 * 1024 * 1024 * 1024;
  * Consecutive in sorted-cell-id order, so batches stay geographically compact
  * and only tiles straddling a seam get re-encoded.
  */
-function batchCellsByBytes(
-  cellIds: string[],
-  bytesByCell: Map<string, number>,
-  maxBytes: number,
-): string[][] {
+function batchCellsByBytes(cellIds: string[], bytesByCell: Map<string, number>, maxBytes: number): string[][] {
   const batches: string[][] = [];
   let current: string[] = [];
   let currentBytes = 0;
@@ -757,7 +757,7 @@ function mergeToMbtiles(
   outputPath: string,
   verbose: boolean,
   mode: MergeMode = 'full',
-  onlyBatches: number[] | null = null,
+  onlyBatches: number[] | null = null
 ): void {
   // The tiers are normally gone by join time (--clean-work), so this must not
   // scan them.
@@ -806,9 +806,11 @@ function mergeToMbtiles(
   const totalBytes = [...bytesByCell.values()].reduce((a, b) => a + b, 0);
   const batches = batchCellsByBytes(cellIds, bytesByCell, MERGE_BATCH_BYTES);
 
-  console.log(`  Merging ${fileCount} tier files (${formatBytes(totalBytes)}) from ${workDir}` +
-    (skipped ? ` (${skipped} skipped)` : '') +
-    (batches.length > 1 ? ` in ${batches.length} batches of ≤${formatBytes(MERGE_BATCH_BYTES)}` : ''));
+  console.log(
+    `  Merging ${fileCount} tier files (${formatBytes(totalBytes)}) from ${workDir}` +
+      (skipped ? ` (${skipped} skipped)` : '') +
+      (batches.length > 1 ? ` in ${batches.length} batches of ≤${formatBytes(MERGE_BATCH_BYTES)}` : '')
+  );
 
   // tippecanoe spills tens of GB of temporary sort files to /tmp by default;
   // on tmpfs that exhausts the quota mid-merge. Keep temps next to the data.
@@ -820,14 +822,21 @@ function mergeToMbtiles(
   if (onlyBatches) {
     const missing = onlyBatches.filter(i => i >= batches.length);
     if (missing.length > 0) {
-      throw new Error(`--batch ${missing.join(',')}: this shard has ${batches.length} batch(es), numbered 0-${batches.length - 1}`);
+      throw new Error(
+        `--batch ${missing.join(',')}: this shard has ${batches.length} batch(es), numbered 0-${batches.length - 1}`
+      );
     }
   }
 
   if (batches.length === 1 && mode === 'full') {
     const tieredPath = path.join(workDir, 'shard.tiered.mbtiles');
     if (fs.existsSync(tieredPath)) fs.unlinkSync(tieredPath);
-    tippecanoeMerge(cellIds.flatMap(id => layerArgsByCell.get(id)!), tieredPath, tmpDir, verbose);
+    tippecanoeMerge(
+      cellIds.flatMap(id => layerArgsByCell.get(id)!),
+      tieredPath,
+      tmpDir,
+      verbose
+    );
     console.log(`    folding tier layers → ${path.basename(outputPath)}`);
     renameContourTiers(tieredPath, outputPath, { verbose });
     fs.unlinkSync(tieredPath);
@@ -863,7 +872,12 @@ function mergeToMbtiles(
       // processes never share tippecanoe's spill directory.
       const batchTmpDir = path.join(tmpDir, `batch-${String(i).padStart(2, '0')}`);
       ensureDir(batchTmpDir);
-      tippecanoeMerge(cells.flatMap(id => layerArgsByCell.get(id)!), batchPath, batchTmpDir, verbose);
+      tippecanoeMerge(
+        cells.flatMap(id => layerArgsByCell.get(id)!),
+        batchPath,
+        batchTmpDir,
+        verbose
+      );
       fs.rmSync(batchTmpDir, { recursive: true, force: true });
       fs.writeFileSync(marker, label);
       console.log(`      ✓ ${path.basename(batchPath)} (${formatBytes(fileSizeBytes(batchPath))})`);
@@ -909,7 +923,11 @@ function removeBatchFiles(batchPaths: string[]): void {
  */
 function joinKeptBatches(workDir: string, outputPath: string, verbose: boolean): void {
   const batchPaths = fs.existsSync(workDir)
-    ? fs.readdirSync(workDir).filter(f => BATCH_FILE_PATTERN.test(f)).sort().map(f => path.join(workDir, f))
+    ? fs
+        .readdirSync(workDir)
+        .filter(f => BATCH_FILE_PATTERN.test(f))
+        .sort()
+        .map(f => path.join(workDir, f))
     : [];
   if (batchPaths.length === 0) {
     throw new Error(`--join-batches: no batch-NN.mbtiles in ${workDir} (run --merge-only --batches-only first)`);
@@ -918,7 +936,7 @@ function joinKeptBatches(workDir: string, outputPath: string, verbose: boolean):
   if (unfinished.length > 0) {
     throw new Error(
       `--join-batches: ${unfinished.map(p => path.basename(p)).join(', ')} ` +
-      'have no .done marker (tippecanoe was killed mid-write?); re-run --merge-only --batches-only'
+        'have no .done marker (tippecanoe was killed mid-write?); re-run --merge-only --batches-only'
     );
   }
   const settings = batchSettingsLabel();
@@ -926,8 +944,8 @@ function joinKeptBatches(workDir: string, outputPath: string, verbose: boolean):
   if (stale.length > 0) {
     throw new Error(
       `--join-batches: ${stale.map(p => path.basename(p)).join(', ')} ` +
-      `were tiled with another tippecanoe release or settings than this run's (${settings}); ` +
-      'delete them and re-run --merge-only --batches-only from the tiers'
+        `were tiled with another tippecanoe release or settings than this run's (${settings}); ` +
+        'delete them and re-run --merge-only --batches-only from the tiers'
     );
   }
   const totalBytes = batchPaths.reduce((a, p) => a + fileSizeBytes(p), 0);
@@ -955,15 +973,14 @@ function cleanTierFiles(workDir: string): void {
  * into `contour` with renameContourTiers() — see contourTierLayer().
  */
 function tippecanoeMerge(layerArgs: string[], outputPath: string, tmpDir: string, verbose: boolean): void {
-  execFileSync('tippecanoe', [
-    '-t', tmpDir,
-    '-o', outputPath,
-    ...contourTippecanoeArgs(WORLD_CONTOUR_OPTIONS, { verbose }),
-    ...layerArgs,
-  ], {
-    cwd: PROJECT_ROOT,
-    stdio: ['ignore', 'inherit', 'inherit'],
-  });
+  execFileSync(
+    'tippecanoe',
+    ['-t', tmpDir, '-o', outputPath, ...contourTippecanoeArgs(WORLD_CONTOUR_OPTIONS, { verbose }), ...layerArgs],
+    {
+      cwd: PROJECT_ROOT,
+      stdio: ['ignore', 'inherit', 'inherit'],
+    }
+  );
 }
 
 /** Shard files converted for the join (see joinShards) land here. */
@@ -977,22 +994,25 @@ const PMTILES_SHARDS_DIR = 'pmtiles-shards';
  */
 async function convertShardsToPmtiles(shardFiles: string[], dir: string): Promise<string[]> {
   ensureDir(dir);
-  return Promise.all(shardFiles.map(async (mbtiles) => {
-    const out = path.join(dir, path.basename(mbtiles).replace(/\.mbtiles$/, '.pmtiles'));
-    if (fs.existsSync(out) && fs.statSync(out).mtimeMs > fs.statSync(mbtiles).mtimeMs) {
-      console.log(`    reusing ${path.basename(out)}`);
+  return Promise.all(
+    shardFiles.map(async mbtiles => {
+      const out = path.join(dir, path.basename(mbtiles).replace(/\.mbtiles$/, '.pmtiles'));
+      if (fs.existsSync(out) && fs.statSync(out).mtimeMs > fs.statSync(mbtiles).mtimeMs) {
+        console.log(`    reusing ${path.basename(out)}`);
+        return out;
+      }
+      // Written under a temp name so a killed convert never looks finished.
+      const tmp = `${out}.tmp`;
+      await new Promise<void>((resolve, reject) => {
+        execFile('pmtiles', ['convert', mbtiles, tmp], { cwd: PROJECT_ROOT, maxBuffer: 50 * 1024 * 1024 }, error =>
+          error ? reject(new Error(`pmtiles convert ${path.basename(mbtiles)}: ${error.message}`)) : resolve()
+        );
+      });
+      fs.renameSync(tmp, out);
+      console.log(`    ✓ ${path.basename(out)} (${formatBytes(fileSizeBytes(out))})`);
       return out;
-    }
-    // Written under a temp name so a killed convert never looks finished.
-    const tmp = `${out}.tmp`;
-    await new Promise<void>((resolve, reject) => {
-      execFile('pmtiles', ['convert', mbtiles, tmp], { cwd: PROJECT_ROOT, maxBuffer: 50 * 1024 * 1024 },
-        (error) => (error ? reject(new Error(`pmtiles convert ${path.basename(mbtiles)}: ${error.message}`)) : resolve()));
-    });
-    fs.renameSync(tmp, out);
-    console.log(`    ✓ ${path.basename(out)} (${formatBytes(fileSizeBytes(out))})`);
-    return out;
-  }));
+    })
+  );
 }
 
 /**
@@ -1028,7 +1048,8 @@ function validateWorldPmtiles(pmtilesPath: string): void {
  * validates; the shard mbtiles are kept.
  */
 async function joinShards(outputDir: string, verbose: boolean): Promise<void> {
-  const shardFiles = fs.readdirSync(outputDir)
+  const shardFiles = fs
+    .readdirSync(outputDir)
     .filter(f => /^world_.+\.mbtiles$/.test(f))
     .sort()
     .map(f => path.join(outputDir, f));
@@ -1036,7 +1057,7 @@ async function joinShards(outputDir: string, verbose: boolean): Promise<void> {
   if (shardFiles.length === 0) {
     throw new Error(
       `No world_*.mbtiles files found in ${outputDir} — build at least one shard first ` +
-      `(npx tsx scripts/build-contours-world.ts --shard <name>)`
+        `(npx tsx scripts/build-contours-world.ts --shard <name>)`
     );
   }
 
@@ -1057,19 +1078,24 @@ async function joinShards(outputDir: string, verbose: boolean): Promise<void> {
   console.log(`  Converting shards to pmtiles in ${shardDir}:`);
   const shardPmtiles = await convertShardsToPmtiles(shardFiles, shardDir);
 
-  execFileSync('tile-join', [
-    '-o', mbtilesPath,
-    '--no-tile-size-limit',
-    '--force',
-    ...(verbose ? [] : ['-q']),
-    // Shards already serve `contour`; the renames are no-ops for them and
-    // cover a shard mbtiles a killed run left with its tier layers.
-    ...contourTierRenameArgs(),
-    ...shardPmtiles,
-  ], {
-    cwd: PROJECT_ROOT,
-    stdio: ['ignore', 'inherit', 'inherit'],
-  });
+  execFileSync(
+    'tile-join',
+    [
+      '-o',
+      mbtilesPath,
+      '--no-tile-size-limit',
+      '--force',
+      ...(verbose ? [] : ['-q']),
+      // Shards already serve `contour`; the renames are no-ops for them and
+      // cover a shard mbtiles a killed run left with its tier layers.
+      ...contourTierRenameArgs(),
+      ...shardPmtiles,
+    ],
+    {
+      cwd: PROJECT_ROOT,
+      stdio: ['ignore', 'inherit', 'inherit'],
+    }
+  );
 
   console.log(`  ✓ Joined mbtiles: ${mbtilesPath} (${formatBytes(fileSizeBytes(mbtilesPath))})`);
 
@@ -1088,10 +1114,10 @@ async function joinShards(outputDir: string, verbose: boolean): Promise<void> {
 function usage(): void {
   console.error(
     '\nUsage: npx tsx scripts/build-contours-world.ts ' +
-    '(--shard NAME | --bbox W S E N | --cell ID | --join)\n' +
-    '  [--parallel N] [--force] [--merge-only] [--cells-only] [--batches-only [--batch I,J]] [--join-batches]\n' +
-    '  [--skip-smooth] [--verbose]\n' +
-    '  [--fetch-dem] [--purge-dem] [--dem-dir DIR] [--work-dir DIR] [--output-dir DIR] [--clean-work]'
+      '(--shard NAME | --bbox W S E N | --cell ID | --join)\n' +
+      '  [--parallel N] [--force] [--merge-only] [--cells-only] [--batches-only [--batch I,J]] [--join-batches]\n' +
+      '  [--skip-smooth] [--verbose]\n' +
+      '  [--fetch-dem] [--purge-dem] [--dem-dir DIR] [--work-dir DIR] [--output-dir DIR] [--clean-work]'
   );
   console.error(`\nShards: ${worldShardNames().join(', ')}`);
 }
@@ -1130,9 +1156,7 @@ async function main(): Promise<void> {
   if (args.cell) {
     const cell = worldCellFromId(args.cell);
     if (!cell) {
-      console.error(
-        `Invalid cell ID: ${args.cell} (expected an even-degree world cell like S26E132)`
-      );
+      console.error(`Invalid cell ID: ${args.cell} (expected an even-degree world cell like S26E132)`);
       process.exit(1);
     }
     ensureDir(workDir);
@@ -1184,7 +1208,7 @@ async function main(): Promise<void> {
         if (foreign > 0) {
           console.warn(
             `  ⚠ ${foreign}/${selected.length} bbox cells belong to another shard — ` +
-            `they will still be staged into ${workDir} and merged into ${path.basename(outputPath)}\n`
+              `they will still be staged into ${workDir} and merged into ${path.basename(outputPath)}\n`
           );
         }
       }
@@ -1213,11 +1237,15 @@ async function main(): Promise<void> {
 
       console.log(`\n  Cells selected:   ${selected.length}`);
       console.log(`  With local DEM:   ${buildable.length}`);
-      console.log(`  Ocean/no DEM:     ${selected.length - buildable.length}` +
-        (landMask ? ` (of which ${missing} have land tiles not yet downloaded)` : ''));
+      console.log(
+        `  Ocean/no DEM:     ${selected.length - buildable.length}` +
+          (landMask ? ` (of which ${missing} have land tiles not yet downloaded)` : '')
+      );
       if (!landMask) {
-        console.log('  (no cached tile list — run the fetcher or --fetch-dem to tell ' +
-          'ocean cells apart from un-downloaded ones)');
+        console.log(
+          '  (no cached tile list — run the fetcher or --fetch-dem to tell ' +
+            'ocean cells apart from un-downloaded ones)'
+        );
       }
       if (missing > 0) {
         console.warn(`  ⚠ ${missing} land cells have no DEM on disk — re-run with --fetch-dem`);
@@ -1227,9 +1255,11 @@ async function main(): Promise<void> {
         ? buildable
         : buildable.filter(c => !fs.existsSync(cellDoneMarker(workDir, c.id)));
 
-      console.log(`\nStep 2: Processing cells (${buildable.length} land cells, ` +
-        `${buildable.length - pendingCells.length} already built, ` +
-        `${pendingCells.length} to process, parallelism ${args.parallel})...`);
+      console.log(
+        `\nStep 2: Processing cells (${buildable.length} land cells, ` +
+          `${buildable.length - pendingCells.length} already built, ` +
+          `${pendingCells.length} to process, parallelism ${args.parallel})...`
+      );
 
       // Refcount the DEM tiles this run still needs BEFORE any cell completes,
       // so a purge can only ever delete a tile no queued cell will read.
@@ -1271,9 +1301,11 @@ async function main(): Promise<void> {
     }
 
     const mergeMode: MergeMode = args.joinBatches ? 'join-batches' : args.batchesOnly ? 'batches-only' : 'full';
-    console.log(mergeMode === 'join-batches'
-      ? '\nStep 3: Joining kept batches into the shard MBTiles...'
-      : '\nStep 3: Merging shard into MBTiles with tippecanoe...');
+    console.log(
+      mergeMode === 'join-batches'
+        ? '\nStep 3: Joining kept batches into the shard MBTiles...'
+        : '\nStep 3: Merging shard into MBTiles with tippecanoe...'
+    );
     mergeToMbtiles(workDir, outputPath, args.verbose, mergeMode, args.batches);
 
     if (mergeMode === 'batches-only') {
@@ -1315,7 +1347,7 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((error) => {
+main().catch(error => {
   console.error('Fatal error:', error);
   process.exit(1);
 });

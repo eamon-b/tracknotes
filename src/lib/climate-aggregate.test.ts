@@ -7,7 +7,7 @@ function emptySeries(): DailyClimateSeries {
 
 /** Build a series covering the given days with constant values. */
 function buildSeries(
-  days: { date: string; max: number | null; min: number | null; precip: number | null }[],
+  days: { date: string; max: number | null; min: number | null; precip: number | null }[]
 ): DailyClimateSeries {
   return {
     time: days.map(d => d.date),
@@ -34,12 +34,14 @@ describe('aggregateDailyToMonthly', () => {
 
   it('averages temperatures over days and precipitation over years', () => {
     // Two Januaries (2020, 2021), two days each
-    const monthly = aggregateDailyToMonthly(buildSeries([
-      { date: '2020-01-01', max: 30, min: 15, precip: 0 },
-      { date: '2020-01-02', max: 32, min: 17, precip: 4 },
-      { date: '2021-01-01', max: 28, min: 13, precip: 2 },
-      { date: '2021-01-02', max: 30, min: 15, precip: 0.5 },
-    ]));
+    const monthly = aggregateDailyToMonthly(
+      buildSeries([
+        { date: '2020-01-01', max: 30, min: 15, precip: 0 },
+        { date: '2020-01-02', max: 32, min: 17, precip: 4 },
+        { date: '2021-01-01', max: 28, min: 13, precip: 2 },
+        { date: '2021-01-02', max: 30, min: 15, precip: 0.5 },
+      ])
+    );
 
     const jan = monthly[0];
     expect(jan.month).toBe(1);
@@ -61,11 +63,13 @@ describe('aggregateDailyToMonthly', () => {
   });
 
   it('rounds averages to one decimal place', () => {
-    const monthly = aggregateDailyToMonthly(buildSeries([
-      { date: '2020-03-01', max: 20.11, min: 10.11, precip: 1.06 },
-      { date: '2020-03-02', max: 20.22, min: 10.22, precip: 1.06 },
-      { date: '2020-03-03', max: 20.44, min: 10.44, precip: 1.06 },
-    ]));
+    const monthly = aggregateDailyToMonthly(
+      buildSeries([
+        { date: '2020-03-01', max: 20.11, min: 10.11, precip: 1.06 },
+        { date: '2020-03-02', max: 20.22, min: 10.22, precip: 1.06 },
+        { date: '2020-03-03', max: 20.44, min: 10.44, precip: 1.06 },
+      ])
+    );
 
     const mar = monthly[2];
     // (20.11+20.22+20.44)/3 = 20.256... → 20.3
@@ -77,10 +81,12 @@ describe('aggregateDailyToMonthly', () => {
   });
 
   it('skips null temperature days but still counts their precipitation', () => {
-    const monthly = aggregateDailyToMonthly(buildSeries([
-      { date: '2020-07-01', max: 10, min: 2, precip: 0 },
-      { date: '2020-07-02', max: null, min: null, precip: 6 },
-    ]));
+    const monthly = aggregateDailyToMonthly(
+      buildSeries([
+        { date: '2020-07-01', max: 10, min: 2, precip: 0 },
+        { date: '2020-07-02', max: null, min: null, precip: 6 },
+      ])
+    );
 
     const jul = monthly[6];
     // Temperature average uses only the one valid day
@@ -92,9 +98,7 @@ describe('aggregateDailyToMonthly', () => {
   });
 
   it('treats a month with only null temperatures as having no data', () => {
-    const monthly = aggregateDailyToMonthly(buildSeries([
-      { date: '2020-09-01', max: null, min: null, precip: 12 },
-    ]));
+    const monthly = aggregateDailyToMonthly(buildSeries([{ date: '2020-09-01', max: null, min: null, precip: 12 }]));
 
     expect(monthly[8]).toEqual({
       month: 9,
@@ -106,10 +110,12 @@ describe('aggregateDailyToMonthly', () => {
   });
 
   it('does not count precipitation of exactly 1mm as a rainy day', () => {
-    const monthly = aggregateDailyToMonthly(buildSeries([
-      { date: '2020-11-01', max: 25, min: 12, precip: 1 },
-      { date: '2020-11-02', max: 25, min: 12, precip: 1.1 },
-    ]));
+    const monthly = aggregateDailyToMonthly(
+      buildSeries([
+        { date: '2020-11-01', max: 25, min: 12, precip: 1 },
+        { date: '2020-11-02', max: 25, min: 12, precip: 1.1 },
+      ])
+    );
 
     expect(monthly[10].avgRainyDays).toBe(1);
   });
@@ -120,14 +126,20 @@ describe('aggregateDailyToMonthly', () => {
   // Jan-1 into the previous December, inflating December and understating it.
   describe('timezone-independent month bucketing', () => {
     const originalTZ = process.env.TZ;
-    beforeAll(() => { process.env.TZ = 'America/Los_Angeles'; });
-    afterAll(() => { process.env.TZ = originalTZ; });
+    beforeAll(() => {
+      process.env.TZ = 'America/Los_Angeles';
+    });
+    afterAll(() => {
+      process.env.TZ = originalTZ;
+    });
 
     it('places 1st-of-month rows in their own month under a UTC-negative tz', () => {
-      const monthly = aggregateDailyToMonthly(buildSeries([
-        { date: '2014-01-01', max: 30, min: 15, precip: 5 },
-        { date: '2015-01-01', max: 30, min: 15, precip: 5 },
-      ]));
+      const monthly = aggregateDailyToMonthly(
+        buildSeries([
+          { date: '2014-01-01', max: 30, min: 15, precip: 5 },
+          { date: '2015-01-01', max: 30, min: 15, precip: 5 },
+        ])
+      );
 
       const jan = monthly[0];
       const dec = monthly[11];

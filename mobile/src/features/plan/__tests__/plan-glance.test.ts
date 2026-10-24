@@ -18,7 +18,12 @@ import { stopCandidateOf, toggleTargetOf } from '../plan-stops';
 
 /** Flat 100 km trail: at 4 km/h a day's hours are its km / 4. */
 function trail(): TrailJson {
-  const points = Array.from({ length: 101 }, (_, i) => ({ lat: 0, lon: i * 0.001, ele: 100, dist: i }));
+  const points = Array.from({ length: 101 }, (_, i) => ({
+    lat: 0,
+    lon: i * 0.001,
+    ele: 100,
+    dist: i,
+  }));
   return {
     config: {
       id: 'syn',

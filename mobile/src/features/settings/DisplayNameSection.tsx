@@ -21,10 +21,7 @@ import { radii, spacing, touchTarget, typography } from '../../tokens';
 import { isApiConfigured } from '../../api/client';
 import { apiErrorMessage } from '../../api/error-message';
 import { useIdentityStore } from '../../state/identity-store';
-import {
-  MAX_DISPLAY_NAME_LENGTH,
-  validateDisplayName,
-} from '../comments/display-name';
+import { MAX_DISPLAY_NAME_LENGTH, validateDisplayName } from '../comments/display-name';
 
 /** Fallback copy when a rename fails for a reason we can't be specific about. */
 export const RENAME_FAILED_MESSAGE = "Couldn't save your display name. Please try again.";

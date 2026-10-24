@@ -15,20 +15,7 @@ import { tripAlongTrail, type TrailTrip } from '../../services/distance-calculat
 import { snapToTrail, type SnapPoint } from '@lib/position-on-trail';
 import { isOtherHikersWaypoint, userWaypointInfo } from '@lib/user-waypoints';
 
-const MONTHS = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;

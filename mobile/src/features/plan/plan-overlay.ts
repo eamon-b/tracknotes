@@ -20,8 +20,19 @@
  */
 
 import { findStopIndex } from '@lib/plan-editor';
-import { alternateKmToRoute, mainKmToRoute, type PlanAlternate, type PlannedRoute } from '@lib/plan-alternates';
-import { KM_EPSILON, stopsToActive, toActiveKm, toNoboKm, type PlanDirection } from '@lib/plan-direction';
+import {
+  alternateKmToRoute,
+  mainKmToRoute,
+  type PlanAlternate,
+  type PlannedRoute,
+} from '@lib/plan-alternates';
+import {
+  KM_EPSILON,
+  stopsToActive,
+  toActiveKm,
+  toNoboKm,
+  type PlanDirection,
+} from '@lib/plan-direction';
 import type { PlanDocument, PlanStop } from '@lib/plan-types';
 
 /** The minimum of a waypoint this module needs: the map's and the list's shape both fit. */

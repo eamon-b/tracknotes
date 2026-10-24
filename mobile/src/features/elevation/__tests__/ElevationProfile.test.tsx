@@ -113,9 +113,11 @@ function makePoints(n: number): ProfilePoint[] {
 
 function layoutAll(root: ReactTestRenderer) {
   act(() => {
-    root.root.findAll((n) => typeof n.props.onLayout === 'function').forEach((n) => {
-      n.props.onLayout?.({ nativeEvent: { layout: { width: 360, height: 240 } } });
-    });
+    root.root
+      .findAll((n) => typeof n.props.onLayout === 'function')
+      .forEach((n) => {
+        n.props.onLayout?.({ nativeEvent: { layout: { width: 360, height: 240 } } });
+      });
   });
 }
 
@@ -169,9 +171,7 @@ describe('ElevationProfile', () => {
       { startKm: 21, endKm: 23 },
     ]) {
       act(() => {
-        root.update(
-          <ElevationProfile {...baseProps} window={window} onWindowChange={jest.fn()} />,
-        );
+        root.update(<ElevationProfile {...baseProps} window={window} onWindowChange={jest.fn()} />);
       });
     }
     expect(mockComposedGestures).toHaveLength(1);
@@ -452,11 +452,7 @@ describe('ElevationProfile', () => {
       let root!: ReactTestRenderer;
       act(() => {
         root = TestRenderer.create(
-          <ElevationProfile
-            {...baseProps}
-            stopKms={[25, 60]}
-            onWindowChange={jest.fn()}
-          />,
+          <ElevationProfile {...baseProps} stopKms={[25, 60]} onWindowChange={jest.fn()} />,
         );
       });
       layoutAll(root);

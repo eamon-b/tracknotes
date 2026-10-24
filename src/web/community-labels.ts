@@ -72,7 +72,7 @@ export function multilineHtml(text: string): string {
 export function placeLabel(
   country: string | null | undefined,
   states: readonly (string | null | undefined)[] | null | undefined,
-  withCountry = true,
+  withCountry = true
 ): string {
   const names = (states ?? []).filter((s): s is string => !!s).map(s => stateName(country, s) ?? s);
   if (names.length === 0) return country ? countryName(country) : '';

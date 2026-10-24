@@ -166,7 +166,13 @@ export async function runPoiSearch(
   let host: string | undefined;
   let current = 0;
   const report = (phase: PoiSearchPhase): void =>
-    onProgress?.({ phase, current: phase === 'fetching' ? current : undefined, total: asked, host, bytes });
+    onProgress?.({
+      phase,
+      current: phase === 'fetching' ? current : undefined,
+      total: asked,
+      host,
+      bytes,
+    });
 
   const fetchers = endpoints.map((endpoint) => ({
     endpoint,

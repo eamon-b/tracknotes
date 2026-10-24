@@ -100,7 +100,10 @@ describe('suggestionCriteria', () => {
 
 describe('suggestionStart', () => {
   it('starts from the GPS km when it is inside the section', () => {
-    expect(suggestionStart(plan('c1'), section, 100, 33, false)).toMatchObject({ kind: 'here', km: 33 });
+    expect(suggestionStart(plan('c1'), section, 100, 33, false)).toMatchObject({
+      kind: 'here',
+      km: 33,
+    });
   });
 
   it('falls back to the last stop without a fix, or when asked', () => {
@@ -109,17 +112,26 @@ describe('suggestionStart', () => {
       km: 40,
       name: 'Townsville',
     });
-    expect(suggestionStart(plan('c1'), section, 100, 33, true)).toMatchObject({ kind: 'stop', km: 20 });
+    expect(suggestionStart(plan('c1'), section, 100, 33, true)).toMatchObject({
+      kind: 'stop',
+      km: 20,
+    });
   });
 
   it('falls back to the section start with no stops', () => {
-    expect(suggestionStart(plan(), section, 100, null, false)).toMatchObject({ kind: 'start', km: 0 });
+    expect(suggestionStart(plan(), section, 100, null, false)).toMatchObject({
+      kind: 'start',
+      km: 0,
+    });
   });
 
   it('reads stops in the active direction', () => {
     const sobo = { ...plan('c1'), direction: 'SOBO' as const };
     // NOBO km 20 is SOBO km 80.
-    expect(suggestionStart(sobo, section, 100, null, false)).toMatchObject({ kind: 'stop', km: 80 });
+    expect(suggestionStart(sobo, section, 100, null, false)).toMatchObject({
+      kind: 'stop',
+      km: 80,
+    });
   });
 });
 

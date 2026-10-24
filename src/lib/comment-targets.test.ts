@@ -25,7 +25,19 @@ describe('commentTargetKind', () => {
   });
 
   it('names nothing for anything else', () => {
-    for (const id of ['spring-01', 'w_0017664', 'w_0017664A', 'uw_', 'uw_ABC', 'uw_abc_x', 'osm_area_1', 'osm_node_01', '', null, 7]) {
+    for (const id of [
+      'spring-01',
+      'w_0017664',
+      'w_0017664A',
+      'uw_',
+      'uw_ABC',
+      'uw_abc_x',
+      'osm_area_1',
+      'osm_node_01',
+      '',
+      null,
+      7,
+    ]) {
       expect(commentTargetKind(id)).toBeNull();
     }
   });

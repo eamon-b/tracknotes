@@ -16,7 +16,17 @@ const FILE: TrailAccessFile = {
   endpoint: 'e',
   minDistanceM: 150,
   places: {
-    w_b: { name: 'Camp', method: 'osm', junction: [33.93, 134.519], junctionKm: 111.89, offTrailKm: 2.82, path: [[33.93, 134.519], [33.92, 134.5]] },
+    w_b: {
+      name: 'Camp',
+      method: 'osm',
+      junction: [33.93, 134.519],
+      junctionKm: 111.89,
+      offTrailKm: 2.82,
+      path: [
+        [33.93, 134.519],
+        [33.92, 134.5],
+      ],
+    },
     w_a: { name: 'Hut', method: 'none', reason: 'no mapped way within 300 m of the place' },
     w_c: { name: 'Inn', method: 'manual', junction: [34, 134], offTrailKm: 0.4 },
   },
@@ -37,7 +47,10 @@ describe('trail access file', () => {
     expect(placements.get('w_b')).toEqual({
       junction: { lat: 33.93, lon: 134.519 },
       offTrailKm: 2.82,
-      path: [[33.93, 134.519], [33.92, 134.5]],
+      path: [
+        [33.93, 134.519],
+        [33.92, 134.5],
+      ],
     });
     // A hand-written entry is not a routed walk: nothing to draw.
     expect(placements.get('w_c')).not.toHaveProperty('path');
@@ -58,7 +71,14 @@ describe('trail access file', () => {
       ...FILE,
       places: {
         ...FILE.places,
-        w_d: { name: 'Field', method: 'osm', variant: 'Alt: Kamiyama', junction: [33.97, 134.37], junctionKm: 6.1, offTrailKm: 0.6 },
+        w_d: {
+          name: 'Field',
+          method: 'osm',
+          variant: 'Alt: Kamiyama',
+          junction: [33.97, 134.37],
+          junctionKm: 6.1,
+          offTrailKm: 0.6,
+        },
         w_e: { name: 'Shed', method: 'none', variant: 'Alt: Kamiyama', reason: 'no mapped way' },
       },
     };

@@ -99,12 +99,25 @@ function makeTrail(points: number): TrailJson {
       source: 'imported',
     },
     waypoints: [
-      { id: 'w_hut', name: 'Mill Hut', type: 'hut', lat: -34 + 2 * 0.02, lon: 115.0005, totalDistance: 6 },
+      {
+        id: 'w_hut',
+        name: 'Mill Hut',
+        type: 'hut',
+        lat: -34 + 2 * 0.02,
+        lon: 115.0005,
+        totalDistance: 6,
+      },
     ],
     offTrailWaypoints: [],
     alternates: [],
     sideTrips: [],
-    track: { points: track, displayPoints: track, totalDistance: (points - 1) * 3, totalAscent: 0, totalDescent: 0 },
+    track: {
+      points: track,
+      displayPoints: track,
+      totalDistance: (points - 1) * 3,
+      totalAscent: 0,
+      totalDescent: 0,
+    },
   };
 }
 
@@ -222,7 +235,11 @@ describe('runPoiSearch', () => {
       }
       return respond(200, { elements: [element(10, 3, { amenity: 'drinking_water' })] });
     });
-    const options = { fetchImpl: fetchImpl as unknown as typeof fetch, endpoints: [A], minDelayMs: 0 };
+    const options = {
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      endpoints: [A],
+      minDelayMs: 0,
+    };
 
     const first = await runPoiSearch(setup, options);
     expect(first.failures.map((f) => f.chunkIndex)).toEqual([1]);
@@ -250,7 +267,11 @@ describe('runPoiSearch', () => {
       throw new TypeError('Network request failed');
     });
     await expect(
-      runPoiSearch(setup, { fetchImpl: fetchImpl as unknown as typeof fetch, endpoints: [A, B], minDelayMs: 0 }),
+      runPoiSearch(setup, {
+        fetchImpl: fetchImpl as unknown as typeof fetch,
+        endpoints: [A, B],
+        minDelayMs: 0,
+      }),
     ).rejects.toBeInstanceOf(PoiSearchFailedError);
     // Two tries on each mirror.
     expect(fetchImpl).toHaveBeenCalledTimes(4);
@@ -281,7 +302,11 @@ describe('runPoiSearch', () => {
     storeTrail(makeTrail(20));
     const setup = (await preparePoiSearch(TRAIL_ID))!;
     const fetchImpl = jest.fn(async () => respond(200, { elements: [] }));
-    await runPoiSearch(setup, { fetchImpl: fetchImpl as unknown as typeof fetch, endpoints: [A], minDelayMs: 0 });
+    await runPoiSearch(setup, {
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      endpoints: [A],
+      minDelayMs: 0,
+    });
     expect((await readImportedTrail(TRAIL_ID))?.pois).toEqual([]);
   });
 });

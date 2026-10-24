@@ -23,7 +23,7 @@ interface TestTrail {
 
 function makeRecord(
   id: string,
-  overrides: Partial<ImportedTrailRecord<TestTrail>> = {},
+  overrides: Partial<ImportedTrailRecord<TestTrail>> = {}
 ): ImportedTrailRecord<TestTrail> {
   return {
     id,
@@ -133,7 +133,7 @@ describe('listTrailSummaries', () => {
 
     const summaries = await listTrailSummaries();
 
-    expect(summaries.map((s) => s.id)).toEqual(['u_new', 'u_mid', 'u_old']);
+    expect(summaries.map(s => s.id)).toEqual(['u_new', 'u_mid', 'u_old']);
     expect(summaries[0]).toEqual({
       id: 'u_new',
       name: 'Trail u_new',
@@ -147,7 +147,7 @@ describe('listTrailSummaries', () => {
     await putTrail(makeRecord('u_b', { createdAt: 5000 }));
     await putTrail(makeRecord('u_a', { createdAt: 5000 }));
 
-    expect((await listTrailSummaries()).map((s) => s.id)).toEqual(['u_a', 'u_b']);
+    expect((await listTrailSummaries()).map(s => s.id)).toEqual(['u_a', 'u_b']);
   });
 });
 
@@ -159,7 +159,7 @@ describe('deleteTrail', () => {
     await deleteTrail('u_abc');
 
     expect(await getTrail('u_abc')).toBeNull();
-    expect((await listTrailSummaries()).map((s) => s.id)).toEqual(['u_def']);
+    expect((await listTrailSummaries()).map(s => s.id)).toEqual(['u_def']);
   });
 
   it('resolves when the id is not present', async () => {

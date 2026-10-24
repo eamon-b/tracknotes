@@ -6,19 +6,13 @@ export const EARTH_RADIUS_METERS = 6371000;
  * Calculate 2D distance between two points using Haversine formula
  * Returns distance in meters
  */
-export function haversineDistance(
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-): number {
-  const φ1 = lat1 * Math.PI / 180;
-  const φ2 = lat2 * Math.PI / 180;
-  const Δφ = (lat2 - lat1) * Math.PI / 180;
-  const Δλ = (lon2 - lon1) * Math.PI / 180;
+export function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const φ1 = (lat1 * Math.PI) / 180;
+  const φ2 = (lat2 * Math.PI) / 180;
+  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
 
-  const a = Math.sin(Δφ / 2) ** 2 +
-            Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
+  const a = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return EARTH_RADIUS_METERS * c;
 }
@@ -27,19 +21,13 @@ export function haversineDistance(
  * Calculate 2D (horizontal) distance between two coordinate pairs using Haversine formula
  * Returns distance in meters
  */
-export function haversineDistance2D(
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-): number {
-  const φ1 = lat1 * Math.PI / 180;
-  const φ2 = lat2 * Math.PI / 180;
-  const Δφ = (lat2 - lat1) * Math.PI / 180;
-  const Δλ = (lon2 - lon1) * Math.PI / 180;
+export function haversineDistance2D(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const φ1 = (lat1 * Math.PI) / 180;
+  const φ2 = (lat2 * Math.PI) / 180;
+  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
 
-  const a = Math.sin(Δφ / 2) ** 2 +
-            Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
+  const a = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return EARTH_RADIUS_METERS * c;
 }
@@ -63,13 +51,12 @@ export function haversineDistance3D(
   lon2: number,
   ele2: number
 ): number {
-  const φ1 = lat1 * Math.PI / 180;
-  const φ2 = lat2 * Math.PI / 180;
-  const Δφ = (lat2 - lat1) * Math.PI / 180;
-  const Δλ = (lon2 - lon1) * Math.PI / 180;
+  const φ1 = (lat1 * Math.PI) / 180;
+  const φ2 = (lat2 * Math.PI) / 180;
+  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
 
-  const a = Math.sin(Δφ / 2) ** 2 +
-            Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
+  const a = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   const horizontalDist = EARTH_RADIUS_METERS * c;
 
@@ -80,18 +67,8 @@ export function haversineDistance3D(
 /**
  * Calculate distance between a waypoint and a track point
  */
-export function waypointToPointDistance(
-  waypoint: GpxWaypoint,
-  point: GpxPoint
-): number {
-  return haversineDistance3D(
-    waypoint.lat,
-    waypoint.lon,
-    waypoint.ele,
-    point.lat,
-    point.lon,
-    point.ele
-  );
+export function waypointToPointDistance(waypoint: GpxWaypoint, point: GpxPoint): number {
+  return haversineDistance3D(waypoint.lat, waypoint.lon, waypoint.ele, point.lat, point.lon, point.ele);
 }
 
 /**
@@ -101,11 +78,7 @@ export function waypointToPointDistance(
  * @param maxDistanceKm Maximum distance in kilometers
  * @returns true if waypoint is within maxDistanceKm of any point
  */
-export function isWaypointNearPoints(
-  waypoint: GpxWaypoint,
-  points: GpxPoint[],
-  maxDistanceKm: number
-): boolean {
+export function isWaypointNearPoints(waypoint: GpxWaypoint, points: GpxPoint[], maxDistanceKm: number): boolean {
   const maxDistanceMeters = maxDistanceKm * 1000;
 
   for (const point of points) {
@@ -120,12 +93,6 @@ export function isWaypointNearPoints(
 /**
  * Find all waypoints that are close to any point in the track segment
  */
-export function findCloseWaypoints(
-  points: GpxPoint[],
-  waypoints: GpxWaypoint[],
-  maxDistanceKm: number
-): GpxWaypoint[] {
-  return waypoints.filter(waypoint =>
-    isWaypointNearPoints(waypoint, points, maxDistanceKm)
-  );
+export function findCloseWaypoints(points: GpxPoint[], waypoints: GpxWaypoint[], maxDistanceKm: number): GpxWaypoint[] {
+  return waypoints.filter(waypoint => isWaypointNearPoints(waypoint, points, maxDistanceKm));
 }

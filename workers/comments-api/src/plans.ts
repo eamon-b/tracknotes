@@ -130,11 +130,7 @@ async function requireOwnPlan(env: Env, id: string, userId: string): Promise<Pla
 // GET /v1/plans — this user's plans (full snapshot or delta)
 // ---------------------------------------------------------------------------
 
-export async function listPlans(
-  request: Request,
-  env: Env,
-  ctx: ExecutionContext
-): Promise<Response> {
+export async function listPlans(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const user = await requireUser(request, env, ctx);
   const url = new URL(request.url);
   const limit = parseLimit(url.searchParams.get('limit'), PLANS_DEFAULT_LIMIT, PLANS_MAX_LIMIT);
@@ -189,12 +185,7 @@ export async function listPlans(
 // PUT /v1/plans/:id — full replace (create or overwrite)
 // ---------------------------------------------------------------------------
 
-export async function putPlan(
-  request: Request,
-  env: Env,
-  ctx: ExecutionContext,
-  id: string
-): Promise<Response> {
+export async function putPlan(request: Request, env: Env, ctx: ExecutionContext, id: string): Promise<Response> {
   assertClientPlanId(id);
   const user = await requireUser(request, env, ctx);
   assertNotBanned(user);
@@ -209,9 +200,7 @@ export async function putPlan(
   // a route that was taken down (`trails.ts`).
   await resolveTrail(env, document.trailId, 'private-write', PLAN_TRAIL_REFUSAL);
 
-  const existing = await env.DB.prepare(`SELECT * FROM plans WHERE id = ?`)
-    .bind(id)
-    .first<PlanRow>();
+  const existing = await env.DB.prepare(`SELECT * FROM plans WHERE id = ?`).bind(id).first<PlanRow>();
   if (existing && existing.user_id !== user.id) {
     throw new HttpError(409, 'id_conflict', 'This plan id belongs to another user');
   }
@@ -291,12 +280,7 @@ export async function putPlan(
 // DELETE /v1/plans/:id — soft delete (tombstone)
 // ---------------------------------------------------------------------------
 
-export async function deletePlan(
-  request: Request,
-  env: Env,
-  ctx: ExecutionContext,
-  id: string
-): Promise<Response> {
+export async function deletePlan(request: Request, env: Env, ctx: ExecutionContext, id: string): Promise<Response> {
   const user = await requireUser(request, env, ctx);
   assertNotBanned(user);
   const row = await requireOwnPlan(env, id, user.id);
@@ -310,9 +294,7 @@ export async function deletePlan(
   // rebuilt on another device lands on the same id), and the link the owner
   // deleted must not come back to life with it.
   const now = new Date().toISOString();
-  await env.DB.prepare(
-    `UPDATE plans SET deleted_at = ?, updated_at = ?, share_id = NULL WHERE id = ?`
-  )
+  await env.DB.prepare(`UPDATE plans SET deleted_at = ?, updated_at = ?, share_id = NULL WHERE id = ?`)
     .bind(now, now, id)
     .run();
 
@@ -334,12 +316,7 @@ function stampDocument(row: PlanRow, updatedAt: string): string {
   return JSON.stringify(document);
 }
 
-export async function sharePlan(
-  request: Request,
-  env: Env,
-  ctx: ExecutionContext,
-  id: string
-): Promise<Response> {
+export async function sharePlan(request: Request, env: Env, ctx: ExecutionContext, id: string): Promise<Response> {
   const user = await requireUser(request, env, ctx);
   assertNotBanned(user);
 
@@ -382,12 +359,7 @@ export async function sharePlan(
   throw new HttpError(409, 'share_conflict', 'The plan changed while sharing; try again');
 }
 
-export async function unsharePlan(
-  request: Request,
-  env: Env,
-  ctx: ExecutionContext,
-  id: string
-): Promise<Response> {
+export async function unsharePlan(request: Request, env: Env, ctx: ExecutionContext, id: string): Promise<Response> {
   const user = await requireUser(request, env, ctx);
   const row = await requireOwnPlan(env, id, user.id);
 
@@ -397,9 +369,7 @@ export async function unsharePlan(
   }
 
   const now = new Date().toISOString();
-  await env.DB.prepare(
-    `UPDATE plans SET share_id = NULL, document_json = ?, updated_at = ? WHERE id = ?`
-  )
+  await env.DB.prepare(`UPDATE plans SET share_id = NULL, document_json = ?, updated_at = ? WHERE id = ?`)
     .bind(stampDocument(row, now), now, id)
     .run();
 

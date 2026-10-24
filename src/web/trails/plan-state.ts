@@ -218,11 +218,7 @@ export interface LoadedPlan {
  * replaces it before the first render, and is then written back with
  * `savePlanDocument`.
  */
-export function loadOrMigratePlan(
-  trailId: string,
-  trail: PlanTrailSource,
-  opts?: PlanCreateOptions,
-): LoadedPlan {
+export function loadOrMigratePlan(trailId: string, trail: PlanTrailSource, opts?: PlanCreateOptions): LoadedPlan {
   const stored = loadPlanDocument(trailId);
   if (stored) {
     // A record whose id drifted from the key it is stored under (an imported
@@ -321,9 +317,7 @@ export function loadPlanUiPrefs(trailId: string): PlanUiPrefs {
     const obj = parsed as Record<string, unknown>;
     const prefs: PlanUiPrefs = {
       showAllWaypoints:
-        typeof obj.showAllWaypoints === 'boolean'
-          ? obj.showAllWaypoints
-          : DEFAULT_UI_PREFS.showAllWaypoints,
+        typeof obj.showAllWaypoints === 'boolean' ? obj.showAllWaypoints : DEFAULT_UI_PREFS.showAllWaypoints,
     };
     const pace = usablePace(obj.pace);
     if (pace !== undefined) prefs.pace = pace;

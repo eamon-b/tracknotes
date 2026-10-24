@@ -11,9 +11,7 @@
 /** Server-side cap on `displayName` (comments API validation). */
 export const MAX_DISPLAY_NAME_LENGTH = 40;
 
-export type DisplayNameCheck =
-  | { ok: true; value: string }
-  | { ok: false; message: string };
+export type DisplayNameCheck = { ok: true; value: string } | { ok: false; message: string };
 
 /** Trim and length-check a typed display name. */
 export function validateDisplayName(raw: string): DisplayNameCheck {

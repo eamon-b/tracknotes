@@ -1,5 +1,10 @@
 import type { BulkSyncResponse } from '@lib/comments-api-types';
-import { listTrailComments, listWaypointComments, putComment, uploadCommentPhoto } from '../comments';
+import {
+  listTrailComments,
+  listWaypointComments,
+  putComment,
+  uploadCommentPhoto,
+} from '../comments';
 import { ApiError } from '../client';
 
 function jsonFetch(pages: unknown[]) {
@@ -121,10 +126,20 @@ describe('comments API', () => {
       text: async () => JSON.stringify({ error: { code: 'photo_too_large', message: 'too big' } }),
     })) as unknown as typeof fetch;
     await expect(
-      uploadCommentPhoto({ baseUrl: BASE, fetchImpl, token: 'tok' }, 'cid', new Uint8Array([1]), 'image/jpeg'),
+      uploadCommentPhoto(
+        { baseUrl: BASE, fetchImpl, token: 'tok' },
+        'cid',
+        new Uint8Array([1]),
+        'image/jpeg',
+      ),
     ).rejects.toMatchObject({ status: 413, code: 'photo_too_large' });
     await expect(
-      uploadCommentPhoto({ baseUrl: BASE, fetchImpl, token: 'tok' }, 'cid', new Uint8Array([1]), 'image/jpeg'),
+      uploadCommentPhoto(
+        { baseUrl: BASE, fetchImpl, token: 'tok' },
+        'cid',
+        new Uint8Array([1]),
+        'image/jpeg',
+      ),
     ).rejects.toBeInstanceOf(ApiError);
   });
 });

@@ -192,7 +192,7 @@ const serverDoc = (over: Partial<PlanDocument> = {}): PlanDocument => ({
 const linkedSession = (): void => {
   localStorage.setItem(
     'tracknotes.webSession',
-    JSON.stringify({ userId: 'u1', token: 'tok_secret', displayName: 'Robin', expiresAt: null }),
+    JSON.stringify({ userId: 'u1', token: 'tok_secret', displayName: 'Robin', expiresAt: null })
   );
 };
 
@@ -200,11 +200,9 @@ async function boot(trailId = TRAIL_ID): Promise<void> {
   const html = inlinePlanShell(
     fs.readFileSync(path.join(ROOT, 'src/web/trails/plan-template.html'), 'utf8'),
     fs.readFileSync(path.join(ROOT, 'src/web/trails/plan-shell.html'), 'utf8'),
-    BUNDLED_PLAN_FILLS,
+    BUNDLED_PLAN_FILLS
   );
-  document.documentElement.innerHTML = html
-    .replace(/<!DOCTYPE html>/i, '')
-    .replace(/<\/?html[^>]*>/gi, '');
+  document.documentElement.innerHTML = html.replace(/<!DOCTYPE html>/i, '').replace(/<\/?html[^>]*>/gi, '');
 
   vi.resetModules();
   const { initPlanViewer } = await import('./plan-viewer');
@@ -216,7 +214,7 @@ async function boot(trailId = TRAIL_ID): Promise<void> {
 /** Tick a place on the Stops tab. */
 function clickStop(name: string): void {
   const item = [...$('stops-list').querySelectorAll<HTMLElement>('.stop-item')].find(
-    el => (el.querySelector('.stop-name')?.textContent ?? '').trim() === name,
+    el => (el.querySelector('.stop-name')?.textContent ?? '').trim() === name
   );
   if (!item) throw new Error(`no stop row for ${name}`);
   item.querySelector<HTMLElement>('.stop-row')!.click();
@@ -454,9 +452,7 @@ describe('a linked browser', () => {
   it('waits for the network to come back rather than losing the edit', async () => {
     linkedSession();
     handler = req =>
-      req.method === 'GET'
-        ? { status: 200, body: { plans: [], nextCursor: null, syncedAt: 'now' } }
-        : null;
+      req.method === 'GET' ? { status: 200, body: { plans: [], nextCursor: null, syncedAt: 'now' } } : null;
 
     await boot();
     expect($('sync-status').textContent).toBe('Offline, will retry');
@@ -527,9 +523,7 @@ describe('a linked browser', () => {
     await vi.advanceTimersByTimeAsync(0);
 
     expect($('share-panel').hidden).toBe(false);
-    expect(($('share-url') as HTMLInputElement).value).toBe(
-      'https://site.test/shared-plan.html?s=abc123',
-    );
+    expect(($('share-url') as HTMLInputElement).value).toBe('https://site.test/shared-plan.html?s=abc123');
 
     $('share-unshare').click();
     await vi.advanceTimersByTimeAsync(0);
@@ -695,10 +689,7 @@ describe('an edit on top of a push that has not landed', () => {
     putDelayMs = 0;
     await vi.advanceTimersByTimeAsync(10 * 60_000);
     const puts = putsOf();
-    expect((puts[puts.length - 1].body as PlanDocument).stops.map(stop => stop.name)).toEqual([
-      'Camp One',
-      'Salida',
-    ]);
+    expect((puts[puts.length - 1].body as PlanDocument).stops.map(stop => stop.name)).toEqual(['Camp One', 'Salida']);
   });
 });
 
@@ -783,10 +774,7 @@ describe('a page reading back what it wrote', () => {
     await settle();
 
     const puts = putsOf();
-    expect((puts[puts.length - 1].body as PlanDocument).stops.map(stop => stop.name)).toEqual([
-      'Camp One',
-      'Salida',
-    ]);
+    expect((puts[puts.length - 1].body as PlanDocument).stops.map(stop => stop.name)).toEqual(['Camp One', 'Salida']);
     expect(storedPlan().stops.map(stop => stop.name)).toEqual(['Camp One', 'Salida']);
     expect($('sync-status').textContent).toMatch(/^Synced /);
   });
@@ -1096,9 +1084,7 @@ describe('the Share button', () => {
     await vi.advanceTimersByTimeAsync(6_000);
     expect(requests[requests.length - 1]).toMatchObject({ method: 'POST' });
     expect(requests[requests.length - 1].path).toMatch(/\/share$/);
-    expect(($('share-url') as HTMLInputElement).value).toBe(
-      'https://site.test/shared-plan.html?s=abc123',
-    );
+    expect(($('share-url') as HTMLInputElement).value).toBe('https://site.test/shared-plan.html?s=abc123');
   });
 });
 

@@ -223,7 +223,10 @@ export function LinkedBrowsersSection() {
               devices.map((device) => (
                 <View key={device.id} style={[styles.row, { borderTopColor: colors.border }]}>
                   <View style={styles.rowMain}>
-                    <Text style={[styles.rowValue, { color: colors.textPrimary }]} numberOfLines={1}>
+                    <Text
+                      style={[styles.rowValue, { color: colors.textPrimary }]}
+                      numberOfLines={1}
+                    >
                       {deviceTitle(device)}
                     </Text>
                     <Text style={[styles.rowLabel, { color: colors.textSecondary }]}>

@@ -10,9 +10,7 @@ import type * as Leaflet from 'leaflet';
 declare const L: typeof Leaflet;
 
 /** True when the path has a line to draw. */
-export function hasAccessPath(
-  path: Array<[number, number]> | undefined
-): path is Array<[number, number]> {
+export function hasAccessPath(path: Array<[number, number]> | undefined): path is Array<[number, number]> {
   return Array.isArray(path) && path.length >= 2;
 }
 
@@ -26,7 +24,7 @@ export function accessPathLayer(path: Array<[number, number]>, color: string): L
       opacity: 0.9,
       dashArray: '1 8',
       lineCap: 'round',
-      interactive: false
-    })
+      interactive: false,
+    }),
   ]);
 }

@@ -12,11 +12,7 @@
  */
 
 import * as SecureStore from 'expo-secure-store';
-import type {
-  MeResponse,
-  RegisterDeviceResponse,
-  UpdateMeRequest,
-} from '@lib/comments-api-types';
+import type { MeResponse, RegisterDeviceResponse, UpdateMeRequest } from '@lib/comments-api-types';
 import { ApiError, apiRequest, getBaseUrl, type FetchLike } from './client';
 
 const SESSION_KEY = 'tracknotes.commentSession';

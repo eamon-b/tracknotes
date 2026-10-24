@@ -59,16 +59,7 @@ export const MIN_CLOSE_NAME_SCORE = 0.85;
  * `Buenba Flat #1` is not `Buenba Flat South #1`. A name carrying one of these
  * that the other name lacks is never the same place.
  */
-const DISTINGUISHING_WORDS = new Set([
-  'old',
-  'new',
-  'upper',
-  'lower',
-  'north',
-  'south',
-  'east',
-  'west',
-]);
+const DISTINGUISHING_WORDS = new Set(['old', 'new', 'upper', 'lower', 'north', 'south', 'east', 'west']);
 
 /**
  * Waypoint types each POI category may duplicate.
@@ -83,9 +74,7 @@ const DISTINGUISHING_WORDS = new Set([
  * matched `Albany`. Allowing `town` produced 16 false positives on the
  * Bibbulmun alone.
  */
-export const DUPLICATE_COMPATIBLE_TYPES: Readonly<
-  Partial<Record<TrailPOICategory, readonly string[]>>
-> = {
+export const DUPLICATE_COMPATIBLE_TYPES: Readonly<Partial<Record<TrailPOICategory, readonly string[]>>> = {
   camping: ['campsite', 'caravan-park', 'hut', 'shelter', 'camp'],
   water: ['water', 'water-tank', 'tank', 'spring', 'water-source'],
   resupply: ['resupply', 'food', 'shop'],
@@ -209,13 +198,15 @@ export function nameTokens(name: string | null | undefined, keepGeneric = false)
     .replace(/\b([a-z])['‘’]\s*/g, '$1')
     .replace(/['‘’]/g, '')
     .replace(/[^a-z0-9 ]/g, ' ');
-  return cleaned
-    .split(/\s+/)
-    .filter(token => token.length > 0)
-    // `Mt Wills Hut` in the guide is `Mount Wills Hut` in OSM, and `Nth` /
-    // `S` are the compass words `DISTINGUISHING_WORDS` must see.
-    .map(expandAbbreviation)
-    .filter(token => keepGeneric || !GENERIC_WORDS.has(token));
+  return (
+    cleaned
+      .split(/\s+/)
+      .filter(token => token.length > 0)
+      // `Mt Wills Hut` in the guide is `Mount Wills Hut` in OSM, and `Nth` /
+      // `S` are the compass words `DISTINGUISHING_WORDS` must see.
+      .map(expandAbbreviation)
+      .filter(token => keepGeneric || !GENERIC_WORDS.has(token))
+  );
 }
 
 /** Longest-common-subsequence ratio, the same measure `difflib` reports. */
@@ -503,15 +494,16 @@ function isUnnamed(name: string | null | undefined): boolean {
  * is a count, not an identity: `Big River` is the AAWT's `Big River 1`, and
  * `Trig Campground Places 12 To 25` is the Heysen's `Trig Campground`.
  */
-export function namesDistinguished(
-  a: string | null | undefined,
-  b: string | null | undefined
-): boolean {
+export function namesDistinguished(a: string | null | undefined, b: string | null | undefined): boolean {
   const setA = new Set(nameTokens(a, true));
   const setB = new Set(nameTokens(b, true));
   for (const token of setA) if (DISTINGUISHING_WORDS.has(token) && !setB.has(token)) return true;
   for (const token of setB) if (DISTINGUISHING_WORDS.has(token) && !setA.has(token)) return true;
-  const numbers = (set: Set<string>) => [...set].filter(token => /^\d+$/.test(token)).sort().join(' ');
+  const numbers = (set: Set<string>) =>
+    [...set]
+      .filter(token => /^\d+$/.test(token))
+      .sort()
+      .join(' ');
   const numbersA = numbers(setA);
   const numbersB = numbers(setB);
   return numbersA !== '' && numbersB !== '' && numbersA !== numbersB;

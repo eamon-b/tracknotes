@@ -104,9 +104,7 @@ export function terminusEndWaypoint(variant: MapVariant): TerminusEndWaypoint | 
  * `id` matches the line's feature id, so tapping the marker selects the same
  * variant the line does.
  */
-export function buildTerminusEndCollection(
-  termini: MapVariant[],
-): FeatureCollection<Point> {
+export function buildTerminusEndCollection(termini: MapVariant[]): FeatureCollection<Point> {
   const features = termini
     .map((v, index) => ({ v, index }))
     .filter(({ v }) => (v.points?.length ?? 0) >= 2)
@@ -256,7 +254,11 @@ export function buildPlannedTrailLines(
   const feature = (lines: number[][][]): Feature<MultiLineString> | null =>
     lines.length === 0
       ? null
-      : { type: 'Feature', geometry: { type: 'MultiLineString', coordinates: lines }, properties: {} };
+      : {
+          type: 'Feature',
+          geometry: { type: 'MultiLineString', coordinates: lines },
+          properties: {},
+        };
   return { walked: feature(walked), bypassed: feature(bypassed) };
 }
 

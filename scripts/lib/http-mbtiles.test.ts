@@ -66,7 +66,12 @@ function readerFor(file: string) {
   return { read, reads, size: bytes.length };
 }
 
-interface Tile { z: number; x: number; y: number; data: Uint8Array }
+interface Tile {
+  z: number;
+  x: number;
+  y: number;
+  data: Uint8Array;
+}
 
 /** Tiles at z9–z12, big enough (≈6 KB, incompressible) to overflow a page. */
 function fixtureTiles(): Tile[] {
@@ -195,14 +200,19 @@ describe('readZoomTiles', () => {
 
   it('refuses a file that is not SQLite', async () => {
     const bytes = new Uint8Array(200);
-    await expect(readZoomTiles(async (s: number, e: number) => bytes.subarray(s, e + 1), 9)).rejects.toThrow(/not an SQLite/);
+    await expect(readZoomTiles(async (s: number, e: number) => bytes.subarray(s, e + 1), 9)).rejects.toThrow(
+      /not an SQLite/
+    );
   });
 });
 
 describe('httpRangeReader', () => {
   it('asks for the range and refuses a server that ignores it', async () => {
     const calls: Array<{ url: string; range: string }> = [];
-    const ok = httpRangeReader('https://x/a.mbtiles', (async (url: string, init: { headers: Record<string, string> }) => {
+    const ok = httpRangeReader('https://x/a.mbtiles', (async (
+      url: string,
+      init: { headers: Record<string, string> }
+    ) => {
       calls.push({ url, range: init.headers.Range });
       return { status: 206, arrayBuffer: async () => new Uint8Array(4).buffer };
     }) as unknown as typeof fetch);
@@ -218,33 +228,51 @@ describe('httpRangeReader', () => {
 
   it('waits out a 429, honouring Retry-After, then gives up', async () => {
     const waits: number[] = [];
-    const sleep = async (ms: number) => { waits.push(ms); };
+    const sleep = async (ms: number) => {
+      waits.push(ms);
+    };
     let calls = 0;
-    const limited = httpRangeReader('https://x/a.mbtiles', (async () => {
-      calls++;
-      if (calls === 1) return { status: 429, headers: new Headers({ 'Retry-After': '3' }) };
-      if (calls === 2) return { status: 429, headers: new Headers() };
-      return { status: 206, arrayBuffer: async () => new Uint8Array(4).buffer };
-    }) as unknown as typeof fetch, sleep);
+    const limited = httpRangeReader(
+      'https://x/a.mbtiles',
+      (async () => {
+        calls++;
+        if (calls === 1) return { status: 429, headers: new Headers({ 'Retry-After': '3' }) };
+        if (calls === 2) return { status: 429, headers: new Headers() };
+        return { status: 206, arrayBuffer: async () => new Uint8Array(4).buffer };
+      }) as unknown as typeof fetch,
+      sleep
+    );
     expect(await limited(10, 13)).toHaveLength(4);
     expect(waits).toEqual([3000, 10000]);
 
-    const always = httpRangeReader('https://x/a.mbtiles', (async () => ({
-      status: 429,
-      headers: new Headers(),
-    })) as unknown as typeof fetch, sleep);
+    const always = httpRangeReader(
+      'https://x/a.mbtiles',
+      (async () => ({
+        status: 429,
+        headers: new Headers(),
+      })) as unknown as typeof fetch,
+      sleep
+    );
     await expect(always(10, 13)).rejects.toThrow(/HTTP 429/);
   });
 });
 
 describe('schema parsing', () => {
   it('reads table and index columns', () => {
-    expect(tableColumns('CREATE TABLE tiles (zoom_level integer, tile_column integer, tile_row integer, tile_data blob)').map(c => c.name))
-      .toEqual(['zoom_level', 'tile_column', 'tile_row', 'tile_data']);
-    expect(tableColumns('CREATE TABLE t (id INTEGER PRIMARY KEY, v text, PRIMARY KEY (id))'))
-      .toEqual([{ name: 'id', rowidAlias: true }, { name: 'v', rowidAlias: false }]);
-    expect(indexColumns('CREATE UNIQUE INDEX map_index ON map (zoom_level, tile_column, tile_row)'))
-      .toEqual(['zoom_level', 'tile_column', 'tile_row']);
+    expect(
+      tableColumns(
+        'CREATE TABLE tiles (zoom_level integer, tile_column integer, tile_row integer, tile_data blob)'
+      ).map(c => c.name)
+    ).toEqual(['zoom_level', 'tile_column', 'tile_row', 'tile_data']);
+    expect(tableColumns('CREATE TABLE t (id INTEGER PRIMARY KEY, v text, PRIMARY KEY (id))')).toEqual([
+      { name: 'id', rowidAlias: true },
+      { name: 'v', rowidAlias: false },
+    ]);
+    expect(indexColumns('CREATE UNIQUE INDEX map_index ON map (zoom_level, tile_column, tile_row)')).toEqual([
+      'zoom_level',
+      'tile_column',
+      'tile_row',
+    ]);
   });
 });
 
@@ -256,7 +284,7 @@ describe('checkZ9Tiered', () => {
     expect(contourElevations(tile).elevations).toEqual([100, 200, 1300, -100]);
   });
 
-  it('reads a uint value as unsigned and an int value as two\'s complement', () => {
+  it("reads a uint value as unsigned and an int value as two's complement", () => {
     expect(contourElevations(contourTile([2 ** 63], 'contour', 5)).elevations).toEqual([2 ** 63]);
     expect(contourElevations(contourTile([2 ** 63], 'contour', 4)).elevations).toEqual([-(2 ** 63)]);
   });

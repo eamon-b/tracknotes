@@ -100,15 +100,7 @@ describe('getNextWaypointsByType', () => {
     ];
 
     it('skips an unplanned town for the next planned one', () => {
-      const next = getNextWaypointsByType(
-        1,
-        TOWNS,
-        TRACK,
-        undefined,
-        4,
-        undefined,
-        new Set(['f']),
-      );
+      const next = getNextWaypointsByType(1, TOWNS, TRACK, undefined, 4, undefined, new Set(['f']));
       // 'Township' (km 6) is nearer but unplanned; the planned turn-off wins.
       expect(next.town?.waypoint.name).toBe('Turn-off');
       // The other slots are untouched by the plan.
@@ -117,22 +109,16 @@ describe('getNextWaypointsByType', () => {
     });
 
     it('leaves the town slot empty past the last planned stop', () => {
-      const next = getNextWaypointsByType(
-        7,
-        TOWNS,
-        TRACK,
-        undefined,
-        4,
-        undefined,
-        new Set(['d']),
-      );
+      const next = getNextWaypointsByType(7, TOWNS, TRACK, undefined, 4, undefined, new Set(['d']));
       // 'Township' is behind and the turn-off ahead is not planned: no answer
       // beats falling back to an unplanned town.
       expect(next.town).toBeUndefined();
     });
 
     it('is unfiltered when no plan has been made', () => {
-      expect(getNextWaypointsByType(1, TOWNS, TRACK, undefined, 4).town?.waypoint.name).toBe('Township');
+      expect(getNextWaypointsByType(1, TOWNS, TRACK, undefined, 4).town?.waypoint.name).toBe(
+        'Township',
+      );
     });
   });
 });
@@ -179,7 +165,13 @@ describe('getNextWaypointsByType — turn-offs', () => {
   });
 
   it('never reads a water turn-off as water on the route', () => {
-    const next = getNextWaypointsByType(0, [at(2, 'Spring turnoff', 'water-access')], TRACK, undefined, 4);
+    const next = getNextWaypointsByType(
+      0,
+      [at(2, 'Spring turnoff', 'water-access')],
+      TRACK,
+      undefined,
+      4,
+    );
     expect(next.water).toBeUndefined();
   });
 });

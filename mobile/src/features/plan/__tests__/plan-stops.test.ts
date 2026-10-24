@@ -120,7 +120,9 @@ describe('ticking a stop splits the days', () => {
     expect(before[0].distanceKm).toBeCloseTo(100, 3);
 
     const campB = stopCandidates(t, 'NOBO').find((c) => c.name === 'Camp B')!;
-    const after = computePlanDays(planTrail, toggleStop(emptyPlan(), toggleTargetOf(campB)), { baseKmh: 4 });
+    const after = computePlanDays(planTrail, toggleStop(emptyPlan(), toggleTargetOf(campB)), {
+      baseKmh: 4,
+    });
 
     expect(after).toHaveLength(2);
     expect(after[0].endName).toBe('Camp B');
@@ -222,7 +224,10 @@ describe('stopLegs', () => {
     const walk = { km: 2, ascentM: 30, descentM: 10 };
     const hidden = { ...place(40), type: 'water', walk };
     const shown = [place(20), place(60)];
-    const legs = stopLegs(shown, withStops(40), { ...opts, waypoints: waypointsOf([...shown, hidden]) });
+    const legs = stopLegs(shown, withStops(40), {
+      ...opts,
+      waypoints: waypointsOf([...shown, hidden]),
+    });
     expect(legs.get('p60')).toEqual({ distanceKm: 22, ascentM: 110, descentM: 130, offTrailKm: 2 });
   });
 

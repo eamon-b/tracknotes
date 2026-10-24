@@ -64,15 +64,8 @@ export function useGuidePosition(): GuidePosition {
   // snap's hint index in `useLocation` on every fix.
   const breakStarts = useMemo(() => routeBreakStarts(breaks, 'points'), [breaks]);
 
-  const {
-    location,
-    accuracy,
-    error,
-    permissionStatus,
-    isTracking,
-    startTracking,
-    stopTracking,
-  } = useLocation(points, breakStarts);
+  const { location, accuracy, error, permissionStatus, isTracking, startTracking, stopTracking } =
+    useLocation(points, breakStarts);
 
   // Whether the user has opted in this session. Kept separate from `isTracking`
   // so the "acquiring" state shows the instant `start()` is pressed, before the
@@ -114,8 +107,7 @@ export function useGuidePosition(): GuidePosition {
   }, [location, offTrailMeters, hasStarted, autoStart, permissionStatus, error]);
 
   const position = useMemo(
-    () =>
-      location ? { lat: location.raw.latitude, lon: location.raw.longitude } : null,
+    () => (location ? { lat: location.raw.latitude, lon: location.raw.longitude } : null),
     [location],
   );
 

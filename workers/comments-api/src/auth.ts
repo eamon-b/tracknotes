@@ -133,13 +133,8 @@ async function lookupToken(env: Env, tokenHash: string): Promise<TokenLookupRow 
  * revocation, and a banned (or deleted, which is banned + anonymised) account
  * is excluded by the SELECT.
  */
-async function healMissingPrimaryToken(
-  env: Env,
-  tokenHash: string
-): Promise<TokenLookupRow | null> {
-  const legacy = await env.DB.prepare(
-    `SELECT id FROM users WHERE token_hash = ? AND is_banned = 0`
-  )
+async function healMissingPrimaryToken(env: Env, tokenHash: string): Promise<TokenLookupRow | null> {
+  const legacy = await env.DB.prepare(`SELECT id FROM users WHERE token_hash = ? AND is_banned = 0`)
     .bind(tokenHash)
     .first<{ id: string }>();
   if (!legacy) return null;
@@ -163,11 +158,7 @@ async function healMissingPrimaryToken(
  * `expires_at`) best-effort — fire-and-forget via `ctx.waitUntil` when
  * available — so it never blocks the response or fails the request.
  */
-export async function getUser(
-  request: Request,
-  env: Env,
-  ctx?: ExecutionContext
-): Promise<AuthUser | null> {
+export async function getUser(request: Request, env: Env, ctx?: ExecutionContext): Promise<AuthUser | null> {
   const token = parseBearer(request);
   if (!token) return null;
 
@@ -186,8 +177,7 @@ export async function getUser(
   if (row.token_expires_at !== null && Date.parse(row.token_expires_at) <= nowMs) return null;
 
   const nowIso = new Date(nowMs).toISOString();
-  const rolledExpiry =
-    row.token_kind === 'linked' ? new Date(nowMs + LINKED_TOKEN_TTL_MS).toISOString() : null;
+  const rolledExpiry = row.token_kind === 'linked' ? new Date(nowMs + LINKED_TOKEN_TTL_MS).toISOString() : null;
   const touch = env.DB.prepare(
     `UPDATE device_tokens
         SET last_seen_at = ?, expires_at = COALESCE(?, expires_at)
@@ -214,11 +204,7 @@ export async function getUser(
 }
 
 /** Require an authenticated user or throw 401. */
-export async function requireUser(
-  request: Request,
-  env: Env,
-  ctx?: ExecutionContext
-): Promise<AuthUser> {
+export async function requireUser(request: Request, env: Env, ctx?: ExecutionContext): Promise<AuthUser> {
   const user = await getUser(request, env, ctx);
   if (!user) {
     throw new HttpError(401, 'unauthorized', 'A valid bearer token is required');
@@ -234,11 +220,7 @@ export async function requireUser(
  * the account behind the phone's back. Anything that changes who can reach the
  * account goes through here.
  */
-export async function requirePrimaryUser(
-  request: Request,
-  env: Env,
-  ctx?: ExecutionContext
-): Promise<AuthUser> {
+export async function requirePrimaryUser(request: Request, env: Env, ctx?: ExecutionContext): Promise<AuthUser> {
   const user = await requireUser(request, env, ctx);
   if (user.auth_token_kind !== 'primary') {
     throw new HttpError(
@@ -251,11 +233,7 @@ export async function requirePrimaryUser(
 }
 
 /** Require an authenticated admin or throw 401/403. */
-export async function requireAdmin(
-  request: Request,
-  env: Env,
-  ctx?: ExecutionContext
-): Promise<AuthUser> {
+export async function requireAdmin(request: Request, env: Env, ctx?: ExecutionContext): Promise<AuthUser> {
   const user = await requireUser(request, env, ctx);
   if (user.is_admin !== 1) {
     throw new HttpError(403, 'forbidden', 'Admin privileges required');

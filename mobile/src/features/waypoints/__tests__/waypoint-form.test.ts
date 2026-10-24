@@ -38,12 +38,28 @@ describe('initialWaypointForm', () => {
   it('starts an edit from the waypoint', () => {
     const form = initialWaypointForm(
       {
-        id: 'hw_x', trailId: 't', name: 'Tank', type: 'water', lat: 3, lon: 4, description: 'Full',
-        visibility: 'shared', mine: true, authorName: 'Me', createdAt: '', updatedAt: '',
+        id: 'hw_x',
+        trailId: 't',
+        name: 'Tank',
+        type: 'water',
+        lat: 3,
+        lon: 4,
+        description: 'Full',
+        visibility: 'shared',
+        mine: true,
+        authorName: 'Me',
+        createdAt: '',
+        updatedAt: '',
       },
       { lat: null, lon: null },
     );
-    expect(form).toMatchObject({ name: 'Tank', type: 'water', visibility: 'shared', lat: 3, lon: 4 });
+    expect(form).toMatchObject({
+      name: 'Tank',
+      type: 'water',
+      visibility: 'shared',
+      lat: 3,
+      lon: 4,
+    });
   });
 });
 

@@ -65,7 +65,7 @@ if (nodeMajor < 22 || (nodeMajor === 22 && nodeMinor < 18)) {
 }
 const { MAP_GLYPHS } = await import('../../src/lib/map-glyphs.ts');
 const GLYPHS = Object.fromEntries(
-  Object.entries(MAP_GLYPHS).map(([name, body]) => [name, body.replaceAll('currentColor', INK)])
+  Object.entries(MAP_GLYPHS).map(([name, body]) => [name, body.replaceAll('currentColor', INK)]),
 );
 
 function svgDocument(body) {
@@ -99,7 +99,7 @@ function loadResvg() {
   throw new Error(
     'Neither ImageMagick nor @resvg/resvg-js is available. Install ImageMagick with ' +
       'the librsvg delegate, or re-run this script as:\n' +
-      '  npx -y -p @resvg/resvg-js node scripts/build-map-icons.mjs'
+      '  npx -y -p @resvg/resvg-js node scripts/build-map-icons.mjs',
   );
 }
 

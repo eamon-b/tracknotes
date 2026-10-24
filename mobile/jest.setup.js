@@ -167,10 +167,12 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 }));
 
 jest.mock('expo-location', () => ({
-  getCurrentPositionAsync: jest.fn(() => Promise.resolve({
-    coords: { latitude: 0, longitude: 0, altitude: 0, accuracy: 0, heading: 0, speed: 0 },
-    timestamp: Date.now(),
-  })),
+  getCurrentPositionAsync: jest.fn(() =>
+    Promise.resolve({
+      coords: { latitude: 0, longitude: 0, altitude: 0, accuracy: 0, heading: 0, speed: 0 },
+      timestamp: Date.now(),
+    }),
+  ),
   requestForegroundPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
   requestBackgroundPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
   watchPositionAsync: jest.fn(() => Promise.resolve({ remove: jest.fn() })),
@@ -213,7 +215,7 @@ jest.mock('expo-secure-store', () => {
 
 jest.mock('expo-network', () => ({
   getNetworkStateAsync: jest.fn(() =>
-    Promise.resolve({ isConnected: true, isInternetReachable: true, type: 'WIFI' })
+    Promise.resolve({ isConnected: true, isInternetReachable: true, type: 'WIFI' }),
   ),
   addNetworkStateListener: jest.fn(() => ({ remove: jest.fn() })),
   NetworkStateType: { NONE: 'NONE', WIFI: 'WIFI', CELLULAR: 'CELLULAR' },

@@ -42,11 +42,7 @@ function seeded(seed: number): () => number {
  * against 0.4 s locally. A random walk's farthest point lands mid-segment, so
  * the recursion stays balanced and one call is ~30× cheaper.
  */
-function stretch(
-  startLat: number,
-  count: number,
-  startDist: number
-): TrackPoint[] {
+function stretch(startLat: number, count: number, startDist: number): TrackPoint[] {
   const rand = seeded(count + Math.round(startLat * 1000));
   let lon = 174;
   return Array.from({ length: count }, (_, i) => {
@@ -79,12 +75,7 @@ function brokenTrail() {
     config: { id: 'test', name: 'Test', shortName: 'Test', lengthKm: 176 },
     track: {
       points,
-      displayPoints: [
-        points[0],
-        points[1],
-        points[first.length],
-        points[points.length - 1],
-      ],
+      displayPoints: [points[0], points[1], points[first.length], points[points.length - 1]],
       totalDistance: 176,
       totalAscent: 100,
       totalDescent: 100,
@@ -143,8 +134,7 @@ describe('processTrail route breaks', () => {
 
   it('re-anchors index onto the simplified array, at the same place', () => {
     const source = brokenTrail();
-    const firstPointAfterBreak =
-      source.track.points[source.track.breaks[0].index];
+    const firstPointAfterBreak = source.track.points[source.track.breaks[0].index];
 
     const out = processTrail(source);
     const rebuilt = out.track.points[out.track.breaks![0].index];
@@ -153,10 +143,7 @@ describe('processTrail route breaks', () => {
     expect(rebuilt.lat).toBeCloseTo(firstPointAfterBreak.lat, 6);
     expect(rebuilt.lon).toBeCloseTo(firstPointAfterBreak.lon, 6);
     // And the point before it is still the last one walked, 0.5 degrees north.
-    expect(out.track.points[out.track.breaks![0].index - 1].lat).toBeCloseTo(
-      -41.7999,
-      3
-    );
+    expect(out.track.points[out.track.breaks![0].index - 1].lat).toBeCloseTo(-41.7999, 3);
   });
 
   it('simplifies to roughly the point budget despite the extra pass', () => {
@@ -196,10 +183,7 @@ describe('processTrail route breaks', () => {
     expect(out.track.displayPoints[displayIndex - 1].lat).toBeCloseTo(-41.7999, 3);
 
     // ...and `index` is still anchored to its own array, independently.
-    expect(out.track.points[out.track.breaks![0].index].lat).toBeCloseTo(
-      firstPointAfterBreak.lat,
-      6
-    );
+    expect(out.track.points[out.track.breaks![0].index].lat).toBeCloseTo(firstPointAfterBreak.lat, 6);
   });
 
   it('emits no breaks field for a continuous trail', () => {
@@ -244,21 +228,14 @@ describe('processTrail POIs', () => {
     });
 
     const [shipped] = processTrail(trailJson([fat])).pois!;
-    expect(Object.keys(shipped.tags).sort()).toEqual([
-      'amenity',
-      'description',
-      'operator',
-      'website',
-    ]);
+    expect(Object.keys(shipped.tags).sort()).toEqual(['amenity', 'description', 'operator', 'website']);
     expect(shipped.lat).toBe(-34.123457);
     expect(shipped.distanceAlongTrail).toBe(12.3);
     expect(shipped.distanceFromTrail).toBe(0.06);
   });
 
   it('keeps the duplicate flag and drops the review-only distance', () => {
-    const [shipped] = processTrail(
-      trailJson([poi({ duplicateOf: 'w_abc', duplicateDistanceM: 11.7 })])
-    ).pois!;
+    const [shipped] = processTrail(trailJson([poi({ duplicateOf: 'w_abc', duplicateDistanceM: 11.7 })])).pois!;
     expect(shipped.duplicateOf).toBe('w_abc');
     expect('duplicateDistanceM' in shipped).toBe(false);
   });
@@ -290,9 +267,7 @@ describe('processTrail cumulative climb', () => {
    * the boundary — which is the whole of what thinning still costs.
    */
   function expectNearly(actual: number, expected: number) {
-    expect(Math.abs(actual - expected)).toBeLessThanOrEqual(
-      Math.max(3, expected * 0.005)
-    );
+    expect(Math.abs(actual - expected)).toBeLessThanOrEqual(Math.max(3, expected * 0.005));
   }
 
   /** Gain summed the old way: point-to-point over the thinned track. */
@@ -559,8 +534,13 @@ describe('plan stops across the web and the phone (issue 142)', () => {
       const phonePlace = places(phone)[i];
       const savedOnWeb = planAt(webPlace.totalDistance, webPlace.id);
       const savedOnPhone = planAt(phonePlace.totalDistance, phonePlace.id);
-      expect(refreshStopKms(savedOnWeb, { waypoints: places(phone) }), `web stop at ${webPlace.totalDistance}`).toBe(savedOnWeb);
-      expect(refreshStopKms(savedOnPhone, { waypoints: places(web) }), `phone stop at ${phonePlace.totalDistance}`).toBe(savedOnPhone);
+      expect(refreshStopKms(savedOnWeb, { waypoints: places(phone) }), `web stop at ${webPlace.totalDistance}`).toBe(
+        savedOnWeb
+      );
+      expect(
+        refreshStopKms(savedOnPhone, { waypoints: places(web) }),
+        `phone stop at ${phonePlace.totalDistance}`
+      ).toBe(savedOnPhone);
       // And both count the walk in to it.
       expect(stopWalk(phone.waypoints[i], webPlace.totalDistance)).not.toBeNull();
       expect(stopWalk(web.waypoints[i], phonePlace.totalDistance)).not.toBeNull();

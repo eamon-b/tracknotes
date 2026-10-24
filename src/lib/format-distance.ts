@@ -56,11 +56,7 @@ export interface FormatDistanceOptions {
  * @example formatDistance(688.3, 'mi') // "427.7 mi"
  * @example formatDistance(5, 'km', { withUnit: false }) // "5.0"
  */
-export function formatDistance(
-  km: number,
-  unit: DistanceUnit,
-  options: FormatDistanceOptions = {},
-): string {
+export function formatDistance(km: number, unit: DistanceUnit, options: FormatDistanceOptions = {}): string {
   const { decimals = 1, withUnit = true } = options;
   const value = convertDistance(km ?? 0, unit);
   const rounded = value.toFixed(decimals);

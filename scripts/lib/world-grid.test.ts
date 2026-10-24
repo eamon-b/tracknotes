@@ -217,7 +217,7 @@ describe('copernicusKey', () => {
     );
     expect(copernicusTileUrl({ lat: -24, lon: 132 })).toBe(
       'https://copernicus-dem-30m.s3.amazonaws.com/' +
-      'Copernicus_DSM_COG_10_S24_00_E132_00_DEM/Copernicus_DSM_COG_10_S24_00_E132_00_DEM.tif'
+        'Copernicus_DSM_COG_10_S24_00_E132_00_DEM/Copernicus_DSM_COG_10_S24_00_E132_00_DEM.tif'
     );
   });
 
@@ -260,9 +260,7 @@ describe('parseTileListNames', () => {
   });
 
   it('tolerates CRLF line endings', () => {
-    expect(parseTileListNames('Copernicus_DSM_COG_10_S24_00_E132_00_DEM\r\n')).toEqual(
-      new Set(['S24E132'])
-    );
+    expect(parseTileListNames('Copernicus_DSM_COG_10_S24_00_E132_00_DEM\r\n')).toEqual(new Set(['S24E132']));
   });
 });
 
@@ -327,9 +325,12 @@ describe('fetch-dem-copernicus pure helpers', () => {
     expect(parseFetchArgs(['--cells', 'S26E132, S26E134'])).toMatchObject({
       cells: ['S26E132', 'S26E134'],
     });
-    expect(
-      parseFetchArgs(['--shard', 'oceania', '--parallel', '8', '--dry-run', '--refresh-tilelist'])
-    ).toMatchObject({ shard: 'oceania', parallel: 8, dryRun: true, refreshTileList: true });
+    expect(parseFetchArgs(['--shard', 'oceania', '--parallel', '8', '--dry-run', '--refresh-tilelist'])).toMatchObject({
+      shard: 'oceania',
+      parallel: 8,
+      dryRun: true,
+      refreshTileList: true,
+    });
   });
 
   it('rejects unusable argument sets', () => {
@@ -359,10 +360,7 @@ describe('fetch-dem-copernicus pure helpers', () => {
     // tiles that margin laps into, so the fetch must cover the surrounding ring
     // as well as the cells' own tiles — anything less warps nodata into the
     // buffer and the contours stop short of the cell edge.
-    for (const own of [
-      'S23E132', 'S23E133', 'S24E132', 'S24E133',
-      'S25E132', 'S25E133', 'S26E132', 'S26E133',
-    ]) {
+    for (const own of ['S23E132', 'S23E133', 'S24E132', 'S24E133', 'S25E132', 'S25E133', 'S26E132', 'S26E133']) {
       expect(names).toContain(own);
     }
     // One tile beyond on every side: west E131, east E134, north S22, south S27.
@@ -393,8 +391,7 @@ describe('fetch-dem-copernicus pure helpers', () => {
   });
 
   it('clamps the buffer ring at the antimeridian and the poles', () => {
-    const names = (c: ReturnType<typeof worldCell>) =>
-      bufferedDem1DegTiles(c).map(demTileName);
+    const names = (c: ReturnType<typeof worldCell>) => bufferedDem1DegTiles(c).map(demTileName);
     // Westmost column: no wrap-around tile at lon -181.
     expect(names(worldCell(-180, 0)).every(n => !n.includes('W181'))).toBe(true);
     // Northmost row: nothing above lat 89.

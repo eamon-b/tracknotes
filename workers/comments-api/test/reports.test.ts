@@ -1,19 +1,7 @@
 import { SELF, env } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
-import {
-  authHeaders,
-  banUser,
-  createComment,
-  makeAdmin,
-  registerDevice,
-  reportComment,
-  url,
-  wpId,
-} from './helpers';
-import type {
-  AdminReportsResponse,
-  ReportCommentResponse,
-} from '../../../src/lib/comments-api-types';
+import { authHeaders, banUser, createComment, makeAdmin, registerDevice, reportComment, url, wpId } from './helpers';
+import type { AdminReportsResponse, ReportCommentResponse } from '../../../src/lib/comments-api-types';
 
 function errorCode(body: unknown): string {
   return (body as { error: { code: string } }).error.code;
@@ -52,9 +40,7 @@ async function seedReports(userId: string, count: number): Promise<void> {
       .bind(crypto.randomUUID(), commentId, userId, now)
       .run();
     // The allowance each of those reports spent (`consumeRateLimit`).
-    await env.DB.prepare(
-      `INSERT INTO rate_events (bucket, key, created_at) VALUES ('comment_report', ?, ?)`
-    )
+    await env.DB.prepare(`INSERT INTO rate_events (bucket, key, created_at) VALUES ('comment_report', ?, ?)`)
       .bind(userId, now)
       .run();
   }
@@ -69,13 +55,9 @@ describe('POST /v1/comments/:id/report — happy path', () => {
     const res = await reportComment(reporter, id, { reason: 'spam', detail: '  buy my thing  ' });
     expect(res.status).toBe(201);
     const body = (await res.json()) as ReportCommentResponse;
-    expect(body.reportId).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-    );
+    expect(body.reportId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
 
-    const row = await env.DB.prepare(
-      `SELECT comment_id, user_id, reason, detail FROM comment_reports WHERE id = ?`
-    )
+    const row = await env.DB.prepare(`SELECT comment_id, user_id, reason, detail FROM comment_reports WHERE id = ?`)
       .bind(body.reportId)
       .first<{ comment_id: string; user_id: string; reason: string; detail: string | null }>();
     expect(row).toMatchObject({
@@ -139,9 +121,7 @@ describe('POST /v1/comments/:id/report — idempotency', () => {
     const secondBody = (await second.json()) as ReportCommentResponse;
     expect(secondBody.reportId).toBe(firstBody.reportId);
 
-    const count = await env.DB.prepare(
-      `SELECT COUNT(*) AS n FROM comment_reports WHERE comment_id = ? AND user_id = ?`
-    )
+    const count = await env.DB.prepare(`SELECT COUNT(*) AS n FROM comment_reports WHERE comment_id = ? AND user_id = ?`)
       .bind(id, reporter.userId)
       .first<{ n: number }>();
     expect(count?.n).toBe(1);

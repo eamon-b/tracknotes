@@ -12,11 +12,7 @@ import {
   url,
   wpId,
 } from './helpers';
-import type {
-  BulkSyncResponse,
-  FeedResponse,
-  MeResponse,
-} from '../../../src/lib/comments-api-types';
+import type { BulkSyncResponse, FeedResponse, MeResponse } from '../../../src/lib/comments-api-types';
 
 const JPEG_BYTES = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x11, 0x22, 0x33]);
 
@@ -28,9 +24,7 @@ interface UserSnapshot {
 }
 
 async function readUser(userId: string): Promise<UserSnapshot> {
-  const row = await env.DB.prepare(
-    `SELECT display_name, token_hash, is_admin, is_banned FROM users WHERE id = ?`
-  )
+  const row = await env.DB.prepare(`SELECT display_name, token_hash, is_admin, is_banned FROM users WHERE id = ?`)
     .bind(userId)
     .first<UserSnapshot>();
   if (!row) throw new Error(`no user ${userId}`);
@@ -117,9 +111,7 @@ describe('DELETE /v1/me — happy path', () => {
   it('demotes an admin account on deletion', async () => {
     const device = await registerDevice('Retiring Admin');
     await makeAdmin(device.userId);
-    const me = (await (
-      await SELF.fetch(url('/v1/me'), { headers: authHeaders(device) })
-    ).json()) as MeResponse;
+    const me = (await (await SELF.fetch(url('/v1/me'), { headers: authHeaders(device) })).json()) as MeResponse;
     expect(me.isAdmin).toBe(true);
 
     expect((await deleteMe(device)).status).toBe(204);
@@ -162,9 +154,7 @@ describe('DELETE /v1/me — sync semantics', () => {
     const since = new Date(Date.parse(created.createdAt) - 1).toISOString();
 
     // Present in both views before deletion.
-    const snapshotBefore = (await (
-      await SELF.fetch(url('/v1/trails/heysen/comments'))
-    ).json()) as BulkSyncResponse;
+    const snapshotBefore = (await (await SELF.fetch(url('/v1/trails/heysen/comments'))).json()) as BulkSyncResponse;
     expect(snapshotBefore.comments.some((c) => c.id === id)).toBe(true);
 
     expect((await deleteMe(device)).status).toBe(204);
@@ -179,9 +169,7 @@ describe('DELETE /v1/me — sync semantics', () => {
     expect(entry && 'text' in entry).toBe(false);
 
     // Snapshot mode (no `since`) and the per-waypoint feed both omit it entirely.
-    const snapshotAfter = (await (
-      await SELF.fetch(url('/v1/trails/heysen/comments'))
-    ).json()) as BulkSyncResponse;
+    const snapshotAfter = (await (await SELF.fetch(url('/v1/trails/heysen/comments'))).json()) as BulkSyncResponse;
     expect(snapshotAfter.comments.some((c) => c.id === id)).toBe(false);
 
     const feed = (await (
@@ -217,9 +205,7 @@ describe('DELETE /v1/me — content is blanked', () => {
     expect((await deleteMe(device)).status).toBe(204);
 
     for (const id of [live, gone]) {
-      const row = await env.DB.prepare(
-        `SELECT text, water_status, observed_at, deleted_at FROM comments WHERE id = ?`
-      )
+      const row = await env.DB.prepare(`SELECT text, water_status, observed_at, deleted_at FROM comments WHERE id = ?`)
         .bind(id)
         .first<Record<string, unknown>>();
       expect(row).toMatchObject({ text: '', water_status: null, observed_at: null });
@@ -276,9 +262,7 @@ describe('DELETE /v1/me — photos and reports', () => {
 
     expect((await deleteMe(reporter)).status).toBe(204);
 
-    const row = await env.DB.prepare(
-      `SELECT reason FROM comment_reports WHERE comment_id = ? AND user_id = ?`
-    )
+    const row = await env.DB.prepare(`SELECT reason FROM comment_reports WHERE comment_id = ? AND user_id = ?`)
       .bind(id, reporter.userId)
       .first<{ reason: string }>();
     expect(row?.reason).toBe('spam');
@@ -292,9 +276,7 @@ describe('DELETE /v1/me — photos and reports', () => {
 
     expect((await deleteMe(reporter)).status).toBe(204);
 
-    const row = await env.DB.prepare(
-      `SELECT reason, detail FROM comment_reports WHERE comment_id = ? AND user_id = ?`
-    )
+    const row = await env.DB.prepare(`SELECT reason, detail FROM comment_reports WHERE comment_id = ? AND user_id = ?`)
       .bind(id, reporter.userId)
       .first<{ reason: string; detail: string | null }>();
     expect(row).toEqual({ reason: 'other', detail: null });

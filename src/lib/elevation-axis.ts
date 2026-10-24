@@ -62,10 +62,7 @@ function niceStep(span: number, maxTicks: number): number {
  * 400 m above the last one). The floor stays at `bounds.floorM`, 0 m for any
  * track that stays above sea level.
  */
-export function eleAxis(
-  bounds: EleBounds,
-  maxTicks: number,
-): { minM: number; maxM: number; ticks: number[] } {
+export function eleAxis(bounds: EleBounds, maxTicks: number): { minM: number; maxM: number; ticks: number[] } {
   const minM = bounds.floorM;
   const step = niceStep(bounds.ceilingM - minM, maxTicks);
   const ticks: number[] = [];

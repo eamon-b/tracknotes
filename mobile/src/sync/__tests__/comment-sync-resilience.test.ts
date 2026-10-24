@@ -69,7 +69,8 @@ function routedFetch(routes: [RegExp, Step | ((init: RequestInit | undefined) =>
   return fn as unknown as typeof fetch;
 }
 
-const calls = (f: typeof fetch) => (f as unknown as jest.Mock).mock.calls as [string, RequestInit?][];
+const calls = (f: typeof fetch) =>
+  (f as unknown as jest.Mock).mock.calls as [string, RequestInit?][];
 
 function feedComment(id: string) {
   return {
@@ -171,7 +172,14 @@ describe('a bad outbox item', () => {
     });
     const fetchImpl = routedFetch([[/\/comments\/m2$/, { status: 201, body: feedComment('m2') }]]);
 
-    const res = await drainOutbox({ db: d, baseUrl: BASE, fetchImpl, getSessionFn, readBytes, now });
+    const res = await drainOutbox({
+      db: d,
+      baseUrl: BASE,
+      fetchImpl,
+      getSessionFn,
+      readBytes,
+      now,
+    });
 
     expect(res).toMatchObject({ outcome: 'drained', sent: 1, failed: 1 });
     const photo = await outboxRepo.getById(d, 'p1');
@@ -205,7 +213,10 @@ describe('a bad outbox item', () => {
     await seedLocalComment(d, 'm1', '2026-10-06T11:59:30.000Z');
     await seedLocalComment(d, 'm2', '2026-10-06T11:59:45.000Z');
     const fetchImpl = routedFetch([
-      [/\/comments\/m1$/, { status: 503, body: { error: { code: 'unavailable', message: 'busy' } } }],
+      [
+        /\/comments\/m1$/,
+        { status: 503, body: { error: { code: 'unavailable', message: 'busy' } } },
+      ],
       [/\/comments\/m2$/, { status: 201, body: feedComment('m2') }],
     ]);
 
@@ -247,7 +258,10 @@ describe('a bad outbox item', () => {
 // ---------------------------------------------------------------------------
 
 describe('a refused token', () => {
-  const UNAUTHORIZED: Step = { status: 401, body: { error: { code: 'unauthorized', message: 'no' } } };
+  const UNAUTHORIZED: Step = {
+    status: 401,
+    body: { error: { code: 'unauthorized', message: 'no' } },
+  };
 
   it('raises authError in the identity store by default', async () => {
     const d = await db();
@@ -276,12 +290,26 @@ describe('a refused token', () => {
       ],
     ]);
 
-    const first = await drainOutbox({ db: d, baseUrl: BASE, fetchImpl, getSessionFn, now, auth: hooks });
+    const first = await drainOutbox({
+      db: d,
+      baseUrl: BASE,
+      fetchImpl,
+      getSessionFn,
+      now,
+      auth: hooks,
+    });
     expect(first.outcome).toBe('unauthorized');
     expect(state.authError).toBe(true);
     expect(reregister).not.toHaveBeenCalled();
 
-    const second = await drainOutbox({ db: d, baseUrl: BASE, fetchImpl, getSessionFn, now, auth: hooks });
+    const second = await drainOutbox({
+      db: d,
+      baseUrl: BASE,
+      fetchImpl,
+      getSessionFn,
+      now,
+      auth: hooks,
+    });
     expect(reregister).toHaveBeenCalledTimes(1);
     expect(reregister).toHaveBeenCalledWith('Me');
     expect(second).toMatchObject({ outcome: 'drained', sent: 1 });
@@ -300,8 +328,22 @@ describe('a refused token', () => {
     state.authError = true;
     const fetchImpl = routedFetch([[/\/comments\//, UNAUTHORIZED]]);
 
-    const a = await drainOutbox({ db: d, baseUrl: BASE, fetchImpl, getSessionFn, now, auth: hooks });
-    const b = await drainOutbox({ db: d, baseUrl: BASE, fetchImpl, getSessionFn, now, auth: hooks });
+    const a = await drainOutbox({
+      db: d,
+      baseUrl: BASE,
+      fetchImpl,
+      getSessionFn,
+      now,
+      auth: hooks,
+    });
+    const b = await drainOutbox({
+      db: d,
+      baseUrl: BASE,
+      fetchImpl,
+      getSessionFn,
+      now,
+      auth: hooks,
+    });
 
     expect(a.outcome).toBe('unauthorized');
     expect(b.outcome).toBe('unauthorized');
@@ -321,11 +363,21 @@ describe('a refused token', () => {
   it('keeps its identity when the token still answers: the 401 was the server, not the token', async () => {
     const d = await db();
     await seedLocalComment(d, 'm1', '2026-01-01T00:00:00.000Z');
-    const { state, hooks, reregister, verify } = fakeAuth(undefined, jest.fn(async () => true));
+    const { state, hooks, reregister, verify } = fakeAuth(
+      undefined,
+      jest.fn(async () => true),
+    );
     state.authError = true;
     const fetchImpl = routedFetch([[/\/comments\/m1$/, { status: 201, body: feedComment('m1') }]]);
 
-    const res = await drainOutbox({ db: d, baseUrl: BASE, fetchImpl, getSessionFn, now, auth: hooks });
+    const res = await drainOutbox({
+      db: d,
+      baseUrl: BASE,
+      fetchImpl,
+      getSessionFn,
+      now,
+      auth: hooks,
+    });
 
     expect(verify).toHaveBeenCalledTimes(1);
     expect(reregister).not.toHaveBeenCalled();
@@ -349,8 +401,22 @@ describe('a refused token', () => {
     state.authError = true;
     const fetchImpl = routedFetch([[/\/comments\//, UNAUTHORIZED]]);
 
-    const a = await drainOutbox({ db: d, baseUrl: BASE, fetchImpl, getSessionFn, now, auth: hooks });
-    const b = await drainOutbox({ db: d, baseUrl: BASE, fetchImpl, getSessionFn, now, auth: hooks });
+    const a = await drainOutbox({
+      db: d,
+      baseUrl: BASE,
+      fetchImpl,
+      getSessionFn,
+      now,
+      auth: hooks,
+    });
+    const b = await drainOutbox({
+      db: d,
+      baseUrl: BASE,
+      fetchImpl,
+      getSessionFn,
+      now,
+      auth: hooks,
+    });
 
     expect(a.outcome).toBe('unauthorized');
     expect(b.outcome).toBe('unauthorized');
@@ -379,7 +445,7 @@ describe('a refused token', () => {
 
     expect((await drainOutbox(deps)).outcome).toBe('unauthorized');
     expect((await drainOutbox(deps)).outcome).toBe('unauthorized');
-    expect((await drainOutbox(deps))).toMatchObject({ outcome: 'drained', sent: 1 });
+    expect(await drainOutbox(deps)).toMatchObject({ outcome: 'drained', sent: 1 });
     expect(reregister).toHaveBeenCalledTimes(3);
     expect(state.authError).toBe(false);
   });
@@ -403,7 +469,10 @@ describe('a refused token', () => {
     expect((await drainOutbox(deps)).outcome).toBe('unauthorized');
     expect(reregister).toHaveBeenCalledTimes(1);
 
-    expect(await drainOutbox({ ...deps, force: true })).toMatchObject({ outcome: 'drained', sent: 1 });
+    expect(await drainOutbox({ ...deps, force: true })).toMatchObject({
+      outcome: 'drained',
+      sent: 1,
+    });
     expect(reregister).toHaveBeenCalledTimes(2);
     expect(state.authError).toBe(false);
   });
@@ -429,7 +498,14 @@ describe('a refused token', () => {
     const { state, hooks } = fakeAuth();
     const fetchImpl = routedFetch([[/\/v1\/plans/, UNAUTHORIZED]]);
 
-    const res = await pullPlans({ db: d, baseUrl: BASE, fetchImpl, getSessionFn, refreshPlan, auth: hooks });
+    const res = await pullPlans({
+      db: d,
+      baseUrl: BASE,
+      fetchImpl,
+      getSessionFn,
+      refreshPlan,
+      auth: hooks,
+    });
 
     expect(res.outcome).toBe('unauthorized');
     expect(state.authError).toBe(true);
@@ -446,7 +522,10 @@ describe('deleteOwnComment', () => {
     await seedServerComment(d, 'S');
     const fetchImpl = routedFetch([[/\/comments\/S$/, { throw: true }]]);
 
-    await deleteOwnComment({ id: 'S', source: 'server' }, { db: d, baseUrl: BASE, fetchImpl, getSessionFn, now });
+    await deleteOwnComment(
+      { id: 'S', source: 'server' },
+      { db: d, baseUrl: BASE, fetchImpl, getSessionFn, now },
+    );
 
     const row = await outboxRepo.getById(d, 'S');
     expect(row?.createdAt).toBe('2026-10-06T12:00:00.000Z');
@@ -655,7 +734,9 @@ describe('pullPlans', () => {
         {
           status: 200,
           body: {
-            plans: [{ id: mine.id, trailId: 'heysen', deleted: true, updatedAt: '2026-06-01T00:00:00Z' }],
+            plans: [
+              { id: mine.id, trailId: 'heysen', deleted: true, updatedAt: '2026-06-01T00:00:00Z' },
+            ],
             nextCursor: null,
             syncedAt: 'T1',
           },

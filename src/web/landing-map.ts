@@ -136,10 +136,10 @@ export function landingMapPoints(
 export function unwrapLongitudes(points: readonly LandingMapPoint[]): LandingMapPoint[] {
   if (points.length < 2) return [...points];
   const span = (lons: number[]) => Math.max(...lons) - Math.min(...lons);
-  const plain = points.map((p) => p.lon);
-  const shifted = plain.map((lon) => (lon < 0 ? lon + 360 : lon));
+  const plain = points.map(p => p.lon);
+  const shifted = plain.map(lon => (lon < 0 ? lon + 360 : lon));
   if (span(shifted) >= span(plain)) return [...points];
-  return points.map((p) => (p.lon < 0 ? { ...p, lon: p.lon + 360 } : p));
+  return points.map(p => (p.lon < 0 ? { ...p, lon: p.lon + 360 } : p));
 }
 
 function kmText(km: number): string {
@@ -155,8 +155,8 @@ export function mapPopupHtml(point: LandingMapPoint): string {
         ? `<span class="list-badge list-badge-unverified" title="${escapeHtml(UNVERIFIED_EXPLANATION)}">Unverified</span>`
         : '';
   const meta = [kmText(point.lengthKm), point.place, point.submittedBy ? `by ${point.submittedBy}` : '']
-    .filter((s) => s !== '')
-    .map((s) => escapeHtml(s))
+    .filter(s => s !== '')
+    .map(s => escapeHtml(s))
     .join(' · ');
   return `<div class="landing-map-popup"><a class="landing-map-popup-title" href="${escapeHtml(point.href)}">${escapeHtml(point.name)}</a>${badge}<div class="landing-map-popup-meta">${meta}</div></div>`;
 }
@@ -279,7 +279,7 @@ function createView(L: LeafletModule, container: HTMLElement) {
       const points = unwrapLongitudes(given);
       // Refit only when the set changed, so a re-render with the same filter
       // does not undo the reader's panning.
-      const key = points.map((p) => p.id).join('\n');
+      const key = points.map(p => p.id).join('\n');
       if (key === lastKey && markers.length > 0) return;
       lastKey = key;
       layer.clearLayers();
@@ -292,7 +292,7 @@ function createView(L: LeafletModule, container: HTMLElement) {
         markers.push({ marker, kind: p.kind });
       }
       if (points.length > 0) {
-        map.fitBounds(L.latLngBounds(points.map((p) => [p.lat, p.lon] as [number, number])), {
+        map.fitBounds(L.latLngBounds(points.map(p => [p.lat, p.lon] as [number, number])), {
           padding: [28, 28],
           maxZoom: 9,
         });
@@ -319,7 +319,7 @@ export function mountLandingMap(container: HTMLElement, deps: LandingMapDeps = {
     started = true;
     container.classList.add('landing-map-loading');
     load()
-      .then((L) => {
+      .then(L => {
         container.classList.remove('landing-map-loading');
         view = createView(L, container);
         view.draw(points);
@@ -334,8 +334,8 @@ export function mountLandingMap(container: HTMLElement, deps: LandingMapDeps = {
   const IO = (globalThis as { IntersectionObserver?: typeof IntersectionObserver }).IntersectionObserver;
   if (IO) {
     const observer = new IO(
-      (entries) => {
-        if (entries.some((e) => e.isIntersecting)) {
+      entries => {
+        if (entries.some(e => e.isIntersecting)) {
           observer.disconnect();
           start();
         }

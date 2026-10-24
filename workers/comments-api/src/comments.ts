@@ -80,15 +80,9 @@ function toFeedComment(row: CommentRow, displayName: string): FeedComment {
  * trail nor the trails' POI lists, and a registry entry the build has just
  * minted must not need a worker deploy.
  */
-async function assertCommentTargetExists(
-  env: Env,
-  target: CommentTarget,
-  trailId: string
-): Promise<void> {
+async function assertCommentTargetExists(env: Env, target: CommentTarget, trailId: string): Promise<void> {
   if (target.kind !== 'shared') return;
-  const row = await env.DB.prepare(
-    `SELECT trail_id, deleted_at FROM shared_waypoints WHERE id = ?`
-  )
+  const row = await env.DB.prepare(`SELECT trail_id, deleted_at FROM shared_waypoints WHERE id = ?`)
     .bind(target.id)
     .first<{ trail_id: string; deleted_at: string | null }>();
   if (!row || row.trail_id !== trailId) {
@@ -103,12 +97,7 @@ async function assertCommentTargetExists(
 // PUT /v1/comments/:id — idempotent create
 // ---------------------------------------------------------------------------
 
-export async function putComment(
-  request: Request,
-  env: Env,
-  ctx: ExecutionContext,
-  id: string
-): Promise<Response> {
+export async function putComment(request: Request, env: Env, ctx: ExecutionContext, id: string): Promise<Response> {
   assertClientCommentId(id);
   const user = await requireUser(request, env, ctx);
 
@@ -119,9 +108,7 @@ export async function putComment(
   // ban and rate-limit checks, because the row is already stored — a byte-safe
   // outbox retry must always succeed, even of a comment stored under rules
   // that have since been tightened.
-  const existing = await env.DB.prepare(`SELECT * FROM comments WHERE id = ?`)
-    .bind(id)
-    .first<CommentRow>();
+  const existing = await env.DB.prepare(`SELECT * FROM comments WHERE id = ?`).bind(id).first<CommentRow>();
   if (existing) {
     if (existing.user_id !== user.id) {
       throw new HttpError(409, 'id_conflict', 'This comment id belongs to another user');
@@ -138,11 +125,7 @@ export async function putComment(
   const text = validateText(body.text);
   const waterStatus = validateWaterStatus(body.waterStatus);
   if (text === null && waterStatus === null) {
-    throw new HttpError(
-      400,
-      'empty_comment',
-      'A comment must include text, a water status, or both'
-    );
+    throw new HttpError(400, 'empty_comment', 'A comment must include text, a water status, or both');
   }
   const nowMs = Date.now();
   const observedAt = clampObservedAt(body.observedAt, nowMs);
@@ -179,9 +162,7 @@ export async function putComment(
     // Lost a race with a concurrent insert of the same id: nothing new was
     // stored, so the allowance goes back. Re-read and replay.
     await refundRateLimit(env, rateEvent);
-    const row = await env.DB.prepare(`SELECT * FROM comments WHERE id = ?`)
-      .bind(id)
-      .first<CommentRow>();
+    const row = await env.DB.prepare(`SELECT * FROM comments WHERE id = ?`).bind(id).first<CommentRow>();
     if (!row) {
       throw new HttpError(500, 'insert_failed', 'Comment could not be stored');
     }
@@ -198,17 +179,10 @@ export async function putComment(
 // DELETE /v1/comments/:id — soft delete (owner or admin)
 // ---------------------------------------------------------------------------
 
-export async function deleteComment(
-  request: Request,
-  env: Env,
-  ctx: ExecutionContext,
-  id: string
-): Promise<Response> {
+export async function deleteComment(request: Request, env: Env, ctx: ExecutionContext, id: string): Promise<Response> {
   const user = await requireUser(request, env, ctx);
 
-  const row = await env.DB.prepare(`SELECT * FROM comments WHERE id = ?`)
-    .bind(id)
-    .first<CommentRow>();
+  const row = await env.DB.prepare(`SELECT * FROM comments WHERE id = ?`).bind(id).first<CommentRow>();
   if (!row) {
     throw new HttpError(404, 'not_found', 'Comment not found');
   }
@@ -280,8 +254,7 @@ export async function getWaypointFeed(
     binds.push(cursor.sortValue, cursor.sortValue, cursor.id);
   }
 
-  const sql =
-    `SELECT c.*, u.display_name AS display_name
+  const sql = `SELECT c.*, u.display_name AS display_name
        FROM comments c JOIN users u ON u.id = c.user_id
       WHERE ${conditions.join(' AND ')}
       ORDER BY c.created_at DESC, c.id DESC
@@ -342,8 +315,7 @@ export async function getBulkSync(
     binds.push(cursor.sortValue, cursor.sortValue, cursor.id);
   }
 
-  const sql =
-    `SELECT c.*, u.display_name AS display_name
+  const sql = `SELECT c.*, u.display_name AS display_name
        FROM comments c JOIN users u ON u.id = c.user_id
       WHERE ${conditions.join(' AND ')}
       ORDER BY c.updated_at ASC, c.id ASC
@@ -409,11 +381,7 @@ export function parseAdminReports(raw: string | null): AdminCommentReport[] {
  * (reason and detail) and whether its author is banned, which is what the
  * moderation page (`src/web/admin-moderation.ts`) acts on.
  */
-export async function getAdminComments(
-  request: Request,
-  env: Env,
-  ctx: ExecutionContext
-): Promise<Response> {
+export async function getAdminComments(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   await requireAdmin(request, env, ctx);
   const url = new URL(request.url);
   const limit = parseLimit(url.searchParams.get('limit'), ADMIN_DEFAULT_LIMIT, ADMIN_MAX_LIMIT);

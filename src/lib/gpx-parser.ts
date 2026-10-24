@@ -50,9 +50,7 @@ export interface GpxParseLimits {
 export function parseGpx(xml: string, adapter?: XmlAdapter, limits?: GpxParseLimits): GpxData {
   const maxFileSize = limits?.maxFileSize ?? GPX_MAX_FILE_SIZE;
   if (maxFileSize > 0 && xml.length > maxFileSize) {
-    throw new Error(
-      `GPX file too large: ${xml.length} characters exceeds the ${maxFileSize} character limit`
-    );
+    throw new Error(`GPX file too large: ${xml.length} characters exceeds the ${maxFileSize} character limit`);
   }
 
   const doc = (adapter ?? defaultXmlAdapter())(xml);
@@ -61,9 +59,7 @@ export function parseGpx(xml: string, adapter?: XmlAdapter, limits?: GpxParseLim
   const countPoints = (n: number): void => {
     pointCount += n;
     if (maxPointCount > 0 && pointCount > maxPointCount) {
-      throw new Error(
-        `GPX file has too many points: more than ${maxPointCount} track/route points`
-      );
+      throw new Error(`GPX file has too many points: more than ${maxPointCount} track/route points`);
     }
   };
 
@@ -95,9 +91,7 @@ export function parseGpx(xml: string, adapter?: XmlAdapter, limits?: GpxParseLim
   const wpts = doc.querySelectorAll('wpt');
   const maxWaypointCount = limits?.maxWaypointCount ?? GPX_MAX_WAYPOINT_COUNT;
   if (maxWaypointCount > 0 && wpts.length > maxWaypointCount) {
-    throw new Error(
-      `GPX file has too many waypoints: ${wpts.length} exceeds the ${maxWaypointCount} waypoint limit`
-    );
+    throw new Error(`GPX file has too many waypoints: ${wpts.length} exceeds the ${maxWaypointCount} waypoint limit`);
   }
   const waypoints: GpxWaypoint[] = wpts.map(wpt => {
     // `<link>` carries a `<type>` of its own (a MIME type), which a descendant

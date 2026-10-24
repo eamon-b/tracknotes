@@ -16,11 +16,7 @@
 import { mirrorPoiDistances } from './poi-display';
 import { routeBreakStarts } from './route-breaks';
 import { calculateElevationBetween, type ElevationPoint } from './track-geometry';
-import {
-  reverseAlternates,
-  transformSideTrips,
-  type ReversibleVariant,
-} from './variant-reverse';
+import { reverseAlternates, transformSideTrips, type ReversibleVariant } from './variant-reverse';
 
 /** Minimal POI shape for reversal: only the along-trail km is direction-dependent. */
 export interface ReversiblePoi {
@@ -62,7 +58,7 @@ export function reverseRouteBreaks<B extends ReversibleRouteBreak>(
   breaks: B[],
   totalDistance: number,
   trackLength: number,
-  displayLength: number,
+  displayLength: number
 ): B[] {
   return [...breaks].reverse().map(b => ({
     ...b,
@@ -126,23 +122,15 @@ export interface ReversibleTrail<
  * the asset applied. The step into a route break contributed nothing forward,
  * so it contributes nothing reversed either, and the breaks need no extra care.
  */
-export function reverseTrackPoints<P extends ReversibleTrackPoint>(
-  points: P[],
-  totalDistance: number,
-): P[] {
+export function reverseTrackPoints<P extends ReversibleTrackPoint>(points: P[], totalDistance: number): P[] {
   const last = points[points.length - 1];
   const totalAscent = last?.cumAscent;
   const totalDescent = last?.cumDescent;
-  const hasCumulative =
-    typeof totalAscent === 'number' && typeof totalDescent === 'number';
+  const hasCumulative = typeof totalAscent === 'number' && typeof totalDescent === 'number';
 
   return [...points].reverse().map(p => {
     const dist = totalDistance - p.dist;
-    if (
-      hasCumulative &&
-      typeof p.cumAscent === 'number' &&
-      typeof p.cumDescent === 'number'
-    ) {
+    if (hasCumulative && typeof p.cumAscent === 'number' && typeof p.cumDescent === 'number') {
       return {
         ...p,
         dist,
@@ -175,7 +163,7 @@ export function reverseWaypoints<W extends ReversibleWaypoint>(
   waypoints: W[],
   totalDistance: number,
   trackLength: number,
-  track?: { points: ReversibleTrackPoint[]; breaks?: ReversibleRouteBreak[] },
+  track?: { points: ReversibleTrackPoint[]; breaks?: ReversibleRouteBreak[] }
 ): Array<W & Required<ReversibleWaypoint>> {
   const reversed = [...waypoints].reverse();
   const newTotals = reversed.map(wp => totalDistance - (wp.totalDistance ?? 0));
@@ -216,7 +204,7 @@ export function reverseWaypoints<W extends ReversibleWaypoint>(
 function firstLegClimb(
   waypoint: ReversibleWaypoint | undefined,
   totalDistance: number,
-  track: { points: ReversibleTrackPoint[]; breaks?: ReversibleRouteBreak[] } | undefined,
+  track: { points: ReversibleTrackPoint[]; breaks?: ReversibleRouteBreak[] } | undefined
 ): { ascent: number; descent: number } {
   const points = track?.points;
   if (!waypoint || !points || points.length < 2 || !points.every(p => typeof p.ele === 'number')) {
@@ -226,7 +214,7 @@ function firstLegClimb(
     waypoint.totalDistance ?? 0,
     totalDistance,
     points as ElevationPoint[],
-    routeBreakStarts(track.breaks, 'points'),
+    routeBreakStarts(track.breaks, 'points')
   );
   return { ascent: loss, descent: gain };
 }
@@ -265,7 +253,7 @@ export function createReversedTrail<T extends ReversibleTrail>(trail: T): T {
               trail.track.breaks,
               totalDist,
               trackLength,
-              (reversedDisplay ?? reversedPoints).length,
+              (reversedDisplay ?? reversedPoints).length
             ),
           }
         : {}),

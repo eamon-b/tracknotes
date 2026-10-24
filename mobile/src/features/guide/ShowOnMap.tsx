@@ -38,7 +38,11 @@ export function ShowOnMapIconButton({ name, onPress }: { name: string; onPress: 
       hitSlop={spacing.xs}
       style={({ pressed }) => [styles.button, pressed && styles.pressed]}
     >
-      <MaterialCommunityIcons name="map-marker-outline" size={glyphSizes.lg} color={colors.accent} />
+      <MaterialCommunityIcons
+        name="map-marker-outline"
+        size={glyphSizes.lg}
+        color={colors.accent}
+      />
     </Pressable>
   );
 }

@@ -40,14 +40,17 @@ export function aggregateDailyToMonthly(daily: DailyClimateSeries): MonthlyClima
   const { time, temperature_2m_max, temperature_2m_min, precipitation_sum } = daily;
 
   // Group data by month
-  const monthlyData: Map<number, {
-    tempMaxSum: number;
-    tempMinSum: number;
-    precipSum: number;
-    rainyDays: number;
-    count: number;
-    yearCount: Set<number>;
-  }> = new Map();
+  const monthlyData: Map<
+    number,
+    {
+      tempMaxSum: number;
+      tempMinSum: number;
+      precipSum: number;
+      rainyDays: number;
+      count: number;
+      yearCount: Set<number>;
+    }
+  > = new Map();
 
   for (let i = 0; i < time.length; i++) {
     // Open-Meteo `time` entries are date-only ISO strings ('YYYY-MM-DD').
@@ -111,10 +114,10 @@ export function aggregateDailyToMonthly(daily: DailyClimateSeries): MonthlyClima
 
     monthly.push({
       month,
-      avgTempMin: Math.round(entry.tempMinSum / entry.count * 10) / 10,
-      avgTempMax: Math.round(entry.tempMaxSum / entry.count * 10) / 10,
-      avgPrecipitation: Math.round(entry.precipSum / numYears * 10) / 10,
-      avgRainyDays: Math.round(entry.rainyDays / numYears * 10) / 10,
+      avgTempMin: Math.round((entry.tempMinSum / entry.count) * 10) / 10,
+      avgTempMax: Math.round((entry.tempMaxSum / entry.count) * 10) / 10,
+      avgPrecipitation: Math.round((entry.precipSum / numYears) * 10) / 10,
+      avgRainyDays: Math.round((entry.rainyDays / numYears) * 10) / 10,
     });
   }
 

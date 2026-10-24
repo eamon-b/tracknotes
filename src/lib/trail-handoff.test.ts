@@ -183,21 +183,13 @@ describe('parseHandoffJson', () => {
         /not a Tracknotes trail file \(format "gaia-trail"/,
       ],
       ['a missing format', JSON.stringify({ version: 1, trail: {} }), /format missing/],
-      [
-        'a non-integer version',
-        JSON.stringify({ format: HANDOFF_FORMAT, version: '1', trail: {} }),
-        /invalid version/,
-      ],
+      ['a non-integer version', JSON.stringify({ format: HANDOFF_FORMAT, version: '1', trail: {} }), /invalid version/],
       [
         'a future version',
         JSON.stringify({ format: HANDOFF_FORMAT, version: 99, trail: {} }),
         /newer version of Tracknotes/,
       ],
-      [
-        'a missing trail',
-        JSON.stringify({ format: HANDOFF_FORMAT, version: 1 }),
-        /missing its "trail" object/,
-      ],
+      ['a missing trail', JSON.stringify({ format: HANDOFF_FORMAT, version: 1 }), /missing its "trail" object/],
       [
         'a missing config',
         JSON.stringify({ format: HANDOFF_FORMAT, version: 1, trail: { track: {} } }),
@@ -343,9 +335,7 @@ describe('parseHandoffJson', () => {
     });
 
     it('rejects an out-of-range longitude', () => {
-      expect(() => parseHandoffJson(withWaypoint({ ...good, lon: 999 }))).toThrow(
-        /out-of-range waypoints\[0\]\.lon/
-      );
+      expect(() => parseHandoffJson(withWaypoint({ ...good, lon: 999 }))).toThrow(/out-of-range waypoints\[0\]\.lon/);
     });
 
     it('zeroes a missing cumulative stat rather than letting NaN reach the plan', () => {
@@ -418,10 +408,28 @@ describe('parseHandoffJson', () => {
     });
 
     it('keeps a well-formed walk-in path and drops a malformed one', () => {
-      const path = [[-34.005, 138], [-34.03, 138.012]];
+      const path = [
+        [-34.005, 138],
+        [-34.03, 138.012],
+      ];
       const [kept] = parseHandoffJson(withWaypoint({ ...good, offTrailKm: 2.5, offTrailPath: path })).waypoints;
       expect(kept.offTrailPath).toEqual(path);
-      for (const bad of [[[-34, 138]], [[-34, 138], [-34, 'x']], [[-34, 138], [95, 138]], 'path', [[-34, 138, 5], [-34, 138]]]) {
+      for (const bad of [
+        [[-34, 138]],
+        [
+          [-34, 138],
+          [-34, 'x'],
+        ],
+        [
+          [-34, 138],
+          [95, 138],
+        ],
+        'path',
+        [
+          [-34, 138, 5],
+          [-34, 138],
+        ],
+      ]) {
         const [wp] = parseHandoffJson(withWaypoint({ ...good, offTrailPath: bad })).waypoints;
         expect('offTrailPath' in wp).toBe(false);
       }
@@ -539,9 +547,9 @@ describe('parseHandoffJson: variants and off-trail waypoints', () => {
   });
 
   it('rejects an off-trail waypoint with no usable position', () => {
-    expect(() =>
-      parseHandoffJson(file({ offTrailWaypoints: [{ ...offTrail, lat: null }] }))
-    ).toThrow(/non-numeric offTrailWaypoints\[0\]\.lat/);
+    expect(() => parseHandoffJson(file({ offTrailWaypoints: [{ ...offTrail, lat: null }] }))).toThrow(
+      /non-numeric offTrailWaypoints\[0\]\.lat/
+    );
   });
 
   it('rejects a variant waypoint with no usable position', () => {
@@ -595,9 +603,7 @@ describe('parseHandoffJson: points of interest', () => {
   });
 
   it('defaults the optional fields of an otherwise valid POI', () => {
-    const [parsed] = withPois([
-      { id: 9, type: 'way', category: 'camping', lat: -33.87, lon: 151.21 },
-    ]).pois!;
+    const [parsed] = withPois([{ id: 9, type: 'way', category: 'camping', lat: -33.87, lon: 151.21 }]).pois!;
     expect(parsed).toEqual({
       id: 9,
       type: 'way',

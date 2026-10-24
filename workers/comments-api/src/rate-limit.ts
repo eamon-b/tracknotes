@@ -82,7 +82,6 @@ export const RATE_BUCKETS = {
     limit: 20,
     windowMs: 24 * 60 * 60 * 1000,
   },
-
 } as const;
 
 export type RateBucket = (typeof RATE_BUCKETS)[keyof typeof RATE_BUCKETS];
@@ -91,9 +90,7 @@ export type RateBucket = (typeof RATE_BUCKETS)[keyof typeof RATE_BUCKETS];
  * The longest window any bucket counts over: a row older than this can never
  * be counted by anything, whatever bucket or key it belongs to.
  */
-export const MAX_RATE_WINDOW_MS = Math.max(
-  ...Object.values(RATE_BUCKETS).map((spec) => spec.windowMs)
-);
+export const MAX_RATE_WINDOW_MS = Math.max(...Object.values(RATE_BUCKETS).map((spec) => spec.windowMs));
 
 /** Dotted-quad IPv4, as it may trail an IPv4-mapped IPv6 address. */
 const IPV4_RE = /^\d{1,3}(?:\.\d{1,3}){3}$/;
@@ -162,13 +159,7 @@ export async function pruneStaleRateEvents(env: Env, nowMs: number): Promise<voi
  * row anywhere older than the longest window — otherwise a subject that never
  * comes back, an IP that tried once, leaves its rows in the table for good.
  */
-function pruneRateEvents(
-  env: Env,
-  spec: RateBucket,
-  key: string,
-  nowMs: number,
-  ctx?: ExecutionContext
-): void {
+function pruneRateEvents(env: Env, spec: RateBucket, key: string, nowMs: number, ctx?: ExecutionContext): void {
   const windowStart = new Date(nowMs - spec.windowMs).toISOString();
   const staleEverywhere = new Date(nowMs - MAX_RATE_WINDOW_MS).toISOString();
   const prune = env.DB.batch([
@@ -209,12 +200,16 @@ export async function consumeRateLimit(
 ): Promise<number | undefined> {
   const windowStart = new Date(nowMs - spec.windowMs).toISOString();
   const [inserted, counted] = await env.DB.batch<{ id?: number; n?: number }>([
-    env.DB.prepare(
-      `INSERT INTO rate_events (bucket, key, created_at) VALUES (?, ?, ?) RETURNING id`
-    ).bind(spec.bucket, key, new Date(nowMs).toISOString()),
-    env.DB.prepare(
-      `SELECT COUNT(*) AS n FROM rate_events WHERE bucket = ? AND key = ? AND created_at >= ?`
-    ).bind(spec.bucket, key, windowStart),
+    env.DB.prepare(`INSERT INTO rate_events (bucket, key, created_at) VALUES (?, ?, ?) RETURNING id`).bind(
+      spec.bucket,
+      key,
+      new Date(nowMs).toISOString()
+    ),
+    env.DB.prepare(`SELECT COUNT(*) AS n FROM rate_events WHERE bucket = ? AND key = ? AND created_at >= ?`).bind(
+      spec.bucket,
+      key,
+      windowStart
+    ),
   ]);
   const used = counted.results[0]?.n ?? 0;
   if (used > spec.limit) {

@@ -302,11 +302,7 @@ describe('importGpxFromUri — .tracknotes.json handoff', () => {
     const built = await importGpxFromUri('file:///cache/walk.gpx');
     mockFiles['file:///cache/pois.tracknotes.json'] = serializeTrailHandoff({
       ...built.trail,
-      pois: [
-        makePoi(1),
-        makePoi(2, { duplicateOf: built.trail.waypoints[0].id }),
-        makePoi(3),
-      ],
+      pois: [makePoi(1), makePoi(2, { duplicateOf: built.trail.waypoints[0].id }), makePoi(3)],
     });
 
     const { report, trail } = await importGpxFromUri('file:///cache/pois.tracknotes.json', {
@@ -396,7 +392,11 @@ describe('applyTrailName', () => {
   it('sets both name and shortName without touching the content-hashed id', () => {
     const renamed = applyTrailName(trail, '  Kosciuszko loop  ');
     expect(renamed.config).toEqual(
-      expect.objectContaining({ id: 'u_abc', name: 'Kosciuszko loop', shortName: 'Kosciuszko loop' }),
+      expect.objectContaining({
+        id: 'u_abc',
+        name: 'Kosciuszko loop',
+        shortName: 'Kosciuszko loop',
+      }),
     );
   });
 

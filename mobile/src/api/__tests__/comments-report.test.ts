@@ -21,11 +21,10 @@ function stubFetch(status: number, body: unknown) {
 describe('reportComment', () => {
   it('POSTs the reason + detail with the bearer token', async () => {
     const fetchImpl = stubFetch(201, { reportId: 'rep_1' });
-    const res = await reportComment(
-      { baseUrl: BASE, fetchImpl, token: 'tok' },
-      'c 1/danger',
-      { reason: 'spam', detail: 'buy pills' },
-    );
+    const res = await reportComment({ baseUrl: BASE, fetchImpl, token: 'tok' }, 'c 1/danger', {
+      reason: 'spam',
+      detail: 'buy pills',
+    });
 
     expect(res).toEqual({ reportId: 'rep_1' });
     const [url, init] = (fetchImpl as jest.Mock).mock.calls[0];
@@ -45,11 +44,9 @@ describe('reportComment', () => {
 
   it('surfaces a 429 as a structured ApiError', async () => {
     const fetchImpl = stubFetch(429, { error: { code: 'rate_limited', message: 'slow down' } });
-    const err = await reportComment(
-      { baseUrl: BASE, fetchImpl, token: 'tok' },
-      'c1',
-      { reason: 'spam' },
-    ).catch((e) => e);
+    const err = await reportComment({ baseUrl: BASE, fetchImpl, token: 'tok' }, 'c1', {
+      reason: 'spam',
+    }).catch((e) => e);
     expect(err).toBeInstanceOf(ApiError);
     expect((err as ApiError).status).toBe(429);
   });
@@ -61,9 +58,12 @@ describe('getTrailDescriptions', () => {
       descriptions: [{ waypointId: 'w_1', description: 'Tank.', updatedAt: 'M1' }],
       syncedAt: 'M1',
     });
-    const res = await getTrailDescriptions({ baseUrl: BASE, fetchImpl, token: 'tok' }, {
-      trailId: 'aawt',
-    });
+    const res = await getTrailDescriptions(
+      { baseUrl: BASE, fetchImpl, token: 'tok' },
+      {
+        trailId: 'aawt',
+      },
+    );
 
     expect(res.syncedAt).toBe('M1');
     expect(res.descriptions).toHaveLength(1);
@@ -74,10 +74,13 @@ describe('getTrailDescriptions', () => {
 
   it('passes `since` through for a delta read', async () => {
     const fetchImpl = stubFetch(200, { descriptions: [], syncedAt: 'M2' });
-    await getTrailDescriptions({ baseUrl: BASE, fetchImpl }, {
-      trailId: 'aawt',
-      since: '2026-01-01T00:00:00Z',
-    });
+    await getTrailDescriptions(
+      { baseUrl: BASE, fetchImpl },
+      {
+        trailId: 'aawt',
+        since: '2026-01-01T00:00:00Z',
+      },
+    );
     expect(String((fetchImpl as jest.Mock).mock.calls[0][0])).toContain(
       'since=2026-01-01T00%3A00%3A00Z',
     );

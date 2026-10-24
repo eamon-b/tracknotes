@@ -100,7 +100,13 @@ describe('pullTrail', () => {
     const d = await db();
     const fetchImpl = scriptedFetch([
       // snapshot (no since)
-      { body: { comments: [feedComment('a', { updatedAt: '2026-01-01T00:00:00Z' })], nextCursor: null, syncedAt: 'T1' } },
+      {
+        body: {
+          comments: [feedComment('a', { updatedAt: '2026-01-01T00:00:00Z' })],
+          nextCursor: null,
+          syncedAt: 'T1',
+        },
+      },
       // delta (since=T1): tombstone a, add c
       {
         body: {
@@ -385,11 +391,23 @@ describe('pullTrail own comments (mine)', () => {
   it('keeps a comment ours across a tombstone and an admin restore', async () => {
     const d = await db();
     const fetchImpl = commentsFeed([
-      { comments: [feedComment('own', { updatedAt: 'U1', mine: true })], nextCursor: null, syncedAt: 'T1' },
+      {
+        comments: [feedComment('own', { updatedAt: 'U1', mine: true })],
+        nextCursor: null,
+        syncedAt: 'T1',
+      },
       // Hidden by reports: the phone drops the row, author_id with it.
-      { comments: [{ id: 'own', waypointId: 'w_1', deleted: true, updatedAt: 'U2' }], nextCursor: null, syncedAt: 'T2' },
+      {
+        comments: [{ id: 'own', waypointId: 'w_1', deleted: true, updatedAt: 'U2' }],
+        nextCursor: null,
+        syncedAt: 'T2',
+      },
       // Restored by an admin: back as a live row, still marked ours.
-      { comments: [feedComment('own', { updatedAt: 'U3', mine: true })], nextCursor: null, syncedAt: 'T3' },
+      {
+        comments: [feedComment('own', { updatedAt: 'U3', mine: true })],
+        nextCursor: null,
+        syncedAt: 'T3',
+      },
     ]);
     const deps = { db: d, baseUrl: BASE, fetchImpl, getSessionFn };
 
@@ -537,7 +555,10 @@ describe('submitComment with a photo', () => {
   it('shows an optimistic preview, then confirms the comment and uploads the photo', async () => {
     const d = await db();
     // Comment PUT (201) then photo POST (201).
-    const fetchImpl = scriptedFetch([{ status: 201, body: feedComment('any', { text: 'note' }) }, PHOTO_OK]);
+    const fetchImpl = scriptedFetch([
+      { status: 201, body: feedComment('any', { text: 'note' }) },
+      PHOTO_OK,
+    ]);
     const { id, drain } = await submitComment(
       {
         trailId: 'aawt',

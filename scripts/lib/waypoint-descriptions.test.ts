@@ -39,9 +39,7 @@ describe('parseCuratedDescriptions', () => {
   });
 
   it('rejects a trailId that does not match the trail directory', () => {
-    expect(() => parseCuratedDescriptions(validFile({ trailId: 'other' }), 'demo', 'test.json')).toThrow(
-      /trailId/
-    );
+    expect(() => parseCuratedDescriptions(validFile({ trailId: 'other' }), 'demo', 'test.json')).toThrow(/trailId/);
   });
 
   it('rejects a malformed waypoint id', () => {
@@ -72,9 +70,7 @@ describe('parseCuratedDescriptions', () => {
   });
 
   it('rejects a missing descriptions array', () => {
-    expect(() => parseCuratedDescriptions({ trailId: 'demo' }, 'demo', 'test.json')).toThrow(
-      /descriptions/
-    );
+    expect(() => parseCuratedDescriptions({ trailId: 'demo' }, 'demo', 'test.json')).toThrow(/descriptions/);
   });
 });
 
@@ -170,9 +166,7 @@ const trailsWithDescriptions = fs
   .map(entry => entry.name)
   .filter(name => fs.existsSync(path.join(TRAILS_DIR, name, DESCRIPTIONS_FILENAME)))
   .map(dir => {
-    const config = JSON.parse(
-      fs.readFileSync(path.join(TRAILS_DIR, dir, 'trail.json'), 'utf-8')
-    ) as { id?: string };
+    const config = JSON.parse(fs.readFileSync(path.join(TRAILS_DIR, dir, 'trail.json'), 'utf-8')) as { id?: string };
     if (typeof config.id !== 'string' || config.id.length === 0) {
       throw new Error(`data/trails/${dir}/trail.json has no "id"`);
     }
@@ -191,9 +185,7 @@ describe('committed descriptions.json files', () => {
 
     // Retired ids are no waypoint in the current build: prose keyed to one
     // would never be shown.
-    const knownIds = new Set(
-      (registry[trailId] ?? []).filter(entry => !entry.retired).map(entry => entry.id)
-    );
+    const knownIds = new Set((registry[trailId] ?? []).filter(entry => !entry.retired).map(entry => entry.id));
     const unknown = entries.filter(entry => !knownIds.has(entry.waypointId));
     expect(unknown.map(entry => `${entry.waypointId} (${entry.name ?? '?'})`)).toEqual([]);
   });

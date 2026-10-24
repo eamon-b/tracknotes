@@ -32,14 +32,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  type FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-  type ListViewToken,
-} from 'react-native';
+import { type FlatList, Pressable, StyleSheet, Text, View, type ListViewToken } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatDistance, formatElevation } from '@lib/format-distance';
@@ -55,13 +48,7 @@ import { useGuidePaneFocus } from './GuideFocusContext';
 import { firstIndexInFocus, focusFromItems, type FocusWindow } from './guide-focus';
 import { orderedWaypoints } from './guide-trail';
 import { ScreenFlatList } from '../../navigation/ScreenScrollView';
-import {
-  interleaveListRows,
-  rowKm,
-  rowsAhead,
-  toWaypointRows,
-  type ListRow,
-} from './list-rows';
+import { interleaveListRows, rowKm, rowsAhead, toWaypointRows, type ListRow } from './list-rows';
 import { PoiRow } from './PoiRow';
 import { OffTrailBadge, offTrailA11y } from './OffTrailBadge';
 import { useVisiblePois } from './use-visible-pois';
@@ -132,8 +119,7 @@ export function WaypointListPane({ trail }: { trail: TrailJson }) {
   // The Planned chip can vanish under the hiker (clearing the plan from the Plan
   // screen). Derive the effective family rather than resetting state in an
   // effect, so the list never renders one frame filtered to nothing.
-  const activeFamily: WaypointFamily =
-    family === 'planned' && plannedIds == null ? 'all' : family;
+  const activeFamily: WaypointFamily = family === 'planned' && plannedIds == null ? 'all' : family;
 
   const allRows = useMemo(() => {
     const waypointRows = toWaypointRows(orderedWaypoints(trail)).filter((row) =>
@@ -281,7 +267,7 @@ export function WaypointListPane({ trail }: { trail: TrailJson }) {
             reportedBy={hikerReportLine(waypoint, Date.now())}
             water={
               waypoint.id && isWaterFamily(waypoint.type)
-                ? waterByWaypoint.get(waypoint.id) ?? null
+                ? (waterByWaypoint.get(waypoint.id) ?? null)
                 : null
             }
           />
@@ -304,7 +290,12 @@ export function WaypointListPane({ trail }: { trail: TrailJson }) {
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       {/* Sticky category filter chips */}
-      <View style={[styles.filterBar, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
+      <View
+        style={[
+          styles.filterBar,
+          { backgroundColor: colors.background, borderBottomColor: colors.border },
+        ]}
+      >
         {chips.map((f) => {
           const active = f.value === activeFamily;
           return (

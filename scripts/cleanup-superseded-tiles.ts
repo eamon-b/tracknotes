@@ -145,7 +145,8 @@ export function planCleanup(
     if (!Number.isFinite(published) || published > cutoff) {
       plan.skipped.push({
         prefix,
-        reason: `manifest published ${manifestObject?.modTime.slice(0, 10) ?? 'at an unknown time'}, ` +
+        reason:
+          `manifest published ${manifestObject?.modTime.slice(0, 10) ?? 'at an unknown time'}, ` +
           `inside the ${options.graceDays}-day grace`,
       });
       continue;
@@ -193,7 +194,8 @@ export function planWorldBuildCleanup(
   if (!Number.isFinite(archiveTime) || newer.length > 0) {
     return {
       ...plan,
-      refused: `${newer.length} object(s) under ${WORLD_BUILD_PREFIX} are not older than ${WORLD_ARCHIVE_KEY} ` +
+      refused:
+        `${newer.length} object(s) under ${WORLD_BUILD_PREFIX} are not older than ${WORLD_ARCHIVE_KEY} ` +
         `(${archive.modTime}), e.g. ${newer[0]?.path ?? '?'}: a build may still be running, or the archive predates it`,
     };
   }

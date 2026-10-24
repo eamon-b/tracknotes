@@ -152,9 +152,7 @@ function own<T>(table: Readonly<Record<string, T>>, key: string): T | undefined 
 /** The glyph for a waypoint type (generic point-of-interest for unknowns). */
 export function waypointGlyph(type: string | undefined): MapGlyphName {
   // A turn-off shows the glyph of the place it serves: `hut-access` is the hut.
-  return (
-    own(TYPE_TO_GLYPH, type ?? '') ?? own(TYPE_TO_GLYPH, baseWaypointType(type)) ?? FALLBACK_GLYPH
-  );
+  return own(TYPE_TO_GLYPH, type ?? '') ?? own(TYPE_TO_GLYPH, baseWaypointType(type)) ?? FALLBACK_GLYPH;
 }
 
 /**
@@ -223,7 +221,6 @@ export function poiFamily(category: string): GlyphFamily {
  */
 export function glyphSvg(glyph: MapGlyphName, className = 'map-glyph'): string {
   return (
-    `<svg class="${className}" viewBox="0 0 96 96" aria-hidden="true" focusable="false">` +
-    `${MAP_GLYPHS[glyph]}</svg>`
+    `<svg class="${className}" viewBox="0 0 96 96" aria-hidden="true" focusable="false">` + `${MAP_GLYPHS[glyph]}</svg>`
   );
 }

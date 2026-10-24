@@ -64,10 +64,7 @@ export function extractResupplyPoints(waypoints: PlanWaypoint[]): ResupplyPoint[
  *
  * @throws RangeError if `gramsPerDay` is not a positive finite number.
  */
-export function calculateFoodWeight(
-  days: number,
-  gramsPerDay: number,
-): FoodCarryEstimate {
+export function calculateFoodWeight(days: number, gramsPerDay: number): FoodCarryEstimate {
   requirePositive(gramsPerDay, 'gramsPerDay', 'calculateFoodWeight');
   const weightGrams = Math.round(days * gramsPerDay);
   return {
@@ -95,7 +92,7 @@ export function computeResupplyGaps(
   points: ResupplyPoint[],
   trailStartKm: number,
   trailEndKm: number,
-  opts: ResupplyGapOptions,
+  opts: ResupplyGapOptions
 ): ResupplyGap[] {
   const longThresholdDays = requirePositive(opts.longThresholdDays, 'longThresholdDays', 'computeResupplyGaps');
   const dailyKm = opts.dailyKm ?? DEFAULT_DAILY_KM;
@@ -120,9 +117,7 @@ export function computeResupplyGaps(
   }
 
   // Deduplicate points at the same km position
-  const deduped = points.filter(
-    (p, i) => i === 0 || p.km !== points[i - 1].km,
-  );
+  const deduped = points.filter((p, i) => i === 0 || p.km !== points[i - 1].km);
 
   // Gap from trail start to first resupply
   const firstDist = deduped[0].km - trailStartKm;
@@ -179,7 +174,7 @@ export function computeResupplyGaps(
 export function analyzeResupply(
   waypoints: PlanWaypoint[],
   totalDistanceKm: number,
-  opts: ResupplyGapOptions,
+  opts: ResupplyGapOptions
 ): ResupplyAnalysis {
   const points = extractResupplyPoints(waypoints);
   const hasResupplyData = points.length > 0;
@@ -204,10 +199,7 @@ export interface ResupplyDayInfo {
   arrivalDate?: string;
 }
 
-export function correlateResupplyWithDays(
-  points: ResupplyPoint[],
-  days: ComputedDay[],
-): ResupplyDayInfo[] {
+export function correlateResupplyWithDays(points: ResupplyPoint[], days: ComputedDay[]): ResupplyDayInfo[] {
   return points.map(point => {
     const day = days.find(d => point.km >= d.startKm && point.km <= d.endKm);
     return {
@@ -222,10 +214,7 @@ export function correlateResupplyWithDays(
  * Find the next resupply point from a given position on the trail.
  * Useful for "I need to resupply by day X, which town?" queries.
  */
-export function findNextResupply(
-  waypoints: PlanWaypoint[],
-  currentKm: number,
-): ResupplyPoint | null {
+export function findNextResupply(waypoints: PlanWaypoint[], currentKm: number): ResupplyPoint | null {
   const points = extractResupplyPoints(waypoints);
   return points.find(p => p.km > currentKm) ?? null;
 }
@@ -233,10 +222,7 @@ export function findNextResupply(
 /**
  * Get food carry estimate for the gap between two resupply points.
  */
-export function foodCarryForGap(
-  gap: ResupplyGap,
-  gramsPerDay: number,
-): FoodCarryEstimate {
+export function foodCarryForGap(gap: ResupplyGap, gramsPerDay: number): FoodCarryEstimate {
   return calculateFoodWeight(gap.estimatedDays, gramsPerDay);
 }
 

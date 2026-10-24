@@ -50,7 +50,8 @@ export default function DownloadsScreen() {
   );
   const packTrailId = plan.packTrailId;
 
-  const download = useDownloadsStore((s) => (packTrailId ? s.byTrail[packTrailId] : undefined)) ?? IDLE;
+  const download =
+    useDownloadsStore((s) => (packTrailId ? s.byTrail[packTrailId] : undefined)) ?? IDLE;
   const startDownload = useDownloadsStore((s) => s.startDownload);
   const cancel = useDownloadsStore((s) => s.cancel);
   const deleteTiles = useDownloadsStore((s) => s.deleteTiles);
@@ -107,14 +108,24 @@ export default function DownloadsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.panel, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+      <View
+        style={[
+          styles.panel,
+          { backgroundColor: colors.surfaceElevated, borderColor: colors.border },
+        ]}
+      >
         <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
         <Text style={[styles.status, { color: colors.textSecondary }]}>{statusText}</Text>
         {plan.note && (
           <Text style={[styles.meta, { color: colors.textSecondary }]}>{plan.note}</Text>
         )}
         {updateAvailable && (
-          <Text style={[styles.badge, { color: colors.downloadActive, borderColor: colors.downloadActive }]}>
+          <Text
+            style={[
+              styles.badge,
+              { color: colors.downloadActive, borderColor: colors.downloadActive },
+            ]}
+          >
             Update available{download.remoteVersion ? ` (${download.remoteVersion})` : ''}
           </Text>
         )}
@@ -129,7 +140,10 @@ export default function DownloadsScreen() {
             <View
               style={[
                 styles.progressFill,
-                { backgroundColor: colors.downloadActive, width: `${Math.round(download.progress * 100)}%` },
+                {
+                  backgroundColor: colors.downloadActive,
+                  width: `${Math.round(download.progress * 100)}%`,
+                },
               ]}
             />
           </View>
@@ -144,11 +158,7 @@ export default function DownloadsScreen() {
 
       <View style={styles.actions}>
         {download.downloading && packTrailId ? (
-          <ActionButton
-            label="Cancel"
-            variant="danger"
-            onPress={() => cancel(packTrailId)}
-          />
+          <ActionButton label="Cancel" variant="danger" onPress={() => cancel(packTrailId)} />
         ) : (
           <ActionButton
             label={

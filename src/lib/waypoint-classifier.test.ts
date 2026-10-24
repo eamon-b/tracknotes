@@ -286,10 +286,25 @@ describe('waypoint-classifier', () => {
         expectedType: string;
         expectedCleanName: string;
       }> = [
-        { name: 'Redbank Gorge Trailhead', folder: 'Trailheads', expectedType: 'trailhead', expectedCleanName: 'Redbank Gorge Trailhead' },
+        {
+          name: 'Redbank Gorge Trailhead',
+          folder: 'Trailheads',
+          expectedType: 'trailhead',
+          expectedCleanName: 'Redbank Gorge Trailhead',
+        },
         { name: 'C: Redbank', folder: 'Campsites', expectedType: 'campsite', expectedCleanName: 'Redbank' },
-        { name: 'WT: Ellery Creek North', folder: 'Water Tanks', expectedType: 'water-tank', expectedCleanName: 'Ellery Creek North' },
-        { name: 'Telegraph Station', folder: undefined, expectedType: 'waypoint', expectedCleanName: 'Telegraph Station' },
+        {
+          name: 'WT: Ellery Creek North',
+          folder: 'Water Tanks',
+          expectedType: 'water-tank',
+          expectedCleanName: 'Ellery Creek North',
+        },
+        {
+          name: 'Telegraph Station',
+          folder: undefined,
+          expectedType: 'waypoint',
+          expectedCleanName: 'Telegraph Station',
+        },
         { name: 'Alice Springs', folder: undefined, expectedType: 'town', expectedCleanName: 'Alice Springs' },
       ];
 
@@ -301,7 +316,12 @@ describe('waypoint-classifier', () => {
         expectedCleanName: string;
       }> = [
         { name: 'Federation Hut', folder: 'Huts', expectedType: 'hut', expectedCleanName: 'Federation Hut' },
-        { name: 'Diamantina River', folder: 'Water Sources', expectedType: 'water', expectedCleanName: 'Diamantina River' },
+        {
+          name: 'Diamantina River',
+          folder: 'Water Sources',
+          expectedType: 'water',
+          expectedCleanName: 'Diamantina River',
+        },
         { name: 'Mt Hotham', folder: 'Towns', expectedType: 'town', expectedCleanName: 'Mt Hotham' },
         { name: 'Mt Hotham', folder: undefined, expectedType: 'town', expectedCleanName: 'Mt Hotham' },
       ];
@@ -313,9 +333,19 @@ describe('waypoint-classifier', () => {
         expectedType: string;
         expectedCleanName: string;
       }> = [
-        { name: 'North Laura Hotel', folder: 'Accommodation', expectedType: 'accommodation', expectedCleanName: 'North Laura Hotel' },
+        {
+          name: 'North Laura Hotel',
+          folder: 'Accommodation',
+          expectedType: 'accommodation',
+          expectedCleanName: 'North Laura Hotel',
+        },
         { name: 'Mylor Oval tank', folder: 'Water', expectedType: 'water', expectedCleanName: 'Mylor Oval tank' },
-        { name: 'Rocky Creek Hut', folder: 'Huts & Shelters', expectedType: 'hut', expectedCleanName: 'Rocky Creek Hut' },
+        {
+          name: 'Rocky Creek Hut',
+          folder: 'Huts & Shelters',
+          expectedType: 'hut',
+          expectedCleanName: 'Rocky Creek Hut',
+        },
         { name: 'Hawker', folder: 'Towns', expectedType: 'town', expectedCleanName: 'Hawker' },
         { name: 'Rest area', folder: 'Other', expectedType: 'poi', expectedCleanName: 'Rest area' },
       ];
@@ -808,9 +838,7 @@ describe('waypoint-classifier', () => {
       });
 
       it('is idempotent as a decision — same input, same answer', () => {
-        expect(inferWaypointTypeFromKeywords('Water tank')).toBe(
-          inferWaypointTypeFromKeywords('Water tank')
-        );
+        expect(inferWaypointTypeFromKeywords('Water tank')).toBe(inferWaypointTypeFromKeywords('Water tank'));
       });
     });
 

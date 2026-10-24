@@ -112,8 +112,7 @@ export class PointIndex<P extends IndexablePoint> {
     const wanted =
       area > 0
         ? Math.sqrt((area * TARGET_POINTS_PER_CELL) / points.length)
-        : Math.max(maxLat - minLat, maxLon - minLon, 0) /
-          Math.max(1, points.length / TARGET_POINTS_PER_CELL);
+        : Math.max(maxLat - minLat, maxLon - minLon, 0) / Math.max(1, points.length / TARGET_POINTS_PER_CELL);
     this.cellSize = Math.max(wanted, MIN_CELL_SIZE_DEGREES);
 
     this.cols = Math.floor((maxLon - minLon) / this.cellSize) + 1;
@@ -174,7 +173,7 @@ export class PointIndex<P extends IndexablePoint> {
         const onRowEdge = ring === 0 || row === rowLo || row === rowHi;
         const cols = onRowEdge
           ? range(Math.max(0, colLo), Math.min(this.cols - 1, colHi))
-          : [colLo, colHi].filter((col) => col >= 0 && col < this.cols);
+          : [colLo, colHi].filter(col => col >= 0 && col < this.cols);
 
         for (const col of cols) {
           const bucket = this.cells.get(this.key(col, row));
@@ -221,7 +220,7 @@ export class PointIndex<P extends IndexablePoint> {
 /** Build a {@link PointIndex}; the function form reads better at call sites. */
 export function buildPointIndex<P extends IndexablePoint>(
   points: readonly P[],
-  options?: PointIndexOptions,
+  options?: PointIndexOptions
 ): PointIndex<P> {
   return new PointIndex(points, options);
 }

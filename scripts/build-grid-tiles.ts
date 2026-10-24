@@ -60,12 +60,7 @@ const GRID_OUTPUT_DIR = path.join(PROJECT_ROOT, 'public/data/tiles/grid');
  * Generate a GeoJSON polygon for a grid cell, optionally with a buffer.
  * The buffer is applied in projected MGA coordinates for accuracy.
  */
-function generateCellPolygon(
-  cell: CellDef,
-  outputPath: string,
-  bufferMeters: number,
-  verbose: boolean
-): void {
+function generateCellPolygon(cell: CellDef, outputPath: string, bufferMeters: number, verbose: boolean): void {
   // Write a simple GeoJSON rectangle. Coordinates are WGS84 (lon/lat).
   // Note: south latitudes are negative in GeoJSON.
   const west = cell.west;
@@ -80,52 +75,65 @@ function generateCellPolygon(
     const geojson = {
       type: 'FeatureCollection',
       name: layerName,
-      features: [{
-        type: 'Feature',
-        properties: {},
-        geometry: {
-          type: 'Polygon',
-          coordinates: [[
-            [west, south],
-            [east, south],
-            [east, north],
-            [west, north],
-            [west, south],
-          ]],
+      features: [
+        {
+          type: 'Feature',
+          properties: {},
+          geometry: {
+            type: 'Polygon',
+            coordinates: [
+              [
+                [west, south],
+                [east, south],
+                [east, north],
+                [west, north],
+                [west, south],
+              ],
+            ],
+          },
         },
-      }],
+      ],
     };
     fs.writeFileSync(unbufferedPath, JSON.stringify(geojson));
 
     // Buffer in projected CRS, transform back to WGS84
-    run([
-      'ogr2ogr',
-      '-f', 'GeoJSON',
-      `"${outputPath}"`,
-      `"${unbufferedPath}"`,
-      '-dialect', 'sqlite',
-      '-sql',
-      `"SELECT ST_Transform(ST_Buffer(ST_Transform(geometry, ${cell.epsg}), ${bufferMeters}), 4326) AS geometry FROM ${layerName}"`,
-    ].join(' '), { verbose });
+    run(
+      [
+        'ogr2ogr',
+        '-f',
+        'GeoJSON',
+        `"${outputPath}"`,
+        `"${unbufferedPath}"`,
+        '-dialect',
+        'sqlite',
+        '-sql',
+        `"SELECT ST_Transform(ST_Buffer(ST_Transform(geometry, ${cell.epsg}), ${bufferMeters}), 4326) AS geometry FROM ${layerName}"`,
+      ].join(' '),
+      { verbose }
+    );
 
     if (fs.existsSync(unbufferedPath)) fs.unlinkSync(unbufferedPath);
   } else {
     const geojson = {
       type: 'FeatureCollection',
-      features: [{
-        type: 'Feature',
-        properties: {},
-        geometry: {
-          type: 'Polygon',
-          coordinates: [[
-            [west, south],
-            [east, south],
-            [east, north],
-            [west, north],
-            [west, south],
-          ]],
+      features: [
+        {
+          type: 'Feature',
+          properties: {},
+          geometry: {
+            type: 'Polygon',
+            coordinates: [
+              [
+                [west, south],
+                [east, south],
+                [east, north],
+                [west, north],
+                [west, south],
+              ],
+            ],
+          },
         },
-      }],
+      ],
     };
     fs.writeFileSync(outputPath, JSON.stringify(geojson));
   }
@@ -134,16 +142,16 @@ function generateCellPolygon(
 // --- CLI argument parsing ---
 
 interface CliArgs {
-  cell: string | null;          // --cell E114_S34
+  cell: string | null; // --cell E114_S34
   lonRange: [number, number] | null; // --lon-range 112,126
   latRange: [number, number] | null; // --lat-range 30,38
-  skipExisting: boolean;        // --skip-existing
-  skipBase: boolean;            // --skip-base
-  skipContours: boolean;        // --skip-contours
-  parallel: number;             // --parallel N
-  protomapsUrl: string | null;  // --protomaps-url <url>
+  skipExisting: boolean; // --skip-existing
+  skipBase: boolean; // --skip-base
+  skipContours: boolean; // --skip-contours
+  parallel: number; // --parallel N
+  protomapsUrl: string | null; // --protomaps-url <url>
   protomapsFile: string | null; // --protomaps-file <path>
-  verbose: boolean;             // --verbose
+  verbose: boolean; // --verbose
 }
 
 function parseArgs(): CliArgs {
@@ -208,10 +216,7 @@ function parseArgs(): CliArgs {
 
 // --- Per-cell pipeline ---
 
-function processCell(
-  cell: CellDef,
-  args: CliArgs
-): { success: boolean; error?: string; skipped?: boolean } {
+function processCell(cell: CellDef, args: CliArgs): { success: boolean; error?: string; skipped?: boolean } {
   const cellId = cell.id;
 
   console.log(`\nProcessing cell: ${cellId}`);
@@ -290,9 +295,8 @@ function processCell(
 
     // Step 5: Base map tiles
     if (!args.skipBase) {
-      const protomapsSource = args.protomapsUrl
-        || args.protomapsFile
-        || path.join(PROJECT_ROOT, 'data/protomaps/planet.pmtiles');
+      const protomapsSource =
+        args.protomapsUrl || args.protomapsFile || path.join(PROJECT_ROOT, 'data/protomaps/planet.pmtiles');
 
       if (!args.protomapsUrl && !fs.existsSync(protomapsSource)) {
         throw new Error(`Protomaps source not found: ${protomapsSource}`);
@@ -310,7 +314,7 @@ function processCell(
     // Write manifest
     const bounds = {
       west: cell.west,
-      south: -cell.north,  // negative latitude
+      south: -cell.north, // negative latitude
       east: cell.east,
       north: -cell.south,
     };
@@ -344,7 +348,8 @@ function generateGridIndex(): void {
     return;
   }
 
-  const entries = fs.readdirSync(GRID_OUTPUT_DIR)
+  const entries = fs
+    .readdirSync(GRID_OUTPUT_DIR)
     .filter(name => {
       const fullPath = path.join(GRID_OUTPUT_DIR, name);
       return fs.statSync(fullPath).isDirectory() && parseCellId(name) !== null;
@@ -362,9 +367,9 @@ function generateGridIndex(): void {
       id: name,
       bounds: [
         parsed.lon,
-        -(parsed.lat + CELL_SIZE_DEG),  // south (negative)
+        -(parsed.lat + CELL_SIZE_DEG), // south (negative)
         parsed.lon + CELL_SIZE_DEG,
-        -parsed.lat,                     // north (negative)
+        -parsed.lat, // north (negative)
       ],
       totalSize: manifest.totalSize,
     });
@@ -417,22 +422,27 @@ async function processInParallel(
   while (queue.length > 0) {
     const batch = queue.splice(0, maxParallel);
     const promises = batch.map(cell => {
-      return new Promise<{ cellId: string; success: boolean; error?: string }>((resolve) => {
+      return new Promise<{ cellId: string; success: boolean; error?: string }>(resolve => {
         const childArgs = ['tsx', scriptPath, '--cell', cell.id, ...baseArgs];
-        execFile('npx', childArgs, {
-          cwd: PROJECT_ROOT,
-          maxBuffer: 50 * 1024 * 1024,
-        }, (error, stdout, stderr) => {
-          if (args.verbose) {
-            if (stdout) process.stdout.write(stdout);
-            if (stderr) process.stderr.write(stderr);
+        execFile(
+          'npx',
+          childArgs,
+          {
+            cwd: PROJECT_ROOT,
+            maxBuffer: 50 * 1024 * 1024,
+          },
+          (error, stdout, stderr) => {
+            if (args.verbose) {
+              if (stdout) process.stdout.write(stdout);
+              if (stderr) process.stderr.write(stderr);
+            }
+            if (error) {
+              resolve({ cellId: cell.id, success: false, error: error.message });
+            } else {
+              resolve({ cellId: cell.id, success: true });
+            }
           }
-          if (error) {
-            resolve({ cellId: cell.id, success: false, error: error.message });
-          } else {
-            resolve({ cellId: cell.id, success: true });
-          }
-        });
+        );
       });
     });
 
@@ -471,14 +481,16 @@ async function main(): Promise<void> {
       process.exit(1);
     }
     const lonCenter = parsed.lon + CELL_SIZE_DEG / 2;
-    cells = [{
-      id: args.cell,
-      west: parsed.lon,
-      south: parsed.lat,
-      east: parsed.lon + CELL_SIZE_DEG,
-      north: parsed.lat + CELL_SIZE_DEG,
-      epsg: mgaEpsgForLon(lonCenter),
-    }];
+    cells = [
+      {
+        id: args.cell,
+        west: parsed.lon,
+        south: parsed.lat,
+        east: parsed.lon + CELL_SIZE_DEG,
+        north: parsed.lat + CELL_SIZE_DEG,
+        epsg: mgaEpsgForLon(lonCenter),
+      },
+    ];
   } else {
     // Enumerate cells with optional range filters
     cells = enumerateCells({
@@ -537,7 +549,7 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((error) => {
+main().catch(error => {
   console.error('Fatal error:', error);
   process.exit(1);
 });

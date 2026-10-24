@@ -52,9 +52,7 @@ describe('waypoint-meta-repo', () => {
     expect(await metaRepo.getDescription(d, 'aawt', 'w_1')).toBeNull();
     expect((await metaRepo.getDescriptions(d, 'aawt')).size).toBe(0);
     // The row itself survives, so a later re-fill upserts onto the same key.
-    const row = await d.getFirstAsync<{ n: number }>(
-      'SELECT COUNT(*) AS n FROM waypoint_meta',
-    );
+    const row = await d.getFirstAsync<{ n: number }>('SELECT COUNT(*) AS n FROM waypoint_meta');
     expect(row?.n).toBe(1);
   });
 

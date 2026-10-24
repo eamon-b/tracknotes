@@ -60,12 +60,11 @@ async function flush(times = 40): Promise<void> {
   }
 }
 
-const badgeIn = (row: HTMLElement): HTMLElement =>
-  row.querySelector<HTMLElement>('.waypoint-type')!;
+const badgeIn = (row: HTMLElement): HTMLElement => row.querySelector<HTMLElement>('.waypoint-type')!;
 
 const rowNames = (): string[] =>
   [...$('waypoints-container').querySelectorAll('tbody tr')].map(tr =>
-    (tr.textContent ?? '').replace(/\s+/g, ' ').trim(),
+    (tr.textContent ?? '').replace(/\s+/g, ' ').trim()
   );
 
 function clickFilter(which: 'all' | 'water' | 'resupply'): void {
@@ -169,24 +168,18 @@ function makeTrail(): ProcessedTrail {
 
 function loadMarkup(): void {
   const html = fs.readFileSync(path.join(ROOT, 'src/web/my-trail.html'), 'utf8');
-  document.documentElement.innerHTML = html
-    .replace(/<!DOCTYPE html>/i, '')
-    .replace(/<\/?html[^>]*>/gi, '');
+  document.documentElement.innerHTML = html.replace(/<!DOCTYPE html>/i, '').replace(/<\/?html[^>]*>/gi, '');
 }
 
 /** Boot the shared viewer with an explicit (or absent) edit callback. */
 async function boot(
   onWaypointTypeChange?: (waypointId: string, nextType: string) => Promise<void> | void,
-  trail: ProcessedTrail = makeTrail(),
+  trail: ProcessedTrail = makeTrail()
 ): Promise<void> {
   loadMarkup();
   vi.resetModules();
   const { initTrailViewer } = await import('./trails/trail-viewer');
-  await initTrailViewer(
-    'u_test',
-    trail as never,
-    onWaypointTypeChange ? { onWaypointTypeChange } : undefined,
-  );
+  await initTrailViewer('u_test', trail as never, onWaypointTypeChange ? { onWaypointTypeChange } : undefined);
 }
 
 /** Seed IndexedDB and boot the real page, wiring included. */
@@ -331,9 +324,7 @@ describe('changing a category', () => {
     expect(badgeIn(row).title).toBe('water');
     // The panel stays open, so the user keeps their place.
     expect(document.getElementById('waypoint-detail-2')).not.toBeNull();
-    expect(document.querySelector('.waypoint-type-edit-status')?.textContent).toBe(
-      'Saved as Water source',
-    );
+    expect(document.querySelector('.waypoint-type-edit-status')?.textContent).toBe('Saved as Water source');
 
     // And the water filter now counts it.
     clickFilter('water');
@@ -491,9 +482,7 @@ describe('a correction on the real my-trail page', () => {
 
     const select = requireSelect();
     expect(select.value).toBe('mountain');
-    expect(document.querySelector('.waypoint-type-edit-status')?.textContent).toMatch(
-      /Not saved:.*no longer/,
-    );
+    expect(document.querySelector('.waypoint-type-edit-status')?.textContent).toMatch(/Not saved:.*no longer/);
     expect(badgeIn($('waypoint-row-2')).textContent).toBe('Mountain');
   });
 });

@@ -22,13 +22,7 @@ import { categoryToken, type WaypointColorToken } from '../elevation/waypoint-ca
  * and the resupply stops the hiker ticked on the Plan screen).
  */
 export type WaypointFamily =
-  | 'all'
-  | 'favorites'
-  | 'planned'
-  | 'water'
-  | 'camp'
-  | 'town'
-  | 'shelter';
+  'all' | 'favorites' | 'planned' | 'water' | 'camp' | 'town' | 'shelter';
 
 /**
  * The chips, in display order. 'Planned' only renders once a resupply plan

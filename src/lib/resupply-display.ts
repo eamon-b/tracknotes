@@ -18,7 +18,24 @@ import type { LegRide, ResupplyLeg, ResupplyOption, ResupplySummary, StopAccess 
  * itself; these are the multi-letter ones a trail description uses.
  */
 const NON_TERMINAL_ABBREVIATIONS = new Set([
-  'mt', 'mtn', 'st', 'hwy', 'rd', 'jct', 'approx', 'alt', 'elev', 'ft', 'km', 'mi', 'no', 'vs', 'etc', 'inc', 'co', 'ltd',
+  'mt',
+  'mtn',
+  'st',
+  'hwy',
+  'rd',
+  'jct',
+  'approx',
+  'alt',
+  'elev',
+  'ft',
+  'km',
+  'mi',
+  'no',
+  'vs',
+  'etc',
+  'inc',
+  'co',
+  'ltd',
 ]);
 
 /**
@@ -32,7 +49,10 @@ const NON_TERMINAL_ABBREVIATIONS = new Set([
  * "Mt. Sonder"), which would otherwise cut the sentence to "Store beside U.S."
  */
 export function firstSentence(text: string): string {
-  const segments = text.split('|').map(part => part.trim()).filter(part => part !== '');
+  const segments = text
+    .split('|')
+    .map(part => part.trim())
+    .filter(part => part !== '');
   const prose = segments.length > 0 ? segments[segments.length - 1] : '';
 
   const terminator = /[.!?](?=\s|$)/g;
@@ -95,12 +115,16 @@ export function resupplySummaryText(
 ): string {
   const days = `${summary.longestDays} day${summary.longestDays === 1 ? '' : 's'}`;
   if (summary.stops === 0) {
-    return `No resupply stops · full carry ${formatKm(summary.longestKm)} / ${days} · ` +
-      `${formatFoodKg(summary.totalFoodKg)} food`;
+    return (
+      `No resupply stops · full carry ${formatKm(summary.longestKm)} / ${days} · ` +
+      `${formatFoodKg(summary.totalFoodKg)} food`
+    );
   }
   const stops = `${summary.stops} stop${summary.stops === 1 ? '' : 's'}`;
-  return `${stops} · longest carry ${formatKm(summary.longestKm)} / ${days} · ` +
-    `${formatFoodKg(summary.totalFoodKg)} food in total`;
+  return (
+    `${stops} · longest carry ${formatKm(summary.longestKm)} / ${days} · ` +
+    `${formatFoodKg(summary.totalFoodKg)} food in total`
+  );
 }
 
 /**
@@ -120,12 +144,11 @@ export function legDistanceText(
  * The off-trail km a leg covers without walking, which its days and food leave
  * out: "35.0 km hitch in · 24.1 km hitch out, not walked". Empty when there are none.
  */
-export function legRidesText(
-  leg: Pick<ResupplyLeg, 'rides'>,
-  formatKm: (km: number) => string
-): string {
+export function legRidesText(leg: Pick<ResupplyLeg, 'rides'>, formatKm: (km: number) => string): string {
   if (leg.rides.length === 0) return '';
-  const parts = leg.rides.map(ride => `${formatKm(ride.km)} ${rideWord(ride.mode)} ${ride.end === 'to' ? 'in' : 'out'}`);
+  const parts = leg.rides.map(
+    ride => `${formatKm(ride.km)} ${rideWord(ride.mode)} ${ride.end === 'to' ? 'in' : 'out'}`
+  );
   return `${parts.join(' · ')}, not walked`;
 }
 
@@ -134,10 +157,7 @@ export function legRidesText(
  * measures to the turn-off ("12.3 km + 2.0 km off trail"): the walk in, or the
  * ride in. Empty for a stop on the route.
  */
-export function stopAccessText(
-  access: StopAccess | undefined,
-  formatKm: (km: number) => string
-): string {
+export function stopAccessText(access: StopAccess | undefined, formatKm: (km: number) => string): string {
   if (!access) return '';
   if (access.walkKm > 0) return `+ ${formatKm(access.walkKm)} off trail`;
   if (access.rideKm > 0) return `+ ${formatKm(access.rideKm)} ${rideWord(access.rideMode)}`;

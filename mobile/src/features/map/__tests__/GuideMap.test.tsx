@@ -53,13 +53,13 @@ jest.mock('@maplibre/maplibre-react-native', () => {
     return React.createElement('Layer', props);
   };
   return {
-  __esModule: true,
-  Map: MockMap,
-  Camera: 'Camera',
-  GeoJSONSource: MockGeoJSONSource,
-  Layer: MockLayer,
-  Images: 'Images',
-  LogManager: { onLog: jest.fn() },
+    __esModule: true,
+    Map: MockMap,
+    Camera: 'Camera',
+    GeoJSONSource: MockGeoJSONSource,
+    Layer: MockLayer,
+    Images: 'Images',
+    LogManager: { onLog: jest.fn() },
   };
 });
 
@@ -139,7 +139,10 @@ const pois = [
 ];
 
 /** Flush the style-resolution promise chain and re-render. */
-const flush = () => act(async () => { await new Promise((r) => setImmediate(r)); });
+const flush = () =>
+  act(async () => {
+    await new Promise((r) => setImmediate(r));
+  });
 
 const mapViews = (tree: ReactTestRenderer) => tree.root.findAll((n) => nodeType(n) === 'Map');
 
@@ -174,7 +177,9 @@ describe('planned stops', () => {
     expect(ring).toBeTruthy();
     // Hollow: only the stroke is drawn, so the badge under it is untouched.
     expect((ring.props.style as { circleOpacity: number }).circleOpacity).toBe(0);
-    expect((ring.props.style as { circleStrokeWidth: number }).circleStrokeWidth).toBeGreaterThan(0);
+    expect((ring.props.style as { circleStrokeWidth: number }).circleStrokeWidth).toBeGreaterThan(
+      0,
+    );
 
     // Drawn BEFORE the badge circles, so the ring sits beneath the marker.
     const circleIds = layersOfType(tree, 'circle').map((n) => n.props.id as string);
@@ -272,7 +277,12 @@ describe('GuideMap', () => {
     let tree!: ReactTestRenderer;
     act(() => {
       tree = TestRenderer.create(
-        <GuideMap trailId="heysen" styleSource="online" displayPoints={points} waypoints={waypoints} />,
+        <GuideMap
+          trailId="heysen"
+          styleSource="online"
+          displayPoints={points}
+          waypoints={waypoints}
+        />,
       );
     });
     // Style not resolved yet: no map mounted.
@@ -290,7 +300,12 @@ describe('GuideMap', () => {
     let tree!: ReactTestRenderer;
     act(() => {
       tree = TestRenderer.create(
-        <GuideMap trailId="heysen" styleSource="offline" displayPoints={points} waypoints={waypoints} />,
+        <GuideMap
+          trailId="heysen"
+          styleSource="offline"
+          displayPoints={points}
+          waypoints={waypoints}
+        />,
       );
     });
     await flush();
@@ -351,7 +366,9 @@ describe('GuideMap', () => {
     // rather than a context, so a prop change is also what lets the re-render
     // through — in the app a context update re-renders a memo'd consumer.)
     act(() => {
-      tree.update(<GuideMap trailId="heysen" styleSource="online" displayPoints={points} waypoints={[]} />);
+      tree.update(
+        <GuideMap trailId="heysen" styleSource="online" displayPoints={points} waypoints={[]} />,
+      );
     });
     await flush();
     expect(getOnline).toHaveBeenCalledTimes(1);
@@ -359,7 +376,12 @@ describe('GuideMap', () => {
     mockIsDark = true;
     const DARK_STYLE = { version: 8, sources: {}, layers: [], name: 'dark' };
     let resolveDark!: (style: object) => void;
-    getOnline.mockImplementationOnce(() => new Promise((r) => { resolveDark = r; }));
+    getOnline.mockImplementationOnce(
+      () =>
+        new Promise((r) => {
+          resolveDark = r;
+        }),
+    );
     const rendersBeforeFlip = mockMapRenders.length;
     act(() => {
       tree.update(<GuideMap trailId="heysen" styleSource="online" displayPoints={points} />);
@@ -375,7 +397,9 @@ describe('GuideMap', () => {
     // batch never shows in the committed tree, but it does render.
     expect(mockMapRenders.slice(rendersBeforeFlip)).toEqual([]);
 
-    await act(async () => { resolveDark(DARK_STYLE); });
+    await act(async () => {
+      resolveDark(DARK_STYLE);
+    });
     await flush();
     expect(mapViews(tree)).toHaveLength(1);
     expect(mapViews(tree)[0].props.mapStyle).toBe(DARK_STYLE);
@@ -505,7 +529,12 @@ describe('GuideMap', () => {
     let tree!: ReactTestRenderer;
     act(() => {
       tree = TestRenderer.create(
-        <GuideMap trailId="heysen" styleSource="online" displayPoints={points} waypoints={waypoints} />,
+        <GuideMap
+          trailId="heysen"
+          styleSource="online"
+          displayPoints={points}
+          waypoints={waypoints}
+        />,
       );
     });
     await flush();
@@ -572,7 +601,12 @@ describe('GuideMap', () => {
     let tree!: ReactTestRenderer;
     act(() => {
       tree = TestRenderer.create(
-        <GuideMap trailId="heysen" styleSource="online" displayPoints={points} waypoints={waypoints} />,
+        <GuideMap
+          trailId="heysen"
+          styleSource="online"
+          displayPoints={points}
+          waypoints={waypoints}
+        />,
       );
     });
     await flush();
@@ -590,7 +624,12 @@ describe('GuideMap', () => {
     let tree!: ReactTestRenderer;
     act(() => {
       tree = TestRenderer.create(
-        <GuideMap trailId="heysen" styleSource="online" displayPoints={points} waypoints={waypoints} />,
+        <GuideMap
+          trailId="heysen"
+          styleSource="online"
+          displayPoints={points}
+          waypoints={waypoints}
+        />,
       );
     });
     await flush();
@@ -870,7 +909,12 @@ describe('GuideMap', () => {
     });
     await flush();
 
-    for (const sourceId of ['guide-alternates', 'guide-side-trips', 'guide-pois', 'guide-waypoints']) {
+    for (const sourceId of [
+      'guide-alternates',
+      'guide-side-trips',
+      'guide-pois',
+      'guide-waypoints',
+    ]) {
       expect(sourceById(tree, sourceId).props.onPress).toBeUndefined();
     }
 
@@ -978,7 +1022,13 @@ describe('GuideMap', () => {
       features: [
         {
           type: 'Feature',
-          geometry: { type: 'LineString', coordinates: [[138, -35], [139, -34]] },
+          geometry: {
+            type: 'LineString',
+            coordinates: [
+              [138, -35],
+              [139, -34],
+            ],
+          },
           properties: { straight: false },
         },
       ],
@@ -1090,20 +1140,31 @@ describe('GuideMap', () => {
     });
     await flush();
 
-    const poi = nodeById(tree, 'circle', 'guide-pois-circles').props.style as Record<string, unknown>;
+    const poi = nodeById(tree, 'circle', 'guide-pois-circles').props.style as Record<
+      string,
+      unknown
+    >;
     expect(poi.circleRadius).toBe(7);
     expect(poi.circleStrokeWidth).toBe(1.5);
     expect(poi.circleStrokeColor).toEqual(['get', 'color']);
     expect(poi.circleColor).toBe(mapInk('light').badge);
 
-    const icon = nodeById(tree, 'symbol', 'guide-pois-icons').props.style as Record<string, unknown>;
+    const icon = nodeById(tree, 'symbol', 'guide-pois-icons').props.style as Record<
+      string,
+      unknown
+    >;
     expect(icon.iconImage).toEqual(['get', 'icon']);
-    const waypointIcon = nodeById(tree, 'symbol', 'guide-waypoints-icons').props
-      .style as Record<string, unknown>;
+    const waypointIcon = nodeById(tree, 'symbol', 'guide-waypoints-icons').props.style as Record<
+      string,
+      unknown
+    >;
     expect(icon.iconSize as number).toBeLessThan(waypointIcon.iconSize as number);
 
     // Labels give way rather than compete: droppable, and placed last.
-    const label = nodeById(tree, 'symbol', 'guide-pois-labels').props.style as Record<string, unknown>;
+    const label = nodeById(tree, 'symbol', 'guide-pois-labels').props.style as Record<
+      string,
+      unknown
+    >;
     expect(label.textOptional).toBe(true);
     expect(label.symbolSortKey as number).toBeGreaterThan(0);
   });
@@ -1145,7 +1206,12 @@ describe('GuideMap', () => {
     let tree!: ReactTestRenderer;
     act(() => {
       tree = TestRenderer.create(
-        <GuideMap trailId="heysen" styleSource="online" displayPoints={points} waypoints={waypoints} />,
+        <GuideMap
+          trailId="heysen"
+          styleSource="online"
+          displayPoints={points}
+          waypoints={waypoints}
+        />,
       );
     });
     await flush();
@@ -1175,7 +1241,12 @@ describe('GuideMap', () => {
     let tree!: ReactTestRenderer;
     act(() => {
       tree = TestRenderer.create(
-        <GuideMap trailId="heysen" styleSource="online" displayPoints={points} waypoints={waypoints} />,
+        <GuideMap
+          trailId="heysen"
+          styleSource="online"
+          displayPoints={points}
+          waypoints={waypoints}
+        />,
       );
     });
     await flush();
@@ -1186,7 +1257,13 @@ describe('GuideMap', () => {
       features: [
         {
           type: 'Feature',
-          geometry: { type: 'LineString', coordinates: [[138, -35], [139, -34]] },
+          geometry: {
+            type: 'LineString',
+            coordinates: [
+              [138, -35],
+              [139, -34],
+            ],
+          },
           properties: { straight: false },
         },
       ],

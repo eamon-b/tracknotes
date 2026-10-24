@@ -55,9 +55,7 @@ function findPackageDir(): string {
   try {
     return path.dirname(require.resolve('te-araroa-data/package.json'));
   } catch {
-    throw new Error(
-      'te-araroa-data is not installed. Run `npm install` first.'
-    );
+    throw new Error('te-araroa-data is not installed. Run `npm install` first.');
   }
 }
 
@@ -78,18 +76,14 @@ function main(): void {
   fs.copyFileSync(source, destination);
 
   const bytes = fs.statSync(destination).size;
-  console.log(
-    `Synced ${ROUTE_FILE} → data/trails/te_araroa/ (${(bytes / 1024 / 1024).toFixed(1)} MB)`
-  );
+  console.log(`Synced ${ROUTE_FILE} → data/trails/te_araroa/ (${(bytes / 1024 / 1024).toFixed(1)} MB)`);
 
   // Say which build this is, so a stale node_modules is visible in the log
   // rather than only in the trail page's numbers.
   const metaPath = path.join(outDir, META_FILE);
   if (fs.existsSync(metaPath)) {
     const meta = JSON.parse(fs.readFileSync(metaPath, 'utf-8')) as TeAraroaMeta;
-    console.log(
-      `  Te Araroa ${meta.season ?? '?'} (${meta.version ?? '?'}), built ${meta.generatedAt ?? '?'}`
-    );
+    console.log(`  Te Araroa ${meta.season ?? '?'} (${meta.version ?? '?'}), built ${meta.generatedAt ?? '?'}`);
     if (meta.walkedLengthKm !== undefined) {
       console.log(
         `  ${meta.walkedLengthKm.toFixed(1)} km walkable over ` +

@@ -47,7 +47,13 @@ function trail(): TrailJson {
       { id: 'c2', name: 'Camp B', lat: 0, lon: 0, type: 'campsite', totalDistance: 60 },
       { id: 'c3', name: 'Camp C', lat: 0, lon: 0, type: 'campsite', totalDistance: 80 },
     ],
-    track: { points, displayPoints: points, totalDistance: 100, totalAscent: 500, totalDescent: 500 },
+    track: {
+      points,
+      displayPoints: points,
+      totalDistance: 100,
+      totalAscent: 500,
+      totalDescent: 500,
+    },
   };
 }
 
@@ -114,7 +120,10 @@ describe('todayRows', () => {
     const t = trail();
     // The creek sits ~1.1 km north of the line; the camps are on it.
     t.waypoints[1] = { ...t.waypoints[1], lat: 0.01, lon: 0.03 };
-    const today = todayPlan(planGlance(t, plan(t, ['c1', 'c2', 'c3'], '2026-10-10'), OPTS), '2026-10-11');
+    const today = todayPlan(
+      planGlance(t, plan(t, ['c1', 'c2', 'c3'], '2026-10-10'), OPTS),
+      '2026-10-11',
+    );
     const rows = todayRows(t, today!.day);
     const creek = rows.find((r) => r.name === 'Creek')!;
     expect(creek.offTrailM).toBeGreaterThan(1000);
@@ -124,7 +133,10 @@ describe('todayRows', () => {
 
   it('lists the day from camp to camp with each leg', () => {
     const t = trail();
-    const today = todayPlan(planGlance(t, plan(t, ['c1', 'c2', 'c3'], '2026-10-10'), OPTS), '2026-10-11');
+    const today = todayPlan(
+      planGlance(t, plan(t, ['c1', 'c2', 'c3'], '2026-10-10'), OPTS),
+      '2026-10-11',
+    );
     const rows = todayRows(t, today!.day);
     expect(rows.map((r) => [r.role, r.name, r.fromStartKm, r.legKm])).toEqual([
       ['start', 'Camp A', 0, 0],
@@ -134,16 +146,29 @@ describe('todayRows', () => {
     ]);
     expect(rows[1]).toMatchObject({ legAscentM: 100, legDescentM: 0 });
     expect(rows[2]).toMatchObject({ legAscentM: 200, legDescentM: 50 });
-    expect(rows[3]).toMatchObject({ legAscentM: 0, legDescentM: 50, totalAscentM: 300, totalDescentM: 100 });
+    expect(rows[3]).toMatchObject({
+      legAscentM: 0,
+      legDescentM: 50,
+      totalAscentM: 300,
+      totalDescentM: 100,
+    });
     expect(rows[3].waypoint?.id).toBe('c2');
   });
 
   it("walks out of last night's off-route stop and in to tonight's", () => {
     const t = trail();
-    const walk = { offTrailKm: 2, accessMode: 'foot' as const, offTrailAscentM: 30, offTrailDescentM: 10 };
+    const walk = {
+      offTrailKm: 2,
+      accessMode: 'foot' as const,
+      offTrailAscentM: 30,
+      offTrailDescentM: 10,
+    };
     t.waypoints[0] = { ...t.waypoints[0], ...walk };
     t.waypoints[3] = { ...t.waypoints[3], ...walk };
-    const today = todayPlan(planGlance(t, plan(t, ['c1', 'c2', 'c3'], '2026-10-10'), OPTS), '2026-10-11');
+    const today = todayPlan(
+      planGlance(t, plan(t, ['c1', 'c2', 'c3'], '2026-10-10'), OPTS),
+      '2026-10-11',
+    );
     const rows = todayRows(t, today!.day);
     expect(rows.map((r) => [r.name, r.fromStartKm, r.legKm])).toEqual([
       ['Camp A', 0, 0],
@@ -187,9 +212,19 @@ function poi(id: number, km: number, over: Partial<TrailPOI> = {}): TrailPOI {
 describe('the POIs along today', () => {
   const t: TrailJson = {
     ...trail(),
-    pois: [poi(1, 10), poi(2, 25), poi(3, 30), poi(4, 59.9), poi(5, 75), poi(6, 45, { duplicateOf: 'x' })],
+    pois: [
+      poi(1, 10),
+      poi(2, 25),
+      poi(3, 30),
+      poi(4, 59.9),
+      poi(5, 75),
+      poi(6, 45, { duplicateOf: 'x' }),
+    ],
   };
-  const today = todayPlan(planGlance(t, plan(t, ['c1', 'c2', 'c3'], '2026-10-10'), OPTS), '2026-10-11')!;
+  const today = todayPlan(
+    planGlance(t, plan(t, ['c1', 'c2', 'c3'], '2026-10-10'), OPTS),
+    '2026-10-11',
+  )!;
 
   it('takes the day start to tonight, nothing either side', () => {
     expect(today.day).toMatchObject({ startKm: 20, endKm: 60 });
@@ -202,7 +237,11 @@ describe('the POIs along today', () => {
 
   it('places each POI among the rows at its km, after a waypoint at the same km', () => {
     const rows = todayRows(t, today.day);
-    const entries = todayEntries(rows, todayPois(t, today.day).filter((p) => !p.duplicateOf), today.day);
+    const entries = todayEntries(
+      rows,
+      todayPois(t, today.day).filter((p) => !p.duplicateOf),
+      today.day,
+    );
     expect(entries.map((e) => (e.kind === 'row' ? e.row.name : `poi ${e.poi.id}`))).toEqual([
       'Camp A',
       'poi 2',

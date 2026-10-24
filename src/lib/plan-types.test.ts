@@ -1,10 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  DEFAULT_PLAN_THRESHOLDS,
-  PLAN_THRESHOLD_BOUNDS,
-  clampPlanThreshold,
-  usablePlanThreshold,
-} from './plan-types';
+import { DEFAULT_PLAN_THRESHOLDS, PLAN_THRESHOLD_BOUNDS, clampPlanThreshold, usablePlanThreshold } from './plan-types';
 
 describe('planning thresholds', () => {
   it('start each input inside its own range', () => {

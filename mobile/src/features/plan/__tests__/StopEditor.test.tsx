@@ -43,10 +43,7 @@ function stop(overrides: Partial<PlanStop> = {}): PlanStop {
   return { waypointId: 'w_camp', km: 12.5, name: 'Standley Chasm', nights: 1, ...overrides };
 }
 
-function render(
-  planStop: PlanStop,
-  props: ReturnType<typeof handlers>,
-): ReactTestRenderer {
+function render(planStop: PlanStop, props: ReturnType<typeof handlers>): ReactTestRenderer {
   let tree!: ReactTestRenderer;
   act(() => {
     tree = TestRenderer.create(<StopEditor stop={planStop} {...props} />);
@@ -70,8 +67,12 @@ describe('StopEditor', () => {
 
   it('explains what a second night means', () => {
     expect(allText(render(stop(), handlers()))).not.toContain('rest day');
-    expect(allText(render(stop({ nights: 2 }), handlers()))).toContain('2 nights = 1 rest day here');
-    expect(allText(render(stop({ nights: 4 }), handlers()))).toContain('4 nights = 3 rest days here');
+    expect(allText(render(stop({ nights: 2 }), handlers()))).toContain(
+      '2 nights = 1 rest day here',
+    );
+    expect(allText(render(stop({ nights: 4 }), handlers()))).toContain(
+      '4 nights = 3 rest days here',
+    );
   });
 
   it('commits the note on blur, not on every keystroke', () => {

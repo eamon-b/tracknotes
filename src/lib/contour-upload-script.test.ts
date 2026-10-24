@@ -1,12 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import {
-  chmodSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'fs';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
 import { spawnSync } from 'child_process';
@@ -31,7 +24,7 @@ describe('Australia contour upload contract', () => {
     // Small but structurally valid PMTiles v3 header for script-level tests.
     writeFileSync(
       join(tilesDir, 'australia-contours.pmtiles'),
-      Buffer.concat([Buffer.from('PMTiles'), Buffer.from([3]), Buffer.from('fixture')]),
+      Buffer.concat([Buffer.from('PMTiles'), Buffer.from([3]), Buffer.from('fixture')])
     );
     writeExecutable('curl', '#!/bin/sh\nprintf \'{"ok":true}\'\n');
   });
@@ -62,31 +55,20 @@ describe('Australia contour upload contract', () => {
   }
 
   it('keeps the build filename and Worker R2 key aligned', () => {
-    const buildSource = readFileSync(
-      resolve(PROJECT_ROOT, 'scripts/build-contours-australia.ts'),
-      'utf8',
-    );
-    const workerSource = readFileSync(
-      resolve(PROJECT_ROOT, 'workers/contour-tiles/src/index.ts'),
-      'utf8',
-    );
+    const buildSource = readFileSync(resolve(PROJECT_ROOT, 'scripts/build-contours-australia.ts'), 'utf8');
+    const workerSource = readFileSync(resolve(PROJECT_ROOT, 'workers/contour-tiles/src/index.ts'), 'utf8');
 
     expect(buildSource).toContain("const OUTPUT_FILENAME = 'australia-contours.pmtiles'");
     expect(workerSource).toContain("contours: 'contours/australia.pmtiles'");
   });
 
   it('uploads a small archive to the exact Worker key via Wrangler', () => {
-    writeExecutable(
-      'wrangler',
-      '#!/bin/sh\nprintf \'%s\\n\' "$*" >> "$COMMAND_LOG"\n',
-    );
+    writeExecutable('wrangler', '#!/bin/sh\nprintf \'%s\\n\' "$*" >> "$COMMAND_LOG"\n');
 
     const result = runUpload(['--contours'], { WRANGLER_MAX_BYTES: '999999' });
 
     expect(result.status, result.stderr || result.stdout).toBe(0);
-    expect(readFileSync(commandLog, 'utf8')).toContain(
-      'r2 object put aus-map-data/contours/australia.pmtiles',
-    );
+    expect(readFileSync(commandLog, 'utf8')).toContain('r2 object put aus-map-data/contours/australia.pmtiles');
     expect(result.stdout).toContain('Verified:');
   });
 
@@ -96,12 +78,12 @@ describe('Australia contour upload contract', () => {
       [
         '#!/bin/sh',
         'if [ "$1" = "listremotes" ]; then',
-        '  printf \'owner-r2:\\n\'',
+        "  printf 'owner-r2:\\n'",
         'elif [ "$1" = "copyto" ]; then',
         '  printf \'%s\\n\' "$*" >> "$COMMAND_LOG"',
         'fi',
         '',
-      ].join('\n'),
+      ].join('\n')
     );
 
     const result = runUpload(['--contours'], {
@@ -117,10 +99,7 @@ describe('Australia contour upload contract', () => {
   });
 
   it('fails instead of reporting success when the Worker cannot see the uploaded archive', () => {
-    writeExecutable(
-      'curl',
-      '#!/bin/sh\nprintf \'{"ok":false,"error":"Contour archive not found"}\'\nexit 22\n',
-    );
+    writeExecutable('curl', '#!/bin/sh\nprintf \'{"ok":false,"error":"Contour archive not found"}\'\nexit 22\n');
 
     const result = runUpload(['--verify-contours']);
 

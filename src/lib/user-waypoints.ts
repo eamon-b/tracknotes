@@ -92,8 +92,7 @@ const TURN_OFF_TYPES: ReadonlySet<string> = new Set([
 export const USER_WAYPOINT_ID_PREFIX = 'hw_';
 
 /** `hw_` + a lowercase v4 uuid: the form the comments API accepts as a shared hiker waypoint. */
-const USER_WAYPOINT_ID_RE =
-  /^hw_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+const USER_WAYPOINT_ID_RE = /^hw_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 /** Whether an id names a hiker-added waypoint (private or shared). */
 export function isUserWaypointId(id: string | undefined | null): boolean {
@@ -265,7 +264,7 @@ export function placeOnTrack(
   lat: number,
   lon: number,
   points: readonly PlaceableTrackPoint[],
-  breaks?: RouteBreak[],
+  breaks?: RouteBreak[]
 ): TrackPlacement | null {
   const snap = snapToTrail(lat, lon, points, undefined, routeBreakStarts(breaks, 'points'));
   if (!snap) return null;
@@ -301,10 +300,7 @@ export function placeOnTrack(
  * route is left out. Returns the same trail object when there is nothing to
  * place.
  */
-export function placeUserWaypoints<T extends PlaceableTrail>(
-  trail: T,
-  userWaypoints: readonly UserWaypoint[],
-): T {
+export function placeUserWaypoints<T extends PlaceableTrail>(trail: T, userWaypoints: readonly UserWaypoint[]): T {
   if (userWaypoints.length === 0) return trail;
   const points = trail.track.points;
   if (points.length === 0) return trail;
@@ -348,7 +344,8 @@ export function placeUserWaypoints<T extends PlaceableTrail>(
   if (placed.length === 0) return trail;
 
   // Stable: a hiker waypoint at the same km as a curated one sorts after it.
-  const merged: W[] = [...trail.waypoints, ...placed].map((w, i) => ({ w, i }))
+  const merged: W[] = [...trail.waypoints, ...placed]
+    .map((w, i) => ({ w, i }))
     .sort((a, b) => (a.w.totalDistance ?? 0) - (b.w.totalDistance ?? 0) || a.i - b.i)
     .map(({ w }) => w);
 

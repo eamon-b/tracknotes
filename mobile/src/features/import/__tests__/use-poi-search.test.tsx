@@ -49,7 +49,11 @@ jest.mock('../poi-search', () => {
   };
 });
 
-const SETUP = { trailId: 'u_x', trail: {}, plan: { estimate: { queries: 2 } } } as unknown as PoiSearchSetup;
+const SETUP = {
+  trailId: 'u_x',
+  trail: {},
+  plan: { estimate: { queries: 2 } },
+} as unknown as PoiSearchSetup;
 
 function runResult(over: Partial<PoiSearchRun> = {}): PoiSearchRun {
   return { fetched: [], failures: [], pois: [], bytes: 10, ...over };
@@ -79,8 +83,12 @@ describe('connectionKind', () => {
   it('names the connection the download would use', () => {
     expect(connectionKind(null)).toBe('unknown');
     expect(connectionKind({ type: Network.NetworkStateType.WIFI, isConnected: true })).toBe('wifi');
-    expect(connectionKind({ type: Network.NetworkStateType.CELLULAR, isConnected: true })).toBe('cellular');
-    expect(connectionKind({ type: Network.NetworkStateType.WIFI, isConnected: false })).toBe('offline');
+    expect(connectionKind({ type: Network.NetworkStateType.CELLULAR, isConnected: true })).toBe(
+      'cellular',
+    );
+    expect(connectionKind({ type: Network.NetworkStateType.WIFI, isConnected: false })).toBe(
+      'offline',
+    );
   });
 });
 
@@ -138,7 +146,9 @@ describe('usePoiSearch', () => {
     const partial = runResult({ failures: [{ chunkIndex: 0, error: 'x' }] });
     (runPoiSearch as jest.Mock)
       .mockResolvedValueOnce(partial)
-      .mockRejectedValueOnce(new PoiSearchFailedError('Overpass request failed: 504', [{}] as never));
+      .mockRejectedValueOnce(
+        new PoiSearchFailedError('Overpass request failed: 504', [{}] as never),
+      );
     await mount();
     await flush();
     act(() => hook.start());
@@ -146,7 +156,9 @@ describe('usePoiSearch', () => {
     act(() => hook.retryMissed());
     await flush();
     expect(hook.state).toMatchObject({ kind: 'done', run: partial });
-    expect(hook.state.kind === 'done' && hook.state.retryError).toMatch(/No OpenStreetMap server answered/);
+    expect(hook.state.kind === 'done' && hook.state.retryError).toMatch(
+      /No OpenStreetMap server answered/,
+    );
   });
 
   it('reports a failure, and a cancel, without saving', async () => {

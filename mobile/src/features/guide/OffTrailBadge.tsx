@@ -51,9 +51,7 @@ export function OffTrailBadge({
   if (metres == null || !isPlaceOffTrail(metres)) return null;
   const label = offTrailLabel(metres, units);
   return (
-    <View
-      style={[styles.pill, { borderColor: colors.offTrail }, style]}
-    >
+    <View style={[styles.pill, { borderColor: colors.offTrail }, style]}>
       <Text style={[styles.text, { color: colors.offTrail }]} numberOfLines={1}>
         {label}
       </Text>

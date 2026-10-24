@@ -127,7 +127,8 @@ describe('StopIssuesCard', () => {
     expect(text).toContain('Past the end of the updated trail · 2 nights, not in the dates');
 
     // The shim repeats a prop down the composite and host layers: one label per row.
-    const labelOf = (n: { props: Record<string, unknown> }) => String(n.props.accessibilityLabel ?? '');
+    const labelOf = (n: { props: Record<string, unknown> }) =>
+      String(n.props.accessibilityLabel ?? '');
     const buttons = tree.root.findAll(
       (n) => typeof n.props.onPress === 'function' && labelOf(n).startsWith('Remove '),
     );
@@ -135,7 +136,9 @@ describe('StopIssuesCard', () => {
       'Remove Old Camp from the plan',
       'Remove Past the End from the plan',
     ]);
-    const removePastTheEnd = buttons.find((b) => labelOf(b) === 'Remove Past the End from the plan');
+    const removePastTheEnd = buttons.find(
+      (b) => labelOf(b) === 'Remove Past the End from the plan',
+    );
     act(() => (removePastTheEnd!.props.onPress as () => void)());
     expect(removed).toEqual(['Past the End']);
   });
@@ -144,7 +147,10 @@ describe('StopIssuesCard', () => {
     let tree!: ReactTestRenderer;
     act(() => {
       tree = TestRenderer.create(
-        <StopIssuesCard notice={stopIssuesNotice(ISSUES)} rows={stopIssueRows(ISSUES, DAYS, 'NOBO', TOTAL)} />,
+        <StopIssuesCard
+          notice={stopIssuesNotice(ISSUES)}
+          rows={stopIssueRows(ISSUES, DAYS, 'NOBO', TOTAL)}
+        />,
       );
     });
     expect(tree.root.findAll((n) => n.props.accessibilityRole === 'button')).toHaveLength(0);

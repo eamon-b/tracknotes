@@ -44,7 +44,11 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { useTheme } from '../../theme';
 import { radii, spacing, typography } from '../../tokens';
 import { getTrailJson, loadTrail, type TrailJson } from '../../services/trail-loader';
-import { ensureTrailDownloaded, trailDataUpdatedAt, trailDataVersion } from '../../services/trail-data-updates';
+import {
+  ensureTrailDownloaded,
+  trailDataUpdatedAt,
+  trailDataVersion,
+} from '../../services/trail-data-updates';
 import { useTrailDataStore } from '../../state/trail-data-store';
 import { isCatalogTrailId } from '../../services/trail-catalog';
 import {
@@ -171,7 +175,13 @@ export function GuideProvider({
           // Past the 30-minute throttle: the cached list still offers it.
           void refreshCommunityRoutes({ force: true });
           if (!cancelled) {
-            setLoaded({ id: trailId, trail: null, version: null, dataUpdatedAt: null, takenDown: true });
+            setLoaded({
+              id: trailId,
+              trail: null,
+              version: null,
+              dataUpdatedAt: null,
+              takenDown: true,
+            });
           }
           return;
         }
@@ -234,8 +244,13 @@ export function GuideProvider({
   const fresh = reloaded?.id === trailId ? reloaded : null;
   const raw: TrailJson | null | undefined =
     fresh?.trail ?? bundled ?? (current ? current.trail : undefined);
-  const shownVersion = fresh ? fresh.version : bundled ? bundledVersion : (current?.version ?? null);
-  const available = shownVersion !== null && latestVersion !== null && latestVersion !== shownVersion;
+  const shownVersion = fresh
+    ? fresh.version
+    : bundled
+      ? bundledVersion
+      : (current?.version ?? null);
+  const available =
+    shownVersion !== null && latestVersion !== null && latestVersion !== shownVersion;
   // Recorded with the copy as it was read, not looked up by md5 afterwards:
   // once a newer copy is installed, the one shown is in no index any more.
   const dataUpdatedAt = fresh
@@ -274,11 +289,23 @@ export function GuideProvider({
       dataUpdate: { available, version: latestVersion, reloading, reload },
       reloadTrail: reload,
     };
-  }, [trail, raw, placed, trailId, direction, dataUpdatedAt, available, latestVersion, reloading, reload]);
+  }, [
+    trail,
+    raw,
+    placed,
+    trailId,
+    direction,
+    dataUpdatedAt,
+    available,
+    latestVersion,
+    reloading,
+    reload,
+  ]);
 
   if (raw === undefined) return <GuideLoading downloading={downloading} />;
   if (!value && current?.takenDown) return <GuideTakenDown />;
-  if (!value && current?.error) return <GuideDownloadFailed message={current.error} onRetry={retry} />;
+  if (!value && current?.error)
+    return <GuideDownloadFailed message={current.error} onRetry={retry} />;
   if (!value) return <GuideNotFound trailId={trailId} />;
 
   return <GuideContext.Provider value={value}>{children}</GuideContext.Provider>;
@@ -310,7 +337,9 @@ function GuideDownloadFailed({ message, onRetry }: { message: string; onRetry: (
   const { colors } = useTheme();
   return (
     <View style={[styles.centered, { backgroundColor: colors.background }]}>
-      <Text style={[styles.title, { color: colors.textPrimary }]}>Couldn’t download this guide</Text>
+      <Text style={[styles.title, { color: colors.textPrimary }]}>
+        Couldn’t download this guide
+      </Text>
       <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
         It needs a connection the first time it is opened. {message}
       </Text>

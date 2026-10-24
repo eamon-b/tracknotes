@@ -362,7 +362,6 @@ describe('computeDays', () => {
     expect(base[0].estimatedHours).toBe(15);
     expect(slow[0].estimatedHours).toBe(20);
   });
-
 });
 
 describe('route breaks', () => {
@@ -452,7 +451,7 @@ describe('time index on a thinned track', () => {
         { ele: 450, dist: 1 },
         { ele: 400, dist: 2 },
       ],
-      new Set([2]),
+      new Set([2])
     );
     const index = buildTimeIndex(ferry);
     expect(index.ascent).toEqual([0, 50, 50, 50]);

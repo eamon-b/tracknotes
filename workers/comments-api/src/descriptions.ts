@@ -13,10 +13,7 @@ import { requireAdmin } from './auth';
 import { appendSinceFilter } from './cursor';
 import { validateDescription, validateTrailId, validateWaypointId } from './validation';
 import { resolveTrail } from './trails';
-import type {
-  TrailDescriptionsResponse,
-  WaypointDescription,
-} from '../../../src/lib/comments-api-types';
+import type { TrailDescriptionsResponse, WaypointDescription } from '../../../src/lib/comments-api-types';
 
 interface DescriptionRow {
   waypoint_id: string;
@@ -37,11 +34,7 @@ function toWaypointDescription(row: DescriptionRow): WaypointDescription {
 // ---------------------------------------------------------------------------
 
 /** GET /v1/trails/:trailId/descriptions?since=<iso> — unauthenticated. */
-export async function getTrailDescriptions(
-  request: Request,
-  env: Env,
-  trailIdRaw: string
-): Promise<Response> {
+export async function getTrailDescriptions(request: Request, env: Env, trailIdRaw: string): Promise<Response> {
   const trail = await resolveTrail(env, trailIdRaw, 'read');
   const trailId = trail.id;
   const url = new URL(request.url);

@@ -17,9 +17,27 @@ const MOCK_LIBERTY_STYLE = {
   },
   layers: [
     { id: 'background', type: 'background', paint: { 'background-color': '#f8f4f0' } },
-    { id: 'water', type: 'fill', source: 'openmaptiles', 'source-layer': 'water', paint: { 'fill-color': 'rgb(158,189,255)' } },
-    { id: 'road_minor', type: 'line', source: 'openmaptiles', 'source-layer': 'transportation', paint: { 'line-color': '#fff' } },
-    { id: 'road_major', type: 'line', source: 'openmaptiles', 'source-layer': 'transportation', paint: { 'line-color': '#fea' } },
+    {
+      id: 'water',
+      type: 'fill',
+      source: 'openmaptiles',
+      'source-layer': 'water',
+      paint: { 'fill-color': 'rgb(158,189,255)' },
+    },
+    {
+      id: 'road_minor',
+      type: 'line',
+      source: 'openmaptiles',
+      'source-layer': 'transportation',
+      paint: { 'line-color': '#fff' },
+    },
+    {
+      id: 'road_major',
+      type: 'line',
+      source: 'openmaptiles',
+      'source-layer': 'transportation',
+      paint: { 'line-color': '#fea' },
+    },
     {
       id: 'place_label',
       type: 'symbol',
@@ -74,9 +92,7 @@ describe('getOnlineStyleWithContours', () => {
   it('fetches Liberty style and injects contour source', async () => {
     const style = (await getOnlineStyleWithContours()) as Record<string, unknown>;
     expect(style).not.toBeNull();
-    expect(global.fetch).toHaveBeenCalledWith(
-      'https://tiles.openfreemap.org/styles/liberty',
-    );
+    expect(global.fetch).toHaveBeenCalledWith('https://tiles.openfreemap.org/styles/liberty');
 
     const sources = style.sources as Record<string, unknown>;
     expect(sources.contour).toEqual({
@@ -260,7 +276,11 @@ describe('contour layer zooms match the tile data tiers', () => {
   it('covers every contour layer in both styles', () => {
     const expected = Object.keys(LAYER_EXPECTATIONS).sort();
     expect(onlineContourLayers.map((l) => l.id).sort()).toEqual(expected);
-    expect(offlineContourLayers().map((l) => l.id).sort()).toEqual(expected);
+    expect(
+      offlineContourLayers()
+        .map((l) => l.id)
+        .sort(),
+    ).toEqual(expected);
   });
 
   describe.each(Object.entries(LAYER_EXPECTATIONS))(
@@ -296,9 +316,7 @@ describe('contour layer zooms match the tile data tiers', () => {
       });
 
       it('excludes sea-level and sub-zero contours', () => {
-        const filter = JSON.stringify(
-          onlineContourLayers.find((l) => l.id === layerId)?.filter,
-        );
+        const filter = JSON.stringify(onlineContourLayers.find((l) => l.id === layerId)?.filter);
         expect(filter).toContain('[">",["to-number",["get","elevation"]],0]');
         expect(matches(0)).toBe(false);
         expect(matches(-10)).toBe(false);
@@ -346,9 +364,7 @@ describe('getOnlineMapStyle', () => {
 
     const style = (await getOnlineMapStyle()) as Record<string, unknown>;
 
-    expect(global.fetch).toHaveBeenCalledWith(
-      'https://tiles.openfreemap.org/styles/liberty',
-    );
+    expect(global.fetch).toHaveBeenCalledWith('https://tiles.openfreemap.org/styles/liberty');
     expect(style.version).toBe(8);
     expect((style.sources as Record<string, unknown>).contour).toBeUndefined();
   });
@@ -401,9 +417,7 @@ describe('getOnlineMapStyle', () => {
     expect(sources.contour).toBeUndefined();
     expect(layerIds).not.toContain('contour-regular');
     expect(layerIds).toContain('road_minor');
-    expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining('health check failed'),
-    );
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('health check failed'));
   });
 });
 
@@ -484,8 +498,7 @@ describe('world contour source', () => {
 /** Layer shape used by the dark-theme assertions below. */
 type PaintedLayer = { id: string; type?: string; paint?: Record<string, unknown> };
 
-const layersOf = (style: unknown): PaintedLayer[] =>
-  (style as { layers: PaintedLayer[] }).layers;
+const layersOf = (style: unknown): PaintedLayer[] => (style as { layers: PaintedLayer[] }).layers;
 
 const contourLayer = (style: unknown, id: string): PaintedLayer =>
   layersOf(style).find((l) => l.id === id)!;
@@ -516,9 +529,8 @@ describe('dark theme', () => {
 
   it('fetches once for both themes', async () => {
     const styleFetches = () =>
-      (global.fetch as jest.Mock).mock.calls.filter(([url]) =>
-        String(url).includes('/styles/'),
-      ).length;
+      (global.fetch as jest.Mock).mock.calls.filter(([url]) => String(url).includes('/styles/'))
+        .length;
 
     await getOnlineMapStyle('light');
     await getOnlineMapStyle('dark');

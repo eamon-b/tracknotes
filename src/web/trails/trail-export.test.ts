@@ -14,9 +14,7 @@ describe('csvQuote', () => {
   });
 
   it('neutralises a value a spreadsheet would run as a formula', () => {
-    expect(csvQuote('=HYPERLINK("http://evil.test","x")')).toBe(
-      `"'=HYPERLINK(""http://evil.test"",""x"")"`,
-    );
+    expect(csvQuote('=HYPERLINK("http://evil.test","x")')).toBe(`"'=HYPERLINK(""http://evil.test"",""x"")"`);
     for (const lead of ['+', '-', '@', '\t', '\r']) {
       expect(csvQuote(`${lead}1+1`)).toBe(`"'${lead}1+1"`);
     }
@@ -67,25 +65,26 @@ describe('buildGpx', () => {
     const doc = parse(
       buildGpx(
         trail({
-          alternates: [{ name: 'Ridge Alt', type: 'alternate', points: [{ lat: -41, lon: 174 }, { lat: -41.1, lon: 174 }] }],
+          alternates: [
+            {
+              name: 'Ridge Alt',
+              type: 'alternate',
+              points: [
+                { lat: -41, lon: 174 },
+                { lat: -41.1, lon: 174 },
+              ],
+            },
+          ],
           sideTrips: [
             { name: 'Summit', type: 'side-trip', points: [{ lat: -41, lon: 174.1, ele: 900 }] },
             { name: 'No geometry', type: 'side-trip', points: [] },
           ],
-        }),
-      ),
+        })
+      )
     );
     const tracks = [...doc.querySelectorAll('trk')];
-    expect(tracks.map(trk => trk.querySelector('name')?.textContent)).toEqual([
-      'Strait <Walk>',
-      'Ridge Alt',
-      'Summit',
-    ]);
-    expect(tracks.map(trk => trk.querySelector('type')?.textContent ?? null)).toEqual([
-      null,
-      'alternate',
-      'side-trip',
-    ]);
+    expect(tracks.map(trk => trk.querySelector('name')?.textContent)).toEqual(['Strait <Walk>', 'Ridge Alt', 'Summit']);
+    expect(tracks.map(trk => trk.querySelector('type')?.textContent ?? null)).toEqual([null, 'alternate', 'side-trip']);
     expect(tracks[2].querySelector('ele')?.textContent).toBe('900');
   });
 });

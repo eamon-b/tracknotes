@@ -17,9 +17,7 @@ describe('escapeHtml', () => {
   });
 
   it('neutralises a script-tag injection in a trail name', () => {
-    expect(escapeHtml('<script>alert(1)</script>')).toBe(
-      '&lt;script&gt;alert(1)&lt;/script&gt;',
-    );
+    expect(escapeHtml('<script>alert(1)</script>')).toBe('&lt;script&gt;alert(1)&lt;/script&gt;');
   });
 
   it('neutralises an attribute break-out', () => {
@@ -93,25 +91,25 @@ describe('formatKm', () => {
 
 describe('generatedDataUrl', () => {
   it('finds the data beside the site root from a trail page', () => {
-    expect(
-      generatedDataUrl('heysen.json', SITE_ROOT.trailPage, 'https://host/trails/heysen/plan.html'),
-    ).toBe('https://host/data/generated/heysen.json');
+    expect(generatedDataUrl('heysen.json', SITE_ROOT.trailPage, 'https://host/trails/heysen/plan.html')).toBe(
+      'https://host/data/generated/heysen.json'
+    );
   });
 
   it('finds it from a top-level page', () => {
-    expect(
-      generatedDataUrl('heysen.json', SITE_ROOT.topLevel, 'https://host/shared-plan.html?s=abc'),
-    ).toBe('https://host/data/generated/heysen.json');
+    expect(generatedDataUrl('heysen.json', SITE_ROOT.topLevel, 'https://host/shared-plan.html?s=abc')).toBe(
+      'https://host/data/generated/heysen.json'
+    );
   });
 
   it('stays under a site served from a sub-path, as `base: ./` allows', () => {
     // An absolute `/data/generated/…` would have gone to https://host/data/….
-    expect(
-      generatedDataUrl('cdt.json', SITE_ROOT.trailPage, 'https://host/trail-maps/trails/cdt/'),
-    ).toBe('https://host/trail-maps/data/generated/cdt.json');
-    expect(
-      generatedDataUrl('cdt.json', SITE_ROOT.topLevel, 'https://host/trail-maps/shared-plan.html'),
-    ).toBe('https://host/trail-maps/data/generated/cdt.json');
+    expect(generatedDataUrl('cdt.json', SITE_ROOT.trailPage, 'https://host/trail-maps/trails/cdt/')).toBe(
+      'https://host/trail-maps/data/generated/cdt.json'
+    );
+    expect(generatedDataUrl('cdt.json', SITE_ROOT.topLevel, 'https://host/trail-maps/shared-plan.html')).toBe(
+      'https://host/trail-maps/data/generated/cdt.json'
+    );
   });
 });
 
@@ -148,7 +146,7 @@ describe('the pages’ data fetches', () => {
       expect(text, file).not.toMatch(/fetch\(\s*[`'"]\/data\//);
     }
     expect(fs.readFileSync(path.join(__dirname, 'trails/climate-template.html'), 'utf8')).toContain(
-      '../../data/generated/${TRAIL_ID}.json',
+      '../../data/generated/${TRAIL_ID}.json'
     );
   });
 });

@@ -27,11 +27,7 @@
 
 import { importGpx } from '@lib/gpx-import';
 import { fxpXmlAdapter } from '@lib/xml-adapter-fxp';
-import {
-  handoffImportReport,
-  parseHandoffJson,
-  serializeTrailHandoff,
-} from '@lib/trail-handoff';
+import { handoffImportReport, parseHandoffJson, serializeTrailHandoff } from '@lib/trail-handoff';
 import {
   applyElevation,
   backfillElevation,
@@ -80,13 +76,15 @@ describe('@lib/gpx-import on mobile', () => {
   });
 
   it('rejects malformed XML instead of building a broken trail', () => {
-    expect(() => importGpx('<gpx><trk></gpx>', { adapter: fxpXmlAdapter })).toThrow(/Invalid GPX XML/);
+    expect(() => importGpx('<gpx><trk></gpx>', { adapter: fxpXmlAdapter })).toThrow(
+      /Invalid GPX XML/,
+    );
   });
 
   it('never mints a server-known id', () => {
     const { trail } = importGpx(SAMPLE_GPX, { adapter: fxpXmlAdapter });
     expect(trail.config.id.startsWith('u_')).toBe(true);
-    expect(trail.waypoints.every(w => w.id?.startsWith('uw_'))).toBe(true);
+    expect(trail.waypoints.every((w) => w.id?.startsWith('uw_'))).toBe(true);
   });
 });
 
@@ -129,7 +127,9 @@ describe('@lib/elevation-backfill on mobile', () => {
         ok: true,
         status: 200,
         statusText: 'OK',
-        json: async () => ({ results: body.locations.map((_, i) => ({ elevation: 100 + i * 10 })) }),
+        json: async () => ({
+          results: body.locations.map((_, i) => ({ elevation: 100 + i * 10 })),
+        }),
       };
     });
 

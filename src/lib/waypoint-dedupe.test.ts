@@ -172,17 +172,55 @@ describe('dedupeNearDuplicateWaypoints', () => {
     ];
 
     expect(dedupeNearDuplicateWaypoints(rows).waypoints[0].id).toBe('w_variant_first');
-    expect(
-      dedupeNearDuplicateWaypoints(rows, { preferIds: ['w_main_survivor'] }).waypoints[0].id
-    ).toBe('w_main_survivor');
+    expect(dedupeNearDuplicateWaypoints(rows, { preferIds: ['w_main_survivor'] }).waypoints[0].id).toBe(
+      'w_main_survivor'
+    );
   });
 
   it('re-derives segment stats for the row after a dropped one', () => {
     const rows: DedupableWaypoint[] = [
-      wp({ id: 'w_a', name: 'Start', northMeters: 0, distance: 2, totalDistance: 2, ascent: 50, totalAscent: 50, descent: 10, totalDescent: 10 }),
-      wp({ id: 'w_b', northMeters: 1000, distance: 1, totalDistance: 3, ascent: 30, totalAscent: 80, descent: 5, totalDescent: 15 }),
-      wp({ id: 'w_c', northMeters: 1050, distance: 0.05, totalDistance: 3.05, ascent: 2, totalAscent: 82, descent: 1, totalDescent: 16 }),
-      wp({ id: 'w_d', name: 'End', northMeters: 3000, distance: 1.95, totalDistance: 5, ascent: 40, totalAscent: 122, descent: 20, totalDescent: 36 }),
+      wp({
+        id: 'w_a',
+        name: 'Start',
+        northMeters: 0,
+        distance: 2,
+        totalDistance: 2,
+        ascent: 50,
+        totalAscent: 50,
+        descent: 10,
+        totalDescent: 10,
+      }),
+      wp({
+        id: 'w_b',
+        northMeters: 1000,
+        distance: 1,
+        totalDistance: 3,
+        ascent: 30,
+        totalAscent: 80,
+        descent: 5,
+        totalDescent: 15,
+      }),
+      wp({
+        id: 'w_c',
+        northMeters: 1050,
+        distance: 0.05,
+        totalDistance: 3.05,
+        ascent: 2,
+        totalAscent: 82,
+        descent: 1,
+        totalDescent: 16,
+      }),
+      wp({
+        id: 'w_d',
+        name: 'End',
+        northMeters: 3000,
+        distance: 1.95,
+        totalDistance: 5,
+        ascent: 40,
+        totalAscent: 122,
+        descent: 20,
+        totalDescent: 36,
+      }),
     ];
 
     const result = dedupeNearDuplicateWaypoints(rows);
@@ -199,9 +237,37 @@ describe('dedupeNearDuplicateWaypoints', () => {
     // The later pin survives (preferred), so its own segment must be measured
     // from the row before the dropped one, not from the dropped one.
     const rows: DedupableWaypoint[] = [
-      wp({ id: 'w_a', name: 'Start', northMeters: 0, distance: 1, totalDistance: 1, ascent: 10, totalAscent: 10, descent: 0, totalDescent: 0 }),
-      wp({ id: 'w_b', northMeters: 1000, distance: 1, totalDistance: 2, ascent: 20, totalAscent: 30, descent: 5, totalDescent: 5 }),
-      wp({ id: 'w_keep', northMeters: 1100, distance: 0.1, totalDistance: 2.1, ascent: 3, totalAscent: 33, descent: 1, totalDescent: 6 }),
+      wp({
+        id: 'w_a',
+        name: 'Start',
+        northMeters: 0,
+        distance: 1,
+        totalDistance: 1,
+        ascent: 10,
+        totalAscent: 10,
+        descent: 0,
+        totalDescent: 0,
+      }),
+      wp({
+        id: 'w_b',
+        northMeters: 1000,
+        distance: 1,
+        totalDistance: 2,
+        ascent: 20,
+        totalAscent: 30,
+        descent: 5,
+        totalDescent: 5,
+      }),
+      wp({
+        id: 'w_keep',
+        northMeters: 1100,
+        distance: 0.1,
+        totalDistance: 2.1,
+        ascent: 3,
+        totalAscent: 33,
+        descent: 1,
+        totalDescent: 6,
+      }),
     ];
 
     const result = dedupeNearDuplicateWaypoints(rows, { preferIds: ['w_keep'] });

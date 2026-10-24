@@ -113,7 +113,7 @@ describe('landingMapPoints', () => {
         route({ id: 'c_NNNNNNNNNNNNNNNN', start: { lat: NaN, lon: 0 }, bbox: [NaN, 0, 0, 0] }),
       ]
     );
-    expect(points.map((p) => p.id)).toEqual(['a', 'c_UUUUUUUUUUUUUUUU', 'c_VVVVVVVVVVVVVVVV']);
+    expect(points.map(p => p.id)).toEqual(['a', 'c_UUUUUUUUUUUUUUUU', 'c_VVVVVVVVVVVVVVVV']);
   });
 });
 
@@ -132,13 +132,13 @@ describe('unwrapLongitudes', () => {
 
   it('moves the Americas east of New Zealand when that spans less', () => {
     const out = unwrapLongitudes([at('aawt', 147), at('ta', 172.5), at('cdt', -108)]);
-    expect(out.map((p) => p.lon)).toEqual([147, 172.5, 252]);
+    expect(out.map(p => p.lon)).toEqual([147, 172.5, 252]);
   });
 
   it('leaves a set that is tighter as it is', () => {
     const points = [at('a', -10), at('b', 20), at('c', 147)];
-    expect(unwrapLongitudes(points).map((p) => p.lon)).toEqual([-10, 20, 147]);
-    expect(unwrapLongitudes([at('one', -108)]).map((p) => p.lon)).toEqual([-108]);
+    expect(unwrapLongitudes(points).map(p => p.lon)).toEqual([-10, 20, 147]);
+    expect(unwrapLongitudes([at('one', -108)]).map(p => p.lon)).toEqual([-108]);
   });
 });
 
