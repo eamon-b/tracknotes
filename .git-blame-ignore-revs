@@ -1,0 +1,4 @@
+# Whole-tree reformats. To skip them: git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# Format the tree with prettier (#235)
+5703a506fcf9b2199dd06da87364a8fda9398739
