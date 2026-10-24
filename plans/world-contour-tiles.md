@@ -6,7 +6,8 @@ served from R2 alongside (initially) the existing Australia archive.
 
 Status: live. The world archive was built in September 2026 and the worker serves it as the
 `world` source; rollout steps 1-5 are done and step 6 is open. Rebuild runbook:
-`docs/world-contours-remote-build.md`.
+`docs/world-contours-remote-build.md`. The re-tiered rebuild
+(#135, 572 GB) replaced it on 2026-10-24.
 
 ## What exists today (baseline)
 

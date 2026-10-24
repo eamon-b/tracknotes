@@ -5,7 +5,11 @@ export type RangeReader = (start: number, end: number) => Promise<Uint8Array>;
 
 export type RecordValue = null | number | string | Uint8Array;
 
-export function httpRangeReader(url: string, fetchFn?: typeof fetch): RangeReader;
+export function httpRangeReader(
+  url: string,
+  fetchFn?: typeof fetch,
+  sleep?: (ms: number) => Promise<void>
+): RangeReader;
 export function parseRecord(payload: Uint8Array): RecordValue[];
 export function tableColumns(sql: string): Array<{ name: string; rowidAlias: boolean }>;
 export function indexColumns(sql: string): string[];
