@@ -966,6 +966,52 @@ function tippecanoeMerge(layerArgs: string[], outputPath: string, tmpDir: string
   });
 }
 
+/** Shard files converted for the join (see joinShards) land here. */
+const PMTILES_SHARDS_DIR = 'pmtiles-shards';
+
+/**
+ * Convert every shard mbtiles to `.pmtiles`, all at once, reusing a
+ * conversion newer than its source. Each convert is about one core of mostly
+ * streaming I/O; the 2026-10 world's ten shards took ~2h20 wall clock, bounded
+ * by asia-east (193 GB) alone.
+ */
+async function convertShardsToPmtiles(shardFiles: string[], dir: string): Promise<string[]> {
+  ensureDir(dir);
+  return Promise.all(shardFiles.map(async (mbtiles) => {
+    const out = path.join(dir, path.basename(mbtiles).replace(/\.mbtiles$/, '.pmtiles'));
+    if (fs.existsSync(out) && fs.statSync(out).mtimeMs > fs.statSync(mbtiles).mtimeMs) {
+      console.log(`    reusing ${path.basename(out)}`);
+      return out;
+    }
+    // Written under a temp name so a killed convert never looks finished.
+    const tmp = `${out}.tmp`;
+    await new Promise<void>((resolve, reject) => {
+      execFile('pmtiles', ['convert', mbtiles, tmp], { cwd: PROJECT_ROOT, maxBuffer: 50 * 1024 * 1024 },
+        (error) => (error ? reject(new Error(`pmtiles convert ${path.basename(mbtiles)}: ${error.message}`)) : resolve()));
+    });
+    fs.renameSync(tmp, out);
+    console.log(`    ✓ ${path.basename(out)} (${formatBytes(fileSizeBytes(out))})`);
+    return out;
+  }));
+}
+
+/**
+ * Structure and zoom range of the finished archive. Stands in for
+ * validateMbtilesArtifact on world.mbtiles, whose single-threaded
+ * PRAGMA integrity_check would take hours at world size.
+ */
+function validateWorldPmtiles(pmtilesPath: string): void {
+  execFileSync('pmtiles', ['verify', pmtilesPath], { cwd: PROJECT_ROOT, stdio: ['ignore', 'ignore', 'inherit'] });
+  const show = execFileSync('pmtiles', ['show', pmtilesPath], { cwd: PROJECT_ROOT, encoding: 'utf8' });
+  const zoom = (label: string): number => Number(new RegExp(`${label} zoom: (\\d+)`).exec(show)?.[1]);
+  const { minZoom, maxZoom } = CONTOUR_ZOOM_EXPECTATION;
+  if (zoom('min') !== minZoom || zoom('max') !== maxZoom) {
+    throw new Error(
+      `${path.basename(pmtilesPath)} spans z${zoom('min')}-${zoom('max')}, expected z${minZoom}-${maxZoom}`
+    );
+  }
+}
+
 /**
  * Union every `world_*.mbtiles` in the output dir into `world.mbtiles` and
  * convert it to `world.pmtiles`.
@@ -973,8 +1019,15 @@ function tippecanoeMerge(layerArgs: string[], outputPath: string, tmpDir: string
  * Cells are clipped disjoint, so tile-join only has to re-encode tiles that
  * straddle a shard border. `--no-tile-size-limit` is mandatory: without it
  * those re-encoded border tiles are silently dropped when they exceed 500 KB.
+ *
+ * The shards are joined as `.pmtiles`, not `.mbtiles`: tile-join runs
+ * PRAGMA integrity_check on every mbtiles input, one after another on one
+ * core (4.7 h of the 2026-09 join), but memory-maps pmtiles inputs unchecked
+ * and joins them on ~11 cores. The output tiles are identical (checked on
+ * iceland, 2026-10). The converted shards are deleted once world.pmtiles
+ * validates; the shard mbtiles are kept.
  */
-function joinShards(outputDir: string, verbose: boolean): void {
+async function joinShards(outputDir: string, verbose: boolean): Promise<void> {
   const shardFiles = fs.readdirSync(outputDir)
     .filter(f => /^world_.+\.mbtiles$/.test(f))
     .sort()
@@ -1000,6 +1053,10 @@ function joinShards(outputDir: string, verbose: boolean): void {
   if (fs.existsSync(mbtilesPath)) fs.unlinkSync(mbtilesPath);
   if (fs.existsSync(pmtilesPath)) fs.unlinkSync(pmtilesPath);
 
+  const shardDir = path.join(outputDir, PMTILES_SHARDS_DIR);
+  console.log(`  Converting shards to pmtiles in ${shardDir}:`);
+  const shardPmtiles = await convertShardsToPmtiles(shardFiles, shardDir);
+
   execFileSync('tile-join', [
     '-o', mbtilesPath,
     '--no-tile-size-limit',
@@ -1008,21 +1065,22 @@ function joinShards(outputDir: string, verbose: boolean): void {
     // Shards already serve `contour`; the renames are no-ops for them and
     // cover a shard mbtiles a killed run left with its tier layers.
     ...contourTierRenameArgs(),
-    ...shardFiles,
+    ...shardPmtiles,
   ], {
     cwd: PROJECT_ROOT,
     stdio: ['ignore', 'inherit', 'inherit'],
   });
 
   console.log(`  ✓ Joined mbtiles: ${mbtilesPath} (${formatBytes(fileSizeBytes(mbtilesPath))})`);
-  validateMbtilesArtifact(mbtilesPath, CONTOUR_ZOOM_EXPECTATION);
 
   execFileSync('pmtiles', ['convert', mbtilesPath, pmtilesPath], {
     cwd: PROJECT_ROOT,
     stdio: ['ignore', 'inherit', 'inherit'],
   });
+  validateWorldPmtiles(pmtilesPath);
 
   console.log(`  ✓ PMTiles archive: ${pmtilesPath} (${formatBytes(fileSizeBytes(pmtilesPath))})`);
+  fs.rmSync(shardDir, { recursive: true, force: true });
 }
 
 // --- Main ---
@@ -1058,7 +1116,7 @@ async function main(): Promise<void> {
     ensureDir(args.outputDir);
     const startTime = Date.now();
     try {
-      joinShards(args.outputDir, args.verbose);
+      await joinShards(args.outputDir, args.verbose);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error(`\nFatal error: ${message}`);
