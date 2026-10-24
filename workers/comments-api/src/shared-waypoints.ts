@@ -26,17 +26,9 @@ import { getUser, requireAdmin, requireUser } from './auth';
 import { appendSinceFilter, decodeCursor, encodeCursor } from './cursor';
 import { RATE_BUCKETS, consumeRateLimit } from './rate-limit';
 import { REPORTER_MIN_ACCOUNT_AGE_MS } from './community';
-import {
-  parseLimit,
-  validateReportDetail,
-  validateReportReason,
-} from './validation';
+import { parseLimit, validateReportDetail, validateReportReason } from './validation';
 import { resolveTrail } from './trails';
-import {
-  USER_WAYPOINT_LIMITS,
-  checkUserWaypointInput,
-  isUserWaypointId,
-} from '../../../src/lib/user-waypoints';
+import { USER_WAYPOINT_LIMITS, checkUserWaypointInput, isUserWaypointId } from '../../../src/lib/user-waypoints';
 import { parseAdminReports } from './comments';
 import type {
   AdminSharedWaypointsResponse,
@@ -66,11 +58,7 @@ interface SharedWaypointRow {
   restored_at: string | null;
 }
 
-function toSharedWaypoint(
-  row: SharedWaypointRow,
-  displayName: string,
-  viewerId: string | null
-): SharedWaypoint {
+function toSharedWaypoint(row: SharedWaypointRow, displayName: string, viewerId: string | null): SharedWaypoint {
   return {
     id: row.id,
     trailId: row.trail_id,
@@ -109,9 +97,7 @@ function assertMayShare(user: { is_banned: number }): void {
 }
 
 async function readRow(env: Env, id: string): Promise<SharedWaypointRow | null> {
-  return env.DB.prepare(`SELECT * FROM shared_waypoints WHERE id = ?`)
-    .bind(id)
-    .first<SharedWaypointRow>();
+  return env.DB.prepare(`SELECT * FROM shared_waypoints WHERE id = ?`).bind(id).first<SharedWaypointRow>();
 }
 
 // ---------------------------------------------------------------------------
@@ -302,9 +288,7 @@ export async function reportSharedWaypoint(
     throw new HttpError(400, 'own_waypoint', 'You cannot report your own waypoint');
   }
 
-  const existing = await env.DB.prepare(
-    `SELECT id FROM shared_waypoint_reports WHERE waypoint_id = ? AND user_id = ?`
-  )
+  const existing = await env.DB.prepare(`SELECT id FROM shared_waypoint_reports WHERE waypoint_id = ? AND user_id = ?`)
     .bind(id, user.id)
     .first<{ id: string }>();
   if (existing) return json({ reportId: existing.id }, 200);
@@ -329,9 +313,7 @@ export async function reportSharedWaypoint(
     .bind(reportId, id, user.id, reason, detail, nowIso)
     .first<{ id: string }>();
   if (!inserted) {
-    const again = await env.DB.prepare(
-      `SELECT id FROM shared_waypoint_reports WHERE waypoint_id = ? AND user_id = ?`
-    )
+    const again = await env.DB.prepare(`SELECT id FROM shared_waypoint_reports WHERE waypoint_id = ? AND user_id = ?`)
       .bind(id, user.id)
       .first<{ id: string }>();
     return json({ reportId: again?.id ?? reportId }, 200);
@@ -423,11 +405,7 @@ export async function getTrailSharedWaypoints(
 // GET /v1/admin/waypoints
 // ---------------------------------------------------------------------------
 
-export async function adminListSharedWaypoints(
-  request: Request,
-  env: Env,
-  ctx: ExecutionContext
-): Promise<Response> {
+export async function adminListSharedWaypoints(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   await requireAdmin(request, env, ctx);
   const url = new URL(request.url);
   const limit = parseLimit(url.searchParams.get('limit'), ADMIN_DEFAULT_LIMIT, ADMIN_MAX_LIMIT);

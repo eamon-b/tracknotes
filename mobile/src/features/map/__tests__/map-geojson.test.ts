@@ -119,18 +119,44 @@ describe('buildPlannedTrailLines', () => {
   it('splits the line at the bypassed range, meeting exactly at the junctions', () => {
     const { walked, bypassed } = buildPlannedTrailLines(points, undefined, [[1.5, 3.5]]);
     expect(walked!.geometry.coordinates).toEqual([
-      [[0, 0], [0, 0.01], [0, 0.015]],
-      [[0, 0.035], [0, 0.04], [0, 0.05]],
+      [
+        [0, 0],
+        [0, 0.01],
+        [0, 0.015],
+      ],
+      [
+        [0, 0.035],
+        [0, 0.04],
+        [0, 0.05],
+      ],
     ]);
     expect(bypassed!.geometry.coordinates).toEqual([
-      [[0, 0.015], [0, 0.02], [0, 0.03], [0, 0.035]],
+      [
+        [0, 0.015],
+        [0, 0.02],
+        [0, 0.03],
+        [0, 0.035],
+      ],
     ]);
   });
 
   it('handles a range that runs to the end of the line', () => {
     const { walked, bypassed } = buildPlannedTrailLines(points, undefined, [[3, 5]]);
-    expect(walked!.geometry.coordinates).toEqual([[[0, 0], [0, 0.01], [0, 0.02], [0, 0.03]]]);
-    expect(bypassed!.geometry.coordinates).toEqual([[[0, 0.03], [0, 0.04], [0, 0.05]]]);
+    expect(walked!.geometry.coordinates).toEqual([
+      [
+        [0, 0],
+        [0, 0.01],
+        [0, 0.02],
+        [0, 0.03],
+      ],
+    ]);
+    expect(bypassed!.geometry.coordinates).toEqual([
+      [
+        [0, 0.03],
+        [0, 0.04],
+        [0, 0.05],
+      ],
+    ]);
   });
 
   it('still splits at route breaks', () => {
@@ -146,7 +172,14 @@ describe('buildPlannedTrailLines', () => {
 
 describe('buildVariantCollection', () => {
   const variants: MapVariant[] = [
-    { name: 'Alt A', type: 'alternate', points: [{ lat: -35, lon: 138 }, { lat: -35.1, lon: 138.1 }] },
+    {
+      name: 'Alt A',
+      type: 'alternate',
+      points: [
+        { lat: -35, lon: 138 },
+        { lat: -35.1, lon: 138.1 },
+      ],
+    },
     { name: 'Degenerate', type: 'alternate', points: [{ lat: 0, lon: 0 }] },
     { name: 'No points', type: 'alternate' },
   ];
@@ -178,8 +211,22 @@ describe('buildVariantCollection', () => {
     // source, and the property keeps the class identifiable on tap/inspection.
     const fc = buildVariantCollection(
       [
-        { name: 'Razorback', type: 'alternate', points: [{ lat: -36.8, lon: 147.2 }, { lat: -36.9, lon: 147.3 }] },
-        { name: 'Mt Skene spur', type: 'side-trip', points: [{ lat: -37.4, lon: 146.3 }, { lat: -37.5, lon: 146.4 }] },
+        {
+          name: 'Razorback',
+          type: 'alternate',
+          points: [
+            { lat: -36.8, lon: 147.2 },
+            { lat: -36.9, lon: 147.3 },
+          ],
+        },
+        {
+          name: 'Mt Skene spur',
+          type: 'side-trip',
+          points: [
+            { lat: -37.4, lon: 146.3 },
+            { lat: -37.5, lon: 146.4 },
+          ],
+        },
       ],
       'alternate',
     );
@@ -193,7 +240,13 @@ describe('buildVariantCollection', () => {
     const fc = buildVariantCollection(
       [
         { name: 'Degenerate', points: [{ lat: 0, lon: 0 }] },
-        { name: 'Second', points: [{ lat: -35, lon: 138 }, { lat: -35.1, lon: 138.1 }] },
+        {
+          name: 'Second',
+          points: [
+            { lat: -35, lon: 138 },
+            { lat: -35.1, lon: 138.1 },
+          ],
+        },
       ],
       'side-trip',
     );
@@ -212,7 +265,14 @@ describe('buildVariantCollection', () => {
 describe('hasDrawableVariant', () => {
   const mixed: MapVariant[] = [
     { name: 'No points', type: 'side-trip' },
-    { name: 'Drawable', type: 'side-trip', points: [{ lat: -35, lon: 138 }, { lat: -35.1, lon: 138.1 }] },
+    {
+      name: 'Drawable',
+      type: 'side-trip',
+      points: [
+        { lat: -35, lon: 138 },
+        { lat: -35.1, lon: 138.1 },
+      ],
+    },
   ];
 
   it('is true only when some variant has enough points to draw', () => {
@@ -234,7 +294,9 @@ describe('hasDrawableVariant', () => {
 
 describe('waypointFeatureId', () => {
   it('prefers the stable bundled id', () => {
-    expect(waypointFeatureId({ id: 'w_abc', name: 'Camp', lat: 0, lon: 0, type: 'camp' }, 3)).toBe('w_abc');
+    expect(waypointFeatureId({ id: 'w_abc', name: 'Camp', lat: 0, lon: 0, type: 'camp' }, 3)).toBe(
+      'w_abc',
+    );
   });
 
   it('falls back to name+index when no id is present', () => {

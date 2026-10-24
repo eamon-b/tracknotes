@@ -22,13 +22,7 @@ import { spacing, typography } from '../../tokens';
 /** Shown when the OS refuses to open the terms (no browser, blocked scheme). */
 export const TERMS_OPEN_FAILED_MESSAGE = `Couldn't open the terms of service. You can read them at ${TERMS_URL}`;
 
-export function ContributionLicence({
-  verb,
-  what,
-}: {
-  verb: 'posting' | 'sharing';
-  what: string;
-}) {
+export function ContributionLicence({ verb, what }: { verb: 'posting' | 'sharing'; what: string }) {
   const { colors } = useTheme();
   const [failed, setFailed] = useState(false);
   const line = contributionLicenceLine(verb, what);

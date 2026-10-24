@@ -95,10 +95,7 @@ function ThemedStack() {
             downloaded — offline included. */}
         <Stack.Screen name="community-route" options={{ title: 'Community route' }} />
         {/* Modal: review an imported GPX before it becomes a guide. */}
-        <Stack.Screen
-          name="import"
-          options={{ title: 'Import GPX', presentation: 'modal' }}
-        />
+        <Stack.Screen name="import" options={{ title: 'Import GPX', presentation: 'modal' }} />
         {/* Modal: share an imported guide to the community. */}
         <Stack.Screen
           name="share-route"

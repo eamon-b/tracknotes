@@ -22,22 +22,12 @@
 
 import { runCommunityChecks } from '@lib/community-checks';
 import { detectRegion } from '@lib/region-detect';
-import {
-  COMMUNITY_LIMITS,
-  type CommunityCheck,
-  type CommunitySubmitRequest,
-} from '@lib/community-types';
+import { COMMUNITY_LIMITS, type CommunityCheck, type CommunitySubmitRequest } from '@lib/community-types';
 import type { ProcessedTrail } from '@lib/trail-types';
 import { ApiError, NetworkError } from './api/client';
 import { checksFromError, communityRouteHref, duplicateRouteId, submitCommunityRoute } from './api/community';
 import { clearSession, loadSession, unlinkThisBrowser, type WebSession } from './api/session';
-import {
-  checksListHtml,
-  initRegionPicker,
-  utf8Bytes,
-  utf8ToBase64,
-  type RegionPicker,
-} from './community-ui';
+import { checksListHtml, initRegionPicker, utf8Bytes, utf8ToBase64, type RegionPicker } from './community-ui';
 import { renderLinkForm } from './link-browser';
 
 /** The worker's own wording from an error envelope, when it sent one. */
@@ -139,7 +129,7 @@ export function initCommunityShare(): CommunityShareController {
     () => {
       updateSubmit();
       updateRegionNote();
-    },
+    }
   );
 
   // The region the coordinates gave, while the form still shows it: the note
@@ -169,8 +159,7 @@ export function initCommunityShare(): CommunityShareController {
   };
 
   /** The GPX text that will go up with the route, or null when it will not. */
-  const gpxToSend = (): string | null =>
-    source?.gpxText && gpxFits && includeGpxBox.checked ? source.gpxText : null;
+  const gpxToSend = (): string | null => (source?.gpxText && gpxFits && includeGpxBox.checked ? source.gpxText : null);
 
   const runChecks = (): void => {
     if (!source) return;
@@ -220,7 +209,7 @@ export function initCommunityShare(): CommunityShareController {
       renderLinkForm(
         linkBox,
         'Sharing a route needs your Tracknotes app identity, so that you can edit or delete it later and so that abuse can be dealt with. Link this browser to the app on your phone to continue.',
-        next => renderIdentity(next),
+        next => renderIdentity(next)
       );
       return;
     }
@@ -232,7 +221,8 @@ export function initCommunityShare(): CommunityShareController {
 
   const describeSubmitError = (err: unknown): string => {
     if (err instanceof NetworkError) return 'Could not reach the server. Check your connection and try again.';
-    if (!(err instanceof ApiError)) return `Could not share this route: ${err instanceof Error ? err.message : String(err)}`;
+    if (!(err instanceof ApiError))
+      return `Could not share this route: ${err instanceof Error ? err.message : String(err)}`;
     // The worker words these itself (the 30-attempt and 10-route daily limits
     // differ, for one); the fallbacks cover a reply without its envelope.
     const fromServer = serverErrorMessage(err);
@@ -306,7 +296,7 @@ export function initCommunityShare(): CommunityShareController {
         setErrorWithLink(
           `${describeSubmitError(err).replace(/\.?$/, '.')} You shared it yourself:`,
           existingId,
-          'Open your route',
+          'Open your route'
         );
       } else {
         setError(describeSubmitError(err));

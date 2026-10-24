@@ -132,9 +132,9 @@ describe('isNewer', () => {
   });
 
   it('treats a copy with no updatedAt as older than anything, and nothing as oldest', () => {
-    expect(isNewer(entry('t', T1, MD5_A), { id: 't', name: 't', shortName: 't', lengthKm: 1 })).toBe(
-      true,
-    );
+    expect(
+      isNewer(entry('t', T1, MD5_A), { id: 't', name: 't', shortName: 't', lengthKm: 1 }),
+    ).toBe(true);
     expect(isNewer(entry('t', T1, MD5_A), null)).toBe(true);
   });
 });
@@ -143,7 +143,9 @@ describe('downloadSupersedesBundle', () => {
   it('reads a download only while it is newer than the bundle', () => {
     expect(downloadSupersedesBundle(installed('t', T3, MD5_A), bundled('t', T2, MD5_B))).toBe(true);
     // An app update that bundles later data wins over the older download.
-    expect(downloadSupersedesBundle(installed('t', T2, MD5_A), bundled('t', T3, MD5_B))).toBe(false);
+    expect(downloadSupersedesBundle(installed('t', T2, MD5_A), bundled('t', T3, MD5_B))).toBe(
+      false,
+    );
     // A catalog-only trail has no bundle to lose to.
     expect(downloadSupersedesBundle(installed('t', T1, MD5_A), undefined)).toBe(true);
   });

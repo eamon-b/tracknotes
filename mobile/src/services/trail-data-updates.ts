@@ -445,7 +445,11 @@ function removeInstalled(ids: readonly string[]): void {
 function sweepOrphans(): void {
   const root = trailDataRoot();
   if (!root.exists) return;
-  const keep = new Set([STATE_FILE, STATE_TEMP_FILE, ...Object.values(getState().installed).map((e) => e.file)]);
+  const keep = new Set([
+    STATE_FILE,
+    STATE_TEMP_FILE,
+    ...Object.values(getState().installed).map((e) => e.file),
+  ]);
   // Downloads still running own their `.part` file — by the key they are
   // fetching, which an entry from an older catalog may not share with the
   // current one.

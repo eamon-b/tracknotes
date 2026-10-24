@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { packPrefixes, planCleanup, planWorldBuildCleanup, referencedNames, type BucketObject } from './cleanup-superseded-tiles';
+import {
+  packPrefixes,
+  planCleanup,
+  planWorldBuildCleanup,
+  referencedNames,
+  type BucketObject,
+} from './cleanup-superseded-tiles';
 
 const NOW = Date.parse('2026-11-01T00:00:00Z');
 const OLD = '2026-09-23T00:00:00Z';
@@ -15,23 +21,26 @@ const manifest = (...files: Array<{ name: string; key?: string }>) => ({
 
 describe('packPrefixes', () => {
   it('finds trail and grid prefixes with a manifest, and nothing else', () => {
-    expect(packPrefixes([
-      obj('larapinta/manifest.json'),
-      obj('larapinta/base.aaaa.mbtiles'),
-      obj('grid/E114_S34/manifest.json'),
-      obj('grid/index.json'),
-      obj('manifest.json'),
-      obj('trails/v1/catalog.json'),
-      obj('contours/world.pmtiles'),
-      obj('nomanifest/base.mbtiles'),
-    ])).toEqual(['grid/E114_S34/', 'larapinta/']);
+    expect(
+      packPrefixes([
+        obj('larapinta/manifest.json'),
+        obj('larapinta/base.aaaa.mbtiles'),
+        obj('grid/E114_S34/manifest.json'),
+        obj('grid/index.json'),
+        obj('manifest.json'),
+        obj('trails/v1/catalog.json'),
+        obj('contours/world.pmtiles'),
+        obj('nomanifest/base.mbtiles'),
+      ])
+    ).toEqual(['grid/E114_S34/', 'larapinta/']);
   });
 });
 
 describe('referencedNames', () => {
   it('takes the content-addressed key and the plain name old app builds download', () => {
-    expect([...referencedNames(manifest({ name: 'base.mbtiles', key: 'base.aaaa.mbtiles' }, { name: 'contours.mbtiles' }))])
-      .toEqual(['base.mbtiles', 'base.aaaa.mbtiles', 'contours.mbtiles']);
+    expect([
+      ...referencedNames(manifest({ name: 'base.mbtiles', key: 'base.aaaa.mbtiles' }, { name: 'contours.mbtiles' })),
+    ]).toEqual(['base.mbtiles', 'base.aaaa.mbtiles', 'contours.mbtiles']);
   });
 
   it('refuses something that is not a manifest', () => {
@@ -58,7 +67,13 @@ describe('planCleanup', () => {
 
   it('deletes unreferenced old pack files and keeps everything else', () => {
     const manifests = new Map<string, unknown>([
-      ['larapinta/', manifest({ name: 'base.mbtiles', key: 'base.new1.mbtiles' }, { name: 'contours.mbtiles', key: 'contours.new2.mbtiles' })],
+      [
+        'larapinta/',
+        manifest(
+          { name: 'base.mbtiles', key: 'base.new1.mbtiles' },
+          { name: 'contours.mbtiles', key: 'contours.new2.mbtiles' }
+        ),
+      ],
       ['cdt/', new Error('rclone cat failed')],
     ]);
     const plan = planCleanup(objects, manifests, { now: NOW, graceDays: 7 });
@@ -71,7 +86,13 @@ describe('planCleanup', () => {
 
   it('leaves a prefix alone until its manifest has been live for the grace', () => {
     const manifests = new Map<string, unknown>([
-      ['larapinta/', manifest({ name: 'base.mbtiles', key: 'base.new1.mbtiles' }, { name: 'contours.mbtiles', key: 'contours.new2.mbtiles' })],
+      [
+        'larapinta/',
+        manifest(
+          { name: 'base.mbtiles', key: 'base.new1.mbtiles' },
+          { name: 'contours.mbtiles', key: 'contours.new2.mbtiles' }
+        ),
+      ],
       ['cdt/', manifest({ name: 'base.mbtiles' })],
     ]);
     // cdt's base.old.mbtiles is a month old, but the manifest that dropped it
@@ -84,7 +105,13 @@ describe('planCleanup', () => {
 
   it('a grace of 0 days deletes recent superseded files too', () => {
     const manifests = new Map<string, unknown>([
-      ['larapinta/', manifest({ name: 'base.mbtiles', key: 'base.new1.mbtiles' }, { name: 'contours.mbtiles', key: 'contours.new2.mbtiles' })],
+      [
+        'larapinta/',
+        manifest(
+          { name: 'base.mbtiles', key: 'base.new1.mbtiles' },
+          { name: 'contours.mbtiles', key: 'contours.new2.mbtiles' }
+        ),
+      ],
       ['cdt/', manifest({ name: 'base.mbtiles' })],
     ]);
     const plan = planCleanup(objects, manifests, { now: NOW, graceDays: 0 });

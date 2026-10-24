@@ -161,10 +161,7 @@ function reverseSingleJunction<V extends ReversibleVariant>(variant: V, totalDis
  * untouched — their waypoint km are variant-relative and there is nothing to
  * mirror.
  */
-export function reverseAlternates<V extends ReversibleVariant>(
-  alternates: V[],
-  totalDistance: number,
-): V[] {
+export function reverseAlternates<V extends ReversibleVariant>(alternates: V[], totalDistance: number): V[] {
   return alternates.map(alt => {
     if (alt.startDistance == null || alt.endDistance == null) {
       return reverseSingleJunction(alt, totalDistance) ?? alt;
@@ -192,10 +189,7 @@ export function reverseAlternates<V extends ReversibleVariant>(
  * Side trips without a junction are returned untouched — their waypoint km
  * are variant-relative and mirroring would corrupt them.
  */
-export function transformSideTrips<V extends ReversibleVariant>(
-  sideTrips: V[],
-  totalDistance: number,
-): V[] {
+export function transformSideTrips<V extends ReversibleVariant>(sideTrips: V[], totalDistance: number): V[] {
   return sideTrips.map(trip => {
     if (trip.startDistance != null && trip.endDistance != null) {
       return mirrorStartJunction(trip, totalDistance);

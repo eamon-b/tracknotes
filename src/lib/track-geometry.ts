@@ -40,13 +40,9 @@ export interface ElevationPoint extends DistancePoint {
 
 /** Whether a point carries the pre-computed cumulative climb pair. */
 export function hasCumulativeElevation(
-  point: ElevationPoint | undefined,
+  point: ElevationPoint | undefined
 ): point is ElevationPoint & { cumAscent: number; cumDescent: number } {
-  return (
-    point !== undefined &&
-    typeof point.cumAscent === 'number' &&
-    typeof point.cumDescent === 'number'
-  );
+  return point !== undefined && typeof point.cumAscent === 'number' && typeof point.cumDescent === 'number';
 }
 
 /**
@@ -100,7 +96,7 @@ export function calculateElevationBetween(
   startKm: number,
   endKm: number,
   trackPoints: ElevationPoint[],
-  breakStarts: ReadonlySet<number> = NO_BREAK_STARTS,
+  breakStarts: ReadonlySet<number> = NO_BREAK_STARTS
 ): { gain: number; loss: number } {
   const startIdx = findNearestByDistance(trackPoints, startKm);
   const endIdx = findNearestByDistance(trackPoints, endKm);
@@ -146,7 +142,7 @@ export function calculateElevationBetween(
  */
 export function annotateCumulativeElevation<T extends ElevationPoint>(
   points: readonly T[],
-  breakStarts: ReadonlySet<number> = NO_BREAK_STARTS,
+  breakStarts: ReadonlySet<number> = NO_BREAK_STARTS
 ): Array<T & { cumAscent: number; cumDescent: number }> {
   let cumAscent = 0;
   let cumDescent = 0;

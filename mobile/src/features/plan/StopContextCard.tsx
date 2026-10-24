@@ -47,7 +47,10 @@ export function StopContextCard({
     <View
       style={[
         styles.card,
-        { backgroundColor: colors.surface, borderColor: isStop ? colors.waypointCamp : colors.border },
+        {
+          backgroundColor: colors.surface,
+          borderColor: isStop ? colors.waypointCamp : colors.border,
+        },
       ]}
     >
       <View style={styles.head}>

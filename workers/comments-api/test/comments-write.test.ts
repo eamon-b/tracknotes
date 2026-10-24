@@ -1,15 +1,6 @@
 import { SELF } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
-import {
-  authHeaders,
-  banUser,
-  createComment,
-  makeAdmin,
-  putComment,
-  registerDevice,
-  url,
-  wpId,
-} from './helpers';
+import { authHeaders, banUser, createComment, makeAdmin, putComment, registerDevice, url, wpId } from './helpers';
 import type { FeedComment } from '../../../src/lib/comments-api-types';
 
 describe('PUT /v1/comments/:id — idempotent create', () => {
@@ -29,9 +20,7 @@ describe('PUT /v1/comments/:id — idempotent create', () => {
     expect(secondBody.createdAt).toBe(firstBody.createdAt); // same row
 
     // Exactly one row in the feed.
-    const feed = await SELF.fetch(
-      url(`/v1/trails/heysen/waypoints/${wpId('creek-crossing')}/comments`)
-    );
+    const feed = await SELF.fetch(url(`/v1/trails/heysen/waypoints/${wpId('creek-crossing')}/comments`));
     const feedBody = (await feed.json()) as { comments: FeedComment[] };
     expect(feedBody.comments).toHaveLength(1);
   });
@@ -45,9 +34,7 @@ describe('PUT /v1/comments/:id — idempotent create', () => {
     expect((await putComment(a, id, body)).status).toBe(201);
     const conflict = await putComment(b, id, body);
     expect(conflict.status).toBe(409);
-    expect(((await conflict.json()) as { error: { code: string } }).error.code).toBe(
-      'id_conflict'
-    );
+    expect(((await conflict.json()) as { error: { code: string } }).error.code).toBe('id_conflict');
   });
 
   it('accepts a water-only report (no text)', async () => {
@@ -93,9 +80,7 @@ describe('validation', () => {
     const device = await registerDevice();
     const { res } = await createComment(device, { text: null, waterStatus: 'trickle' });
     expect(res.status).toBe(400);
-    expect(((await res.json()) as { error: { code: string } }).error.code).toBe(
-      'invalid_water_status'
-    );
+    expect(((await res.json()) as { error: { code: string } }).error.code).toBe('invalid_water_status');
   });
 
   it('rejects a non-uuid comment id', async () => {

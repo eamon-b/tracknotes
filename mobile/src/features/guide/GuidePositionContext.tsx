@@ -16,9 +16,7 @@ const GuidePositionContext = createContext<GuidePosition | null>(null);
 
 export function GuidePositionProvider({ children }: { children: React.ReactNode }) {
   const value = useGuidePosition();
-  return (
-    <GuidePositionContext.Provider value={value}>{children}</GuidePositionContext.Provider>
-  );
+  return <GuidePositionContext.Provider value={value}>{children}</GuidePositionContext.Provider>;
 }
 
 export function useGuidePositionContext(): GuidePosition {

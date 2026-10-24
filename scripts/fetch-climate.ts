@@ -119,11 +119,7 @@ function sleep(ms: number): Promise<void> {
  * Fetch historical climate data from Open-Meteo for a single location.
  * Throws RateLimitError on 429 responses so callers can handle retry logic.
  */
-async function fetchHistoricalClimate(
-  lat: number,
-  lon: number,
-  elevation?: number
-): Promise<OpenMeteoResponse> {
+async function fetchHistoricalClimate(lat: number, lon: number, elevation?: number): Promise<OpenMeteoResponse> {
   const params = new URLSearchParams({
     latitude: lat.toString(),
     longitude: lon.toString(),
@@ -153,11 +149,7 @@ async function fetchHistoricalClimate(
 /**
  * Fetch climate data with automatic retry on rate limit errors.
  */
-async function fetchWithRetry(
-  lat: number,
-  lon: number,
-  elevation?: number
-): Promise<OpenMeteoResponse> {
+async function fetchWithRetry(lat: number, lon: number, elevation?: number): Promise<OpenMeteoResponse> {
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
       return await fetchHistoricalClimate(lat, lon, elevation);
@@ -185,9 +177,7 @@ function findWaypointDistance(
   waypointName: string,
   waypoints: ProcessedTrail['waypoints']
 ): { distance: number; elevation: number } | null {
-  const wp = waypoints.find(w =>
-    w.name.toLowerCase() === waypointName.toLowerCase()
-  );
+  const wp = waypoints.find(w => w.name.toLowerCase() === waypointName.toLowerCase());
 
   if (wp && wp.totalDistance != null) {
     return {
@@ -302,9 +292,7 @@ async function processTrail(trailDir: string, mode: FetchMode): Promise<boolean>
 
       // Add distance along trail if waypoint reference exists
       const wpData =
-        loc.waypointName && waypoints.length > 0
-          ? findWaypointDistance(loc.waypointName, waypoints)
-          : null;
+        loc.waypointName && waypoints.length > 0 ? findWaypointDistance(loc.waypointName, waypoints) : null;
 
       const locationData: ClimateLocationData = {
         name: loc.name,
@@ -388,7 +376,8 @@ async function main() {
 
   if (specificTrail) {
     // Find trail directory by matching trail ID in trail.json
-    const allDirs = fs.readdirSync(DATA_DIR)
+    const allDirs = fs
+      .readdirSync(DATA_DIR)
       .map(name => path.join(DATA_DIR, name))
       .filter(p => fs.statSync(p).isDirectory());
 
@@ -410,7 +399,8 @@ async function main() {
     }
     trailDirs = [matchingDir];
   } else {
-    trailDirs = fs.readdirSync(DATA_DIR)
+    trailDirs = fs
+      .readdirSync(DATA_DIR)
       .map(name => path.join(DATA_DIR, name))
       .filter(p => fs.statSync(p).isDirectory());
   }

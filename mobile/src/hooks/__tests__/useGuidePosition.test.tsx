@@ -42,7 +42,9 @@ jest.mock('../../services/location-service', () => ({
   stopLocationTracking: jest.fn(),
 }));
 
-type Update = Parameters<typeof locationService.startLocationTracking>[0] extends (u: infer U) => void
+type Update = Parameters<typeof locationService.startLocationTracking>[0] extends (
+  u: infer U,
+) => void
   ? U
   : never;
 
@@ -73,10 +75,12 @@ describe('useGuidePosition state machine', () => {
     mockSettings.setGpsOnGuideOpen.mockClear();
     (locationService.requestLocationPermission as jest.Mock).mockResolvedValue('granted');
     (locationService.getLocationPermissionStatus as jest.Mock).mockResolvedValue('undetermined');
-    (locationService.startLocationTracking as jest.Mock).mockImplementation((cb: (u: Update) => void) => {
-      captured = cb;
-      return Promise.resolve();
-    });
+    (locationService.startLocationTracking as jest.Mock).mockImplementation(
+      (cb: (u: Update) => void) => {
+        captured = cb;
+        return Promise.resolve();
+      },
+    );
   });
 
   it('does not start on its own when the hiker never turned location on', async () => {

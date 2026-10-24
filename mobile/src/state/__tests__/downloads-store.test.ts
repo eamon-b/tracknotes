@@ -53,16 +53,14 @@ describe('downloads-store', () => {
   });
 
   it('runs a download to completion with progress', async () => {
-    mockDownload.mockImplementation(
-      async (_id: string, _url: string, opts: DownloadOptions) => {
-        opts.onProgress?.({
-          fileName: 'base.mbtiles',
-          done: true,
-          bytesDownloaded: 50,
-          bytesTotal: 100,
-        });
-      },
-    );
+    mockDownload.mockImplementation(async (_id: string, _url: string, opts: DownloadOptions) => {
+      opts.onProgress?.({
+        fileName: 'base.mbtiles',
+        done: true,
+        bytesDownloaded: 50,
+        bytesTotal: 100,
+      });
+    });
     mockGetStatus.mockReturnValue(status('complete'));
 
     await useDownloadsStore.getState().startDownload('aawt', 'https://tiles.example');
@@ -122,7 +120,10 @@ describe('downloads-store', () => {
     // downloadTrailTiles overwrote them in place (native crash risk).
     let finishDownload: (() => void) | undefined;
     mockDownload.mockImplementation(
-      () => new Promise<void>((resolve) => { finishDownload = resolve; }),
+      () =>
+        new Promise<void>((resolve) => {
+          finishDownload = resolve;
+        }),
     );
     mockGetStatus.mockReturnValue(status('complete'));
 

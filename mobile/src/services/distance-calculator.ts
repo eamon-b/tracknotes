@@ -84,7 +84,13 @@ export function calculateDistancesToWaypoints<W extends DistanceWaypoint>(
   const upcoming = waypoints.filter((wp) => (wp.totalDistance ?? 0) > currentKm);
 
   return upcoming.map((wp) => {
-    const trip = tripAlongTrail(currentKm, wp.totalDistance ?? 0, trackPoints, baseKmh, breakStarts);
+    const trip = tripAlongTrail(
+      currentKm,
+      wp.totalDistance ?? 0,
+      trackPoints,
+      baseKmh,
+      breakStarts,
+    );
     return {
       waypoint: wp,
       trailDistanceKm: trip.distanceKm,

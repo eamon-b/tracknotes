@@ -20,11 +20,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { getDatabase } from '../../db/database';
 import { listWaterReportsByTrail } from '../../db/water-status-repo';
 import { onSyncChange } from '../../sync/sync-events';
-import {
-  buildWaterStatusMap,
-  waterWindowStartIso,
-  type WaterAggregate,
-} from './water-aggregate';
+import { buildWaterStatusMap, waterWindowStartIso, type WaterAggregate } from './water-aggregate';
 
 const EMPTY: ReadonlyMap<string, WaterAggregate> = new Map();
 

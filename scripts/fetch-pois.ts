@@ -97,17 +97,8 @@ import * as net from 'net';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 
-import {
-  POI_TYPES,
-  buildCorridorChunks,
-  packCorridorChunks,
-  type POIType,
-} from '../src/lib/osm-poi.js';
-import {
-  DEFAULT_OVERPASS_ENDPOINT,
-  createOverpassFetcher,
-  type POIFetcher,
-} from '../src/lib/overpass-client.js';
+import { POI_TYPES, buildCorridorChunks, packCorridorChunks, type POIType } from '../src/lib/osm-poi.js';
+import { DEFAULT_OVERPASS_ENDPOINT, createOverpassFetcher, type POIFetcher } from '../src/lib/overpass-client.js';
 import { enrichRoute, placePois, prepareCorridor, type ChunkFailure } from '../src/lib/poi-enrichment.js';
 import { POI_SEARCH_RADIUS_KM } from '../src/lib/trail-poi-search.js';
 
@@ -365,10 +356,7 @@ async function repositionTrail(trailPath: string, trailDir: string, dryRun: bool
 
 /** The filesystem calls the trail-directory lookup makes. Injectable for tests. */
 export interface TrailDirIO {
-  readdirSync(
-    dir: string,
-    options: { withFileTypes: true }
-  ): Array<{ name: string; isDirectory(): boolean }>;
+  readdirSync(dir: string, options: { withFileTypes: true }): Array<{ name: string; isDirectory(): boolean }>;
   existsSync(filePath: string): boolean;
   readFileSync(filePath: string, encoding: 'utf-8'): string;
 }
@@ -427,12 +415,7 @@ function countByCategory(pois: TrailPOI[]): Record<string, number> {
 }
 
 /** Report the corridor a trail would query, without making any request. */
-function dryRunTrail(
-  trailPath: string,
-  trailDir: string,
-  maxVertices: number,
-  kmRange: KmRange | null
-): void {
+function dryRunTrail(trailPath: string, trailDir: string, maxVertices: number, kmRange: KmRange | null): void {
   const trailId = path.basename(trailPath, '.json');
   console.log(`\nProcessing: ${trailId} (dry run)`);
 
@@ -467,9 +450,7 @@ function dryRunTrail(
   console.log(`  Types: ${ALL_POI_TYPES.join(', ')}`);
   console.log(
     `  Would write: ${trailPOIPath(trailDir)}` +
-      (existing
-        ? ` (${existing.pois.length} POI(s), ${existing.rejected.length} rejected — kept)`
-        : ' (new file)')
+      (existing ? ` (${existing.pois.length} POI(s), ${existing.rejected.length} rejected — kept)` : ' (new file)')
   );
   console.log('  No requests made, no files written.');
 }
@@ -501,9 +482,7 @@ async function processTrail(
     return { updated: false, incomplete: false };
   }
 
-  console.log(
-    `  Queried ${result.queryChunks} corridor chunk(s) in ${(result.queryTimeMs / 1000).toFixed(1)}s`
-  );
+  console.log(`  Queried ${result.queryChunks} corridor chunk(s) in ${(result.queryTimeMs / 1000).toFixed(1)}s`);
   for (const failure of result.failedChunks) {
     console.log(`  Chunk ${failure.chunkIndex + 1} FAILED: ${failure.error}`);
   }
@@ -562,8 +541,7 @@ async function processTrail(
   }
   const written = writeTrailPOIFile(trailDir, file);
   console.log(
-    `  Updated ${written}` +
-      (file.rejected.length > 0 ? ` (kept ${file.rejected.length} rejected key(s))` : '')
+    `  Updated ${written}` + (file.rejected.length > 0 ? ` (kept ${file.rejected.length} rejected key(s))` : '')
   );
 
   return { updated: result.pois.length > 0, incomplete: result.failedChunks.length > 0 };
@@ -581,20 +559,14 @@ function printUsage(): void {
   console.log('');
   console.log('Options:');
   console.log('  trail-id         Process only this trail (default: all generated trails)');
-  console.log(
-    '  --dry-run        Build the corridor and print query counts; no network, no writes'
-  );
-  console.log(
-    `  --endpoint <url> Overpass instance (env OVERPASS_ENDPOINT, default ${DEFAULT_ENDPOINT})`
-  );
+  console.log('  --dry-run        Build the corridor and print query counts; no network, no writes');
+  console.log(`  --endpoint <url> Overpass instance (env OVERPASS_ENDPOINT, default ${DEFAULT_ENDPOINT})`);
   console.log(
     `  --timeout <s>    Overpass [timeout:] in seconds (default ${DEFAULT_TIMEOUT_SECONDS})`,
     `  --max-vertices <n>  Corridor vertices per query (default ${MAX_VERTICES_PER_CHUNK})`
   );
   console.log('  --from-km <km>, --to-km <km>  Fetch only this window and merge it into the file');
-  console.log(
-    '  --force-replace  Replace pois.json even when chunks failed (default: merge, exit 1)'
-  );
+  console.log('  --force-replace  Replace pois.json even when chunks failed (default: merge, exit 1)');
   console.log('  --reposition     No network: re-place the POIs in pois.json on the current track');
   console.log('  --help, -h       Show this message');
   console.log('');
@@ -831,15 +803,7 @@ async function main(): Promise<void> {
 
   for (const { trailFile, trailDir } of targets) {
     try {
-      const outcome = await processTrail(
-        trailFile,
-        trailDir,
-        fetchPOIs,
-        endpoint,
-        maxVertices,
-        kmRange,
-        forceReplace
-      );
+      const outcome = await processTrail(trailFile, trailDir, fetchPOIs, endpoint, maxVertices, kmRange, forceReplace);
       if (outcome.updated) updatedCount++;
       if (outcome.incomplete) incomplete.push(path.basename(trailFile, '.json'));
     } catch (error) {
@@ -866,8 +830,7 @@ async function main(): Promise<void> {
 }
 
 const invokedPath = process.argv[1];
-const isMain =
-  typeof invokedPath === 'string' && path.resolve(invokedPath) === fileURLToPath(import.meta.url);
+const isMain = typeof invokedPath === 'string' && path.resolve(invokedPath) === fileURLToPath(import.meta.url);
 
 if (isMain) {
   // Overpass over a black-holed IPv6 route otherwise burns the whole request

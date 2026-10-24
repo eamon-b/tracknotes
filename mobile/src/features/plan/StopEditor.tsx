@@ -94,7 +94,11 @@ function NoteField({ note, onNote }: { note?: string; onNote: (note: string) => 
       maxLength={PLAN_LIMITS.noteMax}
       style={[
         styles.note,
-        { color: colors.textPrimary, backgroundColor: colors.background, borderColor: colors.border },
+        {
+          color: colors.textPrimary,
+          backgroundColor: colors.background,
+          borderColor: colors.border,
+        },
       ]}
     />
   );

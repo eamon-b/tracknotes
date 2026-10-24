@@ -111,7 +111,6 @@ export function PlanInputsCard(props: PlanInputsCardProps) {
         <Text style={[styles.rowLabel, { color: colors.textSecondary }]}>Pace</Text>
         <SegmentedControl options={PACE_OPTIONS} value={pace} onChange={props.onPace} />
       </View>
-
     </View>
   );
 }
@@ -138,7 +137,12 @@ function BoundaryRow({
   const { colors } = useTheme();
   return (
     <View style={styles.boundaryRow}>
-      <StepButton label="◀" accessibilityLabel={`Previous ${label}`} disabled={!canPrev} onPress={onPrev} />
+      <StepButton
+        label="◀"
+        accessibilityLabel={`Previous ${label}`}
+        disabled={!canPrev}
+        onPress={onPrev}
+      />
       <View style={styles.boundaryLabel}>
         <Text style={[styles.rowLabel, { color: colors.textSecondary }]}>{label}</Text>
         <Text style={[styles.boundaryName, { color: colors.textPrimary }]} numberOfLines={1}>
@@ -148,7 +152,12 @@ function BoundaryRow({
           {formatDistance(km, units)}
         </Text>
       </View>
-      <StepButton label="▶" accessibilityLabel={`Next ${label}`} disabled={!canNext} onPress={onNext} />
+      <StepButton
+        label="▶"
+        accessibilityLabel={`Next ${label}`}
+        disabled={!canNext}
+        onPress={onNext}
+      />
     </View>
   );
 }
@@ -208,7 +217,12 @@ const styles = StyleSheet.create({
   paceRow: { gap: spacing.sm },
   rowLabel: { ...typography.bodySmall },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  hoursValue: { ...typography.titleSmall, minWidth: 48, textAlign: 'center', fontVariant: ['tabular-nums'] },
+  hoursValue: {
+    ...typography.titleSmall,
+    minWidth: 48,
+    textAlign: 'center',
+    fontVariant: ['tabular-nums'],
+  },
 
   stepButton: {
     width: touchTarget.min,

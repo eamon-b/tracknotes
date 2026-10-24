@@ -5,16 +5,14 @@ import { migrateDatabase, SCHEMA_VERSION } from '../schema';
 describe('schema v1', () => {
   it('migrates a fresh database to the current version', async () => {
     const db = await createMigratedTestDb();
-    const row = await db.getFirstAsync<{ version: number }>(
-      'SELECT version FROM schema_version'
-    );
+    const row = await db.getFirstAsync<{ version: number }>('SELECT version FROM schema_version');
     expect(row?.version).toBe(SCHEMA_VERSION);
   });
 
   it('creates all v1 tables', async () => {
     const db = await createMigratedTestDb();
     const rows = await db.getAllAsync<{ name: string }>(
-      "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name"
+      "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name",
     );
     const tables = rows.map((r) => r.name);
     for (const table of ['guides', 'favorites', 'comments', 'outbox', 'sync_state']) {
@@ -25,9 +23,7 @@ describe('schema v1', () => {
   it('is idempotent when already at the current version', async () => {
     const db = await createMigratedTestDb();
     await migrateDatabase(db as never);
-    const row = await db.getFirstAsync<{ version: number }>(
-      'SELECT version FROM schema_version'
-    );
+    const row = await db.getFirstAsync<{ version: number }>('SELECT version FROM schema_version');
     expect(row?.version).toBe(SCHEMA_VERSION);
   });
 
@@ -36,20 +32,20 @@ describe('schema v1', () => {
     await expectDbRejection(() =>
       db.runAsync(
         `INSERT INTO comments (id, trail_id, waypoint_id, body, water_status, created_at)
-         VALUES ('c1', 'larapinta', 'w_abcd1234', 'hi', 'gushing', '2026-07-29T00:00:00Z')`
-      )
+         VALUES ('c1', 'larapinta', 'w_abcd1234', 'hi', 'gushing', '2026-07-29T00:00:00Z')`,
+      ),
     );
   });
 
   it('rejects duplicate favorites for the same waypoint', async () => {
     const db = await createMigratedTestDb();
     await db.runAsync(
-      "INSERT INTO favorites (trail_id, waypoint_id) VALUES ('larapinta', 'w_abcd1234')"
+      "INSERT INTO favorites (trail_id, waypoint_id) VALUES ('larapinta', 'w_abcd1234')",
     );
     await expectDbRejection(() =>
       db.runAsync(
-        "INSERT INTO favorites (trail_id, waypoint_id) VALUES ('larapinta', 'w_abcd1234')"
-      )
+        "INSERT INTO favorites (trail_id, waypoint_id) VALUES ('larapinta', 'w_abcd1234')",
+      ),
     );
   });
 });
@@ -58,14 +54,14 @@ describe('schema v2 — routes', () => {
   async function seedRoute(db: Awaited<ReturnType<typeof createMigratedTestDb>>) {
     await db.runAsync(
       `INSERT INTO routes (id, trail_id, name, total_km, ascent_m, descent_m, created_at, updated_at)
-       VALUES ('rt1', 'larapinta', 'Day 1', 12.3, 400, 200, '2026-07-29T00:00:00Z', '2026-07-29T00:00:00Z')`
+       VALUES ('rt1', 'larapinta', 'Day 1', 12.3, 400, 200, '2026-07-29T00:00:00Z', '2026-07-29T00:00:00Z')`,
     );
   }
 
   it('creates the routes + route_points tables', async () => {
     const db = await createMigratedTestDb();
     const rows = await db.getAllAsync<{ name: string }>(
-      "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name"
+      "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name",
     );
     const tables = rows.map((r) => r.name);
     expect(tables).toContain('routes');
@@ -77,8 +73,8 @@ describe('schema v2 — routes', () => {
     await seedRoute(db);
     await expectDbRejection(() =>
       db.runAsync(
-        "INSERT INTO route_points (route_id, seq, kind, lat, lon, km) VALUES ('rt1', 0, 'wander', -23, 133, 0)"
-      )
+        "INSERT INTO route_points (route_id, seq, kind, lat, lon, km) VALUES ('rt1', 0, 'wander', -23, 133, 0)",
+      ),
     );
   });
 
@@ -86,13 +82,13 @@ describe('schema v2 — routes', () => {
     const db = await createMigratedTestDb();
     await seedRoute(db);
     await db.runAsync(
-      "INSERT INTO route_points (route_id, seq, kind, lat, lon, km) VALUES ('rt1', 0, 'snap', -23.5, 133.2, 4.5)"
+      "INSERT INTO route_points (route_id, seq, kind, lat, lon, km) VALUES ('rt1', 0, 'snap', -23.5, 133.2, 4.5)",
     );
     await db.runAsync(
-      "INSERT INTO route_points (route_id, seq, kind, lat, lon, km) VALUES ('rt1', 1, 'sketch', -23.6, 133.3, NULL)"
+      "INSERT INTO route_points (route_id, seq, kind, lat, lon, km) VALUES ('rt1', 1, 'sketch', -23.6, 133.3, NULL)",
     );
     const rows = await db.getAllAsync<{ seq: number }>(
-      "SELECT seq FROM route_points WHERE route_id = 'rt1' ORDER BY seq"
+      "SELECT seq FROM route_points WHERE route_id = 'rt1' ORDER BY seq",
     );
     expect(rows.map((r) => r.seq)).toEqual([0, 1]);
   });
@@ -101,12 +97,12 @@ describe('schema v2 — routes', () => {
     const db = await createMigratedTestDb();
     await seedRoute(db);
     await db.runAsync(
-      "INSERT INTO route_points (route_id, seq, kind, lat, lon, km) VALUES ('rt1', 0, 'snap', -23.5, 133.2, 4.5)"
+      "INSERT INTO route_points (route_id, seq, kind, lat, lon, km) VALUES ('rt1', 0, 'snap', -23.5, 133.2, 4.5)",
     );
     await expectDbRejection(() =>
       db.runAsync(
-        "INSERT INTO route_points (route_id, seq, kind, lat, lon, km) VALUES ('rt1', 0, 'snap', -23.5, 133.2, 4.5)"
-      )
+        "INSERT INTO route_points (route_id, seq, kind, lat, lon, km) VALUES ('rt1', 0, 'snap', -23.5, 133.2, 4.5)",
+      ),
     );
   });
 
@@ -114,11 +110,11 @@ describe('schema v2 — routes', () => {
     const db = await createMigratedTestDb();
     await seedRoute(db);
     await db.runAsync(
-      "INSERT INTO route_points (route_id, seq, kind, lat, lon, km) VALUES ('rt1', 0, 'snap', -23.5, 133.2, 4.5)"
+      "INSERT INTO route_points (route_id, seq, kind, lat, lon, km) VALUES ('rt1', 0, 'snap', -23.5, 133.2, 4.5)",
     );
     await db.runAsync("DELETE FROM routes WHERE id = 'rt1'");
     const rows = await db.getAllAsync<{ seq: number }>(
-      "SELECT seq FROM route_points WHERE route_id = 'rt1'"
+      "SELECT seq FROM route_points WHERE route_id = 'rt1'",
     );
     expect(rows).toHaveLength(0);
   });
@@ -128,7 +124,7 @@ describe('schema v3 — synced waypoint descriptions', () => {
   it('creates the waypoint_meta table', async () => {
     const db = await createMigratedTestDb();
     const rows = await db.getAllAsync<{ name: string }>(
-      "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name"
+      "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name",
     );
     expect(rows.map((r) => r.name)).toContain('waypoint_meta');
   });
@@ -137,13 +133,13 @@ describe('schema v3 — synced waypoint descriptions', () => {
     const db = await createMigratedTestDb();
     await db.runAsync(
       `INSERT INTO waypoint_meta (trail_id, waypoint_id, description, updated_at)
-       VALUES ('larapinta', 'w_abcd1234', 'Tank.', '2026-08-01T00:00:00Z')`
+       VALUES ('larapinta', 'w_abcd1234', 'Tank.', '2026-08-01T00:00:00Z')`,
     );
     await expectDbRejection(() =>
       db.runAsync(
         `INSERT INTO waypoint_meta (trail_id, waypoint_id, description, updated_at)
-         VALUES ('larapinta', 'w_abcd1234', 'Tank again.', '2026-08-02T00:00:00Z')`
-      )
+         VALUES ('larapinta', 'w_abcd1234', 'Tank again.', '2026-08-02T00:00:00Z')`,
+      ),
     );
   });
 
@@ -160,7 +156,7 @@ describe('schema v4 — imported-trail registry', () => {
   it('creates the imported_trails table on a fresh install', async () => {
     const db = await createMigratedTestDb();
     const rows = await db.getAllAsync<{ name: string }>(
-      "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name"
+      "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name",
     );
     expect(rows.map((r) => r.name)).toContain('imported_trails');
   });
@@ -204,7 +200,7 @@ describe('schema v4 — imported-trail registry', () => {
     const db = await createMigratedTestDb();
     await db.runAsync(
       `INSERT INTO imported_trails (id, name, short_name, length_km)
-       VALUES ('u_abc123', 'My Loop', 'Loop', 42.5)`
+       VALUES ('u_abc123', 'My Loop', 'Loop', 42.5)`,
     );
     const row = await db.getFirstAsync<{
       source: string;
@@ -222,13 +218,13 @@ describe('schema v4 — imported-trail registry', () => {
     const db = await createMigratedTestDb();
     await db.runAsync(
       `INSERT INTO imported_trails (id, name, short_name, length_km)
-       VALUES ('u_abc123', 'My Loop', 'Loop', 42.5)`
+       VALUES ('u_abc123', 'My Loop', 'Loop', 42.5)`,
     );
     await expectDbRejection(() =>
       db.runAsync(
         `INSERT INTO imported_trails (id, name, short_name, length_km)
-         VALUES ('u_abc123', 'Other', 'Other', 1)`
-      )
+         VALUES ('u_abc123', 'Other', 'Other', 1)`,
+      ),
     );
   });
 
@@ -239,28 +235,28 @@ describe('schema v4 — imported-trail registry', () => {
     const db = createTestDatabase();
     await migrateDatabase(db as never, 3);
     await db.runAsync(
-      "INSERT INTO favorites (trail_id, waypoint_id) VALUES ('larapinta', 'w_abcd1234')"
+      "INSERT INTO favorites (trail_id, waypoint_id) VALUES ('larapinta', 'w_abcd1234')",
     );
 
     let tables = await db.getAllAsync<{ name: string }>(
-      "SELECT name FROM sqlite_master WHERE type = 'table'"
+      "SELECT name FROM sqlite_master WHERE type = 'table'",
     );
     expect(tables.map((t) => t.name)).not.toContain('imported_trails');
 
     await migrateDatabase(db as never);
 
     tables = await db.getAllAsync<{ name: string }>(
-      "SELECT name FROM sqlite_master WHERE type = 'table'"
+      "SELECT name FROM sqlite_master WHERE type = 'table'",
     );
     expect(tables.map((t) => t.name)).toContain('imported_trails');
 
     const version = await db.getFirstAsync<{ version: number }>(
-      'SELECT version FROM schema_version'
+      'SELECT version FROM schema_version',
     );
     expect(version?.version).toBe(SCHEMA_VERSION);
 
     const favorites = await db.getAllAsync<{ waypoint_id: string }>(
-      "SELECT waypoint_id FROM favorites WHERE trail_id = 'larapinta'"
+      "SELECT waypoint_id FROM favorites WHERE trail_id = 'larapinta'",
     );
     expect(favorites.map((f) => f.waypoint_id)).toEqual(['w_abcd1234']);
   });
@@ -354,28 +350,28 @@ describe('schema v5 — plan documents', () => {
     const db = createTestDatabase();
     await migrateDatabase(db as never, 4);
     await db.runAsync(
-      "INSERT INTO favorites (trail_id, waypoint_id) VALUES ('larapinta', 'w_abcd1234')"
+      "INSERT INTO favorites (trail_id, waypoint_id) VALUES ('larapinta', 'w_abcd1234')",
     );
 
     let tables = await db.getAllAsync<{ name: string }>(
-      "SELECT name FROM sqlite_master WHERE type = 'table'"
+      "SELECT name FROM sqlite_master WHERE type = 'table'",
     );
     expect(tables.map((t) => t.name)).not.toContain('plans');
 
     await migrateDatabase(db as never, 5);
 
     tables = await db.getAllAsync<{ name: string }>(
-      "SELECT name FROM sqlite_master WHERE type = 'table'"
+      "SELECT name FROM sqlite_master WHERE type = 'table'",
     );
     expect(tables.map((t) => t.name)).toContain('plans');
 
     const version = await db.getFirstAsync<{ version: number }>(
-      'SELECT version FROM schema_version'
+      'SELECT version FROM schema_version',
     );
     expect(version?.version).toBe(5);
 
     const favorites = await db.getAllAsync<{ waypoint_id: string }>(
-      "SELECT waypoint_id FROM favorites WHERE trail_id = 'larapinta'"
+      "SELECT waypoint_id FROM favorites WHERE trail_id = 'larapinta'",
     );
     expect(favorites.map((f) => f.waypoint_id)).toEqual(['w_abcd1234']);
   });
@@ -388,20 +384,24 @@ describe('schema v6 — ISO outbox timestamps', () => {
     // A row written with the v1 default, and one already stamped explicitly.
     await db.runAsync(
       `INSERT INTO outbox (id, kind, payload_json, created_at, attempts, last_error, status)
-       VALUES ('legacy', 'delete', '{"id":"legacy"}', '2026-10-06 03:04:05', 2, 'x: y', 'failed')`
+       VALUES ('legacy', 'delete', '{"id":"legacy"}', '2026-10-06 03:04:05', 2, 'x: y', 'failed')`,
     );
     await db.runAsync(
       `INSERT INTO outbox (id, kind, trail_id, waypoint_id, payload_json, created_at)
-       VALUES ('iso', 'comment', 'heysen', 'w_1', '{}', '2026-10-06T01:00:00.000Z')`
+       VALUES ('iso', 'comment', 'heysen', 'w_1', '{}', '2026-10-06T01:00:00.000Z')`,
     );
 
     await migrateDatabase(db as never, 6);
 
     const rows = await db.getAllAsync<Record<string, unknown>>(
-      'SELECT * FROM outbox ORDER BY created_at, id'
+      'SELECT * FROM outbox ORDER BY created_at, id',
     );
     expect(rows).toEqual([
-      expect.objectContaining({ id: 'iso', created_at: '2026-10-06T01:00:00.000Z', trail_id: 'heysen' }),
+      expect.objectContaining({
+        id: 'iso',
+        created_at: '2026-10-06T01:00:00.000Z',
+        trail_id: 'heysen',
+      }),
       expect.objectContaining({
         id: 'legacy',
         created_at: '2026-10-06T03:04:05Z',
@@ -412,7 +412,9 @@ describe('schema v6 — ISO outbox timestamps', () => {
     ]);
     // Read as UTC wherever the phone is.
     expect(Date.parse(rows[1].created_at as string)).toBe(Date.UTC(2026, 9, 6, 3, 4, 5));
-    const version = await db.getFirstAsync<{ version: number }>('SELECT version FROM schema_version');
+    const version = await db.getFirstAsync<{ version: number }>(
+      'SELECT version FROM schema_version',
+    );
     expect(version?.version).toBe(6);
   });
 
@@ -420,7 +422,7 @@ describe('schema v6 — ISO outbox timestamps', () => {
     const db = await createMigratedTestDb();
     await db.runAsync("INSERT INTO outbox (id, kind, payload_json) VALUES ('d', 'comment', '{}')");
     const row = await db.getFirstAsync<{ created_at: string }>(
-      "SELECT created_at FROM outbox WHERE id = 'd'"
+      "SELECT created_at FROM outbox WHERE id = 'd'",
     );
     expect(row?.created_at).toMatch(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/);
     expect(Math.abs(Date.parse(row!.created_at) - Date.now())).toBeLessThan(60_000);
@@ -429,7 +431,7 @@ describe('schema v6 — ISO outbox timestamps', () => {
   it('keeps the outbox status index', async () => {
     const db = await createMigratedTestDb();
     const rows = await db.getAllAsync<{ name: string }>(
-      "SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'outbox'"
+      "SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'outbox'",
     );
     expect(rows.map((r) => r.name)).toContain('idx_outbox_status');
   });

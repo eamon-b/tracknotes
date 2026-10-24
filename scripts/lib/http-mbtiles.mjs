@@ -30,7 +30,7 @@ import { TextDecoder, TextEncoder } from 'node:util';
 /** 429s retried before giving up: the data domain rate-limits bursts. */
 const RATE_LIMIT_RETRIES = 6;
 
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
  * A RangeReader over HTTP. Throws on anything but a 206 of the right length,
@@ -337,11 +337,13 @@ export class RemoteSqlite {
 
   /** An index on `table` whose leading columns are `columns`, or null. */
   index(table, columns) {
-    return this.schema.find(e => {
-      if (e.type !== 'index' || e.tblName !== table) return false;
-      const indexed = indexColumns(e.sql);
-      return columns.every((c, i) => indexed[i] === c);
-    }) ?? null;
+    return (
+      this.schema.find(e => {
+        if (e.type !== 'index' || e.tblName !== table) return false;
+        const indexed = indexColumns(e.sql);
+        return columns.every((c, i) => indexed[i] === c);
+      }) ?? null
+    );
   }
 }
 
@@ -355,7 +357,10 @@ export function tableColumns(sql) {
     if (ch === '(') depth++;
     if (ch === ')') depth--;
     if (ch === ',' && depth === 0) {
-      const name = item.trim().split(/\s+/)[0]?.replace(/^["`[]|["`\]]$/g, '');
+      const name = item
+        .trim()
+        .split(/\s+/)[0]
+        ?.replace(/^["`[]|["`\]]$/g, '');
       if (name && !/^(primary|unique|check|foreign|constraint)$/i.test(name)) {
         columns.push({ name: name.toLowerCase(), rowidAlias: /integer\s+primary\s+key/i.test(item) });
       }
@@ -371,7 +376,13 @@ export function tableColumns(sql) {
 export function indexColumns(sql) {
   const m = sql.match(/\(([^)]*)\)\s*$/);
   if (!m) return [];
-  return m[1].split(',').map(c => c.trim().split(/\s+/)[0].replace(/^["`[]|["`\]]$/g, '').toLowerCase());
+  return m[1].split(',').map(c =>
+    c
+      .trim()
+      .split(/\s+/)[0]
+      .replace(/^["`[]|["`\]]$/g, '')
+      .toLowerCase()
+  );
 }
 
 function column(row, table, name, rowid) {

@@ -149,7 +149,11 @@ describe('GuideFocusProvider', () => {
     const harness = renderPanes(
       <>
         <FakePane pane="map" capture={() => mapWindow} />
-        <FakePane pane="elevation" capture={() => ({ startKm: 5, endKm: 6 })} apply={elevationApply} />
+        <FakePane
+          pane="elevation"
+          capture={() => ({ startKm: 5, endKm: 6 })}
+          apply={elevationApply}
+        />
       </>,
     );
 

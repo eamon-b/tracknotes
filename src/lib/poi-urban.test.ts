@@ -62,11 +62,7 @@ describe('anchorKind', () => {
   });
 
   it('is not an anchor for the clutter', () => {
-    const clutter: Record<string, string>[] = [
-      { amenity: 'cafe' },
-      { shop: 'bakery' },
-      { amenity: 'drinking_water' },
-    ];
+    const clutter: Record<string, string>[] = [{ amenity: 'cafe' }, { shop: 'bakery' }, { amenity: 'drinking_water' }];
     for (const tags of clutter) {
       expect(anchorKind(poi(0, 'restaurant', tags))).toBeNull();
     }
@@ -170,9 +166,14 @@ describe('thinUrbanPois', () => {
   it("keeps every POI a trail's keepInCities rule names, and thins the rest as usual", () => {
     const city = cafes(50, 70, 30);
     const konbini = Array.from({ length: 80 }, (_, i) =>
-      poi(50.1 + i * 0.25, 'resupply', { shop: 'convenience', brand: 'Lawson' }, {
-        distanceFromTrail: i % 2 === 0 ? 0.2 : 1.5,
-      })
+      poi(
+        50.1 + i * 0.25,
+        'resupply',
+        { shop: 'convenience', brand: 'Lawson' },
+        {
+          distanceFromTrail: i % 2 === 0 ? 0.2 : 1.5,
+        }
+      )
     );
     const config = { keepInCities: [{ tag: 'shop=convenience', withinKm: 0.5 }] };
     const kept = thinUrbanPois([...city, ...konbini], config)!;

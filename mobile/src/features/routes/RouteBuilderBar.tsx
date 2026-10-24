@@ -67,7 +67,12 @@ export function RouteBuilderBar({
       <View style={styles.actions}>
         <BarButton label="Undo" onPress={onUndo} disabled={!canUndo} tone="neutral" />
         <BarButton label="Cancel" onPress={onCancel} tone="neutral" />
-        <BarButton label="Save" onPress={() => setPromptOpen(true)} disabled={!canSave} tone="accent" />
+        <BarButton
+          label="Save"
+          onPress={() => setPromptOpen(true)}
+          disabled={!canSave}
+          tone="accent"
+        />
       </View>
 
       <Modal
@@ -79,7 +84,9 @@ export function RouteBuilderBar({
         <KeyboardAvoidingModalContent>
           <View style={[styles.modalBackdrop, { backgroundColor: colors.scrim }]}>
             <View style={[styles.modalCard, { backgroundColor: colors.surfaceElevated }]}>
-              <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Name this route</Text>
+              <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
+                Name this route
+              </Text>
               <Text style={[styles.modalHint, { color: colors.textSecondary }]}>
                 {formatDistance(totalKm, unit)} · {pointCount} points
               </Text>
@@ -146,12 +153,7 @@ function BarButton({
         pressed && !disabled && styles.pressed,
       ]}
     >
-      <Text
-        style={[
-          styles.buttonText,
-          { color: accent ? colors.accentText : colors.textPrimary },
-        ]}
-      >
+      <Text style={[styles.buttonText, { color: accent ? colors.accentText : colors.textPrimary }]}>
         {label}
       </Text>
     </Pressable>

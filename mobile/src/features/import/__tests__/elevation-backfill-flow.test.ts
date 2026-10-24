@@ -15,10 +15,7 @@
 
 import { importGpx } from '@lib/gpx-import';
 import { fxpXmlAdapter } from '@lib/xml-adapter-fxp';
-import {
-  backfillImportElevation,
-  elevationRequestEstimate,
-} from '../elevation-backfill-flow';
+import { backfillImportElevation, elevationRequestEstimate } from '../elevation-backfill-flow';
 
 // ---------------------------------------------------------------------------
 // Fixtures

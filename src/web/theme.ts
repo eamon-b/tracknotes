@@ -38,9 +38,7 @@ export function getPreference(): ThemePreference {
 }
 
 function systemTheme(): ResolvedTheme {
-  return typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches
-    ? 'dark'
-    : 'light';
+  return typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
 /** The theme actually shown for a given preference. */
@@ -102,9 +100,11 @@ export function themeColor(name: string, fallback = '#000000'): string {
 
 const ICONS: Record<ThemePreference, string> = {
   // Monitor
-  system: '<path d="M3 5.5A1.5 1.5 0 0 1 4.5 4h15A1.5 1.5 0 0 1 21 5.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 14.5v-9Z"/><path d="M8.5 20h7M12 16v4"/>',
+  system:
+    '<path d="M3 5.5A1.5 1.5 0 0 1 4.5 4h15A1.5 1.5 0 0 1 21 5.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 14.5v-9Z"/><path d="M8.5 20h7M12 16v4"/>',
   // Sun
-  light: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/>',
+  light:
+    '<circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/>',
   // Moon
   dark: '<path d="M20 13.3A8.2 8.2 0 0 1 10.7 4a8.2 8.2 0 1 0 9.3 9.3Z"/>',
 };
@@ -115,7 +115,7 @@ function createToggle(): HTMLButtonElement {
   button.className = 'theme-toggle';
   button.innerHTML = PREFERENCES.map(
     pref =>
-      `<svg class="theme-icon theme-icon-${pref}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[pref]}</svg>`,
+      `<svg class="theme-icon theme-icon-${pref}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[pref]}</svg>`
   ).join('');
   button.addEventListener('click', () => setPreference(nextPreference(getPreference())));
   return button;

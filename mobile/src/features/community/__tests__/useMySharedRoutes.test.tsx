@@ -71,7 +71,12 @@ describe('useMySharedRoutes', () => {
   });
 
   it('lists the account’s routes with its token, hidden ones included', async () => {
-    const hidden = ownRoute({ id: 'c_BBBBBBBBBBBBBBBB', status: 'hidden', hiddenReason: 'reports', trailUrl: null });
+    const hidden = ownRoute({
+      id: 'c_BBBBBBBBBBBBBBBB',
+      status: 'hidden',
+      hiddenReason: 'reports',
+      trailUrl: null,
+    });
     mockList.mockResolvedValue([ownRoute(), hidden]);
     await mount();
     expect(mockList).toHaveBeenCalledWith({ baseUrl: 'https://api.test', token: 'tok-1' });
@@ -111,7 +116,11 @@ describe('useMySharedRoutes', () => {
     await act(async () => {
       await hook.refresh();
     });
-    expect(hook.state).toEqual({ kind: 'ready', routes: [ownRoute()], error: NETWORK_ERROR_MESSAGE });
+    expect(hook.state).toEqual({
+      kind: 'ready',
+      routes: [ownRoute()],
+      error: NETWORK_ERROR_MESSAGE,
+    });
     expect(hook.refreshing).toBe(false);
   });
 

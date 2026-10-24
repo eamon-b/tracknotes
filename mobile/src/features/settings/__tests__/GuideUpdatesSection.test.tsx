@@ -6,16 +6,9 @@
 
 import React from 'react';
 import { ActivityIndicator, Text } from 'react-native';
-import TestRenderer, {
-  act,
-  type ReactTestRenderer,
-  type TestInstance,
-} from 'react-test-renderer';
+import TestRenderer, { act, type ReactTestRenderer, type TestInstance } from 'react-test-renderer';
 import { GuideUpdatesSection, guideUpdateResultText } from '../GuideUpdatesSection';
-import {
-  checkForTrailDataUpdates,
-  trailDataBaseUrl,
-} from '../../../services/trail-data-updates';
+import { checkForTrailDataUpdates, trailDataBaseUrl } from '../../../services/trail-data-updates';
 import { refreshCommunityRoutes } from '../../../services/community-routes';
 import { useTrailDataStore } from '../../../state/trail-data-store';
 
@@ -62,7 +55,12 @@ function mount(): ReactTestRenderer {
 function renderedText(r: ReactTestRenderer): string {
   return r.root
     .findAllByType(Text)
-    .map((t) => ([] as unknown[]).concat(t.props.children).filter((c) => typeof c === 'string').join(''))
+    .map((t) =>
+      ([] as unknown[])
+        .concat(t.props.children)
+        .filter((c) => typeof c === 'string')
+        .join(''),
+    )
     .join(' ');
 }
 

@@ -141,10 +141,7 @@ const TAG_SPECS: TagSpec[] = [
  * Derived from the two lists above rather than written out again, so the build
  * and the UI cannot disagree about what is worth carrying onto the phone.
  */
-export const POI_DISPLAY_TAG_KEYS: readonly string[] = [
-  ...PRIMARY_TAG_KEYS,
-  ...TAG_SPECS.map(spec => spec.key),
-];
+export const POI_DISPLAY_TAG_KEYS: readonly string[] = [...PRIMARY_TAG_KEYS, ...TAG_SPECS.map(spec => spec.key)];
 
 export interface PoiTagLine {
   label: string;
@@ -209,12 +206,7 @@ export function summarisePoiTags(tags: Record<string, string> | undefined): PoiT
     const value = raw.trim();
     if (value === '') continue;
 
-    const href =
-      spec.link === 'url'
-        ? safeHttpUrl(value)
-        : spec.link === 'tel'
-          ? safeTelUrl(value)
-          : undefined;
+    const href = spec.link === 'url' ? safeHttpUrl(value) : spec.link === 'tel' ? safeTelUrl(value) : undefined;
 
     lines.push(href ? { label: spec.label, value, href } : { label: spec.label, value });
     seenLabels.add(spec.label);
@@ -331,10 +323,7 @@ export function countPoisByCategory(pois: readonly TrailPOI[]): Record<TrailPOIC
  * is on: no checkbox could turn it off, so hiding it by default would make it
  * unreachable.
  */
-export function visiblePois(
-  pois: readonly TrailPOI[] | undefined,
-  state: PoiFilterState
-): TrailPOI[] {
+export function visiblePois(pois: readonly TrailPOI[] | undefined, state: PoiFilterState): TrailPOI[] {
   if (!pois || !state.enabled) return [];
   return pois.filter(poi => {
     // A POI the curated waypoint data already covers is never drawn: the
@@ -493,8 +482,7 @@ function variantOf<V extends { v: PoiMirrorVariant }>(
     if (!beyondEnd && gapKm > VARIANT_MATCH_SLACK_KM) continue;
     if (!beyondEnd && mainLine.length > 0) {
       mainGapKm ??= Math.abs(
-        nearestLineKm(poi.lat, poi.lon, mainLineNear(mainLine, poi.distanceAlongTrail)) -
-          (poi.distanceFromTrail ?? 0)
+        nearestLineKm(poi.lat, poi.lon, mainLineNear(mainLine, poi.distanceAlongTrail)) - (poi.distanceFromTrail ?? 0)
       );
       if (mainGapKm <= gapKm) continue;
     }
@@ -662,10 +650,7 @@ export function parsePoiRouteKey(key: string): { type: string; id: number } | nu
 }
 
 /** Find the POI a route key names, or null when it is gone or malformed. */
-export function findPoiByRouteKey(
-  pois: readonly TrailPOI[] | undefined,
-  key: string
-): TrailPOI | null {
+export function findPoiByRouteKey(pois: readonly TrailPOI[] | undefined, key: string): TrailPOI | null {
   const parsed = parsePoiRouteKey(key);
   if (!pois || !parsed) return null;
   return pois.find(poi => poi.type === parsed.type && poi.id === parsed.id) ?? null;

@@ -20,7 +20,13 @@ import { useEffect } from 'react';
 import { AppState } from 'react-native';
 import * as Network from 'expo-network';
 import { isServerKnown } from '../services/server-trails';
-import { drainOutbox, pullPlans, pullTrail, type DrainResult, type PullResult } from './comment-sync';
+import {
+  drainOutbox,
+  pullPlans,
+  pullTrail,
+  type DrainResult,
+  type PullResult,
+} from './comment-sync';
 
 export interface RunSyncResult {
   drain: DrainResult;

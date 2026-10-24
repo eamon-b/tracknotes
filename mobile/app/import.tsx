@@ -13,14 +13,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { formatDistance } from '@lib/format-distance';
 import { useTheme } from '../src/theme';
@@ -223,10 +216,7 @@ export default function ImportScreen() {
           <Stat label="Off-trail waypoints" value={String(report.offTrailWaypointCount)} />
         )}
         {report.tracksFound > 1 && (
-          <Stat
-            label="Tracks"
-            value={`${report.tracksCombined} of ${report.tracksFound} joined`}
-          />
+          <Stat label="Tracks" value={`${report.tracksCombined} of ${report.tracksFound} joined`} />
         )}
         {(report.alternateCount > 0 || report.sideTripCount > 0) && (
           <Stat
@@ -238,10 +228,7 @@ export default function ImportScreen() {
           <Stat label="Simplified from" value={`${report.sourcePointCount} points`} />
         )}
         {report.poiCount > 0 && (
-          <Stat
-            label="Points of interest"
-            value={`${report.poiCount} (OpenStreetMap)`}
-          />
+          <Stat label="Points of interest" value={`${report.poiCount} (OpenStreetMap)`} />
         )}
         {/* A GPX carries no POIs — say where they come from rather than
             staying silent about a feature the guide will visibly lack. The
@@ -276,8 +263,8 @@ export default function ImportScreen() {
         >
           <Text style={[styles.warningTitle, { color: colors.textPrimary }]}>Elevation</Text>
           <Text style={[styles.warning, { color: colors.textSecondary }]}>
-            Without a profile, day estimates are distance-only — climbing time isn&apos;t
-            included. Terrain heights can be looked up now instead.
+            Without a profile, day estimates are distance-only — climbing time isn&apos;t included.
+            Terrain heights can be looked up now instead.
           </Text>
 
           {fetching ? (
@@ -362,15 +349,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Message({
-  title,
-  body,
-  onClose,
-}: {
-  title: string;
-  body: string;
-  onClose: () => void;
-}) {
+function Message({ title, body, onClose }: { title: string; body: string; onClose: () => void }) {
   const { colors } = useTheme();
   return (
     <View style={[styles.centered, { backgroundColor: colors.background }]}>

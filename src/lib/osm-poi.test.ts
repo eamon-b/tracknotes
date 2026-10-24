@@ -97,7 +97,13 @@ describe('createRouteIndex', () => {
 
   it('answers null for an empty route and for unusable POIs', () => {
     expect(createRouteIndex(buildRouteGeometry([]), 2)({ lat: 0, lon: 0 })).toBeNull();
-    const nearest = createRouteIndex(buildRouteGeometry([{ lat: 1, lon: 1 }, { lat: 1.01, lon: 1 }]), 2);
+    const nearest = createRouteIndex(
+      buildRouteGeometry([
+        { lat: 1, lon: 1 },
+        { lat: 1.01, lon: 1 },
+      ]),
+      2
+    );
     expect(nearest({ lat: Number.NaN, lon: 1 })).toBeNull();
     expect(nearest({ lat: 5, lon: 5 })).toBeNull();
   });

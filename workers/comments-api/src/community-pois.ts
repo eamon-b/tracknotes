@@ -251,9 +251,10 @@ async function queryOnce(
   });
   if (!response.ok) {
     await response.body?.cancel();
-    const wait = response.status === 429 || response.status === 503
-      ? retryAfterMs(response.headers.get('Retry-After'), nowMs)
-      : null;
+    const wait =
+      response.status === 429 || response.status === 503
+        ? retryAfterMs(response.headers.get('Retry-After'), nowMs)
+        : null;
     if (wait !== null) throw new RateLimited(`HTTP ${response.status}`, wait);
     const status = response.status;
     if (status >= 400 && status < 500 && status !== 408 && status !== 429) {

@@ -3,12 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { OverpassArea, POI } from './osm-poi';
 import { createFallbackFetcher, createOverpassFetcher, type POIFetcher } from './overpass-client';
 import { ALL_POI_TYPES, fetchCorridorGroups, placePois } from './poi-enrichment';
-import {
-  INTERACTIVE_MAX_VERTICES,
-  finishTrailPois,
-  formatBytes,
-  planTrailPoiSearch,
-} from './trail-poi-search';
+import { INTERACTIVE_MAX_VERTICES, finishTrailPois, formatBytes, planTrailPoiSearch } from './trail-poi-search';
 import type { EnrichedWaypoint, ProcessedTrail, TrackPoint } from './trail-types';
 
 /** A due-north track, one point per 0.01° (~1.1 km), with its own km. */
@@ -149,7 +144,14 @@ describe('placePois', () => {
 describe('finishTrailPois', () => {
   it('runs the build passes: drops noise, flags duplicates, slims tags, keeps km order', async () => {
     const trail = makeTrail(40, [
-      { id: 'w_hut', name: 'Mill Hut', type: 'hut', lat: -33.9, lon: 115.001, totalDistance: 11 } as Partial<EnrichedWaypoint>,
+      {
+        id: 'w_hut',
+        name: 'Mill Hut',
+        type: 'hut',
+        lat: -33.9,
+        lon: 115.001,
+        totalDistance: 11,
+      } as Partial<EnrichedWaypoint>,
     ]);
     const plan = planTrailPoiSearch(trail);
     const fetched = [
@@ -178,9 +180,9 @@ describe('finishTrailPois', () => {
     const plan = planTrailPoiSearch(trail);
     const controller = new AbortController();
     const pause = async () => controller.abort();
-    await expect(
-      finishTrailPois(plan, [], trail, { signal: controller.signal, pause })
-    ).rejects.toMatchObject({ name: 'AbortError' });
+    await expect(finishTrailPois(plan, [], trail, { signal: controller.signal, pause })).rejects.toMatchObject({
+      name: 'AbortError',
+    });
   });
 });
 
@@ -207,9 +209,11 @@ describe('createFallbackFetcher', () => {
   });
 
   it('throws the last error when every instance refuses', async () => {
-    const fail = (message: string): POIFetcher => async () => {
-      throw new Error(message);
-    };
+    const fail =
+      (message: string): POIFetcher =>
+      async () => {
+        throw new Error(message);
+      };
     const fetcher = createFallbackFetcher([
       { endpoint: 'a', fetchPOIs: fail('first') },
       { endpoint: 'b', fetchPOIs: fail('second') },
@@ -249,9 +253,7 @@ describe('createOverpassFetcher', () => {
   it('does not retry a 400 (a bad query will not get better)', async () => {
     const fetchMock = vi.fn(async () => new Response('bad', { status: 400 }));
     const fetcher = createOverpassFetcher({ minDelayMs: 0, fetch: fetchMock as unknown as typeof fetch });
-    await expect(
-      fetcher({ corridor: [{ lat: -34, lon: 115 }], radiusMeters: 2500 }, ['water'])
-    ).rejects.toThrow('400');
+    await expect(fetcher({ corridor: [{ lat: -34, lon: 115 }], radiusMeters: 2500 }, ['water'])).rejects.toThrow('400');
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

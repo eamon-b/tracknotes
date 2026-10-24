@@ -43,7 +43,7 @@ export interface DirectionLabels {
 export function getDirectionLabel(
   config: DirectionLabels | undefined,
   direction: PlanDirection,
-  fallbacks: DirectionLabels,
+  fallbacks: DirectionLabels
 ): string {
   const labels = config ?? fallbacks;
   return direction === 'NOBO' ? labels.default : labels.reversed;
@@ -82,7 +82,7 @@ export function toNoboKm(activeKm: number, direction: PlanDirection, totalDistan
 export function stopsToActive<S extends { km: number }>(
   stops: S[],
   direction: PlanDirection,
-  totalDistance: number,
+  totalDistance: number
 ): S[] {
   return stops
     .map(stop => ({ ...stop, km: toActiveKm(stop.km, direction, totalDistance) }))

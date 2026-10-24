@@ -51,7 +51,11 @@ export function GuideUpdateBanner() {
         style={[styles.action, styles.primary, { backgroundColor: colors.accent }]}
       >
         {dataUpdate.reloading ? (
-          <ActivityIndicator accessibilityLabel="Reloading guide" color={colors.accentText} size="small" />
+          <ActivityIndicator
+            accessibilityLabel="Reloading guide"
+            color={colors.accentText}
+            size="small"
+          />
         ) : (
           <Text style={[styles.actionLabel, { color: colors.accentText }]}>Reload</Text>
         )}

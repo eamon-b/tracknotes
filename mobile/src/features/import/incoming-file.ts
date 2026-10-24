@@ -122,7 +122,7 @@ export function classifyIncomingUrl(url: string | null | undefined): IncomingFil
   const fileName = fileNameFromUrl(trimmed);
   const lower = fileName.toLowerCase();
 
-  if (ACCEPTED_EXTENSIONS.some(ext => lower.endsWith(ext))) return { uri: trimmed, fileName };
+  if (ACCEPTED_EXTENSIONS.some((ext) => lower.endsWith(ext))) return { uri: trimmed, fileName };
   // A recognisable extension we do not claim (.pdf, .jpg, …) is a hard no.
   if (/\.[a-z0-9]{1,8}$/.test(lower)) return null;
   return { uri: trimmed, fileName };
@@ -205,7 +205,7 @@ export function useIncomingFile(): void {
 
     let cancelled = false;
     stageIncomingFile(incoming)
-      .then(staged => {
+      .then((staged) => {
         if (cancelled) return;
         const route = incomingImportRoute(staged);
         router.push(route);

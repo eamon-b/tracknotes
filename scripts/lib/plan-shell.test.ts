@@ -91,8 +91,6 @@ describe('plan shell', () => {
   });
 
   it('refuses a page with no marker rather than shipping an empty planner', () => {
-    expect(() => inlinePlanShell('<body></body>', shell(), BUNDLED_PLAN_FILLS)).toThrow(
-      /marker/
-    );
+    expect(() => inlinePlanShell('<body></body>', shell(), BUNDLED_PLAN_FILLS)).toThrow(/marker/);
   });
 });

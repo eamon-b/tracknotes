@@ -77,14 +77,17 @@ const stop = (km: number, name: string, extra: Partial<PlanStop> = {}): PlanStop
 describe('planStopIssues', () => {
   it('reports nothing for a plan whose stops all match the data, and leaves the days alone', () => {
     const trail = trailFixture();
-    const doc = plan([
-      stop(10, 'Camp 10', { waypointId: 'w_c10', nights: 2 }),
-      stop(40, 'Alt Camp', { waypointId: 'w_altcamp', alternate: 'Alt' }),
-      stop(54.04, 'Alt Hut', { waypointId: 'w_althut', alternate: 'Alt' }),
-      stop(70, 'Somewhere'),
-      stop(80, 'Far place', { waypointId: 'w_far' }),
-      stop(90, 'My spot', { waypointId: 'hw_00000000-0000-4000-8000-000000000000' }),
-    ], { alternates: ['Alt'] });
+    const doc = plan(
+      [
+        stop(10, 'Camp 10', { waypointId: 'w_c10', nights: 2 }),
+        stop(40, 'Alt Camp', { waypointId: 'w_altcamp', alternate: 'Alt' }),
+        stop(54.04, 'Alt Hut', { waypointId: 'w_althut', alternate: 'Alt' }),
+        stop(70, 'Somewhere'),
+        stop(80, 'Far place', { waypointId: 'w_far' }),
+        stop(90, 'My spot', { waypointId: 'hw_00000000-0000-4000-8000-000000000000' }),
+      ],
+      { alternates: ['Alt'] }
+    );
     expect(planStopIssues(doc, trail)).toEqual([]);
 
     // Every stop of an all-ok plan is a day boundary on the route as planned.
@@ -115,14 +118,18 @@ describe('planStopIssues', () => {
   });
 
   it('(b) lists a stop past either end of the trail with no route km, nights and all', () => {
-    const doc = plan([stop(105, 'Old End Camp', { nights: 3 }), stop(-1, 'Before'), stop(10, 'Camp 10', { waypointId: 'w_c10' })]);
+    const doc = plan([
+      stop(105, 'Old End Camp', { nights: 3 }),
+      stop(-1, 'Before'),
+      stop(10, 'Camp 10', { waypointId: 'w_c10' }),
+    ]);
     const issues = planStopIssues(doc, trailFixture());
     expect(issues.map(i => [i.stop.name, i.reason, i.routeKm])).toEqual([
       ['Old End Camp', 'off-route', null],
       ['Before', 'off-route', null],
     ]);
     expect(stopIssuesNotice(issues)).toBe(
-      '2 stops need checking after a trail data update. 4 nights are left out of the dates until you move or remove them.',
+      '2 stops need checking after a trail data update. 4 nights are left out of the dates until you move or remove them.'
     );
   });
 
@@ -166,7 +173,9 @@ describe('planStopIssues', () => {
     const doc = plan([stop(15, 'New Camp', { waypointId: 'w_new' })], { dataUpdatedAt: '2026-10-05T00:00:00.000Z' });
     const trail = trailFixture();
     expect(planStopIssues(doc, trail, { dataUpdatedAt: '2026-09-01T00:00:00.000Z' })[0].reason).toBe('newer-data');
-    expect(planStopIssues(doc, trail, { dataUpdatedAt: '2026-10-06T00:00:00.000Z' })[0].reason).toBe('waypoint-missing');
+    expect(planStopIssues(doc, trail, { dataUpdatedAt: '2026-10-06T00:00:00.000Z' })[0].reason).toBe(
+      'waypoint-missing'
+    );
   });
 
   it('words every reason and the notice', () => {
@@ -179,10 +188,10 @@ describe('planStopIssues', () => {
     // A duplicate can come from a plan edited elsewhere: no data update named.
     const duplicate = planStopIssues(
       plan([stop(30, 'Junction'), stop(30, 'Alt start', { alternate: 'Alt' })], { alternates: ['Alt'] }),
-      trailFixture(),
+      trailFixture()
     );
     expect(stopIssuesNotice(duplicate)).toBe(
-      '1 stop needs checking. 1 night is left out of the dates until you move or remove it.',
+      '1 stop needs checking. 1 night is left out of the dates until you move or remove it.'
     );
   });
 
@@ -243,7 +252,7 @@ describe('moving a stop that needs checking by ticking its place', () => {
     const trail = trailFixture();
     const stored = plan(
       [stop(40, 'Alt Camp', { waypointId: 'w_altcamp', alternate: 'Old name', nights: 3, note: 'Water here' })],
-      { alternates: ['Alt'] },
+      { alternates: ['Alt'] }
     );
     expect(planStopIssues(stored, trail).map(i => i.reason)).toEqual(['alternate-missing']);
     const route = buildPlannedRoute(trail, stored.alternates);

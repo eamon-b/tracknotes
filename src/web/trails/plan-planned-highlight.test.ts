@@ -55,26 +55,24 @@ const tabButton = (tab: string): HTMLButtonElement => {
 };
 
 /** Every element anywhere on the page carrying the planned marking. */
-const plannedElements = (): Element[] => [
-  ...document.querySelectorAll('.planned-resupply, .planned-badge'),
-];
+const plannedElements = (): Element[] => [...document.querySelectorAll('.planned-resupply, .planned-badge')];
 
 /** The names on the Stops-tab rows that are badged as planned. */
 const plannedStopNames = (): string[] =>
   [...$('stops-list').querySelectorAll('.stop-row.planned-resupply')].map(row =>
-    (row.querySelector('.stop-name')?.textContent ?? '').trim(),
+    (row.querySelector('.stop-name')?.textContent ?? '').trim()
   );
 
 /** "Day 1", "Day 2" … for the day cards that are badged as planned. */
 const plannedDayNumbers = (): string[] =>
   [...$('days-list').querySelectorAll('.day-card.planned-resupply')].map(card =>
-    (card.querySelector('.day-card-number')?.textContent ?? '').trim(),
+    (card.querySelector('.day-card-number')?.textContent ?? '').trim()
   );
 
 /** The names on the datasheet rows that are badged as planned. */
 const plannedDatasheetNames = (): string[] =>
   [...$('datasheet-body').querySelectorAll('.ds-row.planned-resupply')].map(row =>
-    (row.querySelector('.ds-name')?.textContent ?? '').replace('Planned resupply', '').trim(),
+    (row.querySelector('.ds-name')?.textContent ?? '').replace('Planned resupply', '').trim()
   );
 
 const stopRow = (km: number): HTMLElement => {
@@ -92,13 +90,7 @@ function makeTrail() {
     dist: i * 10,
   }));
 
-  const wp = (
-    id: string,
-    name: string,
-    type: string,
-    totalDistance: number,
-    extra: Record<string, unknown> = {},
-  ) => ({
+  const wp = (id: string, name: string, type: string, totalDistance: number, extra: Record<string, unknown> = {}) => ({
     id,
     name,
     type,
@@ -124,9 +116,7 @@ function makeTrail() {
 
 async function boot(): Promise<void> {
   const html = bundledPlanPageHtml();
-  document.documentElement.innerHTML = html
-    .replace(/<!DOCTYPE html>/i, '')
-    .replace(/<\/?html[^>]*>/gi, '');
+  document.documentElement.innerHTML = html.replace(/<!DOCTYPE html>/i, '').replace(/<\/?html[^>]*>/gi, '');
 
   vi.resetModules();
   const { initPlanViewer } = await import('./plan-viewer');
@@ -214,11 +204,9 @@ describe('with two stops planned', () => {
     tabButton('days').click();
     // Day 1 runs km 0–25 and holds Alpha; day 2 runs 25–50 and holds nothing.
     expect(plannedDayNumbers()).toEqual(['Day 1']);
-    expect(
-      $('days-list')
-        .querySelector('.day-card.planned-resupply .planned-badge')
-        ?.getAttribute('title'),
-    ).toBe('Planned resupply: Alpha');
+    expect($('days-list').querySelector('.day-card.planned-resupply .planned-badge')?.getAttribute('title')).toBe(
+      'Planned resupply: Alpha'
+    );
 
     // …and the legend explains the marking wherever it appears.
     expect($('resupply-body').textContent).toContain('marks a stop you ticked');
@@ -237,9 +225,7 @@ describe('with two stops planned', () => {
     // Day 1 (km 0–40) holds Alpha and ends at Echo.
     ($('days-list').querySelector('.day-card') as HTMLElement).click();
     expect(plannedDatasheetNames()).toEqual(['Alpha', 'Echo']);
-    expect(
-      $('datasheet-body').querySelector('.ds-row.ds-end')?.classList.contains('planned-resupply'),
-    ).toBe(true);
+    expect($('datasheet-body').querySelector('.ds-row.ds-end')?.classList.contains('planned-resupply')).toBe(true);
   });
 });
 
@@ -300,9 +286,7 @@ describe('changing the selection', () => {
 describe('a trail with no resupply options', () => {
   it('renders no marking at all (an imported GPX, on my-plan.html)', async () => {
     const html = bundledPlanPageHtml();
-    document.documentElement.innerHTML = html
-      .replace(/<!DOCTYPE html>/i, '')
-      .replace(/<\/?html[^>]*>/gi, '');
+    document.documentElement.innerHTML = html.replace(/<!DOCTYPE html>/i, '').replace(/<\/?html[^>]*>/gi, '');
 
     const trail = makeTrail();
     trail.waypoints = trail.waypoints.filter(wp => wp.type === 'campsite' || wp.type === 'endpoint');

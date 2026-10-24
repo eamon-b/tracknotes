@@ -38,9 +38,7 @@ describe('mapsUrlFor', () => {
     const android = mapsUrlFor(-34, 138, label, 'android');
     const ios = mapsUrlFor(-34, 138, label, 'ios');
 
-    expect(android).toBe(
-      'geo:-34,138?q=-34,138(Bob%20%26%20Jan%E2%80%99s%20Tank%20(%233))',
-    );
+    expect(android).toBe('geo:-34,138?q=-34,138(Bob%20%26%20Jan%E2%80%99s%20Tank%20(%233))');
     expect(ios).toBe('maps:?ll=-34,138&q=Bob%20%26%20Jan%E2%80%99s%20Tank%20(%233)');
     // No raw separator leaks into the query portion.
     expect(ios.split('&q=')[1]).not.toMatch(/[&#]/);

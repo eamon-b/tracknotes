@@ -64,9 +64,9 @@ describe('device rows', () => {
   });
 
   it('says which row is the phone, and when a browser was last used', () => {
-    expect(deviceSubtitle(device({ kind: 'primary', current: true, expiresAt: null }), NOW)).toContain(
-      'This phone',
-    );
+    expect(
+      deviceSubtitle(device({ kind: 'primary', current: true, expiresAt: null }), NOW),
+    ).toContain('This phone');
     const linked = deviceSubtitle(device(), NOW);
     expect(linked).toContain('last used 19 Sep 2026');
     expect(linked).toContain('expires 19 Mar 2027');
@@ -79,9 +79,9 @@ describe('device rows', () => {
   });
 
   it('falls back to the created date when there is nothing else to say', () => {
-    expect(
-      deviceSubtitle(device({ lastSeenAt: null, expiresAt: null }), NOW),
-    ).toBe('added 1 Sep 2026');
+    expect(deviceSubtitle(device({ lastSeenAt: null, expiresAt: null }), NOW)).toBe(
+      'added 1 Sep 2026',
+    );
   });
 
   it('offers Remove for a browser and never for the phone', () => {

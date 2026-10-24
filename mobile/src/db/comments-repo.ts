@@ -205,10 +205,7 @@ export async function applyTombstone(db: SqlDatabase, id: string): Promise<void>
 }
 
 /** Insert an optimistic, not-yet-synced local comment (`source='local'`). */
-export async function insertLocalComment(
-  db: SqlDatabase,
-  input: LocalCommentInput,
-): Promise<void> {
+export async function insertLocalComment(db: SqlDatabase, input: LocalCommentInput): Promise<void> {
   await db.runAsync(
     `INSERT INTO comments
        (id, trail_id, waypoint_id, author_id, author_name, body,
@@ -236,7 +233,13 @@ export async function insertLocalComment(
 export async function confirmServer(
   db: SqlDatabase,
   id: string,
-  server: { displayName: string; text: string | null; waterStatus: WaterStatus | null; observedAt: string | null; createdAt: string },
+  server: {
+    displayName: string;
+    text: string | null;
+    waterStatus: WaterStatus | null;
+    observedAt: string | null;
+    createdAt: string;
+  },
 ): Promise<void> {
   await db.runAsync(
     `UPDATE comments

@@ -315,9 +315,7 @@ export default function WaypointDetailScreen() {
 
   const toggleThisStop = useCallback(() => {
     if (!stopCandidate) return;
-    editPlan((p) =>
-      toggleStop(p, toggleTargetOf(stopCandidate), { totalKm: route.totalDistance }),
-    );
+    editPlan((p) => toggleStop(p, toggleTargetOf(stopCandidate), { totalKm: route.totalDistance }));
   }, [editPlan, stopCandidate, route.totalDistance]);
 
   // The days either side of this place — as planned when it is a stop, as they
@@ -440,8 +438,7 @@ export default function WaypointDetailScreen() {
                 color={colors.textSecondary}
                 accessibilityLabel="Share check-in"
                 onPress={() => {
-                  const hasFix =
-                    (status === 'fix' || status === 'off-trail') && position != null;
+                  const hasFix = (status === 'fix' || status === 'off-trail') && position != null;
                   void shareCheckIn({
                     trailName: trail.config.name,
                     totalKm: trail.track.totalDistance,
@@ -715,9 +712,7 @@ function OsmDuplicates({ pois }: { pois: TrailPOI[] }) {
         hitSlop={spacing.xs}
         style={({ pressed }) => [styles.osmHeader, pressed && styles.pressed]}
       >
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-          From OpenStreetMap
-        </Text>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>From OpenStreetMap</Text>
         <Text style={[styles.osmChevron, { color: colors.textSecondary }]}>
           {expanded ? '\u25be' : '\u25b8'}
         </Text>
@@ -808,7 +803,6 @@ function OsmLink({
   );
 }
 
-
 // ---------------------------------------------------------------------------
 // Plan stop toggle
 // ---------------------------------------------------------------------------
@@ -854,7 +848,12 @@ function FavoriteHeart({ filled, onPress }: { filled: boolean; onPress: () => vo
       hitSlop={spacing.sm}
       style={({ pressed }) => [styles.heart, pressed && styles.pressed]}
     >
-      <Text style={[styles.heartIcon, { color: filled ? colors.waypointFavorite : colors.textSecondary }]}>
+      <Text
+        style={[
+          styles.heartIcon,
+          { color: filled ? colors.waypointFavorite : colors.textSecondary },
+        ]}
+      >
         {filled ? '♥' : '♡'}
       </Text>
     </Pressable>
@@ -888,8 +887,6 @@ function Stat({ label, value, tint }: { label: string; value: string; tint?: str
     </View>
   );
 }
-
-
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
@@ -971,5 +968,4 @@ const styles = StyleSheet.create({
 
   divider: { height: StyleSheet.hairlineWidth },
   sectionTitle: { ...typography.titleLarge },
-
 });

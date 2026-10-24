@@ -252,7 +252,9 @@ export function classifyCommunityProbe(
   outcome: { ok: true; detail: unknown } | { ok: false; status?: number },
 ): CommunityProbe {
   if (!outcome.ok) {
-    return outcome.status === 404 || outcome.status === 410 ? { kind: 'gone' } : { kind: 'unknown' };
+    return outcome.status === 404 || outcome.status === 410
+      ? { kind: 'gone' }
+      : { kind: 'unknown' };
   }
   const detail = outcome.detail;
   if (!detail || typeof detail !== 'object') return { kind: 'unknown' };

@@ -26,7 +26,7 @@ export const TERMS_URL = `${SITE_ORIGIN}/terms.html`;
  */
 export function contributionLicenceLine(
   verb: 'posting' | 'sharing',
-  what: string,
+  what: string
 ): { before: string; link: string; after: string } {
   const lead = verb === 'posting' ? 'By posting' : 'By sharing';
   return {

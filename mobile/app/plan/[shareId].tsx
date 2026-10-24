@@ -20,16 +20,14 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { computePlanDays, refreshStopKms, splitUnplannedTail, stampPlanData } from '@lib/plan-editor';
+import {
+  computePlanDays,
+  refreshStopKms,
+  splitUnplannedTail,
+  stampPlanData,
+} from '@lib/plan-editor';
 import { finalDayMaxHours } from '@lib/plan-suggest';
 import type { PlanTrail } from '@lib/day-calculator';
 import type { PlanDocument } from '@lib/plan-types';
@@ -162,7 +160,9 @@ export default function SharedPlanScreen() {
   // shared plan itself is never written; "Save as my plan" saves exactly this.
   const shownDocument = useMemo<PlanDocument | null>(() => {
     if (!shared || !trailResolved || !rawTrail?.trail) return null;
-    return refreshStopKms(shared.document, rawTrail.trail, { dataUpdatedAt: rawTrail.dataUpdatedAt });
+    return refreshStopKms(shared.document, rawTrail.trail, {
+      dataUpdatedAt: rawTrail.dataUpdatedAt,
+    });
   }, [shared, trailResolved, rawTrail]);
   // Along the route the plan walks: the alternates it takes are spliced in
   // (`@lib/plan-alternates`), and its stops read in that route's km.

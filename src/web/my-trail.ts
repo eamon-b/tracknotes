@@ -14,13 +14,7 @@ import { dropNoisePois } from '@lib/poi-noise';
 import { thinUrbanPois } from '@lib/poi-urban';
 import { handoffFileName, serializeTrailHandoff } from '@lib/trail-handoff';
 import type { ProcessedTrail, TrailPOI } from '@lib/trail-types';
-import {
-  deleteTrail,
-  getTrail,
-  isIndexedDbAvailable,
-  putTrail,
-  updateTrailPois,
-} from './imported-trails-db';
+import { deleteTrail, getTrail, isIndexedDbAvailable, putTrail, updateTrailPois } from './imported-trails-db';
 import { escapeHtml, getQueryParam, overpassEndpointOverride } from './web-utils';
 
 function panel(id: string): HTMLElement | null {
@@ -141,11 +135,7 @@ function setWaypointType(trail: ProcessedTrail, waypointId: string, nextType: st
  * stale sibling field back over a newer write. Nothing the viewer handed us is
  * mutated, and nothing is mutated at all unless `putTrail` resolves.
  */
-async function saveWaypointType(
-  trailId: string,
-  waypointId: string,
-  nextType: string
-): Promise<void> {
+async function saveWaypointType(trailId: string, waypointId: string, nextType: string): Promise<void> {
   if (!isIndexedDbAvailable()) {
     throw new Error("this browser can't store changes (IndexedDB is unavailable)");
   }
@@ -172,11 +162,7 @@ async function saveWaypointType(
  */
 let typeWriteQueue: Promise<void> = Promise.resolve();
 
-function queueWaypointTypeWrite(
-  trailId: string,
-  waypointId: string,
-  nextType: string
-): Promise<void> {
+function queueWaypointTypeWrite(trailId: string, waypointId: string, nextType: string): Promise<void> {
   const run = typeWriteQueue.then(() => saveWaypointType(trailId, waypointId, nextType));
   typeWriteQueue = run.then(
     () => undefined,
@@ -298,8 +284,7 @@ function initPoiPanel(trailId: string, trail: ProcessedTrail): void {
       if (!pois) {
         blurb.textContent = defaultBlurb;
       } else if (found === 0) {
-        blurb.textContent =
-          'No OpenStreetMap points of interest were found within 2 km of this trail.';
+        blurb.textContent = 'No OpenStreetMap points of interest were found within 2 km of this trail.';
       } else {
         blurb.textContent =
           `${found} OpenStreetMap point${found === 1 ? '' : 's'} of interest within 2 km of this trail. ` +
@@ -328,9 +313,7 @@ function initPoiPanel(trailId: string, trail: ProcessedTrail): void {
     // persists them, so the hidden-duplicate state survives a reload and rides
     // along in the Tracknotes export. See plans/poi-waypoint-dedup.md.
     const pois =
-      found === null
-        ? null
-        : (thinUrbanPois(markDuplicatePois(dropNoisePois(found), dedupCandidates(trail))) ?? []);
+      found === null ? null : (thinUrbanPois(markDuplicatePois(dropNoisePois(found), dedupCandidates(trail))) ?? []);
     const saved = await updateTrailPois(trailId, pois);
     panelPois = pois;
     if (pois === null) {
@@ -393,9 +376,7 @@ function initPoiPanel(trailId: string, trail: ProcessedTrail): void {
           setWarning('Search cancelled. Nothing was changed.');
         } else {
           console.error('POI search failed', err);
-          setWarning(
-            `Could not reach OpenStreetMap: ${err instanceof Error ? err.message : String(err)}`
-          );
+          setWarning(`Could not reach OpenStreetMap: ${err instanceof Error ? err.message : String(err)}`);
         }
       } finally {
         controller = null;
@@ -450,9 +431,7 @@ function initDeleteButton(trailId: string, name: string): void {
       .catch((err: unknown) => {
         button.disabled = false;
         button.textContent = 'Delete trail';
-        window.alert(
-          `Could not delete this trail: ${err instanceof Error ? err.message : String(err)}`
-        );
+        window.alert(`Could not delete this trail: ${err instanceof Error ? err.message : String(err)}`);
       });
   });
 }
@@ -492,8 +471,7 @@ async function init(): Promise<void> {
   showPanel('trail-panel');
   await initTrailViewer(record.id, record.trail, {
     // Only an imported trail gets this: a bundled trail's JSON is build output.
-    onWaypointTypeChange: (waypointId, nextType) =>
-      queueWaypointTypeWrite(storedId, waypointId, nextType),
+    onWaypointTypeChange: (waypointId, nextType) => queueWaypointTypeWrite(storedId, waypointId, nextType),
   });
 }
 

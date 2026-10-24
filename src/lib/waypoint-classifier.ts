@@ -44,42 +44,42 @@ export interface ClassificationResult {
  */
 export const FOLDER_TYPE_MAP: Record<string, string> = {
   // Campsites
-  'campsites': 'campsite',
+  campsites: 'campsite',
   'official campsites': 'campsite',
   'other campsites': 'campsite',
   // Huts/Shelters
-  'huts': 'hut',
-  'shelters': 'hut',
+  huts: 'hut',
+  shelters: 'hut',
   'huts & shelters': 'hut',
   // Water
-  'water': 'water',
+  water: 'water',
   'water sources': 'water',
   'water tanks': 'water-tank',
   // Towns/Resupply
-  'towns': 'town',
-  'resupply': 'resupply',
+  towns: 'town',
+  resupply: 'resupply',
   // Accommodation
-  'accommodation': 'accommodation',
+  accommodation: 'accommodation',
   // Transport/Access
-  'trailheads': 'trailhead',
+  trailheads: 'trailhead',
   'caravan parks': 'caravan-park',
   'major road crossings': 'road-crossing',
   // Features
   'side trips': 'side-trip',
-  'mountains': 'mountain',
-  'beaches': 'beach',
+  mountains: 'mountain',
+  beaches: 'beach',
   // Food
   'extra food': 'food',
-  'kiosks': 'food',
+  kiosks: 'food',
   // Crossings
-  'inlets': 'inlet-crossing',
+  inlets: 'inlet-crossing',
   'inlet crossings': 'inlet-crossing',
   // Points of Interest
   'places of interest': 'poi',
-  'sights': 'poi',
-  'other': 'poi',
+  sights: 'poi',
+  other: 'poi',
   // Endpoints
-  'endpoints': 'endpoint',
+  endpoints: 'endpoint',
   'start/end': 'endpoint',
 };
 
@@ -346,7 +346,11 @@ export const KEYWORD_RULES: WaypointKeywordRule[] = [
  * `car_park`, `Start/End`) into spaces so one keyword spelling covers them all.
  */
 function normalizeForKeywords(name: string): string {
-  return name.toLowerCase().replace(/[-_/\\]+/g, ' ').replace(/\s+/g, ' ').trim();
+  return name
+    .toLowerCase()
+    .replace(/[-_/\\]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function escapeRegExp(literal: string): string {
@@ -367,10 +371,7 @@ const keywordPatterns = new Map<string, RegExp>();
 function keywordPattern(keyword: string): RegExp {
   let pattern = keywordPatterns.get(keyword);
   if (!pattern) {
-    pattern = new RegExp(
-      `(?<![\\p{L}\\p{N}])${escapeRegExp(keyword)}(?:e?s)?(?![\\p{L}\\p{N}])`,
-      'u'
-    );
+    pattern = new RegExp(`(?<![\\p{L}\\p{N}])${escapeRegExp(keyword)}(?:e?s)?(?![\\p{L}\\p{N}])`, 'u');
     keywordPatterns.set(keyword, pattern);
   }
   return pattern;

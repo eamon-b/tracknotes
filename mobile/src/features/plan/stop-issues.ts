@@ -22,7 +22,11 @@ export interface StopIssueRow {
   issue: StopIssue;
 }
 
-function activeKmOf(issue: StopIssue, direction: PlanDirection, routeTotalKm: number): number | null {
+function activeKmOf(
+  issue: StopIssue,
+  direction: PlanDirection,
+  routeTotalKm: number,
+): number | null {
   return issue.routeKm === null ? null : toActiveKm(issue.routeKm, direction, routeTotalKm);
 }
 

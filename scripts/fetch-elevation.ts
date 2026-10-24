@@ -63,9 +63,7 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function fetchElevationBatch(
-  locations: { lat: number; lon: number }[]
-): Promise<ElevationResult[]> {
+async function fetchElevationBatch(locations: { lat: number; lon: number }[]): Promise<ElevationResult[]> {
   const response = await fetch(OPEN_ELEVATION_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -137,16 +135,10 @@ function parseGpx(gpxContent: string): ParsedGpx {
   return { routes, points };
 }
 
-function updateGpxWithElevations(
-  gpxContent: string,
-  points: PointLocation[],
-  elevations: Map<number, number>
-): string {
+function updateGpxWithElevations(gpxContent: string, points: PointLocation[], elevations: Map<number, number>): string {
   // Sort points by position in reverse order so we can replace from end to start
   // without affecting earlier positions
-  const pointsToUpdate = points
-    .filter(p => elevations.has(p.index))
-    .sort((a, b) => b.startPos - a.startPos);
+  const pointsToUpdate = points.filter(p => elevations.has(p.index)).sort((a, b) => b.startPos - a.startPos);
 
   let result = gpxContent;
 
@@ -163,10 +155,7 @@ function updateGpxWithElevations(
       newText = originalText.replace(/<ele>[^<]*<\/ele>/, `<ele>${newEle}</ele>`);
     } else {
       // Add elevation tag after the opening trkpt tag
-      newText = originalText.replace(
-        /(<trkpt[^>]*>)/,
-        `$1<ele>${newEle}</ele>`
-      );
+      newText = originalText.replace(/(<trkpt[^>]*>)/, `$1<ele>${newEle}</ele>`);
     }
 
     result = result.slice(0, point.startPos) + newText + result.slice(point.endPos);
@@ -175,9 +164,7 @@ function updateGpxWithElevations(
   return result;
 }
 
-async function fetchElevationsForPoints(
-  pointsNeedingElevation: PointLocation[]
-): Promise<Map<number, number>> {
+async function fetchElevationsForPoints(pointsNeedingElevation: PointLocation[]): Promise<Map<number, number>> {
   const elevations = new Map<number, number>();
   let successCount = 0;
   let failCount = 0;
@@ -234,9 +221,10 @@ async function processGpxFile(gpxPath: string): Promise<boolean> {
   for (let i = 0; i < routes.length; i++) {
     const routePoints = points.filter(p => p.routeIndex === i);
     const routeNeedsEle = routePoints.filter(needsElevation);
-    const status = routeNeedsEle.length > 0
-      ? `${routeNeedsEle.length}/${routePoints.length} need elevation`
-      : `${routePoints.length} points OK`;
+    const status =
+      routeNeedsEle.length > 0
+        ? `${routeNeedsEle.length}/${routePoints.length} need elevation`
+        : `${routePoints.length} points OK`;
     console.log(`    - ${routes[i].name} (${status})`);
   }
 
@@ -284,12 +272,10 @@ async function main() {
   }
 
   // Find trail directories to process
-  const trailDirs = fs.readdirSync(TRAILS_DIR)
-    .filter(f => {
-      const trailPath = path.join(TRAILS_DIR, f);
-      return fs.statSync(trailPath).isDirectory() &&
-        fs.existsSync(path.join(trailPath, 'trail.json'));
-    });
+  const trailDirs = fs.readdirSync(TRAILS_DIR).filter(f => {
+    const trailPath = path.join(TRAILS_DIR, f);
+    return fs.statSync(trailPath).isDirectory() && fs.existsSync(path.join(trailPath, 'trail.json'));
+  });
 
   if (trailDirs.length === 0) {
     console.log('\nNo trail directories found.');

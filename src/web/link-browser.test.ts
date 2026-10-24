@@ -26,7 +26,7 @@ function stubFetch(): Array<{ url: string; init: RequestInit }> {
         statusText: '',
         text: async () => (body === undefined ? '' : JSON.stringify(body)),
       };
-    }),
+    })
   );
   return calls;
 }

@@ -72,18 +72,21 @@ function installLeafletStub(): void {
     const obj: object = new Proxy({}, { get: () => () => obj });
     return obj;
   };
-  const mapObj: object = new Proxy({}, {
-    get: (_target, prop) => {
-      if (prop === 'hasLayer') return (l: Record<symbol, StubLine | undefined>) => l[LINE]?.onMap ?? false;
-      if (prop === 'closePopup') {
-        return (p?: Record<symbol, HTMLElement | undefined>) => {
-          if (p?.[POPUP] === openPopup) openPopup = null;
-          return mapObj;
-        };
-      }
-      return () => mapObj;
-    },
-  });
+  const mapObj: object = new Proxy(
+    {},
+    {
+      get: (_target, prop) => {
+        if (prop === 'hasLayer') return (l: Record<symbol, StubLine | undefined>) => l[LINE]?.onMap ?? false;
+        if (prop === 'closePopup') {
+          return (p?: Record<symbol, HTMLElement | undefined>) => {
+            if (p?.[POPUP] === openPopup) openPopup = null;
+            return mapObj;
+          };
+        }
+        return () => mapObj;
+      },
+    }
+  );
   const L = {
     map: () => mapObj,
     tileLayer: layer,
@@ -92,20 +95,31 @@ function installLeafletStub(): void {
     polyline: (_latLngs: unknown, opts: StubLine['opts'] = {}) => {
       const line: StubLine = { opts, onMap: false, click: null };
       lines.push(line);
-      const obj: object = new Proxy({}, {
-        get: (_target, prop) => {
-          if (prop === LINE) return line;
-          if (prop === 'on') {
-            return (event: string, fn: StubLine['click']) => {
-              if (event === 'click') line.click = fn;
-              return obj;
-            };
-          }
-          if (prop === 'addTo') return () => { line.onMap = true; return obj; };
-          if (prop === 'remove') return () => { line.onMap = false; return obj; };
-          return () => obj;
-        },
-      });
+      const obj: object = new Proxy(
+        {},
+        {
+          get: (_target, prop) => {
+            if (prop === LINE) return line;
+            if (prop === 'on') {
+              return (event: string, fn: StubLine['click']) => {
+                if (event === 'click') line.click = fn;
+                return obj;
+              };
+            }
+            if (prop === 'addTo')
+              return () => {
+                line.onMap = true;
+                return obj;
+              };
+            if (prop === 'remove')
+              return () => {
+                line.onMap = false;
+                return obj;
+              };
+            return () => obj;
+          },
+        }
+      );
       return obj;
     },
     popup: () => {
@@ -155,7 +169,7 @@ const tabButton = (tab: string): HTMLButtonElement => {
 /** One row of the Stops tab, by the name it shows. */
 const stopItem = (name: string): HTMLElement => {
   const found = [...$('stops-list').querySelectorAll<HTMLElement>('.stop-item')].find(
-    item => (item.querySelector('.stop-name')?.textContent ?? '').trim() === name,
+    item => (item.querySelector('.stop-name')?.textContent ?? '').trim() === name
   );
   if (!found) throw new Error(`no stop row for ${name}`);
   return found;
@@ -214,9 +228,7 @@ function makeTrail() {
 
 async function boot(trail: ReturnType<typeof makeTrail> = makeTrail()): Promise<void> {
   const html = bundledPlanPageHtml();
-  document.documentElement.innerHTML = html
-    .replace(/<!DOCTYPE html>/i, '')
-    .replace(/<\/?html[^>]*>/gi, '');
+  document.documentElement.innerHTML = html.replace(/<!DOCTYPE html>/i, '').replace(/<\/?html[^>]*>/gi, '');
   vi.resetModules();
   markers = [];
   lines = [];
@@ -229,7 +241,7 @@ async function boot(trail: ReturnType<typeof makeTrail> = makeTrail()): Promise<
 /** The Stops list top to bottom: place names, and the alternate cards between them. */
 const listOrder = (): string[] =>
   [...$('stops-list').querySelectorAll<HTMLElement>('.stop-name, .alt-card-title')].map(el =>
-    (el.textContent ?? '').trim(),
+    (el.textContent ?? '').trim()
   );
 
 const altButton = (): HTMLButtonElement => {
@@ -265,20 +277,14 @@ afterEach(() => {
 describe('alternates in the Stops tab', () => {
   it('shows where an alternate branches off, with what it changes', async () => {
     await boot();
-    expect(listOrder()).toEqual([
-      'Camp One',
-      `\u2442${ALT} branches off here`,
-      'Salida',
-      'High Hut',
-      'Camp Two',
-    ]);
+    expect(listOrder()).toEqual(['Camp One', `\u2442${ALT} branches off here`, 'Salida', 'High Hut', 'Camp Two']);
     const stats = $('stops-list').querySelector('.alt-card-stats')?.textContent ?? '';
     expect(stats).toContain('30.0 km');
     expect(stats).toContain('10.0 km longer than the main route');
     expect(altButton().textContent?.trim()).toBe('Take this alternate');
   });
 
-  it('taking it lists the alternate\'s places, then where it rejoins', async () => {
+  it("taking it lists the alternate's places, then where it rejoins", async () => {
     await boot();
     altButton().click();
     expect(listOrder()).toEqual([
@@ -309,16 +315,14 @@ describe('alternates in the Stops tab', () => {
     const cards = [...$('days-list').querySelectorAll<HTMLElement>('.day-card[data-day-index]')];
     // 35 km is the first day; the 45 km after it is too long to be one, so it
     // is "not planned yet" — measured along the route as planned.
-    expect(cards.map(c => c.querySelector('.day-card-route')?.textContent?.trim())).toEqual([
-      'Trailhead → Ridge Camp',
-    ]);
+    expect(cards.map(c => c.querySelector('.day-card-route')?.textContent?.trim())).toEqual(['Trailhead → Ridge Camp']);
     expect(cards[0].querySelector('.day-card-via')?.textContent?.trim()).toBe(`via ${ALT}`);
     expect(cards[0].querySelector('.day-card-stats')?.textContent).toContain('35.0 km');
     const unplanned = $('days-list').querySelector('.day-card.is-unplanned');
     expect(unplanned?.textContent).toContain('45.0 km');
   });
 
-  it('going back to the main route drops the alternate\'s stops', async () => {
+  it("going back to the main route drops the alternate's stops", async () => {
     await boot();
     altButton().click();
     clickRow('Ridge Camp');
@@ -365,7 +369,7 @@ describe('alternates on the map', () => {
     line.click({ latlng: [0, 0] });
   };
 
-  it('clicking an alternate\'s line offers to take it', async () => {
+  it("clicking an alternate's line offers to take it", async () => {
     await boot();
     clickAlternateLine();
     const popup = openPopup!;
@@ -409,12 +413,16 @@ describe('alternates on the map', () => {
   it('a place where an alternate leaves the main route offers to take it', async () => {
     const trail = makeTrail();
     trail.waypoints.splice(2, 0, {
-      id: 'w_fork', name: 'The Fork', type: 'junction', totalDistance: 20, lat: -34.02, lon: 138.02,
+      id: 'w_fork',
+      name: 'The Fork',
+      type: 'junction',
+      totalDistance: 20,
+      lat: -34.02,
+      lon: 138.02,
     });
     await boot(trail);
     const popup = markerPopup('The Fork');
-    expect(popup.querySelector('.wp-popup-alt-title')?.textContent)
-      .toContain(`${ALT} leaves the main route here`);
+    expect(popup.querySelector('.wp-popup-alt-title')?.textContent).toContain(`${ALT} leaves the main route here`);
     choiceButton(popup).click();
     flushSave();
     expect(savedDocument().alternates).toEqual([ALT]);

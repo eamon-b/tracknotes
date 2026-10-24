@@ -27,6 +27,9 @@ describe('git tracking', () => {
       }
     }
 
-    expect(ignored, `These src/lib/ files are gitignored and will be missing from Vercel builds: ${ignored.join(', ')}`).toEqual([]);
+    expect(
+      ignored,
+      `These src/lib/ files are gitignored and will be missing from Vercel builds: ${ignored.join(', ')}`
+    ).toEqual([]);
   });
 });

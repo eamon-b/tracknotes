@@ -332,13 +332,7 @@ export interface RouteBreak {
 
 /** A fully processed trail — the serialized form of a generated trail JSON. */
 /** The six OpenStreetMap POI families the enrichment catalog produces. */
-export type TrailPOICategory =
-  | 'water'
-  | 'camping'
-  | 'resupply'
-  | 'restaurant'
-  | 'transport'
-  | 'emergency';
+export type TrailPOICategory = 'water' | 'camping' | 'resupply' | 'restaurant' | 'transport' | 'emergency';
 
 /**
  * An OpenStreetMap point of interest near the trail, found by `scripts/fetch-pois.ts`

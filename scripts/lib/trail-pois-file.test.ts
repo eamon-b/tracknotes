@@ -104,12 +104,7 @@ describe('parseTrailPOIFile', () => {
 
 describe('sortTrailPOIs', () => {
   it('orders by distance along the trail, breaking ties by key', () => {
-    const sorted = sortTrailPOIs([
-      poi(2, 10, 'way'),
-      poi(30, 10, 'node'),
-      poi(4, 10, 'node'),
-      poi(1, 3),
-    ]);
+    const sorted = sortTrailPOIs([poi(2, 10, 'way'), poi(30, 10, 'node'), poi(4, 10, 'node'), poi(1, 3)]);
     expect(sorted.map(p => `${p.type}/${p.id}@${p.distanceAlongTrail}`)).toEqual([
       'node/1@3',
       // Ties: "node/30" sorts before "node/4" as a string, and node before way.
@@ -162,9 +157,7 @@ describe('readTrailPOIsForBuild', () => {
 
   it('reads and filters the file beside the trail config', () => {
     const io = fakeIO({
-      [trailPOIPath(trailDir)]: stringifyTrailPOIFile(
-        file({ pois: [poi(2, 20), poi(1, 10)], rejected: ['node/2'] })
-      ),
+      [trailPOIPath(trailDir)]: stringifyTrailPOIFile(file({ pois: [poi(2, 20), poi(1, 10)], rejected: ['node/2'] })),
     });
     expect(readTrailPOIsForBuild(trailDir, io)?.map(p => p.id)).toEqual([1]);
   });
@@ -332,7 +325,10 @@ describe('markTrailPOIsForBuild', () => {
   it('reports a hand-listed duplicate that is rejected or dropped as noise', () => {
     const { unmatched } = markTrailPOIsForBuild(
       file({
-        pois: [named(1, 'Schlink Hilton'), named(2, 'Picnic shelter', { amenity: 'shelter', shelter_type: 'picnic_shelter' })],
+        pois: [
+          named(1, 'Schlink Hilton'),
+          named(2, 'Picnic shelter', { amenity: 'shelter', shelter_type: 'picnic_shelter' }),
+        ],
         rejected: ['node/1'],
         duplicates: { 'node/1': 'w_hut', 'node/2': 'w_hut' },
       }),
@@ -345,4 +341,3 @@ describe('markTrailPOIsForBuild', () => {
     expect(markTrailPOIsForBuild(null, { waypoints: [hut] }).pois).toBeUndefined();
   });
 });
-

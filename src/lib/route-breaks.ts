@@ -38,8 +38,8 @@ export function splitAtRouteBreaks<P extends SplittablePoint>(
   if (!breaks || breaks.length === 0) return [points];
 
   const cuts = breaks
-    .map((b) => (which === 'points' ? b.index : b.displayIndex))
-    .filter((i) => Number.isInteger(i) && i > 0 && i < points.length)
+    .map(b => (which === 'points' ? b.index : b.displayIndex))
+    .filter(i => Number.isInteger(i) && i > 0 && i < points.length)
     .sort((a, b) => a - b);
 
   if (cuts.length === 0) return [points];
@@ -51,7 +51,7 @@ export function splitAtRouteBreaks<P extends SplittablePoint>(
     start = cut;
   }
   stretches.push(points.slice(start));
-  return stretches.filter((stretch) => stretch.length > 0);
+  return stretches.filter(stretch => stretch.length > 0);
 }
 
 /**
@@ -134,10 +134,8 @@ export function routeBreakCrossings<P extends SplittablePoint>(
 
   const crossings: RouteBreakCrossing[] = [];
   for (const routeBreak of breaks) {
-    const index =
-      which === 'points' ? routeBreak.index : routeBreak.displayIndex;
-    if (!Number.isInteger(index) || index <= 0 || index >= points.length)
-      continue;
+    const index = which === 'points' ? routeBreak.index : routeBreak.displayIndex;
+    if (!Number.isInteger(index) || index <= 0 || index >= points.length) continue;
     crossings.push({
       from: points[index - 1],
       to: points[index],

@@ -103,7 +103,12 @@ export function PlanThresholdsCard(props: PlanThresholdsCardProps) {
         formatFoodPerDay(props.foodGramsPerDay, props.units),
         'food per day',
       )}
-      {row('longCarryDays', 'Long carry over', `${days} ${days === 1 ? 'day' : 'days'}`, 'long-carry days')}
+      {row(
+        'longCarryDays',
+        'Long carry over',
+        `${days} ${days === 1 ? 'day' : 'days'}`,
+        'long-carry days',
+      )}
     </View>
   );
 }
@@ -116,8 +121,18 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   heading: { ...typography.titleSmall },
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
   rowLabel: { ...typography.bodySmall, flexShrink: 1 },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  value: { ...typography.titleSmall, minWidth: 72, textAlign: 'center', fontVariant: ['tabular-nums'] },
+  value: {
+    ...typography.titleSmall,
+    minWidth: 72,
+    textAlign: 'center',
+    fontVariant: ['tabular-nums'],
+  },
 });

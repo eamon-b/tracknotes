@@ -13,8 +13,8 @@ const DATA_DIR = path.resolve(__dirname, '../data/trails');
 
 const trails = fs
   .readdirSync(DATA_DIR)
-  .filter((dir) => fs.existsSync(path.join(DATA_DIR, dir, 'trail.json')))
-  .map((dir) => ({
+  .filter(dir => fs.existsSync(path.join(DATA_DIR, dir, 'trail.json')))
+  .map(dir => ({
     dir,
     config: JSON.parse(fs.readFileSync(path.join(DATA_DIR, dir, 'trail.json'), 'utf-8')) as TrailConfig,
   }));
@@ -24,7 +24,7 @@ describe('trail.json country and states', () => {
     expect(trails.length).toBeGreaterThan(0);
   });
 
-  it.each(trails.map((t) => [t.dir, t.config] as const))('%s has a listed country and valid states', (_dir, config) => {
+  it.each(trails.map(t => [t.dir, t.config] as const))('%s has a listed country and valid states', (_dir, config) => {
     expect(isValidCountry(config.country)).toBe(true);
     expect(config.country).toBe(config.country?.toUpperCase());
     // Curated trails use a country the list labels, not a bare code.

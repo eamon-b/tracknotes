@@ -43,7 +43,7 @@ function bundledPlanPageHtml(): string {
   return inlinePlanShell(
     fs.readFileSync(path.join(ROOT, 'src/web/trails/plan-template.html'), 'utf8'),
     fs.readFileSync(path.join(ROOT, 'src/web/trails/plan-shell.html'), 'utf8'),
-    BUNDLED_PLAN_FILLS,
+    BUNDLED_PLAN_FILLS
   );
 }
 
@@ -133,16 +133,18 @@ afterEach(() => {
 });
 
 describe('stops that need checking', () => {
-  const issuesPlan = () => planWith([
-    { waypointId: 'w_c8', km: 8, name: 'Camp 8', nights: 1 },
-    { waypointId: 'w_gone', km: 15, name: 'Old Camp', nights: 1 },
-    { km: 104, name: 'Past the End', nights: 2 },
-  ]);
+  const issuesPlan = () =>
+    planWith([
+      { waypointId: 'w_c8', km: 8, name: 'Camp 8', nights: 1 },
+      { waypointId: 'w_gone', km: 15, name: 'Old Camp', nights: 1 },
+      { km: 104, name: 'Past the End', nights: 2 },
+    ]);
 
   it('says nothing for a plan whose stops all match the data', async () => {
-    localStorage.setItem(`trail-plan-doc-${TRAIL_ID}`, JSON.stringify(planWith([
-      { waypointId: 'w_c8', km: 8, name: 'Camp 8', nights: 1 },
-    ])));
+    localStorage.setItem(
+      `trail-plan-doc-${TRAIL_ID}`,
+      JSON.stringify(planWith([{ waypointId: 'w_c8', km: 8, name: 'Camp 8', nights: 1 }]))
+    );
     await boot();
     expect(document.querySelector('.stop-issues')).toBeNull();
     expect(document.querySelector('.stop-issue-badge')).toBeNull();
@@ -154,10 +156,11 @@ describe('stops that need checking', () => {
 
     const notice = document.querySelector('#days-list .stop-issues');
     expect(notice?.querySelector('.stop-issues-notice')?.textContent).toContain(
-      '2 stops need checking after a trail data update. 2 nights are left out of the dates',
+      '2 stops need checking after a trail data update. 2 nights are left out of the dates'
     );
-    const rows = [...(notice?.querySelectorAll('.stop-issue') ?? [])]
-      .map(row => row.textContent?.replace(/\s+/g, ' ').trim());
+    const rows = [...(notice?.querySelectorAll('.stop-issue') ?? [])].map(row =>
+      row.textContent?.replace(/\s+/g, ' ').trim()
+    );
     expect(rows[0]).toContain('Old Camp');
     expect(rows[0]).toContain('This place is no longer in the trail data \u00B7 Ends day 2');
     expect(rows[1]).toContain('Past the End');
@@ -166,8 +169,9 @@ describe('stops that need checking', () => {
     // Old Camp still ends its day, with the warning on the card.
     const cards = [...document.querySelectorAll('.day-card[data-day-index]')];
     expect(cards[1].querySelector('.day-card-route')?.textContent).toContain('Old Camp');
-    expect(cards[1].querySelector('.stop-issue-badge')?.textContent)
-      .toContain('This place is no longer in the trail data');
+    expect(cards[1].querySelector('.stop-issue-badge')?.textContent).toContain(
+      'This place is no longer in the trail data'
+    );
   });
 
   it('removes a stop the route view cannot show, and saves the plan without it', async () => {
@@ -181,7 +185,7 @@ describe('stops that need checking', () => {
 
     expect(savedDocument().stops.map(stop => stop.name)).toEqual(['Camp 8', 'Old Camp']);
     expect(document.querySelector('#days-list .stop-issues-notice')?.textContent).toContain(
-      '1 stop needs checking after a trail data update.',
+      '1 stop needs checking after a trail data update.'
     );
   });
 
@@ -189,9 +193,10 @@ describe('stops that need checking', () => {
     // Camp 8's stop is at km 6: the refresh would move it, but this page has
     // no publish time to set against the plan's, so it leaves it — and the
     // notice says why rather than claiming another stop holds km 8.
-    localStorage.setItem(`trail-plan-doc-${TRAIL_ID}`, JSON.stringify(planWith([
-      { waypointId: 'w_c8', km: 6, name: 'Camp 8', nights: 1 },
-    ])));
+    localStorage.setItem(
+      `trail-plan-doc-${TRAIL_ID}`,
+      JSON.stringify(planWith([{ waypointId: 'w_c8', km: 6, name: 'Camp 8', nights: 1 }]))
+    );
     await boot({ ...makeTrail(), dataUpdatedAt: undefined });
     const row = document.querySelector('#days-list .stop-issue')?.textContent?.replace(/\s+/g, ' ');
     expect(row).toContain('Saved against newer trail data than this device has');

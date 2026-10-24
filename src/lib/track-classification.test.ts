@@ -299,9 +299,7 @@ describe('combineTracksGeographically', () => {
 
     const result = combineTracksGeographically([trackA, trackB]);
 
-    expect(result.warnings).toContainEqual(
-      expect.objectContaining({ type: 'gap', gapMeters: expect.any(Number) })
-    );
+    expect(result.warnings).toContainEqual(expect.objectContaining({ type: 'gap', gapMeters: expect.any(Number) }));
   });
 
   it('should handle single track', () => {
@@ -563,7 +561,10 @@ describe('very long tracks', () => {
 
   it('concatenates stretches of 150,000 points', () => {
     const result = withJscArgumentLimit(() =>
-      concatenateStretches([{ name: 'A', points: long(-34) }, { name: 'B', points: long(-30) }])
+      concatenateStretches([
+        { name: 'A', points: long(-34) },
+        { name: 'B', points: long(-30) },
+      ])
     );
     expect(result.combinedPoints).toHaveLength(2 * N);
     expect(result.breaks).toHaveLength(1);
@@ -596,8 +597,6 @@ describe('combineTracksGeographically keeps the first track as drawn', () => {
     const day2 = { name: 'Day 2', points: [pt(-34.1), pt(-34.2)] };
     const day1 = { name: 'Day 1', points: [pt(-34.0), pt(-34.09)] }; // ~1.1 km short
     const result = combineTracksGeographically([day2, day1]);
-    expect(result.warnings).toEqual([
-      expect.objectContaining({ type: 'gap', fromTrack: 'Day 1', toTrack: 'Day 2' }),
-    ]);
+    expect(result.warnings).toEqual([expect.objectContaining({ type: 'gap', fromTrack: 'Day 1', toTrack: 'Day 2' })]);
   });
 });

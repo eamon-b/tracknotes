@@ -161,10 +161,7 @@ function requestToPromise<T>(request: IDBRequest<T>): Promise<T> {
  * Retries once on a dead connection (e.g. the db was closed by `onversionchange`
  * between calls) after dropping the cached connection.
  */
-async function runTransaction<T>(
-  mode: IDBTransactionMode,
-  work: (store: IDBObjectStore) => Promise<T>
-): Promise<T> {
+async function runTransaction<T>(mode: IDBTransactionMode, work: (store: IDBObjectStore) => Promise<T>): Promise<T> {
   if (!isIndexedDbAvailable()) throw new IndexedDbUnavailableError();
 
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -212,9 +209,7 @@ function toSummary(record: ImportedTrailSummary): ImportedTrailSummary {
 }
 
 /** Insert or replace a stored trail (keyed by `record.id`). */
-export async function putTrail<T = ImportedTrailData>(
-  record: ImportedTrailRecord<T>
-): Promise<void> {
+export async function putTrail<T = ImportedTrailData>(record: ImportedTrailRecord<T>): Promise<void> {
   if (!record || typeof record.id !== 'string' || record.id === '') {
     throw new TypeError('putTrail requires a record with a non-empty string id');
   }
@@ -224,9 +219,7 @@ export async function putTrail<T = ImportedTrailData>(
 }
 
 /** Fetch one stored trail, or null when no record has that id. */
-export async function getTrail<T = ImportedTrailData>(
-  id: string
-): Promise<ImportedTrailRecord<T> | null> {
+export async function getTrail<T = ImportedTrailData>(id: string): Promise<ImportedTrailRecord<T> | null> {
   const record = await runTransaction('readonly', store =>
     requestToPromise(store.get(id) as IDBRequest<ImportedTrailRecord<T> | undefined>)
   );
@@ -250,9 +243,7 @@ export async function getTrail<T = ImportedTrailData>(
  */
 export async function updateTrailPois(id: string, pois: TrailPOI[] | null): Promise<boolean> {
   return runTransaction('readwrite', async store => {
-    const record = await requestToPromise(
-      store.get(id) as IDBRequest<ImportedTrailRecord | undefined>
-    );
+    const record = await requestToPromise(store.get(id) as IDBRequest<ImportedTrailRecord | undefined>);
     if (!record) return false;
 
     if (pois === null) {
@@ -285,9 +276,7 @@ export async function listTrailSummaries(): Promise<ImportedTrailSummary[]> {
     return requestToPromise(source.getAll() as IDBRequest<ImportedTrailSummary[]>);
   });
 
-  return records
-    .map(toSummary)
-    .sort((a, b) => b.createdAt - a.createdAt || a.id.localeCompare(b.id));
+  return records.map(toSummary).sort((a, b) => b.createdAt - a.createdAt || a.id.localeCompare(b.id));
 }
 
 /** Delete a stored trail. Resolves normally when the id is not present. */

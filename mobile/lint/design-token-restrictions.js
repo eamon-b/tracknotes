@@ -25,7 +25,8 @@ const designTokenRestrictions = [
   },
   {
     selector: `JSXAttribute[name.name='style'] Property[key.name!='shadowColor'] > Literal[value=${COLOR_LITERAL}]`,
-    message: 'Raw color literal in an inline style. Use theme-resolved colors from useTheme().colors.',
+    message:
+      'Raw color literal in an inline style. Use theme-resolved colors from useTheme().colors.',
   },
   {
     selector:
@@ -35,7 +36,8 @@ const designTokenRestrictions = [
   },
   {
     selector: "JSXAttribute[name.name='style'] Property[key.name='fontSize'] > Literal",
-    message: 'Numeric fontSize in an inline style. Use a typography token (src/tokens/typography.ts).',
+    message:
+      'Numeric fontSize in an inline style. Use a typography token (src/tokens/typography.ts).',
   },
 ];
 

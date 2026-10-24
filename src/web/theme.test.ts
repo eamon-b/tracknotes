@@ -18,7 +18,7 @@ function mockSystemTheme(prefersDark: boolean): void {
       media: query,
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
-    })),
+    }))
   );
 }
 

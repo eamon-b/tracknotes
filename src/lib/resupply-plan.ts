@@ -519,7 +519,10 @@ export function resolveResupplyStops(
  * for the surfaces that show a single option (a turn-off's detail).
  */
 export function optionAccess(
-  option: Pick<ResupplyOption, 'name' | 'offTrailKm' | 'accessMode' | 'accessRoute' | 'offTrailAscentM' | 'offTrailDescentM'>
+  option: Pick<
+    ResupplyOption,
+    'name' | 'offTrailKm' | 'accessMode' | 'accessRoute' | 'offTrailAscentM' | 'offTrailDescentM'
+  >
 ): StopAccess | null {
   const km = offTrailKmOf(option);
   if (km === 0) return null;
@@ -555,11 +558,7 @@ function stopAccess(picked: readonly ResupplyOption[]): StopAccess | null {
   for (const option of picked) {
     const access = optionAccess(option);
     if (!access) continue;
-    if (
-      !best ||
-      access.walkKm > best.walkKm ||
-      (access.walkKm === best.walkKm && access.rideKm > best.rideKm)
-    ) {
+    if (!best || access.walkKm > best.walkKm || (access.walkKm === best.walkKm && access.rideKm > best.rideKm)) {
       best = access;
     }
   }
@@ -761,10 +760,7 @@ function rideOf(access: StopAccess, end: LegRide['end']): LegRide {
  * The resupply stop the hiker reaches next from `currentKm` (direction-applied),
  * or null past the last one. A stop within 50 m behind counts as reached.
  */
-export function nextResupplyStop(
-  stops: readonly ResupplyStop[],
-  currentKm: number
-): ResupplyStop | null {
+export function nextResupplyStop(stops: readonly ResupplyStop[], currentKm: number): ResupplyStop | null {
   let next: ResupplyStop | null = null;
   for (const stop of stops) {
     if (stop.km > currentKm && (!next || stop.km < next.km)) next = stop;

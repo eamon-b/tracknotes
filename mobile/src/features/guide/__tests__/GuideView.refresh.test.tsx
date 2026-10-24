@@ -40,7 +40,9 @@ const PHONE_DATA = '2026-10-10T00:00:00.000Z';
 const BASE_TRAIL = {
   config: { id: TRAIL_ID, name: 'Shikoku' },
   track: { points: [], displayPoints: [], totalDistance: 200, totalAscent: 0, totalDescent: 0 },
-  waypoints: [{ id: 'w_maekawa', name: 'Maekawa Campground', type: 'campsite', totalDistance: 111.93 }],
+  waypoints: [
+    { id: 'w_maekawa', name: 'Maekawa Campground', type: 'campsite', totalDistance: 111.93 },
+  ],
 };
 
 function planWithMaekawaAt(km: number, dataUpdatedAt?: string): PlanDocument {
@@ -73,7 +75,11 @@ beforeEach(() => {
     usePlansStore.setState((s) => ({ byTrail: { ...s.byTrail, [trailId]: next } }));
     return next;
   });
-  usePlansStore.setState({ byTrail: {}, apply: apply as never, hydrate: (async () => {}) as never });
+  usePlansStore.setState({
+    byTrail: {},
+    apply: apply as never,
+    hydrate: (async () => {}) as never,
+  });
 });
 
 afterEach(() => {
@@ -111,7 +117,10 @@ describe('GuideView stop refresh', () => {
     (useGuide as jest.Mock).mockReturnValue({
       trailId: TRAIL_ID,
       trail: BASE_TRAIL,
-      baseTrail: { ...BASE_TRAIL, waypoints: [{ ...BASE_TRAIL.waypoints[0], totalDistance: 114.52 }] },
+      baseTrail: {
+        ...BASE_TRAIL,
+        waypoints: [{ ...BASE_TRAIL.waypoints[0], totalDistance: 114.52 }],
+      },
       direction: 'default',
       dataUpdatedAt: '2026-09-01T00:00:00.000Z',
     });

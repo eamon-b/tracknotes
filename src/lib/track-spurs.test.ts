@@ -141,7 +141,9 @@ describe('detectSelfRetraces', () => {
     const square = [
       ...leg(0, 10),
       ...eastSpurLeg(10, 0, 10).slice(1),
-      ...leg(10, 0).map(p => ({ ...p, lon: BASE_LON + 10 * LON_DEG_PER_KM })).slice(1),
+      ...leg(10, 0)
+        .map(p => ({ ...p, lon: BASE_LON + 10 * LON_DEG_PER_KM }))
+        .slice(1),
       ...eastSpurLeg(0, 10, 0).slice(1),
     ];
     expect(detectSelfRetraces(square)).toEqual([]);
@@ -153,7 +155,9 @@ describe('detectSelfRetraces', () => {
     const loop = [
       ...leg(3, 13).slice(1),
       ...eastSpurLeg(13, 0, 10).slice(1),
-      ...leg(13, 3).map(p => ({ ...p, lon: BASE_LON + 10 * LON_DEG_PER_KM })).slice(1),
+      ...leg(13, 3)
+        .map(p => ({ ...p, lon: BASE_LON + 10 * LON_DEG_PER_KM }))
+        .slice(1),
       ...eastSpurLeg(3, 10, 0).slice(1),
     ];
     const points = [...access, ...loop, ...leg(3, 0).slice(1)];
@@ -171,7 +175,9 @@ describe('detectSelfRetraces', () => {
       ...eastSpur(5, 3),
       ...leg(5, 10).slice(1),
       ...eastSpurLeg(10, 0, 10).slice(1),
-      ...leg(10, 0).map(p => ({ ...p, lon: BASE_LON + 10 * LON_DEG_PER_KM })).slice(1),
+      ...leg(10, 0)
+        .map(p => ({ ...p, lon: BASE_LON + 10 * LON_DEG_PER_KM }))
+        .slice(1),
       ...eastSpurLeg(0, 10, 0).slice(1),
     ];
     const retraces = detectSelfRetraces(square);

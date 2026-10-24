@@ -112,9 +112,7 @@ function makeTrail(id = 'u_abc123'): TrailJson {
       lengthKm: 42.5,
       direction: { default: 'northbound', reversed: 'southbound' },
     },
-    waypoints: [
-      { id: 'uw_1', name: 'Trailhead', lat: -23.7, lon: 133.8, type: 'endpoint' },
-    ],
+    waypoints: [{ id: 'uw_1', name: 'Trailhead', lat: -23.7, lon: 133.8, type: 'endpoint' }],
     track: {
       points: [
         { lat: -23.7, lon: 133.8, ele: 600, dist: 0 },
@@ -137,9 +135,7 @@ const META = { hasElevation: true, pointCount: 2, waypointCount: 1 };
 describe('imported-trail-store — paths', () => {
   it('puts trail JSON under {documentDir}/trails/{id}.json', () => {
     expect(importedTrailsRoot().uri).toBe('file:///mock/document/trails');
-    expect(importedTrailFile('u_abc123').uri).toBe(
-      'file:///mock/document/trails/u_abc123.json',
-    );
+    expect(importedTrailFile('u_abc123').uri).toBe('file:///mock/document/trails/u_abc123.json');
   });
 
   it('accepts a bundled trail id, since delete is called with those too', () => {
@@ -154,15 +150,12 @@ describe('imported-trail-store — paths', () => {
    * malformed, so this is the second lock on the same door — but it is the one
    * standing between a crafted id and a write over the app's own database.
    */
-  it.each([
-    'u_../../../../databases/tracknotes.db',
-    'u_/etc/passwd',
-    '../escape',
-    'has space',
-    '',
-  ])('refuses %p as a file name', (hostileId) => {
-    expect(() => importedTrailFile(hostileId)).toThrow(/Refusing to use/);
-  });
+  it.each(['u_../../../../databases/tracknotes.db', 'u_/etc/passwd', '../escape', 'has space', ''])(
+    'refuses %p as a file name',
+    (hostileId) => {
+      expect(() => importedTrailFile(hostileId)).toThrow(/Refusing to use/);
+    },
+  );
 });
 
 // ---------------------------------------------------------------------------
@@ -210,9 +203,9 @@ describe('saveImportedTrail', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0].name).toBe('Renamed Loop');
     expect(rows[0].pointCount).toBe(3);
-    expect(
-      JSON.parse(mockFiles['file:///mock/document/trails/u_abc123.json']).config.name,
-    ).toBe('Renamed Loop');
+    expect(JSON.parse(mockFiles['file:///mock/document/trails/u_abc123.json']).config.name).toBe(
+      'Renamed Loop',
+    );
   });
 
   /**
@@ -335,9 +328,7 @@ describe('deleteImportedTrailEverywhere', () => {
   it('removes the row, the file, and the plan-inputs entry', async () => {
     const db = await createMigratedTestDb();
     await saveImportedTrail(db as never, makeTrail(), META);
-    await db.runAsync(
-      "INSERT INTO favorites (trail_id, waypoint_id) VALUES ('u_abc123', 'uw_1')",
-    );
+    await db.runAsync("INSERT INTO favorites (trail_id, waypoint_id) VALUES ('u_abc123', 'uw_1')");
     usePlanInputsStore.getState().setDailyHours('u_abc123', 6);
     usePlanInputsStore.getState().setDailyHours('larapinta', 10);
 
@@ -363,9 +354,7 @@ describe('deleteImportedTrailEverywhere', () => {
     await saveImportedTrail(db as never, makeTrail(), META);
     delete mockFiles['file:///mock/document/trails/u_abc123.json'];
 
-    await expect(
-      deleteImportedTrailEverywhere(db as never, 'u_abc123'),
-    ).resolves.toBeUndefined();
+    await expect(deleteImportedTrailEverywhere(db as never, 'u_abc123')).resolves.toBeUndefined();
     expect(await getImportedTrail(db as never, 'u_abc123')).toBeNull();
   });
 

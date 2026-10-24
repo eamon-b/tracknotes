@@ -56,7 +56,11 @@ export function ChoiceChips({
 }) {
   const { colors } = useTheme();
   return (
-    <View style={styles.chips} accessibilityLabel={accessibilityLabel} accessibilityRole="radiogroup">
+    <View
+      style={styles.chips}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="radiogroup"
+    >
       {choices.map((choice) => {
         const on = choice.value === selected;
         return (
@@ -73,7 +77,9 @@ export function ChoiceChips({
               },
             ]}
           >
-            <Text style={[styles.chipLabel, { color: on ? colors.accentText : colors.textPrimary }]}>
+            <Text
+              style={[styles.chipLabel, { color: on ? colors.accentText : colors.textPrimary }]}
+            >
               {choice.label}
             </Text>
           </Pressable>

@@ -72,7 +72,7 @@ const tabButton = (tab: string): HTMLButtonElement => {
 /** The resupply datasheet's rows, cell by cell. */
 const legRows = (): string[][] =>
   [...$('datasheet-body').querySelectorAll('tbody tr')].map(tr =>
-    [...tr.querySelectorAll('td')].map(td => (td.textContent ?? '').trim()),
+    [...tr.querySelectorAll('td')].map(td => (td.textContent ?? '').trim())
   );
 
 const legHeaders = (): string[] =>
@@ -111,13 +111,7 @@ function makeTrail() {
     dist: i * 10,
   }));
 
-  const wp = (
-    id: string,
-    name: string,
-    type: string,
-    totalDistance: number,
-    extra: Record<string, unknown> = {},
-  ) => ({
+  const wp = (id: string, name: string, type: string, totalDistance: number, extra: Record<string, unknown> = {}) => ({
     id,
     name,
     type,
@@ -153,9 +147,7 @@ function makeTrail() {
 /** Boot the shipped plan markup with a preloaded trail, on the Resupply tab. */
 async function boot(openResupply = true, trail: unknown = makeTrail()): Promise<void> {
   const html = bundledPlanPageHtml();
-  document.documentElement.innerHTML = html
-    .replace(/<!DOCTYPE html>/i, '')
-    .replace(/<\/?html[^>]*>/gi, '');
+  document.documentElement.innerHTML = html.replace(/<!DOCTYPE html>/i, '').replace(/<\/?html[^>]*>/gi, '');
 
   vi.resetModules();
   const { initPlanViewer } = await import('./plan-viewer');
@@ -193,9 +185,7 @@ describe('the Resupply tab with nothing chosen yet', () => {
     // trail start → Alpha → Mill Road → Delta → Echo → trail end.
     expect($('datasheet-title').textContent).toBe('Resupply plan');
     expect(legRows()).toHaveLength(5);
-    expect($('datasheet-subtitle').textContent).toBe(
-      '4 stops · longest carry 10.0 km / 1 day · 3.4 kg food in total',
-    );
+    expect($('datasheet-subtitle').textContent).toBe('4 stops · longest carry 10.0 km / 1 day · 3.4 kg food in total');
   });
 
   it('collapses two ticks at one turn-off into a single stop', async () => {
@@ -217,7 +207,7 @@ describe('the Resupply tab with nothing chosen yet', () => {
     await boot();
 
     const headers = [...$('resupply-list').querySelectorAll('.resupply-group-header')].map(el =>
-      (el.textContent ?? '').trim(),
+      (el.textContent ?? '').trim()
     );
     expect(headers).toEqual(['⤴ Mill Road · km 20.0']);
 
@@ -233,9 +223,7 @@ describe('the Resupply tab with nothing chosen yet', () => {
 
   it('omits the Arrive column until the camp plan has stops and a start date', async () => {
     await boot();
-    expect(legHeaders()).toEqual([
-      '#', 'From → To', 'Distance', 'Ascent', 'Descent', 'Est. days', 'Food',
-    ]);
+    expect(legHeaders()).toEqual(['#', 'From → To', 'Distance', 'Ascent', 'Descent', 'Est. days', 'Food']);
   });
 });
 
@@ -259,11 +247,15 @@ describe('unticking options', () => {
     // Naismith: 30/4 + 500/600 = 8.33 h → 2 days at 8 h → 2 × 680 g = 1.4 kg.
     // Charlie is a 22 km hitch: listed under the distance, never walked.
     expect(rows[2]).toEqual([
-      '3', 'Bravo / Charlie → Trail End', '30.0 km22.0 km hitch out, not walked', '+500 m', '-100 m', '2', '1.4 kg',
+      '3',
+      'Bravo / Charlie → Trail End',
+      '30.0 km22.0 km hitch out, not walked',
+      '+500 m',
+      '-100 m',
+      '2',
+      '1.4 kg',
     ]);
-    expect($('datasheet-subtitle').textContent).toBe(
-      '2 stops · longest carry 30.0 km / 2 days · 2.7 kg food in total',
-    );
+    expect($('datasheet-subtitle').textContent).toBe('2 stops · longest carry 30.0 km / 2 days · 2.7 kg food in total');
   });
 
   it('keeps the Days-tab summary in step with the table', async () => {
@@ -272,9 +264,7 @@ describe('unticking options', () => {
     check('w_005').click();
 
     tabButton('days').click();
-    expect($('resupply-body').textContent).toContain(
-      '2 stops · longest carry 30.0 km / 2 days · 2.7 kg food in total',
-    );
+    expect($('resupply-body').textContent).toContain('2 stops · longest carry 30.0 km / 2 days · 2.7 kg food in total');
 
     // …and the collapsible's link is how you get back to the picker.
     $('resupply-edit-link').click();
@@ -319,9 +309,7 @@ describe('the All and None buttons', () => {
 
       // The shared editor hands back the same document for a selection that did
       // not change, so there is nothing to stamp, store or send.
-      expect(
-        writes.mock.calls.filter(([key]) => key === `trail-plan-doc-${TRAIL_ID}`).length,
-      ).toBe(1);
+      expect(writes.mock.calls.filter(([key]) => key === `trail-plan-doc-${TRAIL_ID}`).length).toBe(1);
       expect(localStorage.getItem(`trail-plan-doc-${TRAIL_ID}`)).toBe(after);
     } finally {
       writes.mockRestore();
@@ -365,9 +353,11 @@ describe('a saved selection', () => {
     check('w_005').click();
     flushSave();
 
-    expect(
-      JSON.parse(localStorage.getItem(`trail-plan-doc-${TRAIL_ID}`)!).resupplyStops,
-    ).toEqual(['w_001', 'w_002', 'w_003']);
+    expect(JSON.parse(localStorage.getItem(`trail-plan-doc-${TRAIL_ID}`)!).resupplyStops).toEqual([
+      'w_001',
+      'w_002',
+      'w_003',
+    ]);
 
     await boot();
     expect(countText()).toBe('3 of 5 selected');
@@ -431,11 +421,11 @@ describe('the pace and hours inputs', () => {
   it('offers exactly the shared presets, and starts on Average / 8 h', async () => {
     await boot(false);
 
-    expect([...paceSelect().options].map(option => option.value)).toEqual(
-      Object.keys(PACE_KMH),
-    );
+    expect([...paceSelect().options].map(option => option.value)).toEqual(Object.keys(PACE_KMH));
     expect([...paceSelect().options].map(option => option.textContent)).toEqual([
-      'Slow (3 km/h)', 'Average (4 km/h)', 'Fast (5 km/h)',
+      'Slow (3 km/h)',
+      'Average (4 km/h)',
+      'Fast (5 km/h)',
     ]);
     expect(paceSelect().value).toBe('average');
     expect(hoursInput().value).toBe('8');
@@ -449,15 +439,11 @@ describe('the pace and hours inputs', () => {
 
     // Trail Start → Delta is 30.0 km, climbing 100 + 200 with a 100 m drop:
     // 30/4 + 300/600 = 8.0 h exactly, which is one 8-hour day.
-    expect(legRows()[0]).toEqual([
-      '1', 'Trail Start → Delta', '30.0 km', '+300 m', '-100 m', '1', '0.7 kg',
-    ]);
+    expect(legRows()[0]).toEqual(['1', 'Trail Start → Delta', '30.0 km', '+300 m', '-100 m', '1', '0.7 kg']);
 
     // At 3 km/h the same carry is 30/3 + 0.5 = 10.5 h — a second day of food.
     setPace('slow');
-    expect(legRows()[0]).toEqual([
-      '1', 'Trail Start → Delta', '30.0 km', '+300 m', '-100 m', '2', '1.4 kg',
-    ]);
+    expect(legRows()[0]).toEqual(['1', 'Trail Start → Delta', '30.0 km', '+300 m', '-100 m', '2', '1.4 kg']);
   });
 
   it('drops a leg from two days to one at 16 hours a day', async () => {
@@ -467,15 +453,11 @@ describe('the pace and hours inputs', () => {
 
     // Bravo / Charlie → Trail End: 30.0 km, +500 / -100 → 7.5 + 0.8333 = 8.33 h.
     expect(legRows()[2][5]).toBe('2');
-    expect($('datasheet-subtitle').textContent).toBe(
-      '2 stops · longest carry 30.0 km / 2 days · 2.7 kg food in total',
-    );
+    expect($('datasheet-subtitle').textContent).toBe('2 stops · longest carry 30.0 km / 2 days · 2.7 kg food in total');
 
     setDailyHours('16');
     expect(legRows()[2][5]).toBe('1');
-    expect($('datasheet-subtitle').textContent).toBe(
-      '2 stops · longest carry 30.0 km / 1 day · 2.0 kg food in total',
-    );
+    expect($('datasheet-subtitle').textContent).toBe('2 stops · longest carry 30.0 km / 1 day · 2.0 kg food in total');
   });
 
   it('moves the Days tab\u2019s hours with pace, so the two tabs agree', async () => {
@@ -563,7 +545,12 @@ describe('the planning thresholds', () => {
   function wateredTrail() {
     const trail = makeTrail();
     const water = (id: string, name: string, km: number) => ({
-      id, name, type: 'water', lat: -34 - km / 1000, lon: 138 + km / 1000, totalDistance: km,
+      id,
+      name,
+      type: 'water',
+      lat: -34 - km / 1000,
+      lon: 138 + km / 1000,
+      totalDistance: km,
     });
     trail.waypoints.push(water('w_tank', 'Tank', 10) as never, water('w_creek', 'Creek', 35) as never);
     return trail;

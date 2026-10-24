@@ -180,7 +180,15 @@ export function clusterCandidates(candidates: readonly Candidate[]): Array<{ bbo
  * marker, a route break — not a place anyone walks off it to reach. The CDT's
  * "Wyoming old route 6 branches off Wyoming old route 5" is a junction note.
  */
-const NOT_DESTINATIONS = new Set(['junction', 'milestone', 'road-crossing', 'inlet-crossing', 'gap', 'side-trip', 'endpoint']);
+const NOT_DESTINATIONS = new Set([
+  'junction',
+  'milestone',
+  'road-crossing',
+  'inlet-crossing',
+  'gap',
+  'side-trip',
+  'endpoint',
+]);
 
 /** A walk whose last, cross-country stretch is longer than this is printed for review (metres). */
 const LONG_CROSS_COUNTRY_M = 150;
@@ -214,7 +222,9 @@ export function selectCandidates(
 ): Candidate[] {
   const breakStarts = routeBreakStarts(trail.track.breaks, 'points');
   // Only the distance to the line is read, so the km along it can be left at 0.
-  const sideTripLines = (trail.sideTrips ?? []).map(trip => trip.points.map(p => ({ lat: p.lat, lon: p.lon, dist: 0 })));
+  const sideTripLines = (trail.sideTrips ?? []).map(trip =>
+    trip.points.map(p => ({ lat: p.lat, lon: p.lon, dist: 0 }))
+  );
   const onSideTrip = (lat: number, lon: number) =>
     sideTripLines.some(line => (snapToTrail(lat, lon, line)?.offTrailMeters ?? Infinity) <= ON_SIDE_TRIP_M);
   const candidates: Candidate[] = [];
@@ -379,7 +389,10 @@ async function fetchWays(
       // Overpass answers a busy slot with 429 and no header; a 503 without one
       // is an ordinary failure.
       if (wait !== null || response.status === 429) {
-        throw new RateLimitedError(`HTTP ${response.status}, retry after ${wait ?? RATE_LIMIT_PAUSE_S} s`, wait ?? RATE_LIMIT_PAUSE_S);
+        throw new RateLimitedError(
+          `HTTP ${response.status}, retry after ${wait ?? RATE_LIMIT_PAUSE_S} s`,
+          wait ?? RATE_LIMIT_PAUSE_S
+        );
       }
     }
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -398,7 +411,13 @@ function parseWays(text: string): WalkWay[] {
   try {
     body = JSON.parse(text);
   } catch {
-    throw new Error(`not JSON: ${text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160)}`);
+    throw new Error(
+      `not JSON: ${text
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 160)}`
+    );
   }
   // Overpass reports a timeout or memory limit as a remark on a 200 with a
   // truncated element list: treat it as a failure, not as an empty map.
@@ -548,7 +567,13 @@ function parseArgs(argv: string[]): Args {
     else if (arg === '--dry-run') args.dryRun = true;
     else if (arg === '--refresh') args.refresh = true;
     else if (arg === '--max-cache-age') args.maxCacheAgeDays = Number(value());
-    else if (arg === '--only') args.only = new Set(value().split(',').map(id => id.trim()).filter(Boolean));
+    else if (arg === '--only')
+      args.only = new Set(
+        value()
+          .split(',')
+          .map(id => id.trim())
+          .filter(Boolean)
+      );
     else if (arg.startsWith('--')) throw new Error(`unknown option ${arg}`);
     else args.trailId = arg;
   }
@@ -585,7 +610,9 @@ async function main(): Promise<void> {
   }
 
   const breakStarts = routeBreakStarts(trail.track.breaks, 'points');
-  const alternateRoutes = new Map(routableAlternates(trail.alternates ?? []).map(alt => [alt.name, alternateRoute(alt)]));
+  const alternateRoutes = new Map(
+    routableAlternates(trail.alternates ?? []).map(alt => [alt.name, alternateRoute(alt)])
+  );
   const dem = new CopernicusDem();
   const fetched: Record<string, TrailAccessEntry> = {};
   const failedIds = new Set<string>();
@@ -597,7 +624,9 @@ async function main(): Promise<void> {
   let pending = clusters.map((cluster, n) => ({ cluster, n }));
   for (let pass = 1; pass <= PASSES && pending.length > 0; pass++) {
     if (pass > 1) {
-      console.log(`  pass ${pass}: retrying ${pending.length} failed quer${pending.length === 1 ? 'y' : 'ies'} in ${PASS_PAUSE_S} s`);
+      console.log(
+        `  pass ${pass}: retrying ${pending.length} failed quer${pending.length === 1 ? 'y' : 'ies'} in ${PASS_PAUSE_S} s`
+      );
       await new Promise(resolve => setTimeout(resolve, PASS_PAUSE_S * 1000));
     }
     const failed: typeof pending = [];
@@ -630,11 +659,16 @@ async function main(): Promise<void> {
       console.log(`  ${label}: ${ways.length} ways`);
       for (const member of cluster.members) {
         // A place off an alternate is walked to from that alternate's line.
-        const result = findAccess(network, member, member.variant ? alternateRoutes.get(member.variant)! : trail.track.points, {
-          elevationAt: (lat, lon) => dem.at(lat, lon),
-          maxWalkM: member.maxWalkM,
-          ...(member.variant ? {} : { breakStarts }),
-        });
+        const result = findAccess(
+          network,
+          member,
+          member.variant ? alternateRoutes.get(member.variant)! : trail.track.points,
+          {
+            elevationAt: (lat, lon) => dem.at(lat, lon),
+            maxWalkM: member.maxWalkM,
+            ...(member.variant ? {} : { breakStarts }),
+          }
+        );
         const entry = entryFor(member, result);
         fetched[member.id] = entry;
         for (const id of member.mergedIds ?? []) fetched[id] = entry;
@@ -682,7 +716,9 @@ async function main(): Promise<void> {
     // A place off an alternate: its km are along that alternate.
     const on = candidate.variant ? ` (km along "${candidate.variant}")` : '';
     if (entry.method === 'none') {
-      console.log(`  ${candidate.nearestKm.toFixed(1).padStart(7)}  (unchanged)            ${candidate.name}${on}: ${entry.reason}`);
+      console.log(
+        `  ${candidate.nearestKm.toFixed(1).padStart(7)}  (unchanged)            ${candidate.name}${on}: ${entry.reason}`
+      );
       continue;
     }
     const moved =

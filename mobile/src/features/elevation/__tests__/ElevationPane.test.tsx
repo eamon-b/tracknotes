@@ -25,7 +25,12 @@ jest.mock('expo-router', () => ({
 }));
 
 jest.mock('../../guide/GuideContext', () => ({
-  useGuide: () => ({ trailId: 'heysen', trail: mockTrail, baseTrail: mockTrail, direction: mockDirection }),
+  useGuide: () => ({
+    trailId: 'heysen',
+    trail: mockTrail,
+    baseTrail: mockTrail,
+    direction: mockDirection,
+  }),
 }));
 
 jest.mock('../../guide/GuidePositionContext', () => ({
@@ -158,8 +163,12 @@ describe('ElevationPane POI ticks', () => {
 
 /** Whether the chip shows its hint, i.e. no readout is on screen. */
 function hintShown(tree: ReactTestRenderer): boolean {
-  return tree.root.findAll((n) => n.props.children === 'Tap to read off · pinch to zoom (up/down for height) · drag to pan')
-    .length > 0;
+  return (
+    tree.root.findAll(
+      (n) =>
+        n.props.children === 'Tap to read off · pinch to zoom (up/down for height) · drag to pan',
+    ).length > 0
+  );
 }
 
 describe('ElevationPane elevation axis', () => {

@@ -105,7 +105,7 @@ describe('suggestDays', () => {
     // A 600 m climb between km 20 and 30.
     const index = buildTimeIndex(track(100, km => (km < 20 ? 100 : km < 30 ? 100 + (km - 20) * 60 : 700)));
     const { plans } = suggestDays(
-      input({ index, days: 1, criteria: { distanceKm: { max: 40 }, ascentM: { max: 300 } } }),
+      input({ index, days: 1, criteria: { distanceKm: { max: 40 }, ascentM: { max: 300 } } })
     );
     for (const plan of plans) expect(plan.days[0].ascentM).toBeLessThanOrEqual(300);
     expect(plans[0].stops[0].km).toBeLessThanOrEqual(25);
@@ -118,9 +118,7 @@ describe('suggestDays', () => {
 
   it('reports when the criteria run out before the days do', () => {
     // No camp between 41 and 60 is 15-25 km on from 41 → only 2 days from 0 via 20/22, 40/41.
-    const { plans, shortOf } = suggestDays(
-      input({ candidates: [20, 40].map(camp), days: 3 }),
-    );
+    const { plans, shortOf } = suggestDays(input({ candidates: [20, 40].map(camp), days: 3 }));
     expect(shortOf).toBe(2);
     expect(plans[0].stops.map(s => s.km)).toEqual([20, 40]);
   });
@@ -147,7 +145,7 @@ describe('suggestDays', () => {
         candidates: [camp(35.9)],
         endKm: 36,
         criteria: { hours: { min: 6, max: 10, target: 8 } },
-      }),
+      })
     );
     expect(plans[0].days).toHaveLength(1);
     expect(plans[0].reachesEnd).toBe(true);
@@ -165,7 +163,7 @@ describe('suggestDays', () => {
         candidates: [camp(32)],
         endKm: 50,
         criteria: { hours: { min: 6, max: 10, target: 8 } },
-      }),
+      })
     );
     expect(plans[0].stops.map(s => s.km)).toEqual([32]);
     expect(plans[0].days[1].cost).toBe(0);
@@ -174,7 +172,10 @@ describe('suggestDays', () => {
 });
 
 describe('walks to camps off the route', () => {
-  const offRoute = (km: number, walkKm: number): Camp => ({ ...camp(km), walk: { km: walkKm, ascentM: 0, descentM: 0 } });
+  const offRoute = (km: number, walkKm: number): Camp => ({
+    ...camp(km),
+    walk: { km: walkKm, ascentM: 0, descentM: 0 },
+  });
 
   it('adds the walk out and in to a day, and its Naismith hours over the totals', () => {
     const day = withWalks(
@@ -200,7 +201,10 @@ describe('walks to camps off the route', () => {
   it('keeps the shortest walk among places that share a junction', () => {
     const far = { ...offRoute(20, 2.8), name: 'Far inn' };
     const near = { ...offRoute(20, 0.3), name: 'Near inn' };
-    for (const candidates of [[far, near], [near, far]]) {
+    for (const candidates of [
+      [far, near],
+      [near, far],
+    ]) {
       const { plans } = suggestDays(input({ days: 1, candidates, criteria: { distanceKm: { min: 18, max: 25 } } }));
       expect(plans[0].stops.map(s => s.name)).toEqual(['Near inn']);
     }
@@ -215,7 +219,12 @@ describe('walks to camps off the route', () => {
 
   it('starts the first day with the walk back out of an off-route stop', () => {
     const { plans } = suggestDays(
-      input({ days: 1, candidates: [camp(20), camp(24)], criteria: { distanceKm: { min: 18, max: 25 } }, fromWalk: { km: 3, ascentM: 0, descentM: 0 } })
+      input({
+        days: 1,
+        candidates: [camp(20), camp(24)],
+        criteria: { distanceKm: { min: 18, max: 25 } },
+        fromWalk: { km: 3, ascentM: 0, descentM: 0 },
+      })
     );
     // 20 + 3 = 23 fits; 24 + 3 = 27 does not.
     expect(plans.map(plan => plan.stops.map(s => s.km))).toEqual([[20]]);

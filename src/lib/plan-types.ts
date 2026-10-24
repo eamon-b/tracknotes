@@ -106,8 +106,8 @@ export function usablePlanThreshold(key: keyof PlanThresholds, value: unknown): 
 
 /** A planned overnight stop for the web planner. Ordered by km. */
 export interface StopData {
-  km: number;              // totalDistance position on trail
-  waypointName: string;    // display name
+  km: number; // totalDistance position on trail
+  waypointName: string; // display name
 }
 
 /** Configuration for section hiking — start/end boundaries. */
@@ -121,7 +121,7 @@ export interface SectionConfig {
 /** Runtime-computed day segment between two stops (or trail start/end). */
 export interface ComputedDay {
   dayNumber: number;
-  date?: string;           // ISO date if startDate set, otherwise undefined
+  date?: string; // ISO date if startDate set, otherwise undefined
   startName: string;
   endName: string;
   startKm: number;
@@ -246,8 +246,8 @@ export interface PlanDocument {
  */
 export interface PlanState {
   name: string;
-  startDate: string | null;   // ISO date string or null
-  stops: StopData[];           // sorted by km, excludes trail start/end (implicit)
+  startDate: string | null; // ISO date string or null
+  stops: StopData[]; // sorted by km, excludes trail start/end (implicit)
   /**
    * Hiking direction. Absent = 'NOBO' (plans saved before the direction
    * toggle existed). Stop km stay NOBO-absolute regardless of direction —
@@ -282,7 +282,7 @@ export interface ResupplyGap {
   toKm: number;
   distanceKm: number;
   estimatedDays: number;
-  isLong: boolean;         // gap > longThresholdDays at pace
+  isLong: boolean; // gap > longThresholdDays at pace
 }
 
 /** Gap between consecutive water sources. */
@@ -297,7 +297,7 @@ export interface WaterGap {
    * the route.
    */
   distanceKm: number;
-  isDryStretch: boolean;   // >= dryStretchThreshold km
+  isDryStretch: boolean; // >= dryStretchThreshold km
   /** Of `distanceKm`, the walk back to the route from the source it starts at. */
   fromOffTrailKm?: number;
   /** Of `distanceKm`, the walk off the route to the source it ends at. */

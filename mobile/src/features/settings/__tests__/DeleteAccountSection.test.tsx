@@ -82,8 +82,7 @@ function renderedText(r: ReactTestRenderer): string {
 function findPressable(r: ReactTestRenderer, accessibilityLabel: string) {
   return r.root.findAll(
     (n) =>
-      n.props?.accessibilityLabel === accessibilityLabel &&
-      typeof n.props?.onPress === 'function',
+      n.props?.accessibilityLabel === accessibilityLabel && typeof n.props?.onPress === 'function',
   );
 }
 

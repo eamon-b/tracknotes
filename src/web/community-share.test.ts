@@ -105,7 +105,7 @@ describe('upload.html community share', () => {
     vi.stubEnv('VITE_API_BASE_URL', 'https://api.example.test');
     window.localStorage.setItem(
       'tracknotes.webSession',
-      JSON.stringify({ userId: 'u1', token: 'tok', displayName: 'Robin', expiresAt: null }),
+      JSON.stringify({ userId: 'u1', token: 'tok', displayName: 'Robin', expiresAt: null })
     );
     const calls: Array<{ url: string; init: RequestInit }> = [];
     vi.stubGlobal(
@@ -118,7 +118,7 @@ describe('upload.html community share', () => {
           statusText: '',
           text: async () => JSON.stringify({ id: 'c_abcdefghijklmnop' }),
         };
-      }),
+      })
     );
 
     await importAndSave();
@@ -161,7 +161,7 @@ describe('upload.html community share', () => {
     expect(body.trail.track.points.length).toBeGreaterThan(20);
     expect($('community-done').hidden).toBe(false);
     expect($<HTMLAnchorElement>('community-done-link').getAttribute('href')).toBe(
-      './community-route.html?id=c_abcdefghijklmnop',
+      './community-route.html?id=c_abcdefghijklmnop'
     );
   });
 
@@ -169,7 +169,7 @@ describe('upload.html community share', () => {
     vi.stubEnv('VITE_API_BASE_URL', 'https://api.example.test');
     window.localStorage.setItem(
       'tracknotes.webSession',
-      JSON.stringify({ userId: 'u1', token: 'tok', displayName: 'Robin', expiresAt: null }),
+      JSON.stringify({ userId: 'u1', token: 'tok', displayName: 'Robin', expiresAt: null })
     );
     vi.stubGlobal(
       'fetch',
@@ -182,7 +182,7 @@ describe('upload.html community share', () => {
             error: { code: 'checks_failed', message: 'Checks failed' },
             checks: [{ id: 'duplicate', level: 'fail', message: 'Server says duplicate-ish' }],
           }),
-      })),
+      }))
     );
     await importAndSave();
     await waitForPanel();
@@ -256,7 +256,7 @@ describe('initCommunityShare', () => {
           statusText: '',
           text: async () => (typeof body === 'string' ? body : JSON.stringify(body)),
         };
-      }),
+      })
     );
     return calls;
   }
@@ -367,7 +367,9 @@ describe('initCommunityShare', () => {
     stubSubmit(429, '');
     submitForm();
     await flush();
-    expect($('community-error').textContent).toBe('You have reached today’s limit for sharing routes. Try again tomorrow.');
+    expect($('community-error').textContent).toBe(
+      'You have reached today’s limit for sharing routes. Try again tomorrow.'
+    );
   });
 
   it('shows the server’s wording for a 409 and a 413', async () => {
@@ -419,9 +421,9 @@ describe('initCommunityShare', () => {
           JSON.stringify(
             init.method === 'POST'
               ? { userId: 'u9', token: 'tok_linked', displayName: 'Sam', expiresAt: null }
-              : { devices: [] },
+              : { devices: [] }
           ),
-      })),
+      }))
     );
     await openPanel();
     expect($('community-form').hidden).toBe(true);
@@ -448,9 +450,9 @@ describe('initCommunityShare', () => {
           JSON.stringify(
             init.method === 'POST'
               ? { userId: 'u9', token: 'tok_linked', displayName: 'Sam', expiresAt: null }
-              : { devices: [] },
+              : { devices: [] }
           ),
-      })),
+      }))
     );
     await openPanel();
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {

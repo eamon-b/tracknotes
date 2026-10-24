@@ -652,9 +652,7 @@ export function initPlanSync(host: PlanSyncHost): PlanSyncController {
     } catch (err) {
       sharePanel.hidden = false;
       if (shareUrlInput) shareUrlInput.value = '';
-      setShareNote(
-        err instanceof ApiError ? `Could not share: ${err.code}` : 'Could not reach the server.',
-      );
+      setShareNote(err instanceof ApiError ? `Could not share: ${err.code}` : 'Could not reach the server.');
     }
   }
 
@@ -683,9 +681,7 @@ export function initPlanSync(host: PlanSyncHost): PlanSyncController {
       if (sharePanel) sharePanel.hidden = true;
       setShareNote('');
     } catch (err) {
-      setShareNote(
-        err instanceof ApiError ? `Could not unshare: ${err.code}` : 'Could not reach the server.',
-      );
+      setShareNote(err instanceof ApiError ? `Could not unshare: ${err.code}` : 'Could not reach the server.');
     }
   }
 
@@ -715,27 +711,43 @@ export function initPlanSync(host: PlanSyncHost): PlanSyncController {
   syncBtn.addEventListener('click', openDialog, { signal });
   byId('link-cancel')?.addEventListener('click', closeDialog, { signal });
   byId('link-unlink')?.addEventListener('click', () => void unlink(), { signal });
-  byId<HTMLFormElement>('link-form')?.addEventListener('submit', event => {
-    event.preventDefault();
-    void submitCode();
-  }, { signal });
-  submitBtn?.addEventListener('click', event => {
-    // The button is a submit, but a dialog in a browser without form
-    // submission (and jsdom) needs the direct path too.
-    event.preventDefault();
-    void submitCode();
-  }, { signal });
-  codeInput?.addEventListener('input', () => {
-    if (codeInput.value !== codeInput.value.toUpperCase()) {
-      codeInput.value = codeInput.value.toUpperCase();
-    }
-  }, { signal });
+  byId<HTMLFormElement>('link-form')?.addEventListener(
+    'submit',
+    event => {
+      event.preventDefault();
+      void submitCode();
+    },
+    { signal }
+  );
+  submitBtn?.addEventListener(
+    'click',
+    event => {
+      // The button is a submit, but a dialog in a browser without form
+      // submission (and jsdom) needs the direct path too.
+      event.preventDefault();
+      void submitCode();
+    },
+    { signal }
+  );
+  codeInput?.addEventListener(
+    'input',
+    () => {
+      if (codeInput.value !== codeInput.value.toUpperCase()) {
+        codeInput.value = codeInput.value.toUpperCase();
+      }
+    },
+    { signal }
+  );
   shareBtn?.addEventListener('click', () => void share(), { signal });
   shareCopyBtn?.addEventListener('click', () => void copyShareUrl(), { signal });
   byId('share-unshare')?.addEventListener('click', () => void stopSharing(), { signal });
-  byId('share-close')?.addEventListener('click', () => {
-    if (sharePanel) sharePanel.hidden = true;
-  }, { signal });
+  byId('share-close')?.addEventListener(
+    'click',
+    () => {
+      if (sharePanel) sharePanel.hidden = true;
+    },
+    { signal }
+  );
   window.addEventListener('online', onOnline, { signal });
   document.addEventListener('visibilitychange', onVisibilityChange, { signal });
 

@@ -149,9 +149,7 @@ export function resolveCells(args: FetchArgs): WorldCell[] {
     for (const id of args.cells) {
       const cell = worldCellFromId(id);
       if (!cell) {
-        throw new Error(
-          `Invalid cell id "${id}" — expected an even-degree world cell like S26E132`
-        );
+        throw new Error(`Invalid cell id "${id}" — expected an even-degree world cell like S26E132`);
       }
       add(cell);
     }
@@ -178,9 +176,7 @@ export function neededTiles(cells: WorldCell[]): DemTile[] {
       byName.set(demTileName(tile), tile);
     }
   }
-  return [...byName.entries()]
-    .sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
-    .map(([, tile]) => tile);
+  return [...byName.entries()].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0)).map(([, tile]) => tile);
 }
 
 export function demTilePath(demDir: string, tile: DemTile): string {
@@ -213,8 +209,7 @@ export function planTiles(opts: {
   exists?: (filePath: string) => boolean;
 }): TilePlan {
   const exists =
-    opts.exists ??
-    ((filePath: string): boolean => fs.existsSync(filePath) && fs.statSync(filePath).size > 0);
+    opts.exists ?? ((filePath: string): boolean => fs.existsSync(filePath) && fs.statSync(filePath).size > 0);
 
   const plan: TilePlan = { toDownload: [], ocean: [], present: [] };
   for (const tile of opts.tiles) {
@@ -307,11 +302,7 @@ interface DownloadResult {
   failures: { name: string; error: string }[];
 }
 
-async function downloadAll(
-  tiles: DemTile[],
-  demDir: string,
-  parallel: number
-): Promise<DownloadResult> {
+async function downloadAll(tiles: DemTile[], demDir: string, parallel: number): Promise<DownloadResult> {
   const result: DownloadResult = { downloaded: 0, bytes: 0, failures: [] };
   const queue = [...tiles];
   let started = 0;
@@ -343,9 +334,7 @@ async function downloadAll(
     }
   };
 
-  await Promise.all(
-    Array.from({ length: Math.min(parallel, tiles.length) }, () => worker())
-  );
+  await Promise.all(Array.from({ length: Math.min(parallel, tiles.length) }, () => worker()));
   return result;
 }
 
@@ -359,8 +348,8 @@ async function main(): Promise<void> {
     console.error(error instanceof Error ? error.message : String(error));
     console.error(
       '\nUsage: npx tsx scripts/fetch-dem-copernicus.ts ' +
-      '(--bbox W S E N | --cells id,id | --shard name) [--dem-dir DIR] ' +
-      '[--parallel N] [--dry-run] [--refresh-tilelist]'
+        '(--bbox W S E N | --cells id,id | --shard name) [--dem-dir DIR] ' +
+        '[--parallel N] [--dry-run] [--refresh-tilelist]'
     );
     console.error(`Shards: ${worldShardNames().join(', ')}`);
     process.exit(1);

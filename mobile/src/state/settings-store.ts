@@ -99,8 +99,7 @@ export const useSettingsStore = create<SettingsState>()(
           return { perTrailDirection };
         }),
 
-      setPoiEnabled: (enabled) =>
-        set((s) => ({ poiFilter: { ...s.poiFilter, enabled } })),
+      setPoiEnabled: (enabled) => set((s) => ({ poiFilter: { ...s.poiFilter, enabled } })),
 
       setPoiCategory: (category, visible) =>
         set((s) => ({
@@ -138,8 +137,7 @@ export const useSettingsStore = create<SettingsState>()(
           ...saved,
           poiFilter: normalisePoiFilterState(saved.poiFilter),
           gpsOnGuideOpen: saved.gpsOnGuideOpen === true,
-          currentTrailId:
-            typeof saved.currentTrailId === 'string' ? saved.currentTrailId : null,
+          currentTrailId: typeof saved.currentTrailId === 'string' ? saved.currentTrailId : null,
         };
       },
     },

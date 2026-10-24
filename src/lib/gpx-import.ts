@@ -20,12 +20,7 @@
 import { parseGpx, type GpxParseLimits } from './gpx-parser';
 import { calculateElevationStats, removeElevationSpikes, smoothElevation } from './gpx-optimizer';
 import { simplifyToTarget } from './track-simplify';
-import {
-  buildTrail,
-  flattenGpx,
-  type BuildTrailDiagnostics,
-  type ParsedGpxResult,
-} from './trail-ingest';
+import { buildTrail, flattenGpx, type BuildTrailDiagnostics, type ParsedGpxResult } from './trail-ingest';
 import type { SelfRetrace } from './track-spurs';
 import type { CombineTracksWarning, GpxPoint } from './types';
 import type { ProcessedTrail, TrailConfig, TrailWaypoint } from './trail-types';
@@ -154,9 +149,7 @@ export function importGpx(xmlText: string, options: ImportGpxOptions = {}): Impo
   const trailId = options.id ?? `u_${hashString(xmlText)}`;
   const name = resolveTrailName(options.name, gpx);
 
-  const hasElevation = gpx.tracks.some(track =>
-    track.points.some(p => Number.isFinite(p.ele) && p.ele !== 0)
-  );
+  const hasElevation = gpx.tracks.some(track => track.points.some(p => Number.isFinite(p.ele) && p.ele !== 0));
   const cleanElevation = options.cleanElevation ?? true;
   const elevationLooksNoisy = hasElevation && cleanElevation && looksNoisy(longestTrackPoints(gpx));
 
@@ -285,13 +278,8 @@ function describeSelfRetrace(retrace: SelfRetrace): string {
  * keeps imported waypoints out of the comments API and out of
  * `data/waypoint-ids.json`.
  */
-export function mintImportedWaypointIds(
-  waypoints: TrailWaypoint[],
-  config: TrailConfig
-): string[] {
-  return waypoints.map(
-    (wp, i) => `uw_${hashString(`${config.id}|${i}|${wp.name}|${wp.lat}|${wp.lon}`)}`
-  );
+export function mintImportedWaypointIds(waypoints: TrailWaypoint[], config: TrailConfig): string[] {
+  return waypoints.map((wp, i) => `uw_${hashString(`${config.id}|${i}|${wp.name}|${wp.lat}|${wp.lon}`)}`);
 }
 
 /**

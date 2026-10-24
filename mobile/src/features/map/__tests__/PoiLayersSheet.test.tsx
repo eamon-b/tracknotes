@@ -46,9 +46,7 @@ const mounted: ReactTestRenderer[] = [];
 const render = (): ReactTestRenderer => {
   let tree!: ReactTestRenderer;
   act(() => {
-    tree = TestRenderer.create(
-      <PoiLayersSheet visible onClose={jest.fn()} pois={POIS} />,
-    );
+    tree = TestRenderer.create(<PoiLayersSheet visible onClose={jest.fn()} pois={POIS} />);
   });
   mounted.push(tree);
   return tree;
@@ -101,7 +99,14 @@ describe('PoiLayersSheet', () => {
     );
     // All six, whether or not the trail has any.
     expect(rendered).toEqual(
-      expect.arrayContaining(['Water', 'Camping', 'Resupply', 'Food & drink', 'Transport', 'Emergency']),
+      expect.arrayContaining([
+        'Water',
+        'Camping',
+        'Resupply',
+        'Food & drink',
+        'Transport',
+        'Emergency',
+      ]),
     );
   });
 

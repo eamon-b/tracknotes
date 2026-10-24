@@ -237,9 +237,7 @@ export interface BanUserResponse {
 }
 
 /** Narrowing helper: is a shared-waypoint entry a tombstone? */
-export function isSharedWaypointTombstone(
-  entry: SharedWaypointEntry,
-): entry is SharedWaypointTombstone {
+export function isSharedWaypointTombstone(entry: SharedWaypointEntry): entry is SharedWaypointTombstone {
   return (entry as SharedWaypointTombstone).deleted === true;
 }
 

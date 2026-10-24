@@ -66,11 +66,13 @@ jest.mock('../ReportDialog', () => ({ ReportDialog: () => null }));
 
 function allText(tree: ReactTestRenderer): string {
   const out: string[] = [];
-  tree.root.findAll(() => true).forEach((n) => {
-    const c = n.props.children;
-    if (typeof c === 'string') out.push(c);
-    else if (Array.isArray(c)) c.forEach((x) => typeof x === 'string' && out.push(x));
-  });
+  tree.root
+    .findAll(() => true)
+    .forEach((n) => {
+      const c = n.props.children;
+      if (typeof c === 'string') out.push(c);
+      else if (Array.isArray(c)) c.forEach((x) => typeof x === 'string' && out.push(x));
+    });
   return out.join(' ');
 }
 
@@ -78,7 +80,12 @@ async function render(props: Partial<React.ComponentProps<typeof CommentsSection
   let tree!: ReactTestRenderer;
   await act(async () => {
     tree = TestRenderer.create(
-      <CommentsSection trailId="shikoku" waypointId="osm_way_7" waypointType="resupply" {...props} />,
+      <CommentsSection
+        trailId="shikoku"
+        waypointId="osm_way_7"
+        waypointType="resupply"
+        {...props}
+      />,
     );
   });
   return tree;
@@ -126,7 +133,12 @@ describe('CommentsSection', () => {
       await mockComposerSubmit?.({ text: 'Closed', waterStatus: null, photo: null });
     });
     expect(mockSubmit).toHaveBeenCalledWith(
-      expect.objectContaining({ trailId: 'shikoku', waypointId: 'osm_way_7', text: 'Closed', session: mockSession }),
+      expect.objectContaining({
+        trailId: 'shikoku',
+        waypointId: 'osm_way_7',
+        text: 'Closed',
+        session: mockSession,
+      }),
     );
   });
 
@@ -139,7 +151,9 @@ describe('CommentsSection', () => {
 
   it('on a community route, reads and files comments under the route’s own waypoint ids', async () => {
     await render({ trailId: 'c_AbCdEfGhIjKlMnOp', waypointId: 'uw_0a1b2c3d4e5f' });
-    expect(mockList).toHaveBeenCalledWith({}, 'c_AbCdEfGhIjKlMnOp', 'uw_0a1b2c3d4e5f', { limit: 20 });
+    expect(mockList).toHaveBeenCalledWith({}, 'c_AbCdEfGhIjKlMnOp', 'uw_0a1b2c3d4e5f', {
+      limit: 20,
+    });
     expect(mockComposerSubmit).not.toBeNull();
   });
 

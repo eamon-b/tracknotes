@@ -67,8 +67,22 @@ function hostByLabel(tree: ReactTestRenderer, label: string) {
 }
 
 const candidates: StopCandidate[] = [
-  { key: 'w_a', waypointId: 'w_a', name: 'Ellery Creek', type: 'campsite', activeKm: 10, noboKm: 10 },
-  { key: 'w_b', waypointId: 'w_b', name: 'Serpentine Chalet', type: 'campsite', activeKm: 30, noboKm: 30 },
+  {
+    key: 'w_a',
+    waypointId: 'w_a',
+    name: 'Ellery Creek',
+    type: 'campsite',
+    activeKm: 10,
+    noboKm: 10,
+  },
+  {
+    key: 'w_b',
+    waypointId: 'w_b',
+    name: 'Serpentine Chalet',
+    type: 'campsite',
+    activeKm: 30,
+    noboKm: 30,
+  },
 ];
 
 const pois: TrailPOI[] = [
@@ -229,7 +243,8 @@ describe('StopsSection', () => {
     expect(rows(tree)).toHaveLength(50);
 
     const more = tree.root.findAll(
-      (n) => typeof n.props.accessibilityLabel === 'string' &&
+      (n) =>
+        typeof n.props.accessibilityLabel === 'string' &&
         n.props.accessibilityLabel.startsWith('Show more places'),
     )[0];
     act(() => (more.props.onPress as () => void)());
@@ -243,7 +258,8 @@ describe('StopsSection', () => {
         .findAll(
           (n) =>
             isHost(n) &&
-            ((n.props.accessibilityRole === 'checkbox' && n.props.accessibilityLabel !== 'Booked') ||
+            ((n.props.accessibilityRole === 'checkbox' &&
+              n.props.accessibilityLabel !== 'Booked') ||
               n.props.accessibilityLabel === 'You are here'),
         )
         .map((n) => n.props.accessibilityLabel as string);

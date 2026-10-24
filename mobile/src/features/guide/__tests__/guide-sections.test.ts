@@ -10,7 +10,12 @@ const T = (over: Partial<SectionableTrail> & { id: string }): SectionableTrail =
 const TRAILS: SectionableTrail[] = [
   T({ id: 'heysen', name: 'Heysen Trail', country: 'AU', states: ['SA'] }),
   T({ id: 'te_araroa', name: 'Te Araroa', country: 'NZ', states: ['NI', 'SI'] }),
-  T({ id: 'aawt', name: 'Australian Alps Walking Track', country: 'AU', states: ['VIC', 'NSW', 'ACT'] }),
+  T({
+    id: 'aawt',
+    name: 'Australian Alps Walking Track',
+    country: 'AU',
+    states: ['VIC', 'NSW', 'ACT'],
+  }),
   T({ id: 'shikoku', name: 'Shikoku Henro', country: 'JP' }),
   T({ id: 'gamma', name: 'Gamma Way', source: 'remote', country: 'AU', states: ['NSW'] }),
   T({ id: 'nowhere', name: 'Unlabelled Trail' }),

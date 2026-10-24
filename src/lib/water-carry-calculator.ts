@@ -37,33 +37,44 @@ export interface WaterCarryAnalysis {
 // The dry-stretch threshold is the hiker's (`PlanThresholds.dryStretchKm` in
 // plan-types), so the functions below require it rather than defaulting.
 
-const SEASONAL_KEYWORDS = ['seasonal', 'dry in summer', 'dries up', 'unreliable', 'not reliable', 'intermittent', 'may be dry', 'often dry'];
+const SEASONAL_KEYWORDS = [
+  'seasonal',
+  'dry in summer',
+  'dries up',
+  'unreliable',
+  'not reliable',
+  'intermittent',
+  'may be dry',
+  'often dry',
+];
 
 /**
  * Extract water sources from trail waypoints, sorted by km.
  */
 export function extractWaterSources(waypoints: PlanWaypoint[]): WaterSource[] {
-  return waypoints
-    .filter(wp => isWaterWaypoint(wp.type))
-    .map(wp => {
-      let seasonalNote: string | undefined;
-      if (wp.description) {
-        const lower = wp.description.toLowerCase();
-        if (SEASONAL_KEYWORDS.some(kw => lower.includes(kw))) {
-          seasonalNote = wp.description;
+  return (
+    waypoints
+      .filter(wp => isWaterWaypoint(wp.type))
+      .map(wp => {
+        let seasonalNote: string | undefined;
+        if (wp.description) {
+          const lower = wp.description.toLowerCase();
+          if (SEASONAL_KEYWORDS.some(kw => lower.includes(kw))) {
+            seasonalNote = wp.description;
+          }
         }
-      }
-      const walk = placeWalk(wp);
-      return {
-        name: wp.name ?? 'Water',
-        km: wp.totalDistance ?? 0,
-        type: wp.type ?? 'water',
-        seasonalNote,
-        ...(walk ? { offTrailKm: walk.km } : {}),
-      };
-    })
-    // At one km, the source nearest the route first: it is the one to use.
-    .sort((a, b) => a.km - b.km || (a.offTrailKm ?? 0) - (b.offTrailKm ?? 0));
+        const walk = placeWalk(wp);
+        return {
+          name: wp.name ?? 'Water',
+          km: wp.totalDistance ?? 0,
+          type: wp.type ?? 'water',
+          seasonalNote,
+          ...(walk ? { offTrailKm: walk.km } : {}),
+        };
+      })
+      // At one km, the source nearest the route first: it is the one to use.
+      .sort((a, b) => a.km - b.km || (a.offTrailKm ?? 0) - (b.offTrailKm ?? 0))
+  );
 }
 
 /**
@@ -83,7 +94,7 @@ export function computeWaterGaps(
   sources: WaterSource[],
   trailStartKm: number,
   trailEndKm: number,
-  dryStretchThreshold: number,
+  dryStretchThreshold: number
 ): WaterGap[] {
   // NaN would flag nothing, which is the dangerous way to be wrong.
   if (!Number.isFinite(dryStretchThreshold)) {
@@ -112,22 +123,16 @@ export function computeWaterGaps(
   // tap 2.4 km down a side valley. Keeping it would list a carry from the far
   // tap to the near one that nobody walks. Ties keep the first.
   const reach = (s: WaterSource) => s.offTrailKm ?? 0;
-  const deduped = sources.filter((s, i) =>
-    !sources.some((t, j) => {
-      if (j === i) return false;
-      const cost = Math.abs(t.km - s.km) + reach(t);
-      return cost < reach(s) || (cost === reach(s) && j < i && t.km === s.km);
-    }),
+  const deduped = sources.filter(
+    (s, i) =>
+      !sources.some((t, j) => {
+        if (j === i) return false;
+        const cost = Math.abs(t.km - s.km) + reach(t);
+        return cost < reach(s) || (cost === reach(s) && j < i && t.km === s.km);
+      })
   );
 
-  const carry = (
-    fromName: string,
-    toName: string,
-    fromKm: number,
-    toKm: number,
-    walkOut: number,
-    walkIn: number,
-  ) => {
+  const carry = (fromName: string, toName: string, fromKm: number, toKm: number, walkOut: number, walkIn: number) => {
     const dist = toKm - fromKm;
     if (dist <= 0) return;
     const total = dist + walkOut + walkIn;
@@ -165,7 +170,7 @@ export function computeWaterGaps(
 export function analyzeWaterCarry(
   waypoints: PlanWaypoint[],
   totalDistanceKm: number,
-  dryStretchThreshold: number,
+  dryStretchThreshold: number
 ): WaterCarryAnalysis {
   const sources = extractWaterSources(waypoints);
   const hasWaterData = sources.length > 0;
@@ -195,7 +200,7 @@ export function analyzeWaterCarryForSection(
   waypoints: PlanWaypoint[],
   startKm: number,
   endKm: number,
-  dryStretchThreshold: number,
+  dryStretchThreshold: number
 ): WaterCarryAnalysis {
   const allSources = extractWaterSources(waypoints);
   const sectionSources = allSources.filter(s => s.km >= startKm && s.km <= endKm);

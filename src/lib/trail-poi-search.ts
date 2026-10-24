@@ -26,13 +26,7 @@ import { slimPoi } from './poi-display';
 import { dropNoisePois } from './poi-noise';
 import { thinUrbanPois } from './poi-urban';
 import { buildOverpassQuery } from './osm-poi';
-import {
-  ALL_POI_TYPES,
-  groupArea,
-  placePois,
-  prepareCorridor,
-  type PreparedCorridor,
-} from './poi-enrichment';
+import { ALL_POI_TYPES, groupArea, placePois, prepareCorridor, type PreparedCorridor } from './poi-enrichment';
 import type { POI } from './osm-poi';
 import { buildRouteScale, toTrailPOIs, type RouteScale } from './trail-pois';
 import type { ProcessedTrail, TrailPOI, TrailPoiConfig } from './trail-types';

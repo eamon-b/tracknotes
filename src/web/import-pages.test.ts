@@ -25,11 +25,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { closeImportedTrailsDb, getTrail, listTrailSummaries } from './imported-trails-db';
-import {
-  IMPORTED_PLAN_FILLS,
-  PLAN_SHELL_MARKER,
-  inlinePlanShell,
-} from '../../scripts/lib/plan-shell';
+import { IMPORTED_PLAN_FILLS, PLAN_SHELL_MARKER, inlinePlanShell } from '../../scripts/lib/plan-shell';
 
 const ROOT = path.resolve(__dirname, '../..');
 
@@ -42,9 +38,7 @@ function loadPage(file: string, search = ''): void {
     const shell = fs.readFileSync(path.join(ROOT, 'src/web/trails/plan-shell.html'), 'utf8');
     html = inlinePlanShell(html, shell, IMPORTED_PLAN_FILLS);
   }
-  document.documentElement.innerHTML = html
-    .replace(/<!DOCTYPE html>/i, '')
-    .replace(/<\/?html[^>]*>/gi, '');
+  document.documentElement.innerHTML = html.replace(/<!DOCTYPE html>/i, '').replace(/<\/?html[^>]*>/gi, '');
   window.history.replaceState({}, '', `/${file}${search}`);
 }
 
@@ -137,7 +131,7 @@ describe('upload.html', () => {
     expect(note).toContain('Category');
     expect(
       $('report').querySelector('a[href*="types-guessed-from-the-name"]'),
-      'the report links to how categories are worked out',
+      'the report links to how categories are worked out'
     ).not.toBeNull();
 
     expect(($('trail-name') as HTMLInputElement).value).toBe('Cape to Cape Track');
@@ -225,9 +219,7 @@ describe('the full import journey', () => {
     // Rendered with thousands separators.
     expect(Number(($('points').textContent ?? '').replace(/,/g, ''))).toBeGreaterThan(1000);
     expect($('waypoints-container').textContent).toContain('Cape Naturaliste Lighthouse');
-    expect(($('plan-link') as HTMLAnchorElement).getAttribute('href')).toBe(
-      `./my-plan.html?id=${id}`,
-    );
+    expect(($('plan-link') as HTMLAnchorElement).getAttribute('href')).toBe(`./my-plan.html?id=${id}`);
 
     // Type badges read as labels ("Water tank", not "water-tank"), with the raw
     // slug kept in `title` so the underlying value stays discoverable.
@@ -258,11 +250,7 @@ describe('the full import journey', () => {
     ($('export-csv-btn') as HTMLButtonElement).click();
     ($('export-tracknotes-btn') as HTMLButtonElement).click();
     // The opaque u_ hash would make a useless file name; the user's name wins.
-    expect(downloads.names).toEqual([
-      'my-cape-walk.gpx',
-      'my-cape-walk-datasheet.csv',
-      'my-cape-walk.tracknotes.json',
-    ]);
+    expect(downloads.names).toEqual(['my-cape-walk.gpx', 'my-cape-walk-datasheet.csv', 'my-cape-walk.tracknotes.json']);
     downloads.restore();
 
     // --- plan page, and its state key ------------------------------------
@@ -282,7 +270,7 @@ describe('the full import journey', () => {
     // hiker planning around an imported track reaches for.
     (document.getElementById('stops-show-all') as HTMLInputElement).click();
     const row = [...document.querySelectorAll('.stop-row')].find(node =>
-      node.textContent?.includes('Yallingup'),
+      node.textContent?.includes('Yallingup')
     ) as HTMLElement;
     row.click();
     // The save is debounced; the assertion is that it lands under `id`.

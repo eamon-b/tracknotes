@@ -64,7 +64,10 @@ describe('access.json', () => {
     const mainRows = byId(bundled.waypoints);
     // An alternate's rows are on the trail's scale; its entries' km are along it.
     const alternates = new Map(
-      (bundled.alternates ?? []).map(alt => [alt.name, { startKm: alt.startDistance ?? 0, rows: byId(alt.waypoints ?? []) }])
+      (bundled.alternates ?? []).map(alt => [
+        alt.name,
+        { startKm: alt.startDistance ?? 0, rows: byId(alt.waypoints ?? []) },
+      ])
     );
     const scaleFor = (entry: TrailAccessEntry) =>
       entry.variant === undefined ? { startKm: 0, rows: mainRows } : alternates.get(entry.variant);
@@ -79,7 +82,11 @@ describe('access.json', () => {
       a.offTrailKm === b.offTrailKm &&
       String(a.junction) === String(b.junction);
     const rowFor = (id: string, entry: TrailAccessEntry, rows: Map<string, BundledWaypoint>) =>
-      rows.get(id) ?? places.filter(([other, e]) => other !== id && sameWalk(e, entry)).map(([other]) => rows.get(other)).find(Boolean);
+      rows.get(id) ??
+      places
+        .filter(([other, e]) => other !== id && sameWalk(e, entry))
+        .map(([other]) => rows.get(other))
+        .find(Boolean);
 
     const problems: string[] = [];
     for (const [id, entry] of places) {
@@ -95,10 +102,13 @@ describe('access.json', () => {
         continue;
       }
       if (!row) {
-        problems.push(`${id} ${entry.name}: not on ${entry.variant === undefined ? 'the main route' : `"${entry.variant}"`}`);
+        problems.push(
+          `${id} ${entry.name}: not on ${entry.variant === undefined ? 'the main route' : `"${entry.variant}"`}`
+        );
         continue;
       }
-      if (row.offTrailKm !== entry.offTrailKm) problems.push(`${id} ${entry.name}: walk ${row.offTrailKm} ≠ ${entry.offTrailKm}`);
+      if (row.offTrailKm !== entry.offTrailKm)
+        problems.push(`${id} ${entry.name}: walk ${row.offTrailKm} ≠ ${entry.offTrailKm}`);
       const builtKm = row.totalDistance - scale.startKm;
       if (entry.junctionKm !== undefined && Math.abs(builtKm - entry.junctionKm) > KM_TOLERANCE) {
         problems.push(`${id} ${entry.name}: built at km ${builtKm}, junction at km ${entry.junctionKm}`);

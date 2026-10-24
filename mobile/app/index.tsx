@@ -30,15 +30,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Alert,
-  Pressable,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Alert, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useFocusEffect, useNavigation, useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -191,9 +183,7 @@ export default function GuideListScreen() {
   // already in this list, and `useBorrowedPacks` says which pack each card
   // shows.
   useEffect(() => {
-    hydrate(
-      trails.filter((t) => t.source === 'bundled' || t.source === 'remote').map((t) => t.id),
-    );
+    hydrate(trails.filter((t) => t.source === 'bundled' || t.source === 'remote').map((t) => t.id));
   }, [hydrate, trails]);
 
   const borrowedPacks = useBorrowedPacks(trails);
@@ -263,8 +253,7 @@ export default function GuideListScreen() {
   // Long-press on a community route: its About screen (details, report,
   // the owner's delete) and, when a copy is on the phone, removing it.
   const onCommunityLongPress = (trail: TrailIndexEntry) => {
-    const about = () =>
-      router.push({ pathname: '/community-route', params: { id: trail.id } });
+    const about = () => router.push({ pathname: '/community-route', params: { id: trail.id } });
     Alert.alert(trail.name, undefined, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'About & report', onPress: about },
@@ -420,9 +409,7 @@ export default function GuideListScreen() {
                 onPress={() => setCurrentTrail(current ? null : item.id)}
                 accessibilityRole="button"
                 accessibilityLabel={
-                  current
-                    ? `Stop hiking ${item.name}`
-                    : `Set ${item.name} as the trail I'm hiking`
+                  current ? `Stop hiking ${item.name}` : `Set ${item.name} as the trail I'm hiking`
                 }
                 accessibilityState={{ selected: current }}
                 hitSlop={spacing.sm}

@@ -176,10 +176,7 @@ export async function readImportedTrail(id: string): Promise<TrailJson | null> {
  * Deleting a bundled trail id is a no-op on the file/registry side (there is no
  * row and no file), so callers don't have to pre-check the source.
  */
-export async function deleteImportedTrailEverywhere(
-  db: SqlDatabase,
-  id: string,
-): Promise<void> {
+export async function deleteImportedTrailEverywhere(db: SqlDatabase, id: string): Promise<void> {
   await deleteImportedTrail(db, id);
 
   const file = importedTrailFile(id);

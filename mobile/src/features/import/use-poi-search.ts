@@ -27,7 +27,12 @@ export type PoiSearchState =
   | { kind: 'loading' }
   | { kind: 'unavailable' }
   | { kind: 'ready'; setup: PoiSearchSetup }
-  | { kind: 'running'; setup: PoiSearchSetup; progress: PoiSearchProgress | null; retrying: boolean }
+  | {
+      kind: 'running';
+      setup: PoiSearchSetup;
+      progress: PoiSearchProgress | null;
+      retrying: boolean;
+    }
   | {
       kind: 'done';
       setup: PoiSearchSetup;
@@ -45,7 +50,10 @@ export type ConnectionKind = 'wifi' | 'cellular' | 'offline' | 'other' | 'unknow
 export function connectionKind(state: Network.NetworkState | null): ConnectionKind {
   if (!state) return 'unknown';
   if (state.isConnected === false || state.isInternetReachable === false) return 'offline';
-  if (state.type === Network.NetworkStateType.WIFI || state.type === Network.NetworkStateType.ETHERNET) {
+  if (
+    state.type === Network.NetworkStateType.WIFI ||
+    state.type === Network.NetworkStateType.ETHERNET
+  ) {
     return 'wifi';
   }
   if (state.type === Network.NetworkStateType.CELLULAR) return 'cellular';
@@ -117,55 +125,60 @@ export function usePoiSearch(trailId: string, onSaved?: () => void): UsePoiSearc
     };
   }, []);
 
-  const run = useCallback(
-    (setup: PoiSearchSetup, previous: PoiSearchRun | null) => {
-      if (controller.current) return;
-      const ac = new AbortController();
-      controller.current = ac;
-      const retrying = previous !== null;
-      setState({ kind: 'running', setup, progress: null, retrying });
-      const only: number[] | undefined = previous?.failures.map((f: ChunkFailure) => f.chunkIndex);
+  const run = useCallback((setup: PoiSearchSetup, previous: PoiSearchRun | null) => {
+    if (controller.current) return;
+    const ac = new AbortController();
+    controller.current = ac;
+    const retrying = previous !== null;
+    setState({ kind: 'running', setup, progress: null, retrying });
+    const only: number[] | undefined = previous?.failures.map((f: ChunkFailure) => f.chunkIndex);
 
-      runPoiSearch(setup, {
-        signal: ac.signal,
-        only,
-        previous: previous?.fetched,
-        onProgress: (progress) => {
-          if (mounted.current && !ac.signal.aborted) {
-            setState({ kind: 'running', setup, progress, retrying });
-          }
-        },
+    runPoiSearch(setup, {
+      signal: ac.signal,
+      only,
+      previous: previous?.fetched,
+      onProgress: (progress) => {
+        if (mounted.current && !ac.signal.aborted) {
+          setState({ kind: 'running', setup, progress, retrying });
+        }
+      },
+    })
+      .then((result) => {
+        onSavedRef.current?.();
+        if (mounted.current) setState({ kind: 'done', setup, run: result });
       })
-        .then((result) => {
-          onSavedRef.current?.();
-          if (mounted.current) setState({ kind: 'done', setup, run: result });
-        })
-        .catch((error: unknown) => {
-          if (!mounted.current) return;
-          if (ac.signal.aborted || isPoiSearchCancelled(error)) {
-            // A cancelled retry leaves the earlier, saved result standing.
-            setState(previous ? { kind: 'done', setup, run: previous } : { kind: 'cancelled', setup });
-            return;
-          }
-          const message =
-            error instanceof PoiSearchFailedError && error.failures.length > 0
-              ? `No OpenStreetMap server answered (${error.message}).`
-              : messageOf(error);
+      .catch((error: unknown) => {
+        if (!mounted.current) return;
+        if (ac.signal.aborted || isPoiSearchCancelled(error)) {
+          // A cancelled retry leaves the earlier, saved result standing.
           setState(
-            previous
-              ? { kind: 'done', setup, run: previous, retryError: message }
-              : { kind: 'failed', setup, message },
+            previous ? { kind: 'done', setup, run: previous } : { kind: 'cancelled', setup },
           );
-        })
-        .finally(() => {
-          if (controller.current === ac) controller.current = null;
-        });
-    },
-    [],
-  );
+          return;
+        }
+        const message =
+          error instanceof PoiSearchFailedError && error.failures.length > 0
+            ? `No OpenStreetMap server answered (${error.message}).`
+            : messageOf(error);
+        setState(
+          previous
+            ? { kind: 'done', setup, run: previous, retryError: message }
+            : { kind: 'failed', setup, message },
+        );
+      })
+      .finally(() => {
+        if (controller.current === ac) controller.current = null;
+      });
+  }, []);
 
   const start = useCallback(() => {
-    if (state.kind === 'ready' || state.kind === 'failed' || state.kind === 'cancelled' || state.kind === 'removed' || state.kind === 'done') {
+    if (
+      state.kind === 'ready' ||
+      state.kind === 'failed' ||
+      state.kind === 'cancelled' ||
+      state.kind === 'removed' ||
+      state.kind === 'done'
+    ) {
       run(state.setup, null);
     }
   }, [run, state]);
@@ -180,7 +193,8 @@ export function usePoiSearch(trailId: string, onSaved?: () => void): UsePoiSearc
 
   const remove = useCallback(async () => {
     if (controller.current) return false;
-    if (state.kind === 'loading' || state.kind === 'unavailable' || state.kind === 'running') return false;
+    if (state.kind === 'loading' || state.kind === 'unavailable' || state.kind === 'running')
+      return false;
     const setup = state.setup;
     const removed = await removeSearchedPois(trailId);
     if (removed) {

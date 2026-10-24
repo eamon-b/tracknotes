@@ -203,10 +203,7 @@ export function readTrailPOIFile(trailDir: string, io: PoiFileIO = NODE_IO): Tra
  * The POIs `build-trails` should attach to a trail, or null when the trail has
  * no POI file (in which case the generated JSON gets no `pois` key at all).
  */
-export function readTrailPOIsForBuild(
-  trailDir: string,
-  io: PoiFileIO = NODE_IO
-): TrailPOI[] | null {
+export function readTrailPOIsForBuild(trailDir: string, io: PoiFileIO = NODE_IO): TrailPOI[] | null {
   const file = readTrailPOIFile(trailDir, io);
   return file === null ? null : poisForBuild(file);
 }
@@ -258,9 +255,7 @@ export function buildTrailPOIFile(options: {
     searchRadiusKm: options.searchRadiusKm,
     endpoint: options.endpoint,
     rejected: [...(options.existing?.rejected ?? [])],
-    ...(options.existing?.duplicates !== undefined
-      ? { duplicates: { ...options.existing.duplicates } }
-      : {}),
+    ...(options.existing?.duplicates !== undefined ? { duplicates: { ...options.existing.duplicates } } : {}),
     pois: sortTrailPOIs(options.pois),
   };
 }

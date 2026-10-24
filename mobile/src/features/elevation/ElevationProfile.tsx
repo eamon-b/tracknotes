@@ -32,14 +32,7 @@
  * window exact even when intermediate frames are throttled or suppressed.
  */
 
-import React, {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import {
   Canvas,
@@ -248,7 +241,16 @@ export function ElevationProfile({
     const distTicks = distanceAxisTicks(window.startKm, window.endKm, unit, 5);
     const eleRange = ele.max - ele.min || 1;
     return { eleMin: ele.min, eleRange, eleTicks: ele.ticks, distTicks, chartWidth, chartHeight };
-  }, [windowedPoints, chartWidth, chartHeight, window.startKm, window.endKm, eleWindow.minM, eleWindow.maxM, unit]);
+  }, [
+    windowedPoints,
+    chartWidth,
+    chartHeight,
+    window.startKm,
+    window.endKm,
+    eleWindow.minM,
+    eleWindow.maxM,
+    unit,
+  ]);
 
   /** metres → plot y (unclamped: the plot is clipped, so the trace can leave it). */
   const yOf = useCallback(
@@ -271,9 +273,7 @@ export function ElevationProfile({
   /** km → plot x, clamped to the plot edges (off-window neighbours pin there). */
   const xOf = useCallback(
     (dist: number) =>
-      clampX(
-        kmToX(dist, { startKm: window.startKm, endKm: window.endKm }, { left, chartWidth }),
-      ),
+      clampX(kmToX(dist, { startKm: window.startKm, endKm: window.endKm }, { left, chartWidth })),
     [clampX, left, chartWidth, window.startKm, window.endKm],
   );
 
@@ -340,7 +340,18 @@ export function ElevationProfile({
           : { color: waypointColor(wp.type, colors), radius: MARKER_RADIUS };
       },
     );
-  }, [metrics, waypoints, favoriteIds, plannedIds, window.startKm, window.endKm, left, chartWidth, chartHeight, colors]);
+  }, [
+    metrics,
+    waypoints,
+    favoriteIds,
+    plannedIds,
+    window.startKm,
+    window.endKm,
+    left,
+    chartWidth,
+    chartHeight,
+    colors,
+  ]);
 
   const gridLines = useMemo(() => {
     if (!metrics) return [];
@@ -377,9 +388,7 @@ export function ElevationProfile({
   // and a tick stuck against the axis would read as a boundary that is there.
   const stopTickXs = useMemo(() => {
     if (!metrics || !stopKms || stopKms.length === 0) return [];
-    return stopKms
-      .filter((km) => km >= window.startKm && km <= window.endKm)
-      .map((km) => xOf(km));
+    return stopKms.filter((km) => km >= window.startKm && km <= window.endKm).map((km) => xOf(km));
   }, [metrics, stopKms, window.startKm, window.endKm, xOf]);
 
   // GPS marker + scrub crosshair are both km-anchored: they follow the trail
@@ -486,7 +495,12 @@ export function ElevationProfile({
       const layout = layoutRef.current;
       pushView(
         {
-          window: panWindowByPixels(base.window, translationX, layout.chartWidth, totalKmRef.current),
+          window: panWindowByPixels(
+            base.window,
+            translationX,
+            layout.chartWidth,
+            totalKmRef.current,
+          ),
           // A no-op until the elevation is zoomed in: the default window
           // already spans floor to ceiling, so there is nowhere to pan it.
           eleWindow: panEleWindowByPixels(
@@ -510,7 +524,14 @@ export function ElevationProfile({
       pushView(
         {
           window: base.axes.x
-            ? zoomWindowAtFocal(base.window, scale, base.focalX, layout, totalKmRef.current, MIN_WINDOW_KM)
+            ? zoomWindowAtFocal(
+                base.window,
+                scale,
+                base.focalX,
+                layout,
+                totalKmRef.current,
+                MIN_WINDOW_KM,
+              )
             : undefined,
           eleWindow: base.axes.y
             ? zoomEleWindowAtFocal(base.eleWindow, scale, base.focalY, layout, eleBoundsRef.current)

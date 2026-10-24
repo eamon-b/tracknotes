@@ -111,12 +111,7 @@ export function DeleteAccountSection() {
         </Pressable>
       </View>
 
-      <Modal
-        visible={confirming}
-        transparent
-        animationType="fade"
-        onRequestClose={cancelConfirm}
-      >
+      <Modal visible={confirming} transparent animationType="fade" onRequestClose={cancelConfirm}>
         <View style={[styles.modalBackdrop, { backgroundColor: colors.scrim }]}>
           <View style={[styles.modalCard, { backgroundColor: colors.surfaceElevated }]}>
             <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Delete account?</Text>

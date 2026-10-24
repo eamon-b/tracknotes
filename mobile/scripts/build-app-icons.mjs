@@ -86,8 +86,16 @@ const ringPath = (ring) => `M${ring.map(([x, y]) => `${x} ${y}`).join('L')}Z`;
  * not a ruled one, which is what stops it reading as a road or a bolt.
  */
 const TRAIL_GUIDE = [
-  [330, 1100], [360, 900], [440, 770], [400, 660], [480, 570],
-  [560, 530], [660, 535], [760, 560], [860, 560], [1120, 590],
+  [330, 1100],
+  [360, 900],
+  [440, 770],
+  [400, 660],
+  [480, 570],
+  [560, 530],
+  [660, 535],
+  [760, 560],
+  [860, 560],
+  [1120, 590],
 ];
 const WOBBLE = 8;
 const WOBBLE_PHASE = 6;
@@ -104,7 +112,9 @@ function trailPath() {
     for (let k = 0; k < steps; k++) {
       const f = k / steps;
       s += 1;
-      const w = WOBBLE * (Math.sin(s * 0.9 + WOBBLE_PHASE) * 0.6 + Math.sin(s * 0.37 + WOBBLE_PHASE * 2) * 0.4);
+      const w =
+        WOBBLE *
+        (Math.sin(s * 0.9 + WOBBLE_PHASE) * 0.6 + Math.sin(s * 0.37 + WOBBLE_PHASE * 2) * 0.4);
       pts.push([a[0] + (b[0] - a[0]) * f + nx * w, a[1] + (b[1] - a[1]) * f + ny * w]);
     }
   }
@@ -127,12 +137,43 @@ const TRAIL_D = trailPath();
  * drops rings too small to read, `gap` is the clearance the contours leave
  * either side of the path. Units are on the 1024 canvas.
  */
-const FULL = { every: 1, ringWidth: 16, minArea: 2500, trailWidth: 30, dash: [26, 58], dot: 24, gap: 20 };
-const MID = { every: 2, ringWidth: 24, minArea: 9000, trailWidth: 45, dash: [42, 93], dot: 31, gap: 26 };
-const SMALL = { every: 3, ringWidth: 48, minArea: 40000, trailWidth: 70, dash: null, dot: 64, gap: 30 };
+const FULL = {
+  every: 1,
+  ringWidth: 16,
+  minArea: 2500,
+  trailWidth: 30,
+  dash: [26, 58],
+  dot: 24,
+  gap: 20,
+};
+const MID = {
+  every: 2,
+  ringWidth: 24,
+  minArea: 9000,
+  trailWidth: 45,
+  dash: [42, 93],
+  dot: 31,
+  gap: 26,
+};
+const SMALL = {
+  every: 3,
+  ringWidth: 48,
+  minArea: 40000,
+  trailWidth: 70,
+  dash: null,
+  dot: 64,
+  gap: 30,
+};
 const MONO = {
-  every: 2, ringWidth: 26, minArea: 6000, trailWidth: 42, dash: [36, 80], dot: 34, gap: 26,
-  ink: '#FFFFFF', ringOpacity: 0.5,
+  every: 2,
+  ringWidth: 26,
+  minArea: 6000,
+  trailWidth: 42,
+  dash: [36, 80],
+  dot: 34,
+  gap: 26,
+  ink: '#FFFFFF',
+  ringOpacity: 0.5,
 };
 
 let maskCount = 0;
@@ -146,7 +187,7 @@ function mark({ every, ringWidth, minArea, trailWidth, dash, dot, gap, ink, ring
           // Only the summit's own top contour is lifted, not a neighbouring top's.
           const color = ink ?? (k === 0 && inside(ring, [SX, SY]) ? CONTOUR_LIGHT : CONTOUR);
           return `<path d="${ringPath(ring)}" fill="none" stroke="${color}" stroke-width="${ringWidth}" stroke-linejoin="round"/>`;
-        })
+        }),
     )
     .join('');
   const dashAttr = dash ? ` stroke-dasharray="${dash[0]} ${dash[1]}"` : '';
@@ -178,7 +219,8 @@ function svg(body, { size = 1024 } = {}) {
  * draw the mark at 0.9: the summit and the climb stay well inside it, and the
  * path still runs off the visible edge.
  */
-const scaled = (body, k) => `<g transform="translate(512 512) scale(${k}) translate(-512 -512)">${body}</g>`;
+const scaled = (body, k) =>
+  `<g transform="translate(512 512) scale(${k}) translate(-512 -512)">${body}</g>`;
 const clipped = (body, shape, id) =>
   `<defs><clipPath id="${id}">${shape}</clipPath></defs><g clip-path="url(#${id})">${body}</g>`;
 const TILE = '<rect width="1024" height="1024" rx="230"/>';
@@ -215,7 +257,7 @@ function loadResvg() {
   }
   throw new Error(
     '@resvg/resvg-js is not available. Re-run this script as:\n' +
-      '  npx -y -p @resvg/resvg-js node scripts/build-app-icons.mjs'
+      '  npx -y -p @resvg/resvg-js node scripts/build-app-icons.mjs',
   );
 }
 

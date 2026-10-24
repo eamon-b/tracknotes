@@ -59,7 +59,16 @@ describe('selectCandidates', () => {
   });
 
   it("leaves a waypoint on one of the trail's side trips to the side trip", () => {
-    const sideTrips = [{ name: 'Spur', type: 'side-trip', points: [{ lat: -34.01, lon: 138 }, { lat: -34.01, lon: 138.02 }] }];
+    const sideTrips = [
+      {
+        name: 'Spur',
+        type: 'side-trip',
+        points: [
+          { lat: -34.01, lon: 138 },
+          { lat: -34.01, lon: 138.02 },
+        ],
+      },
+    ];
     const trail = { track, sideTrips, waypoints: [wp('w_summit', 138.01)] };
     expect(selectCandidates(trail as never, 150, new Set())).toEqual([]);
   });
@@ -73,7 +82,14 @@ describe('selectCandidates', () => {
       waypoints: [],
     };
     // 0.003 deg south of the alternate (334 m), 2.2 km east of the route.
-    const below = (id: string, extra = {}) => ({ id, name: id, type: 'campsite', lat: -34.013, lon: 138.024, ...extra });
+    const below = (id: string, extra = {}) => ({
+      id,
+      name: id,
+      type: 'campsite',
+      lat: -34.013,
+      lon: 138.024,
+      ...extra,
+    });
 
     it('routes a place the main route did not match to the alternate it is off, with km along it', () => {
       const trail = { track, waypoints: [], alternates: [alternate], offTrailWaypoints: [below('w_camp')] };
@@ -106,12 +122,25 @@ describe('selectCandidates', () => {
     });
 
     it("leaves the main route's waypoints, turn-offs and places on a side trip to the main route's rules", () => {
-      const sideTrips = [{ name: 'Spur', type: 'side-trip', points: [{ lat: -34.013, lon: 138.02 }, { lat: -34.013, lon: 138.03 }] }];
+      const sideTrips = [
+        {
+          name: 'Spur',
+          type: 'side-trip',
+          points: [
+            { lat: -34.013, lon: 138.02 },
+            { lat: -34.013, lon: 138.03 },
+          ],
+        },
+      ];
       const trail = {
         track,
         waypoints: [wp('w_main', 138.001, { mergedIds: ['w_twin'] })],
         alternates: [alternate],
-        offTrailWaypoints: [below('w_twin'), below('w_turnoff', { type: 'campsite-access' }), below('w_given', { offTrailKm: 1 })],
+        offTrailWaypoints: [
+          below('w_twin'),
+          below('w_turnoff', { type: 'campsite-access' }),
+          below('w_given', { offTrailKm: 1 }),
+        ],
       };
       expect(selectCandidates(trail as never, 150, new Set())).toEqual([]);
       const onSpur = { ...trail, waypoints: [], offTrailWaypoints: [below('w_camp')], sideTrips };
@@ -139,7 +168,13 @@ describe('alternateRoute', () => {
 
 describe('clusterCandidates', () => {
   const at = (id: string, lat: number, lon: number): Candidate => ({
-    id, name: id, lat, lon, straightLineM: 500, nearestKm: 0, ...searchBox(lat, lon, 500),
+    id,
+    name: id,
+    lat,
+    lon,
+    straightLineM: 500,
+    nearestKm: 0,
+    ...searchBox(lat, lon, 500),
   });
 
   it('shares a query between neighbours and keeps distant places apart', () => {

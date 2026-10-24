@@ -18,13 +18,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { TrailPOI } from '@lib/trail-types';
-import {
-  defaultPoiFilterState,
-  poiControlHtml,
-  poiKey,
-  poiPopupHtml,
-  poiRowHtml,
-} from './trail-pois-ui';
+import { defaultPoiFilterState, poiControlHtml, poiKey, poiPopupHtml, poiRowHtml } from './trail-pois-ui';
 
 const ROOT = path.resolve(__dirname, '../../..');
 
@@ -187,9 +181,7 @@ const samplePois = (): TrailPOI[] => [
 
 async function boot(trail: ReturnType<typeof makeTrail> = makeTrail()) {
   const html = fs.readFileSync(path.join(ROOT, 'src/web/my-trail.html'), 'utf8');
-  document.documentElement.innerHTML = html
-    .replace(/<!DOCTYPE html>/i, '')
-    .replace(/<\/?html[^>]*>/gi, '');
+  document.documentElement.innerHTML = html.replace(/<!DOCTYPE html>/i, '').replace(/<\/?html[^>]*>/gi, '');
 
   vi.resetModules();
   const mod = await import('./trail-viewer');
@@ -324,9 +316,7 @@ describe('POIs in the viewer', () => {
   });
 
   it('escapes an OSM name in the rendered table', async () => {
-    await boot(
-      makeTrail([poi({ id: 5, name: '<img src=x onerror=alert(1)>', distanceAlongTrail: 2 })])
-    );
+    await boot(makeTrail([poi({ id: 5, name: '<img src=x onerror=alert(1)>', distanceAlongTrail: 2 })]));
     expect(document.querySelector('#waypoints-container img')).toBeNull();
     expect(rowText().some(t => t.includes('<img src=x onerror=alert(1)>'))).toBe(true);
   });
@@ -342,9 +332,7 @@ describe('POIs in the viewer', () => {
 
   it('setTrailPois called before boot is applied to the trail that arrives', async () => {
     const html = fs.readFileSync(path.join(ROOT, 'src/web/my-trail.html'), 'utf8');
-    document.documentElement.innerHTML = html
-      .replace(/<!DOCTYPE html>/i, '')
-      .replace(/<\/?html[^>]*>/gi, '');
+    document.documentElement.innerHTML = html.replace(/<!DOCTYPE html>/i, '').replace(/<\/?html[^>]*>/gi, '');
 
     vi.resetModules();
     const mod = await import('./trail-viewer');

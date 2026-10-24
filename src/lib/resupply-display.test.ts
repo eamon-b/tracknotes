@@ -24,26 +24,22 @@ const mi = (value: number): string => `${(value * 0.621371).toFixed(1)} mi`;
 
 describe('firstSentence', () => {
   it('stops at the first terminator', () => {
-    expect(firstSentence('General store and post office. Closed Sundays.')).toBe(
-      'General store and post office.',
-    );
+    expect(firstSentence('General store and post office. Closed Sundays.')).toBe('General store and post office.');
     expect(firstSentence('Is there water? Sometimes.')).toBe('Is there water?');
     expect(firstSentence('Closed! Ring ahead.')).toBe('Closed!');
   });
 
   it('does not cut the description short at a dotted abbreviation', () => {
     expect(firstSentence('Store beside U.S. 50 with a hiker box. Closed Mondays.')).toBe(
-      'Store beside U.S. 50 with a hiker box.',
+      'Store beside U.S. 50 with a hiker box.'
     );
-    expect(firstSentence('Camp below Mt. Sonder. Water 200 m north.')).toBe(
-      'Camp below Mt. Sonder.',
-    );
+    expect(firstSentence('Camp below Mt. Sonder. Water 200 m north.')).toBe('Camp below Mt. Sonder.');
     expect(firstSentence('Water approx. 3 km on. Treat it.')).toBe('Water approx. 3 km on.');
   });
 
   it('reads a run of initials as one name', () => {
     expect(firstSentence('Named for J. R. R. Tolkien by the club. Bunks for six.')).toBe(
-      'Named for J. R. R. Tolkien by the club.',
+      'Named for J. R. R. Tolkien by the club.'
     );
     expect(firstSentence('Hut built by A. B. Paterson. Tank water.')).toBe('Hut built by A. B. Paterson.');
   });
@@ -56,7 +52,7 @@ describe('firstSentence', () => {
 
   it('reads the prose out of a generator’s |-separated metadata', () => {
     expect(
-      firstSentence('mi 1947.3 (SOBO mi 1947.3) | off. mi 1955.8 | CO | Leave the CDT here for Salida. Hitch east.'),
+      firstSentence('mi 1947.3 (SOBO mi 1947.3) | off. mi 1955.8 | CO | Leave the CDT here for Salida. Hitch east.')
     ).toBe('Leave the CDT here for Salida.');
   });
 
@@ -97,7 +93,11 @@ describe('accessSummary', () => {
   it('names the side trip walked to the place', () => {
     expect(
       accessSummary(
-        { offTrailKm: 0.9, accessMode: 'foot', accessRoute: { name: 'S3.7 Spur to Cudlee Creek', ascentM: 38, descentM: 39 } },
+        {
+          offTrailKm: 0.9,
+          accessMode: 'foot',
+          accessRoute: { name: 'S3.7 Spur to Cudlee Creek', ascentM: 38, descentM: 39 },
+        },
         km
       )
     ).toBe('0.9 km on foot via S3.7 Spur to Cudlee Creek');
@@ -116,25 +116,25 @@ describe('resupplySummaryText', () => {
 
   it('reads as the web datasheet subtitle does', () => {
     expect(resupplySummaryText(summary(), km, kg)).toBe(
-      '4 stops · longest carry 10.0 km / 2 days · 3.4 kg food in total',
+      '4 stops · longest carry 10.0 km / 2 days · 3.4 kg food in total'
     );
   });
 
   it('names the full carry when there are no stops', () => {
     expect(resupplySummaryText(summary({ stops: 0, longestKm: 120, longestDays: 5, totalFoodKg: 3.4 }), km, kg)).toBe(
-      'No resupply stops · full carry 120.0 km / 5 days · 3.4 kg food',
+      'No resupply stops · full carry 120.0 km / 5 days · 3.4 kg food'
     );
   });
 
   it('is singular for one stop and one day', () => {
     expect(resupplySummaryText(summary({ stops: 1, longestDays: 1 }), km, kg)).toBe(
-      '1 stop · longest carry 10.0 km / 1 day · 3.4 kg food in total',
+      '1 stop · longest carry 10.0 km / 1 day · 3.4 kg food in total'
     );
   });
 
   it('formats through the caller’s units', () => {
     expect(resupplySummaryText(summary(), mi, v => `${(v * 2.20462).toFixed(1)} lb`)).toBe(
-      '4 stops · longest carry 6.2 mi / 2 days · 7.5 lb food in total',
+      '4 stops · longest carry 6.2 mi / 2 days · 7.5 lb food in total'
     );
   });
 });
@@ -150,7 +150,12 @@ describe('leg and stop distances, trail and off trail apart', () => {
     expect(legRidesText({ rides: [] }, km)).toBe('');
     expect(
       legRidesText(
-        { rides: [{ km: 24.1, mode: 'hitch', end: 'from' }, { km: 0.7, end: 'to' }] },
+        {
+          rides: [
+            { km: 24.1, mode: 'hitch', end: 'from' },
+            { km: 0.7, end: 'to' },
+          ],
+        },
         km
       )
     ).toBe('24.1 km hitch out · 0.7 km off trail in, not walked');

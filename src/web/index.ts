@@ -95,11 +95,11 @@ export function parseFilterState(raw: string | null | undefined): ListFilterStat
   try {
     const parsed = JSON.parse(raw) as Partial<Record<keyof ListFilterState, unknown>>;
     const query = typeof parsed.query === 'string' ? parsed.query.slice(0, 200) : '';
-    const bandIds = new Set<string>(LENGTH_BANDS.map((b) => b.id));
+    const bandIds = new Set<string>(LENGTH_BANDS.map(b => b.id));
     const bands = Array.isArray(parsed.bands)
-      ? LENGTH_BANDS.map((b) => b.id).filter((id) => (parsed.bands as unknown[]).includes(id) && bandIds.has(id))
+      ? LENGTH_BANDS.map(b => b.id).filter(id => (parsed.bands as unknown[]).includes(id) && bandIds.has(id))
       : [];
-    const sort = SORTS.some((s) => s.id === parsed.sort) ? (parsed.sort as TrailSort) : 'name';
+    const sort = SORTS.some(s => s.id === parsed.sort) ? (parsed.sort as TrailSort) : 'name';
     return { query, bands, sort };
   } catch {
     return { ...DEFAULT_FILTER, bands: [] };
@@ -144,23 +144,20 @@ interface ImportedItem extends GroupableTrail {
 
 export function filterCurated(trails: readonly CuratedTrailEntry[], state: ListFilterState): CuratedTrailEntry[] {
   const filter = toTrailFilter(state);
-  return trails.filter((t) => matchesFilter(t, filter, `${t.shortName ?? ''} ${t.region ?? ''}`));
+  return trails.filter(t => matchesFilter(t, filter, `${t.shortName ?? ''} ${t.region ?? ''}`));
 }
 
-export function filterCommunity(
-  routes: readonly CommunityRouteSummary[],
-  state: ListFilterState
-): CommunityItem[] {
+export function filterCommunity(routes: readonly CommunityRouteSummary[], state: ListFilterState): CommunityItem[] {
   const filter = toTrailFilter(state);
   return routes
-    .map((route) => ({
+    .map(route => ({
       name: route.name,
       lengthKm: route.lengthKm,
       country: route.country,
       states: route.state ? [route.state] : [],
       route,
     }))
-    .filter((item) => matchesFilter(item, filter, item.route.submittedBy ?? ''));
+    .filter(item => matchesFilter(item, filter, item.route.submittedBy ?? ''));
 }
 
 /** The reader's own routes the filter keeps, in the page's sort order. */
@@ -170,26 +167,23 @@ export function filterMyRoutes(
 ): CommunityRouteDetail[] {
   const filter = toTrailFilter(state);
   const items = routes
-    .map((route) => ({
+    .map(route => ({
       name: route.name,
       lengthKm: route.lengthKm,
       country: route.country,
       states: route.state ? [route.state] : [],
       route,
     }))
-    .filter((item) => matchesFilter(item, filter));
-  return sortTrails(items, state.sort).map((item) => item.route);
+    .filter(item => matchesFilter(item, filter));
+  return sortTrails(items, state.sort).map(item => item.route);
 }
 
-export function filterImported(
-  summaries: readonly ImportedTrailSummary[],
-  state: ListFilterState
-): ImportedItem[] {
+export function filterImported(summaries: readonly ImportedTrailSummary[], state: ListFilterState): ImportedItem[] {
   const filter = toTrailFilter(state);
   const items = summaries
-    .map((summary) => ({ name: summary.name, lengthKm: summary.lengthKm, summary }))
+    .map(summary => ({ name: summary.name, lengthKm: summary.lengthKm, summary }))
     // An import has no country: search its name only, not the "Other" label.
-    .filter((item) => matchesFilter(item, { bands: filter.bands }) && nameMatches(item.name, filter.query));
+    .filter(item => matchesFilter(item, { bands: filter.bands }) && nameMatches(item.name, filter.query));
   return sortTrails(items, state.sort);
 }
 
@@ -259,7 +253,8 @@ export function renderCommunityCard(route: CommunityRouteSummary): string {
 export function renderMyRouteCard(route: CommunityRouteDetail): string {
   const place = placeLabel(route.country, route.state ? [route.state] : []);
   const reason = hiddenReasonText(route);
-  const summary = route.status === 'hidden' && typeof route.review?.summary === 'string' ? route.review.summary.trim() : '';
+  const summary =
+    route.status === 'hidden' && typeof route.review?.summary === 'string' ? route.review.summary.trim() : '';
   const hiddenLines =
     route.status === 'hidden'
       ? `${reason ? `<span class="my-route-reason">${escapeHtml(reason)}</span>` : ''}${
@@ -311,11 +306,11 @@ export function renderGroups<T>(
   collapsed: ReadonlySet<string> = new Set()
 ): string {
   return groups
-    .map((country) => {
+    .map(country => {
       const key = groupKey(tier, country.code);
-      const showStateHeadings = country.states.some((s) => s.code !== null);
+      const showStateHeadings = country.states.some(s => s.code !== null);
       const states = country.states
-        .map((state) => {
+        .map(state => {
           const heading =
             showStateHeadings && state.name
               ? `<h4 class="state-heading">${escapeHtml(state.name)}</h4>`
@@ -337,12 +332,12 @@ export function renderGroups<T>(
 export function renderFeatured(trails: readonly CuratedTrailEntry[], state: ListFilterState): string {
   const featured = sortTrails(
     filterCurated(
-      trails.filter((t) => t.featured === true),
+      trails.filter(t => t.featured === true),
       state
     ),
     state.sort
   );
-  return featured.map((t) => renderCuratedCard(t, true)).join('');
+  return featured.map(t => renderCuratedCard(t, true)).join('');
 }
 
 export function renderCurated(
@@ -352,7 +347,7 @@ export function renderCurated(
 ): { html: string; count: number } {
   const matched = filterCurated(trails, state);
   return {
-    html: renderGroups(groupTrails(matched, state.sort), (t) => renderCuratedCard(t), 'curated', collapsed),
+    html: renderGroups(groupTrails(matched, state.sort), t => renderCuratedCard(t), 'curated', collapsed),
     count: matched.length,
   };
 }
@@ -366,7 +361,7 @@ export function renderCommunity(
   return {
     html: renderGroups(
       groupTrails(matched, state.sort),
-      (item) => renderCommunityCard(item.route),
+      item => renderCommunityCard(item.route),
       'community',
       collapsed
     ),
@@ -379,16 +374,16 @@ export function renderImported(
   state: ListFilterState
 ): { html: string; count: number } {
   const matched = filterImported(summaries, state);
-  return { html: matched.map((item) => renderImportedCard(item.summary)).join(''), count: matched.length };
+  return { html: matched.map(item => renderImportedCard(item.summary)).join(''), count: matched.length };
 }
 
 export function renderFilterBar(state: ListFilterState): string {
-  const chips = LENGTH_BANDS.map((band) => {
+  const chips = LENGTH_BANDS.map(band => {
     const on = state.bands.includes(band.id);
     return `<button type="button" class="filter-chip" data-band="${escapeHtml(band.id)}" aria-pressed="${on}">${escapeHtml(band.label)}</button>`;
   }).join('');
   const options = SORTS.map(
-    (s) => `<option value="${escapeHtml(s.id)}"${s.id === state.sort ? ' selected' : ''}>${escapeHtml(s.label)}</option>`
+    s => `<option value="${escapeHtml(s.id)}"${s.id === state.sort ? ' selected' : ''}>${escapeHtml(s.label)}</option>`
   ).join('');
   return `
     <div class="filter-search">
@@ -652,7 +647,7 @@ export async function initLandingPage(doc: Document = document, deps: LandingDep
     if (apiOn && curated.status !== 'loading' && mapContainer) {
       const points = landingMapPoints(
         curated.status === 'ready' ? filterCurated(curated.data, state) : [],
-        community.status === 'ready' && community.data ? filterCommunity(community.data, state).map((i) => i.route) : []
+        community.status === 'ready' && community.data ? filterCommunity(community.data, state).map(i => i.route) : []
       );
       setHidden(mapSection, points.length === 0);
       // Drawn only while visible, so Leaflet never measures a hidden box.
@@ -674,21 +669,21 @@ export async function initLandingPage(doc: Document = document, deps: LandingDep
     render();
   };
 
-  filterBar?.addEventListener('input', (event) => {
+  filterBar?.addEventListener('input', event => {
     const target = event.target as HTMLElement;
     if (target.id === 'trail-search') update({ ...state, query: (target as HTMLInputElement).value });
   });
-  filterBar?.addEventListener('change', (event) => {
+  filterBar?.addEventListener('change', event => {
     const target = event.target as HTMLElement;
     if (target.id === 'trail-sort') update({ ...state, sort: (target as HTMLSelectElement).value as TrailSort });
   });
-  filterBar?.addEventListener('click', (event) => {
+  filterBar?.addEventListener('click', event => {
     const chip = (event.target as HTMLElement).closest<HTMLElement>('[data-band]');
     if (!chip) return;
     const band = chip.dataset.band as LengthBand;
-    const bands = state.bands.includes(band) ? state.bands.filter((b) => b !== band) : [...state.bands, band];
+    const bands = state.bands.includes(band) ? state.bands.filter(b => b !== band) : [...state.bands, band];
     chip.setAttribute('aria-pressed', String(bands.includes(band)));
-    update({ ...state, bands: LENGTH_BANDS.map((b) => b.id).filter((id) => bands.includes(id)) });
+    update({ ...state, bands: LENGTH_BANDS.map(b => b.id).filter(id => bands.includes(id)) });
   });
 
   byId(doc, 'clear-filter')?.addEventListener('click', () => {
@@ -701,7 +696,7 @@ export async function initLandingPage(doc: Document = document, deps: LandingDep
   // countries the reader closed, so typing in the search keeps them closed.
   doc.addEventListener(
     'toggle',
-    (event) => {
+    event => {
       const el = event.target;
       if (!(el instanceof HTMLDetailsElement)) return;
       const key = el.dataset.group;
@@ -727,7 +722,7 @@ export async function initLandingPage(doc: Document = document, deps: LandingDep
   const loadMyRoutes = (): Promise<void> =>
     withDeadline(fetchMyRoutes, communityTimeoutMs)
       .then(
-        (data) => (myRoutes = { status: 'ready', data }),
+        data => (myRoutes = { status: 'ready', data }),
         (err: unknown) =>
           (myRoutes = err instanceof ApiError && err.status === 401 ? { status: 'unlinked' } : { status: 'error' })
       )
@@ -737,29 +732,39 @@ export async function initLandingPage(doc: Document = document, deps: LandingDep
     const box = byId(doc, 'my-community-link-form');
     if (!box) return;
     setHidden(box, false);
-    drawLinkForm(box, 'Link this browser to the Tracknotes app on your phone again to list the routes you shared.', (session) => {
-      linked = session;
-      box.innerHTML = '';
-      setHidden(box, true);
-      myRoutes = { status: 'loading' };
-      render();
-      void loadMyRoutes();
-    });
+    drawLinkForm(
+      box,
+      'Link this browser to the Tracknotes app on your phone again to list the routes you shared.',
+      session => {
+        linked = session;
+        box.innerHTML = '';
+        setHidden(box, true);
+        myRoutes = { status: 'loading' };
+        render();
+        void loadMyRoutes();
+      }
+    );
   });
 
   await Promise.all([
-    fetchCurated().then(
-      (data) => (curated = { status: 'ready', data }),
-      () => (curated = { status: 'error' })
-    ).then(render),
-    withDeadline(fetchCommunity, communityTimeoutMs).then(
-      (data) => (community = { status: 'ready', data }),
-      () => (community = { status: 'error' })
-    ).then(render),
-    fetchImported().then(
-      (data) => (imported = { status: 'ready', data }),
-      () => (imported = { status: 'ready', data: [] })
-    ).then(render),
+    fetchCurated()
+      .then(
+        data => (curated = { status: 'ready', data }),
+        () => (curated = { status: 'error' })
+      )
+      .then(render),
+    withDeadline(fetchCommunity, communityTimeoutMs)
+      .then(
+        data => (community = { status: 'ready', data }),
+        () => (community = { status: 'error' })
+      )
+      .then(render),
+    fetchImported()
+      .then(
+        data => (imported = { status: 'ready', data }),
+        () => (imported = { status: 'ready', data: [] })
+      )
+      .then(render),
     loadMyRoutes(),
   ]);
 }

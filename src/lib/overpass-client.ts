@@ -51,11 +51,7 @@ export interface OverpassFetcherOptions {
 }
 
 /** How a caller obtains POIs for an area. */
-export type POIFetcher = (
-  area: OverpassArea,
-  types: POIType[],
-  signal?: AbortSignal
-) => Promise<POI[]>;
+export type POIFetcher = (area: OverpassArea, types: POIType[], signal?: AbortSignal) => Promise<POI[]>;
 
 function abortError(): Error {
   const error = new Error('Aborted');

@@ -50,11 +50,7 @@ let formCounter = 0;
  *
  * @param intro  One sentence saying why linking is needed here (plain text).
  */
-export function renderLinkForm(
-  container: HTMLElement,
-  intro: string,
-  onLinked: (session: WebSession) => void,
-): void {
+export function renderLinkForm(container: HTMLElement, intro: string, onLinked: (session: WebSession) => void): void {
   const n = ++formCounter;
   const codeId = `link-code-${n}`;
   const labelId = `link-label-${n}`;

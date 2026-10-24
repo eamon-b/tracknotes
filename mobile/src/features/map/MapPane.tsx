@@ -45,7 +45,12 @@ import { planDirectionOf } from '../plan/plan-stops';
 import { usePlannedRouteMap } from '../plan/use-planned-route-map';
 import { useGuidePaneFocus, type MapPoint } from '../guide/GuideFocusContext';
 import { useGuidePositionContext } from '../guide/GuidePositionContext';
-import { boundsForKmRange, boundsForPath, isSameFocus, kmRangeInBounds } from '../guide/guide-focus';
+import {
+  boundsForKmRange,
+  boundsForPath,
+  isSameFocus,
+  kmRangeInBounds,
+} from '../guide/guide-focus';
 import { hasPois, useVisiblePois } from '../guide/use-visible-pois';
 import { useWaterStatus } from '../guide/use-water-status';
 import { useRoutesStore } from '../routes/routes-store';
@@ -121,10 +126,7 @@ export function MapPane() {
   const [resolution, setResolution] = useState<MapStyleResolution | null>(null);
   const onStyleResolved = useCallback((next: MapStyleResolution) => setResolution(next), []);
 
-  const degradation = useMemo(
-    () => (resolution ? mapDegradation(resolution) : null),
-    [resolution],
-  );
+  const degradation = useMemo(() => (resolution ? mapDegradation(resolution) : null), [resolution]);
 
   // Dismissal is per-degradation, so a *different* problem still gets a banner,
   // and per-trail, so dismissing on one guide doesn't silence another — the
@@ -185,7 +187,9 @@ export function MapPane() {
   const takenAlternateIds = useMemo(
     () =>
       plannedLines
-        ? new Set([...plannedLines.takenAlternateIndices].map((i) => variantFeatureId('alternate', i)))
+        ? new Set(
+            [...plannedLines.takenAlternateIndices].map((i) => variantFeatureId('alternate', i)),
+          )
         : undefined,
     [plannedLines],
   );
@@ -423,7 +427,10 @@ export function MapPane() {
     (lat: number | null, lon: number | null) => {
       router.push({
         pathname: '/guide/[trailId]/waypoint-edit',
-        params: lat !== null && lon !== null ? { trailId, lat: String(lat), lon: String(lon) } : { trailId },
+        params:
+          lat !== null && lon !== null
+            ? { trailId, lat: String(lat), lon: String(lon) }
+            : { trailId },
       });
     },
     [router, trailId],

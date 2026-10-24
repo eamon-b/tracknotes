@@ -76,7 +76,9 @@ export function PoiRow({
             <Text
               style={[
                 styles.distance,
-                { color: signed.direction === 'behind' ? colors.textSecondary : colors.textPrimary },
+                {
+                  color: signed.direction === 'behind' ? colors.textSecondary : colors.textPrimary,
+                },
               ]}
             >
               {signed.label}

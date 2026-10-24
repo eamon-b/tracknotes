@@ -38,7 +38,10 @@ export function ScreenScrollView({
   ...props
 }: ScrollViewProps & { ref?: Ref<ScrollViewInstance> }) {
   return (
-    <ScrollView {...props} contentContainerStyle={useBottomInsetContentStyle(contentContainerStyle)} />
+    <ScrollView
+      {...props}
+      contentContainerStyle={useBottomInsetContentStyle(contentContainerStyle)}
+    />
   );
 }
 
@@ -47,7 +50,10 @@ export function ScreenFlatList<T>({
   ...props
 }: FlatListProps<T> & { ref?: Ref<FlatList<T>> }) {
   return (
-    <FlatList<T> {...props} contentContainerStyle={useBottomInsetContentStyle(contentContainerStyle)} />
+    <FlatList<T>
+      {...props}
+      contentContainerStyle={useBottomInsetContentStyle(contentContainerStyle)}
+    />
   );
 }
 

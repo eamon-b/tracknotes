@@ -66,7 +66,9 @@ describe('screen scroll components', () => {
 
   it('forwards the ref to the list', () => {
     const ref = React.createRef<FlatList<string>>();
-    render(<ScreenFlatList ref={ref} data={['a']} renderItem={({ item }) => <Text>{item}</Text>} />);
+    render(
+      <ScreenFlatList ref={ref} data={['a']} renderItem={({ item }) => <Text>{item}</Text>} />,
+    );
     expect(ref.current).toBeInstanceOf(FlatList);
   });
 });

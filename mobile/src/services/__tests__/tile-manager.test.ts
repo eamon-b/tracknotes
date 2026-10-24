@@ -127,7 +127,8 @@ describe('TileManager', () => {
       trailId: id,
       files: [],
       complete: id === 'trail-1' || id === 'trail-3',
-      state: (id === 'trail-1' || id === 'trail-3' ? 'complete' : 'absent') as 'complete' | 'absent',
+      state: (id === 'trail-1' || id === 'trail-3' ? 'complete' : 'absent') as
+        'complete' | 'absent',
       totalSizeBytes: id === 'trail-1' ? 5000 : id === 'trail-3' ? 8000 : 0,
     }));
 

@@ -83,9 +83,7 @@ export function cumulativeKm(points: LatLon[]): number[] {
  * 3,057 km Te Araroa). Nearest-point km also puts the variant on the scale a
  * `--from-km` window clips by, so windowed fetches reach it.
  */
-export function buildRouteScale(
-  trail: Pick<ProcessedTrail, 'track' | 'alternates' | 'sideTrips'>
-): RouteScale {
+export function buildRouteScale(trail: Pick<ProcessedTrail, 'track' | 'alternates' | 'sideTrips'>): RouteScale {
   const polylines: LatLon[][] = [];
   const kmScale: number[] = [];
   const breaks = new Set<number>();
@@ -138,7 +136,10 @@ export function buildRouteScale(
  * between the two route points bracketing it. Falls back to the library's own
  * along-route distance where the trail has no scale for that point.
  */
-export function trailKmFor(poi: Pick<RouteProximityLike, 'segmentIndex' | 't' | 'distanceAlongRoute'>, scale: RouteScale): number {
+export function trailKmFor(
+  poi: Pick<RouteProximityLike, 'segmentIndex' | 't' | 'distanceAlongRoute'>,
+  scale: RouteScale
+): number {
   const start = scale.kmScale[poi.segmentIndex];
   if (start === undefined || !Number.isFinite(start)) {
     return poi.distanceAlongRoute;

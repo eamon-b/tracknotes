@@ -45,8 +45,7 @@ const BASEMAP_GROUND: Record<MapTheme, string> = {
   dark: '#14161A',
 };
 
-const channels = (hex: string) =>
-  [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+const channels = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
 
 /** WCAG relative luminance of an #rrggbb color. */
 function luminance(hex: string): number {
@@ -70,8 +69,7 @@ function hueDegrees(hex: string): number {
   const min = Math.min(r, g, b);
   if (max === min) return 0;
   const d = max - min;
-  const h =
-    max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  const h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
   return (h * 60 + 360) % 360;
 }
 
@@ -181,14 +179,22 @@ describe('labelFontForSource', () => {
 describe('isContourTileLoadFailure', () => {
   it('matches a failed contour tile log', () => {
     expect(
-      isContourTileLoadFailure({ level: 'warning', message: 'Failed to load tile from source contour' }),
+      isContourTileLoadFailure({
+        level: 'warning',
+        message: 'Failed to load tile from source contour',
+      }),
     ).toBe(true);
   });
 
   it('ignores unrelated failures and other sources', () => {
-    expect(isContourTileLoadFailure({ level: 'error', message: 'Network unreachable' })).toBe(false);
+    expect(isContourTileLoadFailure({ level: 'error', message: 'Network unreachable' })).toBe(
+      false,
+    );
     expect(
-      isContourTileLoadFailure({ level: 'warning', message: 'Failed to load tile from source basemap' }),
+      isContourTileLoadFailure({
+        level: 'warning',
+        message: 'Failed to load tile from source basemap',
+      }),
     ).toBe(false);
   });
 });
@@ -197,9 +203,9 @@ describe('isBasemapGeometryNoise', () => {
   // MapLibre RN 10 spelled the level 'warning'; v11's LogManager spells it
   // 'warn'. Both must match or the noise filter silently stops firing.
   it.each(['warn', 'warning'])('matches the %s-level basemap geometry warning', (level) => {
-    expect(
-      isBasemapGeometryNoise({ level, message: 'Invalid geometry in line layer foo' }),
-    ).toBe(true);
+    expect(isBasemapGeometryNoise({ level, message: 'Invalid geometry in line layer foo' })).toBe(
+      true,
+    );
   });
 
   it('leaves other warnings alone', () => {
@@ -292,8 +298,7 @@ describe('fallbackMapStyle', () => {
   });
 
   it('backs the dark map with a dark ground, not the light one', () => {
-    const paint = (theme: MapTheme) =>
-      fallbackMapStyle(theme).layers[0].paint['background-color'];
+    const paint = (theme: MapTheme) => fallbackMapStyle(theme).layers[0].paint['background-color'];
     expect(paint('dark')).not.toBe(paint('light'));
     expect(luminance(paint('dark'))).toBeLessThan(luminance(paint('light')));
   });

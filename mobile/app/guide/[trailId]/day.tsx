@@ -84,7 +84,9 @@ export default function DayScreen() {
       <DayWaypointList
         trailId={trailId}
         day={day}
-        lead={day.date !== undefined ? `Day ${day.dayNumber} · ${day.date}` : `Day ${day.dayNumber}`}
+        lead={
+          day.date !== undefined ? `Day ${day.dayNumber} · ${day.date}` : `Day ${day.dayNumber}`
+        }
         endLead={endLead}
         entries={entries}
         pois={pois}

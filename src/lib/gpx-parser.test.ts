@@ -86,15 +86,11 @@ describe('parseGpx', () => {
   });
 
   it('enforces the file-size cap', () => {
-    expect(() => parseGpx(fixture('simple-trail'), undefined, { maxFileSize: 10 })).toThrow(
-      /too large/
-    );
+    expect(() => parseGpx(fixture('simple-trail'), undefined, { maxFileSize: 10 })).toThrow(/too large/);
   });
 
   it('enforces the point-count cap', () => {
-    expect(() => parseGpx(fixture('simple-trail'), undefined, { maxPointCount: 3 })).toThrow(
-      /too many points/
-    );
+    expect(() => parseGpx(fixture('simple-trail'), undefined, { maxPointCount: 3 })).toThrow(/too many points/);
     expect(GPX_MAX_POINT_COUNT).toBe(100000);
   });
 
@@ -159,9 +155,7 @@ describe('flattenGpx', () => {
   });
 
   it('names an unnamed track "Unnamed"', () => {
-    const gpx = flattenGpx(
-      parseGpx('<gpx><trk><trkseg><trkpt lat="1" lon="2"/></trkseg></trk></gpx>')
-    );
+    const gpx = flattenGpx(parseGpx('<gpx><trk><trkseg><trkpt lat="1" lon="2"/></trkseg></trk></gpx>'));
     expect(gpx.tracks[0].name).toBe('Unnamed');
   });
 });
@@ -197,11 +191,7 @@ describe('generateGpx → parseGpx round trip', () => {
   });
 
   it('omits <type> when the waypoint has none', () => {
-    const xml = generateGpx(
-      'Round Trip',
-      [],
-      [{ lat: 1, lon: 2, ele: 0, name: 'Plain', desc: '' }]
-    );
+    const xml = generateGpx('Round Trip', [], [{ lat: 1, lon: 2, ele: 0, name: 'Plain', desc: '' }]);
     expect(xml).not.toContain('<type>');
   });
 
@@ -223,8 +213,7 @@ describe('generateGpx → parseGpx round trip', () => {
 
 describe('waypoint <extensions> (off-trail access)', () => {
   const waypoints = (): GpxWaypoint[] => parseGpx(fixture('waypoint-extensions')).waypoints;
-  const byName = (name: string): GpxWaypoint =>
-    waypoints().find(wpt => wpt.name === name) as GpxWaypoint;
+  const byName = (name: string): GpxWaypoint => waypoints().find(wpt => wpt.name === name) as GpxWaypoint;
 
   it('reads all four fields, trimming the whitespace around each value', () => {
     expect(byName('Salida')).toMatchObject({
@@ -252,7 +241,7 @@ describe('waypoint <extensions> (off-trail access)', () => {
     expect(mystery.acceptsBoxes).toBe(false);
   });
 
-  it('ignores another vendor\'s <extensions> block', () => {
+  it("ignores another vendor's <extensions> block", () => {
     const garmin = byName('Garmin Marker');
     expect(garmin).toMatchObject({ name: 'Garmin Marker', type: 'viewpoint' });
     for (const field of ['offTrailKm', 'accessMode', 'acceptsBoxes', 'accessName']) {

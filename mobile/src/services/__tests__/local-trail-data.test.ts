@@ -37,10 +37,17 @@ async function seed(db: Awaited<ReturnType<typeof createMigratedTestDb>>, trailI
   await upsertDescriptions(db as never, trailId, [
     { waypointId: 'w1', description: 'Tank', updatedAt: '2026-10-01T00:00:00Z' },
   ]);
-  await plansRepo.upsertLocal(db as never, newPlan(trailId, 'Plan', 'NOBO', { idFactory: () => `p-${trailId}` }));
+  await plansRepo.upsertLocal(
+    db as never,
+    newPlan(trailId, 'Plan', 'NOBO', { idFactory: () => `p-${trailId}` }),
+  );
 }
 
-async function count(db: Awaited<ReturnType<typeof createMigratedTestDb>>, table: string, trailId: string) {
+async function count(
+  db: Awaited<ReturnType<typeof createMigratedTestDb>>,
+  table: string,
+  trailId: string,
+) {
   const row = await db.getFirstAsync<{ n: number }>(
     `SELECT COUNT(*) AS n FROM ${table} WHERE trail_id = ?`,
     [trailId],

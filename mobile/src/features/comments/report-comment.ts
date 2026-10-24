@@ -18,12 +18,7 @@ import type { ReportReason } from '@lib/comments-api-types';
 export const MAX_REPORT_DETAIL_LENGTH = 500;
 
 /** The reasons offered by the picker, in display order. */
-export const REPORT_REASONS: readonly ReportReason[] = [
-  'spam',
-  'offensive',
-  'inaccurate',
-  'other',
-];
+export const REPORT_REASONS: readonly ReportReason[] = ['spam', 'offensive', 'inaccurate', 'other'];
 
 const REASON_LABELS: Record<ReportReason, string> = {
   spam: 'Spam or advertising',
@@ -45,9 +40,7 @@ export interface ReportOutboxPayload {
   detail: string | null;
 }
 
-export type ReportCheck =
-  | { ok: true; value: ReportOutboxPayload }
-  | { ok: false; message: string };
+export type ReportCheck = { ok: true; value: ReportOutboxPayload } | { ok: false; message: string };
 
 /** True when `value` is one of the four wire reasons. */
 export function isReportReason(value: unknown): value is ReportReason {

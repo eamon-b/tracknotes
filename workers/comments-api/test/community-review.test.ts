@@ -26,7 +26,10 @@ import type { CommunityAiReview, CommunityRouteDetail } from '../../../src/lib/c
 type CreateParams = Anthropic.Beta.Messages.MessageCreateParamsNonStreaming;
 
 /** A message as the API would return it, with `text` as the only content. */
-function message(text: string, stopReason: Anthropic.Beta.Messages.BetaStopReason = 'end_turn'): Anthropic.Beta.Messages.BetaMessage {
+function message(
+  text: string,
+  stopReason: Anthropic.Beta.Messages.BetaStopReason = 'end_turn'
+): Anthropic.Beta.Messages.BetaMessage {
   return {
     id: 'msg_test',
     type: 'message',
@@ -56,9 +59,7 @@ function fakeClient(reply: () => Anthropic.Beta.Messages.BetaMessage): ReviewCli
 }
 
 function verdict(o: Record<string, unknown>): ReviewClient & { calls: CreateParams[] } {
-  return fakeClient(() =>
-    message(JSON.stringify({ summary: 'A day walk.', concerns: [], ...o }))
-  );
+  return fakeClient(() => message(JSON.stringify({ summary: 'A day walk.', concerns: [], ...o })));
 }
 
 /** A real SDK client whose transport answers every request with `status`. */
@@ -155,7 +156,8 @@ describe('runAiReview', () => {
     trail.waypoints = Array.from({ length: 150 }, (_, i) => ({
       ...w,
       name: `Camp ${i}`,
-      description: i === 149 ? 'Cheap pills at https://spam.example now' : `${'Grassy flat by the creek. '.repeat(20)}${i}`,
+      description:
+        i === 149 ? 'Cheap pills at https://spam.example now' : `${'Grassy flat by the creek. '.repeat(20)}${i}`,
     }));
     trail.alternates = [
       {
@@ -188,7 +190,12 @@ describe('runAiReview', () => {
     const trail = makeTrail({ count: 500 });
     const w = trail.waypoints[0];
     trail.waypoints = Array.from({ length: 300 }, (_, i) => ({ ...w, name: `Main ${i}` }));
-    trail.offTrailWaypoints = Array.from({ length: 40 }, (_, i) => ({ ...w, name: `Off ${i}`, type: 'town', distanceFromTrail: 1 }));
+    trail.offTrailWaypoints = Array.from({ length: 40 }, (_, i) => ({
+      ...w,
+      name: `Off ${i}`,
+      type: 'town',
+      distanceFromTrail: 1,
+    }));
     trail.sideTrips = [
       {
         name: 'Side trip: Summit',
@@ -213,7 +220,9 @@ describe('runAiReview', () => {
     expect(payload.otherWaypoints).toHaveLength(MIN_OTHER_WAYPOINTS_SENT);
     expect(payload.waypoints).toHaveLength(MAX_WAYPOINTS_SENT - MIN_OTHER_WAYPOINTS_SENT);
     expect(payload.otherWaypoints.some((o) => o.on === 'off-trail' && o.name.startsWith('Off '))).toBe(true);
-    expect(payload.otherWaypoints.some((o) => o.on === 'Side trip: Summit' && o.name.startsWith('Visit spam'))).toBe(true);
+    expect(payload.otherWaypoints.some((o) => o.on === 'Side trip: Summit' && o.name.startsWith('Visit spam'))).toBe(
+      true
+    );
 
     // A short main list leaves the rest of the allowance to the others.
     trail.waypoints = trail.waypoints.slice(0, 10);
@@ -320,7 +329,9 @@ async function submitted(): Promise<CommunityRouteDetail> {
   return (await res.json()) as CommunityRouteDetail;
 }
 
-async function routeRow(id: string): Promise<{ status: string; review_status: string; review_json: string | null; status_note: string | null }> {
+async function routeRow(
+  id: string
+): Promise<{ status: string; review_status: string; review_json: string | null; status_note: string | null }> {
   const row = await env.DB.prepare(
     `SELECT status, review_status, review_json, status_note FROM community_routes WHERE id = ?`
   )
@@ -352,7 +363,7 @@ describe('reviewStoredRoute', () => {
     expect(await env.PHOTOS.get(keys!.private_key)).not.toBeNull();
   });
 
-  it("tells the owner, and only the owner, that the review hid it", async () => {
+  it('tells the owner, and only the owner, that the review hid it', async () => {
     const owner = await registerDevice();
     const res = await submitRoute(owner, submitBody());
     expect(res.status).toBe(201);
@@ -366,9 +377,9 @@ describe('reviewStoredRoute', () => {
     expect(asOwner.hiddenReason).toBe('review');
     expect(asOwner).not.toHaveProperty('statusNote');
     expect(asOwner.review?.summary).toBe('A day walk.');
-    const mine = (await (
-      await SELF.fetch(url('/v1/me/community/routes'), { headers: authHeaders(owner) })
-    ).json()) as { routes: CommunityRouteDetail[] };
+    const mine = (await (await SELF.fetch(url('/v1/me/community/routes'), { headers: authHeaders(owner) })).json()) as {
+      routes: CommunityRouteDetail[];
+    };
     expect(mine.routes.find((r) => r.id === route.id)?.hiddenReason).toBe('review');
     expect((await SELF.fetch(url(`/v1/community/routes/${route.id}`))).status).toBe(404);
   });
@@ -379,7 +390,9 @@ describe('reviewStoredRoute', () => {
     expect((await routeRow(a.id)).status).toBe('unverified');
 
     const b = await submitted();
-    await reviewStoredRoute(env as unknown as Env, b.id, { client: verdict({ verdict: 'needs_human', confidence: 0.99 }) });
+    await reviewStoredRoute(env as unknown as Env, b.id, {
+      client: verdict({ verdict: 'needs_human', confidence: 0.99 }),
+    });
     const row = await routeRow(b.id);
     expect(row.status).toBe('unverified');
     expect(row.review_status).toBe('done');
@@ -450,7 +463,6 @@ describe('reviewStoredRoute', () => {
   });
 
   it('reads the stored trail from R2 when not handed one', async () => {
-
     const route = await submitted();
     const client = verdict({ verdict: 'looks_good', confidence: 0.9 });
     await reviewStoredRoute(env as unknown as Env, route.id, { client });

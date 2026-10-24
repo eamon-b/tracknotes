@@ -1,9 +1,6 @@
 import { SELF, env } from 'cloudflare:test';
 import { expect } from 'vitest';
-import type {
-  LinkCodeResponse,
-  RegisterDeviceResponse,
-} from '../../../src/lib/comments-api-types';
+import type { LinkCodeResponse, RegisterDeviceResponse } from '../../../src/lib/comments-api-types';
 import type { PlanDocument, PlanStop } from '../../../src/lib/plan-types';
 
 const BASE = 'https://comments.test';
@@ -70,11 +67,7 @@ export interface PutCommentBody {
 }
 
 /** PUT a comment under a given (client-minted) id. */
-export async function putComment(
-  device: Device,
-  id: string,
-  body: PutCommentBody
-): Promise<Response> {
+export async function putComment(device: Device, id: string, body: PutCommentBody): Promise<Response> {
   return SELF.fetch(`${BASE}/v1/comments/${id}`, {
     method: 'PUT',
     headers: authHeaders(device),
@@ -178,11 +171,7 @@ export function planBody(
 }
 
 /** PUT a plan document under a client-minted id. */
-export async function putPlan(
-  device: Device,
-  id: string,
-  body: unknown
-): Promise<Response> {
+export async function putPlan(device: Device, id: string, body: unknown): Promise<Response> {
   return SELF.fetch(url(`/v1/plans/${id}`), {
     method: 'PUT',
     headers: authHeaders(device),
@@ -236,10 +225,7 @@ export function freshIp(): string {
 }
 
 /** POST /v1/devices/link as an unauthenticated browser. */
-export async function linkDevice(
-  body: { code?: unknown; label?: unknown },
-  ip = freshIp()
-): Promise<Response> {
+export async function linkDevice(body: { code?: unknown; label?: unknown }, ip = freshIp()): Promise<Response> {
   return SELF.fetch(url('/v1/devices/link'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': ip },

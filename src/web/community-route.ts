@@ -231,7 +231,7 @@ function initReport(page: RoutePage): void {
   const done = $('report-done')!;
 
   reason.innerHTML = COMMUNITY_REPORT_REASONS.map(
-    r => `<option value="${escapeHtml(r)}">${escapeHtml(REPORT_LABELS[r] ?? r)}</option>`,
+    r => `<option value="${escapeHtml(r)}">${escapeHtml(REPORT_LABELS[r] ?? r)}</option>`
   ).join('');
 
   const setError = (message: string): void => {
@@ -250,7 +250,7 @@ function initReport(page: RoutePage): void {
         linked => {
           page.session = linked;
           render();
-        },
+        }
       );
     } else {
       linkBox.hidden = true;
@@ -322,7 +322,7 @@ function initOwnerTools(page: RoutePage): void {
     $('edit-country-other') as HTMLInputElement,
     $('edit-state') as HTMLSelectElement,
     $('edit-state-field')!,
-    $('edit-country-other-field')!,
+    $('edit-country-other-field')!
   );
 
   const setError = (message: string): void => {
@@ -479,7 +479,7 @@ async function init(): Promise<void> {
       page,
       detail.trailUrl
         ? 'The route’s track could not be downloaded. Try reloading the page later.'
-        : 'This route is hidden, so its track is not published. Its details are shown here; the map returns if it is restored.',
+        : 'This route is hidden, so its track is not published. Its details are shown here; the map returns if it is restored.'
     );
     return;
   }

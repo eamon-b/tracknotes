@@ -51,10 +51,7 @@ function line(corners: [number, number][], stepDeg = 0.005): RouteVariant['point
   for (let i = 1; i < corners.length; i++) {
     const [fromLat, fromLon] = corners[i - 1];
     const [toLat, toLon] = corners[i];
-    const steps = Math.max(
-      1,
-      Math.round(Math.max(Math.abs(toLat - fromLat), Math.abs(toLon - fromLon)) / stepDeg)
-    );
+    const steps = Math.max(1, Math.round(Math.max(Math.abs(toLat - fromLat), Math.abs(toLon - fromLon)) / stepDeg));
     for (let s = 1; s <= steps; s++) {
       points.push({
         lat: fromLat + ((toLat - fromLat) * s) / steps,
@@ -101,8 +98,14 @@ describe('classifyTracks: terminus', () => {
   it('classifies a `Terminus: ` track into terminusTracks', () => {
     const result = classifyTracks(
       [
-        track('CDT (SOBO) 1/2: mi 0.0-100.0', [{ lat: 0, lon: 0 }, { lat: 0, lon: 0.1 }]),
-        track('Terminus: Chief Mountain', [{ lat: 0.01, lon: 0 }, { lat: 0.05, lon: 0 }]),
+        track('CDT (SOBO) 1/2: mi 0.0-100.0', [
+          { lat: 0, lon: 0 },
+          { lat: 0, lon: 0.1 },
+        ]),
+        track('Terminus: Chief Mountain', [
+          { lat: 0.01, lon: 0 },
+          { lat: 0.05, lon: 0 },
+        ]),
       ],
       { mainRoutePatterns: ['^CDT '], fallbackToLongest: false }
     );
@@ -114,14 +117,17 @@ describe('classifyTracks: terminus', () => {
   });
 
   it('ships a default pattern, so a user import needs no configuration', () => {
-    expect(TRACK_CLASSIFICATION_DEFAULTS.terminusPatterns).toEqual([
-      '^Terminus:',
-      '\\bTerminus\\b',
-    ]);
+    expect(TRACK_CLASSIFICATION_DEFAULTS.terminusPatterns).toEqual(['^Terminus:', '\\bTerminus\\b']);
     const result = classifyTracks(
       [
-        track('Day 1', [{ lat: 0, lon: 0 }, { lat: 0, lon: 0.1 }]),
-        track('Terminus: Antelope Wells', [{ lat: 0.01, lon: 0 }, { lat: 0.02, lon: 0 }]),
+        track('Day 1', [
+          { lat: 0, lon: 0 },
+          { lat: 0, lon: 0.1 },
+        ]),
+        track('Terminus: Antelope Wells', [
+          { lat: 0.01, lon: 0 },
+          { lat: 0.02, lon: 0 },
+        ]),
       ],
       {}
     );
@@ -133,8 +139,14 @@ describe('classifyTracks: terminus', () => {
   it('never steals a track a file already named as an alternate or side trip', () => {
     const result = classifyTracks(
       [
-        track('Alternate: Southern Terminus Bypass', [{ lat: 0, lon: 0 }, { lat: 0, lon: 0.01 }]),
-        track('Side trip: Terminus Monument', [{ lat: 0, lon: 0 }, { lat: 0, lon: 0.01 }]),
+        track('Alternate: Southern Terminus Bypass', [
+          { lat: 0, lon: 0 },
+          { lat: 0, lon: 0.01 },
+        ]),
+        track('Side trip: Terminus Monument', [
+          { lat: 0, lon: 0 },
+          { lat: 0, lon: 0.01 },
+        ]),
       ],
       {
         alternatePatterns: ['^Alternate: '],
@@ -149,7 +161,15 @@ describe('classifyTracks: terminus', () => {
   });
 
   it('leaves the other result lists untouched when nothing matches', () => {
-    const result = classifyTracks([track('Main', [{ lat: 0, lon: 0 }, { lat: 0, lon: 0.1 }])], {});
+    const result = classifyTracks(
+      [
+        track('Main', [
+          { lat: 0, lon: 0 },
+          { lat: 0, lon: 0.1 },
+        ]),
+      ],
+      {}
+    );
     expect(result.terminusTracks).toEqual([]);
   });
 });
@@ -161,7 +181,12 @@ describe('classifyTracks: terminus', () => {
 describe('findVariantJunctions: terminus', () => {
   it('records exactly one junction, at points[0], and never a rejoin', () => {
     const [variant] = findVariantJunctions(
-      [terminus('Terminus: Chief Mountain', [[0, 0.02], [0.09, 0.02]])],
+      [
+        terminus('Terminus: Chief Mountain', [
+          [0, 0.02],
+          [0.09, 0.02],
+        ]),
+      ],
       mainRoute(11)
     );
 
@@ -173,7 +198,10 @@ describe('findVariantJunctions: terminus', () => {
   });
 
   it('turns a backwards-drawn terminus round and swaps its ascent/descent', () => {
-    const forwards = terminus('T', [[0, 0.02], [0.09, 0.02]]);
+    const forwards = terminus('T', [
+      [0, 0.02],
+      [0.09, 0.02],
+    ]);
     const backwards: RouteVariant = {
       ...forwards,
       points: [...forwards.points].reverse(),
@@ -193,7 +221,12 @@ describe('findVariantJunctions: terminus', () => {
   it('leaves a terminus whose junction end is out of tolerance unattached', () => {
     // Both ends 0.007° (778 m) north of the route: past the 500 m default.
     const [variant] = findVariantJunctions(
-      [terminus('Loose', [[0.007, 0.02], [0.09, 0.02]])],
+      [
+        terminus('Loose', [
+          [0.007, 0.02],
+          [0.09, 0.02],
+        ]),
+      ],
       mainRoute(11)
     );
     expect(variant.startDistance).toBeUndefined();
@@ -202,7 +235,12 @@ describe('findVariantJunctions: terminus', () => {
 
   it('records the residual when a raised tolerance takes a loose junction in', () => {
     const [variant] = findVariantJunctions(
-      [terminus('Loose', [[0.007, 0.02], [0.09, 0.02]])],
+      [
+        terminus('Loose', [
+          [0.007, 0.02],
+          [0.09, 0.02],
+        ]),
+      ],
       mainRoute(11),
       1000
     );
@@ -216,7 +254,11 @@ describe('attachVariantsToParents: terminus', () => {
   const parentAlternate = (): RouteVariant => ({
     name: 'High Route',
     type: 'alternate',
-    points: line([[0, 0.02], [0.01, 0.03], [0, 0.05]]),
+    points: line([
+      [0, 0.02],
+      [0.01, 0.03],
+      [0, 0.05],
+    ]),
     distance: 0,
     elevation: { ascent: 0, descent: 0 },
   });
@@ -224,7 +266,10 @@ describe('attachVariantsToParents: terminus', () => {
   it('hangs a terminus off an alternate when its junction is not on the main line', () => {
     const alternates = findVariantJunctions([parentAlternate()], mainRoute(11));
     // Branches from the parent's apex (0.01, 0.03) and runs away north.
-    const child = terminus('Terminus: North Border', [[0.01, 0.03], [0.09, 0.03]]);
+    const child = terminus('Terminus: North Border', [
+      [0.01, 0.03],
+      [0.09, 0.03],
+    ]);
 
     const { sideTrips } = attachVariantsToParents(alternates, [child], 500);
 
@@ -235,7 +280,10 @@ describe('attachVariantsToParents: terminus', () => {
 
   it('repairs a backwards terminus that attaches to a parent', () => {
     const alternates = findVariantJunctions([parentAlternate()], mainRoute(11));
-    const forwards = terminus('Terminus: North Border', [[0.01, 0.03], [0.09, 0.03]]);
+    const forwards = terminus('Terminus: North Border', [
+      [0.01, 0.03],
+      [0.09, 0.03],
+    ]);
     const backwards: RouteVariant = {
       ...forwards,
       points: [...forwards.points].reverse(),
@@ -253,12 +301,15 @@ describe('attachVariantsToParents: terminus', () => {
 describe('enrichVariantWaypoints: terminus', () => {
   it('counts waypoint km from the junction, like a side trip', () => {
     const [variant] = findVariantJunctions(
-      [terminus('Terminus: Chief Mountain', [[0, 0.02], [0.09, 0.02]])],
+      [
+        terminus('Terminus: Chief Mountain', [
+          [0, 0.02],
+          [0.09, 0.02],
+        ]),
+      ],
       mainRoute(11)
     );
-    const waypoints: TrailWaypoint[] = [
-      { name: 'Chief Mountain', lat: 0.09, lon: 0.02, type: 'endpoint' },
-    ];
+    const waypoints: TrailWaypoint[] = [{ name: 'Chief Mountain', lat: 0.09, lon: 0.02, type: 'endpoint' }];
 
     const [enriched] = enrichVariantWaypoints([variant], waypoints);
 
@@ -297,10 +348,7 @@ describe('buildTrail with a Terminus: track', () => {
     const withTerminus = built();
     const withoutTerminus = buildTrail(load('simple-trail'), { config: config() });
 
-    expect(withTerminus.track.totalDistance).toBeCloseTo(
-      withoutTerminus.track.totalDistance,
-      6
-    );
+    expect(withTerminus.track.totalDistance).toBeCloseTo(withoutTerminus.track.totalDistance, 6);
     expect(withTerminus.waypoints.map(w => w.name)).toEqual(['Start', 'Campsite One', 'End']);
   });
 
@@ -356,16 +404,10 @@ describe('createReversedTrail with a terminus', () => {
     expect(flipped.endDistance).toBeUndefined();
     // The points are NOT turned round: points[0] is still the junction.
     expect(flipped.points[0].lat).toBeCloseTo(forward.points[0].lat, 6);
-    expect(flipped.points[flipped.points.length - 1].lat).toBeCloseTo(
-      forward.points[forward.points.length - 1].lat,
-      6
-    );
+    expect(flipped.points[flipped.points.length - 1].lat).toBeCloseTo(forward.points[forward.points.length - 1].lat, 6);
     // Its waypoints ride along: the endpoint keeps its distance from the
     // junction, measured from the new start.
     const flippedEndpoint = flipped.waypoints!.find(w => w.name === 'Chief Mountain')!;
-    expect(flippedEndpoint.totalDistance - flipped.startDistance!).toBeCloseTo(
-      endpointKm - forward.startDistance!,
-      2
-    );
+    expect(flippedEndpoint.totalDistance - flipped.startDistance!).toBeCloseTo(endpointKm - forward.startDistance!, 2);
   });
 });

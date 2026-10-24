@@ -1,15 +1,6 @@
 import { SELF, createExecutionContext, env, waitOnExecutionContext } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
-import {
-  authHeaders,
-  makeAdmin,
-  putComment,
-  putDescription,
-  putPlan,
-  planBody,
-  registerDevice,
-  url,
-} from './helpers';
+import { authHeaders, makeAdmin, putComment, putDescription, putPlan, planBody, registerDevice, url } from './helpers';
 import type { Device } from './helpers';
 import { submitBody, submitRoute } from './community-fixtures';
 import { putComment as putCommentHandler } from '../src/comments';
@@ -100,7 +91,14 @@ describe('comments on community routes', () => {
         `INSERT INTO comments (id, trail_id, waypoint_id, user_id, text, created_at, updated_at)
          VALUES (?, ?, ?, ?, 'Earlier', ?, ?)`
       )
-        .bind(crypto.randomUUID(), route.id, route.waypointIds[0], owner.userId, new Date().toISOString(), new Date().toISOString())
+        .bind(
+          crypto.randomUUID(),
+          route.id,
+          route.waypointIds[0],
+          owner.userId,
+          new Date().toISOString(),
+          new Date().toISOString()
+        )
         .run();
       await setStatus(route.id, status);
 

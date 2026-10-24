@@ -36,7 +36,9 @@ function render(node: React.ReactElement): ReactTestRenderer {
 
 function viewButton(r: ReactTestRenderer) {
   return r.root.findAll(
-    (n) => n.props.accessibilityLabel === 'View my shared routes' && typeof n.props.onPress === 'function',
+    (n) =>
+      n.props.accessibilityLabel === 'View my shared routes' &&
+      typeof n.props.onPress === 'function',
   );
 }
 
@@ -55,7 +57,9 @@ it('offers the hiker’s own earlier route and opens it', () => {
 });
 
 it('keeps the plain message when the duplicate is someone else’s', () => {
-  const r = render(<ShareFailureCard failure={shareFailure(conflict({}))} onViewMyRoutes={jest.fn()} />);
+  const r = render(
+    <ShareFailureCard failure={shareFailure(conflict({}))} onViewMyRoutes={jest.fn()} />,
+  );
   expect(r.root.findAllByType(Text).map((t) => t.props.children)).toContain(DUPLICATE);
   expect(viewButton(r)).toHaveLength(0);
 });

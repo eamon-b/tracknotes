@@ -99,7 +99,7 @@ function scanSegments(
   points: readonly SnapPoint[],
   from: number,
   to: number,
-  breakStarts: ReadonlySet<number> | undefined,
+  breakStarts: ReadonlySet<number> | undefined
 ): Candidate {
   const kx = Math.cos((lat * Math.PI) / 180) * METRES_PER_DEGREE;
   const ky = METRES_PER_DEGREE;
@@ -185,7 +185,7 @@ export function snapToTrail(
   lon: number,
   points: readonly SnapPoint[],
   hintIndex?: number,
-  breakStarts?: ReadonlySet<number>,
+  breakStarts?: ReadonlySet<number>
 ): SnapResult | null {
   if (points.length === 0) return null;
 

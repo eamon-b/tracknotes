@@ -18,11 +18,7 @@
 import React, { useCallback, useMemo } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import {
-  countPoisByCategory,
-  POI_CATEGORIES,
-  POI_CATEGORY_LABELS,
-} from '@lib/poi-display';
+import { countPoisByCategory, POI_CATEGORIES, POI_CATEGORY_LABELS } from '@lib/poi-display';
 import { countDuplicatePois } from '@lib/poi-dedup';
 import {
   INTERACTIVE_OVERPASS_ENDPOINTS,
@@ -47,7 +43,9 @@ import type { PoiSearchProgress } from '../../../src/features/import/poi-search'
 const CREDITS = [POI_SEARCH_CREDIT];
 
 function hostList(): string {
-  return INTERACTIVE_OVERPASS_ENDPOINTS.map((e) => e.replace(/^https?:\/\//, '').replace(/\/.*$/, '')).join(', ');
+  return INTERACTIVE_OVERPASS_ENDPOINTS.map((e) =>
+    e.replace(/^https?:\/\//, '').replace(/\/.*$/, ''),
+  ).join(', ');
 }
 
 export default function FindPoisScreen() {
@@ -55,7 +53,10 @@ export default function FindPoisScreen() {
   const router = useRouter();
   const { trailId, baseTrail, reloadTrail } = useGuide();
   const units = useSettingsStore((s) => s.units);
-  const { state, connection, start, retryMissed, cancel, remove } = usePoiSearch(trailId, reloadTrail);
+  const { state, connection, start, retryMissed, cancel, remove } = usePoiSearch(
+    trailId,
+    reloadTrail,
+  );
   const existing = baseTrail.pois;
 
   const confirmRemove = useCallback(() => {
@@ -103,12 +104,14 @@ export default function FindPoisScreen() {
       contentContainerStyle={styles.container}
     >
       <View style={[styles.panel, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>Find places along this route</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>
+          Find places along this route
+        </Text>
         <Text style={[styles.body, { color: colors.textSecondary }]}>
           Searches OpenStreetMap for water, campsites and huts, shops, places to eat, transport and
-          emergency services within {formatDistance(POI_SEARCH_RADIUS_KM, units, { decimals: 0 })} of
-          the route and its alternates. What it finds is saved with this guide, so it works offline
-          afterwards.
+          emergency services within {formatDistance(POI_SEARCH_RADIUS_KM, units, { decimals: 0 })}{' '}
+          of the route and its alternates. What it finds is saved with this guide, so it works
+          offline afterwards.
         </Text>
         {existing && !running && state.kind !== 'done' && state.kind !== 'removed' ? (
           <Text style={[styles.body, { color: colors.textPrimary }]}>
@@ -202,7 +205,8 @@ function progressLine(progress: PoiSearchProgress | null, retrying: boolean): st
   if (progress.phase === 'processing') return 'Placing what was found along the route…';
   if (progress.phase === 'saving') return 'Saving to the guide…';
   const what = retrying ? 'Retrying missed areas' : 'Asking OpenStreetMap';
-  const step = progress.current && progress.total ? ` — area ${progress.current} of ${progress.total}` : '';
+  const step =
+    progress.current && progress.total ? ` — area ${progress.current} of ${progress.total}` : '';
   const host = progress.host ? ` (${progress.host})` : '';
   return `${what}${step}${host}`;
 }
@@ -236,7 +240,10 @@ function StatePanel({ state }: { state: PoiSearchState }) {
           accessibilityValue={{ min: 0, max: 100, now: Math.round(fraction * 100) }}
         >
           <View
-            style={[styles.progressFill, { backgroundColor: colors.accent, width: `${fraction * 100}%` }]}
+            style={[
+              styles.progressFill,
+              { backgroundColor: colors.accent, width: `${fraction * 100}%` },
+            ]}
           />
         </View>
         <Text style={[styles.meta, { color: colors.textSecondary }]}>
@@ -271,8 +278,8 @@ function StatePanel({ state }: { state: PoiSearchState }) {
           </Text>
         ) : null}
         <Text style={[styles.meta, { color: colors.textSecondary }]}>
-          Saved to this guide. Received {formatBytes(run.bytes)}. Turn categories on and off from the
-          map’s layers button.
+          Saved to this guide. Received {formatBytes(run.bytes)}. Turn categories on and off from
+          the map’s layers button.
         </Text>
         {run.failures.length > 0 ? (
           <Text style={[styles.body, { color: colors.warning }]}>
@@ -293,7 +300,9 @@ function StatePanel({ state }: { state: PoiSearchState }) {
   if (state.kind === 'failed') {
     return (
       <View style={[styles.panel, { backgroundColor: colors.surface, borderColor: colors.danger }]}>
-        <Text style={[styles.heading, { color: colors.textPrimary }]}>Couldn’t reach OpenStreetMap</Text>
+        <Text style={[styles.heading, { color: colors.textPrimary }]}>
+          Couldn’t reach OpenStreetMap
+        </Text>
         <Text style={[styles.body, { color: colors.textSecondary }]}>{state.message}</Text>
         <Text style={[styles.meta, { color: colors.textSecondary }]}>
           Nothing was changed. The public servers are sometimes busy; trying again in a few minutes
@@ -348,8 +357,10 @@ function Button({
   kind?: 'primary' | 'secondary' | 'danger';
 }) {
   const { colors } = useTheme();
-  const bg = kind === 'primary' ? colors.accent : kind === 'danger' ? colors.surface : colors.surface;
-  const fg = kind === 'primary' ? colors.accentText : kind === 'danger' ? colors.danger : colors.accent;
+  const bg =
+    kind === 'primary' ? colors.accent : kind === 'danger' ? colors.surface : colors.surface;
+  const fg =
+    kind === 'primary' ? colors.accentText : kind === 'danger' ? colors.danger : colors.accent;
   return (
     <Pressable
       onPress={onPress}

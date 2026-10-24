@@ -18,7 +18,7 @@ const section: SectionConfig = { startKm: 0, endKm: 100, startName: 'Start', end
 function planWith(...stops: Array<{ id: string; km: number }>) {
   return stops.reduce(
     (p, s) => toggleStop(p, { id: s.id, km: s.km, name: s.id }, opts),
-    newPlan('t', 'Plan', 'NOBO', opts),
+    newPlan('t', 'Plan', 'NOBO', opts)
   );
 }
 
@@ -83,7 +83,16 @@ describe('suggestionStart', () => {
 describe('applySuggestedPlan', () => {
   it('replaces the stops in its window only, in NOBO km', () => {
     const plan = planWith({ id: 'a', km: 20 }, { id: 'b', km: 30 }, { id: 'z', km: 90 });
-    const next = applySuggestedPlan(plan, 20, 60, [{ id: 'c', km: 40, name: 'c' }, { id: 'd', km: 60, name: 'd' }], 100);
+    const next = applySuggestedPlan(
+      plan,
+      20,
+      60,
+      [
+        { id: 'c', km: 40, name: 'c' },
+        { id: 'd', km: 60, name: 'd' },
+      ],
+      100
+    );
     expect(next.stops.map(s => s.waypointId)).toEqual(['a', 'c', 'd', 'z']);
   });
 

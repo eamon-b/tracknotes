@@ -95,7 +95,13 @@ function flatTrail(lengthKm: number): TrailJson {
       { id: 'w0', name: 'Start', lat: 0, lon: 0, type: 'trailhead', totalDistance: 0 },
       { id: 'end', name: 'Finish', lat: 0, lon: 0, type: 'trailhead', totalDistance: lengthKm },
     ],
-    track: { points, displayPoints: points, totalDistance: lengthKm, totalAscent: 0, totalDescent: 0 },
+    track: {
+      points,
+      displayPoints: points,
+      totalDistance: lengthKm,
+      totalAscent: 0,
+      totalDescent: 0,
+    },
   };
 }
 
@@ -240,7 +246,13 @@ describe('generateDayStops (hours-space)', () => {
 });
 
 describe('computePlan over the real trail', () => {
-  const inputs: PlanInputs = { startKm: 0, endKm: cape.track.totalDistance, dailyHours: 8, pace: 'average', thresholds: DEFAULT_PLAN_THRESHOLDS };
+  const inputs: PlanInputs = {
+    startKm: 0,
+    endKm: cape.track.totalDistance,
+    dailyHours: 8,
+    pace: 'average',
+    thresholds: DEFAULT_PLAN_THRESHOLDS,
+  };
 
   it('splits into multiple days that cover the whole distance', () => {
     const plan = computePlan(cape, inputs);
@@ -282,7 +294,13 @@ describe('computePlan over the real trail', () => {
   it('marks the final day as a finish, not a wild camp (Fix 1)', () => {
     // Synthetic trail so we get deterministic camp snaps + a clear finish.
     const trail = syntheticTrail();
-    const plan = computePlan(trail, { startKm: 0, endKm: 100, dailyHours: 5, pace: 'average', thresholds: DEFAULT_PLAN_THRESHOLDS });
+    const plan = computePlan(trail, {
+      startKm: 0,
+      endKm: 100,
+      dailyHours: 5,
+      pace: 'average',
+      thresholds: DEFAULT_PLAN_THRESHOLDS,
+    });
     const last = plan.days[plan.days.length - 1];
     // The last day ends at the section end (a trailhead) — a finish, never wild.
     expect(last.endKind).toBe('finish');
@@ -311,7 +329,8 @@ describe('computePlan over the real trail', () => {
       startKm: 0,
       endKm: 100,
       dailyHours: 5,
-      pace: 'average', thresholds: DEFAULT_PLAN_THRESHOLDS,
+      pace: 'average',
+      thresholds: DEFAULT_PLAN_THRESHOLDS,
       startName: 'Chosen Start',
       endName: 'Chosen End',
     });
@@ -319,14 +338,26 @@ describe('computePlan over the real trail', () => {
     expect(preferred.days[preferred.days.length - 1].endName).toBe('Chosen End');
 
     // Fallback: without names, it resolves via nameAtKm (the trail's waypoints).
-    const fallback = computePlan(trail, { startKm: 0, endKm: 100, dailyHours: 5, pace: 'average', thresholds: DEFAULT_PLAN_THRESHOLDS });
+    const fallback = computePlan(trail, {
+      startKm: 0,
+      endKm: 100,
+      dailyHours: 5,
+      pace: 'average',
+      thresholds: DEFAULT_PLAN_THRESHOLDS,
+    });
     expect(fallback.days[0].startName).toBe('Start');
     expect(fallback.days[fallback.days.length - 1].endName).toBe('Finish');
   });
 
   it('surfaces water carries and the dry-stretch flag on a watered trail', () => {
     const trail = syntheticTrail(); // has a water-tank at 55 km
-    const plan = computePlan(trail, { startKm: 0, endKm: 100, dailyHours: 8, pace: 'average', thresholds: DEFAULT_PLAN_THRESHOLDS });
+    const plan = computePlan(trail, {
+      startKm: 0,
+      endKm: 100,
+      dailyHours: 8,
+      pace: 'average',
+      thresholds: DEFAULT_PLAN_THRESHOLDS,
+    });
     expect(plan.water.hasWaterData).toBe(true);
     expect(plan.topWaterCarries.length).toBeGreaterThan(0);
     // Biggest carry first.
@@ -346,7 +377,8 @@ describe('hours-based regression (the point of the change)', () => {
       startKm: 0,
       endKm: aawt.track.totalDistance,
       dailyHours: 8,
-      pace: 'average', thresholds: DEFAULT_PLAN_THRESHOLDS,
+      pace: 'average',
+      thresholds: DEFAULT_PLAN_THRESHOLDS,
     });
     const windowH = Math.min(2.5, Math.max(0.75, 8 * 0.35)); // 2.5
     for (const d of plan.days) {
@@ -378,7 +410,8 @@ describe('section scoping', () => {
       startKm: section.startKm,
       endKm: section.endKm,
       dailyHours: 8,
-      pace: 'average', thresholds: DEFAULT_PLAN_THRESHOLDS,
+      pace: 'average',
+      thresholds: DEFAULT_PLAN_THRESHOLDS,
     });
     expect(plan.days[0].startKm).toBe(prevelly.km);
     expect(plan.days[plan.days.length - 1].endKm).toBe(yallingup.km);
@@ -397,14 +430,16 @@ describe('direction-flip recompute', () => {
       startKm: 0,
       endKm: cape.track.totalDistance,
       dailyHours: 8,
-      pace: 'average', thresholds: DEFAULT_PLAN_THRESHOLDS,
+      pace: 'average',
+      thresholds: DEFAULT_PLAN_THRESHOLDS,
     });
     const reversed = resolveGuideTrail(cape, 'reversed');
     const back = computePlan(reversed, {
       startKm: 0,
       endKm: reversed.track.totalDistance,
       dailyHours: 8,
-      pace: 'average', thresholds: DEFAULT_PLAN_THRESHOLDS,
+      pace: 'average',
+      thresholds: DEFAULT_PLAN_THRESHOLDS,
     });
 
     // Same total distance either way.
@@ -418,7 +453,13 @@ describe('direction-flip recompute', () => {
 });
 
 describe('resupply selection', () => {
-  const full: PlanInputs = { startKm: 0, endKm: 100, dailyHours: 8, pace: 'average', thresholds: DEFAULT_PLAN_THRESHOLDS };
+  const full: PlanInputs = {
+    startKm: 0,
+    endKm: 100,
+    dailyHours: 8,
+    pace: 'average',
+    thresholds: DEFAULT_PLAN_THRESHOLDS,
+  };
 
   /**
    * The synthetic trail on a steady 2 m/km climb plus a second, separate town,
@@ -439,7 +480,13 @@ describe('resupply selection', () => {
         ...base.waypoints,
         { id: 't3', name: 'Creede', lat: 0, lon: 0, type: 'town', totalDistance: 70 },
       ],
-      track: { points, displayPoints: points, totalDistance: 100, totalAscent: 200, totalDescent: 0 },
+      track: {
+        points,
+        displayPoints: points,
+        totalDistance: 100,
+        totalAscent: 200,
+        totalDescent: 0,
+      },
     };
   }
 
@@ -545,7 +592,8 @@ describe('resupply selection', () => {
       startKm: 0,
       endKm: cdt.track.totalDistance,
       dailyHours: 8,
-      pace: 'average', thresholds: DEFAULT_PLAN_THRESHOLDS,
+      pace: 'average',
+      thresholds: DEFAULT_PLAN_THRESHOLDS,
     });
     const options = plan.resupplyGroups.reduce((n, g) => n + g.options.length, 0);
     expect(options).toBeGreaterThanOrEqual(60);

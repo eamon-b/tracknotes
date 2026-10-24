@@ -2,10 +2,7 @@ import { SELF, env } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
 import { authHeaders, banUser, deleteMe, makeAdmin, registerDevice, url, type Device } from './helpers';
 import { registerAgedDevice } from './community-fixtures';
-import type {
-  SharedWaypoint,
-  SharedWaypointsResponse,
-} from '../../../src/lib/comments-api-types';
+import type { SharedWaypoint, SharedWaypointsResponse } from '../../../src/lib/comments-api-types';
 
 function newId(): string {
   return `hw_${crypto.randomUUID()}`;
@@ -294,11 +291,7 @@ describe('POST /v1/waypoints/:id/report', () => {
     await put(owner, id, { ...WATER, trailId: 'three_capes' });
     expect((await report(owner, id)).status).toBe(400);
 
-    const reporters = [
-      await registerAgedDevice(),
-      await registerAgedDevice(),
-      await registerAgedDevice(),
-    ];
+    const reporters = [await registerAgedDevice(), await registerAgedDevice(), await registerAgedDevice()];
     expect((await report(reporters[0], id)).status).toBe(201);
     expect((await report(reporters[0], id)).status).toBe(200); // replay
     expect((await report(reporters[1], id)).status).toBe(201);

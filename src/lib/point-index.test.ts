@@ -149,9 +149,7 @@ describe('PointIndex', () => {
 
     for (let q = 0; q < 200; q++) {
       const target = points[Math.floor(random() * points.length)];
-      expect(index.nearestIndex(target.lat, target.lon)).toBe(
-        bruteForceNearest(points, target.lat, target.lon)
-      );
+      expect(index.nearestIndex(target.lat, target.lon)).toBe(bruteForceNearest(points, target.lat, target.lon));
     }
   });
 });

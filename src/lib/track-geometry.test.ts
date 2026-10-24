@@ -175,7 +175,7 @@ describe('calculateElevationBetween with pre-computed cumulative climb', () => {
         { ele: 450, dist: 1 },
         { ele: 400, dist: 2 },
       ],
-      new Set([2]),
+      new Set([2])
     );
     // No breakStarts argument, and the 300 m ferry still is not climbed.
     expect(calculateElevationBetween(0, 2, ferry)).toEqual({ gain: 50, loss: 50 });

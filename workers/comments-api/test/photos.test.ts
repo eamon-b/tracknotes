@@ -1,19 +1,7 @@
 import { SELF, env } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
-import {
-  authHeaders,
-  banUser,
-  createComment,
-  registerDevice,
-  uploadPhoto,
-  url,
-  wpId,
-} from './helpers';
-import type {
-  BulkSyncResponse,
-  FeedResponse,
-  UploadCommentPhotoResponse,
-} from '../../../src/lib/comments-api-types';
+import { authHeaders, banUser, createComment, registerDevice, uploadPhoto, url, wpId } from './helpers';
+import type { BulkSyncResponse, FeedResponse, UploadCommentPhotoResponse } from '../../../src/lib/comments-api-types';
 
 /** A few bytes standing in for a real image — content is never inspected. */
 const JPEG_BYTES = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x01, 0x02, 0x03]);
@@ -42,9 +30,7 @@ function keyOf(photoUrl: string): string {
 
 /** Read a comment row's photo_urls_json + updated_at straight from D1. */
 async function readRow(id: string): Promise<{ photo_urls_json: string | null; updated_at: string }> {
-  const row = await env.DB.prepare(
-    `SELECT photo_urls_json, updated_at FROM comments WHERE id = ?`
-  )
+  const row = await env.DB.prepare(`SELECT photo_urls_json, updated_at FROM comments WHERE id = ?`)
     .bind(id)
     .first<{ photo_urls_json: string | null; updated_at: string }>();
   if (!row) throw new Error(`no row ${id}`);
@@ -107,9 +93,7 @@ describe('POST /v1/comments/:id/photos — happy path', () => {
       await SELF.fetch(url(`/v1/trails/heysen/comments?since=${encodeURIComponent(since)}`))
     ).json()) as BulkSyncResponse;
     const deltaRow = delta.comments.find((c) => c.id === id);
-    expect(deltaRow && 'photoUrls' in deltaRow ? deltaRow.photoUrls : undefined).toEqual(
-      body2.photoUrls
-    );
+    expect(deltaRow && 'photoUrls' in deltaRow ? deltaRow.photoUrls : undefined).toEqual(body2.photoUrls);
   });
 
   it('omits photoUrls for comments without photos', async () => {
@@ -195,13 +179,9 @@ describe('POST /v1/comments/:id/photos — parallel uploads', () => {
 
     // Index-keyed objects and a blind UPDATE let the second racer overwrite
     // the first's bytes and drop its URL from the row.
-    const results = await Promise.all(
-      [11, 22, 33].map((n) => uploadPhoto(device, id, distinctJpeg(n)))
-    );
+    const results = await Promise.all([11, 22, 33].map((n) => uploadPhoto(device, id, distinctJpeg(n))));
     expect(results.map((r) => r.status)).toEqual([201, 201, 201]);
-    const urls = await Promise.all(
-      results.map(async (r) => ((await r.json()) as UploadCommentPhotoResponse).photoUrl)
-    );
+    const urls = await Promise.all(results.map(async (r) => ((await r.json()) as UploadCommentPhotoResponse).photoUrl));
     expect(new Set(urls).size).toBe(3);
 
     const stored = JSON.parse((await readRow(id)).photo_urls_json ?? '[]') as string[];
@@ -211,9 +191,7 @@ describe('POST /v1/comments/:id/photos — parallel uploads', () => {
     // Each URL serves the bytes of the upload that returned it.
     for (const [i, n] of [11, 22, 33].entries()) {
       const obj = await env.PHOTOS.get(keyOf(urls[i]));
-      expect(Array.from(new Uint8Array(await obj!.arrayBuffer()))).toEqual(
-        Array.from(distinctJpeg(n))
-      );
+      expect(Array.from(new Uint8Array(await obj!.arrayBuffer()))).toEqual(Array.from(distinctJpeg(n)));
     }
   });
 
@@ -247,9 +225,7 @@ describe('POST /v1/comments/:id/photos — payload limits', () => {
     const { id } = await createComment(device, { waypointId: wpId('photo-ct-wp') });
     const res = await uploadPhoto(device, id, JPEG_BYTES, 'image/png');
     expect(res.status).toBe(415);
-    expect(((await res.json()) as { error: { code: string } }).error.code).toBe(
-      'unsupported_media_type'
-    );
+    expect(((await res.json()) as { error: { code: string } }).error.code).toBe('unsupported_media_type');
   });
 
   it('413 when the body exceeds 5 MB', async () => {
@@ -321,8 +297,12 @@ describe('POST /v1/comments/:id/photos — idempotent replay', () => {
     const device = await registerDevice();
     const { id } = await createComment(device, { waypointId: wpId('photo-hashes-wp') });
 
-    const first = (await (await uploadPhoto(device, id, JPEG_BYTES, 'image/jpeg')).json()) as UploadCommentPhotoResponse;
-    const second = (await (await uploadPhoto(device, id, WEBP_BYTES, 'image/webp')).json()) as UploadCommentPhotoResponse;
+    const first = (await (
+      await uploadPhoto(device, id, JPEG_BYTES, 'image/jpeg')
+    ).json()) as UploadCommentPhotoResponse;
+    const second = (await (
+      await uploadPhoto(device, id, WEBP_BYTES, 'image/webp')
+    ).json()) as UploadCommentPhotoResponse;
 
     const hashes = await readHashes(id);
     expect(hashes).toHaveLength(2);
@@ -405,9 +385,7 @@ describe('POST /v1/comments/:id/photos — idempotent replay', () => {
     expect((await uploadPhoto(device, a, JPEG_BYTES, 'image/jpeg')).status).toBe(201);
     const onB = await uploadPhoto(device, b, JPEG_BYTES, 'image/jpeg');
     expect(onB.status).toBe(201);
-    expect(((await onB.json()) as UploadCommentPhotoResponse).photoUrl).toMatch(
-      photoUrlPattern(b, 'jpg')
-    );
+    expect(((await onB.json()) as UploadCommentPhotoResponse).photoUrl).toMatch(photoUrlPattern(b, 'jpg'));
   });
 
   it('treats a legacy row with NULL photo_hashes_json as undeduped', async () => {
@@ -416,9 +394,7 @@ describe('POST /v1/comments/:id/photos — idempotent replay', () => {
 
     // Simulate a row written before the hash column existed.
     const legacyUrl = `https://photos.test/comments/${id}/0.jpg`;
-    await env.DB.prepare(
-      `UPDATE comments SET photo_urls_json = ?, photo_hashes_json = NULL WHERE id = ?`
-    )
+    await env.DB.prepare(`UPDATE comments SET photo_urls_json = ?, photo_hashes_json = NULL WHERE id = ?`)
       .bind(JSON.stringify([legacyUrl]), id)
       .run();
 
@@ -446,8 +422,12 @@ describe('DELETE /v1/comments/:id — R2 cleanup', () => {
   it('removes the comment photos from R2 on soft delete', async () => {
     const device = await registerDevice();
     const { id } = await createComment(device, { waypointId: wpId('photo-cleanup-wp') });
-    const keyA = keyOf(((await (await uploadPhoto(device, id, JPEG_BYTES, 'image/jpeg')).json()) as UploadCommentPhotoResponse).photoUrl);
-    const keyB = keyOf(((await (await uploadPhoto(device, id, WEBP_BYTES, 'image/webp')).json()) as UploadCommentPhotoResponse).photoUrl);
+    const keyA = keyOf(
+      ((await (await uploadPhoto(device, id, JPEG_BYTES, 'image/jpeg')).json()) as UploadCommentPhotoResponse).photoUrl
+    );
+    const keyB = keyOf(
+      ((await (await uploadPhoto(device, id, WEBP_BYTES, 'image/webp')).json()) as UploadCommentPhotoResponse).photoUrl
+    );
 
     expect(await env.PHOTOS.get(keyA)).not.toBeNull();
     expect(await env.PHOTOS.get(keyB)).not.toBeNull();

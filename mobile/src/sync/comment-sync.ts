@@ -125,10 +125,7 @@ export function backoffMs(attempts: number): number {
 }
 
 /** Whether an outbox item is eligible to send at `nowMs` (backoff elapsed). */
-export function isDrainable(
-  item: { createdAt: string; attempts: number },
-  nowMs: number,
-): boolean {
+export function isDrainable(item: { createdAt: string; attempts: number }, nowMs: number): boolean {
   const created = Date.parse(item.createdAt);
   const base = Number.isNaN(created) ? 0 : created;
   return nowMs >= base + backoffMs(item.attempts);
@@ -874,181 +871,183 @@ async function drainOutboxNow(deps: SyncDeps = {}): Promise<DrainResult> {
     list: typeof items,
     gated: typeof items,
   ): Promise<DrainResult | null> => {
-  for (const item of list) {
-    if (!deps.force && !isDrainable(item, nowMs)) continue;
+    for (const item of list) {
+      if (!deps.force && !isDrainable(item, nowMs)) continue;
 
-    try {
-      // A photo can only be attached once its comment exists server-side. Gate
-      // the upload on the comment row being `source='server'` (the PUT
-      // confirmed); until then leave the photo row pending — do NOT mark it
-      // sending or charge an attempt. The second pass picks up photos whose
-      // comment confirmed during this drain; this check is the correctness
-      // guarantee, not the ordering. (Inside the try: a payload that does not
-      // parse is this item's failure, not the drain's.)
-      if (item.kind === 'photo') {
-        const { commentId } = JSON.parse(item.payloadJson) as PhotoOutboxPayload;
-        const comment = await commentsRepo.getById(db, commentId);
-        if (!comment || comment.source !== 'server') {
+      try {
+        // A photo can only be attached once its comment exists server-side. Gate
+        // the upload on the comment row being `source='server'` (the PUT
+        // confirmed); until then leave the photo row pending — do NOT mark it
+        // sending or charge an attempt. The second pass picks up photos whose
+        // comment confirmed during this drain; this check is the correctness
+        // guarantee, not the ordering. (Inside the try: a payload that does not
+        // parse is this item's failure, not the drain's.)
+        if (item.kind === 'photo') {
+          const { commentId } = JSON.parse(item.payloadJson) as PhotoOutboxPayload;
+          const comment = await commentsRepo.getById(db, commentId);
+          if (!comment || comment.source !== 'server') {
+            gated.push(item);
+            continue;
+          }
+        }
+
+        // The server refuses a comment on a hiker waypoint it does not hold
+        // (404), so one on the hiker's own waypoint waits for its share to land.
+        // A re-queued share (an edit) sorts after the comment, and a share the
+        // server answered 5xx is still pending; sending the comment first would
+        // fail it for good. Gated like a photo: left pending, no attempt charged.
+        // A share that FAILED (a 4xx) is not waited on — it will not be sent
+        // again unless the hiker retries it — so the comment goes and takes the
+        // server's 404, which shows it as not sent rather than pending forever.
+        if (
+          item.kind === 'comment' &&
+          isUserWaypointId(item.waypointId) &&
+          (await outboxRepo.hasPending(db, 'waypoint', item.waypointId as string))
+        ) {
           gated.push(item);
           continue;
         }
-      }
 
-      // The server refuses a comment on a hiker waypoint it does not hold
-      // (404), so one on the hiker's own waypoint waits for its share to land.
-      // A re-queued share (an edit) sorts after the comment, and a share the
-      // server answered 5xx is still pending; sending the comment first would
-      // fail it for good. Gated like a photo: left pending, no attempt charged.
-      // A share that FAILED (a 4xx) is not waited on — it will not be sent
-      // again unless the hiker retries it — so the comment goes and takes the
-      // server's 404, which shows it as not sent rather than pending forever.
-      if (
-        item.kind === 'comment' &&
-        isUserWaypointId(item.waypointId) &&
-        (await outboxRepo.hasPending(db, 'waypoint', item.waypointId as string))
-      ) {
-        gated.push(item);
-        continue;
-      }
-
-      // A report we can't parse can never succeed — drop it instead of
-      // retrying a payload we can't turn into a request.
-      if (item.kind === 'report' && parseReportPayload(item.payloadJson) === null) {
-        await outboxRepo.remove(db, item.id);
-        continue;
-      }
-
-      await outboxRepo.markSending(db, item.id);
-
-      if (item.kind === 'delete') {
-        await commentsApi.deleteComment(ctx, item.id);
-        await commentsRepo.deleteById(db, item.id);
-      } else if (item.kind === 'photo') {
-        const payload = JSON.parse(item.payloadJson) as PhotoOutboxPayload;
-        const bytes = await readBytes(payload.localUri);
-        const res = await commentsApi.uploadCommentPhoto(
-          ctx,
-          payload.commentId,
-          bytes,
-          payload.contentType,
-        );
-        await commentsRepo.setPhotoUrls(db, payload.commentId, res.photoUrls);
-      } else if (item.kind === 'report') {
-        // Pre-checked above, so this parse always succeeds; reports own no
-        // local comment row, the outbox row IS the whole record.
-        const payload = parseReportPayload(item.payloadJson);
-        if (payload) {
-          await commentsApi.reportComment(ctx, payload.commentId, {
-            reason: payload.reason,
-            detail: payload.detail,
-          });
+        // A report we can't parse can never succeed — drop it instead of
+        // retrying a payload we can't turn into a request.
+        if (item.kind === 'report' && parseReportPayload(item.payloadJson) === null) {
+          await outboxRepo.remove(db, item.id);
+          continue;
         }
-      } else if (item.kind === 'plan') {
-        await sendPlan(db, ctx, JSON.parse(item.payloadJson) as PlanDocument, deps);
-      } else if (item.kind === 'plan-delete') {
-        const { id } = JSON.parse(item.payloadJson) as { id: string };
-        await plansApi.deletePlan(ctx, id);
-      } else if (item.kind === 'waypoint') {
-        const payload = JSON.parse(item.payloadJson) as WaypointOutboxPayload;
-        const server = await waypointsApi.putSharedWaypoint(ctx, payload.id, payload.request);
-        // Settled first, so the check below sees only writes queued behind it:
-        // an edit made while this PUT was in flight keeps the row 'local' until
-        // it lands too, and no pull can put the older copy back meanwhile.
-        await outboxRepo.remove(db, item.id);
-        if (!(await outboxRepo.hasQueued(db, 'waypoint', payload.id))) {
-          await userWaypointsRepo.confirmServer(db, payload.id, {
+
+        await outboxRepo.markSending(db, item.id);
+
+        if (item.kind === 'delete') {
+          await commentsApi.deleteComment(ctx, item.id);
+          await commentsRepo.deleteById(db, item.id);
+        } else if (item.kind === 'photo') {
+          const payload = JSON.parse(item.payloadJson) as PhotoOutboxPayload;
+          const bytes = await readBytes(payload.localUri);
+          const res = await commentsApi.uploadCommentPhoto(
+            ctx,
+            payload.commentId,
+            bytes,
+            payload.contentType,
+          );
+          await commentsRepo.setPhotoUrls(db, payload.commentId, res.photoUrls);
+        } else if (item.kind === 'report') {
+          // Pre-checked above, so this parse always succeeds; reports own no
+          // local comment row, the outbox row IS the whole record.
+          const payload = parseReportPayload(item.payloadJson);
+          if (payload) {
+            await commentsApi.reportComment(ctx, payload.commentId, {
+              reason: payload.reason,
+              detail: payload.detail,
+            });
+          }
+        } else if (item.kind === 'plan') {
+          await sendPlan(db, ctx, JSON.parse(item.payloadJson) as PlanDocument, deps);
+        } else if (item.kind === 'plan-delete') {
+          const { id } = JSON.parse(item.payloadJson) as { id: string };
+          await plansApi.deletePlan(ctx, id);
+        } else if (item.kind === 'waypoint') {
+          const payload = JSON.parse(item.payloadJson) as WaypointOutboxPayload;
+          const server = await waypointsApi.putSharedWaypoint(ctx, payload.id, payload.request);
+          // Settled first, so the check below sees only writes queued behind it:
+          // an edit made while this PUT was in flight keeps the row 'local' until
+          // it lands too, and no pull can put the older copy back meanwhile.
+          await outboxRepo.remove(db, item.id);
+          if (!(await outboxRepo.hasQueued(db, 'waypoint', payload.id))) {
+            await userWaypointsRepo.confirmServer(db, payload.id, {
+              displayName: server.displayName,
+              updatedAt: server.updatedAt,
+            });
+          }
+        } else if (item.kind === 'waypoint-delete') {
+          const { id } = JSON.parse(item.payloadJson) as { id: string };
+          await waypointsApi.deleteSharedWaypoint(ctx, id);
+        } else if (item.kind === 'waypoint-report') {
+          const { id, reason, detail } = JSON.parse(
+            item.payloadJson,
+          ) as WaypointReportOutboxPayload;
+          await waypointsApi.reportSharedWaypoint(ctx, id, { reason, detail });
+        } else {
+          const payload = JSON.parse(item.payloadJson) as PutCommentRequest;
+          const server = await commentsApi.putComment(ctx, item.id, payload);
+          await commentsRepo.confirmServer(db, item.id, {
             displayName: server.displayName,
-            updatedAt: server.updatedAt,
+            text: server.text,
+            waterStatus: server.waterStatus,
+            observedAt: server.observedAt,
+            createdAt: server.createdAt,
           });
         }
-      } else if (item.kind === 'waypoint-delete') {
-        const { id } = JSON.parse(item.payloadJson) as { id: string };
-        await waypointsApi.deleteSharedWaypoint(ctx, id);
-      } else if (item.kind === 'waypoint-report') {
-        const { id, reason, detail } = JSON.parse(item.payloadJson) as WaypointReportOutboxPayload;
-        await waypointsApi.reportSharedWaypoint(ctx, id, { reason, detail });
-      } else {
-        const payload = JSON.parse(item.payloadJson) as PutCommentRequest;
-        const server = await commentsApi.putComment(ctx, item.id, payload);
-        await commentsRepo.confirmServer(db, item.id, {
-          displayName: server.displayName,
-          text: server.text,
-          waterStatus: server.waterStatus,
-          observedAt: server.observedAt,
-          createdAt: server.createdAt,
-        });
-      }
-      await outboxRepo.remove(db, item.id);
-      noteChange(item);
-      sent += 1;
-    } catch (e) {
-      if (e instanceof NetworkError) {
-        await outboxRepo.markPending(db, item.id);
-        return finish('offline');
-      }
-      if (e instanceof ApiError && e.status === 401) {
-        await outboxRepo.markPending(db, item.id);
-        // Without this the queue paused for good with nothing on screen: the
-        // UI reads `authError`, and the next drain re-registers once.
-        auth.setAuthError(true);
-        return finish('unauthorized');
-      }
-      if (e instanceof ApiError && e.status === 404 && item.kind === 'delete') {
-        // Already gone server-side — the delete is a no-op success.
-        await commentsRepo.deleteById(db, item.id);
         await outboxRepo.remove(db, item.id);
         noteChange(item);
         sent += 1;
-        continue;
+      } catch (e) {
+        if (e instanceof NetworkError) {
+          await outboxRepo.markPending(db, item.id);
+          return finish('offline');
+        }
+        if (e instanceof ApiError && e.status === 401) {
+          await outboxRepo.markPending(db, item.id);
+          // Without this the queue paused for good with nothing on screen: the
+          // UI reads `authError`, and the next drain re-registers once.
+          auth.setAuthError(true);
+          return finish('unauthorized');
+        }
+        if (e instanceof ApiError && e.status === 404 && item.kind === 'delete') {
+          // Already gone server-side — the delete is a no-op success.
+          await commentsRepo.deleteById(db, item.id);
+          await outboxRepo.remove(db, item.id);
+          noteChange(item);
+          sent += 1;
+          continue;
+        }
+        if (
+          e instanceof ApiError &&
+          ((item.kind === 'waypoint-delete' && e.status === 404) ||
+            (item.kind === 'waypoint-report' && (e.status === 404 || e.status === 410)))
+        ) {
+          // Already gone server-side: what the delete asked for, and nothing
+          // left for a report to moderate.
+          await outboxRepo.remove(db, item.id);
+          noteChange(item);
+          sent += 1;
+          continue;
+        }
+        if (e instanceof ApiError && e.status === 410 && item.kind === 'waypoint') {
+          // Hidden server-side (reports or an admin): the share has nothing to
+          // land on. The hiker's own copy stays, on this phone only — it may be
+          // the only record of the place. (A waypoint the hiker made private and
+          // shares again is revived by the server, not refused.)
+          const { id } = JSON.parse(item.payloadJson) as WaypointOutboxPayload;
+          await outboxRepo.remove(db, item.id);
+          await userWaypointsRepo.keepAsPrivate(db, id);
+          noteChange(item);
+          sent += 1;
+          continue;
+        }
+        if (e instanceof ApiError && e.status === 404 && item.kind === 'plan-delete') {
+          // The plan is already gone (deleted from another device, or never
+          // reached the server at all) — which is exactly what we asked for.
+          await outboxRepo.remove(db, item.id);
+          noteChange(item);
+          sent += 1;
+          continue;
+        }
+        if (
+          e instanceof ApiError &&
+          item.kind === 'report' &&
+          (e.status === 404 || e.status === 410)
+        ) {
+          // Unknown or already-deleted comment — there is nothing left to
+          // moderate, so the report is settled rather than failed.
+          await outboxRepo.remove(db, item.id);
+          noteChange(item);
+          sent += 1;
+          continue;
+        }
+        await settleFailure(item, e);
       }
-      if (
-        e instanceof ApiError &&
-        ((item.kind === 'waypoint-delete' && e.status === 404) ||
-          (item.kind === 'waypoint-report' && (e.status === 404 || e.status === 410)))
-      ) {
-        // Already gone server-side: what the delete asked for, and nothing
-        // left for a report to moderate.
-        await outboxRepo.remove(db, item.id);
-        noteChange(item);
-        sent += 1;
-        continue;
-      }
-      if (e instanceof ApiError && e.status === 410 && item.kind === 'waypoint') {
-        // Hidden server-side (reports or an admin): the share has nothing to
-        // land on. The hiker's own copy stays, on this phone only — it may be
-        // the only record of the place. (A waypoint the hiker made private and
-        // shares again is revived by the server, not refused.)
-        const { id } = JSON.parse(item.payloadJson) as WaypointOutboxPayload;
-        await outboxRepo.remove(db, item.id);
-        await userWaypointsRepo.keepAsPrivate(db, id);
-        noteChange(item);
-        sent += 1;
-        continue;
-      }
-      if (e instanceof ApiError && e.status === 404 && item.kind === 'plan-delete') {
-        // The plan is already gone (deleted from another device, or never
-        // reached the server at all) — which is exactly what we asked for.
-        await outboxRepo.remove(db, item.id);
-        noteChange(item);
-        sent += 1;
-        continue;
-      }
-      if (
-        e instanceof ApiError &&
-        item.kind === 'report' &&
-        (e.status === 404 || e.status === 410)
-      ) {
-        // Unknown or already-deleted comment — there is nothing left to
-        // moderate, so the report is settled rather than failed.
-        await outboxRepo.remove(db, item.id);
-        noteChange(item);
-        sent += 1;
-        continue;
-      }
-      await settleFailure(item, e);
     }
-  }
-  return null;
+    return null;
   };
 
   // Each pass after the first only revisits what the last one gated, and runs

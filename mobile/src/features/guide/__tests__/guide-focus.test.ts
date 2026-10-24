@@ -35,12 +35,10 @@ const straightTrack: FocusTrackPoint[] = Array.from({ length: 101 }, (_, i) => (
 const TOTAL_KM = 100;
 
 /** Viewport helper in [lon, lat] corner order (what MapLibre reports). */
-const boundsOf = (
-  west: number,
-  south: number,
-  east: number,
-  north: number,
-): FocusBounds => ({ ne: [east, north], sw: [west, south] });
+const boundsOf = (west: number, south: number, east: number, north: number): FocusBounds => ({
+  ne: [east, north],
+  sw: [west, south],
+});
 
 describe('normalizeFocus', () => {
   it('floors the span so a pinpoint focus is still renderable', () => {
@@ -88,11 +86,7 @@ describe('isSameFocus', () => {
 describe('kmRangeInBounds', () => {
   it('reports the stretch of trail inside the viewport', () => {
     // Latitudes for km 40..50 inclusive.
-    const focus = kmRangeInBounds(
-      straightTrack,
-      boundsOf(137.9, -34.6, 138.1, -34.5),
-      TOTAL_KM,
-    )!;
+    const focus = kmRangeInBounds(straightTrack, boundsOf(137.9, -34.6, 138.1, -34.5), TOTAL_KM)!;
     expect(focus.startKm).toBeCloseTo(40, 6);
     expect(focus.endKm).toBeCloseTo(50, 6);
   });
@@ -175,11 +169,7 @@ describe('boundsForKmRange', () => {
 });
 
 describe('focusFromItems', () => {
-  const rows = [
-    { totalDistance: 12 },
-    { totalDistance: 18 },
-    { totalDistance: 25 },
-  ];
+  const rows = [{ totalDistance: 12 }, { totalDistance: 18 }, { totalDistance: 25 }];
 
   it('spans the visible rows', () => {
     expect(focusFromItems(rows, TOTAL_KM)).toEqual({ startKm: 12, endKm: 25 });

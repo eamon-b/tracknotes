@@ -104,7 +104,10 @@ describe('DaySplitList', () => {
   });
 
   it('shows the date when the plan has a start date', () => {
-    const tree = render([day({ date: '2026-10-01' }), day({ dayNumber: 2, date: '2026-10-02' })], 8);
+    const tree = render(
+      [day({ date: '2026-10-01' }), day({ dayNumber: 2, date: '2026-10-02' })],
+      8,
+    );
     const text = allText(tree);
     expect(text).toContain('2026-10-01');
     expect(text).toContain('2026-10-02');
@@ -123,7 +126,9 @@ describe('DaySplitList', () => {
   });
 
   it('renders a hand-picked stop plainly — no campsite claim, no wild camp', () => {
-    const text = allText(render([day({ endKind: 'stop', endName: 'Ghost Town', snappedToCamp: false })], 8));
+    const text = allText(
+      render([day({ endKind: 'stop', endName: 'Ghost Town', snappedToCamp: false })], 8),
+    );
     expect(text).toContain('Ghost Town');
     expect(text).not.toContain('⛺');
     expect(text).not.toContain('wild camp');

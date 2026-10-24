@@ -70,26 +70,19 @@ export function ResupplySelectList({
         out.push({ kind: 'group', key: `g-${group.key}`, label: group.label, km: group.km });
       }
       for (const option of group.options) {
-        const inSection =
-          !section || (option.km >= section.startKm && option.km <= section.endKm);
+        const inSection = !section || (option.km >= section.startKm && option.km <= section.endKm);
         out.push({ kind: 'option', key: option.id, option, inSection });
       }
     }
     return out;
   }, [groups, section]);
 
-  const total = useMemo(
-    () => groups.reduce((n, group) => n + group.options.length, 0),
-    [groups],
-  );
+  const total = useMemo(() => groups.reduce((n, group) => n + group.options.length, 0), [groups]);
   // Counted against the trail's own options, so an id left over from an older
   // build is not reported as a stop the hiker can see.
   const chosen = useMemo(
     () =>
-      groups.reduce(
-        (n, group) => n + group.options.filter((o) => selectedIds.has(o.id)).length,
-        0,
-      ),
+      groups.reduce((n, group) => n + group.options.filter((o) => selectedIds.has(o.id)).length, 0),
     [groups, selectedIds],
   );
 
@@ -111,7 +104,9 @@ export function ResupplySelectList({
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <View
+        style={[styles.header, { backgroundColor: colors.surface, borderColor: colors.border }]}
+      >
         <View style={styles.headerRow}>
           <Text style={[styles.count, { color: colors.textPrimary }]}>
             {chosen} of {total} stops

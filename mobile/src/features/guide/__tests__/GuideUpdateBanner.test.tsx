@@ -5,11 +5,7 @@
 
 import React from 'react';
 import { ActivityIndicator, Text } from 'react-native';
-import TestRenderer, {
-  act,
-  type ReactTestRenderer,
-  type TestInstance,
-} from 'react-test-renderer';
+import TestRenderer, { act, type ReactTestRenderer, type TestInstance } from 'react-test-renderer';
 import { GuideUpdateBanner } from '../GuideUpdateBanner';
 import { useGuide, type GuideDataUpdate } from '../GuideContext';
 

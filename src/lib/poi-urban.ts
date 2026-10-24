@@ -165,9 +165,7 @@ function preferred(a: TrailPOI, b: TrailPOI): number {
 
 /** Whether the trail's config says this POI survives a city. */
 function keptByTrail(poi: TrailPOI, config: TrailPoiConfig | undefined): boolean {
-  return (config?.keepInCities ?? []).some(
-    rule => poi.distanceFromTrail <= rule.withinKm && poiHasTag(poi, rule.tag)
-  );
+  return (config?.keepInCities ?? []).some(rule => poi.distanceFromTrail <= rule.withinKm && poiHasTag(poi, rule.tag));
 }
 
 /** The keys of the POIs to keep inside one dense stretch. */
@@ -201,10 +199,7 @@ function keepInStretch(stretch: DenseStretch, inside: TrailPOI[], config?: Trail
 }
 
 /** Drop the city clutter described above. Returns a new array; `undefined` passes through. */
-export function thinUrbanPois(
-  pois: readonly TrailPOI[] | undefined,
-  config?: TrailPoiConfig
-): TrailPOI[] | undefined {
+export function thinUrbanPois(pois: readonly TrailPOI[] | undefined, config?: TrailPoiConfig): TrailPOI[] | undefined {
   if (!pois) return undefined;
   const stretches = findDenseStretches(pois);
   if (stretches.length === 0) return [...pois];

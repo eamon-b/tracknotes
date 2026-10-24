@@ -1,9 +1,4 @@
-import {
-  composeCheckIn,
-  formatCoords,
-  mapsLink,
-  type CheckInInput,
-} from '../check-in';
+import { composeCheckIn, formatCoords, mapsLink, type CheckInInput } from '../check-in';
 
 const TRAIL = 'Australian Alps Walking Track';
 const GPS = { lat: -37.04449, lon: 146.96018, currentKm: 219.2 };
@@ -24,9 +19,7 @@ describe('formatCoords', () => {
 
 describe('mapsLink', () => {
   it('builds a signed 5 dp Google Maps query', () => {
-    expect(mapsLink(-37.04449, 146.96018)).toBe(
-      'https://maps.google.com/?q=-37.04449,146.96018',
-    );
+    expect(mapsLink(-37.04449, 146.96018)).toBe('https://maps.google.com/?q=-37.04449,146.96018');
   });
 });
 

@@ -35,7 +35,11 @@ describe('sectionOptions', () => {
     const opts = sectionOptions(trail);
     expect(opts).toHaveLength(5);
     expect(opts[0]).toMatchObject({ id: 'section-start', name: 'Trail start', km: 0 });
-    expect(opts[opts.length - 1]).toMatchObject({ id: 'section-end', name: 'Trail end', km: 688.3 });
+    expect(opts[opts.length - 1]).toMatchObject({
+      id: 'section-end',
+      name: 'Trail end',
+      km: 688.3,
+    });
     // Default section spans the whole track.
     expect(opts[0].km).toBe(0);
     expect(opts[opts.length - 1].km).toBe(688.3);

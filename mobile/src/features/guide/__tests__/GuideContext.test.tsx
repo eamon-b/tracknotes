@@ -14,11 +14,7 @@
 
 import React from 'react';
 import { ActivityIndicator, Text } from 'react-native';
-import TestRenderer, {
-  act,
-  type TestInstance,
-  type ReactTestRenderer,
-} from 'react-test-renderer';
+import TestRenderer, { act, type TestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { GuideProvider, useGuide } from '../GuideContext';
 import { useSettingsStore } from '../../../state/settings-store';
 import { getTrailJson, loadTrail } from '../../../services/trail-loader';
@@ -40,9 +36,33 @@ jest.mock('../../../services/trail-loader', () => {
       direction: { default: 'Northbound', reversed: 'Southbound' },
     },
     waypoints: [
-      { id: 'w_a', name: 'Start', lat: 0, lon: 0, type: 'trailhead', totalDistance: 0, elevation: 100 },
-      { id: 'w_b', name: 'Middle', lat: 0, lon: 0, type: 'water', totalDistance: 4, elevation: 200 },
-      { id: 'w_c', name: 'End', lat: 0, lon: 0, type: 'trailhead', totalDistance: 10, elevation: 150 },
+      {
+        id: 'w_a',
+        name: 'Start',
+        lat: 0,
+        lon: 0,
+        type: 'trailhead',
+        totalDistance: 0,
+        elevation: 100,
+      },
+      {
+        id: 'w_b',
+        name: 'Middle',
+        lat: 0,
+        lon: 0,
+        type: 'water',
+        totalDistance: 4,
+        elevation: 200,
+      },
+      {
+        id: 'w_c',
+        name: 'End',
+        lat: 0,
+        lon: 0,
+        type: 'trailhead',
+        totalDistance: 10,
+        elevation: 150,
+      },
     ],
     track: {
       points: [
@@ -164,7 +184,12 @@ function renderedText(tree: ReactTestRenderer): string {
 function renderedTextOf(node: TestInstance): string {
   return node
     .findAllByType(Text)
-    .map((t) => ([] as unknown[]).concat(t.props.children).filter((c) => typeof c === 'string').join(''))
+    .map((t) =>
+      ([] as unknown[])
+        .concat(t.props.children)
+        .filter((c) => typeof c === 'string')
+        .join(''),
+    )
     .join(' ');
 }
 
@@ -570,7 +595,15 @@ describe('GuideProvider newer data while open', () => {
   const NEWER_TRAIL = {
     ...(BUNDLED_TRAIL as { waypoints: { name: string }[] }),
     waypoints: [
-      { id: 'w_a', name: 'New start', lat: 0, lon: 0, type: 'trailhead', totalDistance: 0, elevation: 100 },
+      {
+        id: 'w_a',
+        name: 'New start',
+        lat: 0,
+        lon: 0,
+        type: 'trailhead',
+        totalDistance: 0,
+        elevation: 100,
+      },
     ],
   };
 

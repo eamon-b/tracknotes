@@ -156,9 +156,7 @@ describe('POST /v1/community/routes', () => {
     expect(stored.config.country).toBe('AU');
     expect(stored.config.states).toEqual(['VIC']);
     expect(stored.config.description).toContain('ridge to the lookout');
-    expect(stored.config.dataSource?.text).toBe(
-      'Shared by Ridge Walker under CC0. Recorded on my own walk, May 2026.'
-    );
+    expect(stored.config.dataSource?.text).toBe('Shared by Ridge Walker under CC0. Recorded on my own walk, May 2026.');
   });
 
   it('stores the md5 of the exact bytes', async () => {
@@ -203,7 +201,9 @@ describe('POST /v1/community/routes', () => {
   it('accepts a GPX with a byte-order mark and a leading comment, sniffing only its head', async () => {
     const device = await registerDevice();
     const withBom = `\uFEFF<!-- exported -->\n${GPX_TEXT}`;
-    const bom = (await (await submitRoute(device, submitBody({ gpxBase64: base64(withBom) }))).json()) as CommunityRouteDetail;
+    const bom = (await (
+      await submitRoute(device, submitBody({ gpxBase64: base64(withBom) }))
+    ).json()) as CommunityRouteDetail;
     expect((await row(bom.id)).gpx_key).not.toBeNull();
     // `<gpx` past the sniffed head: the route is shared, the file is not kept.
     const late = `<?xml version="1.0"?><!--${' '.repeat(2000)}-->${GPX_TEXT.replace('<?xml version="1.0"?>', '')}`;
@@ -405,7 +405,6 @@ describe('POST /v1/community/routes', () => {
     expect(await rateEvents('community_submit_attempt', device.userId)).toBe(1);
   });
 
-
   it('limits a user to 10 submissions a day', async () => {
     const device = await registerDevice();
     for (let i = 0; i < 10; i++) await submitOk(device);
@@ -540,11 +539,15 @@ describe('GET /v1/community/routes/:id', () => {
     expect(await privateKeys(route.id)).toHaveLength(1);
 
     // An owner edit while hidden re-stores the private copy only.
-    const edited = (await (await patch(owner, route.id, { name: 'Hidden but renamed' })).json()) as CommunityRouteDetail;
+    const edited = (await (
+      await patch(owner, route.id, { name: 'Hidden but renamed' })
+    ).json()) as CommunityRouteDetail;
     expect(edited.trailUrl).toBeNull();
     expect(await publicKeys(route.id)).toEqual([]);
 
-    const restored = (await (await setStatus(admin, route.id, { status: 'unverified' })).json()) as CommunityRouteDetail;
+    const restored = (await (
+      await setStatus(admin, route.id, { status: 'unverified' })
+    ).json()) as CommunityRouteDetail;
     expect(restored.trailUrl).not.toBeNull();
     expect(await publicKeys(route.id)).toEqual([keyOf(restored.trailUrl!)]);
     const stored = await storedTrail(restored.trailUrl!);
@@ -606,7 +609,9 @@ describe('PATCH /v1/community/routes/:id', () => {
     expect(verified.status).toBe('verified');
     expect(verified.verifiedAt).not.toBeNull();
 
-    const body = (await (await patch(owner, route.id, { description: 'A rewritten description of the whole walk.' })).json()) as CommunityRouteDetail;
+    const body = (await (
+      await patch(owner, route.id, { description: 'A rewritten description of the whole walk.' })
+    ).json()) as CommunityRouteDetail;
     expect(body.status).toBe('unverified');
     expect(body.verifiedAt).toBeNull();
   });
@@ -693,7 +698,9 @@ describe('PATCH /v1/community/routes/:id', () => {
     ).rejects.toMatchObject({ status: 409 });
     await waitOnExecutionContext(ctx);
     expect((await row(route.id)).status).toBe('removed');
-    await eventually(async () => (await publicKeys(route.id)).length === 0 && (await privateKeys(route.id)).length === 0);
+    await eventually(
+      async () => (await publicKeys(route.id)).length === 0 && (await privateKeys(route.id)).length === 0
+    );
   });
 
   it('refuses anyone but the owner, a banned owner, and bad input', async () => {
@@ -721,7 +728,9 @@ describe('DELETE /v1/community/routes/:id', () => {
     const r = await row(route.id);
     expect(r.status).toBe('removed');
     expect(r.removed_at).not.toBeNull();
-    await eventually(async () => (await publicKeys(route.id)).length === 0 && (await privateKeys(route.id)).length === 0);
+    await eventually(
+      async () => (await publicKeys(route.id)).length === 0 && (await privateKeys(route.id)).length === 0
+    );
     expect(await env.PHOTOS.get(keyOf(route.trailUrl!))).toBeNull();
   });
 
@@ -865,7 +874,7 @@ describe('GET /v1/me/community/routes', () => {
 });
 
 describe('hiddenReason', () => {
-  it('is never on a live route, nor on the public or a stranger\'s view', async () => {
+  it("is never on a live route, nor on the public or a stranger's view", async () => {
     const owner = await registerDevice();
     const route = await submitOk(owner);
     expect(route).not.toHaveProperty('hiddenReason');
@@ -944,7 +953,9 @@ describe('admin', () => {
     await makeAdmin(admin.userId);
     const route = await submitOk(owner);
     expect((await setStatus(admin, route.id, { status: 'removed' })).status).toBe(400);
-    const v = (await (await setStatus(admin, route.id, { status: 'verified', note: 'walked it' })).json()) as CommunityRouteDetail;
+    const v = (await (
+      await setStatus(admin, route.id, { status: 'verified', note: 'walked it' })
+    ).json()) as CommunityRouteDetail;
     expect(v.status).toBe('verified');
     expect((await row(route.id)).verified_by).toBe(admin.userId);
     expect((await list('?status=verified')).routes.map((r) => r.id)).toContain(route.id);
@@ -963,7 +974,9 @@ describe('admin', () => {
     await env.DB.prepare(`UPDATE community_routes SET r2_key = ? WHERE id = ?`)
       .bind(keyOf(route.trailUrl!), route.id)
       .run();
-    const restored = (await (await setStatus(admin, route.id, { status: 'unverified' })).json()) as CommunityRouteDetail;
+    const restored = (await (
+      await setStatus(admin, route.id, { status: 'unverified' })
+    ).json()) as CommunityRouteDetail;
     expect(restored.trailUrl).not.toBeNull();
     expect(await env.PHOTOS.head(keyOf(restored.trailUrl!))).not.toBeNull();
   });
@@ -1130,4 +1143,3 @@ describe('account deletion', () => {
     expect(JSON.stringify(stored)).not.toContain('Hidden Walker');
   });
 });
-

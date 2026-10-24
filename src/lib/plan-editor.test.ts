@@ -171,11 +171,9 @@ describe('toggleStop', () => {
     // load, which costs the hiker the whole plan rather than one stop.
     const plan = emptyPlan();
     expect(() => toggleStop(plan, { id: 'w_a', km: Number.NaN, name: 'Nowhere' }, opts)).toThrow(
-      /plan-editor: stop km must be a finite number/,
+      /plan-editor: stop km must be a finite number/
     );
-    expect(() =>
-      toggleStop(plan, { km: Number.POSITIVE_INFINITY, name: 'Nowhere' }, opts),
-    ).toThrow(/finite/);
+    expect(() => toggleStop(plan, { km: Number.POSITIVE_INFINITY, name: 'Nowhere' }, opts)).toThrow(/finite/);
     expect(plan.stops).toEqual([]);
   });
 
@@ -255,11 +253,20 @@ describe('computePlanDays', () => {
 
   it('walks to a stop off the route and back, by its waypoint', () => {
     const trail = flatTrail();
-    trail.waypoints![1] = { ...trail.waypoints![1], offTrailKm: 2.6, accessMode: 'foot', offTrailAscentM: 17, offTrailDescentM: 7 };
+    trail.waypoints![1] = {
+      ...trail.waypoints![1],
+      offTrailKm: 2.6,
+      accessMode: 'foot',
+      offTrailAscentM: 17,
+      offTrailDescentM: 7,
+    };
     const plan = toggleStop(emptyPlan(), { id: 'w_a', km: 20, name: 'Camp A' }, opts);
     const days = computePlanDays(trail, plan, { baseKmh: 4 });
     expect(days.map(d => d.distanceKm)).toEqual([22.6, 82.6]);
-    expect(days.map(d => [d.ascentM, d.descentM])).toEqual([[17, 7], [7, 17]]);
+    expect(days.map(d => [d.ascentM, d.descentM])).toEqual([
+      [17, 7],
+      [7, 17],
+    ]);
     expect(days.map(d => d.offTrailKm)).toEqual([2.6, 2.6]);
   });
 
@@ -310,12 +317,7 @@ describe('overnightCandidates', () => {
   ];
 
   it('returns the overnight families in km order', () => {
-    expect(overnightCandidates(waypoints).map(w => w.name)).toEqual([
-      'Big4',
-      'Camp A',
-      'Townsville',
-      'Snowy Hut',
-    ]);
+    expect(overnightCandidates(waypoints).map(w => w.name)).toEqual(['Big4', 'Camp A', 'Townsville', 'Snowy Hut']);
   });
 
   it('never offers a turn-off — you cannot sleep at a roadside', () => {
@@ -418,7 +420,7 @@ describe('migratePlanState', () => {
       { name: 'x', startDate: null, stops: [{ km: 10.007, waypointName: 'Near B' }] },
       'flat',
       crowded,
-      opts,
+      opts
     );
     expect(plan.stops).toEqual([{ waypointId: 'w_near_b', km: 10.006, name: 'Near B', nights: 1 }]);
   });
@@ -437,7 +439,7 @@ describe('migratePlanState', () => {
       },
       'flat',
       crowded,
-      opts,
+      opts
     );
     expect(plan.stops).toEqual([{ waypointId: 'w_near_a', km: 10, name: 'Near A', nights: 1 }]);
   });
@@ -476,7 +478,7 @@ describe('migratePlanState', () => {
       { name: 'x', startDate: 'yesterday' as unknown as string, stops: [] },
       'flat',
       [],
-      opts,
+      opts
     );
     expect(plan.direction).toBe('NOBO');
     expect(plan.startDate).toBeNull();
@@ -607,30 +609,28 @@ describe('limits', () => {
   });
 
   it('rejects too many stops, bad nights, a long note and duplicate keys', () => {
-    expect(() => assertPlanDocumentWithinLimits(planWithStops(PLAN_LIMITS.stopsMax + 1))).toThrow(
-      /exceeds 500/,
-    );
+    expect(() => assertPlanDocumentWithinLimits(planWithStops(PLAN_LIMITS.stopsMax + 1))).toThrow(/exceeds 500/);
     const base = planWithStops(2);
-    expect(() =>
-      assertPlanDocumentWithinLimits({ ...base, stops: [{ ...base.stops[0], nights: 0 }] }),
-    ).toThrow(/nights/);
+    expect(() => assertPlanDocumentWithinLimits({ ...base, stops: [{ ...base.stops[0], nights: 0 }] })).toThrow(
+      /nights/
+    );
     expect(() =>
       assertPlanDocumentWithinLimits({
         ...base,
         stops: [{ ...base.stops[0], note: 'x'.repeat(PLAN_LIMITS.noteMax + 1) }],
-      }),
+      })
     ).toThrow(/note/);
     expect(() =>
       assertPlanDocumentWithinLimits({
         ...base,
         stops: [base.stops[0], { ...base.stops[1], waypointId: base.stops[0].waypointId }],
-      }),
+      })
     ).toThrow(/waypoint id/);
     expect(() =>
       assertPlanDocumentWithinLimits({
         ...base,
         stops: [base.stops[0], { ...base.stops[1], km: base.stops[0].km + 0.001 }],
-      }),
+      })
     ).toThrow(/share km/);
   });
 
@@ -644,9 +644,7 @@ describe('limits', () => {
 
   it('refuses to add a stop past the ceiling', () => {
     const full = planWithStops(PLAN_LIMITS.stopsMax);
-    expect(() => toggleStop(full, { id: 'w_new', km: 999, name: 'One too many' }, opts)).toThrow(
-      /at most 500/,
-    );
+    expect(() => toggleStop(full, { id: 'w_new', km: 999, name: 'One too many' }, opts)).toThrow(/at most 500/);
   });
 
   it('is at least as strict as the server about stops', () => {
@@ -657,16 +655,12 @@ describe('limits', () => {
     });
     expect(() => assertPlanDocumentWithinLimits(withStop({ km: -0.5 }))).toThrow(/negative km/);
     expect(() => assertPlanDocumentWithinLimits(withStop({ name: '   ' }))).toThrow(/no name/);
-    expect(() =>
-      assertPlanDocumentWithinLimits(withStop({ name: 'x'.repeat(PLAN_LIMITS.stopNameMax + 1) })),
-    ).toThrow(/exceeds 200/);
-    expect(() =>
-      assertPlanDocumentWithinLimits(withStop({ name: 'x'.repeat(PLAN_LIMITS.stopNameMax) })),
-    ).not.toThrow();
+    expect(() => assertPlanDocumentWithinLimits(withStop({ name: 'x'.repeat(PLAN_LIMITS.stopNameMax + 1) }))).toThrow(
+      /exceeds 200/
+    );
+    expect(() => assertPlanDocumentWithinLimits(withStop({ name: 'x'.repeat(PLAN_LIMITS.stopNameMax) }))).not.toThrow();
     for (const waypointId of ['w_1', 'W_UPPER', 'w 1234', 'x'.repeat(65)]) {
-      expect(() => assertPlanDocumentWithinLimits(withStop({ waypointId })), waypointId).toThrow(
-        /invalid waypoint id/,
-      );
+      expect(() => assertPlanDocumentWithinLimits(withStop({ waypointId })), waypointId).toThrow(/invalid waypoint id/);
     }
     expect(() => assertPlanDocumentWithinLimits(withStop({ waypointId: 'uw_0a1b2c3d4e5f' }))).not.toThrow();
   });
@@ -675,13 +669,13 @@ describe('limits', () => {
     const plan = emptyPlan();
     const ids = (count: number) => Array.from({ length: count }, (_, i) => `w_${String(i).padStart(4, '0')}`);
     expect(() =>
-      assertPlanDocumentWithinLimits({ ...plan, resupplyStops: ids(PLAN_LIMITS.resupplyStopsMax) }),
+      assertPlanDocumentWithinLimits({ ...plan, resupplyStops: ids(PLAN_LIMITS.resupplyStopsMax) })
     ).not.toThrow();
     expect(() =>
-      assertPlanDocumentWithinLimits({ ...plan, resupplyStops: ids(PLAN_LIMITS.resupplyStopsMax + 1) }),
+      assertPlanDocumentWithinLimits({ ...plan, resupplyStops: ids(PLAN_LIMITS.resupplyStopsMax + 1) })
     ).toThrow(/resupply stops exceeds 500/);
     expect(() => assertPlanDocumentWithinLimits({ ...plan, resupplyStops: ['w_ok_1', 'no'] })).toThrow(
-      /invalid resupply waypoint id/,
+      /invalid resupply waypoint id/
     );
   });
 
@@ -707,7 +701,7 @@ describe('limits', () => {
       } as unknown as PlanState,
       'flat',
       [],
-      opts,
+      opts
     );
     expect(plan.resupplyStops?.[0]).toBe('w_town');
     expect(plan.resupplyStops).not.toContain('bad id');
@@ -723,12 +717,12 @@ describe('trail ends', () => {
     // start and finish, so a tap there needs a reason on screen.
     const refused = /^plan-editor: the start and the end of the trail are not stops/;
     expect(() => toggleStop(plan, { id: 'w_start', km: 0, name: 'Start' }, opts)).toThrow(refused);
-    expect(() =>
-      toggleStop(plan, { id: 'w_end', km: 100, name: 'Finish' }, { ...opts, totalKm: 100 }),
-    ).toThrow(refused);
-    expect(() =>
-      toggleStop(plan, { id: 'w_end', km: 99.995, name: 'Finish' }, { ...opts, totalKm: 100 }),
-    ).toThrow(refused);
+    expect(() => toggleStop(plan, { id: 'w_end', km: 100, name: 'Finish' }, { ...opts, totalKm: 100 })).toThrow(
+      refused
+    );
+    expect(() => toggleStop(plan, { id: 'w_end', km: 99.995, name: 'Finish' }, { ...opts, totalKm: 100 })).toThrow(
+      refused
+    );
     expect(isTrailEnd(0, undefined)).toBe(true);
     expect(isTrailEnd(100, 100)).toBe(true);
     expect(isTrailEnd(100, undefined)).toBe(false);
@@ -742,7 +736,7 @@ describe('trail ends', () => {
         { id: 'w_start', km: 0, name: 'Start' },
         { id: 'w_camp_a', km: 20, name: 'Camp A' },
       ],
-      { ...opts, totalKm: 100 },
+      { ...opts, totalKm: 100 }
     );
     expect(applied.stops.map(stop => stop.waypointId)).toEqual(['w_camp_a']);
   });
@@ -776,11 +770,7 @@ describe('updatedAt', () => {
 });
 
 describe('isPlanDocument', () => {
-  const valid = toggleStop(
-    setStartDate(emptyPlan(), '2026-10-01', opts),
-    { id: 'w_a', km: 20, name: 'Camp A' },
-    opts,
-  );
+  const valid = toggleStop(setStartDate(emptyPlan(), '2026-10-01', opts), { id: 'w_a', km: 20, name: 'Camp A' }, opts);
 
   it('accepts a document the editor produced, round-tripped through JSON', () => {
     expect(isPlanDocument(JSON.parse(JSON.stringify(valid)))).toBe(true);
@@ -814,7 +804,6 @@ describe('isPlanDocument', () => {
   });
 });
 
-
 describe('thrown messages', () => {
   it('every error a UI handler can catch starts with plan-editor:', () => {
     // The callers show these as they stand, so the prefix and the wording are
@@ -838,10 +827,10 @@ describe('thrown messages', () => {
       expect(run).toThrow(/^plan-editor: /);
     }
     expect(() => toggleStop(full, { id: 'w_new', km: 9999, name: 'One too many' }, opts)).toThrow(
-      'plan-editor: a plan may hold at most 500 stops',
+      'plan-editor: a plan may hold at most 500 stops'
     );
     expect(() => setStartDate(emptyPlan(), '1/10/2026', opts)).toThrow(
-      'plan-editor: startDate must be YYYY-MM-DD, got "1/10/2026"',
+      'plan-editor: startDate must be YYYY-MM-DD, got "1/10/2026"'
     );
   });
 });
@@ -885,7 +874,7 @@ describe('replaceStopsInRange', () => {
 
   it('rejects a non-finite target km', () => {
     expect(() =>
-      replaceStopsInRange(newPlan('t', 'P', 'NOBO', opts), { fromKm: 0, toKm: 10 }, [{ km: NaN, name: 'x' }], opts),
+      replaceStopsInRange(newPlan('t', 'P', 'NOBO', opts), { fromKm: 0, toKm: 10 }, [{ km: NaN, name: 'x' }], opts)
     ).toThrow(/plan-editor:/);
   });
 });
@@ -893,7 +882,11 @@ describe('replaceStopsInRange', () => {
 describe('splitUnplannedTail', () => {
   it('leaves a plan whose last day fits alone', () => {
     const trail = flatTrail();
-    const days = computePlanDays(trail, toggleStop(newPlan('t', 'P', 'NOBO', opts), { id: 'w_b', km: 50, name: 'Camp B' }, opts), { baseKmh: 4 });
+    const days = computePlanDays(
+      trail,
+      toggleStop(newPlan('t', 'P', 'NOBO', opts), { id: 'w_b', km: 50, name: 'Camp B' }, opts),
+      { baseKmh: 4 }
+    );
     // 50 km flat at 4 km/h = 12.5 h
     expect(splitUnplannedTail(days, 13)).toEqual({ days, unplanned: null });
   });
@@ -922,7 +915,7 @@ describe('refreshStopKms', () => {
     return trail;
   }
 
-  it('moves a stop to its waypoint\'s current km, keeping everything else about it', () => {
+  it("moves a stop to its waypoint's current km, keeping everything else about it", () => {
     let plan = toggleStop(emptyPlan(), { id: 'w_a', km: 20, name: 'Camp A' }, opts);
     plan = setStopNote(plan, { waypointId: 'w_a', km: 20 }, 'Booked by phone', opts);
     const next = refreshStopKms(plan, movedTrail(), { ...opts, now: () => '2026-10-12T00:00:00.000Z' });
@@ -956,7 +949,10 @@ describe('refreshStopKms', () => {
     const trail = flatTrail();
     trail.waypoints![1] = { ...trail.waypoints![1], totalDistance: 60 };
     const next = refreshStopKms(plan, trail);
-    expect(next.stops.map(s => [s.waypointId, s.km])).toEqual([['w_b', 50], ['w_a', 60]]);
+    expect(next.stops.map(s => [s.waypointId, s.km])).toEqual([
+      ['w_b', 50],
+      ['w_a', 60],
+    ]);
     expect(isPlanDocument(next)).toBe(true);
   });
 

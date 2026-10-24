@@ -98,9 +98,7 @@ describe('fetchMyPlan', () => {
   });
 
   it('returns nothing when the trail has no plan', async () => {
-    const { impl } = mockFetch([
-      { status: 200, body: { plans: [], nextCursor: null, syncedAt: 'now' } },
-    ]);
+    const { impl } = mockFetch([{ status: 200, body: { plans: [], nextCursor: null, syncedAt: 'now' } }]);
     await expect(fetchMyPlan(SESSION, 'heysen', { fetchImpl: impl })).resolves.toMatchObject({
       entry: null,
     });

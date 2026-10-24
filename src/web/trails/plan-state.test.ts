@@ -63,7 +63,7 @@ describe('loadPlanState with corrupt data', () => {
   it('rejects data with wrong types (stops is a string)', () => {
     localStorage.setItem(
       'trail-plan-wrong-types',
-      JSON.stringify({ name: 'Test', startDate: null, stops: 'not-an-array' }),
+      JSON.stringify({ name: 'Test', startDate: null, stops: 'not-an-array' })
     );
     const loaded = loadPlanState('wrong-types');
     // Should be null (invalid) or have stops as an actual array
@@ -88,18 +88,12 @@ describe('direction field validation', () => {
   });
 
   it('rejects a plan with an invalid direction value', () => {
-    localStorage.setItem(
-      'trail-plan-bad-dir',
-      JSON.stringify({ ...validState, direction: 'northbound' }),
-    );
+    localStorage.setItem('trail-plan-bad-dir', JSON.stringify({ ...validState, direction: 'northbound' }));
     expect(loadPlanState('bad-dir')).toBeNull();
   });
 
   it('rejects a plan with a non-string direction', () => {
-    localStorage.setItem(
-      'trail-plan-bad-dir2',
-      JSON.stringify({ ...validState, direction: 1 }),
-    );
+    localStorage.setItem('trail-plan-bad-dir2', JSON.stringify({ ...validState, direction: 1 }));
     expect(loadPlanState('bad-dir2')).toBeNull();
   });
 });
@@ -125,18 +119,12 @@ describe('resupplyStops field validation', () => {
   });
 
   it('rejects a resupplyStops array holding anything but ids', () => {
-    localStorage.setItem(
-      'trail-plan-bad-resupply',
-      JSON.stringify({ ...validState, resupplyStops: ['w_1', 7] }),
-    );
+    localStorage.setItem('trail-plan-bad-resupply', JSON.stringify({ ...validState, resupplyStops: ['w_1', 7] }));
     expect(loadPlanState('bad-resupply')).toBeNull();
   });
 
   it('rejects a non-array resupplyStops', () => {
-    localStorage.setItem(
-      'trail-plan-bad-resupply2',
-      JSON.stringify({ ...validState, resupplyStops: 'w_1' }),
-    );
+    localStorage.setItem('trail-plan-bad-resupply2', JSON.stringify({ ...validState, resupplyStops: 'w_1' }));
     expect(loadPlanState('bad-resupply2')).toBeNull();
   });
 });
@@ -168,7 +156,11 @@ describe('pace and dailyHours validation', () => {
   });
 
   it('drops a non-finite or non-positive dailyHours, keeping the rest of the plan', () => {
-    for (const [key, hours] of [['zero', 0], ['neg', -4], ['text', '8']] as const) {
+    for (const [key, hours] of [
+      ['zero', 0],
+      ['neg', -4],
+      ['text', '8'],
+    ] as const) {
       localStorage.setItem(`trail-plan-${key}`, JSON.stringify({ ...validState, dailyHours: hours }));
       const loaded = loadPlanState(key);
       expect(loaded).toEqual(validState);
@@ -182,7 +174,7 @@ describe('pace and dailyHours validation', () => {
   it('keeps the stops, name and dates of a plan whose pace is unusable', () => {
     localStorage.setItem(
       'trail-plan-bad-pace2',
-      JSON.stringify({ ...validState, direction: 'SOBO', resupplyStops: ['w_1'], pace: 7, dailyHours: 0 }),
+      JSON.stringify({ ...validState, direction: 'SOBO', resupplyStops: ['w_1'], pace: 7, dailyHours: 0 })
     );
     const loaded = loadPlanState('bad-pace2');
     expect(loaded).toEqual({ ...validState, direction: 'SOBO', resupplyStops: ['w_1'] });
@@ -409,11 +401,9 @@ describe('loadOrMigratePlan', () => {
 
   it('keeps the migrated plan for this session when storage refuses it', () => {
     savePlanState(TRAIL_ID, validState);
-    const setItem = vi
-      .spyOn(Storage.prototype, 'setItem')
-      .mockImplementation(() => {
-        throw new Error('QuotaExceededError');
-      });
+    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('QuotaExceededError');
+    });
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     try {
       const loaded = loadOrMigratePlan(TRAIL_ID, TRAIL, { idFactory: ids() });

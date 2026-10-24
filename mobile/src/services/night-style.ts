@@ -82,15 +82,18 @@ export function parseColor(input: string): Hsla | null {
   if (!fn) return null;
   const parts = fn[2].split(/[\s,/]+/).filter(Boolean);
   if (parts.length < 3 || parts.length > 4) return null;
-  const alpha = parts[3] === undefined
-    ? 1
-    : parts[3].endsWith('%') ? parseFloat(parts[3]) / 100 : parseFloat(parts[3]);
+  const alpha =
+    parts[3] === undefined
+      ? 1
+      : parts[3].endsWith('%')
+        ? parseFloat(parts[3]) / 100
+        : parseFloat(parts[3]);
   if (Number.isNaN(alpha)) return null;
 
   if (fn[1].startsWith('rgb')) {
-    const ch = parts.slice(0, 3).map((p) =>
-      p.endsWith('%') ? parseFloat(p) / 100 : parseFloat(p) / 255,
-    );
+    const ch = parts
+      .slice(0, 3)
+      .map((p) => (p.endsWith('%') ? parseFloat(p) / 100 : parseFloat(p) / 255));
     if (ch.some(Number.isNaN)) return null;
     return rgbToHsl(clamp01(ch[0]), clamp01(ch[1]), clamp01(ch[2]), clamp01(alpha));
   }

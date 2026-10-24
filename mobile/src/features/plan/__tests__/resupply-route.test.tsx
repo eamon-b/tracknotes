@@ -26,7 +26,13 @@ const trail = {
   config: { id: 'cdt', name: 'CDT' },
   waypoints: [
     { id: 'w_pass', name: 'Monarch Pass', type: 'town-access', totalDistance: 100 },
-    { id: 'w_salida', name: 'Salida', type: 'town', totalDistance: 100, accessName: 'Monarch Pass' },
+    {
+      id: 'w_salida',
+      name: 'Salida',
+      type: 'town',
+      totalDistance: 100,
+      accessName: 'Monarch Pass',
+    },
     { id: 'w_creede', name: 'Creede', type: 'town', totalDistance: 250 },
     { id: 'w_camp', name: 'Camp', type: 'campsite', totalDistance: 180 },
   ],
@@ -77,8 +83,7 @@ function controls(tree: ReactTestRenderer): Map<string, () => void> {
   tree.root
     .findAll(
       (n) =>
-        typeof n.props.onPress === 'function' &&
-        typeof n.props.accessibilityLabel === 'string',
+        typeof n.props.onPress === 'function' && typeof n.props.accessibilityLabel === 'string',
     )
     .forEach((n) => {
       const label = n.props.accessibilityLabel as string;
@@ -219,7 +224,10 @@ describe('resupply picker route', () => {
           typeof n.props.accessibilityLabel === 'string' &&
           !!n.props.accessibilityState,
       )
-      .map((n) => [n.props.accessibilityLabel, (n.props.accessibilityState as { checked: boolean }).checked]);
+      .map((n) => [
+        n.props.accessibilityLabel,
+        (n.props.accessibilityState as { checked: boolean }).checked,
+      ]);
     expect(checked).toContainEqual(['Creede', true]);
     expect(checked).toContainEqual(['Salida', false]);
   });
@@ -228,9 +236,11 @@ describe('resupply picker route', () => {
     mockParams = { startKm: '0', endKm: '150' };
     const tree = render();
     const texts: string[] = [];
-    tree.root.findAll(() => true).forEach((n) => {
-      if (typeof n.props.children === 'string') texts.push(n.props.children);
-    });
+    tree.root
+      .findAll(() => true)
+      .forEach((n) => {
+        if (typeof n.props.children === 'string') texts.push(n.props.children);
+      });
     expect(texts).toContain('outside section');
   });
 });

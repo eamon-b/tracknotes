@@ -71,7 +71,7 @@ export const COUNTRIES: CountryDef[] = [
   { code: 'ZA', name: 'South Africa', states: [] },
 ];
 
-const COUNTRY_BY_CODE = new Map(COUNTRIES.map((c) => [c.code, c]));
+const COUNTRY_BY_CODE = new Map(COUNTRIES.map(c => [c.code, c]));
 
 export function findCountry(code: string | null | undefined): CountryDef | undefined {
   return code ? COUNTRY_BY_CODE.get(code.toUpperCase()) : undefined;
@@ -84,7 +84,7 @@ export function countryName(code: string | null | undefined): string {
 
 export function stateName(country: string | null | undefined, state: string | null | undefined): string | null {
   if (!state) return null;
-  return findCountry(country)?.states.find((s) => s.code === state)?.name ?? state;
+  return findCountry(country)?.states.find(s => s.code === state)?.name ?? state;
 }
 
 /** Any two ASCII letters: a listed country, or one we have not labelled yet. */
@@ -100,7 +100,7 @@ export function isValidState(country: string, state: unknown): boolean {
   const def = findCountry(country);
   if (state === null || state === undefined || state === '') return true;
   if (!def || typeof state !== 'string') return false;
-  return def.states.some((s) => s.code === state);
+  return def.states.some(s => s.code === state);
 }
 
 /** Length bands for the filter bar. */
@@ -153,7 +153,7 @@ export function matchesFilter(trail: GroupableTrail, filter: TrailFilter, extraT
   const q = filter.query?.trim().toLowerCase();
   if (q) {
     const hay = `${trail.name} ${extraText} ${countryName(trail.country)} ${
-      trail.states?.map((s) => stateName(trail.country, s) ?? s).join(' ') ?? ''
+      trail.states?.map(s => stateName(trail.country, s) ?? s).join(' ') ?? ''
     }`.toLowerCase();
     if (!hay.includes(q)) return false;
   }
@@ -195,24 +195,24 @@ export function groupTrails<T extends GroupableTrail>(
   // (trails that gave no country) last.
   const order = (code: string) => {
     if (code === 'XX') return COUNTRIES.length + 1;
-    const i = COUNTRIES.findIndex((c) => c.code === code);
+    const i = COUNTRIES.findIndex(c => c.code === code);
     return i === -1 ? COUNTRIES.length : i;
   };
   const codes = [...countries.keys()].sort(
     (a, b) => order(a) - order(b) || countryName(a).localeCompare(countryName(b))
   );
 
-  return codes.map((code) => {
+  return codes.map(code => {
     const byState = countries.get(code)!;
     const def = findCountry(code);
     const stateOrder = (s: string | null) => {
       if (s === null) return Number.MAX_SAFE_INTEGER;
-      const i = def?.states.findIndex((d) => d.code === s) ?? -1;
+      const i = def?.states.findIndex(d => d.code === s) ?? -1;
       return i === -1 ? Number.MAX_SAFE_INTEGER - 1 : i;
     };
     const states = [...byState.keys()]
       .sort((a, b) => stateOrder(a) - stateOrder(b) || String(a).localeCompare(String(b)))
-      .map((s) => ({
+      .map(s => ({
         code: s,
         name: stateName(code, s),
         trails: sortTrails(byState.get(s)!, sort),

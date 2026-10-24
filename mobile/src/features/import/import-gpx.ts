@@ -34,11 +34,7 @@
 import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
 import { importGpx, type ImportGpxResult, type ImportReport } from '@lib/gpx-import';
-import {
-  handoffImportReport,
-  looksLikeHandoffJson,
-  parseHandoffJson,
-} from '@lib/trail-handoff';
+import { handoffImportReport, looksLikeHandoffJson, parseHandoffJson } from '@lib/trail-handoff';
 import { fxpXmlAdapter } from '@lib/xml-adapter-fxp';
 import type { ProcessedTrail } from '@lib/trail-types';
 

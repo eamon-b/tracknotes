@@ -19,7 +19,15 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { isCommunityRouteId, type CommunityRouteDetail } from '@lib/community-types';
 import { formatDistance } from '@lib/format-distance';
@@ -79,7 +87,10 @@ export default function CommunityRouteScreen() {
   const [note, setNote] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [reportState, setReportState] = useState<
-    { status: 'idle' } | { status: 'sending' } | { status: 'sent' } | { status: 'error'; message: string }
+    | { status: 'idle' }
+    | { status: 'sending' }
+    | { status: 'sent' }
+    | { status: 'error'; message: string }
   >({ status: 'idle' });
 
   useEffect(() => {
@@ -151,32 +162,25 @@ export default function CommunityRouteScreen() {
   const onDelete = useCallback(() => {
     const baseUrl = getBaseUrl();
     if (!baseUrl || !session) return;
-    Alert.alert(
-      DELETE_SHARED_ROUTE_TITLE,
-      deleteSharedRouteMessage(detail?.name ?? cached?.name),
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            void (async () => {
-              try {
-                // A 404 is already deleted; the route's file, plan,
-                // favourites, pin and the rest go too.
-                await deleteMySharedRoute({ baseUrl, token: session.token }, trailId);
-                router.dismissTo('/');
-              } catch (err) {
-                Alert.alert(
-                  'Couldn’t delete the route',
-                  apiErrorMessage(err, 'Please try again.'),
-                );
-              }
-            })();
-          },
+    Alert.alert(DELETE_SHARED_ROUTE_TITLE, deleteSharedRouteMessage(detail?.name ?? cached?.name), [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => {
+          void (async () => {
+            try {
+              // A 404 is already deleted; the route's file, plan,
+              // favourites, pin and the rest go too.
+              await deleteMySharedRoute({ baseUrl, token: session.token }, trailId);
+              router.dismissTo('/');
+            } catch (err) {
+              Alert.alert('Couldn’t delete the route', apiErrorMessage(err, 'Please try again.'));
+            }
+          })();
         },
-      ],
-    );
+      },
+    ]);
   }, [session, trailId, router, detail?.name, cached?.name]);
 
   const onRemoveFromPhone = useCallback(() => {
@@ -275,7 +279,9 @@ export default function CommunityRouteScreen() {
       {/* Only once the detail says who is asking: an owner must not be offered
           a report form on their own route while it loads. */}
       {apiConfigured && detail && !detail.isOwner ? (
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View
+          style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
+        >
           <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>Report route</Text>
           {reportState.status === 'sent' ? (
             <Text style={[styles.body, { color: colors.textSecondary }]}>
@@ -292,7 +298,11 @@ export default function CommunityRouteScreen() {
               <TextInput
                 style={[
                   styles.input,
-                  { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.background },
+                  {
+                    color: colors.textPrimary,
+                    borderColor: colors.border,
+                    backgroundColor: colors.background,
+                  },
                 ]}
                 value={note}
                 onChangeText={setNote}
@@ -306,7 +316,11 @@ export default function CommunityRouteScreen() {
                 <TextInput
                   style={[
                     styles.input,
-                    { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.background },
+                    {
+                      color: colors.textPrimary,
+                      borderColor: colors.border,
+                      backgroundColor: colors.background,
+                    },
                   ]}
                   value={displayName}
                   onChangeText={setDisplayName}

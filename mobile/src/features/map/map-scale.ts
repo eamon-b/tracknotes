@@ -22,8 +22,7 @@ const METRES_PER_FOOT = 0.3048;
 export function metresPerPoint(zoom: number, latitude: number): number {
   const lat = Math.max(-85, Math.min(85, latitude));
   return (
-    (EARTH_CIRCUMFERENCE_M * Math.cos((lat * Math.PI) / 180)) /
-    (TILE_SIZE_PT * Math.pow(2, zoom))
+    (EARTH_CIRCUMFERENCE_M * Math.cos((lat * Math.PI) / 180)) / (TILE_SIZE_PT * Math.pow(2, zoom))
   );
 }
 

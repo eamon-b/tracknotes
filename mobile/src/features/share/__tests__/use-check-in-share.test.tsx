@@ -57,7 +57,9 @@ describe('useCheckInShare', () => {
   });
 
   it('resolves quietly when the user dismisses the sheet', async () => {
-    jest.spyOn(Share, 'share').mockResolvedValue({ action: 'dismissedAction', activityType: undefined });
+    jest
+      .spyOn(Share, 'share')
+      .mockResolvedValue({ action: 'dismissedAction', activityType: undefined });
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
     const share = grabHook();

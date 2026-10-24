@@ -48,12 +48,20 @@ jest.mock('expo-file-system', () => {
     }
     let uri = 'file://' + parts.join('/');
     return {
-      get uri() { return uri; },
-      get exists() { return mockFiles[uri]?.exists ?? false; },
-      get size() { return mockFiles[uri]?.size ?? 0; },
+      get uri() {
+        return uri;
+      },
+      get exists() {
+        return mockFiles[uri]?.exists ?? false;
+      },
+      get size() {
+        return mockFiles[uri]?.size ?? 0;
+      },
       // expo-file-system SDK 54 exposes a natively computed MD5 (null when the
       // file is missing or unreadable).
-      get md5() { return mockFiles[uri]?.md5 ?? null; },
+      get md5() {
+        return mockFiles[uri]?.md5 ?? null;
+      },
       textSync: jest.fn(() => mockFileContents[uri] ?? ''),
       delete: jest.fn(() => {
         mockFiles[uri] = { exists: false, size: 0 };
@@ -91,10 +99,18 @@ jest.mock('expo-file-system', () => {
     const uri = 'file://' + parts.join('/');
     const key = uri;
     return {
-      get uri() { return uri; },
-      get exists() { return mockDirs[key]?.exists ?? false; },
-      create: jest.fn(() => { mockDirs[key] = { exists: true, deleted: false }; }),
-      delete: jest.fn(() => { mockDirs[key] = { exists: false, deleted: true }; }),
+      get uri() {
+        return uri;
+      },
+      get exists() {
+        return mockDirs[key]?.exists ?? false;
+      },
+      create: jest.fn(() => {
+        mockDirs[key] = { exists: true, deleted: false };
+      }),
+      delete: jest.fn(() => {
+        mockDirs[key] = { exists: false, deleted: true };
+      }),
       // Direct children only, as the native list() returns — enough for the
       // superseded-generation sweep to have something to walk.
       list: jest.fn(() =>
@@ -102,15 +118,21 @@ jest.mock('expo-file-system', () => {
           .filter((fileUri) => fileUri.startsWith(`${uri}/`) && mockFiles[fileUri].exists)
           .filter((fileUri) => !fileUri.slice(uri.length + 1).includes('/'))
           .map((fileUri) => ({
-            get name() { return fileUri.slice(uri.length + 1); },
-            get uri() { return fileUri; },
+            get name() {
+              return fileUri.slice(uri.length + 1);
+            },
+            get uri() {
+              return fileUri;
+            },
             delete: jest.fn(() => {
               mockFiles[fileUri] = { exists: false, size: 0 };
               delete mockFileContents[fileUri];
             }),
           })),
       ),
-      get name() { return parts[parts.length - 1]; },
+      get name() {
+        return parts[parts.length - 1];
+      },
     };
   });
 
@@ -241,9 +263,11 @@ describe('buildTopoStyle', () => {
   // assets/topo-style-dark.json): structure single-sourced.
   describe('dark theme', () => {
     const layersOf = (theme?: 'light' | 'dark') =>
-      (buildTopoStyle(TRAIL_ID, GLYPHS_PATH, theme ? { theme } : undefined) as {
-        layers: { id: string; type: string; paint?: Record<string, unknown> }[];
-      }).layers;
+      (
+        buildTopoStyle(TRAIL_ID, GLYPHS_PATH, theme ? { theme } : undefined) as {
+          layers: { id: string; type: string; paint?: Record<string, unknown> }[];
+        }
+      ).layers;
 
     it('defaults to the light palette', () => {
       expect(layersOf()).toEqual(layersOf('light'));
@@ -338,7 +362,11 @@ describe('getTrailTileStatus', () => {
 
     expect(status.complete).toBe(true);
     expect(status.files[0]).toEqual({ name: 'base.mbtiles', exists: true, sizeBytes: 5_000_000 });
-    expect(status.files[1]).toEqual({ name: 'contours.mbtiles', exists: true, sizeBytes: 2_000_000 });
+    expect(status.files[1]).toEqual({
+      name: 'contours.mbtiles',
+      exists: true,
+      sizeBytes: 2_000_000,
+    });
   });
 
   it('returns complete: false when one file is missing', () => {
@@ -525,10 +553,12 @@ describe('validateMbtiles', () => {
   it('rejects an empty tiles table (the AAWT stub that SIGABRTed MapLibre)', async () => {
     // Empty metadata + empty tiles: MapLibre falls back to
     // SELECT MIN(zoom_level) FROM tiles -> NULL -> std::stoi("") -> abort.
-    useDb(fakeDb({
-      getFirstAsync: jest.fn().mockResolvedValue(null),
-      getAllAsync: jest.fn().mockResolvedValue([]),
-    }));
+    useDb(
+      fakeDb({
+        getFirstAsync: jest.fn().mockResolvedValue(null),
+        getAllAsync: jest.fn().mockResolvedValue([]),
+      }),
+    );
 
     const result = await validateMbtiles(TRAIL_ID, 'contours.mbtiles');
 
@@ -537,9 +567,11 @@ describe('validateMbtiles', () => {
   });
 
   it('rejects a corrupt database whose queries throw (the bibbulmun case)', async () => {
-    useDb(fakeDb({
-      getFirstAsync: jest.fn().mockRejectedValue(new Error('database disk image is malformed')),
-    }));
+    useDb(
+      fakeDb({
+        getFirstAsync: jest.fn().mockRejectedValue(new Error('database disk image is malformed')),
+      }),
+    );
 
     const result = await validateMbtiles(TRAIL_ID, 'contours.mbtiles');
 
@@ -560,21 +592,28 @@ describe('validateMbtiles', () => {
     ['empty string', ''],
     ['non-numeric', 'abc'],
     ['float', '9.5'],
-  ])('rejects non-integer minzoom metadata (%s) that std::stoi cannot parse', async (_label, value) => {
-    useDb(fakeDb({
-      getAllAsync: jest.fn().mockResolvedValue([{ name: 'minzoom', value }]),
-    }));
+  ])(
+    'rejects non-integer minzoom metadata (%s) that std::stoi cannot parse',
+    async (_label, value) => {
+      useDb(
+        fakeDb({
+          getAllAsync: jest.fn().mockResolvedValue([{ name: 'minzoom', value }]),
+        }),
+      );
 
-    const result = await validateMbtiles(TRAIL_ID, 'contours.mbtiles');
+      const result = await validateMbtiles(TRAIL_ID, 'contours.mbtiles');
 
-    expect(result.ok).toBe(false);
-    expect(result.reason).toContain('minzoom');
-  });
+      expect(result.ok).toBe(false);
+      expect(result.reason).toContain('minzoom');
+    },
+  );
 
   it('rejects malformed bounds metadata', async () => {
-    useDb(fakeDb({
-      getAllAsync: jest.fn().mockResolvedValue([{ name: 'bounds', value: '1,2,3' }]),
-    }));
+    useDb(
+      fakeDb({
+        getAllAsync: jest.fn().mockResolvedValue([{ name: 'bounds', value: '1,2,3' }]),
+      }),
+    );
 
     const result = await validateMbtiles(TRAIL_ID, 'contours.mbtiles');
 
@@ -626,8 +665,8 @@ describe('validateMbtilesCached', () => {
 
     clearMbtilesValidationCache(TRAIL_ID);
 
-    await validateMbtilesCached(TRAIL_ID, 'contours.mbtiles');   // revalidates
-    await validateMbtilesCached('other', 'contours.mbtiles');    // still cached
+    await validateMbtilesCached(TRAIL_ID, 'contours.mbtiles'); // revalidates
+    await validateMbtilesCached('other', 'contours.mbtiles'); // still cached
     expect(mockOpenDatabaseAsync).toHaveBeenCalledTimes(3);
   });
 });
@@ -814,13 +853,13 @@ describe('downloadTrailTiles validation', () => {
     const valid = fakeDb();
     mockOpenDatabaseAsync
       .mockResolvedValueOnce(invalid as never) // skip-branch check on existing base
-      .mockResolvedValue(valid as never);      // post-download checks
+      .mockResolvedValue(valid as never); // post-download checks
 
     await expect(downloadTrailTiles(TRAIL_ID, BASE_URL)).resolves.toBeUndefined();
 
     // base.mbtiles was re-downloaded despite its size matching
-    const baseDownloads = mockDownloadFileAsync.mock.calls.filter(
-      (call: unknown[]) => (call[0] as string).includes('base.mbtiles'),
+    const baseDownloads = mockDownloadFileAsync.mock.calls.filter((call: unknown[]) =>
+      (call[0] as string).includes('base.mbtiles'),
     );
     expect(baseDownloads).toHaveLength(1);
   });
@@ -924,10 +963,11 @@ describe('downloadTrailTiles atomic updates', () => {
       mockFiles[dest.uri] = { exists: true, size: NEW_SIZES.base };
     });
     // Existing files pass the skip-branch check; the .part files do not.
-    mockOpenDatabaseAsync.mockImplementation(async (name: string) =>
-      (name.endsWith('.part')
-        ? fakeDb({ getFirstAsync: jest.fn().mockResolvedValue(null) })
-        : fakeDb()) as never,
+    mockOpenDatabaseAsync.mockImplementation(
+      async (name: string) =>
+        (name.endsWith('.part')
+          ? fakeDb({ getFirstAsync: jest.fn().mockResolvedValue(null) })
+          : fakeDb()) as never,
     );
 
     await expect(downloadTrailTiles(TRAIL_ID, BASE_URL)).rejects.toThrow(
@@ -944,9 +984,7 @@ describe('downloadTrailTiles atomic updates', () => {
     /** manifest.json content observed at the start of each file download. */
     const manifestDuringDownload: string[] = [];
     mockDownloadFileAsync.mockImplementation(async (_url: string, dest: { uri: string }) => {
-      manifestDuringDownload.push(
-        JSON.parse(mockFileContents[fileKey('manifest.json')]).version,
-      );
+      manifestDuringDownload.push(JSON.parse(mockFileContents[fileKey('manifest.json')]).version);
       const size = dest.uri.includes('base') ? NEW_SIZES.base : NEW_SIZES.contours;
       mockFiles[dest.uri] = { exists: true, size };
     });
@@ -1074,10 +1112,7 @@ describe('downloadTrailTiles integrity verification', () => {
   it('fetches the content-addressed key but stores the file under a local name', async () => {
     await downloadTrailTiles(TRAIL_ID, BASE_URL);
 
-    expect(requestedObjects()).toEqual([
-      KEYS['base.mbtiles'],
-      KEYS['contours.mbtiles'],
-    ]);
+    expect(requestedObjects()).toEqual([KEYS['base.mbtiles'], KEYS['contours.mbtiles']]);
     // The remote key never reaches the disk: on-device names are the logical
     // ones plus a local generation suffix.
     const live = packFileNames(TRAIL_ID);
@@ -1324,10 +1359,11 @@ describe('offline pack generations (#45)', () => {
     // The issue's repro: base.mbtiles is damaged in place, so the banner offers
     // "Re-download" and the server manifest has not changed. contours is fine.
     installPack();
-    mockOpenDatabaseAsync.mockImplementation(async (name: string) =>
-      (name === 'base.mbtiles'
-        ? fakeDb({ getFirstAsync: jest.fn().mockResolvedValue(null) })
-        : fakeDb()) as never,
+    mockOpenDatabaseAsync.mockImplementation(
+      async (name: string) =>
+        (name === 'base.mbtiles'
+          ? fakeDb({ getFirstAsync: jest.fn().mockResolvedValue(null) })
+          : fakeDb()) as never,
     );
 
     const before = basemapUrl();
@@ -1347,10 +1383,11 @@ describe('offline pack generations (#45)', () => {
 
   it('sweeps the superseded generation once the new manifest is on disk', async () => {
     installPack();
-    mockOpenDatabaseAsync.mockImplementation(async (name: string) =>
-      (name === 'base.mbtiles'
-        ? fakeDb({ getFirstAsync: jest.fn().mockResolvedValue(null) })
-        : fakeDb()) as never,
+    mockOpenDatabaseAsync.mockImplementation(
+      async (name: string) =>
+        (name === 'base.mbtiles'
+          ? fakeDb({ getFirstAsync: jest.fn().mockResolvedValue(null) })
+          : fakeDb()) as never,
     );
 
     await downloadTrailTiles(TRAIL_ID, BASE_URL);
@@ -1365,10 +1402,11 @@ describe('offline pack generations (#45)', () => {
 
   it('keeps counting up across successive re-downloads', async () => {
     installPack({ 'base.mbtiles': 'base-1.mbtiles', 'contours.mbtiles': 'contours-1.mbtiles' });
-    mockOpenDatabaseAsync.mockImplementation(async (name: string) =>
-      (name === 'base-1.mbtiles'
-        ? fakeDb({ getFirstAsync: jest.fn().mockResolvedValue(null) })
-        : fakeDb()) as never,
+    mockOpenDatabaseAsync.mockImplementation(
+      async (name: string) =>
+        (name === 'base-1.mbtiles'
+          ? fakeDb({ getFirstAsync: jest.fn().mockResolvedValue(null) })
+          : fakeDb()) as never,
     );
 
     await downloadTrailTiles(TRAIL_ID, BASE_URL);
@@ -1384,10 +1422,11 @@ describe('offline pack generations (#45)', () => {
     // MapLibre has open.
     installPack();
     global.fetch = jest.fn().mockResolvedValue({ ok: false }) as unknown as typeof fetch;
-    mockOpenDatabaseAsync.mockImplementation(async (name: string) =>
-      (name === 'base.mbtiles'
-        ? fakeDb({ getFirstAsync: jest.fn().mockResolvedValue(null) })
-        : fakeDb()) as never,
+    mockOpenDatabaseAsync.mockImplementation(
+      async (name: string) =>
+        (name === 'base.mbtiles'
+          ? fakeDb({ getFirstAsync: jest.fn().mockResolvedValue(null) })
+          : fakeDb()) as never,
     );
 
     await downloadTrailTiles(TRAIL_ID, BASE_URL);
@@ -1410,9 +1449,9 @@ describe('offline pack generations (#45)', () => {
 
     await downloadTrailTiles(TRAIL_ID, BASE_URL);
 
-    expect(
-      mockDownloadFileAsync.mock.calls.map((call: unknown[]) => call[0] as string),
-    ).toEqual([`${BASE_URL}/${TRAIL_ID}/contours.mbtiles`]);
+    expect(mockDownloadFileAsync.mock.calls.map((call: unknown[]) => call[0] as string)).toEqual([
+      `${BASE_URL}/${TRAIL_ID}/contours.mbtiles`,
+    ]);
     expect(packFileNames(TRAIL_ID)).toEqual({
       'base.mbtiles': 'base-1.mbtiles',
       'contours.mbtiles': 'contours-2.mbtiles',

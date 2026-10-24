@@ -61,13 +61,20 @@ function decodeValue(buf) {
   for (const f of fields(buf)) {
     const view = f.bytes && new DataView(f.bytes.buffer, f.bytes.byteOffset, f.bytes.length);
     switch (f.field) {
-      case 1: return new TextDecoder().decode(f.bytes);
-      case 2: return view.getFloat32(0, true);
-      case 3: return view.getFloat64(0, true);
-      case 4: return f.value >= 2 ** 63 ? f.value - 2 ** 64 : f.value; // int64: two's complement
-      case 5: return f.value; // uint64
-      case 6: return f.value % 2 === 0 ? f.value / 2 : -(f.value + 1) / 2;
-      case 7: return f.value !== 0;
+      case 1:
+        return new TextDecoder().decode(f.bytes);
+      case 2:
+        return view.getFloat32(0, true);
+      case 3:
+        return view.getFloat64(0, true);
+      case 4:
+        return f.value >= 2 ** 63 ? f.value - 2 ** 64 : f.value; // int64: two's complement
+      case 5:
+        return f.value; // uint64
+      case 6:
+        return f.value % 2 === 0 ? f.value / 2 : -(f.value + 1) / 2;
+      case 7:
+        return f.value !== 0;
     }
   }
   return null;
@@ -103,7 +110,9 @@ export function contourElevations(tile, layerName = 'contour') {
     const values = layer.filter(f => f.field === 4).map(f => decodeValue(f.bytes));
     const elevationKey = keys.indexOf('elevation');
     for (const featureField of layer.filter(f => f.field === 2)) {
-      const tags = fields(featureField.bytes).filter(f => f.field === 2).flatMap(f => packedVarints(f.bytes));
+      const tags = fields(featureField.bytes)
+        .filter(f => f.field === 2)
+        .flatMap(f => packedVarints(f.bytes));
       let elevation = null;
       for (let i = 0; i + 1 < tags.length; i += 2) {
         if (tags[i] === elevationKey) elevation = values[tags[i + 1]] ?? null;

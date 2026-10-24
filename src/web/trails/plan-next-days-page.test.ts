@@ -31,7 +31,7 @@ function bundledPlanPageHtml(): string {
   return inlinePlanShell(
     fs.readFileSync(path.join(ROOT, 'src/web/trails/plan-template.html'), 'utf8'),
     fs.readFileSync(path.join(ROOT, 'src/web/trails/plan-shell.html'), 'utf8'),
-    BUNDLED_PLAN_FILLS,
+    BUNDLED_PLAN_FILLS
   );
 }
 
@@ -78,7 +78,7 @@ function installLeafletStub(): void {
               return mapObj;
             }
           : () => mapObj,
-    },
+    }
   );
   const L = {
     map: () => mapObj,
@@ -210,8 +210,9 @@ const savedDocument = (): PlanDocument => {
   return JSON.parse(raw);
 };
 
-const savedUiPrefs = (): { suggest?: { mode: string; distance: { on: boolean }; ascent: { on: boolean }; hours: { on: boolean } } } =>
-  JSON.parse(localStorage.getItem(`trail-plan-ui-${TRAIL_ID}`) ?? '{}');
+const savedUiPrefs = (): {
+  suggest?: { mode: string; distance: { on: boolean }; ascent: { on: boolean }; hours: { on: boolean } };
+} => JSON.parse(localStorage.getItem(`trail-plan-ui-${TRAIL_ID}`) ?? '{}');
 
 /** Let the 800 ms debounced save land. */
 const flushSave = (): void => void vi.advanceTimersByTime(900);
@@ -291,10 +292,7 @@ describe('the Plan the next few days section', () => {
   });
 
   it('keeps a stop beyond the window, and replaces the ones inside it', async () => {
-    localStorage.setItem(
-      `trail-plan-doc-${TRAIL_ID}`,
-      JSON.stringify(storedPlan([campStop(40), campStop(160)])),
-    );
+    localStorage.setItem(`trail-plan-doc-${TRAIL_ID}`, JSON.stringify(storedPlan([campStop(40), campStop(160)])));
     mockGeolocationAt(0);
     await boot();
     // Without a location the search would start at the last stop (km 160).

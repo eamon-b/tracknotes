@@ -8,9 +8,7 @@ const sharedLib = path.resolve(__dirname, '../src/lib');
 config.watchFolders = [sharedLib];
 
 // Ensure Metro can resolve node_modules from the mobile directory
-config.resolver.nodeModulesPaths = [
-  path.resolve(__dirname, 'node_modules'),
-];
+config.resolver.nodeModulesPaths = [path.resolve(__dirname, 'node_modules')];
 
 // Map @lib/* imports to ../src/lib/*
 config.resolver.extraNodeModules = {

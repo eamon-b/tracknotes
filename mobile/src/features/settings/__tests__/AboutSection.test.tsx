@@ -50,19 +50,20 @@ function mount(): ReactTestRenderer {
 }
 
 function renderedText(r: ReactTestRenderer): string {
-  return r.root
-    .findAllByType(Text)
-    .flatMap((n) => [n.props.children].flat())
-    // Nested <Text> links are elements; their own strings are found separately.
-    .filter((c): c is string => typeof c === 'string')
-    .join(' ');
+  return (
+    r.root
+      .findAllByType(Text)
+      .flatMap((n) => [n.props.children].flat())
+      // Nested <Text> links are elements; their own strings are found separately.
+      .filter((c): c is string => typeof c === 'string')
+      .join(' ')
+  );
 }
 
 async function pressAsync(r: ReactTestRenderer, accessibilityLabel: string) {
   const target = r.root.findAll(
     (n) =>
-      n.props?.accessibilityLabel === accessibilityLabel &&
-      typeof n.props?.onPress === 'function',
+      n.props?.accessibilityLabel === accessibilityLabel && typeof n.props?.onPress === 'function',
   )[0];
   await act(async () => {
     (target.props.onPress as () => void)();

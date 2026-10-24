@@ -139,8 +139,7 @@ function renderedText(r: ReactTestRenderer): string {
 async function pressSave(r: ReactTestRenderer) {
   const target = r.root.findAll(
     (n) =>
-      n.props?.accessibilityLabel === 'Save as my plan' &&
-      typeof n.props?.onPress === 'function',
+      n.props?.accessibilityLabel === 'Save as my plan' && typeof n.props?.onPress === 'function',
   )[0];
   await act(async () => {
     (target.props.onPress as () => void)();
@@ -294,7 +293,11 @@ describe('SharedPlanScreen', () => {
     // Mount Hut is at km 10 on this phone's data; the plan has its stop at km 12.
     const STALE: PlanDocument = { ...DOC, stops: [{ ...DOC.stops[0], km: 12 }] };
     const saveCopy = async (shared: PlanDocument): Promise<PlanDocument> => {
-      mockFetchShared.mockResolvedValue({ document: shared, trailId: 'heysen', ownerDisplayName: 'T' });
+      mockFetchShared.mockResolvedValue({
+        document: shared,
+        trailId: 'heysen',
+        ownerDisplayName: 'T',
+      });
       const apply = jest.fn(async (_trailId: string, edit: (p: PlanDocument) => PlanDocument) =>
         edit(DOC),
       );
@@ -305,7 +308,11 @@ describe('SharedPlanScreen', () => {
     };
 
     it('reads it at the place', async () => {
-      mockFetchShared.mockResolvedValue({ document: STALE, trailId: 'heysen', ownerDisplayName: 'T' });
+      mockFetchShared.mockResolvedValue({
+        document: STALE,
+        trailId: 'heysen',
+        ownerDisplayName: 'T',
+      });
       const r = await mount();
       const days = r.root.findAllByType(DaySplitList)[0].props.days as { endKm: number }[];
       expect(days[0].endKm).toBe(10);
@@ -319,7 +326,11 @@ describe('SharedPlanScreen', () => {
 
     it('shows and saves it as it came when the plan was saved against newer data', async () => {
       const newer = { ...STALE, dataUpdatedAt: '2026-10-15T00:00:00.000Z' };
-      mockFetchShared.mockResolvedValue({ document: newer, trailId: 'heysen', ownerDisplayName: 'T' });
+      mockFetchShared.mockResolvedValue({
+        document: newer,
+        trailId: 'heysen',
+        ownerDisplayName: 'T',
+      });
       const r = await mount();
       const days = r.root.findAllByType(DaySplitList)[0].props.days as { endKm: number }[];
       expect(days[0].endKm).toBe(12);

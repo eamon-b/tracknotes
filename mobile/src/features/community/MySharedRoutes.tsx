@@ -22,7 +22,11 @@ export function routePlaceLine(
   route: Pick<CommunityRouteDetail, 'country' | 'state' | 'lengthKm'>,
   units: Units,
 ): string {
-  return [countryName(route.country), stateName(route.country, route.state), formatDistance(route.lengthKm, units)]
+  return [
+    countryName(route.country),
+    stateName(route.country, route.state),
+    formatDistance(route.lengthKm, units),
+  ]
     .filter(Boolean)
     .join(' · ');
 }
@@ -66,7 +70,10 @@ export function MySharedRouteCard({
           <CommunityStatusPill status={route.status} />
           {why ? <Text style={[styles.why, { color: colors.danger }]}>{why}</Text> : null}
           {summary ? (
-            <Text style={[styles.meta, { color: colors.textSecondary }]} numberOfLines={expanded ? undefined : 2}>
+            <Text
+              style={[styles.meta, { color: colors.textSecondary }]}
+              numberOfLines={expanded ? undefined : 2}
+            >
               {summary}
             </Text>
           ) : null}
@@ -105,7 +112,8 @@ export function MySharedRouteDetail({
         </Text>
       ) : (
         <Text style={[styles.meta, { color: colors.textSecondary }]}>
-          Only you can see this route. It stays off the community list until a moderator restores it.
+          Only you can see this route. It stays off the community list until a moderator restores
+          it.
         </Text>
       )}
 
@@ -135,7 +143,9 @@ export function MySharedRouteDetail({
           {concerns.map((c) => (
             <View key={c} style={styles.concern}>
               <MaterialCommunityIcons name="alert" size={glyphSizes.sm} color={colors.warning} />
-              <Text style={[styles.meta, styles.concernText, { color: colors.textPrimary }]}>{c}</Text>
+              <Text style={[styles.meta, styles.concernText, { color: colors.textPrimary }]}>
+                {c}
+              </Text>
             </View>
           ))}
         </View>

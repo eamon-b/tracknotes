@@ -29,9 +29,7 @@ async function planRow(id: string): Promise<{
   updated_at: string;
   deleted_at: string | null;
 } | null> {
-  return env.DB.prepare(
-    `SELECT user_id, trail_id, share_id, updated_at, deleted_at FROM plans WHERE id = ?`
-  )
+  return env.DB.prepare(`SELECT user_id, trail_id, share_id, updated_at, deleted_at FROM plans WHERE id = ?`)
     .bind(id)
     .first();
 }
@@ -420,9 +418,7 @@ describe('PUT /v1/plans/:id', () => {
       const badId = crypto.randomUUID();
       const refused = await putPlan(device, badId, planBody(badId, { dataUpdatedAt: bad }));
       expect(refused.status, bad).toBe(400);
-      expect(((await refused.json()) as { error: { code: string } }).error.code).toBe(
-        'invalid_data_updated_at'
-      );
+      expect(((await refused.json()) as { error: { code: string } }).error.code).toBe('invalid_data_updated_at');
     }
   });
 
@@ -488,9 +484,7 @@ describe('plan write limit under load', () => {
     expect(statuses.filter((s) => s === 429)).toHaveLength(4);
 
     // Refused requests hand their unit back: the log holds exactly the limit.
-    const row = await env.DB.prepare(
-      `SELECT COUNT(*) AS n FROM rate_events WHERE bucket = 'plan_put' AND key = ?`
-    )
+    const row = await env.DB.prepare(`SELECT COUNT(*) AS n FROM rate_events WHERE bucket = 'plan_put' AND key = ?`)
       .bind(device.userId)
       .first<{ n: number }>();
     expect(row?.n).toBe(240);
@@ -528,9 +522,7 @@ describe('GET /v1/plans', () => {
     const snapshot = (await (await listPlans(device)).json()) as PlansSyncResponse;
     expect(snapshot.plans.some((p) => p.id === id)).toBe(false);
 
-    const delta = (await (
-      await listPlans(device, `?since=${encodeURIComponent(since)}`)
-    ).json()) as PlansSyncResponse;
+    const delta = (await (await listPlans(device, `?since=${encodeURIComponent(since)}`)).json()) as PlansSyncResponse;
     const entry = delta.plans.find((p) => p.id === id);
     expect(entry).toBeDefined();
     expect(entry && 'deleted' in entry ? entry.deleted : false).toBe(true);
@@ -636,9 +628,7 @@ describe('plan sharing', () => {
 
     const results = await Promise.all([share(device, id), share(device, id), share(device, id)]);
     expect(results.map((r) => r.status)).toEqual([200, 200, 200]);
-    const ids = await Promise.all(
-      results.map(async (r) => ((await r.json()) as SharePlanResponse).shareId)
-    );
+    const ids = await Promise.all(results.map(async (r) => ((await r.json()) as SharePlanResponse).shareId));
     expect(new Set(ids).size).toBe(1);
     expect((await SELF.fetch(url(`/v1/shared/plans/${ids[0]}`))).status).toBe(200);
   });
@@ -729,10 +719,9 @@ describe('plan route methods', () => {
     const device = await registerDevice('Methods');
     const { id } = await createPlan(device);
     expect((await SELF.fetch(url('/v1/plans'), { method: 'POST', headers: authHeaders(device) })).status).toBe(405);
-    expect(
-      (await SELF.fetch(url(`/v1/plans/${id}`), { method: 'GET', headers: authHeaders(device) }))
-        .status
-    ).toBe(405);
+    expect((await SELF.fetch(url(`/v1/plans/${id}`), { method: 'GET', headers: authHeaders(device) })).status).toBe(
+      405
+    );
     expect(
       (
         await SELF.fetch(url(`/v1/plans/${id}/share`), {
@@ -762,9 +751,7 @@ describe('a banned account is read-only', () => {
 
     // A fresh plan is refused before it is even validated.
     const fresh = crypto.randomUUID();
-    expect((await putPlan(device, fresh, planBody(fresh, { trailId: 'larapinta' }))).status).toBe(
-      403
-    );
+    expect((await putPlan(device, fresh, planBody(fresh, { trailId: 'larapinta' }))).status).toBe(403);
     expect(await planRow(fresh)).toBeNull();
 
     // Reading still works, and the plan is untouched.

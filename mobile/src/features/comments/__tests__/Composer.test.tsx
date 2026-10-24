@@ -56,23 +56,26 @@ function mount(props: {
 
 /** All rendered text, flattened, so copy assertions don't depend on structure. */
 function renderedText(r: ReactTestRenderer): string {
-  return r.root
-    .findAllByType(Text)
-    // A nested <Text> (the licence line's link) is an element child; it is
-    // visited on its own, so keep only the plain parts here.
-    .map((n) =>
-      JSON.stringify(
-        ([] as unknown[]).concat(n.props.children).filter((c) => typeof c !== 'object' || c === null),
-      ),
-    )
-    .join(' ');
+  return (
+    r.root
+      .findAllByType(Text)
+      // A nested <Text> (the licence line's link) is an element child; it is
+      // visited on its own, so keep only the plain parts here.
+      .map((n) =>
+        JSON.stringify(
+          ([] as unknown[])
+            .concat(n.props.children)
+            .filter((c) => typeof c !== 'object' || c === null),
+        ),
+      )
+      .join(' ')
+  );
 }
 
 function press(r: ReactTestRenderer, accessibilityLabel: string) {
   const target = r.root.findAll(
     (n) =>
-      n.props?.accessibilityLabel === accessibilityLabel &&
-      typeof n.props?.onPress === 'function',
+      n.props?.accessibilityLabel === accessibilityLabel && typeof n.props?.onPress === 'function',
   )[0];
   act(() => {
     (target.props.onPress as () => void)();
@@ -112,9 +115,7 @@ describe('Composer', () => {
     const r = mount({ registered: true, onSubmit: jest.fn() });
     // Only the outer line presses: a nested pressable <Text> is one TalkBack
     // node with its parent, so a link inside it could never be reached.
-    const links = r.root
-      .findAllByType(Text)
-      .filter((n) => typeof n.props.onPress === 'function');
+    const links = r.root.findAllByType(Text).filter((n) => typeof n.props.onPress === 'function');
     expect(links).toHaveLength(1);
     expect(links[0].props.accessibilityRole).toBe('link');
     await act(async () => {

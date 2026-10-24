@@ -1,14 +1,6 @@
 import { SELF, env } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
-import {
-  authHeaders,
-  createComment,
-  putComment,
-  registerDevice,
-  url,
-  wpId,
-  type Device,
-} from './helpers';
+import { authHeaders, createComment, putComment, registerDevice, url, wpId, type Device } from './helpers';
 import { validateCommentTarget } from '../src/validation';
 import { poiCommentId } from '../../../src/lib/poi-display';
 import { userWaypointId } from '../../../src/lib/user-waypoints';
@@ -42,19 +34,13 @@ async function seedRateEvents(bucket: string, userId: string, count: number): Pr
   const now = new Date().toISOString();
   await env.DB.batch(
     Array.from({ length: count }, () =>
-      env.DB.prepare(`INSERT INTO rate_events (bucket, key, created_at) VALUES (?, ?, ?)`).bind(
-        bucket,
-        userId,
-        now
-      )
+      env.DB.prepare(`INSERT INTO rate_events (bucket, key, created_at) VALUES (?, ?, ?)`).bind(bucket, userId, now)
     )
   );
 }
 
 async function countRateEvents(bucket: string, userId: string): Promise<number> {
-  const row = await env.DB.prepare(
-    `SELECT COUNT(*) AS n FROM rate_events WHERE bucket = ? AND key = ?`
-  )
+  const row = await env.DB.prepare(`SELECT COUNT(*) AS n FROM rate_events WHERE bucket = ? AND key = ?`)
     .bind(bucket, userId)
     .first<{ n: number }>();
   return row?.n ?? 0;
@@ -200,9 +186,7 @@ describe('comment post limit under load', () => {
     await seedRateEvents('comment_post', device.userId, 59);
 
     const results = await Promise.all(
-      Array.from({ length: 5 }, (_, i) =>
-        createComment(device, { waypointId: wpId('burst-wp'), text: `burst ${i}` })
-      )
+      Array.from({ length: 5 }, (_, i) => createComment(device, { waypointId: wpId('burst-wp'), text: `burst ${i}` }))
     );
     const statuses = results.map((r) => r.res.status);
     expect(statuses.filter((s) => s === 201)).toHaveLength(1);

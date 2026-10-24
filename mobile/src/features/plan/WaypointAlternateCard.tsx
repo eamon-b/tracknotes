@@ -54,7 +54,9 @@ function statusOf(a: WaypointAlternate): string {
     return 'This place is on the stretch of main route the alternate replaces, so it is not on the route you planned.';
   }
   if (!a.plannable) {
-    return a.parentName ? `It branches off another alternate: ${alternateLabel(a.parentName)}.` : '';
+    return a.parentName
+      ? `It branches off another alternate: ${alternateLabel(a.parentName)}.`
+      : '';
   }
   return a.taken ? 'Your plan takes this alternate.' : 'Your plan stays on the main route here.';
 }
@@ -67,13 +69,12 @@ export function WaypointAlternateCard({
   onOpenPlace,
 }: WaypointAlternateCardProps) {
   const { colors } = useTheme();
-  const climb = a.ascentM || a.descentM
-    ? ` · ↑ ${formatElevation(a.ascentM, units)} · ↓ ${formatElevation(a.descentM, units)}`
-    : '';
-  const along =
-    a.role === 'on' && a.kmAlong !== null
-      ? `${formatDistance(a.kmAlong, units)} along it · `
+  const climb =
+    a.ascentM || a.descentM
+      ? ` · ↑ ${formatElevation(a.ascentM, units)} · ↓ ${formatElevation(a.descentM, units)}`
       : '';
+  const along =
+    a.role === 'on' && a.kmAlong !== null ? `${formatDistance(a.kmAlong, units)} along it · ` : '';
   const delta = a.plannable ? a.plannable.distanceKm - a.plannable.mainDistanceKm : null;
   const deltaText =
     delta === null
@@ -118,7 +119,9 @@ export function WaypointAlternateCard({
         />
       )}
 
-      {status ? <Text style={[styles.detail, { color: colors.textSecondary }]}>{status}</Text> : null}
+      {status ? (
+        <Text style={[styles.detail, { color: colors.textSecondary }]}>{status}</Text>
+      ) : null}
       {canChoose && !a.taken && a.replaces.length > 0 && (
         <Text style={[styles.detail, { color: colors.textSecondary }]}>
           {`Taking it drops ${a.replaces.map(alternateLabel).join(' and ')}, which covers the same main route.`}

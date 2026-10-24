@@ -16,11 +16,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import type { Env } from './http';
-import type {
-  CommunityAiReview,
-  CommunityCheck,
-  CommunityReviewVerdict,
-} from '../../../src/lib/community-types';
+import type { CommunityAiReview, CommunityCheck, CommunityReviewVerdict } from '../../../src/lib/community-types';
 import { isValidCountry, isValidState } from '../../../src/lib/trail-regions';
 import type { ProcessedTrail } from '../../../src/lib/trail-types';
 
@@ -167,7 +163,9 @@ export function sampleDescriptions(trail: ProcessedTrail): { sample: SampledDesc
   let used = 0;
   for (const d of picked) {
     const description =
-      d.description.length > MAX_DESCRIPTION_CHARS ? `${d.description.slice(0, MAX_DESCRIPTION_CHARS)}…` : d.description;
+      d.description.length > MAX_DESCRIPTION_CHARS
+        ? `${d.description.slice(0, MAX_DESCRIPTION_CHARS)}…`
+        : d.description;
     if (used + description.length > MAX_DESCRIPTIONS_TOTAL_CHARS) break;
     used += description.length;
     sample.push({ waypoint: d.waypoint.slice(0, 100), description });
@@ -208,7 +206,10 @@ export function sampleWaypointNames(trail: ProcessedTrail): {
       (v.waypoints ?? []).map((w) => ({ ...pick(w), on: v.name.slice(0, MAX_WAYPOINT_NAME_CHARS) }))
     ),
   ];
-  const otherRoom = Math.min(other.length, Math.max(MIN_OTHER_WAYPOINTS_SENT, MAX_WAYPOINTS_SENT - trail.waypoints.length));
+  const otherRoom = Math.min(
+    other.length,
+    Math.max(MIN_OTHER_WAYPOINTS_SENT, MAX_WAYPOINTS_SENT - trail.waypoints.length)
+  );
   const mainRoom = MAX_WAYPOINTS_SENT - otherRoom;
   return {
     main: trail.waypoints.slice(0, mainRoom).map(pick),
@@ -351,9 +352,5 @@ export async function runAiReview(
 
 /** True when a review should hide an unverified route. */
 export function reviewHides(review: CommunityAiReview): boolean {
-  return (
-    review.status === 'done' &&
-    review.verdict === 'reject' &&
-    (review.confidence ?? 0) >= REVIEW_HIDE_CONFIDENCE
-  );
+  return review.status === 'done' && review.verdict === 'reject' && (review.confidence ?? 0) >= REVIEW_HIDE_CONFIDENCE;
 }

@@ -150,7 +150,10 @@ const M_PER_DEG = 111_320;
 /** Uniform grid over node indices, in degrees, for radius queries. */
 class NodeGrid {
   private readonly cells = new Map<string, number[]>();
-  constructor(private readonly network: WalkNetwork, private readonly cellDeg: number) {
+  constructor(
+    private readonly network: WalkNetwork,
+    private readonly cellDeg: number
+  ) {
     for (let i = 0; i < network.lat.length; i++) {
       const key = this.key(network.lat[i], network.lon[i]);
       const cell = this.cells.get(key);

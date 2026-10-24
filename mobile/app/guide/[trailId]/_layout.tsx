@@ -10,10 +10,7 @@
 
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '../../../src/theme';
-import {
-  HeaderActions,
-  HeaderIconButton,
-} from '../../../src/navigation/HeaderIconButton';
+import { HeaderActions, HeaderIconButton } from '../../../src/navigation/HeaderIconButton';
 import { GuideProvider } from '../../../src/features/guide/GuideContext';
 import { useTrailTitle } from '../../../src/features/guide/use-trail-title';
 import { GuidePositionProvider } from '../../../src/features/guide/GuidePositionContext';
@@ -35,112 +32,110 @@ export default function GuideLayout() {
       {/* Hoisted so the index panes AND the waypoint detail screen share one
           GPS session (distance-from-me / ETA on the detail screen). */}
       <GuidePositionProvider>
-      <Stack
-        screenOptions={{
-          headerStyle: { backgroundColor: colors.accent },
-          headerTintColor: colors.accentText,
-          headerTitleStyle: { color: colors.accentText },
-          contentStyle: { backgroundColor: colors.background },
-        }}
-      >
-        <Stack.Screen
-          name="index"
-          options={{
-            title,
-            // `calendar-today` for today's plan (only when there is one),
-            // `routes` (a branching path) for alternates, `calendar-check` for
-            // the day-split planner, `download` for tile packs, `cog` for the
-            // app-wide settings the root header also links to.
-            headerRight: () => (
-              <HeaderActions>
-                {community && (
-                  <HeaderIconButton
-                    name="information-outline"
-                    accessibilityLabel="About this community route"
-                    onPress={() =>
-                      router.push({ pathname: '/community-route', params: { id: trailId } })
-                    }
-                  />
-                )}
-                {shareable && (
-                  <HeaderIconButton
-                    name="share-variant"
-                    accessibilityLabel="Share to community"
-                    onPress={() =>
-                      router.push({ pathname: '/share-route', params: { trailId } })
-                    }
-                  />
-                )}
-                {/* Only while the plan has a day dated today. */}
-                <TodayHeaderButton trailId={trailId} />
-                <HeaderIconButton
-                  name="routes"
-                  accessibilityLabel="Routes"
-                  onPress={() =>
-                    router.push({
-                      pathname: '/guide/[trailId]/routes',
-                      params: { trailId },
-                    })
-                  }
-                />
-                <HeaderIconButton
-                  name="calendar-check"
-                  accessibilityLabel="Plan"
-                  onPress={() =>
-                    router.push({
-                      pathname: '/guide/[trailId]/plan',
-                      params: { trailId },
-                    })
-                  }
-                />
-                <HeaderIconButton
-                  name="download"
-                  accessibilityLabel="Offline maps"
-                  onPress={() =>
-                    router.push({
-                      pathname: '/guide/[trailId]/downloads',
-                      params: { trailId },
-                    })
-                  }
-                />
-                <HeaderIconButton
-                  name="cog"
-                  accessibilityLabel="Settings"
-                  onPress={() => router.push('/settings')}
-                />
-              </HeaderActions>
-            ),
+        <Stack
+          screenOptions={{
+            headerStyle: { backgroundColor: colors.accent },
+            headerTintColor: colors.accentText,
+            headerTitleStyle: { color: colors.accentText },
+            contentStyle: { backgroundColor: colors.background },
           }}
-        />
-        <Stack.Screen name="downloads" options={{ title: 'Offline maps' }} />
-        <Stack.Screen name="routes" options={{ title: 'Routes' }} />
-        <Stack.Screen name="plan" options={{ title: 'Plan' }} />
-        <Stack.Screen name="today" options={{ title: 'Today' }} />
-        {/* A Plan screen day card's waypoints; titled "Day N" from within. */}
-        <Stack.Screen name="day" options={{ title: 'Day' }} />
-        {/* A modal over the plan: 70 CDT rows want a header, a scroll and a
+        >
+          <Stack.Screen
+            name="index"
+            options={{
+              title,
+              // `calendar-today` for today's plan (only when there is one),
+              // `routes` (a branching path) for alternates, `calendar-check` for
+              // the day-split planner, `download` for tile packs, `cog` for the
+              // app-wide settings the root header also links to.
+              headerRight: () => (
+                <HeaderActions>
+                  {community && (
+                    <HeaderIconButton
+                      name="information-outline"
+                      accessibilityLabel="About this community route"
+                      onPress={() =>
+                        router.push({ pathname: '/community-route', params: { id: trailId } })
+                      }
+                    />
+                  )}
+                  {shareable && (
+                    <HeaderIconButton
+                      name="share-variant"
+                      accessibilityLabel="Share to community"
+                      onPress={() => router.push({ pathname: '/share-route', params: { trailId } })}
+                    />
+                  )}
+                  {/* Only while the plan has a day dated today. */}
+                  <TodayHeaderButton trailId={trailId} />
+                  <HeaderIconButton
+                    name="routes"
+                    accessibilityLabel="Routes"
+                    onPress={() =>
+                      router.push({
+                        pathname: '/guide/[trailId]/routes',
+                        params: { trailId },
+                      })
+                    }
+                  />
+                  <HeaderIconButton
+                    name="calendar-check"
+                    accessibilityLabel="Plan"
+                    onPress={() =>
+                      router.push({
+                        pathname: '/guide/[trailId]/plan',
+                        params: { trailId },
+                      })
+                    }
+                  />
+                  <HeaderIconButton
+                    name="download"
+                    accessibilityLabel="Offline maps"
+                    onPress={() =>
+                      router.push({
+                        pathname: '/guide/[trailId]/downloads',
+                        params: { trailId },
+                      })
+                    }
+                  />
+                  <HeaderIconButton
+                    name="cog"
+                    accessibilityLabel="Settings"
+                    onPress={() => router.push('/settings')}
+                  />
+                </HeaderActions>
+              ),
+            }}
+          />
+          <Stack.Screen name="downloads" options={{ title: 'Offline maps' }} />
+          <Stack.Screen name="routes" options={{ title: 'Routes' }} />
+          <Stack.Screen name="plan" options={{ title: 'Plan' }} />
+          <Stack.Screen name="today" options={{ title: 'Today' }} />
+          {/* A Plan screen day card's waypoints; titled "Day N" from within. */}
+          <Stack.Screen name="day" options={{ title: 'Day' }} />
+          {/* A modal over the plan: 70 CDT rows want a header, a scroll and a
             back gesture, which a sheet has none of. */}
-        <Stack.Screen
-          name="resupply"
-          options={{ title: 'Resupply stops', presentation: 'modal' }}
-        />
-        {/* Title is overridden with the waypoint name from within the screen. */}
-        <Stack.Screen name="waypoint/[waypointId]" options={{ title: 'Waypoint' }} />
-        {/* Add / edit a hiker waypoint; the screen sets its own title. */}
-        <Stack.Screen
-          name="waypoint-edit"
-          options={{ title: 'New waypoint', presentation: 'modal' }}
-        />
-        {/* The on-phone OpenStreetMap search for an import, from the map's
+          <Stack.Screen
+            name="resupply"
+            options={{ title: 'Resupply stops', presentation: 'modal' }}
+          />
+          {/* Title is overridden with the waypoint name from within the screen. */}
+          <Stack.Screen name="waypoint/[waypointId]" options={{ title: 'Waypoint' }} />
+          {/* Add / edit a hiker waypoint; the screen sets its own title. */}
+          <Stack.Screen
+            name="waypoint-edit"
+            options={{ title: 'New waypoint', presentation: 'modal' }}
+          />
+          {/* The on-phone OpenStreetMap search for an import, from the map's
             layers sheet: a modal, like the resupply picker, since it is a
             task with its own Done rather than a place in the guide. */}
-        <Stack.Screen
-          name="find-pois"
-          options={{ title: 'Points of interest', presentation: 'modal' }}
-        />
-        {/* Title is overridden with the POI name from within the screen. */}
-        <Stack.Screen name="poi/[poiKey]" options={{ title: 'Point of interest' }} />
-      </Stack>
+          <Stack.Screen
+            name="find-pois"
+            options={{ title: 'Points of interest', presentation: 'modal' }}
+          />
+          {/* Title is overridden with the POI name from within the screen. */}
+          <Stack.Screen name="poi/[poiKey]" options={{ title: 'Point of interest' }} />
+        </Stack>
       </GuidePositionProvider>
     </GuideProvider>
   );

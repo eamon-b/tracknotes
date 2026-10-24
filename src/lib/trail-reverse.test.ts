@@ -89,11 +89,11 @@ describe('reverseWaypoints', () => {
     const reversed = reverseWaypoints(waypoints, 100, 500);
     expect(reversed).toHaveLength(2);
     expect(reversed[0].name).toBe('End');
-    expect(reversed[0].ascent).toBe(0);  // the new start has no arriving segment
+    expect(reversed[0].ascent).toBe(0); // the new start has no arriving segment
     expect(reversed[0].descent).toBe(0);
     expect(reversed[0].trackIndex).toBe(249); // trackLength - 1 - 250
     expect(reversed[1].name).toBe('Start');
-    expect(reversed[1].ascent).toBe(50);   // Start→End descent, walked backwards
+    expect(reversed[1].ascent).toBe(50); // Start→End descent, walked backwards
     expect(reversed[1].descent).toBe(100); // Start→End ascent, walked backwards
     expect(reversed[1].trackIndex).toBe(499);
   });
@@ -286,12 +286,8 @@ describe('createReversedTrail', () => {
         totalDescent: 0,
       },
       waypoints: [],
-      alternates: [
-        { name: 'Alt 1', startDistance: 10, endDistance: 30, distance: 15, points: [] },
-      ],
-      sideTrips: [
-        { name: 'Trip 1', startDistance: 25 },
-      ],
+      alternates: [{ name: 'Alt 1', startDistance: 10, endDistance: 30, distance: 15, points: [] }],
+      sideTrips: [{ name: 'Trip 1', startDistance: 25 }],
     };
 
     const reversed = createReversedTrail(trail);
@@ -415,9 +411,7 @@ describe('createReversedTrail with route breaks', () => {
 
     const reversed = createReversedTrail(trail);
 
-    expect(reversed.track.breaks).toEqual([
-      { index: 2, displayIndex: 2, km: 1, fromTrack: 'B', toTrack: 'A' },
-    ]);
+    expect(reversed.track.breaks).toEqual([{ index: 2, displayIndex: 2, km: 1, fromTrack: 'B', toTrack: 'A' }]);
     // The break still separates two points that share a km.
     const points = reversed.track.points;
     expect(points[2].dist).toBe(points[1].dist);
@@ -486,7 +480,7 @@ describe('reverseTrackPoints with pre-computed cumulative climb', () => {
         { lat: -34, lon: 115, ele: 450, dist: 10 },
         { lat: -34.01, lon: 115, ele: 400, dist: 20 },
       ],
-      new Set([2]),
+      new Set([2])
     );
     const reversed = reverseTrackPoints(ferry, 20);
 

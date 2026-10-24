@@ -7,13 +7,7 @@
  * Each source name maps to one PMTiles archive in R2 (see SOURCES).
  */
 
-import {
-  EtagMismatch,
-  PMTiles,
-  RangeResponse,
-  ResolvedValueCache,
-  Source,
-} from 'pmtiles';
+import { EtagMismatch, PMTiles, RangeResponse, ResolvedValueCache, Source } from 'pmtiles';
 import { parseTilePath } from './tile-path';
 
 interface Env {
@@ -39,9 +33,7 @@ function addVary(headers: Headers, field: string): void {
     headers.set('Vary', field);
     return;
   }
-  const alreadyListed = existing
-    .split(',')
-    .some((value) => value.trim().toLowerCase() === field.toLowerCase());
+  const alreadyListed = existing.split(',').some((value) => value.trim().toLowerCase() === field.toLowerCase());
   if (!alreadyListed) headers.set('Vary', `${existing}, ${field}`);
 }
 
@@ -65,12 +57,7 @@ function addVary(headers: Headers, field: string): void {
  * Also strips the body for HEAD, so upstream code can build one full-bodied
  * response and let this decide what actually goes on the wire.
  */
-function finalize(
-  response: Response,
-  env: Env,
-  request: Request,
-  edgeCacheStatus?: 'HIT' | 'MISS'
-): Response {
+function finalize(response: Response, env: Env, request: Request, edgeCacheStatus?: 'HIT' | 'MISS'): Response {
   const headers = new Headers(response.headers);
   for (const [name, value] of Object.entries(corsHeaders(env))) {
     headers.set(name, value);
@@ -120,12 +107,7 @@ class R2Source implements Source {
     return this.key;
   }
 
-  async getBytes(
-    offset: number,
-    length: number,
-    signal?: AbortSignal,
-    expectedEtag?: string
-  ): Promise<RangeResponse> {
+  async getBytes(offset: number, length: number, signal?: AbortSignal, expectedEtag?: string): Promise<RangeResponse> {
     if (signal?.aborted) {
       throw new Error('Tile range request was aborted');
     }
@@ -139,9 +121,7 @@ class R2Source implements Source {
     }
 
     if (expectedEtag && obj.etag !== expectedEtag) {
-      throw new EtagMismatch(
-        `R2 object changed while reading ${this.key}: expected ${expectedEtag}, got ${obj.etag}`
-      );
+      throw new EtagMismatch(`R2 object changed while reading ${this.key}: expected ${expectedEtag}, got ${obj.etag}`);
     }
 
     const data = await obj.arrayBuffer();
@@ -267,10 +247,7 @@ async function healthResponse(env: Env): Promise<Response> {
  */
 function isEtagMismatch(error: unknown): boolean {
   if (error instanceof EtagMismatch) return true;
-  return (
-    error instanceof Error &&
-    (error.constructor?.name === 'EtagMismatch' || /etag/i.test(error.message))
-  );
+  return error instanceof Error && (error.constructor?.name === 'EtagMismatch' || /etag/i.test(error.message));
 }
 
 export default {
@@ -300,11 +277,7 @@ export default {
     const tile = parseTilePath(url.pathname);
 
     if (!tile) {
-      return finalize(
-        new Response('Not found. Use: /{source}/{z}/{x}/{y}.pbf', { status: 404 }),
-        env,
-        request
-      );
+      return finalize(new Response('Not found. Use: /{source}/{z}/{x}/{y}.pbf', { status: 404 }), env, request);
     }
 
     if (!isKnownSource(tile.source)) {
@@ -401,8 +374,7 @@ export default {
             .put(cacheKey, response.clone())
             .catch((error: unknown) =>
               console.error(
-                `Edge cache put failed for ${url.pathname}: ` +
-                  (error instanceof Error ? error.message : String(error))
+                `Edge cache put failed for ${url.pathname}: ` + (error instanceof Error ? error.message : String(error))
               )
             )
         );
@@ -428,7 +400,7 @@ export default {
         pmtilesInstances.delete(tile.source);
         console.warn(
           `Tile ${tile.source}/${tile.z}/${tile.x}/${tile.y}: retrying with fresh PMTiles instance after etag mismatch: ` +
-          (firstError instanceof Error ? firstError.message : String(firstError))
+            (firstError instanceof Error ? firstError.message : String(firstError))
         );
         return cacheAndFinalize(await serveTile());
       }

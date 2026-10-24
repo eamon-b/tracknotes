@@ -71,7 +71,7 @@ export const MAX_LIST_PAGES = 20;
 async function listAllPages(
   path: string,
   query: URLSearchParams,
-  options: { token?: string; fetchImpl?: FetchLike; signal?: AbortSignal },
+  options: { token?: string; fetchImpl?: FetchLike; signal?: AbortSignal }
 ): Promise<unknown[]> {
   const rows: unknown[] = [];
   const ids = new Set<string>();
@@ -83,7 +83,7 @@ async function listAllPages(
     const qs = q.toString();
     const response = await apiRequest<{ routes?: unknown; nextCursor?: unknown } | null>(
       `${path}${qs ? `?${qs}` : ''}`,
-      options,
+      options
     );
     const routes = response?.routes;
     if (Array.isArray(routes)) {
@@ -132,7 +132,7 @@ export function isCommunityRouteSummary(value: unknown): value is CommunityRoute
  */
 export async function listCommunityRoutes(
   filter: CommunityListFilter = {},
-  deps: CommunityApiDeps = {},
+  deps: CommunityApiDeps = {}
 ): Promise<CommunityRouteSummary[] | null> {
   if (!getApiBase()) return null;
   const query = new URLSearchParams();
@@ -153,7 +153,7 @@ export async function listCommunityRoutes(
 export async function getCommunityRoute(
   id: string,
   session: WebSession | null = null,
-  deps: CommunityApiDeps = {},
+  deps: CommunityApiDeps = {}
 ): Promise<CommunityRouteDetail> {
   return apiRequest<CommunityRouteDetail>(routePath(id), {
     token: session?.token,
@@ -169,7 +169,7 @@ export async function getCommunityRoute(
 export async function submitCommunityRoute(
   session: WebSession,
   request: CommunitySubmitRequest,
-  deps: CommunityApiDeps = {},
+  deps: CommunityApiDeps = {}
 ): Promise<CommunityRouteDetail> {
   return apiRequest<CommunityRouteDetail>('/v1/community/routes', {
     method: 'POST',
@@ -184,7 +184,7 @@ export async function patchCommunityRoute(
   session: WebSession,
   id: string,
   patch: CommunityPatchRequest,
-  deps: CommunityApiDeps = {},
+  deps: CommunityApiDeps = {}
 ): Promise<CommunityRouteDetail> {
   return apiRequest<CommunityRouteDetail>(routePath(id), {
     method: 'PATCH',
@@ -198,7 +198,7 @@ export async function patchCommunityRoute(
 export async function deleteCommunityRoute(
   session: WebSession,
   id: string,
-  deps: CommunityApiDeps = {},
+  deps: CommunityApiDeps = {}
 ): Promise<void> {
   await apiRequest<unknown>(routePath(id), {
     method: 'DELETE',
@@ -213,7 +213,7 @@ export async function reportCommunityRoute(
   id: string,
   reason: CommunityReportReason,
   note: string | null = null,
-  deps: CommunityApiDeps = {},
+  deps: CommunityApiDeps = {}
 ): Promise<void> {
   const trimmed = note?.trim();
   await apiRequest<unknown>(`${routePath(id)}/report`, {
@@ -250,7 +250,7 @@ export function isOwnCommunityRoute(value: unknown): value is CommunityRouteDeta
  */
 export async function listMyCommunityRoutes(
   session: WebSession,
-  deps: CommunityApiDeps = {},
+  deps: CommunityApiDeps = {}
 ): Promise<CommunityRouteDetail[]> {
   const routes = await listAllPages('/v1/me/community/routes', new URLSearchParams(), {
     token: session.token,
@@ -263,7 +263,7 @@ export async function listMyCommunityRoutes(
 /** The admin queue: everything not removed. 403 for a non-admin. */
 export async function adminListCommunityRoutes(
   session: WebSession,
-  deps: CommunityApiDeps = {},
+  deps: CommunityApiDeps = {}
 ): Promise<CommunityRouteDetail[]> {
   const routes = await listAllPages('/v1/admin/community/routes', new URLSearchParams(), {
     token: session.token,
@@ -279,7 +279,7 @@ export async function adminSetCommunityStatus(
   id: string,
   status: Extract<CommunityRouteStatus, 'verified' | 'unverified' | 'hidden'>,
   note: string | null = null,
-  deps: CommunityApiDeps = {},
+  deps: CommunityApiDeps = {}
 ): Promise<void> {
   const trimmed = note?.trim();
   await apiRequest<unknown>(`/v1/admin/community/routes/${encodeURIComponent(id)}/status`, {
@@ -291,11 +291,7 @@ export async function adminSetCommunityStatus(
 }
 
 /** Ask the worker to run the AI review again. */
-export async function adminRerunReview(
-  session: WebSession,
-  id: string,
-  deps: CommunityApiDeps = {},
-): Promise<void> {
+export async function adminRerunReview(session: WebSession, id: string, deps: CommunityApiDeps = {}): Promise<void> {
   await apiRequest<unknown>(`/v1/admin/community/routes/${encodeURIComponent(id)}/review`, {
     method: 'POST',
     token: session.token,
@@ -317,7 +313,7 @@ export function checksFromError(err: unknown): CommunityCheck[] | null {
       c !== null &&
       typeof (c as CommunityCheck).id === 'string' &&
       typeof (c as CommunityCheck).message === 'string' &&
-      ['pass', 'warn', 'fail'].includes((c as CommunityCheck).level),
+      ['pass', 'warn', 'fail'].includes((c as CommunityCheck).level)
   );
 }
 
@@ -361,7 +357,7 @@ export function isUsableCommunityTrail(value: unknown): value is ProcessedTrail 
  */
 export async function fetchCommunityTrail(
   summary: Pick<CommunityRouteSummary, 'id' | 'trailUrl'>,
-  deps: CommunityApiDeps = {},
+  deps: CommunityApiDeps = {}
 ): Promise<ProcessedTrail> {
   if (!summary.trailUrl) {
     // A hidden route, seen by its owner or an admin: no public copy exists.

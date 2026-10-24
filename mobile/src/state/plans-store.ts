@@ -193,7 +193,9 @@ export const usePlansStore = create<PlansState>((set, get) => {
       // a device on older data leaves the stops where this data has them
       // (`refreshStopKms`). Resolved here, not left behind by a screen.
       const dataUpdatedAt =
-        defaults?.dataUpdatedAt !== undefined ? defaults.dataUpdatedAt : trailDataUpdatedAt(trailId);
+        defaults?.dataUpdatedAt !== undefined
+          ? defaults.dataUpdatedAt
+          : trailDataUpdatedAt(trailId);
       const next = stampPlanData(edited, dataUpdatedAt);
       assertPlanDocumentWithinLimits(next);
       await plansRepo.upsertLocal(db, next);

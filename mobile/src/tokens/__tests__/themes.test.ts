@@ -37,18 +37,46 @@ function contrastRatio(hex1: string, hex2: string): number {
 
 describe('Design Tokens — Themes', () => {
   const requiredKeys: (keyof ThemeColors)[] = [
-    'background', 'surface', 'surfaceElevated',
-    'textPrimary', 'textSecondary', 'textInverse',
-    'border', 'borderSubtle',
-    'accent', 'accentSubtle', 'accentMuted', 'accentText',
-    'danger', 'dangerText', 'warning', 'warningText', 'success', 'info',
-    'waypointWater', 'waypointCamp', 'waypointTown', 'waypointShelter',
-    'waypointJunction', 'waypointHazard', 'waypointFavorite',
-    'resupplyPlanned', 'offTrail',
-    'waterFlowing', 'waterLow', 'waterDry',
-    'downloadIdle', 'downloadActive', 'downloadDone', 'downloadError',
-    'chartGrid', 'chartLine', 'chartFillTop', 'chartFillBottom',
-    'chartCrosshair', 'chartMarker',
+    'background',
+    'surface',
+    'surfaceElevated',
+    'textPrimary',
+    'textSecondary',
+    'textInverse',
+    'border',
+    'borderSubtle',
+    'accent',
+    'accentSubtle',
+    'accentMuted',
+    'accentText',
+    'danger',
+    'dangerText',
+    'warning',
+    'warningText',
+    'success',
+    'info',
+    'waypointWater',
+    'waypointCamp',
+    'waypointTown',
+    'waypointShelter',
+    'waypointJunction',
+    'waypointHazard',
+    'waypointFavorite',
+    'resupplyPlanned',
+    'offTrail',
+    'waterFlowing',
+    'waterLow',
+    'waterDry',
+    'downloadIdle',
+    'downloadActive',
+    'downloadDone',
+    'downloadError',
+    'chartGrid',
+    'chartLine',
+    'chartFillTop',
+    'chartFillBottom',
+    'chartCrosshair',
+    'chartMarker',
     'gps',
     'scrim',
     'statusBarStyle',
@@ -89,8 +117,14 @@ describe('Design Tokens — Themes', () => {
 
   it('waypoint category colors are all distinct within each theme', () => {
     const waypointKeys: (keyof ThemeColors)[] = [
-      'waypointWater', 'waypointCamp', 'waypointTown', 'waypointShelter',
-      'waypointJunction', 'waypointFavorite', 'resupplyPlanned', 'offTrail',
+      'waypointWater',
+      'waypointCamp',
+      'waypointTown',
+      'waypointShelter',
+      'waypointJunction',
+      'waypointFavorite',
+      'resupplyPlanned',
+      'offTrail',
     ];
     for (const variant of themeVariants) {
       const theme = resolveTheme(variant);
@@ -109,7 +143,12 @@ describe('Design Tokens — Themes', () => {
   it('download-state colors are distinguishable in every theme', () => {
     for (const variant of themeVariants) {
       const theme = resolveTheme(variant);
-      const states = [theme.downloadIdle, theme.downloadActive, theme.downloadDone, theme.downloadError];
+      const states = [
+        theme.downloadIdle,
+        theme.downloadActive,
+        theme.downloadDone,
+        theme.downloadError,
+      ];
       expect(new Set(states).size).toBe(4);
     }
   });
@@ -176,9 +215,18 @@ describe('Design Tokens — Themes', () => {
 
       it(`${label}: waypoint + water-status + gps colors meet 3:1 against background`, () => {
         const keys: (keyof ThemeColors)[] = [
-          'waypointWater', 'waypointCamp', 'waypointTown', 'waypointShelter',
-          'waypointJunction', 'waypointHazard', 'waypointFavorite', 'resupplyPlanned',
-          'waterFlowing', 'waterLow', 'waterDry', 'gps',
+          'waypointWater',
+          'waypointCamp',
+          'waypointTown',
+          'waypointShelter',
+          'waypointJunction',
+          'waypointHazard',
+          'waypointFavorite',
+          'resupplyPlanned',
+          'waterFlowing',
+          'waterLow',
+          'waterDry',
+          'gps',
         ];
         for (const key of keys) {
           expect(contrastRatio(theme[key] as string, theme.background)).toBeGreaterThanOrEqual(3.0);

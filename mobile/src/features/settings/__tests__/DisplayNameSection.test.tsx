@@ -68,8 +68,7 @@ function renderedText(r: ReactTestRenderer): string {
 function press(r: ReactTestRenderer, accessibilityLabel: string) {
   const target = r.root.findAll(
     (n) =>
-      n.props?.accessibilityLabel === accessibilityLabel &&
-      typeof n.props?.onPress === 'function',
+      n.props?.accessibilityLabel === accessibilityLabel && typeof n.props?.onPress === 'function',
   )[0];
   act(() => {
     (target.props.onPress as () => void)();

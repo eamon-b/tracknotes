@@ -71,7 +71,14 @@ describe('mergeIndexEntry', () => {
 
   it('writes the fields in the contract order', () => {
     expect(Object.keys(mergeIndexEntry(BASE, digest, undefined, NOW))).toEqual([
-      'id', 'name', 'shortName', 'lengthKm', 'dataVersion', 'updatedAt', 'md5', 'bytes',
+      'id',
+      'name',
+      'shortName',
+      'lengthKm',
+      'dataVersion',
+      'updatedAt',
+      'md5',
+      'bytes',
     ]);
   });
 });
@@ -149,7 +156,7 @@ describe('sourceCommitVerdict', () => {
   const live = 'a'.repeat(40);
   const head = 'b'.repeat(40);
 
-  it('passes when the live commit is in HEAD\'s history, or is HEAD', () => {
+  it("passes when the live commit is in HEAD's history, or is HEAD", () => {
     expect(sourceCommitVerdict(live, head, true)).toEqual({ kind: 'ok' });
     expect(sourceCommitVerdict(head, head, null)).toEqual({ kind: 'ok' });
   });
@@ -218,9 +225,7 @@ describe('parseCatalog', () => {
   it('reads a sourceCommit and refuses one that is not a commit id', () => {
     const catalog = buildCatalog([entry()], NOW, 'd'.repeat(40));
     expect(parseCatalog(JSON.stringify(catalog)).sourceCommit).toBe('d'.repeat(40));
-    expect(() => parseCatalog(JSON.stringify({ ...catalog, sourceCommit: 'main' }))).toThrow(
-      /sourceCommit/
-    );
+    expect(() => parseCatalog(JSON.stringify({ ...catalog, sourceCommit: 'main' }))).toThrow(/sourceCommit/);
   });
 });
 
@@ -294,7 +299,7 @@ describe('the committed mobile index', () => {
 
 describe('parseAllowedTrails', () => {
   it('reads the array literal', () => {
-    const source = "export const ALLOWED_TRAILS: readonly string[] = [\n  'aawt',\n  \"cdt\",\n];";
+    const source = 'export const ALLOWED_TRAILS: readonly string[] = [\n  \'aawt\',\n  "cdt",\n];';
     expect(parseAllowedTrails(source)).toEqual(['aawt', 'cdt']);
     expect(() => parseAllowedTrails('nothing here')).toThrow();
   });

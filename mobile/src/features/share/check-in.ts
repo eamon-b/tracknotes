@@ -96,9 +96,7 @@ export function composeCheckIn(input: CheckInInput): CheckInPayload {
   let linkLon: number | null = null;
 
   const gpsAway =
-    waypoint && gps
-      ? haversineDistance(gps.lat, gps.lon, waypoint.lat, waypoint.lon)
-      : null;
+    waypoint && gps ? haversineDistance(gps.lat, gps.lon, waypoint.lat, waypoint.lon) : null;
 
   if (waypoint && (gpsAway == null || gpsAway <= AT_WAYPOINT_M)) {
     title = `Check-in at ${waypoint.name}`;

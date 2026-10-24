@@ -96,7 +96,11 @@ export function distanceAxisTicks(
   unit: DistanceUnit,
   targetCount: number,
 ): AxisTick[] {
-  const ticks = niceAxisTicks(convertDistance(startKm, unit), convertDistance(endKm, unit), targetCount);
+  const ticks = niceAxisTicks(
+    convertDistance(startKm, unit),
+    convertDistance(endKm, unit),
+    targetCount,
+  );
   // convertDistance is linear, so its inverse scale is 1 / convertDistance(1).
   const kmPerUnit = 1 / (convertDistance(1, unit) || 1);
   const labels = tickLabels(ticks);

@@ -228,7 +228,9 @@ export async function readCommunityTrail(id: string): Promise<TrailJson | null> 
     text = await file.text();
   } catch (err) {
     console.warn(`[community] could not read ${installed.file}`, err);
-    throw new CommunityCopyUnreadableError('The copy of this route on this phone could not be read.');
+    throw new CommunityCopyUnreadableError(
+      'The copy of this route on this phone could not be read.',
+    );
   }
 
   let json: unknown = null;
@@ -371,7 +373,8 @@ export function refreshCommunityRoutes(
     try {
       const response = await listCommunityRoutes({ baseUrl, fetchImpl: options.fetchImpl });
       const list = parseCommunityList(response);
-      if (!list) return { checked: false, error: 'The community list is not in a format this app reads' };
+      if (!list)
+        return { checked: false, error: 'The community list is not in a format this app reads' };
       const plan = planCommunitySync(list, getState().installed);
       saveState({ ...getState(), list, fetchedAt: now, installed: plan.installed });
 

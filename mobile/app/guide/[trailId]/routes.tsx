@@ -79,7 +79,10 @@ export default function RoutesScreen() {
               key={route.id}
               style={[
                 styles.card,
-                { backgroundColor: colors.surface, borderColor: active ? colors.warning : colors.border },
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: active ? colors.warning : colors.border,
+                },
               ]}
             >
               <Pressable

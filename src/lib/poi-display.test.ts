@@ -151,9 +151,7 @@ describe('slimming a POI for the phone', () => {
 
   it('keeps only the tags a UI reads', () => {
     const slim = slimPoi(poi({ tags: fatTags }));
-    expect(Object.keys(slim.tags).sort()).toEqual(
-      ['amenity', 'description', 'ele', 'operator', 'website'].sort()
-    );
+    expect(Object.keys(slim.tags).sort()).toEqual(['amenity', 'description', 'ele', 'operator', 'website'].sort());
     expect(Object.keys(slim.tags).every(key => POI_DISPLAY_TAG_KEYS.includes(key))).toBe(true);
     expect(slim.tags.description).toBe('Tank fed from the shelter roof');
   });
@@ -272,17 +270,17 @@ describe('interleaving POIs with rows', () => {
       [poi({ id: 1, distanceAlongTrail: 3 }), poi({ id: 2, distanceAlongTrail: 20 })],
       row => row.distance
     );
-    expect(
-      merged.map(e => (e.kind === 'poi' ? `poi${e.poi.id}` : `row${e.item.distance}`))
-    ).toEqual(['row0', 'poi1', 'row5', 'row12', 'poi2']);
+    expect(merged.map(e => (e.kind === 'poi' ? `poi${e.poi.id}` : `row${e.item.distance}`))).toEqual([
+      'row0',
+      'poi1',
+      'row5',
+      'row12',
+      'poi2',
+    ]);
   });
 
   it('puts the curated row first on a tie', () => {
-    const merged = interleavePoisByDistance(
-      rows,
-      [poi({ id: 7, distanceAlongTrail: 5 })],
-      r => r.distance
-    );
+    const merged = interleavePoisByDistance(rows, [poi({ id: 7, distanceAlongTrail: 5 })], r => r.distance);
     expect(merged.map(e => e.kind)).toEqual(['item', 'item', 'poi', 'item']);
   });
 
@@ -432,7 +430,7 @@ describe('reversing a trail', () => {
       expect(m.distanceAlongTrail).toBe(35);
     });
 
-    it('mirrors a main-route POI in a variant\'s span about the main line', () => {
+    it("mirrors a main-route POI in a variant's span about the main line", () => {
       const [m] = mirrorPoiDistances(
         [poi({ distanceAlongTrail: 22, lat: -35, lon: 138, distanceFromTrail: 0.05 })],
         62,

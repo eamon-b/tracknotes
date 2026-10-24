@@ -1,16 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import {
-  describeDiff,
-  gitHead,
-  gitIsAncestor,
-  localDataProblems,
-  parseArgs,
-  rollbacks,
-} from './publish-trail-data.js';
+import { describeDiff, gitHead, gitIsAncestor, localDataProblems, parseArgs, rollbacks } from './publish-trail-data.js';
 import { buildCatalog, diffCatalogs, digestTrailFile, type MobileIndexEntry } from './lib/trail-data-catalog.js';
 
 function trailFile(id: string, extra: Record<string, unknown> = {}): Buffer {
-  return Buffer.from(JSON.stringify({ config: { id }, waypoints: [], track: { points: [{ lat: 0, lon: 0 }] }, ...extra }));
+  return Buffer.from(
+    JSON.stringify({ config: { id }, waypoints: [], track: { points: [{ lat: 0, lon: 0 }] }, ...extra })
+  );
 }
 
 function indexFor(files: Record<string, Buffer>): MobileIndexEntry[] {
@@ -41,10 +36,7 @@ describe('parseArgs', () => {
   });
 
   it('collects --remove ids, and requires one', () => {
-    expect(parseArgs(['--remove', 'heysen', '--remove=aawt', '--dry-run']).remove).toEqual([
-      'heysen',
-      'aawt',
-    ]);
+    expect(parseArgs(['--remove', 'heysen', '--remove=aawt', '--dry-run']).remove).toEqual(['heysen', 'aawt']);
     expect(() => parseArgs(['--remove'])).toThrow(/requires a trail id/);
     expect(() => parseArgs(['--remove', '--force'])).toThrow(/requires a trail id/);
   });
@@ -92,7 +84,13 @@ describe('describeDiff', () => {
   it('names each trail that differs and how', () => {
     const [a, b] = indexFor({ a: trailFile('a'), b: trailFile('b') });
     const live = buildCatalog([a, b], new Date());
-    const local = buildCatalog([{ ...a, name: 'A walk' }, { ...b, id: 'c' }], new Date());
+    const local = buildCatalog(
+      [
+        { ...a, name: 'A walk' },
+        { ...b, id: 'c' },
+      ],
+      new Date()
+    );
     const lines = describeDiff(diffCatalogs(local, live), local, live);
     expect(lines).toEqual([
       expect.stringMatching(/^ {2}\+ c: new/),

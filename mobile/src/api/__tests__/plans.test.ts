@@ -92,7 +92,10 @@ describe('listPlans', () => {
 describe('putPlan', () => {
   it('PUTs the document to its id endpoint without updatedAt', async () => {
     const fetchImpl = scriptedFetch([
-      { status: 201, body: { id: 'p1', trailId: 'heysen', document: DOC, shareId: null, updatedAt: 'S1' } },
+      {
+        status: 201,
+        body: { id: 'p1', trailId: 'heysen', document: DOC, shareId: null, updatedAt: 'S1' },
+      },
     ]);
 
     const entry = await putPlan(CTX(fetchImpl), DOC);
@@ -136,7 +139,9 @@ describe('the rest of the surface', () => {
     expect(calls(del)[0][1].method).toBe('DELETE');
     expect(calls(del)[0][0]).toBe(`${BASE}/v1/plans/p1`);
 
-    const share = scriptedFetch([{ body: { shareId: 'abc', url: 'https://site/shared-plan.html?s=abc' } }]);
+    const share = scriptedFetch([
+      { body: { shareId: 'abc', url: 'https://site/shared-plan.html?s=abc' } },
+    ]);
     const res = await sharePlan(CTX(share), 'p1');
     expect(res.shareId).toBe('abc');
     expect(calls(share)[0][0]).toBe(`${BASE}/v1/plans/p1/share`);

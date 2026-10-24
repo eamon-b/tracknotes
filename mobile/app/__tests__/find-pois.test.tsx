@@ -62,7 +62,8 @@ function texts(tree: ReactTestRenderer): string {
 function searchButton(tree: ReactTestRenderer) {
   return tree.root.findAll(
     (n: TestInstance) =>
-      n.props.accessibilityLabel === 'Search OpenStreetMap' && typeof n.props.onPress === 'function',
+      n.props.accessibilityLabel === 'Search OpenStreetMap' &&
+      typeof n.props.onPress === 'function',
   )[0];
 }
 
@@ -124,7 +125,8 @@ describe('FindPoisScreen', () => {
     expect(texts(screen)).toContain('Overpass request failed: 504');
     const retry = screen.root.findAll(
       (n: TestInstance) =>
-        n.props.accessibilityLabel === 'Retry the 1 missed area' && typeof n.props.onPress === 'function',
+        n.props.accessibilityLabel === 'Retry the 1 missed area' &&
+        typeof n.props.onPress === 'function',
     )[0];
     act(() => {
       (retry.props.onPress as () => void)();

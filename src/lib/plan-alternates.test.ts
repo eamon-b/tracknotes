@@ -14,13 +14,7 @@ import {
   type PlannableTrail,
   type PlannableVariant,
 } from './plan-alternates';
-import {
-  assertPlanDocumentWithinLimits,
-  computePlanDays,
-  isPlanDocument,
-  setNights,
-  toggleStop,
-} from './plan-editor';
+import { assertPlanDocumentWithinLimits, computePlanDays, isPlanDocument, setNights, toggleStop } from './plan-editor';
 import { createReversedTrail } from './trail-reverse';
 import type { PlanDocument, PlanStop } from './plan-types';
 
@@ -90,17 +84,16 @@ function trailFixture(extra: Partial<PlannableTrail> = {}, withCumulative = fals
       {
         name: 'Side: Lookout',
         type: 'side-trip',
-        points: [{ lat: 0, lon: 60 * DEG_PER_KM, ele: 0 }, { lat: 0.01, lon: 60 * DEG_PER_KM, ele: 0 }],
+        points: [
+          { lat: 0, lon: 60 * DEG_PER_KM, ele: 0 },
+          { lat: 0.01, lon: 60 * DEG_PER_KM, ele: 0 },
+        ],
         distance: 1.1,
         startDistance: 60,
         waypoints: [{ id: 'w_lookout', name: 'Lookout', type: 'poi', totalDistance: 61.1 }],
       },
     ],
-    pois: [
-      { distanceAlongTrail: 5 },
-      { distanceAlongTrail: 30 },
-      { distanceAlongTrail: 70 },
-    ],
+    pois: [{ distanceAlongTrail: 5 }, { distanceAlongTrail: 30 }, { distanceAlongTrail: 70 }],
     ...extra,
   };
 }
@@ -213,7 +206,13 @@ describe('buildPlannedRoute', () => {
 describe('plannedRouteTrail: POIs found along an alternate', () => {
   /** A POI at (km east, km north), with the cross-track distance the fetch recorded. */
   function poi(id: number, eastKm: number, northKm: number, km: number, fromLineKm: number) {
-    return { id, lat: northKm * DEG_PER_KM, lon: eastKm * DEG_PER_KM, distanceAlongTrail: km, distanceFromTrail: fromLineKm };
+    return {
+      id,
+      lat: northKm * DEG_PER_KM,
+      lon: eastKm * DEG_PER_KM,
+      distanceAlongTrail: km,
+      distanceFromTrail: fromLineKm,
+    };
   }
   // On the alternate's line (it bows 7.5 km north at its middle), numbered as
   // the fetch numbers a POI on a variant: branch km 20 plus km along it.
@@ -269,13 +268,13 @@ describe('plannedRouteTrail', () => {
     expect(routed.track.displayPoints!.length).toBeLessThan(routed.track.points.length);
   });
 
-  it('swaps the climb of the bypassed main route for the alternate\'s', () => {
+  it("swaps the climb of the bypassed main route for the alternate's", () => {
     // Main: 1,000 m up all the way; 200 m of that is between km 20 and 40.
     expect(routed.track.totalAscent).toBe(1000 - 200 + 300);
     expect(routed.track.totalDescent).toBe(300);
   });
 
-  it('lists the alternate\'s places in place of the bypassed ones', () => {
+  it("lists the alternate's places in place of the bypassed ones", () => {
     const rows = (routed.waypoints ?? []).map(wp => [wp.name, wp.totalDistance]);
     expect(rows).toEqual([
       ['Start', 0],
@@ -326,7 +325,7 @@ describe('planToRoute / planFromRoute', () => {
   it('round-trips a plan that takes an alternate', () => {
     const doc = plan(
       [stop(10, 'Camp 10', 'w_camp10'), stop(35, 'High Camp', 'w_altcamp', ALT), stop(50, 'Camp 50', 'w_camp50')],
-      [ALT],
+      [ALT]
     );
     const route = buildPlannedRoute(trail, doc.alternates);
     const routePlan = planToRoute(doc, route);
@@ -347,7 +346,7 @@ describe('planToRoute / planFromRoute', () => {
   it('puts a stop on the alternate when it is ticked on the route', () => {
     const doc = plan([], [ALT]);
     const next = editPlanOnRoute(doc, trail, p =>
-      toggleStop(p, { id: 'w_altcamp', km: 35, name: 'High Camp' }, { now, totalKm: 110 }),
+      toggleStop(p, { id: 'w_altcamp', km: 35, name: 'High Camp' }, { now, totalKm: 110 })
     );
     expect(next.stops).toEqual([stop(35, 'High Camp', 'w_altcamp', ALT)]);
     expect(next.alternates).toEqual([ALT]);
@@ -368,12 +367,12 @@ describe('planToRoute / planFromRoute', () => {
     // it), and a stop on an alternate a later build renamed.
     const doc = plan(
       [stop(12, 'Old Camp', 'w_old', 'Alt: Renamed'), stop(35, 'Camp 35', 'w_camp35')],
-      ['Alt: Renamed', ALT],
+      ['Alt: Renamed', ALT]
     );
     const route = buildPlannedRoute(trail, doc.alternates);
     expect(planToRoute(doc, route).stops).toEqual([]);
     const next = editPlanOnRoute(doc, trail, p =>
-      toggleStop(p, { id: 'w_camp10', km: 10, name: 'Camp 10' }, { now, totalKm: 110 }),
+      toggleStop(p, { id: 'w_camp10', km: 10, name: 'Camp 10' }, { now, totalKm: 110 })
     );
     expect(next.stops.map(s => [s.name, s.km, s.alternate])).toEqual([
       ['Camp 10', 10, undefined],
@@ -384,8 +383,12 @@ describe('planToRoute / planFromRoute', () => {
 
   it('an edit keeps both of two stops on different lines at one route km', () => {
     const doc = plan(
-      [stop(20, 'Main junction camp'), stop(20.0005, 'Alt junction camp', undefined, ALT), stop(50, 'Camp 50', 'w_camp50')],
-      [ALT],
+      [
+        stop(20, 'Main junction camp'),
+        stop(20.0005, 'Alt junction camp', undefined, ALT),
+        stop(50, 'Camp 50', 'w_camp50'),
+      ],
+      [ALT]
     );
     const route = buildPlannedRoute(trail, doc.alternates);
     expect(planToRoute(doc, route).stops.map(s => s.name)).toEqual(['Main junction camp', 'Camp 50']);
@@ -430,8 +433,12 @@ describe('setPlanAlternate', () => {
 
   it('goes back to the main route: alternate-only stops go, shared ones move back', () => {
     const doc = plan(
-      [stop(35, 'High Camp', 'w_altcamp', ALT), stop(45, 'Shared Hut', 'w_shared', ALT), stop(50, 'Camp 50', 'w_camp50')],
-      [ALT],
+      [
+        stop(35, 'High Camp', 'w_altcamp', ALT),
+        stop(45, 'Shared Hut', 'w_shared', ALT),
+        stop(50, 'Camp 50', 'w_camp50'),
+      ],
+      [ALT]
     );
     const next = setPlanAlternate(doc, trail, ALT, false, { now });
     expect(next.alternates).toBeUndefined();
@@ -479,7 +486,7 @@ describe('alternateMarkers', () => {
     expect(alternateMarkers(trail, route, 'SOBO').map(m => [m.kind, m.activeKm])).toEqual([['branch', 60]]);
   });
 
-  it('two alternates branching at one junction keep the trail\'s order', () => {
+  it("two alternates branching at one junction keep the trail's order", () => {
     const twoAtOnce = trailFixture({ alternates: [bowAlternate('B Route', 20, 45), bowAlternate('A Route', 20, 40)] });
     const route = buildPlannedRoute(twoAtOnce, []);
     expect(alternateMarkers(twoAtOnce, route, 'NOBO').map(m => m.alternate.name)).toEqual(['B Route', 'A Route']);
@@ -509,7 +516,7 @@ describe('document checks', () => {
     expect(() => assertPlanDocumentWithinLimits(plan([stop(35, 'A', 'w_aaaa', ALT)]))).toThrow(/does not take/);
   });
 
-  it('isPlanDocument checks the new fields\' shapes', () => {
+  it("isPlanDocument checks the new fields' shapes", () => {
     expect(isPlanDocument(plan([], [ALT]))).toBe(true);
     expect(isPlanDocument({ ...plan([]), alternates: [1] })).toBe(false);
     expect(isPlanDocument(plan([{ ...stop(1, 'A'), alternate: 5 as unknown as string }]))).toBe(false);

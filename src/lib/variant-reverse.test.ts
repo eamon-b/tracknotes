@@ -6,7 +6,13 @@ import {
   type VariantWaypointKmFields,
 } from './variant-reverse';
 
-type TestWaypoint = VariantWaypointKmFields & { name?: string; type?: string; lat?: number; lon?: number; elevation?: number };
+type TestWaypoint = VariantWaypointKmFields & {
+  name?: string;
+  type?: string;
+  lat?: number;
+  lon?: number;
+  elevation?: number;
+};
 
 function makeWaypoint(overrides: Partial<TestWaypoint> = {}): TestWaypoint {
   return {
@@ -25,11 +31,17 @@ function makeWaypoint(overrides: Partial<TestWaypoint> = {}): TestWaypoint {
 
 describe('reverseAlternates', () => {
   it('moves a junction residual to the other end without leaving an undefined key behind', () => {
-    const [reversed] = reverseAlternates<ReversibleVariant>([{ startDistance: 10, endDistance: 30, startOffsetMeters: 700 }], 100);
+    const [reversed] = reverseAlternates<ReversibleVariant>(
+      [{ startDistance: 10, endDistance: 30, startOffsetMeters: 700 }],
+      100
+    );
     expect(reversed.endOffsetMeters).toBe(700);
     expect(reversed).not.toHaveProperty('startOffsetMeters');
 
-    const [other] = reverseAlternates<ReversibleVariant>([{ startDistance: 10, endDistance: 30, endOffsetMeters: 900 }], 100);
+    const [other] = reverseAlternates<ReversibleVariant>(
+      [{ startDistance: 10, endDistance: 30, endOffsetMeters: 900 }],
+      100
+    );
     expect(other.startOffsetMeters).toBe(900);
     expect(other).not.toHaveProperty('endOffsetMeters');
   });
@@ -43,13 +55,28 @@ describe('reverseAlternates', () => {
   it('recomputes waypoint absolute km for the reversed walk', () => {
     // 15km alternate branching at km 10, rejoining at km 30 of a 100km trail.
     // Waypoint 5km along the variant → absolute km 15.
-    const reversed = reverseAlternates([{
-      distance: 15,
-      startDistance: 10,
-      endDistance: 30,
-      points: [{}, {}, {}],
-      waypoints: [makeWaypoint({ distance: 5, totalDistance: 15, ascent: 120, descent: 30, totalAscent: 120, totalDescent: 30, variantTrackIndex: 1 })],
-    }], 100);
+    const reversed = reverseAlternates(
+      [
+        {
+          distance: 15,
+          startDistance: 10,
+          endDistance: 30,
+          points: [{}, {}, {}],
+          waypoints: [
+            makeWaypoint({
+              distance: 5,
+              totalDistance: 15,
+              ascent: 120,
+              descent: 30,
+              totalAscent: 120,
+              totalDescent: 30,
+              variantTrackIndex: 1,
+            }),
+          ],
+        },
+      ],
+      100
+    );
 
     const wp = reversed[0].waypoints![0];
     expect(reversed[0].startDistance).toBe(70);
@@ -61,16 +88,21 @@ describe('reverseAlternates', () => {
   });
 
   it('reverses waypoint order for multi-waypoint alternates', () => {
-    const reversed = reverseAlternates([{
-      distance: 10,
-      startDistance: 20,
-      endDistance: 32,
-      points: [],
-      waypoints: [
-        makeWaypoint({ name: 'First', distance: 2, totalDistance: 22 }),
-        makeWaypoint({ name: 'Second', distance: 6, totalDistance: 28 }),
+    const reversed = reverseAlternates(
+      [
+        {
+          distance: 10,
+          startDistance: 20,
+          endDistance: 32,
+          points: [],
+          waypoints: [
+            makeWaypoint({ name: 'First', distance: 2, totalDistance: 22 }),
+            makeWaypoint({ name: 'Second', distance: 6, totalDistance: 28 }),
+          ],
+        },
       ],
-    }], 100);
+      100
+    );
     const names = reversed[0].waypoints!.map(w => (w as { name: string }).name);
     expect(names).toEqual(['Second', 'First']);
     expect(reversed[0].waypoints![0].totalDistance).toBe(70); // 68 + (10 - 8)
@@ -142,7 +174,14 @@ describe('reverseAlternates', () => {
       points: [{ i: 0 }, { i: 1 }, { i: 2 }],
       waypoints: [
         makeWaypoint({ name: 'Free end', distance: 0, totalDistance: 0, ascent: 0, descent: 0, variantTrackIndex: 0 }),
-        makeWaypoint({ name: 'Near junction', distance: 7.5, totalDistance: 7.5, ascent: 300, descent: 20, variantTrackIndex: 2 }),
+        makeWaypoint({
+          name: 'Near junction',
+          distance: 7.5,
+          totalDistance: 7.5,
+          ascent: 300,
+          descent: 20,
+          variantTrackIndex: 2,
+        }),
       ],
     };
     const [reversed] = reverseAlternates([dangling], 4800);
@@ -187,11 +226,16 @@ describe('transformSideTrips', () => {
   });
 
   it('shifts waypoint absolute km with the junction, keeping variant-relative stats', () => {
-    const transformed = transformSideTrips([{
-      distance: 4,
-      startDistance: 25,
-      waypoints: [makeWaypoint({ distance: 3, totalDistance: 28, ascent: 50, descent: 10, variantTrackIndex: 7 })],
-    }], 100);
+    const transformed = transformSideTrips(
+      [
+        {
+          distance: 4,
+          startDistance: 25,
+          waypoints: [makeWaypoint({ distance: 3, totalDistance: 28, ascent: 50, descent: 10, variantTrackIndex: 7 })],
+        },
+      ],
+      100
+    );
     const wp = transformed[0].waypoints![0];
     expect(transformed[0].startDistance).toBe(75);
     expect(wp.totalDistance).toBe(78); // 75 + 3

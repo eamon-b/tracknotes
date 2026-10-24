@@ -129,20 +129,22 @@ describe('src/lib osm-poi matches gpx-tools', () => {
       }
     });
 
-    it.runIf(PLACED_TRAILS.has(id))(`places ${id}'s POIs identically (same pois.json for the same answers)`, async () => {
-      const trail = loadTrail(id);
-      const scale = buildRouteScale(trail);
-      const fetchPOIs = async (area: upstreamOsm.OverpassArea) => fakeElements(area);
-      const options = { types: [...osm.POI_TYPES], searchRadiusKm: 2, maxVerticesPerChunk: 300, fetchPOIs };
-      const ours = await enrich.enrichRoute(scale.polylines, options);
-      const theirs = await upstreamEnrich.enrichRoute(scale.polylines, options);
-      expect(ours.pois).toEqual(theirs.pois);
-      expect(ours.failedChunks).toEqual(theirs.failedChunks);
-      expect(ours.stats.queryChunks).toBe(theirs.stats.queryChunks);
-      expect(JSON.stringify(toTrailPOIs(ours.pois, scale))).toBe(
-        JSON.stringify(toTrailPOIs(theirs.pois, scale))
-      );
-    }, 60_000);
+    it.runIf(PLACED_TRAILS.has(id))(
+      `places ${id}'s POIs identically (same pois.json for the same answers)`,
+      async () => {
+        const trail = loadTrail(id);
+        const scale = buildRouteScale(trail);
+        const fetchPOIs = async (area: upstreamOsm.OverpassArea) => fakeElements(area);
+        const options = { types: [...osm.POI_TYPES], searchRadiusKm: 2, maxVerticesPerChunk: 300, fetchPOIs };
+        const ours = await enrich.enrichRoute(scale.polylines, options);
+        const theirs = await upstreamEnrich.enrichRoute(scale.polylines, options);
+        expect(ours.pois).toEqual(theirs.pois);
+        expect(ours.failedChunks).toEqual(theirs.failedChunks);
+        expect(ours.stats.queryChunks).toBe(theirs.stats.queryChunks);
+        expect(JSON.stringify(toTrailPOIs(ours.pois, scale))).toBe(JSON.stringify(toTrailPOIs(theirs.pois, scale)));
+      },
+      60_000
+    );
   }
 });
 
@@ -153,12 +155,25 @@ describe('src/lib overpass-client matches gpx-tools', () => {
       (async (url: string, init: RequestInit) => {
         log.push({ url, init: { ...init, signal: undefined } });
         return new Response(
-          JSON.stringify({ elements: [{ id: 7, type: 'node', lat: -34, lon: 115, tags: { amenity: 'drinking_water' } }] }),
+          JSON.stringify({
+            elements: [{ id: 7, type: 'node', lat: -34, lon: 115, tags: { amenity: 'drinking_water' } }],
+          }),
           { status: 200 }
         );
       }) as unknown as typeof fetch;
-    const area = { corridor: [{ lat: -34, lon: 115 }, { lat: -34.1, lon: 115.1 }], radiusMeters: 2500 };
-    const opts = { endpoint: 'https://example.test/api/interpreter', minDelayMs: 0, timeoutSeconds: 55, userAgent: 'test/1' };
+    const area = {
+      corridor: [
+        { lat: -34, lon: 115 },
+        { lat: -34.1, lon: 115.1 },
+      ],
+      radiusMeters: 2500,
+    };
+    const opts = {
+      endpoint: 'https://example.test/api/interpreter',
+      minDelayMs: 0,
+      timeoutSeconds: 55,
+      userAgent: 'test/1',
+    };
     const ours = await client.createOverpassFetcher({ ...opts, fetch: makeFetch(calls[0]) })(area, ['water']);
     const theirs = await upstreamClient.createOverpassFetcher({ ...opts, fetch: makeFetch(calls[1]) })(area, ['water']);
     expect(ours).toEqual(theirs);

@@ -58,10 +58,7 @@ export function TrackLegend({
 
   return (
     <View
-      style={[
-        styles.root,
-        { backgroundColor: colors.surfaceElevated, borderColor: colors.border },
-      ]}
+      style={[styles.root, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}
       pointerEvents="none"
       accessibilityRole="summary"
       accessibilityLabel="Map key"
@@ -70,12 +67,8 @@ export function TrackLegend({
       {hasBypassed && (
         <LegendRow color={track.main} stroke="dashed" label="Main route (not taken)" />
       )}
-      {hasAlternates && (
-        <LegendRow color={track.alternate} stroke="dashed" label="Alternate" />
-      )}
-      {hasSideTrips && (
-        <LegendRow color={track.sideTrip} stroke="dotted" label="Side trip" />
-      )}
+      {hasAlternates && <LegendRow color={track.alternate} stroke="dashed" label="Alternate" />}
+      {hasSideTrips && <LegendRow color={track.sideTrip} stroke="dotted" label="Side trip" />}
       {hasTermini && (
         // The alternate's violet: a terminus is a way of walking the trail, and
         // the map tells the two apart by stroke (dash-dot) and by the badge at
@@ -87,15 +80,7 @@ export function TrackLegend({
   );
 }
 
-function LegendRow({
-  color,
-  stroke,
-  label,
-}: {
-  color: string;
-  stroke: Stroke;
-  label: string;
-}) {
+function LegendRow({ color, stroke, label }: { color: string; stroke: Stroke; label: string }) {
   const { colors } = useTheme();
   return (
     <View style={styles.row}>

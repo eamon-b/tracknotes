@@ -46,11 +46,7 @@ export function HeaderIconButton({ name, accessibilityLabel, onPress }: HeaderIc
       style={styles.button}
       hitSlop={spacing.sm}
     >
-      <MaterialCommunityIcons
-        name={name}
-        size={glyphSizes.lg}
-        color={colors.accentText}
-      />
+      <MaterialCommunityIcons name={name} size={glyphSizes.lg} color={colors.accentText} />
     </Pressable>
   );
 }

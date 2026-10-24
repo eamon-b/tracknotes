@@ -73,15 +73,12 @@ export const WALKED_WHEN_UNSAID_MAX_KM = 5;
  * it is reached by a ride (a hitch, a shuttle, a boat, or a distance too long
  * to be a walk when the data does not say — `WALKED_WHEN_UNSAID_MAX_KM`).
  */
-export function placeWalk(
-  place: (WaypointAccess & { type?: string | null }) | null | undefined
-): PlaceWalk | null {
+export function placeWalk(place: (WaypointAccess & { type?: string | null }) | null | undefined): PlaceWalk | null {
   if (!place || isAccessWaypoint(place.type)) return null;
   const km = place.offTrailKm;
   if (typeof km !== 'number' || !Number.isFinite(km) || km <= 0) return null;
   const mode = place.accessMode;
-  const walked =
-    mode === 'foot' || mode === 'on-trail' || (mode === undefined && km <= WALKED_WHEN_UNSAID_MAX_KM);
+  const walked = mode === 'foot' || mode === 'on-trail' || (mode === undefined && km <= WALKED_WHEN_UNSAID_MAX_KM);
   if (!walked) return null;
   const metres = (value: number | undefined) =>
     typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : 0;
@@ -165,12 +162,7 @@ export function addPlaceWalks(
  * @param baseKmh - flat-ground base speed: the hiker's pace. Required — a
  *   shared calculator never assumes one.
  */
-export function estimateHikingHoursRaw(
-  distanceKm: number,
-  ascentM: number,
-  descentM: number,
-  baseKmh: number,
-): number {
+export function estimateHikingHoursRaw(distanceKm: number, ascentM: number, descentM: number, baseKmh: number): number {
   return distanceKm / baseKmh + ascentM / 600 + Math.max(0, (descentM - 300) / 600);
 }
 
@@ -181,12 +173,7 @@ export function estimateHikingHoursRaw(
  *
  * @param baseKmh - flat-ground base speed: the hiker's pace. Required.
  */
-export function estimateHikingTime(
-  distanceKm: number,
-  ascentM: number,
-  descentM: number,
-  baseKmh: number,
-): number {
+export function estimateHikingTime(distanceKm: number, ascentM: number, descentM: number, baseKmh: number): number {
   const hours = estimateHikingHoursRaw(distanceKm, ascentM, descentM, baseKmh);
   return Math.round(hours * 10) / 10;
 }
@@ -225,7 +212,7 @@ export interface TimeIndex {
  */
 export function buildTimeIndex(
   points: ElevationPoint[],
-  breakStarts: ReadonlySet<number> = NO_BREAK_STARTS,
+  breakStarts: ReadonlySet<number> = NO_BREAK_STARTS
 ): TimeIndex {
   const n = points.length;
   const ascent = new Array<number>(n);
@@ -262,12 +249,7 @@ export function buildTimeIndex(
  * (rounded to whole metres), and the distance term is the caller's km span so the
  * whole-day descent allowance is applied once per query (day-scoped).
  */
-export function hoursBetweenIndexed(
-  index: TimeIndex,
-  fromKm: number,
-  toKm: number,
-  baseKmh: number,
-): number {
+export function hoursBetweenIndexed(index: TimeIndex, fromKm: number, toKm: number, baseKmh: number): number {
   if (index.points.length === 0) return 0;
   const { gain, loss } = climbBetweenIndexed(index, fromKm, toKm);
   return estimateHikingHoursRaw(Math.abs(toKm - fromKm), gain, loss, baseKmh);
@@ -278,11 +260,7 @@ export function hoursBetweenIndexed(
  * metres — the same figures `calculateElevationBetween` walks the track for,
  * in O(log n). Zero for an empty index.
  */
-export function climbBetweenIndexed(
-  index: TimeIndex,
-  fromKm: number,
-  toKm: number,
-): { gain: number; loss: number } {
+export function climbBetweenIndexed(index: TimeIndex, fromKm: number, toKm: number): { gain: number; loss: number } {
   const { points, ascent, descent } = index;
   if (points.length === 0) return { gain: 0, loss: 0 };
   const startIdx = findNearestByDistance(points, fromKm);
@@ -304,12 +282,7 @@ export function climbBetweenIndexed(
  * non-decreasing in x, so this is a monotonic bisection with a final linear
  * interpolation across the converged bracket. The result is clamped to the track end.
  */
-export function kmAtHours(
-  index: TimeIndex,
-  fromKm: number,
-  targetHours: number,
-  baseKmh: number,
-): number {
+export function kmAtHours(index: TimeIndex, fromKm: number, targetHours: number, baseKmh: number): number {
   const { points } = index;
   if (points.length === 0) return fromKm;
   const lastKm = points[points.length - 1].dist;
@@ -346,11 +319,7 @@ export function kmAtHours(
  * Count water sources between two km positions on the trail.
  * Membership is the water family in `waypoint-taxonomy`.
  */
-export function countWaterSources(
-  startKm: number,
-  endKm: number,
-  waypoints: PlanWaypoint[],
-): number {
+export function countWaterSources(startKm: number, endKm: number, waypoints: PlanWaypoint[]): number {
   return waypoints.filter(wp => {
     const km = wp.totalDistance ?? 0;
     return isWaterWaypoint(wp.type) && km > startKm && km <= endKm;
@@ -402,7 +371,7 @@ export function computeDays(
   stops: PlanStopInput[],
   startDate: string | null | undefined,
   section: SectionConfig | null | undefined,
-  baseKmh: number,
+  baseKmh: number
 ): ComputedDay[] {
   const trackPoints = trail.track.points;
   const breakStarts = routeBreakStarts(trail.track.breaks, 'points');
@@ -410,12 +379,10 @@ export function computeDays(
 
   const rangeStartKm = section ? section.startKm : 0;
   const rangeEndKm = section ? section.endKm : trail.track.totalDistance;
-  const rangeStartName: string = section
-    ? section.startName
-    : (waypoints[0]?.name ?? (trail.config.name + ' Start'));
+  const rangeStartName: string = section ? section.startName : (waypoints[0]?.name ?? trail.config.name + ' Start');
   const rangeEndName: string = section
     ? section.endName
-    : (waypoints[waypoints.length - 1]?.name ?? (trail.config.name + ' End'));
+    : (waypoints[waypoints.length - 1]?.name ?? trail.config.name + ' End');
 
   interface Boundary {
     name: string;
@@ -424,9 +391,7 @@ export function computeDays(
   }
 
   // Sort stops by km and clamp to the range bounds
-  const sortedStops = [...stops]
-    .sort((a, b) => a.km - b.km)
-    .filter(s => s.km > rangeStartKm && s.km < rangeEndKm);
+  const sortedStops = [...stops].sort((a, b) => a.km - b.km).filter(s => s.km > rangeStartKm && s.km < rangeEndKm);
 
   const boundaries: Boundary[] = [
     { name: rangeStartName, km: rangeStartKm, walk: null },

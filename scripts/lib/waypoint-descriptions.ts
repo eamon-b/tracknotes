@@ -81,11 +81,7 @@ function fail(source: string, message: string): never {
  * Strict on purpose: a typo'd id silently produces a waypoint with no prose,
  * which is invisible until someone opens that waypoint on a phone.
  */
-export function parseCuratedDescriptions(
-  raw: unknown,
-  expectedTrailId: string,
-  source: string
-): CuratedDescription[] {
+export function parseCuratedDescriptions(raw: unknown, expectedTrailId: string, source: string): CuratedDescription[] {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
     fail(source, 'expected a JSON object');
   }

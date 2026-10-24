@@ -7,18 +7,13 @@
 import { describe, it, expect } from 'vitest';
 import { newPlan, toggleStop } from '@lib/plan-editor';
 import { defaultSuggestPrefs } from '@lib/plan-suggest';
-import {
-  applyNextDaysPlan,
-  locateOnTrail,
-  suggestForTrail,
-  type NextDaysTrail,
-} from './plan-next-days';
+import { applyNextDaysPlan, locateOnTrail, suggestForTrail, type NextDaysTrail } from './plan-next-days';
 
 /** 100 km flat, one point per 100 m along the equator; camps every 10 km from 20. */
 function trail(): NextDaysTrail {
   const points = Array.from({ length: 1001 }, (_, i) => ({
     lat: 0,
-    lon: (i / 10) / 111.32,
+    lon: i / 10 / 111.32,
     ele: 100,
     dist: i / 10,
   }));

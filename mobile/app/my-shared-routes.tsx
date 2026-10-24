@@ -13,14 +13,7 @@
  */
 
 import { useCallback, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Alert, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import type { CommunityRouteDetail } from '@lib/community-types';
 import { useTheme } from '../src/theme';
@@ -29,10 +22,7 @@ import { useSettingsStore } from '../src/state/settings-store';
 import { apiErrorMessage } from '../src/api/error-message';
 import { upsertCommunitySummary } from '../src/services/community-routes';
 import { useMySharedRoutes } from '../src/features/community/useMySharedRoutes';
-import {
-  MySharedRouteCard,
-  MySharedRouteDetail,
-} from '../src/features/community/MySharedRoutes';
+import { MySharedRouteCard, MySharedRouteDetail } from '../src/features/community/MySharedRoutes';
 import {
   DELETE_SHARED_ROUTE_TITLE,
   MY_ROUTE_DELETE_FAILED,
@@ -52,28 +42,24 @@ export default function MySharedRoutesScreen() {
 
   const onDelete = useCallback(
     (route: CommunityRouteDetail) => {
-      Alert.alert(
-        DELETE_SHARED_ROUTE_TITLE,
-        deleteSharedRouteMessage(route.name),
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Delete',
-            style: 'destructive',
-            onPress: () => {
-              setDeleting(route.id);
-              remove(route.id)
-                .catch((err: unknown) => {
-                  Alert.alert(
-                    'Couldn’t delete the route',
-                    apiErrorMessage(err, MY_ROUTE_DELETE_FAILED),
-                  );
-                })
-                .finally(() => setDeleting(null));
-            },
+      Alert.alert(DELETE_SHARED_ROUTE_TITLE, deleteSharedRouteMessage(route.name), [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            setDeleting(route.id);
+            remove(route.id)
+              .catch((err: unknown) => {
+                Alert.alert(
+                  'Couldn’t delete the route',
+                  apiErrorMessage(err, MY_ROUTE_DELETE_FAILED),
+                );
+              })
+              .finally(() => setDeleting(null));
           },
-        ],
-      );
+        },
+      ]);
     },
     [remove],
   );

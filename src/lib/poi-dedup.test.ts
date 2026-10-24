@@ -140,10 +140,7 @@ describe('markDuplicatePois', () => {
   });
 
   it('leaves a distinct POI untouched, with no duplicate fields at all', () => {
-    const [marked] = markDuplicatePois(
-      [poi({ name: 'Barrois camp' })],
-      [wp({ name: 'Buddong hut' })]
-    )!;
+    const [marked] = markDuplicatePois([poi({ name: 'Barrois camp' })], [wp({ name: 'Buddong hut' })])!;
     expect(marked).not.toHaveProperty('duplicateOf');
     expect(marked).not.toHaveProperty('duplicateDistanceM');
   });
@@ -413,11 +410,7 @@ describe('markDuplicatePois', () => {
 });
 
 describe('nonDuplicatePois / countDuplicatePois', () => {
-  const pois = [
-    poi({ name: 'a', duplicateOf: 'w_1' }),
-    poi({ name: 'b' }),
-    poi({ name: 'c', duplicateOf: 'w_2' }),
-  ];
+  const pois = [poi({ name: 'a', duplicateOf: 'w_1' }), poi({ name: 'b' }), poi({ name: 'c', duplicateOf: 'w_2' })];
 
   it('filters and counts the flagged ones', () => {
     expect(nonDuplicatePois(pois)).toHaveLength(1);
@@ -428,7 +421,7 @@ describe('nonDuplicatePois / countDuplicatePois', () => {
 });
 
 describe('open-data trail matching', () => {
-  it("joins an apostrophe instead of splitting on it", () => {
+  it('joins an apostrophe instead of splitting on it', () => {
     expect(nameTokens("Devil's Kitchen")).toEqual(['devils', 'kitchen']);
     expect(nameScore("Devil's Kitchen", 'Devils Kitchen Hike-in Campground')).toBe(1);
     expect(nameTokens("O' Keefes Hut")).toEqual(['okeefes']);
@@ -452,10 +445,7 @@ describe('open-data trail matching', () => {
   });
 
   it('flags an exact, co-located match against a generic `poi` waypoint', () => {
-    const [flagged] = markDuplicatePois(
-      [poi({ name: 'Rock shelter' })],
-      [wp({ name: 'Rock shelter', type: 'poi' })]
-    )!;
+    const [flagged] = markDuplicatePois([poi({ name: 'Rock shelter' })], [wp({ name: 'Rock shelter', type: 'poi' })])!;
     expect(flagged.duplicateOf).toBe('w_1');
   });
 
@@ -480,18 +470,18 @@ describe('dedupCandidates', () => {
       waypoints: [hut],
       offTrailWaypoints: [wp({ id: 'w_off', name: 'Dunkeld', type: 'town' })],
       alternates: [{ waypoints: [wp({ id: 'w_alt', name: 'Beach camp' })] }],
-      sideTrips: [
-        { waypoints: [hut, wp({ id: 'w_munro', name: 'Munro Cabin', type: 'hut' })] },
-        {},
-      ],
+      sideTrips: [{ waypoints: [hut, wp({ id: 'w_munro', name: 'Munro Cabin', type: 'hut' })] }, {}],
     }).map(w => w.id);
     expect(ids).toEqual(['w_hut', 'w_off', 'w_alt', 'w_munro']);
   });
 
-  it('lets a POI on a side trip match the side trip\'s waypoint', () => {
+  it("lets a POI on a side trip match the side trip's waypoint", () => {
     const [flagged] = markDuplicatePois(
       [poi({ name: 'Munro Cabin' })],
-      dedupCandidates({ waypoints: [], sideTrips: [{ waypoints: [wp({ id: 'w_munro', name: 'Munro Cabin', type: 'hut' })] }] })
+      dedupCandidates({
+        waypoints: [],
+        sideTrips: [{ waypoints: [wp({ id: 'w_munro', name: 'Munro Cabin', type: 'hut' })] }],
+      })
     )!;
     expect(flagged.duplicateOf).toBe('w_munro');
   });

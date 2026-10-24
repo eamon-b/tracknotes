@@ -174,11 +174,11 @@ interface Shape {
  * leaves a shared run, and each piece is simplified with its ends fixed.
  */
 function simplifyAll(sources: SourceShape[], shared: Map<string, number>, listedVertices: Set<string>): Shape[] {
-  return sources.map((source) => {
+  return sources.map(source => {
     const rings: number[][] = [];
     for (const ring of source.rings) {
       const n = ring.length;
-      const sharedAt = ring.map((p) => (shared.get(key(p)) ?? 0) > 1);
+      const sharedAt = ring.map(p => (shared.get(key(p)) ?? 0) > 1);
       // A cut where a shared run begins or ends, or where three shapes meet.
       const cuts: number[] = [];
       for (let i = 0; i < n; i++) {
@@ -210,7 +210,7 @@ function simplifyAll(sources: SourceShape[], shared: Map<string, number>, listed
           if (run.length > n + 1) break;
         }
         // A border with a listed shape on it; one between two unlisted neighbours is drawn like their coast.
-        const border = run.every((p) => (shared.get(key(p)) ?? 0) > 1 && listedVertices.has(key(p)));
+        const border = run.every(p => (shared.get(key(p)) ?? 0) > 1 && listedVertices.has(key(p)));
         const tolerance = border
           ? BORDER_DEG
           : source.other
@@ -269,12 +269,12 @@ async function main(): Promise<void> {
   const dir = process.argv[2];
   const [countries, states] = await Promise.all([load(dir, COUNTRY_FILE), load(dir, STATE_FILE)]);
   const listed: SourceShape[] = [];
-  const listedCodes = new Set(COUNTRIES.map((c) => c.code));
+  const listedCodes = new Set(COUNTRIES.map(c => c.code));
 
   for (const def of COUNTRIES) {
-    const feature = countries.find((f) => f.properties.ISO_A2_EH === def.code && f.properties.TYPE !== 'Dependency');
+    const feature = countries.find(f => f.properties.ISO_A2_EH === def.code && f.properties.TYPE !== 'Dependency');
     if (!feature) throw new Error(`Natural Earth has no country ${def.code}`);
-    const rings = (raw: Ring[]): IntRing[] => raw.map(quantise).filter((r) => keepRing(r, def.code));
+    const rings = (raw: Ring[]): IntRing[] => raw.map(quantise).filter(r => keepRing(r, def.code));
     // A country with states is the union of its states' shapes: no outline of its own.
     if (def.states.length === 0) {
       listed.push({ country: def.code, state: null, other: false, rings: rings(polygons(feature).flat()) });
@@ -287,7 +287,7 @@ async function main(): Promise<void> {
     } else if (def.code === 'NZ') {
       for (const region of def.states) {
         const raw = polygons(feature)
-          .filter((poly) => nzRegion(poly[0]) === region.code)
+          .filter(poly => nzRegion(poly[0]) === region.code)
           .flat();
         listed.push({ country: 'NZ', state: region.code, other: false, rings: rings(raw) });
       }
@@ -295,7 +295,7 @@ async function main(): Promise<void> {
       throw new Error(`No source for ${def.code}'s states`);
     }
     for (const region of def.states) {
-      if (!listed.some((s) => s.country === def.code && s.state === region.code && s.rings.length > 0)) {
+      if (!listed.some(s => s.country === def.code && s.state === region.code && s.rings.length > 0)) {
         throw new Error(`No shape for ${def.code} ${region.code}`);
       }
     }
@@ -310,11 +310,13 @@ async function main(): Promise<void> {
     const code = String(f.properties.ISO_A2_EH);
     if (!/^[A-Z]{2}$/.test(code) || listedCodes.has(code)) continue;
     const all = polygons(f).flat().map(quantise);
-    if (!all.some((r) => r.some((p) => listedVertices.has(key(p))))) continue;
+    if (!all.some(r => r.some(p => listedVertices.has(key(p))))) continue;
     const rings = all.filter(
-      (r) => r.length >= 3 && (r.some((p) => listedVertices.has(key(p))) || (keepRing(r, code) && ringArea(r) >= OTHER_MIN_RING_AREA))
+      r =>
+        r.length >= 3 &&
+        (r.some(p => listedVertices.has(key(p))) || (keepRing(r, code) && ringArea(r) >= OTHER_MIN_RING_AREA))
     );
-    const existing = others.find((o) => o.country === code);
+    const existing = others.find(o => o.country === code);
     if (existing) existing.rings.push(...rings);
     else others.push({ country: code, state: null, other: true, rings });
   }
@@ -331,11 +333,11 @@ async function main(): Promise<void> {
 
   const body = shapes
     .map(
-      (s) =>
+      s =>
         `  {\n    country: '${s.country}',\n    state: ${s.state ? `'${s.state}'` : 'null'},\n` +
         (s.other ? '    other: true,\n' : '') +
         '    rings: [\n' +
-        s.rings.map((r) => `      [${r.join(',')}],\n`).join('') +
+        s.rings.map(r => `      [${r.join(',')}],\n`).join('') +
         '    ],\n  },\n'
     )
     .join('');
@@ -367,12 +369,12 @@ async function main(): Promise<void> {
   writeFileSync(OUT, out);
   const points = shapes.reduce((n, s) => n + s.rings.reduce((m, r) => m + r.length / 2, 0), 0);
   console.log(
-    `Wrote ${OUT}: ${shapes.length} shapes (${others.length} unlisted neighbours: ${others.map((o) => o.country).join(' ')}), ` +
+    `Wrote ${OUT}: ${shapes.length} shapes (${others.length} unlisted neighbours: ${others.map(o => o.country).join(' ')}), ` +
       `${points} points, ${(out.length / 1024).toFixed(0)} kB`
   );
 }
 
-main().catch((err) => {
+main().catch(err => {
   console.error(err);
   process.exit(1);
 });

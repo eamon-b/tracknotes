@@ -56,7 +56,10 @@ export interface PlansResult {
  * delta mode (`since` set) the entries include tombstones; in snapshot mode
  * they are live rows only.
  */
-export async function listPlans(ctx: ApiContext, params: ListPlansParams = {}): Promise<PlansResult> {
+export async function listPlans(
+  ctx: ApiContext,
+  params: ListPlansParams = {},
+): Promise<PlansResult> {
   const entries: PlanSyncEntryUnion[] = [];
   let cursor: string | null = null;
   let syncedAt: string | null = null;

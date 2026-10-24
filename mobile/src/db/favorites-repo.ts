@@ -26,10 +26,10 @@ export async function toggle(
     ]);
     return false;
   }
-  await db.runAsync(
-    'INSERT OR IGNORE INTO favorites (trail_id, waypoint_id) VALUES (?, ?)',
-    [trailId, waypointId],
-  );
+  await db.runAsync('INSERT OR IGNORE INTO favorites (trail_id, waypoint_id) VALUES (?, ?)', [
+    trailId,
+    waypointId,
+  ]);
   return true;
 }
 

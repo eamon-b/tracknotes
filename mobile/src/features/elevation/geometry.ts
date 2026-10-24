@@ -219,7 +219,10 @@ export function zoomEleWindowAtFocal(
   const span = baseSpan / factor;
   // Fraction up from the plot floor (clamped, so a focal point in the x-axis
   // gutter anchors on the floor rather than extrapolating).
-  const frac = Math.min(Math.max((layout.top + layout.chartHeight - focalY) / layout.chartHeight, 0), 1);
+  const frac = Math.min(
+    Math.max((layout.top + layout.chartHeight - focalY) / layout.chartHeight, 0),
+    1,
+  );
   const focalM = base.minM + frac * baseSpan;
   const minM = focalM - frac * span;
   return clampEleWindow(minM, minM + span, bounds);
@@ -252,7 +255,10 @@ export function scaleEleWindow(base: EleWindow, factor: number, bounds: EleBound
   if (!(span > 0) || !(factor > 0) || !(full > 0)) return { ...base };
   // Clamp the span here, so the clamp below never has to re-centre (and so
   // move the floor) to fit it.
-  const next = Math.min(Math.max(span / factor, Math.min(MIN_ELE_SPAN_M, full)), full * MAX_ELE_ZOOM_OUT);
+  const next = Math.min(
+    Math.max(span / factor, Math.min(MIN_ELE_SPAN_M, full)),
+    full * MAX_ELE_ZOOM_OUT,
+  );
   return clampEleWindow(base.minM, base.minM + next, bounds);
 }
 
@@ -382,7 +388,8 @@ export function buildProfileMarkers(
     if (wp.totalDistance < plot.startKm || wp.totalDistance > plot.endKm) continue;
     const x = plot.left + ((wp.totalDistance - plot.startKm) / span) * plot.chartWidth;
     const ele = wp.elevation ?? plot.eleMin;
-    const y = plot.top + plot.chartHeight - ((ele - plot.eleMin) / plot.eleRange) * plot.chartHeight;
+    const y =
+      plot.top + plot.chartHeight - ((ele - plot.eleMin) / plot.eleRange) * plot.chartHeight;
     // Above or below the elevation window (the y-axis is zoomed): the trace is
     // clipped there, and a marker left floating over the frame would still
     // catch taps.

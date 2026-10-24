@@ -98,7 +98,7 @@ async function loadTrail(trailId: string): Promise<Record<string, unknown> | nul
     // Relative to this top-level page, as index.html's fetch is, so a site
     // served from a sub-path still finds its data.
     const response = await fetch(
-      generatedDataUrl(`${encodeURIComponent(trailId)}.json`, SITE_ROOT.topLevel, document.baseURI),
+      generatedDataUrl(`${encodeURIComponent(trailId)}.json`, SITE_ROOT.topLevel, document.baseURI)
     );
     if (!response.ok) return null;
     return (await response.json()) as Record<string, unknown>;
@@ -130,13 +130,12 @@ async function copyToMyPlans(shared: SharedPlanResponse): Promise<void> {
   let leaving = false;
   try {
     const existing = await fetchMyPlan(session, shared.trailId);
-    const hasLocalPlan =
-      loadPlanDocument(shared.trailId) !== null || loadPlanState(shared.trailId) !== null;
+    const hasLocalPlan = loadPlanDocument(shared.trailId) !== null || loadPlanState(shared.trailId) !== null;
     if (existing.entry || hasLocalPlan) {
       const confirmed = window.confirm(
         existing.entry
           ? 'You already have a plan for this trail. Replace it with this shared one?'
-          : 'This browser already has a plan for this trail. Replace it with this shared one?',
+          : 'This browser already has a plan for this trail. Replace it with this shared one?'
       );
       if (!confirmed) return;
     }
@@ -157,8 +156,7 @@ async function copyToMyPlans(shared: SharedPlanResponse): Promise<void> {
   } catch (err) {
     const sharedBy = byId('shared-by');
     if (sharedBy) {
-      sharedBy.textContent =
-        err instanceof ApiError ? `Could not copy: ${err.code}` : 'Could not reach the server.';
+      sharedBy.textContent = err instanceof ApiError ? `Could not copy: ${err.code}` : 'Could not reach the server.';
     }
   } finally {
     if (button && !leaving) button.disabled = false;
@@ -174,7 +172,7 @@ async function init(): Promise<void> {
   if (!getApiBase()) {
     showMissing(
       'Shared plans are unavailable',
-      'This copy of the site was built without a server to read shared plans from.',
+      'This copy of the site was built without a server to read shared plans from.'
     );
     return;
   }
@@ -187,7 +185,7 @@ async function init(): Promise<void> {
       'Plan not found',
       err instanceof ApiError && err.status === 404
         ? 'This link is no longer shared, or it was never valid.'
-        : 'Could not reach the server. Try again in a moment.',
+        : 'Could not reach the server. Try again in a moment.'
     );
     return;
   }
@@ -199,17 +197,14 @@ async function init(): Promise<void> {
   if (!isPlanDocument(shared.document)) {
     showMissing(
       'Plan not found',
-      'This plan is not in a shape this page can read. Ask whoever sent it for a new link.',
+      'This plan is not in a shape this page can read. Ask whoever sent it for a new link.'
     );
     return;
   }
 
   const trail = await loadTrail(shared.trailId);
   if (!trail) {
-    showMissing(
-      'Trail not on this site',
-      'This plan is for a trail this site does not have.',
-    );
+    showMissing('Trail not on this site', 'This plan is for a trail this site does not have.');
     return;
   }
 

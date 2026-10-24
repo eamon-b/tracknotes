@@ -65,10 +65,13 @@ describe('readAppIndex', () => {
   it('reads each entry with an md5 and a time, and is empty for a missing file', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'app-index-'));
     const file = path.join(dir, 'index.json');
-    fs.writeFileSync(file, JSON.stringify([
-      { id: 'a', md5: 'x'.repeat(32), updatedAt: APP_TIME },
-      { id: 'b', updatedAt: APP_TIME },
-    ]));
+    fs.writeFileSync(
+      file,
+      JSON.stringify([
+        { id: 'a', md5: 'x'.repeat(32), updatedAt: APP_TIME },
+        { id: 'b', updatedAt: APP_TIME },
+      ])
+    );
     expect([...readAppIndex(file)]).toEqual([['a', { md5: 'x'.repeat(32), updatedAt: APP_TIME }]]);
     expect(readAppIndex(path.join(dir, 'missing.json')).size).toBe(0);
   });

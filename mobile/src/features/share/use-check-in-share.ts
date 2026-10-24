@@ -20,10 +20,7 @@ export function useCheckInShare(): ShareCheckIn {
   return useCallback(async (input: CheckInInput) => {
     const { title, message } = composeCheckIn(input);
     try {
-      await Share.share(
-        { title, message },
-        { subject: title, dialogTitle: title },
-      );
+      await Share.share({ title, message }, { subject: title, dialogTitle: title });
     } catch (err) {
       // Genuine failure (not a user cancel, which resolves). Nothing actionable
       // for the hiker — just leave a breadcrumb.

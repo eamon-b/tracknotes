@@ -47,6 +47,8 @@ export function poiProfileMarkers(pois: PoiSource[], points: DistEle[]): Profile
     type: poi.category,
     totalDistance: poi.distanceAlongTrail,
     elevation:
-      points.length > 0 ? points[findNearestByDistance(points, poi.distanceAlongTrail)]?.ele : undefined,
+      points.length > 0
+        ? points[findNearestByDistance(points, poi.distanceAlongTrail)]?.ele
+        : undefined,
   }));
 }

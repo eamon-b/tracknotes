@@ -27,7 +27,7 @@ async function waitFor(cond: () => boolean): Promise<void> {
 const $ = (id: string): HTMLElement => document.getElementById(id)!;
 
 const trail = importGpx(
-  fs.readFileSync(path.join(ROOT, 'data/trails/cape_to_cape/Cape_to_Cape_Track.gpx'), 'utf8'),
+  fs.readFileSync(path.join(ROOT, 'data/trails/cape_to_cape/Cape_to_Cape_Track.gpx'), 'utf8')
 ).trail;
 
 const detail = {
@@ -88,7 +88,7 @@ function stubFetch(detailStatus = 200, detailBody: object = detail, trailStatus 
           : { error: 'gone' };
       const status = url.startsWith('https://api.example.test') ? detailStatus : trailStatus;
       return { ok: status < 300, status, statusText: '', text: async () => JSON.stringify(body) };
-    }),
+    })
   );
 }
 
@@ -181,7 +181,7 @@ describe('community-route.html: owner, report and the no-track view', () => {
           body = detailBody;
         }
         return { ok: status < 300, status, statusText: '', text: async () => JSON.stringify(body) };
-      }),
+      })
     );
     return calls;
   }

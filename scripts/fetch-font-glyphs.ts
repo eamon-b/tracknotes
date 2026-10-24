@@ -32,36 +32,38 @@ const FONT_STACKS = ['Open Sans Regular'];
 // Full Unicode coverage would be 0-65535 (256 files), but we only need ~20 for
 // English text + European diacritics used in Australian place names.
 const GLYPH_RANGES = [
-  '0-255',       // Basic Latin + Latin-1 Supplement (A-Z, a-z, 0-9, àéîôü, etc.)
-  '256-511',     // Latin Extended-A (ăĕğ etc.)
-  '512-767',     // Latin Extended-B
-  '768-1023',    // Combining diacritical marks + Greek
-  '7680-7935',   // Latin Extended Additional (ọ, ụ, ẹ — used in some place names)
-  '8192-8447',   // General punctuation (—, –, ', ", etc.)
-  '8448-8703',   // Letterlike symbols
+  '0-255', // Basic Latin + Latin-1 Supplement (A-Z, a-z, 0-9, àéîôü, etc.)
+  '256-511', // Latin Extended-A (ăĕğ etc.)
+  '512-767', // Latin Extended-B
+  '768-1023', // Combining diacritical marks + Greek
+  '7680-7935', // Latin Extended Additional (ọ, ụ, ẹ — used in some place names)
+  '8192-8447', // General punctuation (—, –, ', ", etc.)
+  '8448-8703', // Letterlike symbols
 ];
 
 function fetchFile(url: string): Promise<Buffer> {
   return new Promise((resolve, reject) => {
-    https.get(url, (response) => {
-      if (response.statusCode === 301 || response.statusCode === 302) {
-        const redirectUrl = response.headers.location;
-        if (redirectUrl) {
-          fetchFile(redirectUrl).then(resolve).catch(reject);
+    https
+      .get(url, response => {
+        if (response.statusCode === 301 || response.statusCode === 302) {
+          const redirectUrl = response.headers.location;
+          if (redirectUrl) {
+            fetchFile(redirectUrl).then(resolve).catch(reject);
+            return;
+          }
+        }
+
+        if (response.statusCode !== 200) {
+          reject(new Error(`HTTP ${response.statusCode} for ${url}`));
           return;
         }
-      }
 
-      if (response.statusCode !== 200) {
-        reject(new Error(`HTTP ${response.statusCode} for ${url}`));
-        return;
-      }
-
-      const chunks: Buffer[] = [];
-      response.on('data', (chunk: Buffer) => chunks.push(chunk));
-      response.on('end', () => resolve(Buffer.concat(chunks)));
-      response.on('error', reject);
-    }).on('error', reject);
+        const chunks: Buffer[] = [];
+        response.on('data', (chunk: Buffer) => chunks.push(chunk));
+        response.on('end', () => resolve(Buffer.concat(chunks)));
+        response.on('error', reject);
+      })
+      .on('error', reject);
   });
 }
 
@@ -110,7 +112,7 @@ async function main(): Promise<void> {
   console.log(`Output: ${FONTS_OUTPUT_DIR}`);
 }
 
-main().catch((error) => {
+main().catch(error => {
   console.error('Fatal error:', error);
   process.exit(1);
 });

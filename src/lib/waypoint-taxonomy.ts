@@ -111,9 +111,7 @@ export const ACCESS_TYPE_SUFFIX = '-access';
 export function baseWaypointType(type: string | undefined | null): string {
   if (typeof type !== 'string') return '';
   const key = type.trim().toLowerCase();
-  return key.endsWith(ACCESS_TYPE_SUFFIX)
-    ? key.slice(0, -ACCESS_TYPE_SUFFIX.length)
-    : key;
+  return key.endsWith(ACCESS_TYPE_SUFFIX) ? key.slice(0, -ACCESS_TYPE_SUFFIX.length) : key;
 }
 
 /** True when this type is a turn-off rather than the place itself. */
@@ -238,7 +236,7 @@ export const RESUPPLY_TYPE_ALIASES: ReadonlySet<string> = new Set([
 function inFamily(
   type: string | undefined | null,
   canonical: ReadonlySet<string>,
-  aliases: ReadonlySet<string>,
+  aliases: ReadonlySet<string>
 ): boolean {
   if (typeof type !== 'string') return false;
   const key = type.trim().toLowerCase();
@@ -268,9 +266,6 @@ export const WAYPOINT_FAMILIES = ['water', 'resupply'] as const;
 export type WaypointFamily = (typeof WAYPOINT_FAMILIES)[number];
 
 /** True when a waypoint of this type belongs to `family`. */
-export function matchesWaypointFamily(
-  type: string | undefined | null,
-  family: WaypointFamily,
-): boolean {
+export function matchesWaypointFamily(type: string | undefined | null, family: WaypointFamily): boolean {
   return family === 'water' ? isWaterWaypoint(type) : isResupplyWaypoint(type);
 }

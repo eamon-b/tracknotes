@@ -2,10 +2,7 @@
  * Community route wording and report rules, with no UI attached.
  */
 
-import {
-  COMMUNITY_REPORT_REASONS,
-  type CommunityReportReason,
-} from '@lib/community-types';
+import { COMMUNITY_REPORT_REASONS, type CommunityReportReason } from '@lib/community-types';
 
 export const REPORT_REASON_LABELS: Record<CommunityReportReason, string> = {
   spam: 'Spam or advertising',
@@ -33,7 +30,9 @@ export function isReportReason(value: unknown): value is CommunityReportReason {
 export function validateReport(
   reason: string | null,
   note: string,
-): { ok: true; reason: CommunityReportReason; note: string | null } | { ok: false; message: string } {
+):
+  | { ok: true; reason: CommunityReportReason; note: string | null }
+  | { ok: false; message: string } {
   if (!isReportReason(reason)) return { ok: false, message: 'Choose a reason.' };
   const trimmed = note.trim();
   if (trimmed.length > MAX_REPORT_NOTE_LENGTH) {

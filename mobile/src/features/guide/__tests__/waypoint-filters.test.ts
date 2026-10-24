@@ -86,11 +86,17 @@ describe('formatSignedDistance', () => {
   });
 
   it('labels positive deltas as ahead', () => {
-    expect(formatSignedDistance(12.4, 'km')).toEqual({ label: '12.4 km ahead', direction: 'ahead' });
+    expect(formatSignedDistance(12.4, 'km')).toEqual({
+      label: '12.4 km ahead',
+      direction: 'ahead',
+    });
   });
 
   it('labels negative deltas as behind (magnitude only)', () => {
-    expect(formatSignedDistance(-3.1, 'km')).toEqual({ label: '3.1 km behind', direction: 'behind' });
+    expect(formatSignedDistance(-3.1, 'km')).toEqual({
+      label: '3.1 km behind',
+      direction: 'behind',
+    });
   });
 
   it('collapses a near-zero delta to "Here"', () => {

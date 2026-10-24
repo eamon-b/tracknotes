@@ -44,9 +44,14 @@ describe('calculateTrailBounds', () => {
   });
 
   it('works with a single point', () => {
-    const points: TrackPoint[] = [{
-      lat: -33.5, lon: 115.5, ele: 200, dist: 0,
-    }];
+    const points: TrackPoint[] = [
+      {
+        lat: -33.5,
+        lon: 115.5,
+        ele: 200,
+        dist: 0,
+      },
+    ];
     const bounds = calculateTrailBounds(points);
 
     expect(bounds.south).toBeLessThan(-33.5);

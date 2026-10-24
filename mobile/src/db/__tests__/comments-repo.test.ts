@@ -10,7 +10,9 @@ async function db(): Promise<SqlDatabase> {
 const TRAIL = 'aawt';
 const WP = 'w_abcd1234';
 
-function serverInput(overrides: Partial<commentsRepo.ServerCommentInput> = {}): commentsRepo.ServerCommentInput {
+function serverInput(
+  overrides: Partial<commentsRepo.ServerCommentInput> = {},
+): commentsRepo.ServerCommentInput {
   return {
     id: 'id-server',
     trailId: TRAIL,
@@ -99,7 +101,10 @@ describe('comments-repo', () => {
       createdAt: '2026-01-03T00:00:00.000Z',
     });
     // A later trail pull returns the same comment (no user id in the feed).
-    await commentsRepo.upsertServerComment(d, serverInput({ id: 'shared-id', text: 'hi', displayName: 'Me' }));
+    await commentsRepo.upsertServerComment(
+      d,
+      serverInput({ id: 'shared-id', text: 'hi', displayName: 'Me' }),
+    );
     const row = await commentsRepo.getById(d, 'shared-id');
     expect(row?.source).toBe('server');
     expect(row?.authorId).toBe('user-1');
@@ -174,7 +179,10 @@ describe('comments-repo', () => {
     expect((await commentsRepo.getById(d, 'p3'))?.photoUrls).toEqual(['file:///local.jpg']);
 
     // Once the server has the photo, its list wins.
-    await commentsRepo.upsertServerComment(d, serverInput({ id: 'p3', photoUrls: ['https://cdn/x.jpg'] }));
+    await commentsRepo.upsertServerComment(
+      d,
+      serverInput({ id: 'p3', photoUrls: ['https://cdn/x.jpg'] }),
+    );
     expect((await commentsRepo.getById(d, 'p3'))?.photoUrls).toEqual(['https://cdn/x.jpg']);
   });
 

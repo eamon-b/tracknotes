@@ -72,8 +72,10 @@ export async function saveUserWaypoint(
   deps: SyncDeps = {},
 ): Promise<SaveUserWaypointResult> {
   const { trailId, existing, visibility } = args;
-  if (existing && !existing.mine) throw new Error('Only the hiker who added a waypoint can edit it.');
-  if (existing && existing.trailId !== trailId) throw new Error('That waypoint is on another trail.');
+  if (existing && !existing.mine)
+    throw new Error('Only the hiker who added a waypoint can edit it.');
+  if (existing && existing.trailId !== trailId)
+    throw new Error('That waypoint is on another trail.');
   if (visibility === 'shared' && !canShareWaypoints(trailId)) {
     throw new Error('Waypoints on this trail can only be kept on this phone.');
   }

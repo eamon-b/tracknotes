@@ -46,7 +46,9 @@ export function pickPhotoContentType(mimeType?: string | null): PhotoContentType
  * Convert a single picker asset into a `SelectedPhoto`, or `null` when the asset
  * lacks a usable URI. Callers pass `assets[0]` (single-select).
  */
-export function assetToSelectedPhoto(asset: PickedAssetLike | null | undefined): SelectedPhoto | null {
+export function assetToSelectedPhoto(
+  asset: PickedAssetLike | null | undefined,
+): SelectedPhoto | null {
   const uri = asset?.uri;
   if (!uri) return null;
   return { uri, contentType: pickPhotoContentType(asset?.mimeType) };
@@ -56,7 +58,9 @@ export function assetToSelectedPhoto(asset: PickedAssetLike | null | undefined):
  * Pull the first selected photo out of a picker result, or `null` when the user
  * canceled or the result is empty.
  */
-export function selectedPhotoFromResult(result: PickerResultLike | null | undefined): SelectedPhoto | null {
+export function selectedPhotoFromResult(
+  result: PickerResultLike | null | undefined,
+): SelectedPhoto | null {
   if (!result || result.canceled) return null;
   return assetToSelectedPhoto(result.assets?.[0]);
 }

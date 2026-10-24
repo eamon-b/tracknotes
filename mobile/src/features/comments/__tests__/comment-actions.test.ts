@@ -27,17 +27,23 @@ describe('confirmDeleteComment', () => {
     confirmDeleteComment(onDelete);
     expect(onDelete).not.toHaveBeenCalled();
 
-    lastButtons().find((b) => b.text === 'Cancel')?.onPress?.();
+    lastButtons()
+      .find((b) => b.text === 'Cancel')
+      ?.onPress?.();
     expect(onDelete).not.toHaveBeenCalled();
 
-    lastButtons().find((b) => b.style === 'destructive')?.onPress?.();
+    lastButtons()
+      .find((b) => b.style === 'destructive')
+      ?.onPress?.();
     await flush();
     expect(onDelete).toHaveBeenCalledTimes(1);
   });
 
   it('says so when the delete fails', async () => {
     confirmDeleteComment(jest.fn().mockRejectedValue(new Error('disk full')));
-    lastButtons().find((b) => b.style === 'destructive')?.onPress?.();
+    lastButtons()
+      .find((b) => b.style === 'destructive')
+      ?.onPress?.();
     await flush();
     expect(alertSpy).toHaveBeenLastCalledWith(
       'Couldn’t delete comment',

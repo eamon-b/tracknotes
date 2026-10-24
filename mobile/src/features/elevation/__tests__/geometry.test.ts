@@ -336,12 +336,16 @@ describe('buildProfileMarkers', () => {
       ],
       plot,
       (wp) =>
-        wp.kind === 'poi'
-          ? { color: 'POI', radius: 3, fill: false }
-          : { color: 'STD', radius: 4 },
+        wp.kind === 'poi' ? { color: 'POI', radius: 3, fill: false } : { color: 'STD', radius: 4 },
     );
     expect(markers[0]).toMatchObject({ id: 'wp', kind: 'waypoint', fill: true, radius: 4 });
-    expect(markers[1]).toMatchObject({ id: 'ring', kind: 'poi', fill: false, radius: 3, color: 'POI' });
+    expect(markers[1]).toMatchObject({
+      id: 'ring',
+      kind: 'poi',
+      fill: false,
+      radius: 3,
+      color: 'POI',
+    });
   });
 
   it('falls back to the floor when elevation is missing', () => {

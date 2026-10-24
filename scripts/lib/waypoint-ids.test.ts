@@ -87,16 +87,12 @@ describe('assignWaypointIds', () => {
 
   it('does NOT reuse the id when a waypoint drifts beyond 100 m', () => {
     const registry: WaypointRegistry = {};
-    const [firstId] = assignWaypointIds(
-      TRAIL,
-      [{ name: 'Far Hut', type: 'hut', lat: -33.0, lon: 150.0 }],
-      registry,
-    );
+    const [firstId] = assignWaypointIds(TRAIL, [{ name: 'Far Hut', type: 'hut', lat: -33.0, lon: 150.0 }], registry);
     // Move ~250 m north — outside the match radius, so a new id is minted.
     const [secondId] = assignWaypointIds(
       TRAIL,
       [{ name: 'Far Hut', type: 'hut', lat: movedNorth(-33.0, 250), lon: 150.0 }],
-      registry,
+      registry
     );
     expect(secondId).not.toBe(firstId);
     expect(registry[TRAIL]).toHaveLength(2);
@@ -104,16 +100,8 @@ describe('assignWaypointIds', () => {
 
   it('does NOT reuse across different types even when co-located', () => {
     const registry: WaypointRegistry = {};
-    const [hutId] = assignWaypointIds(
-      TRAIL,
-      [{ name: 'Junction', type: 'hut', lat: -33.0, lon: 150.0 }],
-      registry,
-    );
-    const [waterId] = assignWaypointIds(
-      TRAIL,
-      [{ name: 'Junction', type: 'water', lat: -33.0, lon: 150.0 }],
-      registry,
-    );
+    const [hutId] = assignWaypointIds(TRAIL, [{ name: 'Junction', type: 'hut', lat: -33.0, lon: 150.0 }], registry);
+    const [waterId] = assignWaypointIds(TRAIL, [{ name: 'Junction', type: 'water', lat: -33.0, lon: 150.0 }], registry);
     expect(waterId).not.toBe(hutId);
     expect(registry[TRAIL]).toHaveLength(2);
   });
@@ -121,11 +109,7 @@ describe('assignWaypointIds', () => {
   it('(c) throws when two built waypoints resolve to the same sole registry entry', () => {
     // Seed the registry with a single entry.
     const registry: WaypointRegistry = {};
-    assignWaypointIds(
-      TRAIL,
-      [{ name: 'Shared Camp', type: 'campsite', lat: -33.0, lon: 150.0 }],
-      registry,
-    );
+    assignWaypointIds(TRAIL, [{ name: 'Shared Camp', type: 'campsite', lat: -33.0, lon: 150.0 }], registry);
 
     // Two built waypoints both fall within 100 m of that one entry.
     const twoWaypoints: WaypointForId[] = [
@@ -133,7 +117,7 @@ describe('assignWaypointIds', () => {
       { name: 'Shared Camp', type: 'campsite', lat: movedNorth(-33.0, 30), lon: 150.0 },
     ];
     expect(() => assignWaypointIds(TRAIL, twoWaypoints, registry)).toThrow(
-      /Duplicate waypoint name.*need distinct names/,
+      /Duplicate waypoint name.*need distinct names/
     );
   });
 
@@ -150,7 +134,7 @@ describe('assignWaypointIds', () => {
     expect(ids[1]).toBe(hutId);
     expect(ids[0]).not.toBe(hutId);
     expect(registry[TRAIL]).toHaveLength(2);
-    expect(registry[TRAIL].some((e) => e.retired)).toBe(false);
+    expect(registry[TRAIL].some(e => e.retired)).toBe(false);
   });
 
   it('lets the waypoint standing on a shared-name entry keep it, and stops on the newcomer', () => {
@@ -163,8 +147,8 @@ describe('assignWaypointIds', () => {
     const newcomer = { ...toilet, lat: movedNorth(-33.0, 60) };
     expect(() => assignWaypointIds(TRAIL, [newcomer, toilet], registry)).toThrow(
       new RegExp(
-        `"Toilet" at \\(${newcomer.lat.toFixed(5)}, 150\\.00000\\) is 60 m .*need distinct names \\(e\\.g\\. "Toilet 2"\\)`,
-      ),
+        `"Toilet" at \\(${newcomer.lat.toFixed(5)}, 150\\.00000\\) is 60 m .*need distinct names \\(e\\.g\\. "Toilet 2"\\)`
+      )
     );
   });
 
@@ -181,7 +165,7 @@ describe('assignWaypointIds', () => {
     const movedA = { ...tankA, lat: movedNorth(-33.0, -30) };
     const movedB = { ...tankB, lat: movedNorth(-33.0, 25) };
     expect(() => assignWaypointIds(TRAIL, [movedA, movedB], registry)).toThrow(
-      new RegExp(`"Water tank" have both moved.*(${idA} and ${idB}|${idB} and ${idA})`),
+      new RegExp(`"Water tank" have both moved.*(${idA} and ${idB}|${idB} and ${idA})`)
     );
   });
 
@@ -203,13 +187,13 @@ describe('assignWaypointIds', () => {
 
     const lodging = { name: 'Anrakuji Shukubo', type: 'accommodation', lat: movedNorth(34.11808, 20), lon: 134.388518 };
     const warnings: string[] = [];
-    assignWaypointIds(TRAIL, [lodging, hut], registry, (m) => warnings.push(m));
+    assignWaypointIds(TRAIL, [lodging, hut], registry, m => warnings.push(m));
     expect(warnings).toHaveLength(1);
     expect(warnings[0]).toMatch(/"Anrakuji Shukubo".*"Anrakuji Tsuyado" \(20 m\)/);
 
     // Next build both keep their ids by name: nothing to say.
     warnings.length = 0;
-    assignWaypointIds(TRAIL, [lodging, hut], registry, (m) => warnings.push(m));
+    assignWaypointIds(TRAIL, [lodging, hut], registry, m => warnings.push(m));
     expect(warnings).toEqual([]);
   });
 
@@ -224,7 +208,7 @@ describe('assignWaypointIds', () => {
     const taker = { name: 'Taker', type: 'hut', lat: movedNorth(-33.0, 90), lon: 150.0 };
     const renamed = { name: 'New Camp', type: 'hut', lat: movedNorth(-33.0, 10), lon: 150.0 };
     expect(() => assignWaypointIds(TRAIL, [hut, taker, renamed], registry)).toThrow(
-      new RegExp(`entry ${campId} which was already claimed by "Taker"`),
+      new RegExp(`entry ${campId} which was already claimed by "Taker"`)
     );
   });
 
@@ -238,7 +222,7 @@ describe('assignWaypointIds', () => {
         { name: 'Big River 1', type: 'campsite', lat: -36.0, lon: 147.0 },
         { name: 'Big River 2', type: 'campsite', lat: movedNorth(-36.0, 30), lon: 147.0 },
       ],
-      registry,
+      registry
     );
     expect(ids[0]).not.toBe(ids[1]);
     expect(registry[TRAIL]).toHaveLength(2);
@@ -249,7 +233,7 @@ describe('assignWaypointIds', () => {
         { name: 'Big River 1', type: 'campsite', lat: -36.0, lon: 147.0 },
         { name: 'Big River 2', type: 'campsite', lat: movedNorth(-36.0, 30), lon: 147.0 },
       ],
-      registry,
+      registry
     );
     expect(rebuilt).toEqual(ids);
     expect(registry[TRAIL]).toHaveLength(2);
@@ -263,21 +247,17 @@ describe('assignWaypointIds', () => {
         { name: 'Kept Hut', type: 'hut', lat: -33.0, lon: 150.0 },
         { name: 'Retired Hut', type: 'hut', lat: -34.0, lon: 151.0 },
       ],
-      registry,
+      registry
     );
     expect(registry[TRAIL]).toHaveLength(2);
 
     // Rebuild with the second waypoint removed from the source data.
-    const ids = assignWaypointIds(
-      TRAIL,
-      [{ name: 'Kept Hut', type: 'hut', lat: -33.0, lon: 150.0 }],
-      registry,
-    );
+    const ids = assignWaypointIds(TRAIL, [{ name: 'Kept Hut', type: 'hut', lat: -33.0, lon: 150.0 }], registry);
     expect(ids).toEqual([keepId]);
     // The retired waypoint's entry survives (never deleted), marked retired.
     expect(registry[TRAIL]).toHaveLength(2);
-    expect(registry[TRAIL].find((e) => e.id === dropId)?.retired).toBe(true);
-    expect(registry[TRAIL].find((e) => e.id === keepId)?.retired).toBeUndefined();
+    expect(registry[TRAIL].find(e => e.id === dropId)?.retired).toBe(true);
+    expect(registry[TRAIL].find(e => e.id === keepId)?.retired).toBeUndefined();
   });
 
   it('never hands a retired id to a differently-named newcomer nearby', () => {
@@ -287,18 +267,18 @@ describe('assignWaypointIds', () => {
     const [oldId] = assignWaypointIds(
       TRAIL,
       [{ name: 'Old Tank', type: 'water-tank', lat: -33.5, lon: 150.5 }],
-      registry,
+      registry
     );
     assignWaypointIds(TRAIL, [], registry); // removed from the source data
 
     const [newId] = assignWaypointIds(
       TRAIL,
       [{ name: 'New Tank', type: 'water-tank', lat: movedNorth(-33.5, 40), lon: 150.5 }],
-      registry,
+      registry
     );
     expect(newId).not.toBe(oldId);
-    expect(registry[TRAIL].find((e) => e.id === oldId)?.retired).toBe(true);
-    expect(registry[TRAIL].find((e) => e.id === newId)?.retired).toBeUndefined();
+    expect(registry[TRAIL].find(e => e.id === oldId)?.retired).toBe(true);
+    expect(registry[TRAIL].find(e => e.id === newId)?.retired).toBeUndefined();
   });
 
   it('gives a retired id back to the same waypoint when it returns, and un-retires it', () => {
@@ -308,11 +288,7 @@ describe('assignWaypointIds', () => {
     assignWaypointIds(TRAIL, [], registry);
     expect(registry[TRAIL][0].retired).toBe(true);
 
-    const [back] = assignWaypointIds(
-      TRAIL,
-      [{ ...hut, lat: movedNorth(hut.lat, 30) }],
-      registry,
-    );
+    const [back] = assignWaypointIds(TRAIL, [{ ...hut, lat: movedNorth(hut.lat, 30) }], registry);
     expect(back).toBe(id);
     expect(registry[TRAIL][0].retired).toBeUndefined();
     expect(registry[TRAIL]).toHaveLength(1);
@@ -320,15 +296,11 @@ describe('assignWaypointIds', () => {
 
   it('still lets a live entry follow a rename (only retired entries need the name)', () => {
     const registry: WaypointRegistry = {};
-    const [id] = assignWaypointIds(
-      TRAIL,
-      [{ name: 'Creek Camp', type: 'campsite', lat: -36.0, lon: 148.0 }],
-      registry,
-    );
+    const [id] = assignWaypointIds(TRAIL, [{ name: 'Creek Camp', type: 'campsite', lat: -36.0, lon: 148.0 }], registry);
     const [renamed] = assignWaypointIds(
       TRAIL,
       [{ name: 'Creek Campsite', type: 'campsite', lat: -36.0, lon: 148.0 }],
-      registry,
+      registry
     );
     expect(renamed).toBe(id);
   });
@@ -344,9 +316,7 @@ describe('assignWaypointIds', () => {
     // forcing the collision path. It is a different type/location so it is not
     // a match candidate for `wp`.
     const registry: WaypointRegistry = {
-      [TRAIL]: [
-        { id: wouldMint, name: 'Decoy', type: 'water', lat: 10, lon: 10 },
-      ],
+      [TRAIL]: [{ id: wouldMint, name: 'Decoy', type: 'water', lat: 10, lon: 10 }],
     };
     const [extendedId] = assignWaypointIds(TRAIL, [wp], registry);
 
@@ -369,11 +339,7 @@ describe('assignWaypointIds', () => {
       lat: 37.48337,
       lon: -106.80088,
     });
-    const ids = assignWaypointIds(
-      TRAIL,
-      [at('Pagosa Springs'), at('South Fork'), at('Del Norte')],
-      registry,
-    );
+    const ids = assignWaypointIds(TRAIL, [at('Pagosa Springs'), at('South Fork'), at('Del Norte')], registry);
 
     expect(new Set(ids).size).toBe(3);
     for (const id of ids) expect(id).toMatch(ID_PATTERN);
@@ -387,9 +353,7 @@ describe('assignWaypointIds', () => {
 
     // Deterministic: the same input mints the same ids again.
     const again: WaypointRegistry = {};
-    expect(
-      assignWaypointIds(TRAIL, [at('Pagosa Springs'), at('South Fork'), at('Del Norte')], again),
-    ).toEqual(ids);
+    expect(assignWaypointIds(TRAIL, [at('Pagosa Springs'), at('South Fork'), at('Del Norte')], again)).toEqual(ids);
   });
 
   it('scopes ids per trail in the registry', () => {
@@ -415,7 +379,7 @@ describe('stringifyRegistry', () => {
       ],
     };
     const parsed = JSON.parse(stringifyRegistry(registry)) as WaypointRegistry;
-    expect(parsed.t.map((e) => Object.keys(e))).toEqual([
+    expect(parsed.t.map(e => Object.keys(e))).toEqual([
       ['id', 'name', 'type', 'lat', 'lon'],
       ['id', 'name', 'type', 'lat', 'lon', 'retired'],
     ]);
@@ -433,10 +397,7 @@ describe('stringifyRegistry', () => {
     expect(out.endsWith('\n')).toBe(true);
     const parsed = JSON.parse(out);
     expect(Object.keys(parsed)).toEqual(['alpha', 'zebra']);
-    expect(parsed.zebra.map((e: { id: string }) => e.id)).toEqual([
-      'w_ffff0001',
-      'w_ffff0002',
-    ]);
+    expect(parsed.zebra.map((e: { id: string }) => e.id)).toEqual(['w_ffff0001', 'w_ffff0002']);
     // Fixed key order per entry.
     expect(Object.keys(parsed.zebra[0])).toEqual(['id', 'name', 'type', 'lat', 'lon']);
   });

@@ -8,11 +8,7 @@
  */
 
 import React from 'react';
-import TestRenderer, {
-  act,
-  type ReactTestRenderer,
-  type TestInstance,
-} from 'react-test-renderer';
+import TestRenderer, { act, type ReactTestRenderer, type TestInstance } from 'react-test-renderer';
 import { WaypointListPane } from '../WaypointListPane';
 import { DEFAULT_PREFS, usePlanInputsStore } from '../../plan/plan-inputs-store';
 import { usePlansStore } from '../../../state/plans-store';
@@ -207,9 +203,7 @@ describe('WaypointListPane planned resupply', () => {
     act(() => {
       jest.runOnlyPendingTimers();
     });
-    expect(allText(tree)).toContain(
-      'No planned resupply stops. Choose them from the Plan screen.',
-    );
+    expect(allText(tree)).toContain('No planned resupply stops. Choose them from the Plan screen.');
   });
 
   it('still reads a selection made before the plan document carried one', () => {
@@ -232,8 +226,6 @@ describe('WaypointListPane planned resupply', () => {
       jest.runOnlyPendingTimers();
     });
     // The document says nothing is planned, and it wins.
-    expect(allText(tree)).toContain(
-      'No planned resupply stops. Choose them from the Plan screen.',
-    );
+    expect(allText(tree)).toContain('No planned resupply stops. Choose them from the Plan screen.');
   });
 });

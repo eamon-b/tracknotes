@@ -18,12 +18,7 @@ import type { Env } from './http';
 import { requireAdmin, requireUser } from './auth';
 import { RATE_BUCKETS, consumeRateLimit, refundRateLimit } from './rate-limit';
 import { REPORTER_MIN_ACCOUNT_AGE_MS } from './community';
-import {
-  assertClientCommentId,
-  parseLimit,
-  validateReportDetail,
-  validateReportReason,
-} from './validation';
+import { assertClientCommentId, parseLimit, validateReportDetail, validateReportReason } from './validation';
 import type {
   AdminReport,
   AdminReportsResponse,
@@ -39,12 +34,7 @@ const ADMIN_MAX_LIMIT = 500;
 // ---------------------------------------------------------------------------
 
 /** POST /v1/comments/:id/report — idempotent per (comment, reporter). */
-export async function reportComment(
-  request: Request,
-  env: Env,
-  ctx: ExecutionContext,
-  id: string
-): Promise<Response> {
+export async function reportComment(request: Request, env: Env, ctx: ExecutionContext, id: string): Promise<Response> {
   assertClientCommentId(id);
   const user = await requireUser(request, env, ctx);
 
@@ -64,9 +54,7 @@ export async function reportComment(
 
   // Idempotency: replay the original report id rather than stacking duplicates.
   // This path skips the rate limit because nothing new is stored.
-  const existing = await env.DB.prepare(
-    `SELECT id FROM comment_reports WHERE comment_id = ? AND user_id = ?`
-  )
+  const existing = await env.DB.prepare(`SELECT id FROM comment_reports WHERE comment_id = ? AND user_id = ?`)
     .bind(id, user.id)
     .first<{ id: string }>();
   if (existing) {
@@ -100,9 +88,7 @@ export async function reportComment(
     // Lost a race with a concurrent report of the same comment: a repeat is
     // free, so the allowance goes back. Re-read + replay.
     await refundRateLimit(env, rateEvent);
-    const row = await env.DB.prepare(
-      `SELECT id FROM comment_reports WHERE comment_id = ? AND user_id = ?`
-    )
+    const row = await env.DB.prepare(`SELECT id FROM comment_reports WHERE comment_id = ? AND user_id = ?`)
       .bind(id, user.id)
       .first<{ id: string }>();
     if (!row) {
@@ -165,11 +151,7 @@ interface AdminReportRow {
 }
 
 /** GET /v1/admin/reports — every report with its comment context. */
-export async function getAdminReports(
-  request: Request,
-  env: Env,
-  ctx: ExecutionContext
-): Promise<Response> {
+export async function getAdminReports(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   await requireAdmin(request, env, ctx);
   const url = new URL(request.url);
   const limit = parseLimit(url.searchParams.get('limit'), ADMIN_DEFAULT_LIMIT, ADMIN_MAX_LIMIT);

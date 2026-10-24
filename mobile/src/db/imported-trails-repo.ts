@@ -87,10 +87,7 @@ export async function listImportedTrails(db: SqlDatabase): Promise<ImportedTrail
 }
 
 /** One imported trail by id, or null when the id is unknown (e.g. bundled). */
-export async function getImportedTrail(
-  db: SqlDatabase,
-  id: string,
-): Promise<ImportedTrail | null> {
+export async function getImportedTrail(db: SqlDatabase, id: string): Promise<ImportedTrail | null> {
   const row = await db.getFirstAsync<ImportedTrailRow>(
     'SELECT * FROM imported_trails WHERE id = ?',
     [id],
@@ -105,10 +102,7 @@ export async function getImportedTrail(
  * upsert rather than an insert: the metadata refreshes while `created_at` (and
  * therefore the list position) is preserved.
  */
-export async function upsertImportedTrail(
-  db: SqlDatabase,
-  row: ImportedTrailInput,
-): Promise<void> {
+export async function upsertImportedTrail(db: SqlDatabase, row: ImportedTrailInput): Promise<void> {
   await db.runAsync(
     `INSERT INTO imported_trails
        (id, name, short_name, length_km, source, has_elevation, point_count, waypoint_count)

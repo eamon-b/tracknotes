@@ -17,7 +17,6 @@ import {
   profileKmOfStop,
 } from '../plan-overlay';
 
-
 const TOTAL = 100;
 
 const WAYPOINTS = [

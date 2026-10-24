@@ -66,9 +66,48 @@ const base = {
 };
 
 const ROWS: TodayRow[] = [
-  { key: 's', waypoint: { id: 'c1', name: 'Camp A', lat: 0, lon: 0, type: 'campsite' }, name: 'Camp A', type: 'campsite', role: 'start', km: 20, fromStartKm: 0, legKm: 0, legAscentM: 0, legDescentM: 0, totalAscentM: 0, totalDescentM: 0 },
-  { key: 'v', waypoint: { id: 'wa', name: 'Creek', lat: 0, lon: 0, type: 'water' }, name: 'Creek', type: 'water', role: 'via', km: 30, fromStartKm: 10, legKm: 10, legAscentM: 100, legDescentM: 0, totalAscentM: 100, totalDescentM: 0 },
-  { key: 'e', waypoint: { id: 'c2', name: 'Camp B', lat: 0, lon: 0, type: 'campsite' }, name: 'Camp B', type: 'campsite', role: 'end', km: 60, fromStartKm: 40, legKm: 30, legAscentM: 200, legDescentM: 100, totalAscentM: 300, totalDescentM: 100 },
+  {
+    key: 's',
+    waypoint: { id: 'c1', name: 'Camp A', lat: 0, lon: 0, type: 'campsite' },
+    name: 'Camp A',
+    type: 'campsite',
+    role: 'start',
+    km: 20,
+    fromStartKm: 0,
+    legKm: 0,
+    legAscentM: 0,
+    legDescentM: 0,
+    totalAscentM: 0,
+    totalDescentM: 0,
+  },
+  {
+    key: 'v',
+    waypoint: { id: 'wa', name: 'Creek', lat: 0, lon: 0, type: 'water' },
+    name: 'Creek',
+    type: 'water',
+    role: 'via',
+    km: 30,
+    fromStartKm: 10,
+    legKm: 10,
+    legAscentM: 100,
+    legDescentM: 0,
+    totalAscentM: 100,
+    totalDescentM: 0,
+  },
+  {
+    key: 'e',
+    waypoint: { id: 'c2', name: 'Camp B', lat: 0, lon: 0, type: 'campsite' },
+    name: 'Camp B',
+    type: 'campsite',
+    role: 'end',
+    km: 60,
+    fromStartKm: 40,
+    legKm: 30,
+    legAscentM: 200,
+    legDescentM: 100,
+    totalAscentM: 300,
+    totalDescentM: 100,
+  },
 ];
 
 const KONBINI: TrailPOI = {
@@ -194,7 +233,12 @@ it('lists the OSM places on the way, opens one, and filters them', () => {
 });
 
 it('shows no filter or credit on a day OSM has nothing for', () => {
-  mockState = { ...base, today: { kind: 'walk', day }, rows: ROWS, entries: todayEntries(ROWS, [], day) };
+  mockState = {
+    ...base,
+    today: { kind: 'walk', day },
+    rows: ROWS,
+    entries: todayEntries(ROWS, [], day),
+  };
   const shown = texts(render());
   expect(shown.some((s) => s.includes('OpenStreetMap'))).toBe(false);
 });

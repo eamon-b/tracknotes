@@ -103,10 +103,7 @@ function makeMbtiles(name: string, opts: FixtureOpts): string {
   return filePath;
 }
 
-const contourZooms = Array.from(
-  { length: MAX_ZOOM - CONTOUR_MIN_ZOOM + 1 },
-  (_, i) => CONTOUR_MIN_ZOOM + i
-);
+const contourZooms = Array.from({ length: MAX_ZOOM - CONTOUR_MIN_ZOOM + 1 }, (_, i) => CONTOUR_MIN_ZOOM + i);
 
 describe('projectedEpsgFor', () => {
   it('keeps MGA for Australian trails', () => {
@@ -146,7 +143,13 @@ describe('contour tiers', () => {
   it('partition every 10 m elevation exactly once', () => {
     // Evaluate the SQL `where` clauses in JS: `(CAST(elevation AS INTEGER) % n) = 0`.
     const matches = (where: string, e: number): boolean =>
-      new Function('e', `return ${where.replace(/CAST\(elevation AS INTEGER\)/g, 'e').replace(/ AND /g, ' && ').replace(/(?<![!<>=])=(?!=)/g, '==')};`)(e) as boolean;
+      new Function(
+        'e',
+        `return ${where
+          .replace(/CAST\(elevation AS INTEGER\)/g, 'e')
+          .replace(/ AND /g, ' && ')
+          .replace(/(?<![!<>=])=(?!=)/g, '==')};`
+      )(e) as boolean;
     for (let e = -200; e <= 3000; e += 10) {
       const tiers = CONTOUR_TIERS.filter(t => matches(t.where, e));
       expect(tiers, `${e} m`).toHaveLength(1);
@@ -213,7 +216,7 @@ describe('contour tiers', () => {
     expect(untiered).toContain('--visvalingam');
     expect(untiered.some(a => a.startsWith('--maximum-tile-bytes'))).toBe(false);
     expect(contourTippecanoeArgs({ simplification: 14, minimumDetail: 4 })).toEqual(
-      expect.arrayContaining(['--simplification=14', '--minimum-detail=4']),
+      expect.arrayContaining(['--simplification=14', '--minimum-detail=4'])
     );
   });
 
@@ -279,30 +282,22 @@ describeWithSqlite3('validateMbtilesArtifact (needs the sqlite3 CLI)', () => {
     // exactly why the pre-expectation validator waved this through.
     const file = makeMbtiles('contours-noZ', { zooms: [0, 1, 2, 3, 4, 5, 6, 7, 8] });
     expect(() => validateMbtilesArtifact(file)).not.toThrow();
-    expect(() => validateMbtilesArtifact(file, CONTOUR_ZOOM_EXPECTATION)).toThrow(
-      /lowest tile zoom is 0, expected 9/
-    );
+    expect(() => validateMbtilesArtifact(file, CONTOUR_ZOOM_EXPECTATION)).toThrow(/lowest tile zoom is 0, expected 9/);
   });
 
   it('rejects an artifact missing the top of its zoom range', () => {
     const file = makeMbtiles('base-truncated', { zooms: [4, 5, 6, 7, 8] });
-    expect(() => validateMbtilesArtifact(file, BASE_ZOOM_EXPECTATION)).toThrow(
-      /highest tile zoom is 8, expected 15/
-    );
+    expect(() => validateMbtilesArtifact(file, BASE_ZOOM_EXPECTATION)).toThrow(/highest tile zoom is 8, expected 15/);
   });
 
   it('rejects metadata minzoom that disagrees with the tiles table', () => {
     const file = makeMbtiles('meta-min-lie', { zooms: contourZooms, metaMinZoom: 0 });
-    expect(() => validateMbtilesArtifact(file)).toThrow(
-      /metadata minzoom=0 but lowest tile zoom is 9/
-    );
+    expect(() => validateMbtilesArtifact(file)).toThrow(/metadata minzoom=0 but lowest tile zoom is 9/);
   });
 
   it('rejects metadata maxzoom that disagrees with the tiles table', () => {
     const file = makeMbtiles('meta-max-lie', { zooms: contourZooms, metaMaxZoom: 14 });
-    expect(() => validateMbtilesArtifact(file)).toThrow(
-      /metadata maxzoom=14 but highest tile zoom is 15/
-    );
+    expect(() => validateMbtilesArtifact(file)).toThrow(/metadata maxzoom=14 but highest tile zoom is 15/);
   });
 
   it('still enforces the expected range when metadata zoom rows are absent', () => {
@@ -311,9 +306,7 @@ describeWithSqlite3('validateMbtilesArtifact (needs the sqlite3 CLI)', () => {
       metaMinZoom: null,
       metaMaxZoom: null,
     });
-    expect(() => validateMbtilesArtifact(file, CONTOUR_ZOOM_EXPECTATION)).toThrow(
-      /expected 9/
-    );
+    expect(() => validateMbtilesArtifact(file, CONTOUR_ZOOM_EXPECTATION)).toThrow(/expected 9/);
   });
 
   it('rejects an empty tile table', () => {
@@ -366,12 +359,8 @@ describe('file hashing helpers', () => {
 
   it('splices the hash prefix before the extension', () => {
     const sha = 'a'.repeat(52) + 'b'.repeat(12);
-    expect(contentAddressedKey('base.mbtiles', '58ce65fc4290' + sha)).toBe(
-      'base.58ce65fc4290.mbtiles'
-    );
-    expect(contentAddressedKey('contours.mbtiles', 'deadbeef1234' + sha)).toBe(
-      'contours.deadbeef1234.mbtiles'
-    );
+    expect(contentAddressedKey('base.mbtiles', '58ce65fc4290' + sha)).toBe('base.58ce65fc4290.mbtiles');
+    expect(contentAddressedKey('contours.mbtiles', 'deadbeef1234' + sha)).toBe('contours.deadbeef1234.mbtiles');
   });
 });
 
@@ -474,9 +463,7 @@ describeWithSqlite3('writeManifest (needs the sqlite3 CLI)', () => {
   it('reproduces the same key when rewritten over unchanged files', () => {
     const dir = outDir('stable-key');
     const contours = makeMbtiles('contours-stable', { zooms: contourZooms });
-    const input = [
-      { name: 'contours.mbtiles', path: contours, expectedZoom: CONTOUR_ZOOM_EXPECTATION },
-    ];
+    const input = [{ name: 'contours.mbtiles', path: contours, expectedZoom: CONTOUR_ZOOM_EXPECTATION }];
 
     const first = writeManifest('demo', dir, bounds, input);
     const second = writeManifest('demo', dir, bounds, input);

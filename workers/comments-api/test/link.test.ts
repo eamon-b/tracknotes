@@ -56,9 +56,7 @@ async function legacyUser(
 ): Promise<{ userId: string; token: string }> {
   const token = `legacy-${crypto.randomUUID()}`;
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
-  const tokenHash = [...new Uint8Array(digest)]
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
+  const tokenHash = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
   const userId = crypto.randomUUID();
   const now = new Date().toISOString();
   await env.DB.prepare(
@@ -100,12 +98,8 @@ describe('migrated primary tokens', () => {
     expect(row?.revoked_at).toBeNull();
 
     // Idempotent: a second request reuses the row rather than minting another.
-    expect(
-      (await SELF.fetch(url('/v1/me'), { headers: { Authorization: `Bearer ${token}` } })).status
-    ).toBe(200);
-    const { results } = await env.DB.prepare(
-      `SELECT token_hash FROM device_tokens WHERE user_id = ?`
-    )
+    expect((await SELF.fetch(url('/v1/me'), { headers: { Authorization: `Bearer ${token}` } })).status).toBe(200);
+    const { results } = await env.DB.prepare(`SELECT token_hash FROM device_tokens WHERE user_id = ?`)
       .bind(userId)
       .all();
     expect(results).toHaveLength(1);
@@ -113,9 +107,7 @@ describe('migrated primary tokens', () => {
 
   it('does not adopt a banned legacy account', async () => {
     const { userId, token } = await legacyUser('Banned legacy', { banned: true });
-    expect(
-      (await SELF.fetch(url('/v1/me'), { headers: { Authorization: `Bearer ${token}` } })).status
-    ).toBe(401);
+    expect((await SELF.fetch(url('/v1/me'), { headers: { Authorization: `Bearer ${token}` } })).status).toBe(401);
     expect(await tokenRow(userId, 'primary')).toBeNull();
   });
 
@@ -171,9 +163,7 @@ describe('POST /v1/link-codes', () => {
     }
     const blocked = await createLinkCode(device);
     expect(blocked.status).toBe(429);
-    expect(((await blocked.json()) as { error: { code: string } }).error.code).toBe(
-      'too_many_codes'
-    );
+    expect(((await blocked.json()) as { error: { code: string } }).error.code).toBe('too_many_codes');
 
     await env.DB.prepare(`UPDATE link_codes SET expires_at = ? WHERE user_id = ?`)
       .bind(new Date(Date.now() - 1000).toISOString(), device.userId)
@@ -196,9 +186,7 @@ describe('POST /v1/devices/link', () => {
     expect(Date.parse(body.expiresAt) - Date.now()).toBeGreaterThan(179 * 24 * 60 * 60 * 1000);
 
     const browser = asDevice(body);
-    const me = (await (
-      await SELF.fetch(url('/v1/me'), { headers: authHeaders(browser) })
-    ).json()) as MeResponse;
+    const me = (await (await SELF.fetch(url('/v1/me'), { headers: authHeaders(browser) })).json()) as MeResponse;
     expect(me.userId).toBe(phone.userId);
 
     const row = await tokenRow(phone.userId, 'linked');
@@ -267,9 +255,7 @@ describe('link-attempt limit under load', () => {
     // With a COUNT then an INSERT, every parallel guess read the same count
     // and all of them got to try a code.
     const ip = '198.51.100.90';
-    const results = await Promise.all(
-      Array.from({ length: 16 }, () => linkDevice({ code: 'ZZZZZZZZ' }, ip))
-    );
+    const results = await Promise.all(Array.from({ length: 16 }, () => linkDevice({ code: 'ZZZZZZZZ' }, ip)));
     const statuses = results.map((r) => r.status);
     expect(statuses.filter((s) => s === 404)).toHaveLength(10);
     expect(statuses.filter((s) => s === 429)).toHaveLength(6);
@@ -458,9 +444,7 @@ describe('DELETE /v1/me — token cascade', () => {
     expect((await SELF.fetch(url('/v1/me'), { headers: authHeaders(browser) })).status).toBe(401);
     expect((await SELF.fetch(url('/v1/me'), { headers: authHeaders(phone) })).status).toBe(401);
 
-    const { results } = await env.DB.prepare(
-      `SELECT revoked_at FROM device_tokens WHERE user_id = ?`
-    )
+    const { results } = await env.DB.prepare(`SELECT revoked_at FROM device_tokens WHERE user_id = ?`)
       .bind(phone.userId)
       .all<{ revoked_at: string | null }>();
     expect(results).toHaveLength(2);
@@ -475,9 +459,7 @@ describe('a linked token is not the account', () => {
 
     const res = await createLinkCode(browser);
     expect(res.status).toBe(403);
-    expect(((await res.json()) as { error: { code: string } }).error.code).toBe(
-      'primary_token_required'
-    );
+    expect(((await res.json()) as { error: { code: string } }).error.code).toBe('primary_token_required');
 
     // The phone itself is unaffected.
     expect((await createLinkCode(phone)).status).toBe(201);
@@ -489,9 +471,7 @@ describe('a linked token is not the account', () => {
 
     const res = await deleteMe(browser);
     expect(res.status).toBe(403);
-    expect(((await res.json()) as { error: { code: string } }).error.code).toBe(
-      'primary_token_required'
-    );
+    expect(((await res.json()) as { error: { code: string } }).error.code).toBe('primary_token_required');
 
     // Both tokens still work; the phone can still do it itself.
     expect((await SELF.fetch(url('/v1/me'), { headers: authHeaders(phone) })).status).toBe(200);
@@ -517,9 +497,7 @@ describe('link code housekeeping', () => {
     // The sweep runs in ctx.waitUntil — poll briefly for it to land.
     let gone = false;
     for (let i = 0; i < 20 && !gone; i++) {
-      const row = await env.DB.prepare(`SELECT code FROM link_codes WHERE code = ?`)
-        .bind(stale)
-        .first();
+      const row = await env.DB.prepare(`SELECT code FROM link_codes WHERE code = ?`).bind(stale).first();
       gone = row === null;
       if (!gone) await new Promise((r) => setTimeout(r, 25));
     }

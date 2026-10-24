@@ -93,8 +93,10 @@ export function emptyMessage(
     const which = today.restDays > 1 ? ` (${today.restDay} of ${today.restDays})` : '';
     return `A rest day at ${today.day.endName}${which}.`;
   }
-  if (!hasStops) return 'Your plan has no stops yet. Add the camps you will stop at in the planner.';
-  if (!hasStartDate) return 'Your plan has no start date, so no day is dated today. Set one in the planner.';
+  if (!hasStops)
+    return 'Your plan has no stops yet. Add the camps you will stop at in the planner.';
+  if (!hasStartDate)
+    return 'Your plan has no start date, so no day is dated today. Set one in the planner.';
   return `No planned day is dated ${date}.`;
 }
 
@@ -153,7 +155,9 @@ export function todayRows(trail: TrailJson, day: ComputedDay): TodayRow[] {
   const endWp = at(day.endKm, day.endName);
   const via = sorted.filter((w) => {
     const km = w.totalDistance ?? 0;
-    return km > day.startKm - KM_EPSILON && km < day.endKm + KM_EPSILON && w !== startWp && w !== endWp;
+    return (
+      km > day.startKm - KM_EPSILON && km < day.endKm + KM_EPSILON && w !== startWp && w !== endWp
+    );
   });
 
   type Stop = { waypoint?: TrailJsonWaypoint; name: string; role: TodayRow['role']; km: number };
@@ -182,7 +186,9 @@ export function todayRows(trail: TrailJson, day: ComputedDay): TodayRow[] {
     const prevKm = i === 0 ? stop.km : stops[i - 1].km;
     const route = Math.max(0, stop.km - prevKm);
     const route_ =
-      route > 0 ? calculateElevationBetween(prevKm, stop.km, points, breakStarts) : { gain: 0, loss: 0 };
+      route > 0
+        ? calculateElevationBetween(prevKm, stop.km, points, breakStarts)
+        : { gain: 0, loss: 0 };
     const walked = addPlaceWalks(
       { distanceKm: route, ascentM: route_.gain, descentM: route_.loss },
       i === 1 ? walkOut : null,

@@ -102,7 +102,7 @@ export interface PlanStopIssuesOptions {
 export function planStopIssues(
   plan: PlanDocument,
   trail: StopIssuesTrail,
-  opts: PlanStopIssuesOptions = {},
+  opts: PlanStopIssuesOptions = {}
 ): StopIssue[] {
   if (plan.stops.length === 0) return [];
   const route = opts.route ?? buildPlannedRoute(trail, plan.alternates);
@@ -132,9 +132,10 @@ export function planStopIssues(
   const issues: StopIssue[] = [];
   for (const stop of plan.stops) {
     const routeKm = hidden.has(stop) ? null : stopRouteKm(route, stop);
-    const reason = routeKm === null
-      ? unplacedReason(stop, route, total, alternates)
-      : placeReason(stop, stop.alternate === undefined ? main : onAlternate.get(stop.alternate));
+    const reason =
+      routeKm === null
+        ? unplacedReason(stop, route, total, alternates)
+        : placeReason(stop, stop.alternate === undefined ? main : onAlternate.get(stop.alternate));
     if (reason) issues.push({ stop, reason: stale ? 'newer-data' : reason, routeKm });
   }
   return issues;
@@ -145,7 +146,7 @@ function unplacedReason(
   stop: PlanStop,
   route: PlannedRoute,
   total: number,
-  alternates: ReadonlyMap<string, { startKm: number; distanceKm: number }>,
+  alternates: ReadonlyMap<string, { startKm: number; distanceKm: number }>
 ): StopIssueReason {
   if (stop.alternate !== undefined) {
     const alternate = alternates.get(stop.alternate);
@@ -163,7 +164,7 @@ function unplacedReason(
 /** Why a stop still on the route does not match its place, or null when it does. */
 function placeReason(
   stop: PlanStop,
-  places: ReadonlyMap<string, number | undefined> | undefined,
+  places: ReadonlyMap<string, number | undefined> | undefined
 ): StopIssueReason | null {
   const id = stop.waypointId;
   if (!id || id.startsWith(USER_WAYPOINT_ID_PREFIX)) return null;
@@ -228,9 +229,7 @@ export const STOP_ISSUES_HINT =
 export function stopIssuesNotice(issues: readonly StopIssue[]): string | null {
   if (issues.length === 0) return null;
   const cause = issues.some(issue => DATA_REASONS.has(issue.reason)) ? ' after a trail data update' : '';
-  const head = issues.length === 1
-    ? `1 stop needs checking${cause}`
-    : `${issues.length} stops need checking${cause}`;
+  const head = issues.length === 1 ? `1 stop needs checking${cause}` : `${issues.length} stops need checking${cause}`;
   const unplacedNights = issues
     .filter(issue => issue.routeKm === null)
     .reduce((sum, issue) => sum + Math.max(0, Number(issue.stop.nights) || 0), 0);

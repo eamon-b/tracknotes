@@ -137,11 +137,7 @@ export function PlanDayLine({
       : '';
   return (
     <View
-      style={[
-        styles.day,
-        { borderColor: colors.border },
-        unplanned && styles.dayUnplanned,
-      ]}
+      style={[styles.day, { borderColor: colors.border }, unplanned && styles.dayUnplanned]}
       accessible
       accessibilityLabel={`${lead}: ${day.startName} to ${day.endName}, ${formatDistance(day.distanceKm, units)}`}
     >

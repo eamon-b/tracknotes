@@ -38,8 +38,8 @@ export function checksListHtml(checks: readonly CommunityCheck[]): string {
     .map(
       c =>
         `<li class="community-check community-check-${escapeHtml(c.level)}"><span class="community-check-level">${escapeHtml(
-          LEVEL_LABELS[c.level] ?? c.level,
-        )}</span> ${escapeHtml(c.message)}</li>`,
+          LEVEL_LABELS[c.level] ?? c.level
+        )}</span> ${escapeHtml(c.message)}</li>`
     )
     .join('')}</ul>`;
 }
@@ -65,7 +65,7 @@ export function initRegionPicker(
   stateSelect: HTMLSelectElement,
   stateWrapper: HTMLElement,
   otherWrapper: HTMLElement,
-  onChange: () => void = () => {},
+  onChange: () => void = () => {}
 ): RegionPicker {
   countrySelect.innerHTML =
     '<option value="">Choose a country…</option>' +
@@ -158,7 +158,11 @@ export function reviewHtml(review: CommunityAiReview | undefined): string {
   parts.push(`<p class="import-note">${escapeHtml(status)}</p>`);
   if (review.verdict) {
     const verdict =
-      review.verdict === 'looks_good' ? 'Looks good' : review.verdict === 'needs_human' ? 'Needs a person to check' : 'Reject';
+      review.verdict === 'looks_good'
+        ? 'Looks good'
+        : review.verdict === 'needs_human'
+          ? 'Needs a person to check'
+          : 'Reject';
     const conf = typeof review.confidence === 'number' ? ` (confidence ${Math.round(review.confidence * 100)}%)` : '';
     parts.push(`<p><strong>Verdict:</strong> ${escapeHtml(verdict + conf)}</p>`);
   }
@@ -168,4 +172,3 @@ export function reviewHtml(review: CommunityAiReview | undefined): string {
   }
   return parts.join('');
 }
-

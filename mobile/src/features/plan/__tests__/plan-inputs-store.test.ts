@@ -18,7 +18,10 @@ import { DEFAULT_PLAN_THRESHOLDS, PLAN_THRESHOLD_BOUNDS } from '@lib/plan-types'
 function seedLegacySelection(trailId: string, ids: string[]): void {
   const byTrail = usePlanInputsStore.getState().byTrail;
   usePlanInputsStore.setState({
-    byTrail: { ...byTrail, [trailId]: { ...(byTrail[trailId] ?? DEFAULT_PREFS), resupplyStops: ids } },
+    byTrail: {
+      ...byTrail,
+      [trailId]: { ...(byTrail[trailId] ?? DEFAULT_PREFS), resupplyStops: ids },
+    },
   });
 }
 

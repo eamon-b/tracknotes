@@ -36,8 +36,7 @@ export interface PlanShellFills {
  */
 export const BUNDLED_PLAN_FILLS: PlanShellFills = {
   headerTrail:
-    '<a href="index.html" class="back-link">← Trail</a>\n' +
-    '      <span class="trail-title">{{TRAIL_NAME}}</span>',
+    '<a href="index.html" class="back-link">← Trail</a>\n' + '      <span class="trail-title">{{TRAIL_NAME}}</span>',
   headerExtra: '<div data-theme-toggle></div>',
 };
 
@@ -91,11 +90,7 @@ export function planShellBody(shellHtml: string): string {
  * Throws when the marker is missing: a page that quietly lost its planner
  * would look fine to the build and be empty in the browser.
  */
-export function inlinePlanShell(
-  pageHtml: string,
-  shellHtml: string,
-  fills: PlanShellFills
-): string {
+export function inlinePlanShell(pageHtml: string, shellHtml: string, fills: PlanShellFills): string {
   if (!MARKER_LINE.test(pageHtml)) {
     throw new Error(`page has no ${PLAN_SHELL_MARKER} marker line`);
   }

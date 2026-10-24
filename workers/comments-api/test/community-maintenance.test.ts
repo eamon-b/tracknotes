@@ -4,13 +4,7 @@
  * handler, edit re-checks, the report limit race, admin restores racing a
  * delete, paging, and resubmitting a moderator-removed track.
  */
-import {
-  SELF,
-  createExecutionContext,
-  createScheduledController,
-  env,
-  waitOnExecutionContext,
-} from 'cloudflare:test';
+import { SELF, createExecutionContext, createScheduledController, env, waitOnExecutionContext } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
 import worker from '../src/index';
 import { authHeaders, deleteMe, makeAdmin, registerDevice, url } from './helpers';
@@ -422,14 +416,15 @@ describe('report limit', () => {
       )
     );
     const statuses = await Promise.all(
-      routes.map(async (r) =>
-        (
-          await SELF.fetch(url(`/v1/community/routes/${r.id}/report`), {
-            method: 'POST',
-            headers: authHeaders(reporter),
-            body: JSON.stringify({ reason: 'spam' }),
-          })
-        ).status
+      routes.map(
+        async (r) =>
+          (
+            await SELF.fetch(url(`/v1/community/routes/${r.id}/report`), {
+              method: 'POST',
+              headers: authHeaders(reporter),
+              body: JSON.stringify({ reason: 'spam' }),
+            })
+          ).status
       )
     );
     expect(statuses.filter((s) => s === 201)).toHaveLength(1);
@@ -548,9 +543,7 @@ describe('paging', () => {
 
   it('pages the public list in a total order, ties broken by id', async () => {
     const owner = await registerDevice();
-    const routes = await Promise.all(
-      Array.from({ length: 5 }, () => submitOk(owner, { country: 'JP', state: null }))
-    );
+    const routes = await Promise.all(Array.from({ length: 5 }, () => submitOk(owner, { country: 'JP', state: null })));
     // Three share one stamp: the cursor must still not skip or repeat any.
     const tie = '2026-01-01T00:00:00.000Z';
     for (const r of routes.slice(0, 3)) {
@@ -560,7 +553,11 @@ describe('paging', () => {
     expect(pages).toBe(3);
     expect(new Set(ids).size).toBe(5);
     expect([...ids].sort()).toEqual(routes.map((r) => r.id).sort());
-    const tied = routes.slice(0, 3).map((r) => r.id).sort().reverse();
+    const tied = routes
+      .slice(0, 3)
+      .map((r) => r.id)
+      .sort()
+      .reverse();
     expect(ids.slice(2)).toEqual(tied);
   });
 
@@ -576,8 +573,12 @@ describe('paging', () => {
     const body = (await (await SELF.fetch(url('/v1/community/routes?country=JP'))).json()) as CommunityListResponse;
     expect(body.nextCursor).toBeNull();
     expect((await SELF.fetch(url('/v1/community/routes?cursor=%25%25'))).status).toBe(400);
-    expect((await SELF.fetch(url(`/v1/community/routes?cursor=${btoa('not-a-date|c_xxxxxxxxxxxxxxxx')}`))).status).toBe(400);
-    expect((await SELF.fetch(url(`/v1/community/routes?cursor=${btoa('2026-01-01T00:00:00.000Z|nope')}`))).status).toBe(400);
+    expect((await SELF.fetch(url(`/v1/community/routes?cursor=${btoa('not-a-date|c_xxxxxxxxxxxxxxxx')}`))).status).toBe(
+      400
+    );
+    expect((await SELF.fetch(url(`/v1/community/routes?cursor=${btoa('2026-01-01T00:00:00.000Z|nope')}`))).status).toBe(
+      400
+    );
   });
 
   it('gives the admin queue the newest reports of each route, with the full count', async () => {
@@ -624,7 +625,7 @@ describe('resubmitting a removed track', () => {
     }
   });
 
-  it("refuses a track whose owner deleted it while an admin had it hidden", async () => {
+  it('refuses a track whose owner deleted it while an admin had it hidden', async () => {
     const owner = await registerDevice();
     const admin = await registerDevice();
     await makeAdmin(admin.userId);

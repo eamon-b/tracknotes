@@ -29,7 +29,7 @@ describe('hikerReportLine', () => {
     },
   });
 
-  it("names another hiker and the date they last saved it", () => {
+  it('names another hiker and the date they last saved it', () => {
     expect(hikerReportLine(pin({}), now)).toBe('Reported by Jo · 12 Oct');
     expect(hikerReportLine(pin({ authorName: null }), now)).toBe('Reported by a hiker · 12 Oct');
     expect(hikerReportLine(pin({ updatedAt: '2025-12-30T09:00:00Z' }), now)).toBe(

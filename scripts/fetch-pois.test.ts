@@ -74,10 +74,7 @@ function node(id: number, lat: number, lon: number, tags: Record<string, string>
 }
 
 /** A fetcher that answers every corridor chunk with the same fixed POIs. */
-function fixedFetcher(
-  pois: POI[],
-  seen?: { areas: OverpassArea[]; types: POIType[][] }
-): POIFetcher {
+function fixedFetcher(pois: POI[], seen?: { areas: OverpassArea[]; types: POIType[][] }): POIFetcher {
   return async (area, types) => {
     seen?.areas.push(area);
     seen?.types.push(types);
@@ -123,19 +120,14 @@ describe('processTrailData', () => {
     });
 
     const whole = await processTrailData(makeTrail(), fixedFetcher([farAlong]));
-    const windowed = await processTrailData(
-      makeTrail(),
-      fixedFetcher([farAlong]),
-      undefined,
-      { fromKm: 70, toKm: Infinity }
-    );
+    const windowed = await processTrailData(makeTrail(), fixedFetcher([farAlong]), undefined, {
+      fromKm: 70,
+      toKm: Infinity,
+    });
 
     expect(whole.pois).toHaveLength(1);
     expect(windowed.pois).toHaveLength(1);
-    expect(windowed.pois[0].distanceAlongTrail).toBeCloseTo(
-      whole.pois[0].distanceAlongTrail,
-      6
-    );
+    expect(windowed.pois[0].distanceAlongTrail).toBeCloseTo(whole.pois[0].distanceAlongTrail, 6);
     expect(windowed.pois[0].distanceAlongTrail).toBeGreaterThan(70);
   });
 
@@ -322,9 +314,7 @@ describe('resolveEndpoint', () => {
   });
 
   it('reads OVERPASS_ENDPOINT', () => {
-    expect(resolveEndpoint([], { OVERPASS_ENDPOINT: 'https://kumi.example/api' })).toBe(
-      'https://kumi.example/api'
-    );
+    expect(resolveEndpoint([], { OVERPASS_ENDPOINT: 'https://kumi.example/api' })).toBe('https://kumi.example/api');
   });
 
   it('lets --endpoint beat the environment', () => {
@@ -336,16 +326,12 @@ describe('resolveEndpoint', () => {
   });
 
   it('accepts --endpoint=<url>', () => {
-    expect(resolveEndpoint(['--endpoint=https://inline.example/api'], {})).toBe(
-      'https://inline.example/api'
-    );
+    expect(resolveEndpoint(['--endpoint=https://inline.example/api'], {})).toBe('https://inline.example/api');
   });
 
   it('throws when --endpoint has no value', () => {
     expect(() => resolveEndpoint(['--endpoint'], {})).toThrow(/--endpoint requires a URL/);
-    expect(() => resolveEndpoint(['--endpoint', '--dry-run'], {})).toThrow(
-      /--endpoint requires a URL/
-    );
+    expect(() => resolveEndpoint(['--endpoint', '--dry-run'], {})).toThrow(/--endpoint requires a URL/);
   });
 });
 
@@ -362,9 +348,7 @@ describe('resolveTimeoutSeconds', () => {
   it('rejects a non-positive or non-numeric timeout', () => {
     expect(() => resolveTimeoutSeconds(['--timeout', 'soon'])).toThrow(/positive number/);
     expect(() => resolveTimeoutSeconds(['--timeout', '0'])).toThrow(/positive number/);
-    expect(() => resolveTimeoutSeconds(['--timeout'])).toThrow(
-      /--timeout requires a number of seconds/
-    );
+    expect(() => resolveTimeoutSeconds(['--timeout'])).toThrow(/--timeout requires a number of seconds/);
   });
 });
 
@@ -382,9 +366,7 @@ describe('resolveMaxVertices', () => {
     expect(() => resolveMaxVertices(['--max-vertices', 'lots'])).toThrow(/positive whole number/);
     expect(() => resolveMaxVertices(['--max-vertices', '0'])).toThrow(/positive whole number/);
     expect(() => resolveMaxVertices(['--max-vertices', '12.5'])).toThrow(/positive whole number/);
-    expect(() => resolveMaxVertices(['--max-vertices'])).toThrow(
-      /--max-vertices requires a number of vertices/
-    );
+    expect(() => resolveMaxVertices(['--max-vertices'])).toThrow(/--max-vertices requires a number of vertices/);
   });
 });
 
@@ -404,9 +386,7 @@ describe('resolveKmRange', () => {
   });
 
   it('rejects a backwards or nonsensical window', () => {
-    expect(() => resolveKmRange(['--from-km', '900', '--to-km', '800'])).toThrow(
-      /greater than --from-km/
-    );
+    expect(() => resolveKmRange(['--from-km', '900', '--to-km', '800'])).toThrow(/greater than --from-km/);
     expect(() => resolveKmRange(['--from-km=-5'])).toThrow(/non-negative/);
     expect(() => resolveKmRange(['--from-km', 'north'])).toThrow(/non-negative/);
     // A bare negative reads as a flag, and is refused before the range check.
@@ -502,15 +482,7 @@ describe('clipScaleToKm', () => {
 describe('positionalArgs', () => {
   it('does not mistake a flag value for a trail id', () => {
     expect(
-      positionalArgs([
-        '--endpoint',
-        'https://kumi.example/api',
-        '--timeout',
-        '120',
-        '--max-vertices',
-        '100',
-        'heysen',
-      ])
+      positionalArgs(['--endpoint', 'https://kumi.example/api', '--timeout', '120', '--max-vertices', '100', 'heysen'])
     ).toEqual(['heysen']);
   });
 

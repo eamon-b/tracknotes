@@ -64,8 +64,7 @@ export function initialWaypointForm(
 }
 
 export type PositionSummary =
-  | { ok: true; km: number; metres: number; text: string }
-  | { ok: false; text: string };
+  { ok: true; km: number; metres: number; text: string } | { ok: false; text: string };
 
 /**
  * Where a position sits on the trail, as the form says it: "At km 12.3, on the

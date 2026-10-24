@@ -77,7 +77,7 @@ describe('test.yml safeguards', () => {
     for (const [jobName, jobBlock] of Object.entries(jobs)) {
       expect(
         jobBlock.includes('timeout-minutes'),
-        `Job "${jobName}" is missing timeout-minutes — a hanging test will block CI for up to 6 hours`,
+        `Job "${jobName}" is missing timeout-minutes — a hanging test will block CI for up to 6 hours`
       ).toBe(true);
     }
   });

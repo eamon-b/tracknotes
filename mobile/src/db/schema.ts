@@ -333,9 +333,9 @@ export async function migrateDatabase(
   db: SQLiteDatabase,
   targetVersion: number = SCHEMA_VERSION,
 ): Promise<void> {
-  const versionRow = await db.getFirstAsync<{ version: number }>(
-    'SELECT version FROM schema_version'
-  ).catch(() => null);
+  const versionRow = await db
+    .getFirstAsync<{ version: number }>('SELECT version FROM schema_version')
+    .catch(() => null);
 
   const currentVersion = versionRow?.version ?? 0;
 

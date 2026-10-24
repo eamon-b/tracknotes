@@ -10,10 +10,7 @@ import { deleteCommentPhotos } from './photos';
 import { deattributeStatement, deattributeStoredRoutes } from './community';
 import { RATE_BUCKETS, consumeRateLimit, ipRateKey } from './rate-limit';
 import { validateDisplayName } from './validation';
-import type {
-  MeResponse,
-  RegisterDeviceResponse,
-} from '../../../src/lib/comments-api-types';
+import type { MeResponse, RegisterDeviceResponse } from '../../../src/lib/comments-api-types';
 
 /**
  * POST /v1/devices — mint a new anonymous user + token.
@@ -24,11 +21,7 @@ import type {
  * uncapped mint would make those per-user limits meaningless. The body is
  * validated first: a malformed request is a client bug, not a registration.
  */
-export async function registerDevice(
-  request: Request,
-  env: Env,
-  ctx: ExecutionContext
-): Promise<Response> {
+export async function registerDevice(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const body = await readJson(request);
   const displayName = validateDisplayName(body.displayName);
 
@@ -72,21 +65,13 @@ function meResponse(user: UserRow): MeResponse {
 }
 
 /** GET /v1/me — return the authenticated user's public identity. */
-export async function getMe(
-  request: Request,
-  env: Env,
-  ctx: ExecutionContext
-): Promise<Response> {
+export async function getMe(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const user = await requireUser(request, env, ctx);
   return json(meResponse(user));
 }
 
 /** PATCH /v1/me — update the authenticated user's display name. */
-export async function updateMe(
-  request: Request,
-  env: Env,
-  ctx: ExecutionContext
-): Promise<Response> {
+export async function updateMe(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const user = await requireUser(request, env, ctx);
   // The display name is printed on every comment the account ever left, so a
   // banned account renaming itself is still putting new text in front of the
@@ -97,9 +82,7 @@ export async function updateMe(
   const body = await readJson(request);
   const displayName = validateDisplayName(body.displayName);
 
-  await env.DB.prepare(`UPDATE users SET display_name = ? WHERE id = ?`)
-    .bind(displayName, user.id)
-    .run();
+  await env.DB.prepare(`UPDATE users SET display_name = ? WHERE id = ?`).bind(displayName, user.id).run();
 
   return json(meResponse({ ...user, display_name: displayName }));
 }
@@ -135,11 +118,7 @@ const DELETED_DISPLAY_NAME = 'Deleted user';
  * browser's — is revoked, so no second device outlives the account. Only the
  * phone may ask: a linked browser is a window onto the account, not the account.
  */
-export async function deleteMe(
-  request: Request,
-  env: Env,
-  ctx: ExecutionContext
-): Promise<Response> {
+export async function deleteMe(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const user = await requirePrimaryUser(request, env, ctx);
 
   // Snapshot which comments have photos before the update clears the column.
@@ -188,13 +167,11 @@ export async function deleteMe(
     env.DB.prepare(`UPDATE comment_reports SET detail = NULL WHERE user_id = ?`).bind(user.id),
     env.DB.prepare(`UPDATE shared_waypoint_reports SET detail = NULL WHERE user_id = ?`).bind(user.id),
     env.DB.prepare(`UPDATE community_route_reports SET note = NULL WHERE user_id = ?`).bind(user.id),
-    env.DB.prepare(
-      `UPDATE device_tokens SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL`
-    ).bind(now, user.id),
-    env.DB.prepare(`UPDATE link_codes SET used_at = ? WHERE user_id = ? AND used_at IS NULL`).bind(
+    env.DB.prepare(`UPDATE device_tokens SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL`).bind(
       now,
       user.id
     ),
+    env.DB.prepare(`UPDATE link_codes SET used_at = ? WHERE user_id = ? AND used_at IS NULL`).bind(now, user.id),
     env.DB.prepare(
       `UPDATE users
           SET display_name = ?, token_hash = ?, is_admin = 0, is_banned = 1, deleted_at = ?
@@ -207,9 +184,7 @@ export async function deleteMe(
 
   // Best-effort R2 cleanup off the response path, as with single-comment deletes.
   if (withPhotos.length > 0) {
-    ctx.waitUntil(
-      Promise.all(withPhotos.map((row) => deleteCommentPhotos(env, row.id))).then(() => undefined)
-    );
+    ctx.waitUntil(Promise.all(withPhotos.map((row) => deleteCommentPhotos(env, row.id))).then(() => undefined));
   }
 
   return noContent();

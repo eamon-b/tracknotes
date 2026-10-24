@@ -28,8 +28,34 @@ function trail() {
   return {
     config: { id: 't' },
     waypoints: [
-      { id: 'w_a', name: 'Start', type: 'trailhead', lat: -35, lon: 138, totalDistance: 0, distance: 0, ascent: 0, descent: 0, totalAscent: 0, totalDescent: 0, trackIndex: 0 },
-      { id: 'w_b', name: 'Hut', type: 'hut', lat: -34.94, lon: 138, totalDistance: 6.67, distance: 6.67, ascent: 60, descent: 0, totalAscent: 60, totalDescent: 0, trackIndex: 6 },
+      {
+        id: 'w_a',
+        name: 'Start',
+        type: 'trailhead',
+        lat: -35,
+        lon: 138,
+        totalDistance: 0,
+        distance: 0,
+        ascent: 0,
+        descent: 0,
+        totalAscent: 0,
+        totalDescent: 0,
+        trackIndex: 0,
+      },
+      {
+        id: 'w_b',
+        name: 'Hut',
+        type: 'hut',
+        lat: -34.94,
+        lon: 138,
+        totalDistance: 6.67,
+        distance: 6.67,
+        ascent: 60,
+        descent: 0,
+        totalAscent: 60,
+        totalDescent: 0,
+        trackIndex: 6,
+      },
     ],
     track: { points, displayPoints: points, totalDistance: points[10].dist, totalAscent: 100, totalDescent: 0 },
   };
@@ -67,7 +93,13 @@ describe('ids', () => {
 
 describe('checkUserWaypointInput', () => {
   it('normalises a good input', () => {
-    const r = checkUserWaypointInput({ name: '  Spring  by   the hut ', type: 'water', lat: -35.1234567, lon: 138.7654321, description: ' Cold ' });
+    const r = checkUserWaypointInput({
+      name: '  Spring  by   the hut ',
+      type: 'water',
+      lat: -35.1234567,
+      lon: 138.7654321,
+      description: ' Cold ',
+    });
     expect(r).toEqual({
       ok: true,
       value: { name: 'Spring by the hut', type: 'water', lat: -35.123457, lon: 138.765432, description: 'Cold' },
@@ -75,12 +107,29 @@ describe('checkUserWaypointInput', () => {
   });
 
   it('names the field at fault', () => {
-    expect(checkUserWaypointInput({ name: '', type: 'water', lat: 0, lon: 0 })).toMatchObject({ ok: false, field: 'name' });
-    expect(checkUserWaypointInput({ name: 'x'.repeat(81), type: 'water', lat: 0, lon: 0 })).toMatchObject({ ok: false, field: 'name' });
-    expect(checkUserWaypointInput({ name: 'A', type: 'town-access', lat: 0, lon: 0 })).toMatchObject({ ok: false, field: 'type' });
-    expect(checkUserWaypointInput({ name: 'A', type: 'water', lat: NaN, lon: 0 })).toMatchObject({ ok: false, field: 'position' });
-    expect(checkUserWaypointInput({ name: 'A', type: 'water', lat: 0, lon: 181 })).toMatchObject({ ok: false, field: 'position' });
-    expect(checkUserWaypointInput({ name: 'A', type: 'water', lat: 0, lon: 0, description: 'x'.repeat(1001) })).toMatchObject({ ok: false, field: 'description' });
+    expect(checkUserWaypointInput({ name: '', type: 'water', lat: 0, lon: 0 })).toMatchObject({
+      ok: false,
+      field: 'name',
+    });
+    expect(checkUserWaypointInput({ name: 'x'.repeat(81), type: 'water', lat: 0, lon: 0 })).toMatchObject({
+      ok: false,
+      field: 'name',
+    });
+    expect(checkUserWaypointInput({ name: 'A', type: 'town-access', lat: 0, lon: 0 })).toMatchObject({
+      ok: false,
+      field: 'type',
+    });
+    expect(checkUserWaypointInput({ name: 'A', type: 'water', lat: NaN, lon: 0 })).toMatchObject({
+      ok: false,
+      field: 'position',
+    });
+    expect(checkUserWaypointInput({ name: 'A', type: 'water', lat: 0, lon: 181 })).toMatchObject({
+      ok: false,
+      field: 'position',
+    });
+    expect(
+      checkUserWaypointInput({ name: 'A', type: 'water', lat: 0, lon: 0, description: 'x'.repeat(1001) })
+    ).toMatchObject({ ok: false, field: 'description' });
   });
 });
 
@@ -95,7 +144,12 @@ describe('placeOnTrack', () => {
 
 describe('placeOnTrack and the GPS snap', () => {
   it('read the same km and distance off the line for one spot', () => {
-    for (const [lat, lon] of [[-34.97, 138.001], [-34.9512, 137.996], [-35.01, 138], [-34.89, 138.02]]) {
+    for (const [lat, lon] of [
+      [-34.97, 138.001],
+      [-34.9512, 137.996],
+      [-35.01, 138],
+      [-34.89, 138.02],
+    ]) {
       const placed = placeOnTrack(lat, lon, points)!;
       const snap = snapToTrail(lat, lon, points)!;
       expect(placed.km).toBe(snap.currentKm);
@@ -108,18 +162,18 @@ describe('placeUserWaypoints', () => {
   it('places a water source or town well off the line as a turn-off', () => {
     // ~1.8 km east of the line at km ~3.3.
     const far = uw({ lon: 138.02, type: 'water' });
-    const water = placeUserWaypoints(trail(), [far]).waypoints.find((w) => w.id === far.id)!;
+    const water = placeUserWaypoints(trail(), [far]).waypoints.find(w => w.id === far.id)!;
     expect(water.type).toBe('water-access');
     expect((water as { offTrailKm?: number }).offTrailKm).toBeCloseTo(1.8, 1);
     expect(isWaterWaypoint(water.type)).toBe(false);
 
     const town = uw({ lon: 138.02, type: 'town', name: 'Village' });
-    const placedTown = placeUserWaypoints(trail(), [town]).waypoints.find((w) => w.id === town.id)!;
+    const placedTown = placeUserWaypoints(trail(), [town]).waypoints.find(w => w.id === town.id)!;
     expect(placedTown.type).toBe('town-access');
     expect(isResupplyWaypoint(placedTown.type)).toBe(true);
 
     // Close by, it is the place itself.
-    const near = placeUserWaypoints(trail(), [uw()]).waypoints.find((w) => w.id === uw().id)!;
+    const near = placeUserWaypoints(trail(), [uw()]).waypoints.find(w => w.id === uw().id)!;
     expect(near.type).toBe('water');
     expect(near).not.toHaveProperty('offTrailKm');
   });
@@ -131,7 +185,7 @@ describe('placeUserWaypoints', () => {
 
   it('places a waypoint in km order and re-measures the leg after it', () => {
     const placed = placeUserWaypoints(trail(), [uw()]);
-    expect(placed.waypoints.map((w) => w.name)).toEqual(['Start', 'Creek', 'Hut']);
+    expect(placed.waypoints.map(w => w.name)).toEqual(['Start', 'Creek', 'Hut']);
     const creek = placed.waypoints[1];
     expect(creek.totalDistance).toBeCloseTo(3.34, 1);
     expect((creek as { elevation?: number }).elevation).toBe(130);
@@ -154,7 +208,7 @@ describe('placeUserWaypoints', () => {
   it('survives a direction reversal', () => {
     const placed = placeUserWaypoints(trail(), [uw()]);
     const reversed = createReversedTrail(placed);
-    const creek = reversed.waypoints.find((w) => w.name === 'Creek')!;
+    const creek = reversed.waypoints.find(w => w.name === 'Creek')!;
     expect(creek.totalDistance).toBeCloseTo(points[10].dist - placed.waypoints[1].totalDistance!, 2);
     expect(userWaypointInfo(creek)).not.toBeNull();
   });
@@ -170,7 +224,7 @@ describe('shared water and the carry calculators', () => {
   const midway = { lat: -34.95, lon: 138.001 }; // ~km 5.56, ~91 m off the line
   const longest = (wps: object[]) => analyzeWaterCarry(wps as never, end, 40).longestGapKm;
 
-  it('counts water from any hiker, mine or another device\'s', () => {
+  it("counts water from any hiker, mine or another device's", () => {
     expect(longest(wateredTrail().waypoints)).toBeCloseTo(end, 1);
     for (const pin of [
       uw({ ...midway, visibility: 'shared', mine: false, authorName: 'Someone' }),
@@ -183,13 +237,13 @@ describe('shared water and the carry calculators', () => {
     }
   });
 
-  it('tells another hiker\'s pin from the hiker\'s own and from curated places', () => {
+  it("tells another hiker's pin from the hiker's own and from curated places", () => {
     const theirs = placeUserWaypoints(wateredTrail(), [
       uw({ ...midway, visibility: 'shared', mine: false, authorName: 'Someone' }),
     ]);
     const mine = placeUserWaypoints(wateredTrail(), [uw({ ...midway, visibility: 'shared', mine: true })]);
-    expect(theirs.waypoints.filter((w) => isOtherHikersWaypoint(w))).toHaveLength(1);
-    expect(mine.waypoints.some((w) => isOtherHikersWaypoint(w))).toBe(false);
+    expect(theirs.waypoints.filter(w => isOtherHikersWaypoint(w))).toHaveLength(1);
+    expect(mine.waypoints.some(w => isOtherHikersWaypoint(w))).toBe(false);
     expect(isOtherHikersWaypoint(trail().waypoints[0])).toBe(false);
   });
 });

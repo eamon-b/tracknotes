@@ -32,7 +32,7 @@ describe('lengthBand', () => {
 
   it('agrees with LENGTH_BANDS', () => {
     for (const km of [0, 12, 30, 150, 300, 301, 3000]) {
-      const band = LENGTH_BANDS.find((b) => b.id === lengthBand(km))!;
+      const band = LENGTH_BANDS.find(b => b.id === lengthBand(km))!;
       expect(km).toBeGreaterThanOrEqual(band.minKm);
       expect(km).toBeLessThanOrEqual(band.maxKm);
     }
@@ -77,11 +77,11 @@ describe('names and validation', () => {
   });
 
   it('has unique codes', () => {
-    const codes = COUNTRIES.map((c) => c.code);
+    const codes = COUNTRIES.map(c => c.code);
     expect(new Set(codes).size).toBe(codes.length);
     for (const c of COUNTRIES) {
       expect(c.code).toMatch(/^[A-Z]{2}$/);
-      const states = c.states.map((s) => s.code);
+      const states = c.states.map(s => s.code);
       expect(new Set(states).size).toBe(states.length);
     }
   });
@@ -123,18 +123,18 @@ describe('sortTrails', () => {
   const list = [t('beta', 20), t('Alpha', 100), t('gamma', 20)];
 
   it('sorts by name, ignoring case', () => {
-    expect(sortTrails(list, 'name').map((x) => x.name)).toEqual(['Alpha', 'beta', 'gamma']);
+    expect(sortTrails(list, 'name').map(x => x.name)).toEqual(['Alpha', 'beta', 'gamma']);
   });
 
   it('sorts by length, ties by name', () => {
-    expect(sortTrails(list, 'length').map((x) => x.name)).toEqual(['beta', 'gamma', 'Alpha']);
-    expect(sortTrails(list, 'length-desc').map((x) => x.name)).toEqual(['Alpha', 'beta', 'gamma']);
+    expect(sortTrails(list, 'length').map(x => x.name)).toEqual(['beta', 'gamma', 'Alpha']);
+    expect(sortTrails(list, 'length-desc').map(x => x.name)).toEqual(['Alpha', 'beta', 'gamma']);
   });
 
   it('does not mutate its input', () => {
-    const before = list.map((x) => x.name);
+    const before = list.map(x => x.name);
     sortTrails(list, 'name');
-    expect(list.map((x) => x.name)).toEqual(before);
+    expect(list.map(x => x.name)).toEqual(before);
   });
 });
 
@@ -156,14 +156,14 @@ describe('groupTrails', () => {
 
   it('orders countries as listed, unlisted by name, then Other', () => {
     const groups = groupTrails(trails);
-    expect(groups.map((g) => g.code)).toEqual(['AU', 'NZ', 'JP', 'US', 'BT', 'KE', 'XX']);
+    expect(groups.map(g => g.code)).toEqual(['AU', 'NZ', 'JP', 'US', 'BT', 'KE', 'XX']);
     expect(groups.at(-1)!.name).toBe('Other');
     expect(groups[0].name).toBe('Australia');
   });
 
   it('groups by the first state, in the country’s state order', () => {
     const au = groupTrails(trails)[0];
-    expect(au.states.map((s) => s.code)).toEqual(['NSW', 'VIC', 'TAS', 'ZZZ', null]);
+    expect(au.states.map(s => s.code)).toEqual(['NSW', 'VIC', 'TAS', 'ZZZ', null]);
     expect(au.states[0].name).toBe('New South Wales');
     expect(au.states[3].name).toBe('ZZZ');
     expect(au.states[4].name).toBeNull();
@@ -172,13 +172,13 @@ describe('groupTrails', () => {
 
   it('sorts trails inside a group', () => {
     const nsw = groupTrails(trails, 'name')[0].states[0];
-    expect(nsw.trails.map((x) => x.name)).toEqual(['Great North Walk', 'Six Foot Track']);
+    expect(nsw.trails.map(x => x.name)).toEqual(['Great North Walk', 'Six Foot Track']);
     const nswByLength = groupTrails(trails, 'length')[0].states[0];
-    expect(nswByLength.trails.map((x) => x.name)).toEqual(['Six Foot Track', 'Great North Walk']);
+    expect(nswByLength.trails.map(x => x.name)).toEqual(['Six Foot Track', 'Great North Walk']);
   });
 
   it('puts a stateless country in one null group', () => {
-    const us = groupTrails(trails).find((g) => g.code === 'US')!;
+    const us = groupTrails(trails).find(g => g.code === 'US')!;
     expect(us.states).toEqual([{ code: null, name: null, trails: [trails[5]] }]);
     expect(us.count).toBe(1);
   });

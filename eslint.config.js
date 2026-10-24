@@ -15,5 +15,5 @@ export default tseslint.config(
     // Plain-JS build scripts run on Node (TypeScript files get their globals from @types/node)
     files: ['scripts/**/*.{js,mjs}'],
     languageOptions: { globals: globals.node },
-  },
+  }
 );

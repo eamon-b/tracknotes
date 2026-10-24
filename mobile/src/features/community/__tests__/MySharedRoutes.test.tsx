@@ -69,12 +69,19 @@ describe('MySharedRouteCard', () => {
     expect(t).toContain('Hidden');
     expect(t).toContain('Hidden by the automatic review');
     expect(t).toContain('The description advertises a guiding business.');
-    expect(t.some((s) => s.includes('Australia') && s.includes('Victoria') && s.includes('12.4'))).toBe(true);
+    expect(
+      t.some((s) => s.includes('Australia') && s.includes('Victoria') && s.includes('12.4')),
+    ).toBe(true);
   });
 
   it('gives a shared route its own pill and no reason', () => {
     const r = render(
-      <MySharedRouteCard route={ownRoute({ status: 'verified' })} units="km" expanded={false} onPress={() => undefined} />,
+      <MySharedRouteCard
+        route={ownRoute({ status: 'verified' })}
+        units="km"
+        expanded={false}
+        onPress={() => undefined}
+      />,
     );
     const t = texts(r);
     expect(t).toContain('Verified');

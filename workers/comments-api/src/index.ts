@@ -30,14 +30,7 @@ import {
   putSharedWaypoint,
   reportSharedWaypoint,
 } from './shared-waypoints';
-import {
-  deletePlan,
-  getSharedPlan,
-  listPlans,
-  putPlan,
-  sharePlan,
-  unsharePlan,
-} from './plans';
+import { deletePlan, getSharedPlan, listPlans, putPlan, sharePlan, unsharePlan } from './plans';
 import { createLinkCode, linkDevice, listDevices, revokeDevice } from './link';
 import {
   adminListCommunityRoutes,
@@ -270,12 +263,7 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
     }
 
     // /v1/admin/trails/:trailId/descriptions/:waypointId
-    if (
-      rest.length === 5 &&
-      rest[0] === 'admin' &&
-      rest[1] === 'trails' &&
-      rest[3] === 'descriptions'
-    ) {
+    if (rest.length === 5 && rest[0] === 'admin' && rest[1] === 'trails' && rest[3] === 'descriptions') {
       if (method === 'PUT') {
         return await upsertTrailDescription(request, env, ctx, rest[2], rest[4]);
       }
@@ -301,12 +289,7 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
     }
 
     // /v1/trails/:trailId/waypoints/:waypointId/comments
-    if (
-      rest.length === 5 &&
-      rest[0] === 'trails' &&
-      rest[2] === 'waypoints' &&
-      rest[4] === 'comments'
-    ) {
+    if (rest.length === 5 && rest[0] === 'trails' && rest[2] === 'waypoints' && rest[4] === 'comments') {
       if (method === 'GET') return await getWaypointFeed(request, env, rest[1], rest[3]);
       return methodNotAllowed();
     }

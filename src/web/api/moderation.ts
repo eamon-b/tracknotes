@@ -24,24 +24,24 @@ const ADMIN_LIST_LIMIT = 500;
 /** Every reported comment, those hidden by reports first. */
 export async function adminListReportedComments(
   session: WebSession,
-  deps: ModerationApiDeps = {},
+  deps: ModerationApiDeps = {}
 ): Promise<AdminComment[]> {
-  const body = await apiRequest<AdminCommentsResponse>(
-    `/v1/admin/comments?reported=1&limit=${ADMIN_LIST_LIMIT}`,
-    { token: session.token, fetchImpl: deps.fetchImpl },
-  );
+  const body = await apiRequest<AdminCommentsResponse>(`/v1/admin/comments?reported=1&limit=${ADMIN_LIST_LIMIT}`, {
+    token: session.token,
+    fetchImpl: deps.fetchImpl,
+  });
   return body.comments;
 }
 
 /** Shared waypoints, reported first. */
 export async function adminListSharedWaypoints(
   session: WebSession,
-  deps: ModerationApiDeps = {},
+  deps: ModerationApiDeps = {}
 ): Promise<AdminSharedWaypoint[]> {
-  const body = await apiRequest<AdminSharedWaypointsResponse>(
-    `/v1/admin/waypoints?limit=${ADMIN_LIST_LIMIT}`,
-    { token: session.token, fetchImpl: deps.fetchImpl },
-  );
+  const body = await apiRequest<AdminSharedWaypointsResponse>(`/v1/admin/waypoints?limit=${ADMIN_LIST_LIMIT}`, {
+    token: session.token,
+    fetchImpl: deps.fetchImpl,
+  });
   return body.waypoints;
 }
 
@@ -55,7 +55,11 @@ export async function adminDeleteComment(session: WebSession, id: string, deps: 
 }
 
 /** Undo a hide by reports. */
-export async function adminRestoreComment(session: WebSession, id: string, deps: ModerationApiDeps = {}): Promise<void> {
+export async function adminRestoreComment(
+  session: WebSession,
+  id: string,
+  deps: ModerationApiDeps = {}
+): Promise<void> {
   await apiRequest<unknown>(`/v1/admin/comments/${encodeURIComponent(id)}/restore`, {
     method: 'POST',
     token: session.token,
@@ -66,7 +70,7 @@ export async function adminRestoreComment(session: WebSession, id: string, deps:
 export async function adminDeleteSharedWaypoint(
   session: WebSession,
   id: string,
-  deps: ModerationApiDeps = {},
+  deps: ModerationApiDeps = {}
 ): Promise<void> {
   await apiRequest<unknown>(`/v1/waypoints/${encodeURIComponent(id)}`, {
     method: 'DELETE',
@@ -79,7 +83,7 @@ export async function adminDeleteSharedWaypoint(
 export async function adminRestoreSharedWaypoint(
   session: WebSession,
   id: string,
-  deps: ModerationApiDeps = {},
+  deps: ModerationApiDeps = {}
 ): Promise<void> {
   await apiRequest<unknown>(`/v1/admin/waypoints/${encodeURIComponent(id)}/restore`, {
     method: 'POST',
@@ -94,7 +98,7 @@ export async function adminSetBanned(
   userId: string,
   banned: boolean,
   removeContent = false,
-  deps: ModerationApiDeps = {},
+  deps: ModerationApiDeps = {}
 ): Promise<BanUserResponse> {
   return apiRequest<BanUserResponse>(`/v1/admin/users/${encodeURIComponent(userId)}/ban`, {
     method: 'POST',

@@ -153,7 +153,9 @@ describe('routes-store', () => {
       expect(id).toBe('r1');
       expect(geometry).toMatchObject({ totalKm: 12, trackKey: KEY, offTrailPoints: 0 });
       expect(geometry.points.map((p: RoutePoint) => p.km)).toEqual([0, 12]);
-      expect(useRoutesStore.getState().activePointsByTrail[TRAIL]?.map((p) => p.km)).toEqual([0, 12]);
+      expect(useRoutesStore.getState().activePointsByTrail[TRAIL]?.map((p) => p.km)).toEqual([
+        0, 12,
+      ]);
     });
 
     it('runs once per track', async () => {

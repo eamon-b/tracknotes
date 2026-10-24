@@ -60,7 +60,12 @@ const VISIBILITY_CHOICES: { value: UserWaypointVisibility; label: string }[] = [
 ];
 
 export default function WaypointEditScreen() {
-  const params = useLocalSearchParams<{ trailId: string; id?: string; lat?: string; lon?: string }>();
+  const params = useLocalSearchParams<{
+    trailId: string;
+    id?: string;
+    lat?: string;
+    lon?: string;
+  }>();
   const trailId = params.trailId;
   const { colors } = useTheme();
   const router = useRouter();
@@ -165,7 +170,9 @@ export default function WaypointEditScreen() {
             deleteUserWaypoint(existing)
               .then(() => router.dismissTo({ pathname: '/guide/[trailId]', params: { trailId } }))
               .catch((err: unknown) =>
-                setFailure(err instanceof Error ? err.message : 'The waypoint could not be deleted.'),
+                setFailure(
+                  err instanceof Error ? err.message : 'The waypoint could not be deleted.',
+                ),
               );
           },
         },
@@ -177,7 +184,9 @@ export default function WaypointEditScreen() {
     return (
       <View style={[styles.centered, { backgroundColor: colors.background }]}>
         <Stack.Screen options={{ title: 'Edit waypoint' }} />
-        <Text style={[styles.body, { color: colors.textSecondary }]}>This waypoint no longer exists.</Text>
+        <Text style={[styles.body, { color: colors.textSecondary }]}>
+          This waypoint no longer exists.
+        </Text>
       </View>
     );
   }
@@ -233,9 +242,17 @@ export default function WaypointEditScreen() {
           accessibilityLabel="Use my location"
           style={({ pressed }) => [styles.inlineButton, pressed && styles.pressed]}
         >
-          <MaterialCommunityIcons name="crosshairs-gps" size={glyphSizes.md} color={colors.accent} />
+          <MaterialCommunityIcons
+            name="crosshairs-gps"
+            size={glyphSizes.md}
+            color={colors.accent}
+          />
           <Text style={[styles.inlineButtonText, { color: colors.accent }]}>
-            {position ? 'Use my location' : gpsStatus === 'acquiring' ? 'Finding you…' : 'Use my location'}
+            {position
+              ? 'Use my location'
+              : gpsStatus === 'acquiring'
+                ? 'Finding you…'
+                : 'Use my location'}
           </Text>
         </Pressable>
         {showErrors && !placement.ok ? errorText(placement.text) : null}
@@ -394,7 +411,12 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   positionRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  inlineButton: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, alignSelf: 'flex-start' },
+  inlineButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    alignSelf: 'flex-start',
+  },
   inlineButtonText: { ...typography.titleSmall },
   button: {
     borderRadius: radii.md,

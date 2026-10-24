@@ -101,9 +101,7 @@ export function useMySharedRoutes(): UseMySharedRoutes {
       await deleteMySharedRoute({ baseUrl, token }, id);
       if (!mounted.current) return;
       setResult((prev) =>
-        prev && prev.routes
-          ? { ...prev, routes: prev.routes.filter((r) => r.id !== id) }
-          : prev,
+        prev && prev.routes ? { ...prev, routes: prev.routes.filter((r) => r.id !== id) } : prev,
       );
     },
     [baseUrl, token],

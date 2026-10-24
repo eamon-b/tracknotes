@@ -20,9 +20,7 @@ function isCanonicalInt(digits: string): boolean {
  * PMTiles.getZxy() throws for x or y >= 2**z, which would otherwise surface as
  * an opaque 500 for what is really a malformed request.
  */
-export function parseTilePath(
-  pathname: string
-): { source: string; z: number; x: number; y: number } | null {
+export function parseTilePath(pathname: string): { source: string; z: number; x: number; y: number } | null {
   const match = pathname.match(/^\/(\w+)\/(\d+)\/(\d+)\/(\d+)\.pbf$/);
   if (!match) return null;
 

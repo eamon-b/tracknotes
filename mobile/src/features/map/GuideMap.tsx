@@ -530,9 +530,7 @@ const TRACK_STYLES: Record<MapTheme, ReturnType<typeof buildTrackStyles>> = {
 };
 
 /** Matches only the selected variant; matches nothing when none is selected. */
-function selectedVariantFilter(
-  selectedVariantId: string | null | undefined,
-): FilterSpecification {
+function selectedVariantFilter(selectedVariantId: string | null | undefined): FilterSpecification {
   return ['==', ['get', 'id'], selectedVariantId ?? ''] as FilterSpecification;
 }
 
@@ -800,10 +798,10 @@ export const GuideMap = memo(
           });
         },
         fitBounds: (box: ViewportBounds) => {
-          cameraRef.current?.fitBounds(
-            [box.sw[0], box.sw[1], box.ne[0], box.ne[1]],
-            { padding: CAMERA_PADDING, duration: 400 },
-          );
+          cameraRef.current?.fitBounds([box.sw[0], box.sw[1], box.ne[0], box.ne[1]], {
+            padding: CAMERA_PADDING,
+            duration: 400,
+          });
         },
       }),
       [bounds, currentPosition],
@@ -1299,11 +1297,7 @@ export const GuideMap = memo(
             Its tap highlight sits between the casing and the core, where it
             shows as a halo. */}
         <GeoJSONSource id="guide-alternates-taken" data={takenAlternatesCollection}>
-          <Layer
-            type="line"
-            id="guide-alternates-taken-casing"
-            style={trackStyles.mainCasing}
-          />
+          <Layer type="line" id="guide-alternates-taken-casing" style={trackStyles.mainCasing} />
           <Layer
             type="line"
             id="guide-alternates-taken-highlight"
@@ -1374,12 +1368,7 @@ export const GuideMap = memo(
             minzoom={POI_MIN_ZOOM}
             style={poiCircleStyle}
           />
-          <Layer
-            type="symbol"
-            id="guide-pois-icons"
-            minzoom={POI_MIN_ZOOM}
-            style={poiIconStyle}
-          />
+          <Layer type="symbol" id="guide-pois-icons" minzoom={POI_MIN_ZOOM} style={poiIconStyle} />
           <Layer
             type="symbol"
             id="guide-pois-labels"
@@ -1458,10 +1447,7 @@ export const GuideMap = memo(
             circle is always mounted and hidden by its filter while the fix is
             sharp — see ACCURACY_CIRCLE_FILTER for why it must never come and
             go as a React child. */}
-        <GeoJSONSource
-          id="guide-user-location"
-          data={userLocationFeature ?? EMPTY_COLLECTION}
-        >
+        <GeoJSONSource id="guide-user-location" data={userLocationFeature ?? EMPTY_COLLECTION}>
           <Layer
             type="circle"
             id="guide-user-accuracy"
