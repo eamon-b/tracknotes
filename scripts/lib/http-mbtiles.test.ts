@@ -106,20 +106,31 @@ function writePlain(file: string, tiles: Tile[], pageSize: number): void {
   ]);
 }
 
-function writeDeduplicated(file: string, tiles: Tile[], pageSize: number): void {
+/**
+ * tippecanoe's layout keys images by tile_id; tile-join's (`zoomKeyed`) by
+ * (zoom_level, tile_id), so the same id can name different tiles at two zooms.
+ */
+function writeDeduplicated(file: string, tiles: Tile[], pageSize: number, zoomKeyed = false): void {
   sqlite(file, pageSize, [
     'CREATE TABLE metadata (name text, value text);',
     'CREATE TABLE map (zoom_level INTEGER, tile_column INTEGER, tile_row INTEGER, tile_id TEXT);',
     'CREATE UNIQUE INDEX map_index ON map (zoom_level, tile_column, tile_row);',
-    'CREATE TABLE images (tile_data blob, tile_id text);',
-    'CREATE UNIQUE INDEX images_id ON images (tile_id);',
+    zoomKeyed
+      ? 'CREATE TABLE images (zoom_level integer, tile_data blob, tile_id text);'
+      : 'CREATE TABLE images (tile_data blob, tile_id text);',
+    zoomKeyed
+      ? 'CREATE UNIQUE INDEX images_id ON images (zoom_level, tile_id);'
+      : 'CREATE UNIQUE INDEX images_id ON images (tile_id);',
     'CREATE VIEW tiles AS SELECT map.zoom_level AS zoom_level, map.tile_column AS tile_column, ' +
       'map.tile_row AS tile_row, images.tile_data AS tile_data FROM map JOIN images ON images.tile_id = map.tile_id;',
     ...[...tiles].reverse().flatMap(t => {
-      const id = `${t.z}-${t.x}-${t.y}-${'h'.repeat(40)}`;
+      // Zoom-keyed ids repeat across zooms, as tile-join's may.
+      const id = zoomKeyed ? `${t.x}-${t.y}-${'h'.repeat(40)}` : `${t.z}-${t.x}-${t.y}-${'h'.repeat(40)}`;
       return [
         `INSERT INTO map VALUES (${t.z}, ${t.x}, ${t.y}, '${id}');`,
-        `INSERT INTO images VALUES (${hex(t.data)}, '${id}');`,
+        zoomKeyed
+          ? `INSERT INTO images VALUES (${t.z}, ${hex(t.data)}, '${id}');`
+          : `INSERT INTO images VALUES (${hex(t.data)}, '${id}');`,
       ];
     }),
   ]);
@@ -169,6 +180,17 @@ describe('readZoomTiles', () => {
       expect(await readZoomTiles(read, 10)).toHaveLength(64);
       expect(await readZoomTiles(read, 8)).toEqual([]);
     });
+
+    it(`reads one zoom from tile-join's zoom-keyed map/images layout (page size ${pageSize})`, async () => {
+      const file = path.join(dir, `dedup-zoom-${pageSize}.mbtiles`);
+      writeDeduplicated(file, tiles, pageSize, true);
+      const { read } = readerFor(file);
+      const got = await readZoomTiles(read, 9);
+      expect(sortTiles(got).map(t => [t.x, t.y, Buffer.from(t.data).toString('hex')])).toEqual(
+        sortTiles(z9).map(t => [t.x, t.y, Buffer.from(t.data).toString('hex')])
+      );
+      expect(await readZoomTiles(read, 10)).toHaveLength(64);
+    });
   }
 
   it('refuses a file that is not SQLite', async () => {
@@ -192,6 +214,26 @@ describe('httpRangeReader', () => {
       arrayBuffer: async () => new Uint8Array(4).buffer,
     })) as unknown as typeof fetch);
     await expect(ignored(10, 13)).rejects.toThrow(/HTTP 200/);
+  });
+
+  it('waits out a 429, honouring Retry-After, then gives up', async () => {
+    const waits: number[] = [];
+    const sleep = async (ms: number) => { waits.push(ms); };
+    let calls = 0;
+    const limited = httpRangeReader('https://x/a.mbtiles', (async () => {
+      calls++;
+      if (calls === 1) return { status: 429, headers: new Headers({ 'Retry-After': '3' }) };
+      if (calls === 2) return { status: 429, headers: new Headers() };
+      return { status: 206, arrayBuffer: async () => new Uint8Array(4).buffer };
+    }) as unknown as typeof fetch, sleep);
+    expect(await limited(10, 13)).toHaveLength(4);
+    expect(waits).toEqual([3000, 10000]);
+
+    const always = httpRangeReader('https://x/a.mbtiles', (async () => ({
+      status: 429,
+      headers: new Headers(),
+    })) as unknown as typeof fetch, sleep);
+    await expect(always(10, 13)).rejects.toThrow(/HTTP 429/);
   });
 });
 

@@ -27,10 +27,26 @@ import { TextDecoder, TextEncoder } from 'node:util';
  *   Bytes [start, end] inclusive of the file.
  */
 
-/** A RangeReader over HTTP. Throws on anything but a 206 of the right length. */
-export function httpRangeReader(url, fetchFn = fetch) {
+/** 429s retried before giving up: the data domain rate-limits bursts. */
+const RATE_LIMIT_RETRIES = 6;
+
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * A RangeReader over HTTP. Throws on anything but a 206 of the right length,
+ * after waiting out a 429 (Retry-After, else 5 s doubling) a few times: a
+ * pack read is hundreds of small requests, enough to trip the zone's
+ * rate limit when several packs are read at once.
+ */
+export function httpRangeReader(url, fetchFn = fetch, sleep = delay) {
   return async (start, end) => {
-    const res = await fetchFn(url, { headers: { Range: `bytes=${start}-${end}` } });
+    let res;
+    for (let attempt = 0; ; attempt++) {
+      res = await fetchFn(url, { headers: { Range: `bytes=${start}-${end}` } });
+      if (res.status !== 429 || attempt === RATE_LIMIT_RETRIES) break;
+      const retryAfter = Number(res.headers?.get?.('retry-after'));
+      await sleep(retryAfter > 0 ? retryAfter * 1000 : 5000 * 2 ** attempt);
+    }
     if (res.status !== 206) {
       throw new Error(`range request for ${url} → HTTP ${res.status} (expected 206)`);
     }
@@ -391,7 +407,10 @@ export async function readZoomTiles(read, zoom) {
   const images = db.table('images');
   if (!map || !images) throw new Error('neither a tiles table nor map/images tables');
   const mapIndex = db.index('map', ZOOM_INDEX);
-  const imagesIndex = db.index('images', ['tile_id']);
+  // tippecanoe keys images by tile_id; tile-join (2.79.0, so every tiered
+  // pack) by (zoom_level, tile_id), deduplicating within a zoom only.
+  const imagesById = db.index('images', ['tile_id']);
+  const imagesIndex = imagesById ?? db.index('images', ['zoom_level', 'tile_id']);
   if (!mapIndex || !imagesIndex) throw new Error('map/images are missing their indexes');
   for await (const key of db.scanIndex(mapIndex.rootPage, [zoom])) {
     const mapRowid = key[key.length - 1];
@@ -399,7 +418,8 @@ export async function readZoomTiles(read, zoom) {
     if (!mapRow) throw new Error(`map row ${mapRowid} named by the index is missing`);
     const tileId = column(mapRow, map, 'tile_id', mapRowid);
     let data = null;
-    for await (const imageKey of db.scanIndex(imagesIndex.rootPage, [tileId])) {
+    const imageKeyPrefix = imagesById ? [tileId] : [zoom, tileId];
+    for await (const imageKey of db.scanIndex(imagesIndex.rootPage, imageKeyPrefix)) {
       const imageRowid = imageKey[imageKey.length - 1];
       const imageRow = await db.findRow(images.rootPage, imageRowid);
       if (imageRow) data = column(imageRow, images, 'tile_data', imageRowid);

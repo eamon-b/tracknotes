@@ -88,7 +88,7 @@ What each phase scales with:
 | Cells (gdalwarp + gdal_contour) | cores, embarrassingly parallel | ~10 h |
 | Shard merges (tippecanoe, ~92 GB batches) | ~1-6 cores per batch, batches of a shard in sequence | 2.5-3 h per batch under load; asia-east (8) ~24 h |
 | `--join` (shards to pmtiles, tile-join, pmtiles convert) | the largest shard's convert, then tile-join on ~11 cores | ~16 h in Sept 2026 with mbtiles inputs; see 6b for October |
-| Upload to R2 | rclone part concurrency | 164 MB/s at 32 × 256 MB parts (~35-45 MB/s at the old 8 × 128 MB) |
+| Upload to R2 | rclone part concurrency | ~230 MB/s at 32 × 256 MB parts: 613 GB in 44 min (~35-45 MB/s at the old 8 × 128 MB) |
 
 Recommended, AWS on-demand prices in us-east-1 (check them before renting):
 
@@ -398,7 +398,7 @@ rclone config          # one-time: see the setup block in upload-world.sh
 
 `upload-world.sh` checks the PMTiles magic bytes, refuses a headerless
 (killed-convert) file, uploads with `rclone copyto --s3-chunk-size 256M
---s3-upload-concurrency 32 --progress` (164 MB/s from an i4i.8xlarge in
+--s3-upload-concurrency 32 --progress` (~230 MB/s, 613 GB in 44 min, from an i4i.8xlarge in
 us-east-1; the old 8 × 128 MB parts managed 35-45 MB/s, ~4 h for the world),
 then compares remote and local byte counts and prints the Worker URLs to check.
 
@@ -510,8 +510,19 @@ rebuild and all 20 offline packs. Times are UTC, 2026-10-23 unless noted.
 | Offline packs, 19 (3 at a time) | 10:47 → 11:32 (CDT 45 min; the rest under 4 min each) |
 | Australia, full rebuild at `--parallel 24` | 14:44 → 17:21 (157 min, 12.8 GB) |
 | Australia + 19 packs uploaded and verified | 20:17 → 20:32 (12.5 GiB at ~35 MiB/s) |
-| World join, convert, validate, upload | *(filled in when the run ends)* |
-| Box destroyed | *(filled in when the run ends)* |
+| Last merge (asia-east, 8 batches, 193 GB) | 2026-10-24 10:01 |
+| Shards to `.pmtiles`, as each merge landed | Oct 24 07:45 → 10:41 (asia-east, 193 GB, took 40 min once merged) |
+| Free DEM + tiers | 10:42 (2.65 TB freed in 30 s) |
+| World `tile-join` of the pmtiles shards | 10:42 → 14:29 (3 h 47; 680 GB `world.mbtiles`) |
+| `pmtiles convert` | 14:29 → 18:20 (3 h 51; **572 GB `world.pmtiles`**, 642 GB before the tier fix) |
+| Validate (verify, zooms, three tiles, Mt Sonder z9 = 1,488 features, all 100 m) | 18:21 (1.5 min) |
+| Upload to R2 at 32 × 256 MB parts | 18:21 → 19:05 (44 min, 613 GB at ~230 MB/s) |
+| Worker serving it, `check:tiered` passing | 19:08 |
+
+The tail after the last merge was 9 h: one 40-minute convert, the join (~11
+cores at first, fewer later), the world convert (one core) and the upload.
+In September the same steps took ~21 h (4.7 h of integrity checks, 6 h of
+join, 5.5 h of convert, 4.3 h of upload). For the cost, see section 10.
 
 What we learned, beyond section 8:
 
@@ -535,6 +546,16 @@ What we learned, beyond section 8:
   public mirror and the basemap from build.protomaps.com in minutes (7a).
 - **Publish what validates as it validates.** The Australia archive and the
   packs went live the evening of day one rather than after the world upload.
+- **Join pmtiles, not mbtiles, and upload with many parts.** Converting the
+  shards first (as they land) removed tile-join's 4.7 h single-core
+  integrity check and let the join use ~11 cores; 32 × 256 MB parts tripled
+  the upload rate. Both are now the default (`--join`, `finish-world.sh`,
+  `upload-world.sh`).
+- **What is left of the tail is single-threaded.** The world `pmtiles
+  convert` (~4 h) and most of the join run on a few cores while the other 28
+  idle: ~$25 of box. Moving them to a smaller box means copying ~600 GB off
+  instance storage that is wiped when the instance stops, which costs about
+  what it saves; not worth it for one run.
 - **Spot-checking an mbtiles by hand:** tiles are gzipped and `tile_row` is
   TMS (flip `y` to `2^z - 1 - y`); `tippecanoe-decode` handles both and
   reads `.pmtiles` too.
@@ -703,11 +724,16 @@ What the builds actually cost (AWS on-demand, us-east-1):
 | Run | Machine × hours | Compute | AWS egress to R2 (~$0.09/GB) | Total |
 | --- | --- | --- | --- | --- |
 | Sept 2026 (world only) | vast.ai 80-core ~$0.50/h + i4i.4xlarge $1.50/h, ~4 days | ~$100 | ~640 GB → ~$60 | ~$160 |
-| Oct 2026 (world + Australia + 20 packs) | i4i.8xlarge $2.75/h × *(final hours)* | *(final)* | ~660 GB → ~$60 | *(final)* |
+| Oct 2026 (world + Australia + 20 packs) | i4i.8xlarge $2.75/h × ~39.5 h (Oct 23 03:55 → Oct 24 ~19:30) | ~$110 | ~630 GB → ~$57 | **~$165** |
+
+The October figure counts the box until the world upload verified; every
+hour it stays up after that is another $2.75. Without this run's pmtiles join
+and faster upload the tail would have been ~21 h instead of 9 h: another ~$33.
 
 Next time, the instance choice in section 1 trades cost per hour against
-hours: the CPU work is ~600-700 vCPU-hours on any box, while the join (~16 h)
-and the upload (~4 h) take the same wall time on any box. The egress is the
+hours: the CPU work is ~600-700 vCPU-hours on any box, while the tail after
+the last merge (~8 h of join and convert, ~45 min of upload) takes about the
+same wall time on any box. The egress is the
 same everywhere (Hetzner's unmetered bandwidth is the only way to avoid it).
 
 Ongoing:
@@ -730,12 +756,12 @@ world tileset is proven on real trails.
 - Decide later whether `contours` becomes an alias of `world` and the SRTM
   Australia archive is retired (see `plans/world-contour-tiles.md` §Rollout).
 - Check the tiers are live: `npm run check:tiered` (the Mt Sonder z9 tile on
-  both worker sources, and every pack's z9). Once it passes, add `--tiered` to
-  `check:tile-packs` so the weekly workflow keeps checking it.
+  both worker sources, and every pack's z9). `check:tile-packs` includes it
+  since the October 2026 rebuild, so the weekly workflow keeps checking it.
 - Delete `contours/world-build/` (`npm run cleanup:tiles -- --world-build
   --delete`) and, once every live pack manifest points at the rebuilt packs and
   a week has passed, the superseded pack objects (`npm run cleanup:tiles`, then
   `-- --delete`).
 - Destroy the build box, revoke the R2 token and any deploy key.
-- Record the actual timings/sizes under "What the September 2026 run measured"
-  above, so the next rebuild's estimates are real numbers.
+- Record the actual timings, sizes and cost in a section like 6b (and the
+  cost table in section 10), so the next rebuild's estimates are real numbers.
