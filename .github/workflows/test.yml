@@ -21,6 +21,9 @@ jobs:
       - run: npx tsc --noEmit
       - run: npm test -- --run
       - run: npm run lint
+      # The format-on-edit hook reformats a whole file on any edit, so drift
+      # turns small changes into full-file diffs.
+      - run: npm run format:check
 
   # The generated trail data is committed (mobile/assets/trails/, data/waypoint-ids.json),
   # so a change to the build or the source data must ship with its rebuilt output.
