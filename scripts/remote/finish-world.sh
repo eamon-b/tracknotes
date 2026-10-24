@@ -6,11 +6,15 @@
 #
 #   setsid nohup bash scripts/remote/finish-world.sh > logs/finish.log 2>&1 < /dev/null &
 #
-# Start it any time after drive-world.sh; it waits. Events in
-# logs/drive-events.log: FINAL-WAIT, FINAL-ABORT, FINAL-CLEANUP, JOIN-START|OK|FAILED,
-# VALIDATE-OK|FAILED, UPLOAD-WORLD-START|OK|FAILED.
+# Start it any time after drive-world.sh; it waits. While it waits it converts
+# each merged shard to .pmtiles (what --join joins; it reuses a conversion
+# newer than its shard), so only the last shard's convert is on the critical
+# path. Events in logs/drive-events.log: FINAL-WAIT, SHARD-CONVERT-START|OK|FAILED,
+# FINAL-ABORT, FINAL-CLEANUP, JOIN-START|OK|FAILED, VALIDATE-OK|FAILED,
+# UPLOAD-WORLD-START|OK|FAILED.
 #
-# Disk: tile-join writes world.mbtiles (~ the shard total) and pmtiles convert
+# Disk: --join first converts the shards to .pmtiles (~0.9x the shard total),
+# then tile-join writes world.mbtiles (~ the shard total) and pmtiles convert
 # a temp file of similar size plus world.pmtiles, all while the shard files
 # exist. So the DEM and every merged shard's tiers and batches (2.3 TB of
 # tiers on the 2026-10 run) are deleted first; set KEEP_DEM=1 while anything
@@ -28,17 +32,36 @@ MARK=logs/markers
 mkdir -p "$MARK"
 ev() { echo "$(date -u +%FT%TZ) $*" >> "$EV"; }
 fail() { ev "VALIDATE-FAILED $*"; exit 1; }
+T=public/data/tiles
+PS=$T/pmtiles-shards
+mkdir -p "$PS"
+
+# Same paths and temp-name convention as build-contours-world.ts --join.
+convert_shard() {
+  local s="$1"
+  ev "SHARD-CONVERT-START $s"
+  if pmtiles convert "$T/world_$s.mbtiles" "$PS/world_$s.pmtiles.tmp" > "logs/convert-$s.log" 2>&1 \
+      && mv "$PS/world_$s.pmtiles.tmp" "$PS/world_$s.pmtiles"; then
+    ev "SHARD-CONVERT-OK $s $(du -h "$PS/world_$s.pmtiles" | cut -f1)"
+  else
+    ev "SHARD-CONVERT-FAILED $s (--join retries it)"
+  fi
+}
 
 ev "FINAL-WAIT"
 while true; do
   done_n=0
   for s in "${SHARDS[@]}"; do
     if [ -f "$MARK/merge-$s.failed" ]; then ev "FINAL-ABORT merge of $s failed"; exit 1; fi
-    [ -f "$MARK/merge-$s.ok" ] && done_n=$((done_n + 1))
+    if [ -f "$MARK/merge-$s.ok" ]; then
+      done_n=$((done_n + 1))
+      if [ ! -f "$MARK/convert-$s.started" ]; then touch "$MARK/convert-$s.started"; convert_shard "$s" & fi
+    fi
   done
   [ "$done_n" = "${#SHARDS[@]}" ] && break
   sleep 120
 done
+wait
 
 before=$(df -B1G --output=avail . | tail -1)
 [ "${KEEP_DEM:-0}" = 1 ] || rm -rf data/dem-glo30
@@ -67,8 +90,9 @@ read -r nfeat bad < <(tippecanoe-decode -c "$P" 9 444 290 2>/dev/null | grep -o 
 { [ "$nfeat" -gt 500 ] && [ "$bad" = 0 ]; } || fail "Mt Sonder z9: $nfeat features, $bad not on 100 m"
 ev "VALIDATE-OK Mt Sonder z9 $nfeat features"
 
-# The shard files and world.mbtiles only matter for a re-join; the archive validated.
-rm -f public/data/tiles/world_*.mbtiles public/data/tiles/world.mbtiles
+# The shard files and world.mbtiles only matter for a re-join; the archive
+# validated (and --join already removed the converted shards).
+rm -f "$T"/world_*.mbtiles "$T/world.mbtiles"
 
 ev "UPLOAD-WORLD-START"
 if ./scripts/remote/upload-world.sh > logs/upload-world.log 2>&1; then

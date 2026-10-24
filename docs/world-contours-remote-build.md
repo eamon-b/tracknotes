@@ -55,8 +55,9 @@ step runs on the box; the laptop's uplink (~0.9 MB/s) moves nothing.
 
    `drive-world.sh` fetches every shard's DEM (retrying the Node HTTP crash),
    runs one cell lane and a pool of merges side by side; `finish-world.sh`
-   waits for the last merge, frees the intermediates, joins, validates and
-   uploads. Progress is one line per event in `logs/drive-events.log`.
+   converts each merged shard to `.pmtiles` as it lands, waits for the last
+   merge, frees the intermediates, joins (section 6), validates and uploads
+   at 32 parallel 256 MB parts. Progress is one line per event in `logs/drive-events.log`.
 5. **Australia and the offline packs** on the same box while the world runs
    (section 7a): packs first (about 45 min), the Australia archive once the
    cell lane is done (about 2.5 h). Upload each as soon as it validates;
@@ -86,8 +87,8 @@ What each phase scales with:
 | DEM fetch (~485 GB, 18,449 tiles) | network, one stream | 74 min |
 | Cells (gdalwarp + gdal_contour) | cores, embarrassingly parallel | ~10 h |
 | Shard merges (tippecanoe, ~92 GB batches) | ~1-6 cores per batch, batches of a shard in sequence | 2.5-3 h per batch under load; asia-east (8) ~24 h |
-| `--join` (tile-join + pmtiles convert) | single-threaded, I/O | ~16 h in Sept 2026 |
-| Upload to R2 | AWS egress | ~35-45 MB/s |
+| `--join` (shards to pmtiles, tile-join, pmtiles convert) | the largest shard's convert, then tile-join on ~11 cores | ~16 h in Sept 2026 with mbtiles inputs; see 6b for October |
+| Upload to R2 | rclone part concurrency | 164 MB/s at 32 × 256 MB parts (~35-45 MB/s at the old 8 × 128 MB) |
 
 Recommended, AWS on-demand prices in us-east-1 (check them before renting):
 
@@ -349,12 +350,24 @@ of 1.1 TB.
 ## 6. Join, validate, upload
 
 ```bash
-# tile-join every world_*.mbtiles -> world.mbtiles -> pmtiles convert -> world.pmtiles
+# every world_*.mbtiles -> pmtiles-shards/*.pmtiles (all at once) -> tile-join
+# -> world.mbtiles -> pmtiles convert -> world.pmtiles (verify + zoom check)
 setsid nohup npx tsx scripts/build-contours-world.ts --join \
   > logs/world-join-$(date +%Y%m%d-%H%M%S).log 2>&1 &
 ```
 
-Validate before uploading 200 GB:
+`--join` converts the shards to `.pmtiles` first because tile-join runs
+`PRAGMA integrity_check` on every **mbtiles** input, one file after another on
+one core, before it reads a tile (4.7 h of the September join), while it
+memory-maps **pmtiles** inputs without a check and joins them on ~11 cores. The
+tiles come out identical (tile count and decoded tiles compared on iceland).
+The shard conversions run in parallel and a conversion newer than its shard is
+reused, so on a box still merging, convert each shard as it lands (as the
+October run did) and `--join` only waits for the last one. Disk: the converted
+shards are ~0.9× the shard files and are deleted once `world.pmtiles`
+validates.
+
+Validate before uploading 640 GB (`finish-world.sh` runs all of these):
 
 ```bash
 # Zoom range must be z9-15 and the layer must be `contour`
@@ -368,10 +381,13 @@ pmtiles tile public/data/tiles/world.pmtiles 15 28450 18593 | wc -c   # Mt Sonde
 pmtiles tile public/data/tiles/world.pmtiles 12 2126 1459   | wc -c   # Mont Blanc, FR/IT
 pmtiles tile public/data/tiles/world.pmtiles 9  265  182    | wc -c   # z9 floor, Alps
 
-# mbtiles sanity (same checks upload-tiles.sh runs for Australia)
-sqlite3 public/data/tiles/world.mbtiles "PRAGMA integrity_check;"
-sqlite3 public/data/tiles/world.mbtiles "SELECT count(*) FROM tiles;"
+# The tier check: Mt Sonder's z9 tile holds only 100 m contours
+tippecanoe-decode -c public/data/tiles/world.pmtiles 9 444 290 \
+  | grep -o '"elevation": *[0-9.-]*' | awk -F: '{n++; if ($2 % 100) bad++} END {print n, bad+0}'
 ```
+
+Skip `PRAGMA integrity_check` on `world.mbtiles`: at world size it is hours of
+single-threaded reading, and `pmtiles verify` covers the archive that ships.
 
 Then upload:
 
@@ -381,15 +397,15 @@ rclone config          # one-time: see the setup block in upload-world.sh
 ```
 
 `upload-world.sh` checks the PMTiles magic bytes, refuses a headerless
-(killed-convert) file, uploads with `rclone copyto --s3-chunk-size 128M
---s3-upload-concurrency 8 --progress`, then compares remote and local byte
-counts and prints the Worker URLs to check.
+(killed-convert) file, uploads with `rclone copyto --s3-chunk-size 256M
+--s3-upload-concurrency 32 --progress` (164 MB/s from an i4i.8xlarge in
+us-east-1; the old 8 × 128 MB parts managed 35-45 MB/s, ~4 h for the world),
+then compares remote and local byte counts and prints the Worker URLs to check.
 
-**Credentials:** create an R2 API token in the Cloudflare dashboard (R2 →
-Manage R2 API Tokens → Object Read & Write on `aus-map-data`) and enter it into
-`rclone config` on the box. Nothing in this repo reads or stores credentials —
-if a script needs auth it asks you for it. Revoke the token when the box is
-destroyed.
+**Credentials:** put one Cloudflare API token (R2 edit, plus cache purge for
+`upload-tiles.sh`) on the box as `~/token` and run
+`scripts/remote/rclone-from-token.sh` (section 7a). Nothing in this repo reads
+or stores credentials otherwise. Revoke the token when the box is destroyed.
 
 ---
 
@@ -456,7 +472,8 @@ Things that bit us on this run, in addition to section 8:
   tile.** That is a full read of each file (hours for 700 GB) with no output
   and ~10 % CPU. It is not stuck; `/proc/<pid>/io` `read_bytes` keeps climbing.
   Joined shard files (plain `tiles` table + unique index) check slower than
-  tippecanoe's dedup batches.
+  tippecanoe's dedup batches. `--join` now sidesteps it by joining the
+  shards as `.pmtiles` (section 6).
 - **Never run `join-on-nvme.sh` while a shard is only partly uploaded.** Its
   per-shard step joins whatever batches are present, and once
   `world_<shard>.mbtiles` exists the shard is skipped forever. Gate each join

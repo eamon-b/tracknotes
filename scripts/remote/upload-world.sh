@@ -201,9 +201,9 @@ rclone_args=(
   copyto
   --progress
   --s3-no-check-bucket
-  --s3-chunk-size 128M
+  --s3-chunk-size 256M
   --s3-upload-cutoff 128M
-  --s3-upload-concurrency 8
+  --s3-upload-concurrency 32
   --header-upload "Content-Type: application/octet-stream"
   --header-upload "Cache-Control: public, max-age=2592000"
   --retries 5
