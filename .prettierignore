@@ -12,3 +12,15 @@ scripts/topo-style*.json
 mobile/assets/topo-style*.json
 
 package-lock.json
+
+# Written by `npm run build:region-shapes`; regenerating it undoes any formatting.
+src/lib/region-shapes.ts
+
+# Minified third-party bundles, served as-is.
+site/contour-tiles/vendor/
+
+# Prettier formats code and JSON here (what the format-on-edit hook touches);
+# docs, page templates and stylesheets are laid out by hand.
+*.md
+*.html
+*.css

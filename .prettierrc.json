@@ -6,11 +6,17 @@
   "overrides": [
     {
       "files": "mobile/**",
-      "options": { "printWidth": 100, "trailingComma": "all", "arrowParens": "always" }
+      "options": {
+        "printWidth": 100,
+        "trailingComma": "all",
+        "arrowParens": "always"
+      }
     },
     {
       "files": "workers/**",
-      "options": { "printWidth": 100, "arrowParens": "always" }
+      "options": {
+        "arrowParens": "always"
+      }
     }
   ]
 }
