@@ -31,7 +31,7 @@
 import type { PlanDirection } from './plan-direction';
 import { KM_EPSILON, stopsToActive } from './plan-direction';
 import type { ComputedDay, PlanDocument, PlanState, PlanStop, PlanWaypoint, SectionConfig } from './plan-types';
-import { PLAN_LIMITS, PLAN_WAYPOINT_ID_PATTERN } from './plan-types';
+import { PLAN_LIMITS, PLAN_WAYPOINT_ID_PATTERN, isStoredZeroDays } from './plan-types';
 import { computeDays, isStopAtPlace, stopWalk, type PlanStopInput, type PlanTrail } from './day-calculator';
 import type { TrailPOI } from './trail-types';
 import { baseWaypointType, isAccessWaypoint } from './waypoint-taxonomy';
@@ -519,6 +519,47 @@ export function setResupplyStops(
     return plan;
   }
   return { ...plan, resupplyStops: [...ids], updatedAt: stamp(opts, plan.updatedAt) };
+}
+
+/**
+ * Set the zero days the hiker takes at one resupply stop, by option id: a
+ * whole or half number of days from 0 to `PLAN_LIMITS.zeroDaysMax`. 0 removes
+ * the entry, and the last entry's removal removes the map, so a plan with no
+ * zero days stays byte-identical to one saved before they existed.
+ *
+ * The same object comes back when the value already reads the same (0 on an
+ * absent entry included), so nothing is written or synced.
+ *
+ * @throws RangeError for a value that is not a half-day step in that range,
+ *   or an id that is not a waypoint id ({@link PLAN_WAYPOINT_ID_PATTERN}).
+ */
+export function setResupplyZeroDays(
+  plan: PlanDocument,
+  optionId: string,
+  days: number,
+  opts?: PlanEditOptions
+): PlanDocument {
+  if (!PLAN_WAYPOINT_ID_PATTERN.test(optionId)) {
+    throw new RangeError(`setResupplyZeroDays: ${JSON.stringify(optionId)} is not a waypoint id`);
+  }
+  if (days !== 0 && !isStoredZeroDays(days)) {
+    throw new RangeError(
+      `setResupplyZeroDays: ${String(days)} is not a half-day step from 0 to ${PLAN_LIMITS.zeroDaysMax}`
+    );
+  }
+  const current = plan.resupplyZeroDays;
+  const had = current !== undefined && Object.prototype.hasOwnProperty.call(current, optionId);
+  if (days === 0 ? !had : had && current[optionId] === days) return plan;
+
+  const next: Record<string, number> = { ...current };
+  if (days === 0) delete next[optionId];
+  else next[optionId] = days;
+  if (Object.keys(next).length > PLAN_LIMITS.resupplyZeroDaysMax) {
+    throw new RangeError(`setResupplyZeroDays: a plan may hold at most ${PLAN_LIMITS.resupplyZeroDaysMax} entries`);
+  }
+  const updatedAt = stamp(opts, plan.updatedAt);
+  if (Object.keys(next).length === 0) return { ...omitKey(plan, 'resupplyZeroDays'), updatedAt };
+  return { ...plan, resupplyZeroDays: next, updatedAt };
 }
 
 /**
@@ -1178,6 +1219,22 @@ export function assertPlanDocumentWithinLimits(plan: PlanDocument): void {
       }
     }
   }
+  if (plan.resupplyZeroDays !== undefined) {
+    const entries = Object.entries(plan.resupplyZeroDays);
+    if (entries.length > PLAN_LIMITS.resupplyZeroDaysMax) {
+      throw new Error(`plan-editor: ${entries.length} zero-day entries exceeds ${PLAN_LIMITS.resupplyZeroDaysMax}`);
+    }
+    for (const [id, days] of entries) {
+      if (!PLAN_WAYPOINT_ID_PATTERN.test(id)) {
+        throw new Error(`plan-editor: invalid zero-day waypoint id ${JSON.stringify(id)}`);
+      }
+      if (!isStoredZeroDays(days)) {
+        throw new Error(
+          `plan-editor: ${String(days)} zero days at ${id} is not a half-day step in 0.5..${PLAN_LIMITS.zeroDaysMax}`
+        );
+      }
+    }
+  }
   if (plan.alternates !== undefined) {
     if (plan.alternates.length > PLAN_LIMITS.alternatesMax) {
       throw new Error(`plan-editor: ${plan.alternates.length} alternates exceeds ${PLAN_LIMITS.alternatesMax}`);
@@ -1261,6 +1318,12 @@ export function isPlanDocument(value: unknown): value is PlanDocument {
   if (
     value.alternates !== undefined &&
     (!Array.isArray(value.alternates) || !value.alternates.every(name => typeof name === 'string'))
+  ) {
+    return false;
+  }
+  if (
+    value.resupplyZeroDays !== undefined &&
+    (!isRecord(value.resupplyZeroDays) || !Object.values(value.resupplyZeroDays).every(isStoredZeroDays))
   ) {
     return false;
   }

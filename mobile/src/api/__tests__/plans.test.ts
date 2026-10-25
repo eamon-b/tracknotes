@@ -108,6 +108,20 @@ describe('putPlan', () => {
     expect(entry.updatedAt).toBe('S1');
   });
 
+  it('sends the zero days per resupply stop with the rest of the document', async () => {
+    const fetchImpl = scriptedFetch([
+      {
+        status: 200,
+        body: { id: 'p1', trailId: 'heysen', document: DOC, shareId: null, updatedAt: 'S1' },
+      },
+    ]);
+
+    await putPlan(CTX(fetchImpl), { ...DOC, resupplyZeroDays: { w_abcd1234: 2 } });
+
+    const body = JSON.parse(calls(fetchImpl)[0][1].body as string);
+    expect(body.resupplyZeroDays).toEqual({ w_abcd1234: 2 });
+  });
+
   it('surfaces a 409 plan_exists with the id to adopt', async () => {
     const fetchImpl = scriptedFetch([
       {

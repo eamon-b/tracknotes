@@ -100,6 +100,7 @@ export async function putPlan(
     stops: document.stops,
     version: document.version,
     ...(document.resupplyStops === undefined ? {} : { resupplyStops: document.resupplyStops }),
+    ...(document.resupplyZeroDays === undefined ? {} : { resupplyZeroDays: document.resupplyZeroDays }),
     ...(document.alternates === undefined ? {} : { alternates: document.alternates }),
     // The data the plan was saved against: without it a phone on older data
     // would take the server copy as unstamped and move the stops back.

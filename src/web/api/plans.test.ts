@@ -152,6 +152,19 @@ describe('putPlan', () => {
     expect(JSON.parse(String(calls[1].init.body))).not.toHaveProperty('dataUpdatedAt');
   });
 
+  it('sends the zero days per resupply stop, when the plan has any', async () => {
+    const { impl, calls } = mockFetch([
+      { status: 200, body: entry(doc()) },
+      { status: 200, body: entry(doc()) },
+    ]);
+
+    await putPlan(SESSION, doc({ resupplyZeroDays: { w_salida: 1.5 } }), { fetchImpl: impl });
+    await putPlan(SESSION, doc(), { fetchImpl: impl });
+
+    expect(JSON.parse(String(calls[0].init.body)).resupplyZeroDays).toEqual({ w_salida: 1.5 });
+    expect(JSON.parse(String(calls[1].init.body))).not.toHaveProperty('resupplyZeroDays');
+  });
+
   it('raises the 409 with the id the server already holds', async () => {
     const { impl } = mockFetch([
       {

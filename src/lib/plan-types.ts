@@ -184,6 +184,10 @@ export const PLAN_LIMITS = {
   stopsMax: 500,
   /** Entries in `resupplyStops`. */
   resupplyStopsMax: 500,
+  /** Entries in `resupplyZeroDays`. */
+  resupplyZeroDaysMax: 500,
+  /** The most zero days one resupply stop may hold (in half-day steps from 0). */
+  zeroDaysMax: 14,
   /** Entries in `alternates`. */
   alternatesMax: 100,
   /** An alternate's name, as `alternates` and a stop's `alternate` hold it. */
@@ -199,6 +203,22 @@ export const PLAN_LIMITS = {
  * The server refuses a document carrying any other.
  */
 export const PLAN_WAYPOINT_ID_PATTERN = /^[a-z0-9_-]{4,64}$/;
+
+/**
+ * A zero-day count a plan may store for a resupply stop: a whole or half
+ * number of days, more than 0 and at most `PLAN_LIMITS.zeroDaysMax`. (0 is
+ * meaningful to an editor — it clears the entry — but is never stored.) The
+ * one rule the editor, the clients' loaders and the server share.
+ */
+export function isStoredZeroDays(value: unknown): value is number {
+  return (
+    typeof value === 'number' &&
+    Number.isFinite(value) &&
+    value > 0 &&
+    value <= PLAN_LIMITS.zeroDaysMax &&
+    Number.isInteger(value * 2)
+  );
+}
 
 /**
  * The plan document: one per trail per user. It is the wire shape
@@ -218,6 +238,15 @@ export interface PlanDocument {
   stops: PlanStop[];
   /** Ticked resupply options, as waypoint ids — unchanged from `PlanState`. */
   resupplyStops?: string[];
+  /**
+   * Zero days the hiker takes at each resupply stop, by option (waypoint) id:
+   * half-day steps, more than 0 and at most `PLAN_LIMITS.zeroDaysMax`
+   * ({@link isStoredZeroDays}). A missing entry is none, and the map is absent
+   * rather than empty, so a plan without zero days is byte-identical to one
+   * saved before the field existed. Edited through `setResupplyZeroDays`; fed
+   * to `computeResupplyLegs` as `zeroDays`.
+   */
+  resupplyZeroDays?: Record<string, number>;
   /**
    * The alternates this plan takes instead of the main route, by name (sorted).
    * Absent = the main route all the way. See `plan-alternates.ts`.

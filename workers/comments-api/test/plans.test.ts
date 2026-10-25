@@ -20,7 +20,7 @@ import type {
   SharePlanResponse,
   SharedPlanResponse,
 } from '../../../src/lib/comments-api-types';
-import type { PlanDocument } from '../../../src/lib/plan-types';
+import { PLAN_LIMITS, type PlanDocument } from '../../../src/lib/plan-types';
 
 async function planRow(id: string): Promise<{
   user_id: string;
@@ -419,6 +419,47 @@ describe('PUT /v1/plans/:id', () => {
       const refused = await putPlan(device, badId, planBody(badId, { dataUpdatedAt: bad }));
       expect(refused.status, bad).toBe(400);
       expect(((await refused.json()) as { error: { code: string } }).error.code).toBe('invalid_data_updated_at');
+    }
+  });
+
+  it('keeps the zero days per resupply stop, and stores an empty map as none', async () => {
+    const device = await registerDevice('Zero days');
+    const id = crypto.randomUUID();
+    const zeroDays = { w_salida: 1.5, w_lake_city: 14 };
+    const res = await putPlan(device, id, planBody(id, { resupplyZeroDays: zeroDays }));
+    expect(res.status).toBe(201);
+    expect(((await res.json()) as PlanSyncEntry).document.resupplyZeroDays).toEqual(zeroDays);
+
+    // One live plan per trail per account, so the empty map goes on another account.
+    const other = await registerDevice('No zero days');
+    const emptyId = crypto.randomUUID();
+    const empty = await putPlan(other, emptyId, planBody(emptyId, { resupplyZeroDays: {} }));
+    expect(empty.status).toBe(201);
+    expect(((await empty.json()) as PlanSyncEntry).document).not.toHaveProperty('resupplyZeroDays');
+  });
+
+  it('refuses malformed zero days', async () => {
+    const device = await registerDevice('Bad zero days');
+    const tooMany = Object.fromEntries(
+      Array.from({ length: PLAN_LIMITS.resupplyZeroDaysMax + 1 }, (_, i) => [`w_${String(i).padStart(4, '0')}`, 1])
+    );
+    const cases: unknown[] = [
+      [1, 2],
+      'two',
+      { w_salida: 0 },
+      { w_salida: 0.3 },
+      { w_salida: -1 },
+      { w_salida: 14.5 },
+      { w_salida: '1' },
+      { 'Not An Id': 1 },
+      { ['w_' + 'x'.repeat(70)]: 1 },
+      tooMany,
+    ];
+    for (const bad of cases) {
+      const planId = crypto.randomUUID();
+      const res = await putPlan(device, planId, planBody(planId, { resupplyZeroDays: bad as never }));
+      expect(res.status, JSON.stringify(bad).slice(0, 60)).toBe(400);
+      expect(((await res.json()) as { error: { code: string } }).error.code).toBe('invalid_resupply_zero_days');
     }
   });
 
