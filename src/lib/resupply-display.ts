@@ -10,7 +10,14 @@
  * DOM-free and dependency-free beyond `src/lib`.
  */
 
-import type { LegRide, ResupplyLeg, ResupplyOption, ResupplySummary, StopAccess } from './resupply-plan';
+import type {
+  LegRide,
+  ResupplyLeg,
+  ResupplyOption,
+  ResupplyOptionGroup,
+  ResupplySummary,
+  StopAccess,
+} from './resupply-plan';
 import type { StoreKind } from './types';
 
 /**
@@ -147,9 +154,90 @@ export function legDistanceText(
  */
 export function legSideTripText(
   leg: Pick<ResupplyLeg, 'sideTripKm' | 'toName'>,
-  formatKm: (km: number) => string
+  formatKm: (km: number) => string,
+  toName: string | null = leg.toName
 ): string {
-  return leg.sideTripKm > 0 ? `incl. ${formatKm(leg.sideTripKm)} to ${leg.toName} and back` : '';
+  if (leg.sideTripKm <= 0) return '';
+  // No name for a stop not decided yet: the walk counted is the longest of its
+  // places', and naming them all is what made the line unreadable.
+  return toName === null
+    ? `incl. ${formatKm(leg.sideTripKm)} off trail and back`
+    : `incl. ${formatKm(leg.sideTripKm)} to ${toName} and back`;
+}
+
+/** What the naming helpers read of a group: its turn-off name and its places' names. */
+type NamedGroup = Pick<ResupplyOptionGroup, 'label'> & { options: readonly Pick<ResupplyOption, 'name'>[] };
+
+/** A trailing "(access: …)" — how the data names a place reached from a turn-off. */
+const ACCESS_SUFFIX = /\s*\(access:.*\)\s*$/i;
+/** A trailing parenthetical, nested ones included: "Monarch Pass (US 50)" → "Monarch Pass". */
+const TRAILING_PARENS = /\s*\(.*\)\s*$/;
+
+/**
+ * An option's name as a row *inside its decision group* shows it, where the
+ * group's own header already says where you leave the route: the trailing
+ * "(access: Monarch Pass (US 50))" goes, and so does a prefix that repeats the
+ * group's place ("Monarch Pass (Monarch Crest Store)" under "Monarch Pass
+ * (US 50)" is "Monarch Crest Store"). A group of one option has no header, so
+ * its option keeps its full name; so does a name that would be left empty.
+ * UIs keep the full name in a tooltip.
+ */
+export function resupplyOptionShortName(option: Pick<ResupplyOption, 'name'>, group: NamedGroup): string {
+  const full = option.name.trim();
+  if (group.options.length < 2) return full;
+  let name = full.replace(ACCESS_SUFFIX, '').trim();
+  const place = group.label?.replace(TRAILING_PARENS, '').trim();
+  if (place && name.startsWith(`${place} (`) && name.endsWith(')')) {
+    name = name.slice(place.length + 2, -1).trim();
+  }
+  return name === '' ? full : name;
+}
+
+/** A decision group's name: the turn-off, else its places' short names. */
+export function resupplyGroupName(group: NamedGroup): string {
+  if (group.label) return group.label;
+  return group.options.map(option => resupplyOptionShortName(option, group)).join(' / ');
+}
+
+/** The names a leg's two ends go by, and whether the one it arrives at is decided. */
+export interface LegEndpointNames {
+  from: string;
+  to: string;
+  /** False when the leg arrives at a group with more than one place still ticked. */
+  toDecided: boolean;
+}
+
+/**
+ * What to call a leg's two ends. A stop with more than one place still ticked
+ * (a decision not made yet) is named for its group — "Monarch Pass (US 50)
+ * (not decided)" — rather than by every place joined, which is what
+ * `resolveResupplyStops` names it; every other end keeps the leg's own name.
+ *
+ * @param selectedIds the plan's `resupplyStops` (`undefined` = every option),
+ *   the selection the legs were computed from.
+ */
+export function legEndpointNames(
+  leg: Pick<ResupplyLeg, 'fromName' | 'fromKm' | 'toName' | 'toKm'>,
+  groups: readonly (Pick<ResupplyOptionGroup, 'km' | 'label'> & {
+    options: readonly Pick<ResupplyOption, 'id' | 'name'>[];
+  })[],
+  selectedIds: readonly string[] | undefined
+): LegEndpointNames {
+  const undecidedAt = (km: number, name: string): string | null => {
+    for (const group of groups) {
+      if (Math.abs(group.km - km) > 1e-6) continue;
+      // `resupplyGroupChoice`'s rule: more than one place ticked is undecided.
+      const ticked = group.options.filter(option => !selectedIds || selectedIds.includes(option.id));
+      if (ticked.length < 2) continue;
+      // The stop's own name is its ticked places joined; matching it keeps the
+      // trail start or end, at the same km as a group, from being renamed.
+      if (ticked.map(option => option.name).join(' / ') === name) return `${resupplyGroupName(group)} (not decided)`;
+    }
+    return null;
+  };
+  const from = undecidedAt(leg.fromKm, leg.fromName);
+  const to = undecidedAt(leg.toKm, leg.toName);
+  return { from: from ?? leg.fromName, to: to ?? leg.toName, toDecided: to === null };
 }
 
 /**
