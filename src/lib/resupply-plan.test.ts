@@ -927,23 +927,47 @@ describe('stops and legs off the route', () => {
     });
   });
 
-  it('walks out of a stop at the start of a section on the leg leaving it', () => {
-    // The section starts at the junction, so the leg that arrived is outside it.
+  it('does not walk out of a stop at the start of a section again', () => {
+    // The section starts at the junction: the leg arriving there, in the
+    // section before, already walked the spur both ways.
     const stops = resolveResupplyStops(listResupplyOptions(resupplyCandidates({ sideTrips: [spur()] })), undefined);
     const legs = computeResupplyLegs(trail, stops, {
       ...HIKER,
       section: { startKm: 30, endKm: 100, startName: 'Spur Town', endName: 'End' },
     });
     expect(legs).toHaveLength(1);
-    // Back down the spur (300 m down, 0 up) + 70 km.
     expect(legs[0]).toMatchObject({
       fromName: 'Spur Town',
       sideTripKm: 0,
-      offTrailWalkKm: 3,
-      walkedKm: 73,
+      offTrailWalkKm: 0,
+      walkedKm: 70,
       ascentM: 0,
-      descentM: 300,
+      descentM: 0,
     });
+  });
+
+  it('adds two sections meeting at a town up to the whole trail', () => {
+    const detour: ResupplyCandidateWaypoint[] = [
+      { id: 'mid', name: 'Mid', type: 'town', totalDistance: 50, offTrailKm: 3, accessMode: 'foot' },
+    ];
+    const stops = resolveResupplyStops(listResupplyOptions(detour), undefined);
+    const walking = (section?: { startKm: number; endKm: number }) =>
+      summariseResupplyPlan(
+        computeResupplyLegs(trail, stops, {
+          ...HIKER,
+          ...(section ? { section: { ...section, startName: 'S', endName: 'E' } } : {}),
+        })
+      ).totalWalkingKm;
+    expect(walking()).toBe(106);
+    expect(walking({ startKm: 0, endKm: 50 }) + walking({ startKm: 50, endKm: 100 })).toBe(106);
+  });
+
+  it('walks out of a stop at the trail’s own start, which no leg arrives at', () => {
+    const start: ResupplyCandidateWaypoint[] = [
+      { id: 'home', name: 'Home', type: 'town', totalDistance: 0, offTrailKm: 2, accessMode: 'foot' },
+    ];
+    const legs = computeResupplyLegs(trail, resolveResupplyStops(listResupplyOptions(start), undefined), HIKER);
+    expect(legs[0]).toMatchObject({ fromName: 'Home', offTrailWalkKm: 2, walkedKm: 102 });
   });
 
   it('reports a hitch beside the leg without walking it', () => {
@@ -1095,11 +1119,17 @@ describe('zero days', () => {
   }));
 
   it("puts a stop's zero days on the leg arriving there, never into its food", () => {
-    const plain = computeResupplyLegs(trail, stops, HIKER);
-    const rested = computeResupplyLegs(trail, stops, { ...HIKER, zeroDays: { a: 1.5, b1: 0.5, b2: 2 } });
+    const decided = resolveResupplyStops(listResupplyOptions(candidates), ['a', 'b2']);
+    const plain = computeResupplyLegs(trail, decided, HIKER);
+    const rested = computeResupplyLegs(trail, decided, { ...HIKER, zeroDays: { a: 1.5, b1: 0.5, b2: 2 } });
     expect(rested.map(leg => leg.zeroDays)).toEqual([1.5, 2, 0]);
     expect(rested.map(leg => leg.food)).toEqual(plain.map(leg => leg.food));
     expect(rested.map(leg => leg.estimatedDays)).toEqual(plain.map(leg => leg.estimatedDays));
+  });
+
+  it('gives a stop not decided yet no zero days, whatever its places hold', () => {
+    const legs = computeResupplyLegs(trail, stops, { ...HIKER, zeroDays: { a: 1, b1: 0.5, b2: 2 } });
+    expect(legs.map(leg => leg.zeroDays)).toEqual([1, 0, 0]);
   });
 
   it('ignores a value that is not a number of days', () => {
@@ -1110,7 +1140,7 @@ describe('zero days', () => {
     expect(legs.map(leg => leg.zeroDays)).toEqual([0, 0, 0]);
   });
 
-  it('pushes later arrivals back by the zero days before them, a half day up to a whole', () => {
+  it('takes arrivals from the camp plan alone, zero days or not', () => {
     const plain = computeResupplyLegs(trail, stops, { ...HIKER, days });
     expect(plain.map(leg => leg.arrival)).toEqual([
       { day: 1, date: '2026-03-01' },
@@ -1118,10 +1148,21 @@ describe('zero days', () => {
       { day: 4, date: '2026-03-04' },
     ]);
     const rested = computeResupplyLegs(trail, stops, { ...HIKER, days, zeroDays: { a: 0.5, b1: 1 } });
-    expect(rested.map(leg => leg.arrival)).toEqual([
+    expect(rested.map(leg => leg.arrival)).toEqual(plain.map(leg => leg.arrival));
+  });
+
+  it('numbers an arrival by the calendar day its date falls on, rest days included', () => {
+    // Two nights at the day-1 camp: day 2 walks on 3 March, and is calendar day 3.
+    const rest: ComputedDay[] = days.map((day, i) => ({
+      ...day,
+      restDays: i === 0 ? 1 : 0,
+      date: i === 0 ? day.date : `2026-03-0${i + 2}`,
+    }));
+    const legs = computeResupplyLegs(trail, stops, { ...HIKER, days: rest });
+    expect(legs.map(leg => leg.arrival)).toEqual([
       { day: 1, date: '2026-03-01' },
       { day: 3, date: '2026-03-03' },
-      { day: 6, date: '2026-03-06' },
+      { day: 5, date: '2026-03-05' },
     ]);
   });
 });

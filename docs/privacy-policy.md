@@ -65,7 +65,8 @@ including by filing a report), the day plans you make for the built-in trails
 are copied to our servers so they survive a reinstall and can
 be opened in a linked browser. A plan holds its name, direction, start date,
 the stops you chose with their nights, notes and "booked" ticks, the resupply
-points and alternate routes you picked, and when it was last changed. A stop
+points you picked (and any zero days you plan at them), the alternate routes
+you picked, and when it was last changed. A stop
 carries the place's name and its distance along the trail, and that includes a
 private waypoint of your own if you choose it as a stop. A plan is private to
 your account unless you share it (below). Your walking pace and hours per day are not part of
