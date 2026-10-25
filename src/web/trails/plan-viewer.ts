@@ -635,7 +635,9 @@ function resupplyLegs(): ResupplyLeg[] {
     dailyHours(),
     threshold('longCarryDays'),
     threshold('foodGramsPerDay'),
-    currentDays.map(day => day.endKm).join(','),
+    // A stop's extra nights move every later arrival (and its date) without
+    // moving any day's end, so they are part of the key too.
+    currentDays.map(day => `${day.endKm}:${day.restDays ?? 0}:${day.date ?? ''}`).join(','),
   ].join('|');
 
   if (key !== cachedResupplyLegsKey) {
