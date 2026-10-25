@@ -29,10 +29,11 @@ import {
   legSideTripText,
   resupplyGroupName,
   resupplyOptionShortName,
+  resupplyTurnOffText,
   storeLabel,
   type LegEndpointNames,
 } from '@lib/resupply-display';
-import { waypointTypeLabel } from '@lib/waypoint-taxonomy';
+import { baseWaypointType, waypointTypeLabel } from '@lib/waypoint-taxonomy';
 import { escapeHtml } from '../web-utils';
 import { servicesStripHtml } from './stop-services';
 
@@ -282,18 +283,23 @@ function notesCell(option: ResupplyOption, opts: ResupplyRenderOptions): string 
 }
 
 /**
- * The stop's name, its kind, and the "show on map" link. Inside a decision
- * group the name is the short one (`resupplyOptionShortName`), the full one
- * kept as its tooltip.
+ * The stop's name, its kind, and the "show on map" link. The name is the short
+ * one (`resupplyOptionShortName`), the full one kept as its tooltip.
  */
 function stopCell(option: ResupplyOption, opts: ResupplyRenderOptions, group: ResupplyOptionGroup): string {
   const href = opts.mapHref(option.id);
   const link = href ? ` <a class="rs-map-link" href="${escapeHtml(href)}">show on map</a>` : '';
   const short = resupplyOptionShortName(option, group);
   const title = short !== option.name ? ` title="${escapeHtml(option.name)}"` : '';
+  // A one-place turn-off has no group header, so its row says where it leaves
+  // the route: "Town · turn-off at Cumbres Pass (CO 17)".
+  const turnOff = resupplyTurnOffText(group);
+  const kind = turnOff
+    ? `${waypointTypeLabel(baseWaypointType(option.type))} · ${turnOff}`
+    : waypointTypeLabel(option.type);
   return (
     `<span class="rs-name"${title}>${escapeHtml(short)}</span>` +
-    `<span class="rs-sub">${escapeHtml(waypointTypeLabel(option.type))}${link}</span>`
+    `<span class="rs-sub">${escapeHtml(kind)}${link}</span>`
   );
 }
 

@@ -159,6 +159,44 @@ describe('renderResupplyTable', () => {
     expect(name.title).toBe('Charlie (access: Mill Road)');
   });
 
+  it('shortens a one-place turn-off and says where it leaves the route', () => {
+    const access = {
+      config: { id: 'turn-off-fixture', name: 'Fixture' },
+      track: trail.track,
+      waypoints: [
+        {
+          id: 'w_chama',
+          name: 'Chama (access: Cumbres Pass (CO 17))',
+          type: 'town-access',
+          lat: -34.01,
+          lon: 138.01,
+          totalDistance: 10,
+          accessName: 'Cumbres Pass (CO 17)',
+          offTrailKm: 19.3,
+          accessMode: 'hitch' as const,
+        },
+      ],
+    };
+    const one = listResupplyOptions(resupplyCandidates(access));
+    const legs = computeResupplyLegs(access, resolveResupplyStops(one, undefined), {
+      dailyHours: 8,
+      baseKmh: PACE_KMH.average,
+      longThresholdDays: 5,
+      gramsPerDay: 800,
+    });
+    const dom = render(
+      buildResupplyView({ groups: one, selectedIds: undefined, legs, zeroDays: undefined, totalKm: 50 })
+    );
+    const row = dom.querySelector('tr[data-option-id="w_chama"]')!;
+    const name = row.querySelector<HTMLElement>('.rs-name')!;
+    expect(name.textContent).toBe('Chama');
+    expect(name.title).toBe('Chama (access: Cumbres Pass (CO 17))');
+    expect(row.querySelector('.rs-c-stop .rs-sub')?.textContent).toBe(
+      'Town · turn-off at Cumbres Pass (CO 17) show on map'
+    );
+    expect(dom.querySelector('.rs-end .rs-c-leg')?.textContent).toContain('from Chama');
+  });
+
   it('calls an undecided stop by its group on the legs either side of it', () => {
     const dom = render(viewFor(undefined));
     const head = dom.querySelector('.rs-group-head .rs-c-leg')!;
