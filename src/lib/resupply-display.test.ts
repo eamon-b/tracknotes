@@ -12,7 +12,10 @@ import {
   firstSentence,
   legDistanceText,
   legRidesText,
+  legEndpointNames,
   legSideTripText,
+  resupplyGroupName,
+  resupplyOptionShortName,
   resupplySummaryText,
   STORE_KIND_LABELS,
   stopAccessText,
@@ -198,5 +201,97 @@ describe('legSideTripText', () => {
   it('names the side trip a leg includes', () => {
     expect(legSideTripText({ sideTripKm: 2.8, toName: 'Salida' }, km)).toBe('incl. 2.8 km to Salida and back');
     expect(legSideTripText({ sideTripKm: 0, toName: 'Salida' }, km)).toBe('');
+  });
+
+  it('takes a shorter name, or none for a stop not decided yet', () => {
+    const leg = { sideTripKm: 0.4, toName: 'A / B (access: C)' };
+    expect(legSideTripText(leg, km, 'Monarch Crest Store')).toBe('incl. 0.4 km to Monarch Crest Store and back');
+    expect(legSideTripText(leg, km, null)).toBe('incl. 0.4 km off trail and back');
+  });
+});
+
+/** The CDT's Monarch Pass, as the data names it. */
+const monarch = {
+  key: 'w_crest',
+  km: 3098.6,
+  label: 'Monarch Pass (US 50)',
+  options: [
+    { id: 'w_crest', name: 'Monarch Pass (Monarch Crest Store)' },
+    { id: 'w_salida', name: 'Salida (access: Monarch Pass (US 50))' },
+    { id: 'w_poncha', name: 'Poncha Springs (access: Monarch Pass (US 50))' },
+  ],
+};
+
+describe('resupplyOptionShortName', () => {
+  it('drops what the group header already says', () => {
+    expect(monarch.options.map(option => resupplyOptionShortName(option, monarch))).toEqual([
+      'Monarch Crest Store',
+      'Salida',
+      'Poncha Springs',
+    ]);
+    const ghost = {
+      label: 'CDT primary route nearest Ghost Ranch (Chama River rim)',
+      options: [
+        { name: 'Ghost Ranch (access: CDT primary route nearest Ghost Ranch (Chama River rim))' },
+        { name: 'Abiquiu (access: CDT primary route nearest Ghost Ranch (Chama River rim))' },
+      ],
+    };
+    expect(ghost.options.map(option => resupplyOptionShortName(option, ghost))).toEqual(['Ghost Ranch', 'Abiquiu']);
+  });
+
+  it('keeps the full name where there is no group header to lean on', () => {
+    const alone = { label: 'Monarch Pass (US 50)', options: [{ name: 'Salida (access: Monarch Pass (US 50))' }] };
+    expect(resupplyOptionShortName(alone.options[0], alone)).toBe('Salida (access: Monarch Pass (US 50))');
+  });
+
+  it('never shortens a name to nothing, or a prefix that is not the group place', () => {
+    const group = { label: 'Mill Road', options: [{ name: '(access: Mill Road)' }, { name: 'Millbrook (Store)' }] };
+    expect(resupplyOptionShortName(group.options[0], group)).toBe('(access: Mill Road)');
+    expect(resupplyOptionShortName(group.options[1], group)).toBe('Millbrook (Store)');
+  });
+});
+
+describe('resupplyGroupName', () => {
+  it('is the turn-off, else the places', () => {
+    expect(resupplyGroupName(monarch)).toBe('Monarch Pass (US 50)');
+    expect(resupplyGroupName({ label: null, options: [{ name: 'Kerikeri turnoff' }, { name: 'Kerikeri' }] })).toBe(
+      'Kerikeri turnoff / Kerikeri'
+    );
+  });
+});
+
+describe('legEndpointNames', () => {
+  const groups = [{ key: 'w_bv', km: 3000, label: null, options: [{ id: 'w_bv', name: 'Buena Vista' }] }, monarch];
+  const joined = monarch.options.map(option => option.name).join(' / ');
+
+  it('names an undecided stop for its group, at either end', () => {
+    const into = { fromName: 'Buena Vista', fromKm: 3000, toName: joined, toKm: 3098.6 };
+    expect(legEndpointNames(into, groups, undefined)).toEqual({
+      from: 'Buena Vista',
+      to: 'Monarch Pass (US 50) (not decided)',
+      toDecided: false,
+    });
+    const outOf = { fromName: joined, fromKm: 3098.6, toName: 'Trail End', toKm: 4000 };
+    expect(legEndpointNames(outOf, groups, undefined).from).toBe('Monarch Pass (US 50) (not decided)');
+
+    // Two of three still ticked is still not decided.
+    const two = 'Salida (access: Monarch Pass (US 50)) / Poncha Springs (access: Monarch Pass (US 50))';
+    const leg = { fromName: 'Buena Vista', fromKm: 3000, toName: two, toKm: 3098.6 };
+    expect(legEndpointNames(leg, groups, ['w_bv', 'w_salida', 'w_poncha']).to).toBe(
+      'Monarch Pass (US 50) (not decided)'
+    );
+  });
+
+  it('keeps the name of a decided stop and of the trail ends', () => {
+    const leg = { fromName: 'Buena Vista', fromKm: 3000, toName: monarch.options[1].name, toKm: 3098.6 };
+    expect(legEndpointNames(leg, groups, ['w_bv', 'w_salida'])).toEqual({
+      from: 'Buena Vista',
+      to: 'Salida (access: Monarch Pass (US 50))',
+      toDecided: true,
+    });
+    // The trail start, at the km of an undecided group, is still the trail start.
+    const atStart = [{ ...monarch, km: 0 }];
+    const first = { fromName: 'Trail Start', fromKm: 0, toName: 'Trail End', toKm: 10 };
+    expect(legEndpointNames(first, atStart, undefined).from).toBe('Trail Start');
   });
 });
