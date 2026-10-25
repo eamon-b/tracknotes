@@ -20,9 +20,10 @@ import {
 import { ResupplyPlanner, type ResupplyPlannerProps } from '../ResupplyPlanner';
 import { plannerRows } from '../resupply-planner';
 
-jest.mock('../../../theme', () => ({
-  useTheme: () => ({ colors: new Proxy({}, { get: () => '#123456' }) }),
-}));
+// Every component here calls useTheme once per render, so the call count
+// doubles as a render count for the memo test.
+const mockUseTheme = jest.fn(() => ({ colors: new Proxy({}, { get: () => '#123456' }) }));
+jest.mock('../../../theme', () => ({ useTheme: () => mockUseTheme() }));
 
 const waypoints: ResupplyCandidateWaypoint[] = [
   { id: 'w_pass', name: 'Monarch Pass', type: 'town-access', totalDistance: 100 },
@@ -172,13 +173,15 @@ describe('ResupplyPlanner', () => {
     const tree = render(p);
     expect(control(tree, 'Salida').accessibilityState).toEqual({ checked: true });
     expect(control(tree, 'Monarch Pass').accessibilityState).toEqual({ checked: false });
-    expect(control(tree, 'None – carry through').accessibilityState).toEqual({
+    expect(
+      control(tree, 'None – carry through at Monarch Pass (US 50)').accessibilityState,
+    ).toEqual({
       checked: false,
     });
 
     act(() => control(tree, 'Monarch Pass').onPress());
     expect(p.onChoose).toHaveBeenCalledWith('w_pass', 'w_pass');
-    act(() => control(tree, 'None – carry through').onPress());
+    act(() => control(tree, 'None – carry through at Monarch Pass (US 50)').onPress());
     expect(p.onChoose).toHaveBeenCalledWith('w_pass', null);
   });
 
@@ -231,7 +234,7 @@ describe('ResupplyPlanner', () => {
     const p = props(['w_salida', 'w_creede'], {}, [], { w_salida: 1.5 });
     const tree = render(p);
     expect(allText(tree)).toContain('1½ days');
-    act(() => control(tree, 'More zero days').onPress());
+    act(() => control(tree, 'More zero days at Salida').onPress());
     expect(p.onZeroDays).toHaveBeenCalledWith('w_salida', 1);
 
     // Monarch Pass is undecided by default: no stepper there, only Creede's.
@@ -325,6 +328,65 @@ describe('ResupplyPlanner', () => {
     );
     expect(heading.length).toBeGreaterThan(0);
     expect(control(tree, 'Resupply at Chama (access: Cumbres Pass (CO 17))').value).toBe(true);
+  });
+
+  it('keeps an option’s facts and More outside its radio, and reads the facts as its hint', () => {
+    const tree = render(props(['w_salida']));
+    const [radio] = tree.root.findAll(
+      (n) =>
+        n.props.accessibilityRole === 'radio' &&
+        n.props.accessibilityLabel === 'Salida' &&
+        typeof n.props.onPress === 'function',
+    );
+    expect(radio.props.accessibilityHint).toBe('Full resupply · 22.5 km hitch · Accepts boxes');
+    // Nothing focusable or textual about the place is swallowed by the radio.
+    const inside = radio.findAll(() => true).map((n) => n.props.accessibilityLabel);
+    expect(inside).not.toContain('More about Salida');
+    const texts: string[] = [];
+    radio.findAll(() => true).forEach((n) => collectText(n.props.children, texts));
+    expect(texts.join('')).not.toContain('Full resupply');
+    // …but both are on screen, More as its own button.
+    expect(control(tree, 'More about Salida')).toBeDefined();
+  });
+
+  it('names the place or turn-off on every repeated control', () => {
+    const tree = render(props(['w_salida', 'w_creede'], {}, [], { w_salida: 1 }));
+    expect(control(tree, 'Fewer zero days at Salida')).toBeDefined();
+    expect(control(tree, 'More zero days at Creede')).toBeDefined();
+    expect(control(tree, 'None – carry through at Monarch Pass (US 50)')).toBeDefined();
+  });
+
+  it('re-renders only the rows an edit changed, though every row object is new', () => {
+    const legs = [
+      leg(0, 100, { toName: 'Salida' }),
+      leg(100, 250, { fromName: 'Salida' }),
+      leg(250, 300, { fromName: 'Creede', toName: 'Trail End' }),
+    ];
+    const base = props(['w_salida', 'w_creede'], {}, legs);
+    mockUseTheme.mockClear();
+    const tree = render(base);
+    const first = mockUseTheme.mock.calls.length;
+
+    // The same plan, rows rebuilt (as every edit rebuilds them): only the
+    // header re-renders.
+    const fresh = {
+      ...base,
+      rows: plannerRows(groups, ['w_salida', 'w_creede'], legs, range, undefined),
+    };
+    mockUseTheme.mockClear();
+    act(() => tree.update(<ResupplyPlanner {...fresh} />));
+    const same = mockUseTheme.mock.calls.length;
+    expect(same).toBeLessThan(first / 2);
+
+    // One group changed: that row re-renders, the rest do not.
+    const changed = {
+      ...base,
+      rows: plannerRows(groups, ['w_salida', 'w_creede'], legs, range, { w_creede: 1 }),
+    };
+    mockUseTheme.mockClear();
+    act(() => tree.update(<ResupplyPlanner {...changed} />));
+    expect(mockUseTheme.mock.calls.length).toBeGreaterThan(same);
+    expect(mockUseTheme.mock.calls.length).toBeLessThan(first);
   });
 
   it('follows the unit setting', () => {

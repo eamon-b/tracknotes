@@ -11,8 +11,18 @@
  *
  * Presentational — the route owns the stores and every handler. Every figure
  * comes from `@lib/resupply-plan` and every phrase about a place or a leg from
- * `@lib/resupply-display`; this only lays them out. Rows are memoised (the CDT
- * has 70 groups) and the handlers they take are the route's stable callbacks.
+ * `@lib/resupply-display`; this only lays them out.
+ *
+ * Rows are memoised by value (`sameGroupRow`, `sameLegRow`): `plannerRows`
+ * builds fresh row objects on every edit, so identity would re-render all of
+ * the CDT's 70 groups and legs on each tap. The handlers they take are the
+ * route's stable callbacks.
+ *
+ * Screen readers: each place's radio (or switch) speaks its full name, with
+ * its facts as the hint; the facts and the More/Less button sit beside the
+ * radio, not inside it, so each is its own focusable element. Every repeated
+ * control names its place or turn-off ("More zero days at Salida",
+ * "None – carry through at Monarch Pass (US 50)").
  */
 
 import React, { useCallback, useState } from 'react';
@@ -22,6 +32,7 @@ import type { ResupplyLeg, ResupplyOption, ResupplyPlanSummary } from '@lib/resu
 import {
   legRidesText,
   legSideTripText,
+  resupplyGroupName,
   resupplyOptionShortName,
   type LegEndpointNames,
 } from '@lib/resupply-display';
@@ -34,6 +45,8 @@ import { formatDays, formatFoodWeight } from './plan-format';
 import {
   formatZeroDays,
   groupHeading,
+  sameGroupRow,
+  sameLegRow,
   optionFacts,
   ZERO_DAYS_MAX,
   type PlannerRow,
@@ -135,7 +148,7 @@ function PlannerHeader({
           </View>
         ) : (
           <Text style={[styles.caption, { color: colors.textSecondary }]}>
-            Choose a start before the end on the Plan screen.
+            No legs to show: this trail has no length to plan over.
           </Text>
         )}
         {!hasOptions && summary.hasData && (
@@ -216,7 +229,7 @@ function EndRow({
   );
 }
 
-const LegRow = React.memo(function LegRow({
+function LegRowView({
   leg,
   names,
   units,
@@ -266,11 +279,37 @@ const LegRow = React.memo(function LegRow({
       )}
     </View>
   );
-});
+}
+
+const LegRow = React.memo(
+  LegRowView,
+  (a, b) =>
+    a.units === b.units &&
+    sameLegRow(
+      { kind: 'leg', key: '', leg: a.leg, names: a.names },
+      { kind: 'leg', key: '', leg: b.leg, names: b.names },
+    ),
+);
 
 type GroupRowData = Extract<PlannerRow, { kind: 'group' }>;
 
-const GroupRow = React.memo(function GroupRow({
+interface GroupRowProps {
+  row: GroupRowData;
+  units: Units;
+  onChoose: (groupKey: string, optionId: string | null) => void;
+  onZeroDays: (optionId: string, direction: 1 | -1) => void;
+}
+
+const GroupRow = React.memo(
+  GroupRowView,
+  (a: GroupRowProps, b: GroupRowProps) =>
+    a.units === b.units &&
+    a.onChoose === b.onChoose &&
+    a.onZeroDays === b.onZeroDays &&
+    sameGroupRow(a.row, b.row),
+);
+
+function GroupRowView({
   row,
   units,
   onChoose,
@@ -285,6 +324,9 @@ const GroupRow = React.memo(function GroupRow({
   const { group, choice, inSection, zeroDays } = row;
   const single = group.options.length === 1;
   const chosenId = choice.kind === 'chosen' ? choice.optionId : null;
+  const chosen = group.options.find((option) => option.id === chosenId) ?? null;
+  const chosenName = chosen ? resupplyOptionShortName(chosen, group) : '';
+  const turnOff = resupplyGroupName(group);
   const heading = groupHeading(group);
 
   return (
@@ -330,66 +372,73 @@ const GroupRow = React.memo(function GroupRow({
           />
         </View>
       ) : (
-        <View accessibilityRole="radiogroup">
+        <View accessibilityRole="radiogroup" accessibilityLabel={`Resupply at ${turnOff}`}>
           {group.options.map((option) => (
-            <Radio
-              key={option.id}
-              // The header names the turn-off; the row only what is beyond it.
-              label={resupplyOptionShortName(option, group)}
-              spokenLabel={option.name}
-              checked={chosenId === option.id}
-              onPress={() => onChoose(group.key, option.id)}
-            >
-              <OptionFacts option={option} units={units} />
-            </Radio>
+            <View key={option.id} style={styles.option}>
+              <Radio
+                // The header names the turn-off; the row only what is beyond it.
+                label={resupplyOptionShortName(option, group)}
+                spokenLabel={option.name}
+                hint={factsLine(optionFacts(option, (km) => formatDistance(km, units)))}
+                checked={chosenId === option.id}
+                onPress={() => onChoose(group.key, option.id)}
+              />
+              {/* Beside the radio, not inside it: an accessible Pressable is one
+                  focus element, which would swallow these and the More button. */}
+              <View style={styles.optionFacts}>
+                <OptionFacts option={option} units={units} />
+              </View>
+            </View>
           ))}
           <Radio
             label="None – carry through"
+            spokenLabel={`None – carry through at ${turnOff}`}
             checked={choice.kind === 'none'}
             onPress={() => onChoose(group.key, null)}
           />
         </View>
       )}
 
-      {chosenId !== null && inSection && (
+      {chosen !== null && inSection && (
         <View style={styles.zeroRow}>
           <Text style={[styles.zeroLabel, { color: colors.textSecondary }]}>Zero days</Text>
           <View style={styles.stepper}>
             <StepButton
               label="−"
-              accessibilityLabel="Fewer zero days"
+              accessibilityLabel={`Fewer zero days at ${chosenName}`}
               disabled={zeroDays <= 0}
-              onPress={() => onZeroDays(chosenId, -1)}
+              onPress={() => onZeroDays(chosen.id, -1)}
             />
             <Text style={[styles.zeroValue, { color: colors.textPrimary }]}>
               {formatZeroDays(zeroDays)}
             </Text>
             <StepButton
               label="+"
-              accessibilityLabel="More zero days"
+              accessibilityLabel={`More zero days at ${chosenName}`}
               disabled={zeroDays >= ZERO_DAYS_MAX}
-              onPress={() => onZeroDays(chosenId, 1)}
+              onPress={() => onZeroDays(chosen.id, 1)}
             />
           </View>
         </View>
       )}
     </View>
   );
-});
+}
 
 function Radio({
   label,
   spokenLabel = label,
+  hint,
   checked,
   onPress,
-  children,
 }: {
   label: string;
   /** What a screen reader says; the place's full name where the label is the short one. */
   spokenLabel?: string;
+  /** The place's facts, read after the name. */
+  hint?: string;
   checked: boolean;
   onPress: () => void;
-  children?: React.ReactNode;
 }) {
   const { colors } = useTheme();
   return (
@@ -397,18 +446,25 @@ function Radio({
       onPress={onPress}
       accessibilityRole="radio"
       accessibilityLabel={spokenLabel}
+      accessibilityHint={hint || undefined}
       accessibilityState={{ checked }}
       style={({ pressed }) => [styles.radioRow, pressed && styles.pressed]}
     >
       <View style={[styles.radio, { borderColor: checked ? colors.accent : colors.border }]}>
         {checked && <View style={[styles.radioDot, { backgroundColor: colors.accent }]} />}
       </View>
-      <View style={styles.optionText}>
-        <Text style={[styles.optionName, { color: colors.textPrimary }]}>{label}</Text>
-        {children}
-      </View>
+      <Text style={[styles.optionName, styles.optionText, { color: colors.textPrimary }]}>
+        {label}
+      </Text>
     </Pressable>
   );
+}
+
+/** "Full resupply · 22.5 km hitch · Accepts boxes" — what the place is, in one line. */
+function factsLine(facts: ReturnType<typeof optionFacts>): string {
+  return [facts.store, facts.access, facts.acceptsBoxes ? 'Accepts boxes' : null]
+    .filter((part): part is string => !!part)
+    .join(' · ');
 }
 
 /** Store, access, boxes and the description's lead sentence (tap "More" for the rest). */
@@ -416,9 +472,7 @@ function OptionFacts({ option, units }: { option: ResupplyOption; units: Units }
   const { colors } = useTheme();
   const [expanded, setExpanded] = useState(false);
   const facts = optionFacts(option, (km) => formatDistance(km, units));
-  const line = [facts.store, facts.access, facts.acceptsBoxes ? 'Accepts boxes' : null]
-    .filter((part): part is string => !!part)
-    .join(' · ');
+  const line = factsLine(facts);
   return (
     <View style={styles.facts}>
       <Text style={[styles.factsLine, { color: colors.textSecondary }]}>{line}</Text>
@@ -525,6 +579,9 @@ const styles = StyleSheet.create({
   },
   radioDot: { width: 10, height: 10, borderRadius: radii.full },
   optionText: { flex: 1, gap: spacing.xs },
+  option: { gap: spacing.xs },
+  // Under the radio's label, clear of the radio circle (22 + the row gap).
+  optionFacts: { marginLeft: 22 + spacing.md, marginTop: -spacing.sm, paddingBottom: spacing.sm },
   optionName: { ...typography.bodySmall, fontWeight: '700' },
   facts: { gap: spacing.xs },
   factsLine: { ...typography.caption },

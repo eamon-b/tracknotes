@@ -33,11 +33,12 @@ import {
   plannedResupplyIds,
   resolveResupplyStops,
   resupplyCandidates,
+  resupplyGroupChoice,
   type ResupplyOptionGroup,
   type ResupplyStop,
   type ResupplyTrail,
 } from '@lib/resupply-plan';
-import { setResupplyStops } from '@lib/plan-editor';
+import { resetResupplyPlan } from '@lib/plan-editor';
 import { selectResupplyStops, usePlansStore, type PlanDefaults } from '../../state/plans-store';
 import { selectPrefs, usePlanInputsStore } from './plan-inputs-store';
 import { waypointResupplyEditor } from './resupply-planner';
@@ -68,9 +69,10 @@ export function plannedIdsFor(
  * The trail's stored selection: the plan document's, or — only while the
  * document has none — the device-local one a pre-sync build left behind.
  *
- * Returns the stored array itself as well as the Set, because a write has to
- * start from the list the hiker is looking at. Both keep a stable identity
- * while the selection does, so a caller's memo does not churn.
+ * Returns the stored array (what `resupplyGroupChoice` reads) and the same
+ * ids as a Set (what the highlights read). Both keep a stable identity while
+ * the selection does, so a caller's memo does not churn. Nothing writes from
+ * them: every edit reads the selection off the document when it runs.
  *
  * The plans store is hydrated by whatever screen the hiker opened (the guide
  * does it on mount, `GuideView`), so an unhydrated cache reads as "no document
@@ -88,25 +90,14 @@ function useStoredResupplyStops(trailId: string): {
 }
 
 /**
- * Store an explicit selection in the trail's plan, minting the plan if this is
- * the hiker's first edit to it. The write is floating on purpose: `apply` never
- * rejects, and every caller is an `onPress`.
- */
-export function saveResupplyStops(
-  trailId: string,
-  ids: readonly string[],
-  defaults: PlanDefaults,
-): void {
-  void usePlansStore.getState().apply(trailId, (p) => setResupplyStops(p, ids), defaults);
-}
-
-/**
  * Back to "no plan made" — which is what turns every planned highlight off.
- * Both copies go: the document's field, and the legacy device-local one, or a
- * selection made before this build would come straight back as the fallback.
+ * The zero days go with the selection (`resetResupplyPlan`), or they would sit
+ * on places no longer chosen. Both copies of the selection go: the document's
+ * field, and the legacy device-local one, or a selection made before this
+ * build would come straight back as the fallback.
  */
 export function resetResupplyStops(trailId: string, defaults: PlanDefaults): void {
-  void usePlansStore.getState().apply(trailId, (p) => setResupplyStops(p, undefined), defaults);
+  void usePlansStore.getState().apply(trailId, (p) => resetResupplyPlan(p), defaults);
   usePlanInputsStore.getState().clearResupplyStops(trailId);
 }
 
@@ -161,8 +152,11 @@ export function usePlannedResupplyStops(
  *    option. A resupply-family waypoint the options list does not hold (no id,
  *    or no km to place it at) would otherwise store the whole option list on
  *    its first tap and invent a plan nobody made.
- *  - `isSelected` is the hiker's own tick, so the button's label and its action
- *    are the same fact.
+ *  - `isSelected` is the group's choice, read as the resupply screen reads it
+ *    (`resupplyGroupChoice`): this place is the one chosen at its turn-off —
+ *    a lone place under the every-option default included, which the planner
+ *    also shows as chosen. The button's label and its action are that fact.
+ *    A place in a group still undecided is not selected: its button picks it.
  *  - The toggle is the resupply screen's decision (`waypointResupplyEditor`):
  *    "Plan resupply here" picks this place in its turn-off's group, so the
  *    group ends up decided rather than holding one more tick; "Remove" of the
@@ -173,7 +167,7 @@ export interface WaypointResupplyPlan {
   isPlanned: boolean;
   /** The ticked option(s) this waypoint is planned through, when it is not one itself. */
   plannedVia: string | null;
-  /** In the hiker's selection — what the toggle's label describes. */
+  /** The place chosen at its turn-off — what the toggle's label describes. */
   isSelected: boolean;
   /** Tick or untick this waypoint, or null when no toggle should be offered. */
   toggle: (() => void) | null;
@@ -186,7 +180,7 @@ export function useWaypointResupplyPlan(
   /** What to mint the plan with, should this tap be the first edit to it. */
   defaults: PlanDefaults,
 ): WaypointResupplyPlan {
-  const { selected } = useStoredResupplyStops(trailId);
+  const { stored, selected } = useStoredResupplyStops(trailId);
   // Keyed on the trail alone, as `usePlannedResupplyIds` is: ticking a box must
   // not regroup the CDT's 70 options.
   const groups = useMemo(() => resupplyGroupsFor(trail), [trail]);
@@ -194,10 +188,16 @@ export function useWaypointResupplyPlan(
   const planned = useMemo(() => plannedResupplyIds(groups, selected), [groups, selected]);
 
   const optionId = waypointId != null && allIds.includes(waypointId) ? waypointId : null;
-  const isSelected = optionId != null && (selected?.has(optionId) ?? false);
-  const isPlanned = optionId != null && (planned?.has(optionId) ?? false);
+  const group =
+    optionId != null ? groups.find((g) => g.options.some((o) => o.id === optionId)) : undefined;
+  const choice = group ? resupplyGroupChoice(group, stored) : null;
+  const isSelected = optionId != null && choice?.kind === 'chosen' && choice.optionId === optionId;
+  const ticked = optionId != null && (selected?.has(optionId) ?? false);
+  // Planned as every surface highlights it, or chosen as the planner reads it.
+  const isPlanned = optionId != null && ((planned?.has(optionId) ?? false) || isSelected);
+  // Planned only because it is the turn-off for a place ticked beside it.
   const plannedVia =
-    optionId != null && isPlanned && !isSelected
+    optionId != null && isPlanned && !ticked && !isSelected
       ? tickedNamesAround(groups, selected, optionId)
       : null;
 

@@ -169,7 +169,7 @@ describe('resupply screen', () => {
 
   it('carries through a turn-off, and switches a lone town off', async () => {
     const tree = render();
-    await fire(tree, 'None – carry through');
+    await fire(tree, 'None – carry through at Monarch Pass');
     expect((await stored())?.resupplyStops).toEqual(['w_creede']);
 
     await fire(tree, 'Resupply at Creede', false);
@@ -179,10 +179,10 @@ describe('resupply screen', () => {
 
   it('stores zero days on the chosen stop, in half days', async () => {
     const tree = render();
-    await fire(tree, 'More zero days');
-    await fire(tree, 'More zero days');
+    await fire(tree, 'More zero days at Creede');
+    await fire(tree, 'More zero days at Creede');
     expect((await stored())?.resupplyZeroDays).toEqual({ w_creede: 1 });
-    await fire(tree, 'Fewer zero days');
+    await fire(tree, 'Fewer zero days at Creede');
     expect((await stored())?.resupplyZeroDays).toEqual({ w_creede: 0.5 });
   });
 
@@ -194,6 +194,26 @@ describe('resupply screen', () => {
     expect((await stored())?.resupplyStops).toBeUndefined();
     // The plan itself survives — only the selection was cleared.
     expect((await stored())?.id).toBe('plan-uuid');
+  });
+
+  it('Clear choices takes the zero days with the selection', async () => {
+    const tree = render();
+    await fire(tree, 'Salida');
+    await fire(tree, 'More zero days at Salida');
+    expect((await stored())?.resupplyZeroDays).toEqual({ w_salida: 0.5 });
+
+    await fire(tree, 'Clear choices');
+    expect((await stored())?.resupplyZeroDays).toBeUndefined();
+    // Nothing hidden left in the totals.
+    expect(text(tree)).not.toContain('off)');
+  });
+
+  it('drops a place’s zero days when the turn-off is carried through', async () => {
+    const tree = render();
+    await fire(tree, 'Salida');
+    await fire(tree, 'More zero days at Salida');
+    await fire(tree, 'None – carry through at Monarch Pass');
+    expect((await stored())?.resupplyZeroDays).toBeUndefined();
   });
 
   it('Clear choices also clears a selection left by a build before the document', async () => {
@@ -242,7 +262,7 @@ describe('resupply screen', () => {
       jest.runOnlyPendingTimers();
     });
 
-    expect(control(tree, 'None – carry through').accessibilityState).toEqual({
+    expect(control(tree, 'None – carry through at Monarch Pass').accessibilityState).toEqual({
       checked: true,
     });
     expect(control(tree, 'Resupply at Creede').value).toBe(true);

@@ -228,20 +228,27 @@ describe('useWaypointResupplyPlan', () => {
     renderer = null;
   });
 
-  it('plans a waypoint on the first tap, and unplans it on the second', () => {
+  it('reads a lone place as chosen before any plan, as the planner does, and removes it', () => {
     mount('w_creede');
-    expect(latest.isPlanned).toBe(false);
-    expect(latest.isSelected).toBe(false);
-
-    press();
-    // The rest of the trail stays ticked; what the button said would happen did.
-    expect(stored()).toEqual(['w_pass', 'w_salida', 'w_poncha', 'w_creede']);
+    // Under the every-option default a lone place is the group's choice: the
+    // planner shows its switch on, so this says "Planned" / "Remove" too.
     expect(latest.isPlanned).toBe(true);
     expect(latest.isSelected).toBe(true);
 
     press();
     expect(stored()).toEqual(['w_pass', 'w_salida', 'w_poncha']);
     expect(latest.isPlanned).toBe(false);
+    expect(latest.isSelected).toBe(false);
+
+    press();
+    expect(stored()).toEqual(['w_pass', 'w_salida', 'w_poncha', 'w_creede']);
+    expect(latest.isSelected).toBe(true);
+  });
+
+  it('is not selected in a group still undecided, so its button picks it', () => {
+    mount('w_salida');
+    expect(latest.isSelected).toBe(false);
+    expect(latest.toggle).not.toBeNull();
   });
 
   it('removes a ticked stop in one press', () => {
@@ -300,11 +307,14 @@ describe('useWaypointResupplyPlan', () => {
     expect(stored()).toEqual(['w_creede']);
   });
 
-  it('takes one tick out of a group still undecided, leaving the rest', () => {
+  it('picks a place ticked in a group still undecided, deciding the group', () => {
     storePlan(planWith(['w_pass', 'w_salida', 'w_poncha', 'w_creede']));
     mount('w_poncha');
+    expect(latest.isSelected).toBe(false);
+    // Ticked, so it is no turn-off "planned via" another place: it has a toggle.
+    expect(latest.plannedVia).toBeNull();
     press();
-    expect(stored()).toEqual(['w_pass', 'w_salida', 'w_creede']);
+    expect(stored()).toEqual(['w_poncha', 'w_creede']);
   });
 
   it('offers no toggle for a resupply the trail does not offer as an option', () => {
@@ -329,8 +339,9 @@ describe('useWaypointResupplyPlan', () => {
     const [trailId, , defaults] = apply.mock.calls[0];
     expect(trailId).toBe('cdt');
     expect(defaults).toEqual(DEFAULTS);
-    // The editor it handed over is the shared one, applied to the document.
-    expect(stored()).toEqual(['w_pass', 'w_salida', 'w_poncha', 'w_creede']);
+    // The editor it handed over is the shared one, applied to the document:
+    // Creede read as chosen, so the press carried it through.
+    expect(stored()).toEqual(['w_pass', 'w_salida', 'w_poncha']);
   });
 
   it('starts a first tick from the legacy selection, then leaves it behind', () => {
