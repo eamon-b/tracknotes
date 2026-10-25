@@ -282,11 +282,12 @@ describe('legEndpointNames', () => {
     );
   });
 
-  it('keeps the name of a decided stop and of the trail ends', () => {
+  it('shortens a decided stop and keeps the trail ends', () => {
     const leg = { fromName: 'Buena Vista', fromKm: 3000, toName: monarch.options[1].name, toKm: 3098.6 };
+    // The one place chosen at a turn-off goes by its short name.
     expect(legEndpointNames(leg, groups, ['w_bv', 'w_salida'])).toEqual({
       from: 'Buena Vista',
-      to: 'Salida (access: Monarch Pass (US 50))',
+      to: 'Salida',
       toDecided: true,
     });
     // The trail start, at the km of an undecided group, is still the trail start.
