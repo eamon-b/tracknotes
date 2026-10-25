@@ -68,8 +68,11 @@ export interface NextDaysHost {
   /** The stored inputs, or undefined before the hiker changed any. */
   prefs(): SuggestPrefs | undefined;
   savePrefs(prefs: SuggestPrefs): void;
-  /** Apply an edit through the viewer's refusal-aware path. */
-  edit(edit: () => PlanDocument): void;
+  /**
+   * Apply an edit through the viewer's refusal-aware path. A function of the
+   * plan, so the viewer can replay it on a newer copy another tab saved.
+   */
+  edit(edit: (plan: PlanDocument) => PlanDocument): void;
   /** Draw a suggested plan on the map (null clears it). */
   preview(plan: NextDaysPlan | null): void;
   /** The hiker's located km changed (null = forgotten). */
@@ -447,7 +450,7 @@ export function initNextDays(container: HTMLElement, host: NextDaysHost): NextDa
           const total = host.trail().track.totalDistance;
           result = null;
           clearPreview();
-          host.edit(() => applyNextDaysPlan(host.plan(), startKm, chosen, total));
+          host.edit(plan => applyNextDaysPlan(plan, startKm, chosen, total));
           render();
         }
         return;

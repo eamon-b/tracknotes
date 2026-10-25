@@ -403,6 +403,18 @@ export function loadPlanUiPrefs(trailId: string): PlanUiPrefs {
   }
 }
 
+/**
+ * Change some preferences without writing back the rest: the patch goes onto
+ * what storage holds now, so a page open beside another (the planner and the
+ * resupply page) never saves its stale copy of the other's changes. Returns
+ * the preferences as stored.
+ */
+export function updatePlanUiPrefs(trailId: string, patch: Partial<PlanUiPrefs>): PlanUiPrefs {
+  const next = { ...loadPlanUiPrefs(trailId), ...patch };
+  savePlanUiPrefs(trailId, next);
+  return next;
+}
+
 export function savePlanUiPrefs(trailId: string, prefs: PlanUiPrefs): void {
   try {
     localStorage.setItem(UI_KEY(trailId), JSON.stringify(prefs));

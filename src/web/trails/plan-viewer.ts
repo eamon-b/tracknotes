@@ -100,17 +100,20 @@ import { waypointFamilyClass, waypointIcon } from './waypoint-icons';
 import { accessPathLayer, hasAccessPath } from './access-path';
 import { servicesStripHtml } from './stop-services';
 import { stopWalk } from '@lib/day-calculator';
+import { PlanEditQueue, type PlanEdit } from './plan-edit-queue';
 import {
   DAILY_HOURS_RANGE,
   loadOrMigratePlan,
+  loadPlanDocument,
   loadPlanUiPrefs,
   parseDailyHours,
   parseThreshold,
   prefDailyHours,
   prefPace,
   prefThreshold,
+  planStorageKind,
   savePlanDocument,
-  savePlanUiPrefs,
+  updatePlanUiPrefs,
   type PlanUiPrefs,
 } from './plan-state';
 import { initPlanSync, type PlanSyncController, type PlanSyncHost } from './plan-sync';
@@ -228,6 +231,11 @@ let resupplyFilter = '';
 let uiPrefs: PlanUiPrefs = { showAllWaypoints: false };
 let saveDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 /**
+ * This page's edits since the document was last in step with `localStorage`,
+ * replayed on a newer stored copy when another tab saved one.
+ */
+let editQueue = new PlanEditQueue(null);
+/**
  * Read-only mode: the shared-plan page, showing someone else's plan. Nothing
  * is written — not to `localStorage`, not to the server — and every control
  * that would edit the document is a piece of text instead.
@@ -235,6 +243,18 @@ let saveDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 let readOnly = false;
 /** The sync arm, when this page has one (never in read-only mode). */
 let syncController: PlanSyncController | null = null;
+/**
+ * The planner markup this viewer was booted into. Once it is gone (a test
+ * that boots a fresh page into the same document), nothing this viewer still
+ * has scheduled or listening may write: `localStorage` now belongs to the page
+ * that replaced it, and writing into it would look like another tab's save.
+ */
+let bootShell: HTMLElement | null = null;
+
+function pageIsLive(): boolean {
+  return bootShell === null || bootShell.isConnected;
+}
+
 /** `initPlanViewer` has run on this page — see the guard there. */
 let booted = false;
 
@@ -387,9 +407,13 @@ function baseKmh(): number {
  * pace and hours for their own plan of the same trail.
  */
 function setUiPrefs(patch: Partial<PlanUiPrefs>): void {
-  uiPrefs = { ...uiPrefs, ...patch };
-  if (readOnly) return;
-  savePlanUiPrefs(trail.config.id, uiPrefs);
+  if (readOnly) {
+    uiPrefs = { ...uiPrefs, ...patch };
+    return;
+  }
+  // Onto what storage holds, so a resupply page open beside this one keeps
+  // whatever it changed (`updatePlanUiPrefs`).
+  uiPrefs = updatePlanUiPrefs(trail.config.id, patch);
 }
 
 function dailyHours(): number {
@@ -1291,11 +1315,8 @@ function bindStopIssueButtons(container: HTMLElement): void {
 /** Take a stop that needs checking out of the stored plan (it may not be in the route view). */
 function removeIssueStop(issue: StopIssue): void {
   if (readOnly) return;
-  const next = removeStoredStop(storedPlan, issue.stop);
-  if (next === storedPlan) return;
+  if (!commitEdit(doc => removeStoredStop(doc, issue.stop), { render: false })) return;
   selectedDayIndex = null;
-  adoptStoredPlan(next);
-  scheduleSave();
   renderAll();
 }
 
@@ -1996,9 +2017,8 @@ function selectDay(index: number | null): void {
 function toggleStop(km: number, name: string, id?: string): void {
   if (readOnly) return;
   const noboKm = toNoboKm(km, direction(), routeTrail.track.totalDistance);
-  tryEdit(() =>
-    editToggleStop(plan, { ...(id ? { id } : {}), km: noboKm, name }, { totalKm: routeTrail.track.totalDistance })
-  );
+  const totalKm = routeTrail.track.totalDistance;
+  tryEdit(doc => editToggleStop(doc, { ...(id ? { id } : {}), km: noboKm, name }, { totalKm }));
 }
 
 /**
@@ -2012,29 +2032,51 @@ function toggleStop(km: number, name: string, id?: string): void {
  * prefix comes off and the rest goes on screen. The document is left exactly
  * as it was, which is the point: the refusal is not a half-applied edit.
  */
-function tryEdit(edit: () => PlanDocument, options: { render?: boolean } = {}): void {
-  let next: PlanDocument;
+function tryEdit(edit: (plan: PlanDocument) => PlanDocument, options: { render?: boolean } = {}): void {
   try {
-    next = edit();
+    commitEdit(routeEdit(edit), options);
   } catch (err) {
     setEditError(err);
-    return;
   }
-  applyEdit(next, options);
 }
 
 /**
- * Take an edited document, unless the editor returned the same one.
+ * Take an edit, unless the editor returned the same document.
  *
  * `@lib/plan-editor` returns the input document unchanged for a no-op — a
  * second waypoint at an occupied km, a note that did not change — and that is
  * exactly the signal not to mark the plan unsaved or repaint the page.
+ *
+ * `edit` runs on the route view (`plan`); it is kept as a function rather than
+ * its result so it can be replayed on a newer copy another tab saved
+ * (`plan-edit-queue.ts`).
  */
-function applyEdit(next: PlanDocument, options: { render?: boolean } = {}): void {
-  if (next === plan) return;
-  adoptStoredPlan(planFromRoute(next, plannedRoute, storedPlan));
+function applyEdit(edit: (plan: PlanDocument) => PlanDocument, options: { render?: boolean } = {}): void {
+  commitEdit(routeEdit(edit), options);
+}
+
+/** A route-view edit as an edit of the stored document, for whichever stored copy it meets. */
+function routeEdit(edit: (plan: PlanDocument) => PlanDocument): PlanEdit {
+  return doc => {
+    const route = plannedRouteFor(trail, doc);
+    const view = planToRoute(doc, route);
+    const next = edit(view);
+    return next === view ? doc : planFromRoute(next, route, doc);
+  };
+}
+
+/**
+ * Apply an edit of the stored document: show it, remember it for the save,
+ * and schedule that. Returns false for a no-op; throws what the editor throws.
+ */
+function commitEdit(edit: PlanEdit, options: { render?: boolean } = {}): boolean {
+  const next = edit(storedPlan);
+  if (next === storedPlan) return false;
+  editQueue.record(edit);
+  adoptStoredPlan(next);
   scheduleSave();
   if (options.render !== false) renderAll();
+  return true;
 }
 
 /**
@@ -2043,25 +2085,24 @@ function applyEdit(next: PlanDocument, options: { render?: boolean } = {}): void
  */
 function setAlternate(name: string, take: boolean): void {
   if (readOnly) return;
-  let next: PlanDocument;
+  let changed: boolean;
   try {
-    next = setPlanAlternate(storedPlan, trail, name, take);
+    changed = commitEdit(doc => setPlanAlternate(doc, trail, name, take), { render: false });
   } catch (err) {
     setEditError(err);
     return;
   }
-  if (next === storedPlan) return;
+  if (!changed) return;
   selectedDayIndex = null;
-  adoptStoredPlan(next);
-  scheduleSave();
   renderAll();
 }
 
 /** Nights at a stop, by the row's − / + buttons. Clamped by the editor. */
 function changeNights(key: StopKey, delta: number): void {
-  const stop = findStop(plan, key);
-  if (!stop) return;
-  applyEdit(editNights(plan, key, stop.nights + delta));
+  applyEdit(doc => {
+    const stop = findStop(doc, key);
+    return stop ? editNights(doc, key, stop.nights + delta) : doc;
+  });
 }
 
 /**
@@ -2074,10 +2115,16 @@ function changeNights(key: StopKey, delta: number): void {
  */
 function toggleResupply(id: string): void {
   if (readOnly) return;
-  const picked = selectedResupplyIds();
-  if (picked.has(id)) picked.delete(id);
-  else picked.add(id);
-  setResupplyStops(allResupplyOptionIds(resupplyGroups()).filter(optionId => picked.has(optionId)));
+  const all = allResupplyOptionIds(resupplyGroups());
+  applyEdit(doc => {
+    const picked = new Set(doc.resupplyStops ?? all);
+    if (picked.has(id)) picked.delete(id);
+    else picked.add(id);
+    return editResupplyStops(
+      doc,
+      all.filter(optionId => picked.has(optionId))
+    );
+  });
 }
 
 function setAllResupply(all: boolean): void {
@@ -2093,7 +2140,7 @@ function setAllResupply(all: boolean): void {
  * All on an already-full list is not a save — and not a `PUT`.
  */
 function setResupplyStops(ids: string[]): void {
-  applyEdit(editResupplyStops(plan, ids));
+  applyEdit(doc => editResupplyStops(doc, ids));
 }
 
 /**
@@ -2154,7 +2201,7 @@ function setDirection(dir: PlanDirection): void {
   selectedDayIndex = null;
   // renderAll() recomputes days from the reoriented trail and rebuilds day
   // polylines, stop markers, waypoint markers, and the elevation profile.
-  applyEdit(editDirection(plan, dir));
+  applyEdit(doc => editDirection(doc, dir));
   // After the edit: the button's label is read back out of the document.
   updateDirectionButton();
 }
@@ -2162,12 +2209,12 @@ function setDirection(dir: PlanDirection): void {
 function setStartDate(date: string): void {
   // The editor throws on anything that is not a real calendar day; an empty
   // input (the date field cleared) is a null start date, not a bad one.
-  tryEdit(() => editStartDate(plan, date || null));
+  tryEdit(doc => editStartDate(doc, date || null));
 }
 
 function setPlanName(name: string): void {
   // No re-render: the name appears nowhere but the input the user is typing in.
-  applyEdit(editPlanName(plan, name), { render: false });
+  applyEdit(doc => editPlanName(doc, name), { render: false });
 }
 
 /** Pace feeds both the day plan's hours and every resupply leg's days. */
@@ -2243,15 +2290,12 @@ function cancelPendingSave(): void {
  * sync arm decides for itself whether there is anything to send.
  */
 function commitSave(): void {
+  if (!pageIsLive()) return;
   // The timer has fired (or been flushed): nothing is pending any more, which
   // is what `flushPendingSave` reads.
   saveDebounceTimer = null;
   if (readOnly) return;
-  // Saved against this page's data: a device on older data then leaves the
-  // stops where this data has the places (`refreshStopKms`).
-  const stamped = stampPlanData(storedPlan, trail.dataUpdatedAt);
-  if (stamped !== storedPlan) adoptStoredPlan(stamped);
-  const ok = savePlanDocument(trail.config.id, storedPlan);
+  const ok = writeLocal();
   setSaveStatus(ok ? 'saved' : 'error');
   syncController?.onLocalSave();
 }
@@ -2260,6 +2304,53 @@ function commitSave(): void {
  * Show why an edit was refused, on the line the save status uses. Warn-coloured
  * like an unsaved plan, because that is what it is: the change never happened.
  */
+/**
+ * Write this page's edits to `localStorage` — on top of the stored copy, when
+ * another tab (the resupply page) saved since they were made, so its changes
+ * are kept (`plan-edit-queue.ts`).
+ */
+function writeLocal({ stamp = true }: { stamp?: boolean } = {}): boolean {
+  const id = trail.config.id;
+  const next = editQueue.resolveForSave(storedPlan, loadPlanDocument(id));
+  const moved = next !== storedPlan;
+  // Saved against this page's data: a device on older data then leaves the
+  // stops where this data has the places (`refreshStopKms`). Not on the sync
+  // arm's flush, which has always written the document exactly as edited.
+  const stamped = stamp ? stampPlanData(next, trail.dataUpdatedAt) : next;
+  if (stamped !== storedPlan) adoptStoredPlan(stamped);
+  // Another tab's changes came in with the replay: draw them.
+  if (moved) refreshAfterOutsideChange();
+  const ok = savePlanDocument(id, storedPlan);
+  if (ok) editQueue.saved(storedPlan);
+  return ok;
+}
+
+/**
+ * Follow a save another tab made (the resupply page, or this planner in a
+ * second tab): take the stored document with this page's unsaved edits
+ * replayed on it, and the preferences as stored.
+ */
+function onStorage(event: StorageEvent): void {
+  if (readOnly || !pageIsLive()) return;
+  const kind = planStorageKind(event.key, trail.config.id);
+  if (kind === 'document') {
+    const doc = loadPlanDocument(trail.config.id);
+    if (!doc || editQueue.isBase(doc)) return;
+    adoptStoredPlan(editQueue.rebase(doc));
+    refreshAfterOutsideChange();
+  } else if (kind === 'prefs') {
+    uiPrefs = loadPlanUiPrefs(trail.config.id);
+    refreshHeaderInputs();
+    renderAll();
+  }
+}
+
+/** Redraw after the document changed under the page, not through one of its controls. */
+function refreshAfterOutsideChange(): void {
+  refreshHeaderInputs();
+  renderAll();
+}
+
 function setEditError(err: unknown): void {
   const el = document.getElementById('save-status');
   if (!el) return;
@@ -2565,7 +2656,9 @@ function initStopsControls(): void {
     const note = (event.target as HTMLElement | null)?.closest<HTMLInputElement>('.stop-note');
     if (!note) return;
     const found = stopKeyFromRow(note);
-    if (found) applyEdit(editStopNote(plan, found.key, note.value), { render: false });
+    if (!found) return;
+    const value = note.value;
+    applyEdit(doc => editStopNote(doc, found.key, value), { render: false });
   });
 
   list.addEventListener('change', event => {
@@ -2573,7 +2666,10 @@ function initStopsControls(): void {
     const booked = target?.closest<HTMLInputElement>('.stop-booked-check');
     if (booked) {
       const found = stopKeyFromRow(booked);
-      if (found) applyEdit(editStopBooked(plan, found.key, booked.checked));
+      if (found) {
+        const checked = booked.checked;
+        applyEdit(doc => editStopBooked(doc, found.key, checked));
+      }
       return;
     }
     // The note's own `change` fires when the field is left; nothing has to be
@@ -2630,6 +2726,7 @@ function planSyncHost(trailId: string): PlanSyncHost {
     trailId,
     getPlan: () => storedPlan,
     adoptServerPlan(next: PlanDocument): void {
+      if (!pageIsLive()) return;
       // The server's copy wins outright (last writer wins, as for comments),
       // so it is stored and drawn exactly as it arrived — no `scheduleSave`,
       // which would stamp our clock on it and send it straight back. A save
@@ -2641,22 +2738,24 @@ function planSyncHost(trailId: string): PlanSyncHost {
       // page's data is at least as new as the data the copy was saved against.
       const refreshed = refreshStopKms(next, trail, { dataUpdatedAt: trail.dataUpdatedAt ?? null });
       adoptStoredPlan(refreshed);
-      savePlanDocument(trail.config.id, storedPlan);
+      if (savePlanDocument(trail.config.id, storedPlan)) editQueue.saved(storedPlan);
       setSaveStatus('saved');
       if (refreshed !== next) scheduleSave();
       refreshHeaderInputs();
       renderAll();
     },
     stampPlan(patch: Partial<PlanDocument>): void {
+      if (!pageIsLive()) return;
       adoptStoredPlan({ ...storedPlan, ...patch });
-      savePlanDocument(trail.config.id, storedPlan);
+      if (savePlanDocument(trail.config.id, storedPlan)) editQueue.stored(storedPlan);
     },
     flushPendingSave(): boolean {
+      if (!pageIsLive()) return false;
       if (saveDebounceTimer === null) return false;
       cancelPendingSave();
       // The local write `commitSave` would have made, minus its `onLocalSave`:
       // the sync arm is asking because it is about to reconcile this edit.
-      const ok = savePlanDocument(trail.config.id, storedPlan);
+      const ok = writeLocal({ stamp: false });
       setSaveStatus(ok ? 'saved' : 'error');
       return true;
     },
@@ -2676,7 +2775,7 @@ function nextDaysHost() {
     dailyHours,
     prefs: () => uiPrefs.suggest,
     savePrefs: (suggest: NonNullable<PlanUiPrefs['suggest']>) => setUiPrefs({ suggest }),
-    edit: (edit: () => PlanDocument) => tryEdit(edit),
+    edit: (edit: (plan: PlanDocument) => PlanDocument) => tryEdit(edit),
     preview: drawSuggestionPreview,
     onHere: (km: number | null) => {
       if (km === null) return;
@@ -2767,6 +2866,7 @@ export async function initPlanViewer(
   // throw on the already-initialised container. Say so rather than half-boot.
   if (booted) throw new Error('initPlanViewer: the planner is already booted on this page');
   booted = true;
+  bootShell = document.getElementById('plan-shell');
   const data = preloadedTrail ?? (await loadTrailData(trailId));
   if (!data) {
     document.body.innerHTML = `<div style="padding:2rem;text-align:center">
@@ -2793,6 +2893,7 @@ export async function initPlanViewer(
   // plan. A newer server copy replaces it a moment after the first render —
   // see `plan-sync.ts`; the page is drawn first and never waits on the network.
   const loaded = options.preloadedPlan ?? loadOrMigratePlan(trailId, trail).plan;
+  editQueue = new PlanEditQueue(readOnly ? null : loadPlanDocument(trailId));
   // A stop saved before a data update moved its place is moved with it — and
   // saved, unless the plan was saved against newer data than this page has. A
   // shared plan is only read, so it is corrected for reading whatever it says.
@@ -2833,13 +2934,21 @@ export async function initPlanViewer(
 
   // Opened from the resupply page's "show on map" link.
   const focusId = getQueryParam(window.location.search, 'focus');
-  if (focusId) focusResupplyOption(focusId);
+  if (focusId) {
+    focusResupplyOption(focusId);
+    // Once: a reload, or Back to this page, keeps whatever tab the hiker moved to.
+    const url = new URL(window.location.href);
+    url.searchParams.delete('focus');
+    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+  }
 
   // The sync arm, last: it draws its own header controls and then talks to the
   // network, so the planner is on screen and usable before any of that starts.
   // A shared plan is nobody's to sync, so it never gets one.
   syncController = readOnly ? null : initPlanSync(planSyncHost(trailId));
   if (!readOnly && stored !== loaded) scheduleSave();
+  // Another tab — the resupply page, most often — saving this plan.
+  if (!readOnly) window.addEventListener('storage', onStorage);
 
   // Redraw elevation on resize
   window.addEventListener(

@@ -59,10 +59,11 @@ import {
   prefPace,
   prefThreshold,
   savePlanDocument,
-  savePlanUiPrefs,
+  updatePlanUiPrefs,
   type PlanUiPrefs,
 } from './plan-state';
 import { initPlanSync, type PlanSyncController, type PlanSyncHost } from './plan-sync';
+import { PlanEditQueue, type PlanEdit } from './plan-edit-queue';
 import { mountPlanSyncDialogs } from './plan-sync-markup';
 import { buildResupplyView, renderResupplySummary, renderResupplyTable } from './resupply-view';
 import { SITE_ROOT, escapeHtml, generatedDataUrl } from '../web-utils';
@@ -113,7 +114,23 @@ let reversedTrail: ResupplyPageTrail | null = null;
 let pageOptions: ResupplyPageOptions;
 let syncController: PlanSyncController | null = null;
 let saveDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+/** This page's unsaved edits, replayed on a newer stored copy (`plan-edit-queue.ts`). */
+let editQueue = new PlanEditQueue(null);
+/** A table render waiting for the browser to finish moving focus (see `renderSoon`). */
+let renderTimer: ReturnType<typeof setTimeout> | null = null;
+/** The zero-days box whose last entry was refused: drawn invalid until the next good one. */
+let invalidZeroId: string | null = null;
 let booted = false;
+/**
+ * The `#resupply-app` this page was booted into. Once it is gone (a test that
+ * boots a fresh page into the same document), nothing still scheduled or
+ * listening here may write to storage or draw into the new page.
+ */
+let bootRoot: HTMLElement | null = null;
+
+function pageIsLive(): boolean {
+  return bootRoot === null || bootRoot.isConnected;
+}
 
 let cachedGroups: ResupplyOptionGroup[] = [];
 let cachedGroupsKey: string | null = null;
@@ -194,7 +211,56 @@ function legs(): ResupplyLeg[] {
 // Rendering
 // ---------------------------------------------------------------------------
 
+/**
+ * Render once the browser has finished the focus move that fired the change
+ * (Tab out of a zero-days box, an arrow key between radios), so `render` can
+ * put the focus back where the hiker sent it rather than on `<body>`.
+ */
+function renderSoon(): void {
+  if (renderTimer !== null) return;
+  renderTimer = setTimeout(() => {
+    renderTimer = null;
+    if (pageIsLive()) render();
+  }, 0);
+}
+
+/** A control's identity across renders: a radio by group and value, the rest by id or link. */
+function focusKey(el: Element | null): string | null {
+  if (!(el instanceof HTMLElement)) return null;
+  if (el instanceof HTMLInputElement && el.type === 'radio') return `radio|${el.name}|${el.value}`;
+  if (el.id) return `id|${el.id}`;
+  if (el instanceof HTMLAnchorElement) return `href|${el.getAttribute('href') ?? ''}`;
+  if (el.tagName === 'SUMMARY') return `summary|${el.closest<HTMLElement>('tr')?.dataset.optionId ?? ''}`;
+  return null;
+}
+
+/**
+ * Replace the table, keeping what the hiker was on: the focused control (found
+ * again by `focusKey`) and the descriptions they had opened.
+ */
+function replaceTable(table: HTMLElement, html: string): void {
+  const active = document.activeElement;
+  const key = active && table.contains(active) ? focusKey(active) : null;
+  const open = new Set(
+    [...table.querySelectorAll<HTMLElement>('tr[data-option-id] details[open]')].map(
+      el => el.closest<HTMLElement>('tr')?.dataset.optionId
+    )
+  );
+  table.innerHTML = html;
+  for (const details of table.querySelectorAll<HTMLDetailsElement>('tr[data-option-id] details')) {
+    if (open.has(details.closest<HTMLElement>('tr')?.dataset.optionId)) details.open = true;
+  }
+  if (key) {
+    const target = [...table.querySelectorAll<HTMLElement>('input, a, summary')].find(el => focusKey(el) === key);
+    target?.focus({ preventScroll: true });
+  }
+}
+
 function render(): void {
+  if (renderTimer !== null) {
+    clearTimeout(renderTimer);
+    renderTimer = null;
+  }
   const options = groups();
   const view = buildResupplyView({
     groups: options,
@@ -209,14 +275,26 @@ function render(): void {
 
   const table = byId('rs-table');
   if (table) {
-    table.innerHTML =
+    replaceTable(
+      table,
       options.length === 0
         ? '<p class="rs-empty-note">This trail has no resupply points — the one leg below is the full carry.</p>' +
-          renderResupplyTable(view, { mapHref: () => null })
+            renderResupplyTable(view, { mapHref: () => null })
         : renderResupplyTable(view, {
             mapHref: id => pageOptions.plannerHref(id),
             services: km => servicesAtStop({ km }, activeTrail().pois),
-          });
+          })
+    );
+    if (invalidZeroId !== null) {
+      const box = [...table.querySelectorAll<HTMLInputElement>('input.rs-zero')].find(
+        el => el.dataset.optionId === invalidZeroId
+      );
+      if (box) {
+        box.setAttribute('aria-invalid', 'true');
+        box.classList.add('is-invalid');
+        box.title = 'Not a number of days: whole or half days, 0 for none';
+      }
+    }
   }
 
   const planName = byId('rs-plan-name');
@@ -285,45 +363,59 @@ function fillInputs(): void {
 // Edits
 // ---------------------------------------------------------------------------
 
-/** Take an edited document, unless the editor returned the same one (a no-op). */
-function applyEdit(next: PlanDocument): void {
-  if (next === storedPlan) return;
-  adoptPlan(next);
-  scheduleSave();
-  render();
-}
-
-function tryEdit(edit: () => PlanDocument): void {
+/**
+ * Apply an edit of the document: show it, remember it for the save, schedule
+ * that. A function of the document rather than its result, so it can be
+ * replayed on a newer copy the planner saved in another tab
+ * (`plan-edit-queue.ts`). A no-op (the editor returns the same document) is
+ * dropped; a refusal is shown on the save line and returns false.
+ */
+function edit(change: PlanEdit, { soon = false }: { soon?: boolean } = {}): boolean {
+  const draw = soon ? renderSoon : render;
   let next: PlanDocument;
   try {
-    next = edit();
+    next = change(storedPlan);
   } catch (err) {
     setEditError(err);
-    render();
-    return;
+    draw();
+    return false;
   }
-  applyEdit(next);
+  if (next === storedPlan) return true;
+  editQueue.record(change);
+  adoptPlan(next);
+  scheduleSave();
+  draw();
+  return true;
 }
 
 /** A radio in a group: an option id, or '' for "No" / "None – carry through". */
 function chooseOption(groupKey: string, value: string): void {
-  tryEdit(() => chooseResupplyOption(storedPlan, groups(), groupKey, value === '' ? null : value));
+  const options = groups();
+  const optionId = value === '' ? null : value;
+  edit(doc => chooseResupplyOption(doc, options, groupKey, optionId), { soon: true });
 }
 
-/** A zero-days entry: whole or half days, 0 clears it. A blank or bad entry is put back. */
-function setZeroDays(optionId: string, raw: string): void {
+/**
+ * A zero-days entry: whole or half days, blank clears it. Something the box
+ * cannot read as a number (`3e`, which a number input reports as blank) or the
+ * editor refuses keeps the stored value, and the box says it was not taken.
+ */
+function setZeroDays(optionId: string, input: HTMLInputElement): void {
+  const raw = input.value;
   const parsed = raw.trim() === '' ? 0 : Number(raw);
-  if (!Number.isFinite(parsed) || parsed < 0) {
-    render();
+  if (input.validity?.badInput || !Number.isFinite(parsed) || parsed < 0) {
+    invalidZeroId = optionId;
+    renderSoon();
     return;
   }
   const days = Math.round(parsed * 2) / 2;
-  tryEdit(() => setResupplyZeroDays(storedPlan, optionId, days));
+  invalidZeroId = null;
+  if (!edit(doc => setResupplyZeroDays(doc, optionId, days), { soon: true })) invalidZeroId = optionId;
 }
 
 function setUiPrefs(patch: Partial<PlanUiPrefs>): void {
-  uiPrefs = { ...uiPrefs, ...patch };
-  savePlanUiPrefs(trailId, uiPrefs);
+  // Onto what storage holds, so the planner's own changes in another tab stay.
+  uiPrefs = updatePlanUiPrefs(trailId, patch);
   render();
 }
 
@@ -353,7 +445,8 @@ function bindControls(): void {
   bindThreshold('rs-long-carry', 'longCarryDays');
 
   byId('rs-direction')?.addEventListener('click', () => {
-    applyEdit(editDirection(storedPlan, direction() === 'NOBO' ? 'SOBO' : 'NOBO'));
+    const target = direction() === 'NOBO' ? 'SOBO' : 'NOBO';
+    edit(doc => editDirection(doc, target));
   });
 
   const plannerLink = byId<HTMLAnchorElement>('rs-planner-link');
@@ -370,7 +463,7 @@ function bindControls(): void {
       return;
     }
     if (target.classList.contains('rs-zero') && target.dataset.optionId) {
-      setZeroDays(target.dataset.optionId, target.value);
+      setZeroDays(target.dataset.optionId, target);
     }
   });
 }
@@ -393,12 +486,26 @@ function cancelPendingSave(): void {
 
 /** Local first, then the sync arm — the planner's order. */
 function commitSave(): void {
+  if (!pageIsLive()) return;
   saveDebounceTimer = null;
-  const stamped = stampPlanData(storedPlan, trail.dataUpdatedAt);
-  if (stamped !== storedPlan) adoptPlan(stamped);
-  const ok = savePlanDocument(trailId, storedPlan);
+  const ok = writeLocal();
   setSaveStatus(ok ? 'saved' : 'error');
   syncController?.onLocalSave();
+}
+
+/**
+ * Write this page's edits — on top of the stored copy when the planner saved
+ * since they were made, so its changes are kept too.
+ */
+function writeLocal(): boolean {
+  const next = editQueue.resolveForSave(storedPlan, loadPlanDocument(trailId));
+  const moved = next !== storedPlan;
+  const stamped = stampPlanData(next, trail.dataUpdatedAt);
+  if (stamped !== storedPlan) adoptPlan(stamped);
+  const ok = savePlanDocument(trailId, storedPlan);
+  if (ok) editQueue.saved(storedPlan);
+  if (moved) render();
+  return ok;
 }
 
 function setSaveStatus(status: 'saved' | 'unsaved' | 'error'): void {
@@ -421,25 +528,28 @@ function planSyncHost(): PlanSyncHost {
     trailId,
     getPlan: () => storedPlan,
     adoptServerPlan(next: PlanDocument): void {
+      if (!pageIsLive()) return;
       // The planner's rule: the server's copy wins and is stored as it came,
       // unless a data update moved one of its places — then the corrected copy
       // is ours to save and send back.
       cancelPendingSave();
       const refreshed = refreshStopKms(next, trail, { dataUpdatedAt: trail.dataUpdatedAt ?? null });
       adoptPlan(refreshed);
-      savePlanDocument(trailId, storedPlan);
+      if (savePlanDocument(trailId, storedPlan)) editQueue.saved(storedPlan);
       setSaveStatus('saved');
       if (refreshed !== next) scheduleSave();
       render();
     },
     stampPlan(patch: Partial<PlanDocument>): void {
+      if (!pageIsLive()) return;
       adoptPlan({ ...storedPlan, ...patch });
-      savePlanDocument(trailId, storedPlan);
+      if (savePlanDocument(trailId, storedPlan)) editQueue.stored(storedPlan);
     },
     flushPendingSave(): boolean {
+      if (!pageIsLive()) return false;
       if (saveDebounceTimer === null) return false;
       cancelPendingSave();
-      const ok = savePlanDocument(trailId, storedPlan);
+      const ok = writeLocal();
       setSaveStatus(ok ? 'saved' : 'error');
       return true;
     },
@@ -448,18 +558,17 @@ function planSyncHost(): PlanSyncHost {
 
 /**
  * Follow the planner open in another tab: its saves land in `localStorage`,
- * and the `storage` event says so. An edit of ours still waiting on the save
- * debounce wins — it is newer, and its save will overwrite the other tab's.
+ * and the `storage` event says so. The page takes the stored copy with its own
+ * unsaved edits replayed on top, so neither tab's changes are lost.
  */
 function onStorage(event: StorageEvent): void {
+  if (!pageIsLive()) return;
   const kind = planStorageKind(event.key, trailId);
   if (kind === 'document') {
-    if (saveDebounceTimer !== null) return;
     const doc = loadPlanDocument(trailId);
-    if (doc && doc !== storedPlan) {
-      adoptPlan(doc);
-      render();
-    }
+    if (!doc || editQueue.isBase(doc)) return;
+    adoptPlan(editQueue.rebase(doc));
+    render();
   } else if (kind === 'prefs') {
     uiPrefs = loadPlanUiPrefs(trailId);
     fillInputs();
@@ -497,6 +606,7 @@ export async function initResupplyPage(
   booted = true;
   const root = byId('resupply-app');
   if (!root) throw new Error('initResupplyPage: no #resupply-app');
+  bootRoot = root;
 
   const data = preloadedTrail ?? (await loadTrailData(id));
   if (!data) {
@@ -516,6 +626,7 @@ export async function initResupplyPage(
   plannedRoute = plannedRouteFor(trail, undefined);
 
   const loaded = loadOrMigratePlan(id, trail).plan;
+  editQueue = new PlanEditQueue(loadPlanDocument(id));
   // As the planner does on load: a stop a data update moved goes with its place.
   const stored = refreshStopKms(loaded, trail, { dataUpdatedAt: trail.dataUpdatedAt ?? null });
   uiPrefs = loadPlanUiPrefs(id);
