@@ -16,6 +16,7 @@ import type { PlanDocument } from '@lib/plan-types';
 import {
   chooseResupplyEditor,
   formatZeroDays,
+  groupHeading,
   optionFacts,
   plannerRows,
   resupplyEntryText,
@@ -181,6 +182,55 @@ describe('plannerRows', () => {
     const rows = plannerRows(groups, undefined, [], whole, { w_salida: 2 });
     const pass = rows.find((row) => row.kind === 'group' && row.group.key === 'w_pass');
     expect(pass).toMatchObject({ choice: { kind: 'undecided' }, zeroDays: 0 });
+  });
+});
+
+describe('groupHeading', () => {
+  it('heads a one-place turn-off with the place, its turn-off underneath', () => {
+    const [chama] = listResupplyOptions([
+      {
+        id: 'w_chama',
+        name: 'Chama (access: Cumbres Pass (CO 17))',
+        type: 'town-access',
+        totalDistance: 3553,
+        offTrailKm: 19.3,
+        accessMode: 'hitch',
+        accessName: 'Cumbres Pass (CO 17)',
+      },
+    ]);
+    expect(groupHeading(chama)).toEqual({
+      title: 'Chama',
+      subtitle: 'turn-off at Cumbres Pass (CO 17)',
+      spokenTitle: 'Chama (access: Cumbres Pass (CO 17))',
+    });
+  });
+
+  it('heads a decision group with its turn-off, and a plain place with its name', () => {
+    const [monarch, creede] = listResupplyOptions([
+      {
+        id: 'w_store',
+        name: 'Monarch Pass (Monarch Crest Store)',
+        type: 'resupply',
+        totalDistance: 100,
+        accessName: 'Monarch Pass (US 50)',
+      },
+      {
+        id: 'w_salida',
+        name: 'Salida (access: Monarch Pass (US 50))',
+        type: 'town-access',
+        totalDistance: 100,
+        offTrailKm: 35.4,
+        accessMode: 'hitch',
+        accessName: 'Monarch Pass (US 50)',
+      },
+      { id: 'w_creede', name: 'Creede', type: 'town', totalDistance: 250 },
+    ]);
+    expect(groupHeading(monarch)).toEqual({
+      title: 'Monarch Pass (US 50)',
+      subtitle: '',
+      spokenTitle: 'Monarch Pass (US 50)',
+    });
+    expect(groupHeading(creede)).toEqual({ title: 'Creede', subtitle: '', spokenTitle: 'Creede' });
   });
 });
 

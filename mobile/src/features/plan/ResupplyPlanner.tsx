@@ -22,7 +22,6 @@ import type { ResupplyLeg, ResupplyOption, ResupplyPlanSummary } from '@lib/resu
 import {
   legRidesText,
   legSideTripText,
-  resupplyGroupName,
   resupplyOptionShortName,
   type LegEndpointNames,
 } from '@lib/resupply-display';
@@ -32,7 +31,13 @@ import type { Units } from '../../state/settings-store';
 import { ScreenFlatList } from '../../navigation/ScreenScrollView';
 import { StepButton } from './PlanInputsCard';
 import { formatDays, formatFoodWeight } from './plan-format';
-import { formatZeroDays, optionFacts, ZERO_DAYS_MAX, type PlannerRow } from './resupply-planner';
+import {
+  formatZeroDays,
+  groupHeading,
+  optionFacts,
+  ZERO_DAYS_MAX,
+  type PlannerRow,
+} from './resupply-planner';
 
 export interface ResupplyPlannerProps {
   rows: PlannerRow[];
@@ -280,7 +285,7 @@ const GroupRow = React.memo(function GroupRow({
   const { group, choice, inSection, zeroDays } = row;
   const single = group.options.length === 1;
   const chosenId = choice.kind === 'chosen' ? choice.optionId : null;
-  const title = resupplyGroupName(group);
+  const heading = groupHeading(group);
 
   return (
     <View
@@ -291,13 +296,20 @@ const GroupRow = React.memo(function GroupRow({
       ]}
     >
       <View style={styles.groupHead}>
-        <Text style={[styles.groupTitle, { color: colors.textPrimary }]} numberOfLines={2}>
-          {title}
+        <Text
+          style={[styles.groupTitle, { color: colors.textPrimary }]}
+          numberOfLines={2}
+          accessibilityLabel={heading.spokenTitle}
+        >
+          {heading.title}
         </Text>
         <Text style={[styles.km, { color: colors.textSecondary }]}>
           {inSection ? formatDistance(group.km, units) : 'outside section'}
         </Text>
       </View>
+      {heading.subtitle !== '' && (
+        <Text style={[styles.caption, { color: colors.textSecondary }]}>{heading.subtitle}</Text>
+      )}
       {choice.kind === 'undecided' && (
         <Text style={[styles.undecided, { color: colors.warning }]}>Not decided yet</Text>
       )}
@@ -305,11 +317,6 @@ const GroupRow = React.memo(function GroupRow({
       {single ? (
         <View style={styles.switchRow}>
           <View style={styles.optionText}>
-            {group.label !== null && (
-              <Text style={[styles.optionName, { color: colors.textPrimary }]}>
-                {group.options[0].name}
-              </Text>
-            )}
             <OptionFacts option={group.options[0]} units={units} />
           </View>
           <Switch
