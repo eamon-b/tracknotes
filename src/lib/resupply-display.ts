@@ -142,6 +142,17 @@ export function legDistanceText(
 }
 
 /**
+ * The side trip a leg's figures include, for a line under its distance:
+ * "incl. 2.8 km to Salida and back". Empty when the leg has none.
+ */
+export function legSideTripText(
+  leg: Pick<ResupplyLeg, 'sideTripKm' | 'toName'>,
+  formatKm: (km: number) => string
+): string {
+  return leg.sideTripKm > 0 ? `incl. ${formatKm(leg.sideTripKm)} to ${leg.toName} and back` : '';
+}
+
+/**
  * The off-trail km a leg covers without walking, which its days and food leave
  * out: "35.0 km hitch in · 24.1 km hitch out, not walked". Empty when there are none.
  */
