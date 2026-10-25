@@ -1,14 +1,10 @@
 /**
- * The picker route against the real stores: what the four actions persist.
+ * The resupply screen against the real stores: what its controls persist.
  *
- * The selection is a field of the trail's plan document now, so this runs the
- * whole way down — screen, `plans-store.apply`, the shared editor, SQLite — and
- * asserts on the stored document. That is the point of the change: what the
- * hiker ticks here is what a linked browser reads.
- *
- * `All` and `Reset` produce the same legs and differ only in whether a plan
- * exists — an explicit full list highlights every stop on every screen, an
- * absent one highlights nothing — so the distinction is worth a test.
+ * The selection and the zero days are fields of the trail's plan document, so
+ * this runs the whole way down — screen, `plans-store.apply`, the shared
+ * editors, SQLite — and asserts on the stored document. That is the point:
+ * what the hiker chooses here is what a linked browser reads.
  */
 
 import React from 'react';
@@ -20,7 +16,7 @@ import * as plansRepo from '../../../db/plans-repo';
 import type { SqlDatabase } from '../../../db/sql-database';
 import { usePlansStore } from '../../../state/plans-store';
 import { DEFAULT_PREFS, usePlanInputsStore } from '../plan-inputs-store';
-import ResupplyStopsScreen from '../../../../app/guide/[trailId]/resupply';
+import ResupplyScreen from '../../../../app/guide/[trailId]/resupply';
 
 const trail = {
   config: { id: 'cdt', name: 'CDT' },
@@ -36,7 +32,14 @@ const trail = {
     { id: 'w_creede', name: 'Creede', type: 'town', totalDistance: 250 },
     { id: 'w_camp', name: 'Camp', type: 'campsite', totalDistance: 180 },
   ],
-  track: { points: [], totalDistance: 300 },
+  track: {
+    points: [
+      { lat: 0, lon: 0, ele: 1000, dist: 0 },
+      { lat: 0, lon: 1, ele: 1200, dist: 150 },
+      { lat: 0, lon: 2, ele: 1100, dist: 300 },
+    ],
+    totalDistance: 300,
+  },
 };
 
 let mockParams: Record<string, string> = {};
@@ -68,7 +71,7 @@ let mounted: ReactTestRenderer | null = null;
 function render(): ReactTestRenderer {
   let tree!: ReactTestRenderer;
   act(() => {
-    tree = TestRenderer.create(<ResupplyStopsScreen />);
+    tree = TestRenderer.create(<ResupplyScreen />);
     // FlatList schedules its first cell pass on a timer; run it inside act so
     // the update is not reported as an un-acted render.
     jest.runOnlyPendingTimers();
@@ -77,40 +80,51 @@ function render(): ReactTestRenderer {
   return tree;
 }
 
-/** The pressable controls, keyed by the label they speak. */
-function controls(tree: ReactTestRenderer): Map<string, () => void> {
-  const found = new Map<string, () => void>();
-  tree.root
-    .findAll(
-      (n) =>
-        typeof n.props.onPress === 'function' && typeof n.props.accessibilityLabel === 'string',
-    )
-    .forEach((n) => {
-      const label = n.props.accessibilityLabel as string;
-      if (!found.has(label)) found.set(label, n.props.onPress as () => void);
-    });
-  return found;
+interface ControlProps {
+  onPress?: () => void;
+  onValueChange?: (value?: boolean) => void;
+  accessibilityState?: unknown;
+  value?: unknown;
 }
 
-/** Press a control and let the write reach SQLite. */
-async function press(tree: ReactTestRenderer, label: string): Promise<void> {
+/** The props of the control speaking this label (a Pressable, or a Switch). */
+function control(tree: ReactTestRenderer, label: string): ControlProps {
+  const [node] = tree.root.findAll(
+    (n) =>
+      n.props.accessibilityLabel === label &&
+      (typeof n.props.onPress === 'function' || typeof n.props.onValueChange === 'function'),
+  );
+  if (!node) throw new Error(`no control "${label}"`);
+  return node.props as unknown as ControlProps;
+}
+
+/** Fire a control and let the write reach SQLite. */
+async function fire(tree: ReactTestRenderer, label: string, value?: boolean): Promise<void> {
   await act(async () => {
-    controls(tree).get(label)!();
+    const props = control(tree, label);
+    if (props.onPress) props.onPress();
+    else props.onValueChange?.(value);
     await Promise.resolve();
     await Promise.resolve();
+    jest.runOnlyPendingTimers();
   });
 }
 
-/** The selection as it was STORED, read back out of the database. */
-async function storedSelection(): Promise<string[] | undefined> {
-  return (await plansRepo.getByTrail(db, 'cdt'))?.resupplyStops;
+function text(tree: ReactTestRenderer): string {
+  const out: string[] = [];
+  tree.root
+    .findAll(() => true)
+    .forEach((n) => {
+      if (typeof n.props.children === 'string') out.push(n.props.children);
+    });
+  return out.join('\n');
 }
 
-function cachedPlan(): PlanDocument | undefined {
-  return usePlansStore.getState().byTrail.cdt;
+async function stored(): Promise<PlanDocument | undefined> {
+  return (await plansRepo.getByTrail(db, 'cdt')) ?? undefined;
 }
 
-describe('resupply picker route', () => {
+describe('resupply screen', () => {
   beforeEach(async () => {
     jest.useFakeTimers();
     mockParams = {};
@@ -132,71 +146,82 @@ describe('resupply picker route', () => {
     jest.useRealTimers();
   });
 
-  it('starts with every option ticked and no plan made', async () => {
+  it('starts with no plan made: the turn-off undecided, the lone town chosen', async () => {
     const tree = render();
-    expect(await storedSelection()).toBeUndefined();
-    const checked = tree.root
-      .findAll((n) => n.props.accessibilityRole === 'checkbox' && !!n.props.accessibilityState)
-      .map((n) => (n.props.accessibilityState as { checked: boolean }).checked);
-    expect(checked.every(Boolean)).toBe(true);
+    expect((await stored())?.resupplyStops).toBeUndefined();
+    expect(text(tree)).toContain('Not decided yet');
+    expect(control(tree, 'Resupply at Creede').value).toBe(true);
+    // The legs run start → Monarch Pass → Creede → end.
+    expect(text(tree)).toContain('Trail Start → Monarch Pass / Salida');
+    expect(text(tree)).toContain('Creede → Trail End');
   });
 
-  it('All stores every option id in trail order, in the plan document', async () => {
+  it('picks one place at a turn-off, minting the plan and keeping the other group', async () => {
     const tree = render();
-    await press(tree, 'All');
+    await fire(tree, 'Salida');
 
-    expect(await storedSelection()).toEqual(['w_pass', 'w_salida', 'w_creede']);
-    // The plan was minted by this first edit, named after the trail.
-    const plan = cachedPlan();
+    const plan = await stored();
     expect(plan?.id).toBe('plan-uuid');
     expect(plan?.name).toBe('CDT');
-    expect(plan?.resupplyStops).toEqual(['w_pass', 'w_salida', 'w_creede']);
+    expect(plan?.resupplyStops).toEqual(['w_salida', 'w_creede']);
+    expect(text(tree)).not.toContain('Not decided yet');
   });
 
-  it('None stores an empty list — a plan with nothing in it', async () => {
+  it('carries through a turn-off, and switches a lone town off', async () => {
     const tree = render();
-    await press(tree, 'None');
-    expect(await storedSelection()).toEqual([]);
+    await fire(tree, 'None – carry through');
+    expect((await stored())?.resupplyStops).toEqual(['w_creede']);
+
+    await fire(tree, 'Resupply at Creede', false);
+    expect((await stored())?.resupplyStops).toEqual([]);
+    expect(text(tree)).toContain('Trail Start → Trail End');
   });
 
-  it('Reset drops the selection back to no plan at all', async () => {
+  it('stores zero days on the chosen stop, in half days', async () => {
     const tree = render();
-    await press(tree, 'All');
-    await press(tree, 'Reset');
-
-    expect(await storedSelection()).toBeUndefined();
-    // The plan itself survives — only the selection was reset.
-    expect(cachedPlan()?.id).toBe('plan-uuid');
+    await fire(tree, 'More zero days');
+    await fire(tree, 'More zero days');
+    expect((await stored())?.resupplyZeroDays).toEqual({ w_creede: 1 });
+    await fire(tree, 'Fewer zero days');
+    expect((await stored())?.resupplyZeroDays).toEqual({ w_creede: 0.5 });
   });
 
-  it('Reset also clears a selection left by a build before the document', async () => {
+  it('Clear choices drops the selection back to no plan at all', async () => {
+    const tree = render();
+    await fire(tree, 'Salida');
+    await fire(tree, 'Clear choices');
+
+    expect((await stored())?.resupplyStops).toBeUndefined();
+    // The plan itself survives — only the selection was cleared.
+    expect((await stored())?.id).toBe('plan-uuid');
+  });
+
+  it('Clear choices also clears a selection left by a build before the document', async () => {
     act(() => {
       usePlanInputsStore.setState({
         byTrail: { cdt: { ...DEFAULT_PREFS, resupplyStops: ['w_creede'] } },
       });
     });
     const tree = render();
-    await press(tree, 'Reset');
+    await fire(tree, 'Clear choices');
 
     // Otherwise it would come straight back as the fallback.
     expect(usePlanInputsStore.getState().byTrail.cdt?.resupplyStops).toBeUndefined();
-    expect(await storedSelection()).toBeUndefined();
+    expect((await stored())?.resupplyStops).toBeUndefined();
   });
 
-  it('a first tap plans everything but the row that was tapped', async () => {
-    const tree = render();
-    const [row] = tree.root.findAll(
-      (n) => n.props.accessibilityLabel === 'Creede' && typeof n.props.onPress === 'function',
-    );
-    await act(async () => {
-      (row.props.onPress as () => void)();
-      await Promise.resolve();
-      await Promise.resolve();
+  it('builds a choice on the device-local selection while the document has none', async () => {
+    act(() => {
+      usePlanInputsStore.setState({
+        byTrail: { cdt: { ...DEFAULT_PREFS, resupplyStops: ['w_pass'] } },
+      });
     });
-    expect(await storedSelection()).toEqual(['w_pass', 'w_salida']);
+    const tree = render();
+    await fire(tree, 'Salida');
+    expect((await stored())?.resupplyStops).toEqual(['w_salida']);
   });
 
-  it('shows the selection a sync brought in, with nothing stored on this device', async () => {
+  it('shows the selection a sync brought in', async () => {
     await plansRepo.upsertServer(db, {
       id: 'from-the-browser',
       trailId: 'cdt',
@@ -217,30 +242,36 @@ describe('resupply picker route', () => {
       jest.runOnlyPendingTimers();
     });
 
-    const checked = tree.root
-      .findAll(
-        (n) =>
-          n.props.accessibilityRole === 'checkbox' &&
-          typeof n.props.accessibilityLabel === 'string' &&
-          !!n.props.accessibilityState,
-      )
-      .map((n) => [
-        n.props.accessibilityLabel,
-        (n.props.accessibilityState as { checked: boolean }).checked,
-      ]);
-    expect(checked).toContainEqual(['Creede', true]);
-    expect(checked).toContainEqual(['Salida', false]);
+    expect(control(tree, 'None – carry through').accessibilityState).toEqual({
+      checked: true,
+    });
+    expect(control(tree, 'Resupply at Creede').value).toBe(true);
   });
 
-  it('dims the rows a section param leaves out', () => {
-    mockParams = { startKm: '0', endKm: '150' };
+  it('scopes the legs to the section the Plan screen passed, and dims the rest', () => {
+    mockParams = { startKm: '120', endKm: '300', startName: 'Camp', endName: 'Trail end' };
     const tree = render();
-    const texts: string[] = [];
-    tree.root
-      .findAll(() => true)
-      .forEach((n) => {
-        if (typeof n.props.children === 'string') texts.push(n.props.children);
-      });
-    expect(texts).toContain('outside section');
+    const all = text(tree);
+    expect(all).toContain('Camp → Trail end');
+    expect(all).toContain('outside section');
+    expect(all).toContain('Trail Start → Creede');
+  });
+
+  it('falls back to the whole trail for a section the route does not hold', () => {
+    mockParams = { startKm: '0', endKm: '900' };
+    expect(text(render())).toContain('Whole trail');
+  });
+
+  it('edits the hiker’s inputs from the screen', async () => {
+    const tree = render();
+    await fire(tree, 'Resupply inputs');
+    await fire(tree, 'More daily hours');
+    expect(usePlanInputsStore.getState().byTrail.cdt?.dailyHours).toBe(
+      DEFAULT_PREFS.dailyHours + 1,
+    );
+    await fire(tree, 'More long-carry days');
+    expect(usePlanInputsStore.getState().byTrail.cdt?.longCarryDays).toBe(
+      DEFAULT_PREFS.longCarryDays + 1,
+    );
   });
 });

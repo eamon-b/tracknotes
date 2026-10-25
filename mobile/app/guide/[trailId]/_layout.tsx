@@ -113,12 +113,10 @@ export default function GuideLayout() {
           <Stack.Screen name="today" options={{ title: 'Today' }} />
           {/* A Plan screen day card's waypoints; titled "Day N" from within. */}
           <Stack.Screen name="day" options={{ title: 'Day' }} />
-          {/* A modal over the plan: 70 CDT rows want a header, a scroll and a
-            back gesture, which a sheet has none of. */}
-          <Stack.Screen
-            name="resupply"
-            options={{ title: 'Resupply stops', presentation: 'modal' }}
-          />
+          {/* The resupply planner: a place in the guide of its own (from the
+            Plan screen's Resupply row and a resupply waypoint's detail), not a
+            task over the plan, so a regular screen rather than a modal. */}
+          <Stack.Screen name="resupply" options={{ title: 'Resupply' }} />
           {/* Title is overridden with the waypoint name from within the screen. */}
           <Stack.Screen name="waypoint/[waypointId]" options={{ title: 'Waypoint' }} />
           {/* Add / edit a hiker waypoint; the screen sets its own title. */}
@@ -127,8 +125,8 @@ export default function GuideLayout() {
             options={{ title: 'New waypoint', presentation: 'modal' }}
           />
           {/* The on-phone OpenStreetMap search for an import, from the map's
-            layers sheet: a modal, like the resupply picker, since it is a
-            task with its own Done rather than a place in the guide. */}
+            layers sheet: a modal, since it is a task with its own Done
+            rather than a place in the guide. */}
           <Stack.Screen
             name="find-pois"
             options={{ title: 'Points of interest', presentation: 'modal' }}

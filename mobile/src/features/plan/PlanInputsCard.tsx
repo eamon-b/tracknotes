@@ -88,6 +88,41 @@ export function PlanInputsCard(props: PlanInputsCardProps) {
 
       <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
+      <HoursAndPace
+        dailyHours={dailyHours}
+        pace={pace}
+        onDailyHours={props.onDailyHours}
+        onPace={props.onPace}
+      />
+    </View>
+  );
+}
+
+export interface WalkingInputsCardProps {
+  dailyHours: number;
+  pace: Pace;
+  onDailyHours: (hours: number) => void;
+  onPace: (pace: Pace) => void;
+}
+
+/**
+ * Daily hours and pace on their own, for a screen that measures with them but
+ * does not own the section (the resupply screen). Same rows, same store.
+ */
+export function WalkingInputsCard(props: WalkingInputsCardProps) {
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <Text style={[styles.heading, { color: colors.textPrimary }]}>Walking</Text>
+      <HoursAndPace {...props} />
+    </View>
+  );
+}
+
+function HoursAndPace({ dailyHours, pace, onDailyHours, onPace }: WalkingInputsCardProps) {
+  const { colors } = useTheme();
+  return (
+    <>
       <View style={styles.hoursRow}>
         <Text style={[styles.rowLabel, { color: colors.textSecondary }]}>Daily hours</Text>
         <View style={styles.stepper}>
@@ -95,23 +130,23 @@ export function PlanInputsCard(props: PlanInputsCardProps) {
             label="−"
             accessibilityLabel="Fewer daily hours"
             disabled={dailyHours <= MIN_DAILY_HOURS}
-            onPress={() => props.onDailyHours(dailyHours - 1)}
+            onPress={() => onDailyHours(dailyHours - 1)}
           />
           <Text style={[styles.hoursValue, { color: colors.textPrimary }]}>{dailyHours} h</Text>
           <StepButton
             label="+"
             accessibilityLabel="More daily hours"
             disabled={dailyHours >= MAX_DAILY_HOURS}
-            onPress={() => props.onDailyHours(dailyHours + 1)}
+            onPress={() => onDailyHours(dailyHours + 1)}
           />
         </View>
       </View>
 
       <View style={styles.paceRow}>
         <Text style={[styles.rowLabel, { color: colors.textSecondary }]}>Pace</Text>
-        <SegmentedControl options={PACE_OPTIONS} value={pace} onChange={props.onPace} />
+        <SegmentedControl options={PACE_OPTIONS} value={pace} onChange={onPace} />
       </View>
-    </View>
+    </>
   );
 }
 

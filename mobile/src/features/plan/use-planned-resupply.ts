@@ -89,18 +89,6 @@ export function setResupplyStopSelected(
 }
 
 /**
- * Flip one id in a stored selection — for the picker, whose checkboxes show the
- * stored value itself (with "nothing chosen" drawn as everything ticked).
- */
-export function toggleResupplyStop(
-  current: string[] | undefined,
-  allIds: string[],
-  id: string,
-): string[] {
-  return setResupplyStopSelected(current, allIds, id, !new Set(current ?? allIds).has(id));
-}
-
-/**
  * The trail's stored selection: the plan document's, or — only while the
  * document has none — the device-local one a pre-sync build left behind.
  *

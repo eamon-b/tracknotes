@@ -1,94 +1,207 @@
 /**
- * Resupply stops — the picker, as a modal over the Plan screen.
+ * Resupply — the planner, a full screen in the guide stack.
  *
- * Thin by design: it resolves the trail's options, owns the four actions
- * (toggle / all / none / reset) and hands everything to `ResupplySelectList`.
- * The selection is stored as an explicit list of ids in trail order *in the
- * trail's plan document*, so ticking a town here and opening the plan in a
- * linked browser show the same towns — so a plan that happens to tick
- * everything is still a plan, and `Reset` is the only way back to "nothing
- * chosen", which is what turns every planned highlight off.
+ * Reached from the Plan screen's Resupply row (near its top), from a resupply
+ * waypoint's detail screen, and by deep link (`tracknotes://guide/<id>/resupply`).
+ * It shows every decision group the trail offers with the legs between the
+ * chosen stops (`ResupplyPlanner`, over `resupply-planner.ts`), and owns the
+ * edits: one place or none per group (`chooseResupplyOption`), zero days per
+ * chosen stop (`setResupplyZeroDays`), and Clear choices (back to "no plan
+ * made", which is what turns every planned highlight off). All of them go
+ * through the plans store's one write path, `apply`, into the synced plan
+ * document, so a linked browser shows the same towns and the same zero days.
  *
- * The section is the Plan screen's own local state (it is direction-dependent,
- * so it is never persisted), so it arrives as `startKm` / `endKm` route params
- * purely to dim the rows that produce no leg. Without them nothing dims.
+ * The hiker's inputs the legs are measured with — hours a day, pace, food per
+ * day, long-carry days — are the per-device ones the Plan screen edits
+ * (`plan-inputs-store`), shown in one line and editable from here in the same
+ * sheet and cards.
+ *
+ * The section is the Plan screen's own local state (direction-dependent, never
+ * persisted), so it arrives as `startKm` / `endKm` (and its two names) route
+ * params, in route km. Without them, or with a range the route no longer
+ * holds, the legs cover the whole trail. No camp plan is passed to the legs:
+ * this screen shows no arrival days, and the zero days here would otherwise
+ * be counted beside the plan's own rest days.
  */
 
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
-import { allResupplyOptionIds } from '@lib/resupply-plan';
+import type { SectionConfig } from '@lib/plan-types';
 import { useGuide } from '../../../src/features/guide/GuideContext';
-import {
-  ResupplySelectList,
-  type ResupplySection,
-} from '../../../src/features/plan/ResupplySelectList';
+import { ResupplyPlanner } from '../../../src/features/plan/ResupplyPlanner';
+import { WalkingInputsCard } from '../../../src/features/plan/PlanInputsCard';
+import { PlanThresholdsCard } from '../../../src/features/plan/PlanThresholdsCard';
+import { PlanSettingsSheet } from '../../../src/features/plan/PlanSettingsSheet';
+import { computeResupplyPlan, PACE_KMH } from '../../../src/features/plan/plan-adapters';
 import { selectPrefs, usePlanInputsStore } from '../../../src/features/plan/plan-inputs-store';
 import { kmRangeFromParams } from '../../../src/features/plan/plan-section';
 import { planDirectionOf } from '../../../src/features/plan/plan-stops';
-import { queueResupplyToggle } from '../../../src/features/plan/resupply-toggle';
+import {
+  chooseResupplyEditor,
+  plannerRows,
+  resupplyInputsLine,
+  undecidedCount,
+  zeroDaysStepEditor,
+  type PlannerRange,
+} from '../../../src/features/plan/resupply-planner';
 import {
   resetResupplyStops,
   resupplyGroupsFor,
-  saveResupplyStops,
 } from '../../../src/features/plan/use-planned-resupply';
-import { selectPlan, selectResupplyStops, usePlansStore } from '../../../src/state/plans-store';
+import { selectPlan, usePlansStore } from '../../../src/state/plans-store';
 import { usePlanRoute } from '../../../src/features/plan/use-plan-route';
 import { useSettingsStore } from '../../../src/state/settings-store';
 
-export default function ResupplyStopsScreen() {
+/** How far past the route's end a passed section may reach and still be taken. */
+const RANGE_SLACK_KM = 0.05;
+
+function firstParam(value: string | string[] | undefined): string | undefined {
+  const raw = Array.isArray(value) ? value[0] : value;
+  return raw && raw.trim() !== '' ? raw : undefined;
+}
+
+export default function ResupplyScreen() {
   const { trailId, direction } = useGuide();
+  const plan = usePlansStore(selectPlan(trailId));
   // The route the plan walks, so a town on an alternate the plan takes is
   // offered, and the section's km (route km, from the Plan screen) line up.
-  const { trail } = usePlanRoute(usePlansStore(selectPlan(trailId)));
+  const { trail } = usePlanRoute(plan);
   const units = useSettingsStore((s) => s.units);
-  const params = useLocalSearchParams<{ startKm?: string; endKm?: string }>();
+  const params = useLocalSearchParams<{
+    startKm?: string;
+    endKm?: string;
+    startName?: string;
+    endName?: string;
+  }>();
 
-  // The plan is the selection's home, so it has to be in memory before the
-  // boxes are drawn — this screen is reachable by deep link, not only from the
-  // Plan screen, and an unhydrated cache would tick every box for a frame.
+  // The plan holds the selection, so it has to be in memory before the
+  // choices are drawn — this screen is reachable by deep link, and an
+  // unhydrated cache would show every group undecided for a frame.
   const hydratePlan = usePlansStore((s) => s.hydrate);
+  const applyEdit = usePlansStore((s) => s.apply);
   useEffect(() => {
     void hydratePlan(trailId);
   }, [hydratePlan, trailId]);
 
-  const planned = usePlansStore(selectResupplyStops(trailId));
-  const legacy = usePlanInputsStore(selectPrefs(trailId)).resupplyStops;
-  const stored = planned ?? legacy;
+  const prefs = usePlanInputsStore(selectPrefs(trailId));
+  const setDailyHours = usePlanInputsStore((s) => s.setDailyHours);
+  const setPace = usePlanInputsStore((s) => s.setPace);
+  const setThreshold = usePlanInputsStore((s) => s.setThreshold);
+  const [inputsOpen, setInputsOpen] = useState(false);
+
+  // The document's selection; the device-local one only while it has none.
+  const stored = plan?.resupplyStops ?? prefs.resupplyStops;
+  const zeroDays = plan?.resupplyZeroDays;
+
+  const totalKm = trail.track.totalDistance;
+  const range = useMemo<PlannerRange>(() => {
+    const passed = kmRangeFromParams(params.startKm, params.endKm);
+    if (passed && passed.startKm >= 0 && passed.endKm <= totalKm + RANGE_SLACK_KM) {
+      return {
+        ...passed,
+        startName: firstParam(params.startName) ?? 'Section start',
+        endName: firstParam(params.endName) ?? 'Section end',
+      };
+    }
+    return { startKm: 0, endKm: totalKm, startName: 'Trail start', endName: 'Trail end' };
+  }, [params.startKm, params.endKm, params.startName, params.endName, totalKm]);
+  const isWholeTrail = range.startKm === 0 && range.endKm === totalKm;
+
+  // Keyed on the trail alone: grouping the CDT's options is not free, and a
+  // choice must not regroup.
+  const groups = useMemo(() => resupplyGroupsFor(trail), [trail]);
+  const resupply = useMemo(() => {
+    const section: SectionConfig | null = isWholeTrail ? null : range;
+    return computeResupplyPlan(
+      trail,
+      section,
+      {
+        dailyHours: prefs.dailyHours,
+        baseKmh: PACE_KMH[prefs.pace],
+        longCarryDays: prefs.longCarryDays,
+        foodGramsPerDay: prefs.foodGramsPerDay,
+        resupplyStops: stored,
+        zeroDays,
+      },
+      groups,
+    );
+  }, [
+    trail,
+    groups,
+    range,
+    isWholeTrail,
+    prefs.dailyHours,
+    prefs.pace,
+    prefs.longCarryDays,
+    prefs.foodGramsPerDay,
+    stored,
+    zeroDays,
+  ]);
+  const rows = useMemo(
+    () => plannerRows(groups, stored, resupply.legs, range, zeroDays),
+    [groups, stored, resupply.legs, range, zeroDays],
+  );
+  const undecided = useMemo(() => undecidedCount(groups, stored, range), [groups, stored, range]);
+
   const defaults = useMemo(
     () => ({ name: trail.config.name, direction: planDirectionOf(direction) }),
     [trail.config.name, direction],
   );
 
-  // Keyed on the trail alone (as `usePlannedResupplyIds` is): grouping the
-  // CDT's 80 options is not free, and ticking a box must not regroup.
-  const groups = useMemo(() => resupplyGroupsFor(trail), [trail]);
-  const allIds = useMemo(() => allResupplyOptionIds(groups), [groups]);
-  // No selection yet = every option ticked, the same default the legs card uses.
-  const selectedIds = useMemo(() => new Set(stored ?? allIds), [stored, allIds]);
-  // Anything unparseable dims nothing.
-  const section: ResupplySection | null = useMemo(
-    () => kmRangeFromParams(params.startKm, params.endKm),
-    [params.startKm, params.endKm],
+  // Each edit is worked out when it runs, from the document it is handed —
+  // not from what this render saw — so quick taps build on each other.
+  const onChoose = useCallback(
+    (groupKey: string, optionId: string | null) => {
+      const legacy = () => selectPrefs(trailId)(usePlanInputsStore.getState()).resupplyStops;
+      void applyEdit(trailId, chooseResupplyEditor(groups, groupKey, optionId, legacy), defaults);
+    },
+    [applyEdit, defaults, groups, trailId],
+  );
+  const onZeroDays = useCallback(
+    (optionId: string, step: 1 | -1) => {
+      void applyEdit(trailId, zeroDaysStepEditor(optionId, step), defaults);
+    },
+    [applyEdit, defaults, trailId],
   );
 
-  // The new list is worked out when the edit runs, from the document it is
-  // handed — not from `stored` — so a second quick tap builds on the first.
-  const onToggle = useCallback(
-    (id: string) => queueResupplyToggle(trailId, allIds, id, defaults),
-    [trailId, allIds, defaults],
-  );
+  const sectionLabel = isWholeTrail ? 'Whole trail' : `${range.startName} → ${range.endName}`;
 
   return (
-    <ResupplySelectList
-      groups={groups}
-      selectedIds={selectedIds}
-      section={section}
-      units={units}
-      planMade={stored !== undefined}
-      onToggle={onToggle}
-      onSelectAll={() => saveResupplyStops(trailId, allIds, defaults)}
-      onSelectNone={() => saveResupplyStops(trailId, [], defaults)}
-      onReset={() => resetResupplyStops(trailId, defaults)}
-    />
+    <>
+      <ResupplyPlanner
+        rows={rows}
+        summary={resupply.summary}
+        undecided={undecided}
+        hasOptions={groups.length > 0}
+        units={units}
+        sectionLabel={sectionLabel}
+        inputsLine={resupplyInputsLine(prefs, units)}
+        onEditInputs={() => setInputsOpen(true)}
+        planMade={stored !== undefined}
+        onReset={() => resetResupplyStops(trailId, defaults)}
+        onChoose={onChoose}
+        onZeroDays={onZeroDays}
+      />
+      <PlanSettingsSheet
+        visible={inputsOpen}
+        onClose={() => setInputsOpen(false)}
+        title="Resupply inputs"
+      >
+        <WalkingInputsCard
+          dailyHours={prefs.dailyHours}
+          pace={prefs.pace}
+          onDailyHours={(h) => setDailyHours(trailId, h)}
+          onPace={(p) => setPace(trailId, p)}
+        />
+        <PlanThresholdsCard
+          dryStretchKm={prefs.dryStretchKm}
+          foodGramsPerDay={prefs.foodGramsPerDay}
+          longCarryDays={prefs.longCarryDays}
+          units={units}
+          only={['foodGramsPerDay', 'longCarryDays']}
+          onChange={(key, value) => setThreshold(trailId, key, value)}
+        />
+      </PlanSettingsSheet>
+    </>
   );
 }

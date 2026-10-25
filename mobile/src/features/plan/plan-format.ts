@@ -5,7 +5,15 @@
  */
 
 import { formatDistance } from '@lib/format-distance';
+import type { Pace } from '@lib/plan-types';
 import type { Units } from '../../state/settings-store';
+
+/** A pace preset in words: "Slow", "Average", "Fast". */
+export const PACE_LABELS: Record<Pace, string> = {
+  slow: 'Slow',
+  average: 'Average',
+  fast: 'Fast',
+};
 
 /** Pounds per kilogram. */
 const LB_PER_KG = 2.20462;

@@ -9,6 +9,8 @@
 import {
   PACE_KMH,
   computePlan,
+  computePlanExtras,
+  computeResupplyPlan,
   fullTrailSection,
   generateDayStops,
   overnightWaypoints,
@@ -603,5 +605,36 @@ describe('resupply selection', () => {
     const monarch = plan.resupplyGroups.find((g) => g.label?.startsWith('Monarch Pass'))!;
     expect(monarch.options.length).toBeGreaterThan(1);
     expect(plan.resupplyStops.filter((s) => s.km === monarch.km).length).toBe(1);
+  });
+
+  it('computeResupplyPlan counts zero days in the total, never in the food', () => {
+    const inputs = {
+      dailyHours: 8,
+      baseKmh: PACE_KMH.average,
+      longCarryDays: DEFAULT_PLAN_THRESHOLDS.longCarryDays,
+      foodGramsPerDay: DEFAULT_PLAN_THRESHOLDS.foodGramsPerDay,
+      resupplyStops: ['t3'],
+    };
+    const without = computeResupplyPlan(twoTownTrail(), null, inputs);
+    const rested = computeResupplyPlan(twoTownTrail(), null, { ...inputs, zeroDays: { t3: 1.5 } });
+
+    expect(rested.legs.map((l) => l.zeroDays)).toEqual([1.5, 0]);
+    expect(rested.legs.map((l) => l.food)).toEqual(without.legs.map((l) => l.food));
+    expect(rested.summary.totalDays).toBe(without.summary.totalDays + 1.5);
+    expect(rested.summary.stopsChosen).toBe(1);
+    // No camp plan is passed, so no leg carries an arrival day.
+    expect(rested.legs.every((l) => l.arrival === undefined)).toBe(true);
+  });
+
+  it('computePlanExtras gives the planner summary the Plan screen row reads', () => {
+    const extras = computePlanExtras(twoTownTrail(), fullTrailSection(twoTownTrail()), {
+      dailyHours: 8,
+      baseKmh: PACE_KMH.average,
+      thresholds: DEFAULT_PLAN_THRESHOLDS,
+      resupplyStops: ['t3'],
+      zeroDays: { t3: 2 },
+    });
+    expect(extras.resupplyPlanSummary.stopsChosen).toBe(1);
+    expect(extras.resupplyPlanSummary.zeroDays).toBe(2);
   });
 });

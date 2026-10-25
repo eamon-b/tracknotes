@@ -57,6 +57,8 @@ export interface PlanThresholdsCardProps extends PlanThresholds {
   units: Units;
   /** The store clamps into range; this only says which figure moved and to what. */
   onChange: (key: keyof PlanThresholds, value: number) => void;
+  /** The rows to show; all three when absent (the resupply screen has no use for the dry stretch). */
+  only?: readonly (keyof PlanThresholds)[];
 }
 
 export function PlanThresholdsCard(props: PlanThresholdsCardProps) {
@@ -64,6 +66,7 @@ export function PlanThresholdsCard(props: PlanThresholdsCardProps) {
   const days = props.longCarryDays;
 
   const row = (key: keyof PlanThresholds, label: string, value: string, noun: string) => {
+    if (props.only && !props.only.includes(key)) return null;
     const current = props[key];
     const { min, max } = PLAN_THRESHOLD_BOUNDS[key];
     return (

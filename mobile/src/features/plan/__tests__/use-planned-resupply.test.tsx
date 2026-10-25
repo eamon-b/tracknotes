@@ -19,7 +19,6 @@ import { usePlansStore, type PlanDefaults } from '../../../state/plans-store';
 import {
   plannedIdsFor,
   setResupplyStopSelected,
-  toggleResupplyStop,
   usePlannedResupplyIds,
   useWaypointResupplyPlan,
   type PlannedResupplyTrail,
@@ -131,11 +130,11 @@ describe('plannedIdsFor', () => {
   });
 });
 
-describe('toggleResupplyStop', () => {
+describe('setResupplyStopSelected on an explicit list', () => {
   const allIds = ['w_pass', 'w_salida', 'w_poncha', 'w_creede'];
 
   it('first tap from no plan keeps every other option ticked', () => {
-    expect(toggleResupplyStop(undefined, allIds, 'w_poncha')).toEqual([
+    expect(setResupplyStopSelected(undefined, allIds, 'w_poncha', false)).toEqual([
       'w_pass',
       'w_salida',
       'w_creede',
@@ -143,15 +142,20 @@ describe('toggleResupplyStop', () => {
   });
 
   it('adds to an explicit list, in trail order', () => {
-    expect(toggleResupplyStop(['w_creede'], allIds, 'w_salida')).toEqual(['w_salida', 'w_creede']);
+    expect(setResupplyStopSelected(['w_creede'], allIds, 'w_salida', true)).toEqual([
+      'w_salida',
+      'w_creede',
+    ]);
   });
 
   it('removes from an explicit list', () => {
-    expect(toggleResupplyStop(['w_salida', 'w_creede'], allIds, 'w_creede')).toEqual(['w_salida']);
+    expect(setResupplyStopSelected(['w_salida', 'w_creede'], allIds, 'w_creede', false)).toEqual([
+      'w_salida',
+    ]);
   });
 
   it('prunes ids the trail no longer offers', () => {
-    expect(toggleResupplyStop(['w_gone', 'w_creede'], allIds, 'w_salida')).toEqual([
+    expect(setResupplyStopSelected(['w_gone', 'w_creede'], allIds, 'w_salida', true)).toEqual([
       'w_salida',
       'w_creede',
     ]);
