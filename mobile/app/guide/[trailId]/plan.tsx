@@ -32,25 +32,17 @@
  *
  * The section steppers, pace and daily hours stay. Pace and hours drive the
  * Naismith estimates on the day cards and the Next days suggestions; the
- * section scopes the whole screen, including the resupply and water cards,
- * which are unchanged apart from taking the realized km/day of the *planned*
- * split rather than a generated one.
+ * section scopes the whole screen, including the water card and the Resupply
+ * row under the settings summary — the way into the resupply planner
+ * (`resupply.tsx`), which is handed the section as route params.
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-  type HostInstance,
-  type ScrollViewInstance,
-} from 'react-native';
+import { StyleSheet, Text, View, type HostInstance, type ScrollViewInstance } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { formatDistance } from '@lib/format-distance';
 import { poisBetween } from '@lib/poi-display';
 import { routeBreakStarts } from '@lib/route-breaks';
-import { resupplySummaryText } from '@lib/resupply-display';
 import { trailElevationIsUsable } from '@lib/elevation-backfill';
 import { getDirectionLabel, KM_EPSILON } from '@lib/plan-direction';
 import { finalDayMaxHours } from '@lib/plan-suggest';
@@ -81,7 +73,7 @@ import { useTheme } from '../../../src/theme';
 import { HeaderActions, HeaderIconButton } from '../../../src/navigation/HeaderIconButton';
 import { KeyboardAwareScrollView } from '../../../src/navigation/KeyboardAwareScrollView';
 import { radii, spacing, typography } from '../../../src/tokens';
-import { useSettingsStore, type Units } from '../../../src/state/settings-store';
+import { useSettingsStore } from '../../../src/state/settings-store';
 import { selectPlan, selectPlanError, usePlansStore } from '../../../src/state/plans-store';
 import { selectAuthError, useIdentityStore } from '../../../src/state/identity-store';
 import { useGuide } from '../../../src/features/guide/GuideContext';
@@ -91,7 +83,6 @@ import {
   overnightWaypoints,
   PACE_KMH,
   type PlanDay,
-  type PlanExtras,
 } from '../../../src/features/plan/plan-adapters';
 import {
   planDirectionOf,
@@ -130,10 +121,10 @@ import { useVisiblePois } from '../../../src/features/guide/use-visible-pois';
 import { useShowOnMap } from '../../../src/features/guide/ShowOnMap';
 import { placeOffTrailMeters } from '../../../src/features/guide/waypoint-detail';
 import { StopsSection } from '../../../src/features/plan/StopsSection';
-import { ResupplyCard } from '../../../src/features/plan/ResupplyCard';
+import { ResupplyEntryRow } from '../../../src/features/plan/ResupplyEntryRow';
+import { resupplyEntryText, undecidedCount } from '../../../src/features/plan/resupply-planner';
 import { WaterCarryCard } from '../../../src/features/plan/WaterCarryCard';
 import { PlanThresholdsCard } from '../../../src/features/plan/PlanThresholdsCard';
-import { formatFoodWeight } from '../../../src/features/plan/plan-format';
 import { StopIssuesCard } from '../../../src/features/plan/StopIssuesCard';
 import { dayEndWarning, stopIssueRows } from '../../../src/features/plan/stop-issues';
 
@@ -349,8 +340,10 @@ export default function PlanScreen() {
           foodGramsPerDay: prefs.foodGramsPerDay,
           longCarryDays: prefs.longCarryDays,
         },
-        days: plannedDays,
+        // No camp plan: nothing reads a leg's arrival day, and the plan's rest
+        // days beside the resupply zero days would count the same days twice.
         resupplyStops,
+        zeroDays: displayPlan.resupplyZeroDays,
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
@@ -364,8 +357,8 @@ export default function PlanScreen() {
       prefs.dryStretchKm,
       prefs.foodGramsPerDay,
       prefs.longCarryDays,
-      plannedDays,
       resupplyStops,
+      displayPlan.resupplyZeroDays,
     ],
   );
 
@@ -511,6 +504,28 @@ export default function PlanScreen() {
           sectionLabel={sectionLabel}
           directionLabel={directionLabel}
           onPress={() => setSettingsOpen(true)}
+        />
+
+        {/* The way into the resupply planner, with its headline in one line. */}
+        <ResupplyEntryRow
+          summary={resupplyEntryText(extras.resupplyPlanSummary, {
+            hasOptions: extras.resupplyGroups.length > 0,
+            undecided: undecidedCount(extras.resupplyGroups, resupplyStops, sectionConfig),
+          })}
+          onPress={() =>
+            router.push({
+              pathname: '/guide/[trailId]/resupply',
+              params: validSection
+                ? {
+                    trailId,
+                    startKm: String(sectionConfig.startKm),
+                    endKm: String(sectionConfig.endKm),
+                    startName: sectionConfig.startName,
+                    endName: sectionConfig.endName,
+                  }
+                : { trailId },
+            })
+          }
         />
 
         {notice !== null && (
@@ -668,40 +683,6 @@ export default function PlanScreen() {
               />
             </Section>
 
-            <Section
-              title="Resupply"
-              subtitle={resupplySubtitle(extras, units, resupplyStops === undefined)}
-              action={
-                extras.resupplyGroups.length > 0 ? (
-                  <Pressable
-                    onPress={() =>
-                      router.push({
-                        pathname: '/guide/[trailId]/resupply',
-                        params: {
-                          trailId,
-                          startKm: String(sectionConfig.startKm),
-                          endKm: String(sectionConfig.endKm),
-                        },
-                      })
-                    }
-                    accessibilityRole="button"
-                    accessibilityLabel="Choose stops"
-                    hitSlop={spacing.sm}
-                    style={({ pressed }) => pressed && styles.pressed}
-                  >
-                    <Text style={[styles.chooseStops, { color: colors.accent }]}>Choose stops</Text>
-                  </Pressable>
-                ) : undefined
-              }
-            >
-              <ResupplyCard
-                legs={extras.resupplyLegs}
-                hasOptions={extras.resupplyGroups.length > 0}
-                stopCount={extras.resupplyStops.length}
-                units={units}
-              />
-            </Section>
-
             <Section title="Water carries">
               <WaterCarryCard
                 carries={extras.topWaterCarries}
@@ -737,40 +718,14 @@ function planNotice(
   return null;
 }
 
-/**
- * The Resupply subtitle: the legs' own one-liner, so subtitle and card cannot
- * disagree. Before a plan is made it says so — a hiker should be able to tell
- * the every-option default from a plan that happens to tick everything.
- */
-function resupplySubtitle(
-  extras: PlanExtras,
-  units: Units,
-  everyOption: boolean,
-): string | undefined {
-  // Nothing to summarise on a trail with no resupply at all — the card says so.
-  if (extras.resupplyGroups.length === 0) return undefined;
-  // No ticked stop is still a carry (one start-to-end leg); only an empty
-  // section has nothing to summarise.
-  if (!extras.resupplySummary.hasData) return undefined;
-  const text = resupplySummaryText(
-    extras.resupplySummary,
-    (km) => formatDistance(km, units),
-    (kg) => formatFoodWeight(kg, units),
-  );
-  return everyOption ? `Every option · ${text}` : text;
-}
-
 function Section({
   title,
   subtitle,
-  action,
   children,
 }: {
   title: string;
   /** One line of caveat under the heading, e.g. what the numbers can't account for. */
   subtitle?: string;
-  /** Optional control on the heading row, right-aligned (e.g. "Choose stops"). */
-  action?: React.ReactNode;
   children: React.ReactNode;
 }) {
   const { colors } = useTheme();
@@ -778,7 +733,6 @@ function Section({
     <View style={styles.section}>
       <View style={styles.sectionHead}>
         <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{title}</Text>
-        {action}
       </View>
       {subtitle !== undefined && (
         <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>{subtitle}</Text>
@@ -827,8 +781,6 @@ const styles = StyleSheet.create({
   section: { gap: spacing.md },
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sectionTitle: { ...typography.titleLarge },
-  chooseStops: { ...typography.bodySmall, fontWeight: '700' },
-  pressed: { opacity: 0.6 },
   // Negative top margin pulls the caveat up against its heading, so the section
   // gap still reads as separating the heading block from the content.
   sectionSubtitle: { ...typography.bodySmall, marginTop: -spacing.xs },

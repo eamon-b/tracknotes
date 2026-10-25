@@ -21,12 +21,7 @@ import { useTheme } from '../../theme';
 import { radii, spacing, touchTarget, typography } from '../../tokens';
 import { KeyboardAvoidingModalContent } from '../../navigation/KeyboardAwareScrollView';
 import type { Pace } from './plan-adapters';
-
-const PACE_LABELS: Record<Pace, string> = {
-  slow: 'Slow',
-  average: 'Average',
-  fast: 'Fast',
-};
+import { PACE_LABELS } from './plan-format';
 
 export interface PlanSettingsSummaryProps {
   /** The plan's name, else the trail's. */
@@ -75,10 +70,17 @@ export function PlanSettingsSummary(props: PlanSettingsSummaryProps) {
 export interface PlanSettingsSheetProps {
   visible: boolean;
   onClose: () => void;
+  /** The sheet's heading; "Plan settings" by default. */
+  title?: string;
   children: React.ReactNode;
 }
 
-export function PlanSettingsSheet({ visible, onClose, children }: PlanSettingsSheetProps) {
+export function PlanSettingsSheet({
+  visible,
+  onClose,
+  title = 'Plan settings',
+  children,
+}: PlanSettingsSheetProps) {
   const { colors } = useTheme();
   const { bottom } = useSafeAreaInsets();
   return (
@@ -99,7 +101,7 @@ export function PlanSettingsSheet({ visible, onClose, children }: PlanSettingsSh
             accessibilityViewIsModal
           >
             <View style={styles.header}>
-              <Text style={[styles.title, { color: colors.textPrimary }]}>Plan settings</Text>
+              <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
               <Pressable
                 onPress={onClose}
                 accessibilityRole="button"

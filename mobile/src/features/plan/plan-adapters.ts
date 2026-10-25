@@ -35,8 +35,10 @@ import {
   resupplyCandidates,
   resolveResupplyStops,
   summariseResupplyLegs,
+  summariseResupplyPlan,
   type ResupplyLeg,
   type ResupplyOptionGroup,
+  type ResupplyPlanSummary,
   type ResupplyStop,
   type ResupplySummary,
 } from '@lib/resupply-plan';
@@ -136,6 +138,8 @@ export interface PlanResult {
   resupplyLegs: ResupplyLeg[];
   /** The one-line version of the legs, for the section subtitle. */
   resupplySummary: ResupplySummary;
+  /** The resupply planner's headline figures (the Plan screen's Resupply row). */
+  resupplyPlanSummary: ResupplyPlanSummary;
   water: WaterCarryAnalysis;
   /** Longest water carries in the section, biggest first (top N). */
   topWaterCarries: WaterGap[];
@@ -365,6 +369,7 @@ export type PlanExtras = Pick<
   | 'resupplyStops'
   | 'resupplyLegs'
   | 'resupplySummary'
+  | 'resupplyPlanSummary'
   | 'water'
   | 'topWaterCarries'
 >;
@@ -375,10 +380,17 @@ export interface PlanExtrasInputs {
   baseKmh: number;
   /** Dry stretch, food per day and long carry — the hiker's, from `plan-inputs-store`. */
   thresholds: PlanThresholds;
-  /** The day boundaries the legs report arrival days against. */
-  days: ComputedDay[];
+  /**
+   * The day boundaries the legs report arrival days against. Optional: the
+   * Plan screen leaves it out — no surface shows a leg's arrival day any more,
+   * and a camp plan's rest days next to the resupply zero days would count
+   * the same days twice.
+   */
+  days?: ComputedDay[];
   /** The ticked resupply option ids; `undefined` resolves to every option. */
   resupplyStops?: readonly string[];
+  /** The hiker's zero days per resupply option id (`PlanDocument.resupplyZeroDays`). */
+  zeroDays?: Readonly<Record<string, number>>;
 }
 
 /**
@@ -394,21 +406,15 @@ export function computePlanExtras(
   section: SectionConfig,
   inputs: PlanExtrasInputs,
 ): PlanExtras {
-  // The option list is trail-wide — the hiker sections later, and the choice is
-  // about the trail, not this section. Only the legs are section-scoped, which
-  // the calculator does itself.
-  // Side-trip towns too: the trail draws the walk to them.
-  const resupplyGroups = listResupplyOptions(resupplyCandidates(trail));
-  const resupplyStops = resolveResupplyStops(resupplyGroups, inputs.resupplyStops);
-  const resupplyLegs = computeResupplyLegs(trail as unknown as PlanTrail, resupplyStops, {
+  const resupply = computeResupplyPlan(trail, section, {
     dailyHours: inputs.dailyHours,
     baseKmh: inputs.baseKmh,
-    longThresholdDays: inputs.thresholds.longCarryDays,
-    gramsPerDay: inputs.thresholds.foodGramsPerDay,
-    section,
+    longCarryDays: inputs.thresholds.longCarryDays,
+    foodGramsPerDay: inputs.thresholds.foodGramsPerDay,
+    resupplyStops: inputs.resupplyStops,
+    zeroDays: inputs.zeroDays,
     days: inputs.days,
   });
-  const resupplySummary = summariseResupplyLegs(resupplyLegs);
 
   const water = analyzeWaterCarryForSection(
     trail.waypoints,
@@ -418,7 +424,70 @@ export function computePlanExtras(
   );
   const topWaterCarries = [...water.gaps].sort((a, b) => b.distanceKm - a.distanceKm).slice(0, 5);
 
-  return { resupplyGroups, resupplyStops, resupplyLegs, resupplySummary, water, topWaterCarries };
+  return {
+    resupplyGroups: resupply.groups,
+    resupplyStops: resupply.stops,
+    resupplyLegs: resupply.legs,
+    resupplySummary: summariseResupplyLegs(resupply.legs),
+    resupplyPlanSummary: resupply.summary,
+    water,
+    topWaterCarries,
+  };
+}
+
+/** The hiker's figures the resupply legs are measured with (all from `plan-inputs-store`). */
+export interface ResupplyPlanInputs {
+  dailyHours: number;
+  baseKmh: number;
+  longCarryDays: number;
+  foodGramsPerDay: number;
+  /** The ticked resupply option ids; `undefined` resolves to every option. */
+  resupplyStops?: readonly string[];
+  /** Zero days per option id. */
+  zeroDays?: Readonly<Record<string, number>>;
+  /** Only for `computePlan`'s legacy arrival days; the resupply screen never passes one. */
+  days?: ComputedDay[];
+}
+
+export interface ResupplyPlan {
+  /** Every resupply the trail offers, clustered by turn-off (trail-wide). */
+  groups: ResupplyOptionGroup[];
+  /** What the selection resolves to: one stop per group with a tick. */
+  stops: ResupplyStop[];
+  /** The carries between them, scoped to the section. */
+  legs: ResupplyLeg[];
+  /** The headline figures over those legs. */
+  summary: ResupplyPlanSummary;
+}
+
+/**
+ * The resupply half of a plan — options, stops, legs and headline figures, all
+ * from `@lib/resupply-plan`. The resupply screen and the Plan screen's
+ * Resupply row both come through here, so the two cannot disagree.
+ *
+ * The option list is trail-wide (the hiker sections later, and the choice is
+ * about the trail); only the legs are section-scoped, which the calculator
+ * does itself. Side-trip towns are offered too: the trail draws the walk to
+ * them. `groups` may be passed in by a caller that memoises them on the trail
+ * alone — grouping the CDT's options is not free.
+ */
+export function computeResupplyPlan(
+  trail: TrailJson,
+  section: SectionConfig | null,
+  inputs: ResupplyPlanInputs,
+  groups: ResupplyOptionGroup[] = listResupplyOptions(resupplyCandidates(trail)),
+): ResupplyPlan {
+  const stops = resolveResupplyStops(groups, inputs.resupplyStops);
+  const legs = computeResupplyLegs(trail as unknown as PlanTrail, stops, {
+    dailyHours: inputs.dailyHours,
+    baseKmh: inputs.baseKmh,
+    longThresholdDays: inputs.longCarryDays,
+    gramsPerDay: inputs.foodGramsPerDay,
+    section,
+    ...(inputs.days ? { days: inputs.days } : {}),
+    ...(inputs.zeroDays ? { zeroDays: inputs.zeroDays } : {}),
+  });
+  return { groups, stops, legs, summary: summariseResupplyPlan(legs) };
 }
 
 /** Resolve a display name for an exact km (a waypoint at that km, else null). */

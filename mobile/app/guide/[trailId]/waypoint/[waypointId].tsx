@@ -555,6 +555,22 @@ export default function WaypointDetailScreen() {
             </Text>
           </Pressable>
         )}
+        {/* The whole plan this toggle edits: every stop, the legs between them. */}
+        {(toggleResupply || isPlanned) && (
+          <Pressable
+            onPress={() =>
+              router.push({ pathname: '/guide/[trailId]/resupply', params: { trailId } })
+            }
+            accessibilityRole="link"
+            accessibilityLabel="Open the resupply planner"
+            hitSlop={spacing.sm}
+            style={({ pressed }) => [styles.plannerLink, pressed && styles.pressed]}
+          >
+            <Text style={[styles.plannerLinkText, { color: colors.accent }]}>
+              Open the resupply planner ›
+            </Text>
+          </Pressable>
+        )}
 
         {/* Stats row */}
         <View style={styles.stats}>
@@ -927,6 +943,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   planButtonText: { ...typography.titleSmall },
+  plannerLink: { alignSelf: 'flex-start', paddingVertical: spacing.xs },
+  plannerLinkText: { ...typography.bodySmall, fontWeight: '700' },
 
   heart: { padding: spacing.xs },
   heartIcon: { fontSize: glyphSizes.xxl },
