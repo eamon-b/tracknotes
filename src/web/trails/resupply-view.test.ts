@@ -43,6 +43,7 @@ function makeTrail() {
     ...extra,
   });
   return {
+    config: { id: 'resupply-view-fixture', name: 'Fixture' },
     track: { points, totalDistance: 50, totalAscent: 800, totalDescent: 100 },
     waypoints: [
       wp('w_001', 'Alpha', 'town', 10, { store: 'full' }),
