@@ -17,6 +17,7 @@ import {
   setNights,
   setPlanName,
   setResupplyStops,
+  setResupplyZeroDays,
   setStartDate,
   setStopBooked,
   setStopNote,
@@ -370,6 +371,65 @@ describe('setResupplyStops', () => {
     expect(later.updatedAt).toBe('2026-09-21T00:00:00.000Z');
     const cleared = setResupplyStops(later, undefined, { now: () => '2026-09-22T00:00:00.000Z' });
     expect(cleared.updatedAt).toBe('2026-09-22T00:00:00.000Z');
+  });
+});
+
+describe('setResupplyZeroDays', () => {
+  it('stores whole and half days by option id, and removes an entry at 0', () => {
+    const one = setResupplyZeroDays(emptyPlan(), 'w_salida', 1, opts);
+    expect(one.resupplyZeroDays).toEqual({ w_salida: 1 });
+    const two = setResupplyZeroDays(one, 'w_lake', 0.5, opts);
+    expect(two.resupplyZeroDays).toEqual({ w_salida: 1, w_lake: 0.5 });
+    const back = setResupplyZeroDays(two, 'w_lake', 0, opts);
+    expect(back.resupplyZeroDays).toEqual({ w_salida: 1 });
+    expect(setResupplyZeroDays(back, 'w_salida', PLAN_LIMITS.zeroDaysMax, opts).resupplyZeroDays).toEqual({
+      w_salida: 14,
+    });
+  });
+
+  it('drops the map with its last entry, so the document reads as one without zero days', () => {
+    const plan = emptyPlan();
+    const cleared = setResupplyZeroDays(setResupplyZeroDays(plan, 'w_salida', 2, opts), 'w_salida', 0, opts);
+    expect(cleared).not.toHaveProperty('resupplyZeroDays');
+    expect(JSON.stringify({ ...cleared, updatedAt: plan.updatedAt })).toBe(JSON.stringify(plan));
+  });
+
+  it('returns the same object when nothing changes', () => {
+    const plan = emptyPlan();
+    expect(setResupplyZeroDays(plan, 'w_salida', 0, opts)).toBe(plan);
+    const set = setResupplyZeroDays(plan, 'w_salida', 1.5, opts);
+    expect(setResupplyZeroDays(set, 'w_salida', 1.5, opts)).toBe(set);
+    expect(setResupplyZeroDays(set, 'w_other', 0, opts)).toBe(set);
+  });
+
+  it('restamps updatedAt and leaves the input alone', () => {
+    const plan = setResupplyZeroDays(emptyPlan(), 'w_salida', 1, { now: () => '2026-09-21T00:00:00.000Z' });
+    expect(plan.updatedAt).toBe('2026-09-21T00:00:00.000Z');
+    const next = setResupplyZeroDays(plan, 'w_lake', 1, { now: () => '2026-09-22T00:00:00.000Z' });
+    expect(plan.resupplyZeroDays).toEqual({ w_salida: 1 });
+    expect(next.updatedAt).toBe('2026-09-22T00:00:00.000Z');
+  });
+
+  it('throws RangeError on a value that is not a half-day step from 0 to 14, or a bad id', () => {
+    for (const bad of [-0.5, 0.25, 1.3, 14.5, 15, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(() => setResupplyZeroDays(emptyPlan(), 'w_salida', bad, opts), String(bad)).toThrow(RangeError);
+    }
+    expect(() => setResupplyZeroDays(emptyPlan(), 'Not An Id', 1, opts)).toThrow(RangeError);
+  });
+
+  it('is checked by the loader and the limits check like every other field', () => {
+    const plan = setResupplyZeroDays(emptyPlan(), 'w_salida', 2.5, opts);
+    expect(isPlanDocument(JSON.parse(JSON.stringify(plan)))).toBe(true);
+    expect(() => assertPlanDocumentWithinLimits(plan)).not.toThrow();
+    for (const bad of [[], { w_salida: 'two' }, { w_salida: 0 }, { w_salida: 0.3 }, { w_salida: 20 }]) {
+      expect(isPlanDocument({ ...plan, resupplyZeroDays: bad }), JSON.stringify(bad)).toBe(false);
+    }
+    expect(() => assertPlanDocumentWithinLimits({ ...plan, resupplyZeroDays: { 'Bad Id': 1 } })).toThrow(
+      /zero-day waypoint id/
+    );
+    expect(() => assertPlanDocumentWithinLimits({ ...plan, resupplyZeroDays: { w_salida: 0.3 } })).toThrow(
+      /half-day step/
+    );
   });
 });
 

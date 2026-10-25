@@ -5,7 +5,7 @@
 
 import { HttpError } from './http';
 import type { ReportReason, WaterStatus } from '../../../src/lib/comments-api-types';
-import { PLAN_LIMITS } from '../../../src/lib/plan-types';
+import { PLAN_LIMITS, isStoredZeroDays } from '../../../src/lib/plan-types';
 import type { PlanDocument, PlanStop } from '../../../src/lib/plan-types';
 import { KM_EPSILON } from '../../../src/lib/plan-direction';
 import { commentTargetFitsTrail, commentTargetKind } from '../../../src/lib/comment-targets';
@@ -454,6 +454,39 @@ export function validatePlanDocument(body: Record<string, unknown>, pathId: stri
       throw planError('invalid_resupply_stops', `resupplyStops may have at most ${PLAN_LIMITS.stopsMax} entries`);
     }
     document.resupplyStops = body.resupplyStops.map((id) => validateWaypointId(id));
+  }
+
+  // Zero days per resupply stop, by option (waypoint) id. Refused rather than
+  // trimmed, like every other field: a client sending one the editor would
+  // not have written is a bug, and dropping it silently would lose the hiker's
+  // plan on the next sync. An empty map is stored as no map, so a plan without
+  // zero days reads exactly as before the field existed.
+  if (body.resupplyZeroDays !== undefined && body.resupplyZeroDays !== null) {
+    const raw = body.resupplyZeroDays;
+    if (typeof raw !== 'object' || Array.isArray(raw)) {
+      throw planError('invalid_resupply_zero_days', 'resupplyZeroDays must be an object of waypoint id to days');
+    }
+    const entries = Object.entries(raw as Record<string, unknown>);
+    if (entries.length > PLAN_LIMITS.resupplyZeroDaysMax) {
+      throw planError(
+        'invalid_resupply_zero_days',
+        `resupplyZeroDays may have at most ${PLAN_LIMITS.resupplyZeroDaysMax} entries`
+      );
+    }
+    const zeroDays: Record<string, number> = {};
+    for (const [id, days] of entries) {
+      if (!WAYPOINT_ID_RE.test(id)) {
+        throw planError('invalid_resupply_zero_days', 'resupplyZeroDays keys must match ^[a-z0-9_-]{4,64}$');
+      }
+      if (!isStoredZeroDays(days)) {
+        throw planError(
+          'invalid_resupply_zero_days',
+          `resupplyZeroDays values must be half-day steps from 0.5 to ${PLAN_LIMITS.zeroDaysMax}`
+        );
+      }
+      zeroDays[id] = days;
+    }
+    if (entries.length > 0) document.resupplyZeroDays = zeroDays;
   }
 
   if (alternates !== undefined && alternates.length > 0) {
