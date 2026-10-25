@@ -11,6 +11,7 @@
  */
 
 import type { StopServices } from '@lib/plan-editor';
+import { PLAN_LIMITS } from '@lib/plan-types';
 import {
   optionAccess,
   resupplyGroupChoice,
@@ -274,7 +275,7 @@ function zeroDaysInput(row: ResupplyOptionRow, readOnly: boolean): string {
   const id = `rs-zero-${row.option.id}`;
   return (
     `<label class="rs-visually-hidden" for="${escapeHtml(id)}">Zero days at ${escapeHtml(row.option.name)}</label>` +
-    `<input type="number" class="rs-zero" id="${escapeHtml(id)}" min="0" step="0.5" inputmode="decimal"` +
+    `<input type="number" class="rs-zero" id="${escapeHtml(id)}" min="0" max="${PLAN_LIMITS.zeroDaysMax}" step="0.5" inputmode="decimal"` +
     ` data-option-id="${escapeHtml(row.option.id)}" value="${row.zeroDays}"${readOnly ? ' disabled' : ''} />`
   );
 }

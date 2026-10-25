@@ -155,6 +155,16 @@ describe('the resupply page', () => {
     expect(storedDoc().resupplyZeroDays).toEqual({ w_001: 1.5 });
     expect(Number(tileValue('Total days'))).toBe(before + 1.5);
     expect(document.querySelector<HTMLInputElement>('input.rs-zero[data-option-id="w_001"]')?.value).toBe('1.5');
+
+    // Past the editor's limit: refused, said so, and the box shows what is stored.
+    const again = document.querySelector<HTMLInputElement>('input.rs-zero[data-option-id="w_001"]')!;
+    expect(Number(again.max)).toBeGreaterThan(0);
+    again.value = String(Number(again.max) + 1);
+    again.dispatchEvent(new Event('change', { bubbles: true }));
+    flushSave();
+    expect(storedDoc().resupplyZeroDays).toEqual({ w_001: 1.5 });
+    expect($('save-status').className).toBe('unsaved');
+    expect(document.querySelector<HTMLInputElement>('input.rs-zero[data-option-id="w_001"]')?.value).toBe('1.5');
   });
 
   it('keeps pace and hours in the planner’s per-browser prefs', async () => {
