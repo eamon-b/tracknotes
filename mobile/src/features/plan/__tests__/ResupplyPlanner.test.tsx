@@ -297,6 +297,36 @@ describe('ResupplyPlanner', () => {
     });
   });
 
+  it('heads a one-place turn-off with its short name and says where it leaves the route', () => {
+    const chamaGroups = listResupplyOptions([
+      {
+        id: 'w_chama',
+        name: 'Chama (access: Cumbres Pass (CO 17))',
+        type: 'town-access',
+        totalDistance: 100,
+        offTrailKm: 19.3,
+        accessMode: 'hitch',
+        accessName: 'Cumbres Pass (CO 17)',
+      },
+    ]);
+    const legs = [leg(0, 100, { toName: 'Chama (access: Cumbres Pass (CO 17))' })];
+    const tree = render({
+      ...props(undefined),
+      rows: plannerRows(chamaGroups, undefined, legs, range, undefined),
+    });
+    const text = allText(tree);
+    expect(text).toContain('Chama');
+    expect(text).toContain('turn-off at Cumbres Pass (CO 17)');
+    expect(text).toContain('Trail Start → Chama');
+    expect(text).not.toContain('(access:');
+    // The full name is what a screen reader hears, on the heading and the switch.
+    const heading = tree.root.findAll(
+      (n) => n.props.accessibilityLabel === 'Chama (access: Cumbres Pass (CO 17))',
+    );
+    expect(heading.length).toBeGreaterThan(0);
+    expect(control(tree, 'Resupply at Chama (access: Cumbres Pass (CO 17))').value).toBe(true);
+  });
+
   it('follows the unit setting', () => {
     const text = allText(render(props(['w_salida'], { units: 'mi' })));
     expect(text).toContain('14.0 mi hitch');

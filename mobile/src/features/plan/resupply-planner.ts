@@ -27,6 +27,9 @@ import {
   accessSummary,
   firstSentence,
   legEndpointNames,
+  resupplyGroupName,
+  resupplyOptionShortName,
+  resupplyTurnOffText,
   storeLabel,
   type LegEndpointNames,
 } from '@lib/resupply-display';
@@ -64,6 +67,35 @@ export type PlannerRow =
       /** What its two ends are called: an undecided stop by its group, "… (not decided)". */
       names: LegEndpointNames;
     };
+
+/** What a group's card is headed with. */
+export interface GroupHeading {
+  /** On screen: the place's short name for a one-place group, else the turn-off. */
+  title: string;
+  /** A one-place turn-off's "turn-off at Cumbres Pass (CO 17)"; empty otherwise. */
+  subtitle: string;
+  /** What a screen reader says: the full name, which the short one leaves out. */
+  spokenTitle: string;
+}
+
+/**
+ * The heading of a group's card. A one-place group is headed by the place —
+ * "Chama", not "Chama (access: Cumbres Pass (CO 17))" — with the turn-off as
+ * its secondary line, from the group's label; a decision group by its turn-off,
+ * whose options name only what is beyond it.
+ */
+export function groupHeading(group: Pick<ResupplyOptionGroup, 'label' | 'options'>): GroupHeading {
+  if (group.options.length === 1) {
+    const option = group.options[0];
+    return {
+      title: resupplyOptionShortName(option, group),
+      subtitle: resupplyTurnOffText(group),
+      spokenTitle: option.name,
+    };
+  }
+  const name = resupplyGroupName(group);
+  return { title: name, subtitle: '', spokenTitle: name };
+}
 
 /** Floating-point slack when matching a leg's end to a group's km. */
 const KM_EPSILON = 1e-6;
