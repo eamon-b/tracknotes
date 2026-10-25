@@ -16,6 +16,7 @@ import {
   setDirection,
   setNights,
   setPlanName,
+  resetResupplyPlan,
   setResupplyStops,
   setResupplyZeroDays,
   setStartDate,
@@ -372,6 +373,42 @@ describe('setResupplyStops', () => {
     const cleared = setResupplyStops(later, undefined, { now: () => '2026-09-22T00:00:00.000Z' });
     expect(cleared.updatedAt).toBe('2026-09-22T00:00:00.000Z');
   });
+
+  it('drops the zero days of ids an explicit list leaves out, and keeps them for every option', () => {
+    let plan = setResupplyZeroDays(emptyPlan(), 'w_town', 1, opts);
+    plan = setResupplyZeroDays(plan, 'w_store', 0.5, opts);
+
+    // Absent = every option: nothing goes.
+    expect(setResupplyStops(plan, undefined, opts)).toBe(plan);
+    expect(setResupplyStops(plan, ['w_town'], opts).resupplyZeroDays).toEqual({ w_town: 1 });
+    // None ticked: no zero days left, and no empty map either.
+    expect(setResupplyStops(plan, [], opts)).not.toHaveProperty('resupplyZeroDays');
+  });
+
+  it('writes when only the zero days change', () => {
+    let plan = setResupplyStops(emptyPlan(), ['w_town'], opts);
+    // A figure on an id the list does not hold (set before the list, say).
+    plan = { ...plan, resupplyZeroDays: { w_town: 1, w_store: 2 } };
+    const next = setResupplyStops(plan, ['w_town'], opts);
+    expect(next).not.toBe(plan);
+    expect(next.resupplyZeroDays).toEqual({ w_town: 1 });
+  });
+});
+
+describe('resetResupplyPlan', () => {
+  it('clears the selection and the zero days together', () => {
+    let plan = setResupplyStops(emptyPlan(), ['w_town'], opts);
+    plan = setResupplyZeroDays(plan, 'w_town', 1.5, opts);
+    const reset = resetResupplyPlan(plan, { now: () => '2026-09-23T00:00:00.000Z' });
+    expect(reset).not.toHaveProperty('resupplyStops');
+    expect(reset).not.toHaveProperty('resupplyZeroDays');
+    expect(reset.updatedAt).toBe('2026-09-23T00:00:00.000Z');
+  });
+
+  it('is a no-op with neither', () => {
+    const plan = emptyPlan();
+    expect(resetResupplyPlan(plan, opts)).toBe(plan);
+  });
 });
 
 describe('setResupplyZeroDays', () => {
@@ -480,6 +517,27 @@ describe('chooseResupplyOption', () => {
     expect(chooseResupplyOption(plan, groups, monarch.key, 'w_salida', opts)).toBe(plan);
     const none = chooseResupplyOption(plan, groups, monarch.key, null, opts);
     expect(chooseResupplyOption(none, groups, monarch.key, null, opts)).toBe(none);
+  });
+
+  it('writes nothing for a lone place that already reads as chosen under the default', () => {
+    const plan = emptyPlan();
+    // "Absent = every option" reads the lone Lake City as chosen; choosing it
+    // again must keep the default rather than materialise every id.
+    expect(chooseResupplyOption(plan, groups, lake.key, 'w_lake', opts)).toBe(plan);
+  });
+
+  it('drops the zero days of the places a choice leaves out, none included', () => {
+    let plan = chooseResupplyOption(emptyPlan(), groups, monarch.key, 'w_salida', opts);
+    plan = setResupplyZeroDays(plan, 'w_salida', 2, opts);
+    plan = setResupplyZeroDays(plan, 'w_lake', 1, opts);
+
+    const poncha = chooseResupplyOption(plan, groups, monarch.key, 'w_poncha', opts);
+    expect(poncha.resupplyZeroDays).toEqual({ w_lake: 1 });
+
+    const none = chooseResupplyOption(plan, groups, monarch.key, null, opts);
+    expect(none.resupplyZeroDays).toEqual({ w_lake: 1 });
+    const noLake = chooseResupplyOption(none, groups, lake.key, null, opts);
+    expect(noLake).not.toHaveProperty('resupplyZeroDays');
   });
 
   it('refuses a group or option it does not know', () => {

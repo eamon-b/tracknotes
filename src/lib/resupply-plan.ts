@@ -38,12 +38,18 @@
  * that arrives there (`sideTripKm`, `sideTripAscentM`/`sideTripDescentM`) —
  * the hiker's planning spreadsheet does the same, and it lets a UI say "incl.
  * 2.8 km to the shop and back" on one row. The leg out of the stop then starts
- * at the turn-off. Only a stop at the very start of the range (no arriving leg
- * in range) has its walk back out counted on the leg leaving it.
+ * at the turn-off. A section that starts at a stop does not count the walk
+ * out again — the leg arriving there, in the section before, already counted
+ * it — so adjacent sections add up to the whole trail. Only a stop at the
+ * trail's own start (km 0), which no leg arrives at, has its walk back out
+ * counted on the leg leaving it.
  *
  * Zero days at a stop (`zeroDays`, the hiker's, by option id) are days in
- * town: they add to the trip's days and push later arrivals back, but never
- * to the food carried — a leg's food covers its walking days only.
+ * town: they add to the trip's days (`summariseResupplyPlan`'s `totalDays`),
+ * but never to the food carried — a leg's food covers its walking days only.
+ * Only a stop decided on one place takes them. They do not move a camp plan's
+ * arrival days: its stops' extra nights are the rest it plans, and adding the
+ * zero days too would count the same rest twice.
  *
  * Nothing here is cached. `computeResupplyLegs` walks the track once per leg,
  * which on a web (full-resolution) track is real work — callers recompute only
@@ -259,9 +265,10 @@ export interface ResupplyLeg extends ResupplyGap {
   estimatedDays: number;
   food: FoodCarryEstimate;
   /**
-   * Arrival at the leg's far end, when the caller passes a camp plan — pushed
-   * back by the zero days taken at earlier stops (a half day rounds the
-   * running total up to the next whole day).
+   * Arrival at the leg's far end, when the caller passes a camp plan, from
+   * that plan alone: `date` is its date (its rest nights included) and `day`
+   * the calendar day that date is — walking days plus the rest days before
+   * it. Resupply zero days do not move it.
    */
   arrival?: { day: number; date?: string };
 }
@@ -289,9 +296,10 @@ export interface ComputeResupplyLegsOptions {
   /** The camp plan, when there is one, to report which day each leg lands on. */
   days?: ComputedDay[];
   /**
-   * The hiker's zero days per stop, by option id (whole or half days ≥ 0). A
-   * stop with several ticked options takes the most any of them names; other
-   * values (negative, not finite) are ignored. Absent means none anywhere.
+   * The hiker's zero days per stop, by option id (whole or half days ≥ 0).
+   * Only a stop resolved to one option takes its figure; a stop with several
+   * ticked (not decided yet) takes none. Other values (negative, not finite)
+   * are ignored. Absent means none anywhere.
    */
   zeroDays?: Readonly<Record<string, number>>;
 }
@@ -802,7 +810,14 @@ export function computeResupplyLegs(
       )
     : null;
 
-  let zeroDaysBefore = 0;
+  // Rest days (a stop's nights beyond the first) taken before each walking day.
+  const restDaysBefore = new Map<number, number>();
+  let rest = 0;
+  for (const day of [...(opts.days ?? [])].sort((a, b) => a.dayNumber - b.dayNumber)) {
+    restDaysBefore.set(day.dayNumber, rest);
+    rest += day.restDays ?? 0;
+  }
+
   return gaps.map((gap, i) => {
     const { gain, loss } = calculateElevationBetween(gap.fromKm, gap.toKm, trackPoints, breakStarts);
     // The trail start and end are on the route; only stops have a way off it.
@@ -818,8 +833,13 @@ export function computeResupplyLegs(
     const sideTripAscentM = inKm > 0 ? (into?.walkAscentM ?? 0) + (into?.walkDescentM ?? 0) : 0;
     const sideTripDescentM = sideTripAscentM;
     // The walk back out of the stop this leg leaves belongs to the leg that
-    // arrived there — unless that leg is outside the range (a stop at its start).
-    const walkOut = i === 0 && fromStop ? out : undefined;
+    // arrived there, as part of its side trip — even when that leg is outside
+    // the range: a section that starts at a town is the second half of a trail
+    // whose first half already walked there and back, and counting the walk
+    // out again here would make two adjacent sections add up to more than the
+    // whole. Only a stop at the trail's own start, which no leg anywhere
+    // arrives at, has its walk out counted on the leg leaving it.
+    const walkOut = i === 0 && fromStop && rangeStartKm === 0 ? out : undefined;
 
     const offTrailWalkKm = sideTripKm + (walkOut?.walkKm ?? 0);
     const ascentM = gain + sideTripAscentM + (walkOut?.walkDescentM ?? 0);
@@ -852,36 +872,31 @@ export function computeResupplyLegs(
       food: calculateFoodWeight(estimatedDays, gramsPerDay),
     };
 
+    // The camp plan alone says when each leg ends: its stops' extra nights are
+    // the rest the hiker planned, already in its dates, so the resupply zero
+    // days are not added on top (they are a separate input, counted in the
+    // summary's total days). The day number is the calendar day the date
+    // falls on — walking days plus the rest days before it — so the two agree.
     const arrival = arrivals?.[i];
     if (arrival && arrival.arrivalDay > 0) {
-      const shift = Math.ceil(zeroDaysBefore - KM_EPSILON);
-      const day = arrival.arrivalDay + shift;
-      leg.arrival = arrival.arrivalDate ? { day, date: addIsoDays(arrival.arrivalDate, shift) } : { day };
+      const day = arrival.arrivalDay + (restDaysBefore.get(arrival.arrivalDay) ?? 0);
+      leg.arrival = arrival.arrivalDate ? { day, date: arrival.arrivalDate } : { day };
     }
-    zeroDaysBefore += zeroDays;
 
     return leg;
   });
 }
 
-/** A stop's zero days: the most any of its ticked options is given; 0 when none is. */
+/**
+ * A stop's zero days: those given to the one place it resolves to; 0 when
+ * none are, and 0 for a stop not decided yet (more than one place ticked) —
+ * a figure left on a place the hiker has not chosen is not a plan.
+ */
 function stopZeroDays(stop: ResupplyStop, zeroDays: ComputeResupplyLegsOptions['zeroDays']): number {
-  if (!zeroDays) return 0;
-  let most = 0;
-  for (const id of stop.optionIds) {
-    const value = Object.prototype.hasOwnProperty.call(zeroDays, id) ? zeroDays[id] : undefined;
-    if (typeof value === 'number' && Number.isFinite(value) && value > most) most = value;
-  }
-  return most;
-}
-
-/** Add whole days to a `YYYY-MM-DD` date, in UTC (as `computeDays` does). */
-function addIsoDays(date: string, days: number): string {
-  if (days === 0) return date;
-  const at = new Date(`${date}T12:00:00Z`);
-  if (Number.isNaN(at.getTime())) return date;
-  at.setUTCDate(at.getUTCDate() + days);
-  return at.toISOString().slice(0, 10);
+  if (!zeroDays || stop.optionIds.length !== 1) return 0;
+  const id = stop.optionIds[0];
+  const value = Object.prototype.hasOwnProperty.call(zeroDays, id) ? zeroDays[id] : undefined;
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : 0;
 }
 
 function rideOf(access: StopAccess, end: LegRide['end']): LegRide {

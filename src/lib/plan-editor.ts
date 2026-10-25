@@ -35,7 +35,7 @@ import { PLAN_LIMITS, PLAN_WAYPOINT_ID_PATTERN, isStoredZeroDays } from './plan-
 import { computeDays, isStopAtPlace, stopWalk, type PlanStopInput, type PlanTrail } from './day-calculator';
 import type { TrailPOI } from './trail-types';
 import { baseWaypointType, isAccessWaypoint } from './waypoint-taxonomy';
-import { allResupplyOptionIds, type ResupplyOptionGroup } from './resupply-plan';
+import { allResupplyOptionIds, resupplyGroupChoice, type ResupplyOptionGroup } from './resupply-plan';
 
 // ---------------------------------------------------------------------------
 // Injected clock and id source
@@ -503,8 +503,14 @@ export function replaceStopsInRange(
  * made" — every option feeds the carries and nothing is highlighted — which is
  * a different thing from an explicit empty selection.
  *
- * The same object comes back when the selection already reads the same, so a
- * second press of All or None is not a write and not a request.
+ * Zero days follow the selection: an explicit list drops the zero days of
+ * every option it leaves out, so a figure set on a town the hiker has since
+ * unticked is never counted unseen. `undefined` (every option) keeps them all;
+ * {@link resetResupplyPlan} clears both.
+ *
+ * The same object comes back when the selection (and so the zero days)
+ * already reads the same, so a second press of All or None is not a write and
+ * not a request.
  */
 export function setResupplyStops(
   plan: PlanDocument,
@@ -512,13 +518,50 @@ export function setResupplyStops(
   opts?: PlanEditOptions
 ): PlanDocument {
   const current = plan.resupplyStops;
-  if (ids === undefined) {
-    return current === undefined ? plan : { ...omitKey(plan, 'resupplyStops'), updatedAt: stamp(opts, plan.updatedAt) };
+  const stopsChanged =
+    ids === undefined
+      ? current !== undefined
+      : current === undefined || current.length !== ids.length || current.some((id, i) => id !== ids[i]);
+  const zeroDays = ids === undefined ? plan.resupplyZeroDays : keepZeroDays(plan.resupplyZeroDays, new Set(ids));
+  const zeroDaysChanged = zeroDays !== plan.resupplyZeroDays;
+  if (!stopsChanged && !zeroDaysChanged) return plan;
+
+  let next: PlanDocument = plan;
+  if (stopsChanged) next = ids === undefined ? omitKey(next, 'resupplyStops') : { ...next, resupplyStops: [...ids] };
+  if (zeroDaysChanged) {
+    next = zeroDays === undefined ? omitKey(next, 'resupplyZeroDays') : { ...next, resupplyZeroDays: zeroDays };
   }
-  if (current !== undefined && current.length === ids.length && current.every((id, i) => id === ids[i])) {
-    return plan;
-  }
-  return { ...plan, resupplyStops: [...ids], updatedAt: stamp(opts, plan.updatedAt) };
+  return { ...next, updatedAt: stamp(opts, plan.updatedAt) };
+}
+
+/**
+ * The zero-days map with only the ids in `keep`: the same object when nothing
+ * goes, `undefined` when nothing is left.
+ */
+function keepZeroDays(
+  zeroDays: Record<string, number> | undefined,
+  keep: ReadonlySet<string>
+): Record<string, number> | undefined {
+  if (zeroDays === undefined) return undefined;
+  const ids = Object.keys(zeroDays);
+  if (ids.every(id => keep.has(id))) return zeroDays;
+  const kept: Record<string, number> = {};
+  for (const id of ids) if (keep.has(id)) kept[id] = zeroDays[id];
+  return Object.keys(kept).length === 0 ? undefined : kept;
+}
+
+/**
+ * Back to "no resupply plan made": the selection goes (every option feeds the
+ * carries again, nothing is highlighted) and so do the zero days, which would
+ * otherwise sit on places no longer chosen. The same object comes back when
+ * there is neither.
+ */
+export function resetResupplyPlan(plan: PlanDocument, opts?: PlanEditOptions): PlanDocument {
+  if (plan.resupplyStops === undefined && plan.resupplyZeroDays === undefined) return plan;
+  return {
+    ...omitKey(omitKey(plan, 'resupplyStops'), 'resupplyZeroDays'),
+    updatedAt: stamp(opts, plan.updatedAt),
+  };
 }
 
 /**
@@ -571,9 +614,14 @@ export function setResupplyZeroDays(
  * An absent selection means every option, so it is materialised first — every
  * other group keeps all its options ticked, exactly as it read before. The
  * chosen id takes the place of the group's first stored id, so the stored
- * order stays stable and choosing the same thing twice is a no-op (the same
- * object back, as with {@link setResupplyStops}). Ids no group has (a saved
- * selection from older trail data) are kept untouched.
+ * order stays stable. A choice the group already reads as — including a lone
+ * place under the absent default, which reads as chosen — is a no-op: the
+ * same object back, nothing written, and the default kept. Ids no group has
+ * (a saved selection from older trail data) are kept untouched.
+ *
+ * The group's places left unchosen lose their zero days (through
+ * {@link setResupplyStops}), so a figure set on Salida does not linger, unseen
+ * and still counted, after switching to Poncha Springs or carrying through.
  *
  * @throws RangeError for a `groupKey` no group has, or an `optionId` that is
  *   not in that group — a UI handing over either is a bug.
@@ -589,6 +637,13 @@ export function chooseResupplyOption(
   if (!group) throw new RangeError(`chooseResupplyOption: no resupply group "${groupKey}"`);
   if (optionId !== null && !group.options.some(option => option.id === optionId)) {
     throw new RangeError(`chooseResupplyOption: "${optionId}" is not an option of group "${groupKey}"`);
+  }
+  // Already reads this way — the absent "every option" default included, under
+  // which a lone place is chosen — so nothing is written, and the default
+  // (which ticks towns a later data update adds) is kept.
+  const choice = resupplyGroupChoice(group, plan.resupplyStops);
+  if (optionId === null ? choice.kind === 'none' : choice.kind === 'chosen' && choice.optionId === optionId) {
+    return plan;
   }
   const inGroup = new Set(group.options.map(option => option.id));
   const current = plan.resupplyStops ?? allResupplyOptionIds(groups);
