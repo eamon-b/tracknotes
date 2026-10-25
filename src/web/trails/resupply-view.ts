@@ -21,7 +21,17 @@ import {
   type ResupplyOptionGroup,
   type ResupplyPlanSummary,
 } from '@lib/resupply-plan';
-import { firstSentence, legDistanceText, legRidesText, legSideTripText, storeLabel } from '@lib/resupply-display';
+import {
+  firstSentence,
+  legDistanceText,
+  legRidesText,
+  legEndpointNames,
+  legSideTripText,
+  resupplyGroupName,
+  resupplyOptionShortName,
+  storeLabel,
+  type LegEndpointNames,
+} from '@lib/resupply-display';
 import { waypointTypeLabel } from '@lib/waypoint-taxonomy';
 import { escapeHtml } from '../web-utils';
 import { servicesStripHtml } from './stop-services';
@@ -76,6 +86,11 @@ export interface ResupplyView {
   endLeg: ResupplyLeg | null;
   /** Groups with more than one option still ticked. */
   undecidedCount: number;
+  /**
+   * What each leg's ends are called (`legEndpointNames`): a stop not decided
+   * yet goes by its group, not by every place still ticked.
+   */
+  legNames: ReadonlyMap<ResupplyLeg, LegEndpointNames>;
 }
 
 export interface ResupplyViewInput {
@@ -137,6 +152,9 @@ export function buildResupplyView(input: ResupplyViewInput): ResupplyView {
     };
   });
 
+  const legNames = new Map<ResupplyLeg, LegEndpointNames>();
+  for (const leg of legs) legNames.set(leg, legEndpointNames(leg, input.groups, input.selectedIds));
+
   return {
     startName: legs.length > 0 ? legs[0].fromName : 'Trail Start',
     endName: lastLeg ? lastLeg.toName : 'Trail End',
@@ -144,6 +162,7 @@ export function buildResupplyView(input: ResupplyViewInput): ResupplyView {
     groups,
     endLeg: lastLeg,
     undecidedCount,
+    legNames,
   };
 }
 
@@ -221,13 +240,15 @@ function td(key: string, content: string, extraClass = ''): string {
 }
 
 /** The five leg cells: distance (with side trip and rides), climb, days, food. */
-function legCells(leg: ResupplyLeg | null): string {
+function legCells(leg: ResupplyLeg | null, view: ResupplyView): string {
   if (!leg) return ['leg', 'ascent', 'descent', 'days', 'food'].map(key => td(key, '')).join('');
-  const sideTrip = legSideTripText(leg, formatKm);
+  const names = view.legNames.get(leg) ?? { from: leg.fromName, to: leg.toName, toDecided: true };
+  // An undecided stop's walk is the longest of its places': no name for it.
+  const sideTrip = legSideTripText(leg, formatKm, names.toDecided ? names.to : null);
   const rides = legRidesText(leg, formatKm);
   const distance =
     `<span class="rs-figure" title="${escapeHtml(legDistanceText(leg, formatKm))}">${leg.walkedKm.toFixed(1)}</span>` +
-    `<span class="rs-sub">from ${escapeHtml(leg.fromName)}</span>` +
+    `<span class="rs-sub" title="${escapeHtml(leg.fromName)}">from ${escapeHtml(names.from)}</span>` +
     (sideTrip ? `<span class="rs-sub">${escapeHtml(sideTrip)}</span>` : '') +
     (rides ? `<span class="rs-sub rs-rides">${escapeHtml(rides)}</span>` : '');
   const days =
@@ -260,12 +281,18 @@ function notesCell(option: ResupplyOption, opts: ResupplyRenderOptions): string 
   return services + notes;
 }
 
-/** The stop's name, its kind, and the "show on map" link. */
-function stopCell(option: ResupplyOption, opts: ResupplyRenderOptions): string {
+/**
+ * The stop's name, its kind, and the "show on map" link. Inside a decision
+ * group the name is the short one (`resupplyOptionShortName`), the full one
+ * kept as its tooltip.
+ */
+function stopCell(option: ResupplyOption, opts: ResupplyRenderOptions, group: ResupplyOptionGroup): string {
   const href = opts.mapHref(option.id);
   const link = href ? ` <a class="rs-map-link" href="${escapeHtml(href)}">show on map</a>` : '';
+  const short = resupplyOptionShortName(option, group);
+  const title = short !== option.name ? ` title="${escapeHtml(option.name)}"` : '';
   return (
-    `<span class="rs-name">${escapeHtml(option.name)}</span>` +
+    `<span class="rs-name"${title}>${escapeHtml(short)}</span>` +
     `<span class="rs-sub">${escapeHtml(waypointTypeLabel(option.type))}${link}</span>`
   );
 }
@@ -281,12 +308,12 @@ function zeroDaysInput(row: ResupplyOptionRow, readOnly: boolean): string {
 }
 
 /** The cells every option row shares, before its choice control. */
-function optionInfoCells(option: ResupplyOption, opts: ResupplyRenderOptions): string {
+function optionInfoCells(option: ResupplyOption, opts: ResupplyRenderOptions, group: ResupplyOptionGroup): string {
   const off = offTrailKmOneWay(option);
   const boxes = option.acceptsBoxes === true ? 'Yes' : option.acceptsBoxes === false ? 'No' : '';
   return [
     td('km', option.km.toFixed(1)),
-    td('stop', stopCell(option, opts)),
+    td('stop', stopCell(option, opts, group)),
     td('store', escapeHtml(storeLabel(option) ?? '')),
     td('off', off === null ? '' : off.toFixed(1)),
     td('access', escapeHtml(accessModeText(option))),
@@ -302,7 +329,12 @@ function radio(name: string, value: string, checked: boolean, label: string, rea
 }
 
 /** A single-option group: one row, Yes or No. */
-function singleGroupHtml(row: ResupplyGroupRow, opts: ResupplyRenderOptions, readOnly: boolean): string {
+function singleGroupHtml(
+  row: ResupplyGroupRow,
+  opts: ResupplyRenderOptions,
+  readOnly: boolean,
+  view: ResupplyView
+): string {
   const optionRow = row.options[0];
   const name = `rs-group-${row.group.key}`;
   const yes = row.choice.kind === 'chosen';
@@ -313,16 +345,21 @@ function singleGroupHtml(row: ResupplyGroupRow, opts: ResupplyRenderOptions, rea
     '</div>';
   return `<tbody class="rs-group${yes ? ' is-chosen' : ''}" data-group-key="${escapeHtml(row.group.key)}">
     <tr class="rs-row rs-option${yes ? ' is-chosen' : ''}" data-option-id="${escapeHtml(optionRow.option.id)}">
-      ${optionInfoCells(optionRow.option, opts)}${td('go', choice)}${td('zero', zeroDaysInput(optionRow, readOnly))}${legCells(optionRow.leg)}${td('notes', notesCell(optionRow.option, opts))}
+      ${optionInfoCells(optionRow.option, opts, row.group)}${td('go', choice)}${td('zero', zeroDaysInput(optionRow, readOnly))}${legCells(optionRow.leg, view)}${td('notes', notesCell(optionRow.option, opts))}
     </tr>
   </tbody>`;
 }
 
 /** A decision group: a header row, one radio row per option, and "None – carry through". */
-function decisionGroupHtml(row: ResupplyGroupRow, opts: ResupplyRenderOptions, readOnly: boolean): string {
+function decisionGroupHtml(
+  row: ResupplyGroupRow,
+  opts: ResupplyRenderOptions,
+  readOnly: boolean,
+  view: ResupplyView
+): string {
   const name = `rs-group-${row.group.key}`;
   const undecided = row.choice.kind === 'undecided';
-  const label = row.group.label ?? row.options.map(option => option.option.name).join(' / ');
+  const label = resupplyGroupName(row.group);
   const state =
     row.choice.kind === 'undecided'
       ? '<span class="rs-undecided">Not decided yet</span>'
@@ -336,14 +373,14 @@ function decisionGroupHtml(row: ResupplyGroupRow, opts: ResupplyRenderOptions, r
         <span class="rs-sub">Pick one place, or none.</span> ${state}
         ${undecided ? '<span class="rs-sub">Until you pick, the leg counts every option still ticked as one stop.</span>' : ''}
       </td>
-      ${legCells(row.undecidedLeg)}
+      ${legCells(row.undecidedLeg, view)}
       ${td('notes', '')}
     </tr>`;
 
   const options = row.options
     .map(
       optionRow => `<tr class="rs-row rs-option${optionRow.chosen ? ' is-chosen' : ''}" data-option-id="${escapeHtml(optionRow.option.id)}">
-      ${optionInfoCells(optionRow.option, opts)}${td('go', radio(name, optionRow.option.id, optionRow.chosen, 'Go here', readOnly))}${td('zero', zeroDaysInput(optionRow, readOnly))}${legCells(optionRow.leg)}${td('notes', notesCell(optionRow.option, opts))}
+      ${optionInfoCells(optionRow.option, opts, row.group)}${td('go', radio(name, optionRow.option.id, optionRow.chosen, 'Go here', readOnly))}${td('zero', zeroDaysInput(optionRow, readOnly))}${legCells(optionRow.leg, view)}${td('notes', notesCell(optionRow.option, opts))}
     </tr>`
     )
     .join('');
@@ -358,12 +395,18 @@ function decisionGroupHtml(row: ResupplyGroupRow, opts: ResupplyRenderOptions, r
 }
 
 /** The start or end of the trail: a row of its own, so the first and last carries read off the table. */
-function endpointHtml(kind: 'start' | 'end', name: string, km: number, leg: ResupplyLeg | null): string {
+function endpointHtml(
+  kind: 'start' | 'end',
+  name: string,
+  km: number,
+  leg: ResupplyLeg | null,
+  view: ResupplyView
+): string {
   return `<tbody class="rs-endpoint">
     <tr class="rs-row rs-${kind}">
       ${td('km', km.toFixed(1))}
       <td class="rs-c-stop" colspan="7" data-label="Stop"><span class="rs-name">${escapeHtml(name)}</span></td>
-      ${legCells(leg)}
+      ${legCells(leg, view)}
       ${td('notes', '')}
     </tr>
   </tbody>`;
@@ -375,13 +418,15 @@ export function renderResupplyTable(view: ResupplyView, opts: ResupplyRenderOpti
     col => `<th scope="col" class="rs-c-${col.key}${col.numeric ? ' rs-num' : ''}">${escapeHtml(col.label)}</th>`
   ).join('');
   const groups = view.groups
-    .map(row => (row.isDecision ? decisionGroupHtml(row, opts, readOnly) : singleGroupHtml(row, opts, readOnly)))
+    .map(row =>
+      row.isDecision ? decisionGroupHtml(row, opts, readOnly, view) : singleGroupHtml(row, opts, readOnly, view)
+    )
     .join('');
   return `<table class="rs-table">
     <thead><tr>${head}</tr></thead>
-    ${endpointHtml('start', view.startName, 0, null)}
+    ${endpointHtml('start', view.startName, 0, null, view)}
     ${groups}
-    ${endpointHtml('end', view.endName, view.endKm, view.endLeg)}
+    ${endpointHtml('end', view.endName, view.endKm, view.endLeg, view)}
   </table>`;
 }
 
