@@ -70,6 +70,7 @@ const TRAIL_TEMPLATE_PATH = path.join(TRAIL_PAGES_DIR, 'trail-template.html');
 const CLIMATE_TEMPLATE_PATH = path.join(TRAIL_PAGES_DIR, 'climate-template.html');
 const PLAN_TEMPLATE_PATH = path.join(TRAIL_PAGES_DIR, 'plan-template.html');
 const PLAN_SHELL_PATH = path.join(TRAIL_PAGES_DIR, 'plan-shell.html');
+const RESUPPLY_TEMPLATE_PATH = path.join(TRAIL_PAGES_DIR, 'resupply-template.html');
 
 /**
  * Parse CalTopo GeoJSON for waypoint categorization, descriptions, and route variants
@@ -590,6 +591,28 @@ function generatePlanPage(trail: ProcessedTrail): void {
 }
 
 /**
+ * Generate a trail's resupply page (the stop-by-stop resupply planner) from its
+ * template. Everything below the header is drawn by `resupply-page.ts`.
+ */
+function generateResupplyPage(trail: ProcessedTrail): void {
+  if (!fs.existsSync(RESUPPLY_TEMPLATE_PATH)) {
+    console.log('  Note: Resupply template not found, skipping resupply page generation');
+    return;
+  }
+
+  const html = fillTemplate(fs.readFileSync(RESUPPLY_TEMPLATE_PATH, 'utf-8'), pageFills(trail));
+
+  const trailPageDir = path.join(TRAIL_PAGES_DIR, trail.config.id);
+  if (!fs.existsSync(trailPageDir)) {
+    fs.mkdirSync(trailPageDir, { recursive: true });
+  }
+
+  const htmlPath = path.join(trailPageDir, 'resupply.html');
+  fs.writeFileSync(htmlPath, html);
+  console.log(`  ✓ Generated ${htmlPath}`);
+}
+
+/**
  * Generate a climate page for a trail from the template
  */
 function generateClimatePage(trail: ProcessedTrail): void {
@@ -788,6 +811,7 @@ async function main() {
       generateTrailPage(processed);
       generateClimatePage(processed);
       generatePlanPage(processed);
+      generateResupplyPage(processed);
 
       trailIndex.push(trailIndexEntry(processed.config, processed.track));
       if (!processed.config.country) {

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="./favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png">
+  <title>Resupply — Imported trail - Trail Maps</title>
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./trails/resupply-page.css">
+  <link rel="stylesheet" href="./my-trails.css">
+</head>
+<body>
+  <!-- Shown when ?id= names a trail this browser no longer has. -->
+  <div id="plan-missing" hidden>
+    <h2>Trail not found</h2>
+    <p class="import-note">
+      This trail isn't in this browser's storage. Imported trails live on the device
+      that created them, and clearing site data removes them.
+    </p>
+    <p class="import-note">
+      <a href="./upload.html">Import a GPX</a> · <a href="./">Back to all trails</a>
+    </p>
+  </div>
+
+  <!-- The resupply page for an imported GPX; trails/resupply-template.html is the bundled one. -->
+  <header class="rs-header" id="rs-header">
+    <a id="back-link" href="./" class="back-link">← Trail</a>
+    <h1 class="rs-title">Resupply plan <span class="rs-title-trail" id="trail-title">Imported trail</span></h1>
+  </header>
+
+  <main id="resupply-app" class="rs-page"></main>
+
+  <script type="module" src="./my-resupply.ts"></script>
+</body>
+</html>

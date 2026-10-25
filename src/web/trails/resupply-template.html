@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../../favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+  <title>Resupply — {{TRAIL_NAME}} - Trail Maps</title>
+  <link rel="stylesheet" href="../../styles.css">
+  <!-- Applies the saved theme before first paint so the page never flashes. See theme.ts. -->
+  <script>
+    (function () {
+      var root = document.documentElement;
+      root.classList.add('js');
+      var pref = 'system';
+      try { pref = localStorage.getItem('trail-maps-theme') || 'system'; } catch (e) { /* storage disabled */ }
+      if (pref !== 'light' && pref !== 'dark') pref = 'system';
+      root.dataset.themePref = pref;
+      root.dataset.theme = pref === 'system'
+        ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+        : pref;
+    })();
+  </script>
+  <script type="module" src="../../theme.ts"></script>
+  <link rel="stylesheet" href="../resupply-page.css">
+</head>
+<body>
+  <!--
+    The resupply page for a bundled trail, written to
+    src/web/trails/<id>/resupply.html by scripts/build-trails.ts. Everything
+    below the header is drawn by resupply-page.ts; my-resupply.html is the same
+    page for an imported GPX.
+  -->
+  <header class="rs-header">
+    <a href="index.html" class="back-link">← Trail</a>
+    <h1 class="rs-title">Resupply plan <span class="rs-title-trail">{{TRAIL_NAME}}</span></h1>
+    <div data-theme-toggle></div>
+  </header>
+
+  <main id="resupply-app" class="rs-page"></main>
+
+  <script type="module">
+    import { initResupplyPage } from '../resupply-page.ts';
+    initResupplyPage('{{TRAIL_ID}}', undefined, {
+      plannerHref: function (focus) {
+        return focus ? 'plan.html?focus=' + encodeURIComponent(focus) : 'plan.html';
+      },
+    });
+  </script>
+</body>
+</html>

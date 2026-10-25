@@ -11,12 +11,10 @@ declare const L: typeof Leaflet;
 
 import type { PlanTrackPoint, PlanWaypoint, ComputedDay, PlanDocument, PlanStop, Pace } from '@lib/plan-types';
 import {
-  DEFAULT_PLAN_THRESHOLDS,
   PACE_KMH,
   PLAN_LIMITS,
   PLAN_THRESHOLD_BOUNDS,
   PLAN_THRESHOLD_STEPS,
-  clampPlanThreshold,
   isPace,
   type PlanThresholds,
 } from '@lib/plan-types';
@@ -100,8 +98,21 @@ import {
 import { baseWaypointType, waypointTypeLabel } from '@lib/waypoint-taxonomy';
 import { waypointFamilyClass, waypointIcon } from './waypoint-icons';
 import { accessPathLayer, hasAccessPath } from './access-path';
+import { servicesStripHtml } from './stop-services';
 import { stopWalk } from '@lib/day-calculator';
-import { loadOrMigratePlan, loadPlanUiPrefs, savePlanDocument, savePlanUiPrefs, type PlanUiPrefs } from './plan-state';
+import {
+  DAILY_HOURS_RANGE,
+  loadOrMigratePlan,
+  loadPlanUiPrefs,
+  parseDailyHours,
+  parseThreshold,
+  prefDailyHours,
+  prefPace,
+  prefThreshold,
+  savePlanDocument,
+  savePlanUiPrefs,
+  type PlanUiPrefs,
+} from './plan-state';
 import { initPlanSync, type PlanSyncController, type PlanSyncHost } from './plan-sync';
 import { finalDayMaxHours } from '@lib/plan-suggest';
 import { eleAxis, eleBounds } from '@lib/elevation-axis';
@@ -115,7 +126,7 @@ import {
 // Escapes quotes as well as angle brackets, unlike a `textContent` round trip
 // through a detached div — this file interpolates waypoint names and types into
 // `title="…"` and `class="…"`, and an imported GPX supplies both.
-import { SITE_ROOT, escapeHtml, generatedDataUrl } from '../web-utils';
+import { SITE_ROOT, escapeHtml, generatedDataUrl, getQueryParam } from '../web-utils';
 import { onThemeChange, themeColor } from '../theme';
 
 // ---------------------------------------------------------------------------
@@ -161,17 +172,6 @@ interface Trail {
 // ---------------------------------------------------------------------------
 // State
 // ---------------------------------------------------------------------------
-
-/**
- * Starting positions of the two header inputs, used for a plan saved before they
- * existed. They are the initial value of a control the hiker can see and change,
- * not a figure the page holds on their behalf.
- */
-const DEFAULT_PACE: Pace = 'average';
-const DEFAULT_DAILY_HOURS = 8;
-/** The range the number input offers; a hand-edited plan is clamped into it. */
-const MIN_DAILY_HOURS = 1;
-const MAX_DAILY_HOURS = 16;
 
 /** The trail as built: the main route, alternates beside it. */
 let trail: Trail;
@@ -269,18 +269,6 @@ let elevMaxDist = 1;
 // Services at a stop
 // ---------------------------------------------------------------------------
 
-/** The flags of `StopServices`, in the order the strip shows them. */
-type ServiceFlag = Exclude<keyof StopServices, 'pois'>;
-
-const SERVICE_GLYPHS: ReadonlyArray<{ flag: ServiceFlag; glyph: string; label: string }> = [
-  { flag: 'camping', glyph: '\u26FA', label: 'Camping' },
-  { flag: 'lodging', glyph: '\u{1F6CF}\u{FE0F}', label: 'Lodging' },
-  { flag: 'shop', glyph: '\u{1F6D2}', label: 'Shop' },
-  { flag: 'food', glyph: '\u{1F37D}\u{FE0F}', label: 'Food' },
-  { flag: 'water', glyph: '\u{1F4A7}', label: 'Water' },
-  { flag: 'transport', glyph: '\u{1F68C}', label: 'Transport' },
-];
-
 /**
  * What is within a kilometre of this place, from the trail's OSM POIs.
  *
@@ -290,22 +278,6 @@ const SERVICE_GLYPHS: ReadonlyArray<{ flag: ServiceFlag; glyph: string; label: s
  */
 function servicesAt(km: number): StopServices | undefined {
   return servicesAtStop({ km }, activeTrail().pois);
-}
-
-/**
- * Six glyphs, greyed where the service is absent. Empty when the trail has no
- * POI data at all: a strip of six grey glyphs would read as "nothing here",
- * which is a different and more dangerous claim than "we do not know" — the
- * tab footer says which it is.
- */
-function servicesStripHtml(services: StopServices | undefined): string {
-  if (!services) return '';
-  const glyphs = SERVICE_GLYPHS.map(({ flag, glyph, label }) => {
-    const present = services[flag];
-    const title = present ? label : `No ${label.toLowerCase()} nearby`;
-    return `<span class="stop-svc${present ? '' : ' is-off'}" title="${escapeHtml(title)}">${glyph}</span>`;
-  }).join('');
-  return `<div class="stop-services">${glyphs}</div>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -399,7 +371,7 @@ function direction(): PlanDirection {
  * the inputs existed — nothing on this page decides how far a day is.
  */
 function pace(): Pace {
-  return uiPrefs.pace ?? DEFAULT_PACE;
+  return prefPace(uiPrefs);
 }
 
 function baseKmh(): number {
@@ -421,7 +393,7 @@ function setUiPrefs(patch: Partial<PlanUiPrefs>): void {
 }
 
 function dailyHours(): number {
-  return uiPrefs.dailyHours ?? DEFAULT_DAILY_HOURS;
+  return prefDailyHours(uiPrefs);
 }
 
 /**
@@ -431,7 +403,7 @@ function dailyHours(): number {
  * value until the hiker changes it.
  */
 function threshold(key: keyof PlanThresholds): number {
-  return uiPrefs[key] ?? DEFAULT_PLAN_THRESHOLDS[key];
+  return prefThreshold(uiPrefs, key);
 }
 
 /** The planned route oriented in the active direction. */
@@ -2124,6 +2096,51 @@ function setResupplyStops(ids: string[]): void {
   applyEdit(editResupplyStops(plan, ids));
 }
 
+/**
+ * Open the planner on one resupply option — the resupply page's "show on map"
+ * link (`plan.html?focus=<optionId>`): the Resupply tab, the map centred on the
+ * place with a popup naming it, and its row scrolled into view. A side-trip town
+ * the map has no marker for is shown at its turn-off on the route.
+ */
+function focusResupplyOption(id: string): void {
+  const option = resupplyGroups()
+    .flatMap(group => group.options)
+    .find(candidate => candidate.id === id);
+  if (!option) return;
+  switchTab('resupply');
+
+  const wp = (activeTrail().waypoints ?? []).find(w => w.id === id);
+  let latLng: [number, number] | null = null;
+  if (wp && wp.lat !== undefined && wp.lon !== undefined) {
+    latLng = [wp.lat, wp.lon];
+  } else {
+    const points = activeTrail().track.points;
+    if (points.length > 0) {
+      const point = points[findNearestByDistance(points, option.km)];
+      latLng = [point.lat, point.lon];
+    }
+  }
+  if (map && latLng) {
+    map.setView(latLng, 13);
+    const content = document.createElement('div');
+    content.className = 'wp-popup';
+    const access = accessSummary(option, formatKm);
+    content.innerHTML = `<div class="wp-popup-name">${escapeHtml(option.name)}</div>
+      <div class="wp-popup-sub">${escapeHtml(waypointTypeLabel(option.type))} · ${option.km.toFixed(1)} km${
+        access ? ` · ${escapeHtml(access)}` : ''
+      }</div>`;
+    L.popup({ className: 'plan-wp-popup' }).setLatLng(latLng).setContent(content).openOn(map);
+  }
+
+  const row = [...document.querySelectorAll<HTMLElement>('#resupply-list .resupply-row')].find(
+    el => el.dataset.id === id
+  );
+  if (row) {
+    row.classList.add('is-focused');
+    row.scrollIntoView?.({ block: 'center' });
+  }
+}
+
 /** Centre the map on a resupply option, so the list and the map stay in step. */
 function panToResupply(id: string): void {
   if (!map) return;
@@ -2162,12 +2179,8 @@ function setPace(value: Pace): void {
 
 /** Ignores a blank or non-numeric entry and clamps the rest to the input's range. */
 function setDailyHours(raw: string): void {
-  // `Number('')` is 0, which would clamp to the minimum rather than be ignored.
-  if (raw.trim() === '') return;
-  const parsed = Number(raw);
-  if (!Number.isFinite(parsed)) return;
-  const clamped = Math.min(MAX_DAILY_HOURS, Math.max(MIN_DAILY_HOURS, Math.round(parsed)));
-  if (dailyHours() === clamped) return;
+  const clamped = parseDailyHours(raw);
+  if (clamped === null || dailyHours() === clamped) return;
   setUiPrefs({ dailyHours: clamped });
   renderAll();
 }
@@ -2177,12 +2190,8 @@ function setDailyHours(raw: string): void {
  * rest into the shared range; rounding is to the input's own step.
  */
 function setThreshold(key: keyof PlanThresholds, raw: string): void {
-  const step = PLAN_THRESHOLD_STEPS[key];
-  if (raw.trim() === '') return;
-  const parsed = Number(raw);
-  if (!Number.isFinite(parsed)) return;
-  const value = clampPlanThreshold(key, Math.round(parsed / step) * step);
-  if (threshold(key) === value) return;
+  const value = parseThreshold(key, raw);
+  if (value === null || threshold(key) === value) return;
   setUiPrefs({ [key]: value });
   renderAll();
 }
@@ -2432,8 +2441,8 @@ function initHeader(): void {
   }
 
   if (hoursInput) {
-    hoursInput.min = String(MIN_DAILY_HOURS);
-    hoursInput.max = String(MAX_DAILY_HOURS);
+    hoursInput.min = String(DAILY_HOURS_RANGE.min);
+    hoursInput.max = String(DAILY_HOURS_RANGE.max);
     hoursInput.value = String(dailyHours());
     hoursInput.addEventListener('change', () => {
       setDailyHours(hoursInput.value);
@@ -2728,6 +2737,12 @@ export interface PlanViewerOptions {
    * and must not read or write this browser's own plan for that trail.
    */
   preloadedPlan?: PlanDocument;
+  /**
+   * Where this trail's resupply page is (`resupply.html`, or
+   * `my-resupply.html?id=…` for an imported trail): shown as a link in the
+   * Resupply tab. Absent on a page with none (a shared plan).
+   */
+  resupplyPageHref?: string;
 }
 
 /**
@@ -2808,7 +2823,17 @@ export async function initPlanViewer(
   const nextDaysBody = document.getElementById('next-days-body');
   nextDays = readOnly || !nextDaysBody ? null : initNextDays(nextDaysBody, nextDaysHost());
 
+  const resupplyPageLink = document.getElementById('resupply-page-link') as HTMLAnchorElement | null;
+  if (resupplyPageLink && options.resupplyPageHref) {
+    resupplyPageLink.href = options.resupplyPageHref;
+    resupplyPageLink.hidden = false;
+  }
+
   renderAll();
+
+  // Opened from the resupply page's "show on map" link.
+  const focusId = getQueryParam(window.location.search, 'focus');
+  if (focusId) focusResupplyOption(focusId);
 
   // The sync arm, last: it draws its own header controls and then talks to the
   // network, so the planner is on screen and usable before any of that starts.

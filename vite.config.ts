@@ -30,6 +30,11 @@ function getTrailInputs(): Record<string, string> {
       if (existsSync(planPath)) {
         inputs[`trail-${entry}-plan`] = planPath;
       }
+      // Add resupply.html (the resupply planner) if it exists
+      const resupplyPath = resolve(entryPath, 'resupply.html');
+      if (existsSync(resupplyPath)) {
+        inputs[`trail-${entry}-resupply`] = resupplyPath;
+      }
     }
   }
 
@@ -121,6 +126,7 @@ export default defineConfig({
         'how-import-works': resolve(__dirname, 'src/web/how-import-works.html'),
         'my-trail': resolve(__dirname, 'src/web/my-trail.html'),
         'my-plan': resolve(__dirname, 'src/web/my-plan.html'),
+        'my-resupply': resolve(__dirname, 'src/web/my-resupply.html'),
         // The read-only view of a plan somebody shared a link to (`?s=<id>`).
         'shared-plan': resolve(__dirname, 'src/web/shared-plan.html'),
         // A community route's public page (`?id=c_…`) and the admin review

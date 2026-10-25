@@ -26,6 +26,9 @@
                            (`my-plan.html` loads no `theme.ts`). Empty there;
                            on `shared-plan.html` it is the "Shared by" line and
                            the two actions a shared plan offers.
+    {{PLAN_SYNC_DIALOGS}}  the link dialog and the share panel, the same on
+                           every page; the markup is in `plan-sync-markup.ts`
+                           because the resupply page mounts it too.
 
   Placeholders beat keeping the differing lines in the page files: doing that
   would split `#plan-header` across two files again and put its open and close
@@ -63,52 +66,13 @@
     </div>
 
     <!--
-      Linking this browser to the phone's account, and the share link. Both are
+      Linking this browser to the phone's account, and the share link: one copy
+      in `src/web/trails/plan-sync-markup.ts`, filled in here by
+      `inlinePlanShell` and mounted at runtime by the resupply page. Both are
       removed outright by `plan-sync.ts` when the site was built without
       VITE_API_BASE_URL, so an unconfigured build has no dead controls in it.
     -->
-    <dialog id="link-dialog" class="link-dialog">
-      <form id="link-form">
-        <h2 class="link-title">Sync this plan</h2>
-        <div id="link-unlinked">
-          <p class="link-help">
-            On your phone open Settings &rarr; Linked browsers &rarr; Link a browser,
-            then enter the code here.
-          </p>
-          <label class="link-field" for="link-code">Code</label>
-          <input type="text" id="link-code" class="link-input" maxlength="11"
-            autocomplete="off" autocapitalize="characters" spellcheck="false"
-            placeholder="XXXXXXXX" />
-          <label class="link-field" for="link-label">Name this browser</label>
-          <input type="text" id="link-label" class="link-input" maxlength="60" />
-          <p id="link-error" class="link-error" hidden></p>
-        </div>
-        <div id="link-linked" hidden>
-          <p class="link-help">
-            Linked as <strong id="link-display-name"></strong>. Changes to this plan
-            sync with your phone.
-          </p>
-          <button type="button" id="link-unlink" class="link-danger">Unlink this browser</button>
-        </div>
-        <div class="link-actions">
-          <button type="button" id="link-cancel" class="plan-header-btn">Close</button>
-          <button type="submit" id="link-submit" class="plan-header-btn is-primary">Link</button>
-        </div>
-      </form>
-    </dialog>
-
-    <div id="share-panel" class="share-panel" hidden>
-      <p class="share-help">Anyone with this link can read this plan.</p>
-      <div class="share-row">
-        <input type="text" id="share-url" class="link-input" readonly />
-        <button type="button" id="share-copy" class="plan-header-btn">Copy</button>
-      </div>
-      <p id="share-note" class="share-note" hidden></p>
-      <div class="share-row share-row-end">
-        <button type="button" id="share-unshare" class="link-danger">Stop sharing</button>
-        <button type="button" id="share-close" class="plan-header-btn">Close</button>
-      </div>
-    </div>
+    {{PLAN_SYNC_DIALOGS}}
 
     <!-- Three-panel body -->
     <div id="plan-body">
@@ -190,6 +154,8 @@
               <span>days</span>
             </div>
             <input type="text" id="resupply-filter" placeholder="Filter resupply…" autocomplete="off" />
+            <!-- Shown by the viewer when the page has a resupply planner (PlanViewerOptions.resupplyPageHref). -->
+            <a id="resupply-page-link" class="resupply-page-link" href="#" hidden>Open the resupply planner →</a>
           </div>
           <div id="resupply-list"></div>
         </div>

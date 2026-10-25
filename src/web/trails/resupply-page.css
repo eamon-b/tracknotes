@@ -1,0 +1,376 @@
+/*
+  The resupply page (resupply-page.ts, resupply-view.ts): a header, the hiker's
+  inputs, a summary strip and one wide table of candidate stops. Uses the site's
+  theme tokens from styles.css; the sync controls and dialogs come from
+  plan-sync.css, shared with the planner.
+
+  Desktop: a full-width table, numbers right-aligned and tabular, each decision
+  group its own tinted block. Below 760px the rows stack into cards, each cell
+  labelled from its column header (`data-label`).
+*/
+@import url('./plan-sync.css');
+
+body { background: var(--bg); }
+
+/* ---- Header ---- */
+.rs-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 1rem;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-color);
+}
+.rs-header[hidden] { display: none; }
+.rs-header .back-link {
+  color: var(--accent-color);
+  text-decoration: none;
+  font-weight: 500;
+  white-space: nowrap;
+  font-size: 0.9rem;
+}
+.rs-header .back-link:hover { text-decoration: underline; }
+.rs-title {
+  flex: 1;
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+.rs-title-trail {
+  margin-left: 0.4rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.rs-page {
+  padding: 1rem;
+  max-width: 1800px;
+  margin: 0 auto;
+}
+.rs-page[hidden] { display: none; }
+
+/* ---- Plan bar and the hiker's inputs ---- */
+.rs-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.rs-bar-plan,
+.rs-bar-sync {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.rs-bar-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+.rs-plan-name { font-weight: 600; }
+#save-status {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+#save-status.unsaved { color: var(--tint-warn-text); }
+
+.rs-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.25rem;
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.9rem 0.7rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+}
+.rs-inputs legend {
+  padding: 0 0.3rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+.rs-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+.rs-input {
+  padding: 0.3rem 0.45rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+}
+input.rs-input { width: 5rem; font-variant-numeric: tabular-nums; }
+.rs-inputs-note {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+/* ---- Summary strip ---- */
+.rs-summary { margin-bottom: 1rem; }
+.rs-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.6rem;
+}
+.rs-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--radius);
+  background: var(--bg-secondary);
+}
+.rs-tile-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+.rs-tile-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.rs-tile-note { font-size: 0.75rem; color: var(--text-secondary); }
+.rs-open-note,
+.rs-empty-note {
+  margin: 0.6rem 0 0;
+  padding: 0.5rem 0.75rem;
+  border-left: 3px solid var(--tint-warn-border);
+  border-radius: 4px;
+  background: var(--tint-warn);
+  color: var(--tint-warn-text-strong);
+  font-size: 0.85rem;
+}
+.rs-empty-note { margin: 0 0 0.75rem; }
+
+/* ---- The table ---- */
+.rs-table-wrap { overflow-x: auto; }
+.rs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  background: var(--bg-primary);
+}
+.rs-table th,
+.rs-table td {
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+  text-align: left;
+  vertical-align: top;
+}
+.rs-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-secondary);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary);
+  vertical-align: bottom;
+}
+.rs-table .rs-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.rs-table .rs-num .rs-sub { white-space: normal; }
+.rs-c-notes { min-width: 14rem; max-width: 26rem; }
+.rs-c-stop { min-width: 10rem; }
+.rs-c-off { max-width: 6rem; }
+.rs-name { font-weight: 600; }
+.rs-sub {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+.rs-c-leg .rs-sub { text-align: right; }
+.rs-rides { color: var(--tint-warn-text); }
+.rs-figure { font-weight: 600; }
+.rs-map-link {
+  color: var(--accent-color);
+  white-space: nowrap;
+}
+
+/* Trail start and end */
+.rs-endpoint td { background: var(--bg-secondary); }
+
+/* A chosen stop: the place the food has to reach. */
+.rs-option.is-chosen td { background: var(--resupply-planned-tint); }
+.rs-option.is-chosen .rs-name { color: var(--resupply-planned); }
+
+/* A decision group: one tinted block, a header, its options indented. */
+.rs-group.is-decision { border-left: 3px solid var(--accent-color); }
+.rs-group-head td { background: var(--accent-light); }
+.rs-group.is-undecided { border-left-color: var(--tint-warn-border); }
+.rs-group.is-undecided .rs-group-head td { background: var(--tint-warn); }
+.rs-group-title { font-weight: 700; margin-right: 0.4rem; }
+.rs-group.is-decision .rs-option .rs-c-stop { padding-left: 1.4rem; }
+.rs-none td {
+  padding-left: 1.4rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+.rs-undecided {
+  display: inline-block;
+  margin-top: 0.15rem;
+  padding: 0 0.45rem;
+  border: 1px solid var(--tint-warn-border);
+  border-radius: 999px;
+  background: var(--tint-warn);
+  color: var(--tint-warn-text-strong);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.rs-state { font-size: 0.75rem; color: var(--text-secondary); }
+
+.rs-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-right: 0.6rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.rs-yesno { white-space: nowrap; }
+.rs-zero {
+  width: 4.2rem;
+  padding: 0.2rem 0.35rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.rs-c-days.is-long .rs-figure { color: var(--danger); }
+.rs-flag {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--danger);
+  white-space: nowrap;
+}
+
+.rs-notes { margin: 0; }
+details.rs-notes summary { cursor: pointer; }
+details.rs-notes p {
+  margin: 0.3rem 0 0;
+  color: var(--text-secondary);
+  white-space: pre-line;
+}
+.rs-c-notes .stop-services {
+  display: flex;
+  gap: 0.3rem;
+  margin-bottom: 0.2rem;
+  font-size: 0.85rem;
+  line-height: 1.1;
+}
+.stop-svc { cursor: help; }
+.stop-svc.is-off { opacity: 0.25; filter: grayscale(1); }
+
+.rs-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.rs-footnote {
+  margin: 0.75rem 0 2rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+/* The share panel sits under the plan bar rather than a fixed header. */
+.share-panel { top: 7rem; }
+
+/* ---- Phone width: every row a card ---- */
+@media (max-width: 760px) {
+  .rs-page { padding: 0.75rem; }
+  .rs-header { flex-wrap: wrap; gap: 0.5rem; }
+  .rs-title { font-size: 0.95rem; }
+  .rs-tiles { grid-template-columns: repeat(2, 1fr); }
+  .rs-table-wrap { overflow-x: visible; }
+  .rs-table { background: transparent; }
+  .rs-table thead { display: none; }
+  .rs-table,
+  .rs-table tbody,
+  .rs-table tr,
+  .rs-table td { display: block; width: auto; }
+  .rs-table tbody {
+    margin-bottom: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    background: var(--bg-primary);
+    overflow: hidden;
+  }
+  .rs-group.is-decision { border-left-width: 4px; }
+  .rs-table tr {
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid var(--border-color);
+    padding: 0.35rem 0;
+  }
+  .rs-table td.rs-c-stop,
+  .rs-table td.rs-c-group { order: -1; }
+  .rs-table tr:last-child { border-bottom: none; }
+  .rs-table td {
+    display: grid;
+    grid-template-columns: 8.5rem 1fr;
+    gap: 0.5rem;
+    padding: 0.2rem 0.75rem;
+    border-bottom: none;
+    max-width: none;
+    min-width: 0;
+  }
+  .rs-table td::before {
+    content: attr(data-label);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--text-secondary);
+  }
+  .rs-table td.rs-empty { display: none; }
+  .rs-table .rs-num { text-align: left; white-space: normal; }
+  .rs-c-leg .rs-sub { text-align: left; }
+  /* The stop's name heads its card, and the choice sits right under it. */
+  .rs-table td.rs-c-stop,
+  .rs-table td.rs-c-group,
+  .rs-table td.rs-c-none { display: block; }
+  .rs-table td.rs-c-stop::before,
+  .rs-table td.rs-c-group::before,
+  .rs-table td.rs-c-none::before { content: none; }
+  .rs-group.is-decision .rs-option .rs-c-stop,
+  .rs-none td { padding-left: 0.75rem; }
+  .rs-option.is-chosen td,
+  .rs-group-head td,
+  .rs-endpoint td { background: transparent; }
+  .rs-option.is-chosen { background: var(--resupply-planned-tint); }
+  .rs-group-head { background: var(--accent-light); }
+  .rs-group.is-undecided .rs-group-head { background: var(--tint-warn); }
+  .rs-endpoint tr { background: var(--bg-secondary); }
+  .share-panel { left: 0.75rem; right: 0.75rem; width: auto; }
+}
