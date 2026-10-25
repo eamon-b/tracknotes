@@ -364,6 +364,7 @@ describe('parseHandoffJson', () => {
           offTrailKm: 35.4,
           accessMode: 'hitch',
           acceptsBoxes: true,
+          store: 'full',
           accessName: '  Monarch Pass  ',
         })
       ).waypoints;
@@ -371,6 +372,7 @@ describe('parseHandoffJson', () => {
         offTrailKm: 35.4,
         accessMode: 'hitch',
         acceptsBoxes: true,
+        store: 'full',
         accessName: 'Monarch Pass',
       });
     });
@@ -397,9 +399,11 @@ describe('parseHandoffJson', () => {
           offTrailKm: 'thirty five',
           accessMode: 'teleport',
           acceptsBoxes: 'yes',
+          store: 'supermarket',
           accessName: '   ',
         })
       ).waypoints;
+      expect('store' in wp).toBe(false);
       // Absent, not zeroed: 0 km off-trail would read as "the route goes there".
       expect('offTrailKm' in wp).toBe(false);
       expect('accessMode' in wp).toBe(false);

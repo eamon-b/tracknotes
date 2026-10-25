@@ -28,6 +28,7 @@ interface BundledWaypoint {
   id?: string;
   totalDistance: number;
   offTrailKm?: number;
+  store?: string;
 }
 
 const registry = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/waypoint-ids.json'), 'utf-8')) as Record<
@@ -90,6 +91,8 @@ describe('access.json', () => {
 
     const problems: string[] = [];
     for (const [id, entry] of places) {
+      // A store-only entry has no walk to check (see the store test below).
+      if (entry.method === undefined) continue;
       const scale = scaleFor(entry);
       if (!scale) {
         problems.push(`${id} ${entry.name}: no alternate "${entry.variant}"`);
@@ -113,6 +116,28 @@ describe('access.json', () => {
       if (entry.junctionKm !== undefined && Math.abs(builtKm - entry.junctionKm) > KM_TOLERANCE) {
         problems.push(`${id} ${entry.name}: built at km ${builtKm}, junction at km ${entry.junctionKm}`);
       }
+    }
+    expect(problems).toEqual([]);
+  });
+
+  it.each(trails.map(t => [t.dir, t] as const))("%s gives each entry's store to its rows", (_dir, trail) => {
+    const bundled = JSON.parse(fs.readFileSync(path.join(ASSETS_DIR, `${trail.id}.json`), 'utf-8')) as {
+      waypoints: BundledWaypoint[];
+      offTrailWaypoints?: BundledWaypoint[];
+      alternates?: Array<{ waypoints?: BundledWaypoint[] }>;
+      sideTrips?: Array<{ waypoints?: BundledWaypoint[] }>;
+    };
+    const rows = [
+      ...bundled.waypoints,
+      ...(bundled.offTrailWaypoints ?? []),
+      ...[...(bundled.alternates ?? []), ...(bundled.sideTrips ?? [])].flatMap(v => v.waypoints ?? []),
+    ];
+    const problems: string[] = [];
+    for (const [id, entry] of Object.entries(trail.access.places)) {
+      if (entry.store === undefined) continue;
+      const mine = rows.filter(row => row.id === id);
+      if (mine.length === 0) problems.push(`${id} ${entry.name}: no row`);
+      for (const row of mine) if (row.store !== entry.store) problems.push(`${id} ${entry.name}: ${row.store}`);
     }
     expect(problems).toEqual([]);
   });

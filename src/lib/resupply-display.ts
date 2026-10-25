@@ -11,6 +11,7 @@
  */
 
 import type { LegRide, ResupplyLeg, ResupplyOption, ResupplySummary, StopAccess } from './resupply-plan';
+import type { StoreKind } from './types';
 
 /**
  * Dotted tokens that end no sentence: "U.S. 50", "Mt. Sonder", "approx. 3 km".
@@ -167,4 +168,24 @@ export function stopAccessText(access: StopAccess | undefined, formatKm: (km: nu
 /** "hitch", "shuttle", "boat" — or, when the data does not say how, "off trail". */
 function rideWord(mode: LegRide['mode']): string {
   return mode ?? 'off trail';
+}
+
+/** The words for each {@link StoreKind}, the one place both platforms take them from. */
+export const STORE_KIND_LABELS: Readonly<Record<StoreKind, string>> = {
+  full: 'Full resupply',
+  limited: 'Small store',
+  meals: 'Meals / parcel only',
+  none: 'No shop',
+};
+
+/**
+ * What a place sells, in words: "Full resupply", "Small store", "Meals /
+ * parcel only", "No shop" — and "Box only" for a place with no shop that holds
+ * a mailed box (the CDT's Benchmark Wilderness Ranch). Null when the data does
+ * not say, so a UI shows nothing rather than guessing.
+ */
+export function storeLabel(option: Pick<ResupplyOption, 'store' | 'acceptsBoxes'>): string | null {
+  if (!option.store) return null;
+  if (option.store === 'none' && option.acceptsBoxes === true) return 'Box only';
+  return STORE_KIND_LABELS[option.store];
 }

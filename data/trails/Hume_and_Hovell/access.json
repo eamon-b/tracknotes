@@ -50,6 +50,10 @@
         [-35.97442, 147.04525]
       ]
     },
+    "w_40fbf879": {
+      "name": "Tumbarumba",
+      "store": "full"
+    },
     "w_6af21e38": {
       "name": "Cafe and takeaway",
       "method": "osm",
@@ -69,7 +73,12 @@
         [-36.043526, 146.98869],
         [-36.043479, 146.989338],
         [-36.0436, 146.99014]
-      ]
+      ],
+      "store": "meals"
+    },
+    "w_a73a9b3d": {
+      "name": "Restaurant area",
+      "store": "meals"
     },
     "w_fe7d1507": {
       "name": "Paddys river dam actual",

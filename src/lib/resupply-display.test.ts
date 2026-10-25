@@ -13,7 +13,9 @@ import {
   legDistanceText,
   legRidesText,
   resupplySummaryText,
+  STORE_KIND_LABELS,
   stopAccessText,
+  storeLabel,
 } from './resupply-display';
 import type { ResupplySummary } from './resupply-plan';
 
@@ -166,5 +168,27 @@ describe('leg and stop distances, trail and off trail apart', () => {
     const walk = { place: 'A', walkKm: 2, walkAscentM: 0, walkDescentM: 0, rideKm: 0 };
     expect(stopAccessText(walk, km)).toBe('+ 2.0 km off trail');
     expect(stopAccessText({ ...walk, walkKm: 0, rideKm: 35, rideMode: 'hitch' }, km)).toBe('+ 35.0 km hitch');
+  });
+});
+
+describe('storeLabel', () => {
+  it('words each store kind', () => {
+    expect(storeLabel({ store: 'full' })).toBe('Full resupply');
+    expect(storeLabel({ store: 'limited' })).toBe('Small store');
+    expect(storeLabel({ store: 'meals' })).toBe('Meals / parcel only');
+    expect(storeLabel({ store: 'none' })).toBe('No shop');
+    expect(Object.keys(STORE_KIND_LABELS)).toEqual(['full', 'limited', 'meals', 'none']);
+  });
+
+  it('says "Box only" for a place with no shop that holds a box', () => {
+    expect(storeLabel({ store: 'none', acceptsBoxes: true })).toBe('Box only');
+    expect(storeLabel({ store: 'none', acceptsBoxes: false })).toBe('No shop');
+    // A box at a shop is still the shop.
+    expect(storeLabel({ store: 'limited', acceptsBoxes: true })).toBe('Small store');
+  });
+
+  it('says nothing when the data does not', () => {
+    expect(storeLabel({})).toBeNull();
+    expect(storeLabel({ acceptsBoxes: true })).toBeNull();
   });
 });

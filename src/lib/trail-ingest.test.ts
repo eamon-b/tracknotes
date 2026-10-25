@@ -556,6 +556,27 @@ describe('a loop that ends where it started', () => {
     expect(town.offTrailKm).toBe(0.4);
   });
 
+  it('gives every row of a waypoint the store its access entry names', () => {
+    const gpx = loopRoute();
+    gpx.waypoints.push(
+      { id: 'w_town', name: 'Town', lat: -34.002, lon: 137.998, type: 'town' },
+      // Far beyond the match radius: an off-trail row, which takes it too.
+      { id: 'w_far', name: 'Far Town', lat: -34.5, lon: 138.5, type: 'town' }
+    );
+    gpx.waypoints[0].id = 'w_head';
+    const trail = buildTrail(gpx, {
+      config: config(),
+      waypointStores: new Map([
+        ['w_town', 'limited'],
+        ['w_far', 'full'],
+      ]),
+    });
+    expect(trail.waypoints.find(w => w.id === 'w_town')?.store).toBe('limited');
+    expect(trail.offTrailWaypoints.find(w => w.id === 'w_far')?.store).toBe('full');
+    // A waypoint no entry names gains no key, so the other trails' JSON is unchanged.
+    expect('store' in trail.waypoints.find(w => w.id === 'w_head')!).toBe(false);
+  });
+
   it('keeps a start waypoint at km 0 when the loop ends nearer it than it began', () => {
     // A recorded loop that finishes a few metres past its start.
     const gpx = loopRoute();

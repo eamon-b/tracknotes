@@ -10,10 +10,10 @@
       "NSW",
       "ACT"
     ],
-    "dataVersion": "2026-10-23",
-    "updatedAt": "2026-10-23T04:24:16.222Z",
-    "md5": "e02c6ddef65171d813b025933e136a6f",
-    "bytes": 1159547
+    "dataVersion": "2026-10-25",
+    "updatedAt": "2026-10-25T01:13:57.095Z",
+    "md5": "cad159ba5e7067c292cf68c8f703dc84",
+    "bytes": 1159562
   },
   {
     "id": "hume-and-hovell",
@@ -24,10 +24,10 @@
     "states": [
       "NSW"
     ],
-    "dataVersion": "2026-10-23",
-    "updatedAt": "2026-10-23T04:28:19.344Z",
-    "md5": "1e8be5aabdbf0a7777d4120cebba2970",
-    "bytes": 720307
+    "dataVersion": "2026-10-25",
+    "updatedAt": "2026-10-25T01:13:57.095Z",
+    "md5": "b6787888b947d022fd1baf923e5fcd6b",
+    "bytes": 720354
   },
   {
     "id": "bibbulmun",
@@ -38,10 +38,10 @@
     "states": [
       "WA"
     ],
-    "dataVersion": "2026-10-23",
-    "updatedAt": "2026-10-23T04:31:36.671Z",
-    "md5": "1c9b30e72ddf255b1bd3f306bea121fa",
-    "bytes": 1088352
+    "dataVersion": "2026-10-25",
+    "updatedAt": "2026-10-25T01:13:57.095Z",
+    "md5": "dea67a620dca9bcd9754bb1d8a5e3d9d",
+    "bytes": 1088547
   },
   {
     "id": "cape_to_cape",
@@ -52,10 +52,10 @@
     "states": [
       "WA"
     ],
-    "dataVersion": "2026-10-23",
-    "updatedAt": "2026-10-23T04:35:20.890Z",
-    "md5": "18d78311791883d4a28513e1aa7b274d",
-    "bytes": 572144
+    "dataVersion": "2026-10-25",
+    "updatedAt": "2026-10-25T01:13:57.095Z",
+    "md5": "baca29b21f4975d554cd337653b10c8f",
+    "bytes": 572198
   },
   {
     "id": "cdt",
@@ -64,10 +64,10 @@
     "lengthKm": 4823.8,
     "country": "US",
     "states": [],
-    "dataVersion": "2026-10-23",
-    "updatedAt": "2026-10-23T05:58:43.502Z",
-    "md5": "300bffe2c94caa5bdb9b4fb4891fe721",
-    "bytes": 2537744
+    "dataVersion": "2026-10-25",
+    "updatedAt": "2026-10-25T01:13:57.095Z",
+    "md5": "2876a8cea235c4be4f081f2bae1044f7",
+    "bytes": 2540049
   },
   {
     "id": "grampians_peaks",
@@ -78,10 +78,10 @@
     "states": [
       "VIC"
     ],
-    "dataVersion": "2026-10-23",
-    "updatedAt": "2026-10-23T04:49:06.348Z",
-    "md5": "659e2c1512648a5d967204149d84cf14",
-    "bytes": 693297
+    "dataVersion": "2026-10-25",
+    "updatedAt": "2026-10-25T01:13:57.095Z",
+    "md5": "19db04cbe7bd69ab98e5e907dd164d3c",
+    "bytes": 693333
   },
   {
     "id": "great_north_walk",
@@ -92,10 +92,10 @@
     "states": [
       "NSW"
     ],
-    "dataVersion": "2026-10-23",
-    "updatedAt": "2026-10-23T04:49:06.348Z",
-    "md5": "046f41f178ab4a3f79f4982cf2a59111",
-    "bytes": 778278
+    "dataVersion": "2026-10-25",
+    "updatedAt": "2026-10-25T01:13:57.095Z",
+    "md5": "8c07d5220e109976f17626d45e3aebf8",
+    "bytes": 778344
   },
   {
     "id": "great_ocean_walk",
@@ -120,10 +120,10 @@
     "states": [
       "VIC"
     ],
-    "dataVersion": "2026-10-20",
-    "updatedAt": "2026-10-20T00:52:37.639Z",
-    "md5": "35fb51b188184f42b21a520f11ac7bb6",
-    "bytes": 594375
+    "dataVersion": "2026-10-25",
+    "updatedAt": "2026-10-25T01:13:57.095Z",
+    "md5": "9008eb9e5870de0a4f66eeebbf4aa7b8",
+    "bytes": 594393
   },
   {
     "id": "heysen",
@@ -134,10 +134,10 @@
     "states": [
       "SA"
     ],
-    "dataVersion": "2026-10-23",
-    "updatedAt": "2026-10-23T04:55:07.039Z",
-    "md5": "342c9c0a76d4cd8bf945a169f8da04c6",
-    "bytes": 1248002
+    "dataVersion": "2026-10-25",
+    "updatedAt": "2026-10-25T01:13:57.095Z",
+    "md5": "bef01a3d054947770e3e2375965f2238",
+    "bytes": 1248240
   },
   {
     "id": "kep_track",
@@ -148,10 +148,10 @@
     "states": [
       "WA"
     ],
-    "dataVersion": "2026-10-23",
-    "updatedAt": "2026-10-23T04:04:08.322Z",
-    "md5": "876c08dc97017dcf85dbf352480c2c6f",
-    "bytes": 313358
+    "dataVersion": "2026-10-25",
+    "updatedAt": "2026-10-25T01:13:57.095Z",
+    "md5": "2838be21934f1c8c386b9548277349db",
+    "bytes": 313388
   },
   {
     "id": "larapinta",
@@ -162,10 +162,10 @@
     "states": [
       "NT"
     ],
-    "dataVersion": "2026-10-23",
-    "updatedAt": "2026-10-23T04:37:21.738Z",
-    "md5": "497d60ae9ccc0b903fa0c805de1a4117",
-    "bytes": 777016
+    "dataVersion": "2026-10-25",
+    "updatedAt": "2026-10-25T01:13:57.095Z",
+    "md5": "9b91bda2a4ea2883c6be28c645dfc1d1",
+    "bytes": 777108
   },
   {
     "id": "overland",
@@ -190,10 +190,10 @@
     "states": [
       "NSW"
     ],
-    "dataVersion": "2026-10-23",
-    "updatedAt": "2026-10-23T04:55:07.039Z",
-    "md5": "bfcd6eb42c85bf41b91233ffcb1c776a",
-    "bytes": 275872
+    "dataVersion": "2026-10-25",
+    "updatedAt": "2026-10-25T01:13:57.095Z",
+    "md5": "f5577d9123b7a8a78e2b553cde3ec467",
+    "bytes": 275887
   },
   {
     "id": "shikoku",
@@ -216,10 +216,10 @@
     "states": [
       "NSW"
     ],
-    "dataVersion": "2026-10-19",
-    "updatedAt": "2026-10-19T21:43:49.331Z",
-    "md5": "b0b98454d550a7834de06169f8a38089",
-    "bytes": 349247
+    "dataVersion": "2026-10-25",
+    "updatedAt": "2026-10-25T01:13:57.095Z",
+    "md5": "aade6361272a39bc01a99d46a5874991",
+    "bytes": 349262
   },
   {
     "id": "south_coast_track",

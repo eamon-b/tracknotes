@@ -52,6 +52,7 @@ import {
   ACCESS_ATTRIBUTION,
   ACCESS_SOURCE,
   mergeTrailAccess,
+  routedAccessIds,
   readTrailAccessFile,
   trailAccessPath,
   writeTrailAccessFile,
@@ -520,7 +521,8 @@ export function oldestAnswer(
   let oldest = now;
   for (const at of answeredAt) if (at < oldest) oldest = at;
   const keptPrevious = Object.entries(places).some(
-    ([id, entry]) => !(id in fetched) && entry.method !== 'manual' && previous?.places[id] === entry
+    ([id, entry]) =>
+      !(id in fetched) && entry.method !== 'manual' && entry.method !== undefined && previous?.places[id] === entry
   );
   if (keptPrevious && previous) {
     const at = new Date(previous.fetchedAt);
@@ -593,7 +595,8 @@ async function main(): Promise<void> {
 
   const trail = JSON.parse(fs.readFileSync(trailFile, 'utf-8')) as ProcessedTrail;
   const previous = readTrailAccessFile(trailDir);
-  const ownIds = new Set(Object.keys(previous?.places ?? {}));
+  // A store-only entry says what a place sells, not that its walk is ours to route.
+  const ownIds = routedAccessIds(previous);
   const candidates = selectCandidates(trail, args.minDistanceM, ownIds).filter(
     c => previous?.places[c.id]?.method !== 'manual' && (!args.only || args.only.has(c.id))
   );

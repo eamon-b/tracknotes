@@ -144,6 +144,7 @@ describe('listResupplyOptions', () => {
         offTrailKm: 35.4,
         accessMode: 'hitch',
         acceptsBoxes: true,
+        store: 'full',
         description: 'Leave the CDT here.',
       },
     ]);
@@ -156,8 +157,16 @@ describe('listResupplyOptions', () => {
       offTrailKm: 35.4,
       accessMode: 'hitch',
       acceptsBoxes: true,
+      store: 'full',
       description: 'Leave the CDT here.',
     });
+  });
+
+  it('drops a store kind it does not know', () => {
+    const groups = listResupplyOptions([
+      { id: 'a', name: 'A', type: 'town', totalDistance: 1, store: 'supermarket' as never },
+    ]);
+    expect('store' in groups[0].options[0]).toBe(false);
   });
 
   it('drops an unusable access mode or off-trail distance rather than passing it on', () => {

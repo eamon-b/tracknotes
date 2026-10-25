@@ -272,6 +272,7 @@ hanging a few extra fields off the waypoint that marks the turn-off:
       <tn:offTrailKm>35.4</tn:offTrailKm>
       <tn:accessMode>hitch</tn:accessMode>
       <tn:acceptsBoxes>true</tn:acceptsBoxes>
+      <tn:store>full</tn:store>
       <tn:accessName>Monarch Pass (US 50)</tn:accessName>
     </extensions>
   </wpt>
@@ -283,6 +284,13 @@ hanging a few extra fields off the waypoint that marks the turn-off:
   `boat`, or `on-trail` for somewhere the route runs straight through.
 - `acceptsBoxes` says whether the place will hold a resupply box you post
   ahead.
+- `store` says what the place sells: `full` (a supermarket or grocery — a
+  whole carry), `limited` (a general, convenience or camp store — a top-up),
+  `meals` (a cafe, pub or lodge: food to eat there, perhaps a parcel to
+  collect, nothing to carry out) or `none` (no shop). The planner shows it as
+  "Full resupply", "Small store", "Meals / parcel only" or "No shop" — "Box
+  only" for a `none` place that takes boxes. Any other value is ignored, and
+  a place without one shows nothing.
 - `accessName` names the turn-off itself, which is what a list of options at
   one road end is grouped under.
 - `offTrailAscentM` and `offTrailDescentM` are the metres climbed and descended

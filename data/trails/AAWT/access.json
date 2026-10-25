@@ -29,6 +29,10 @@
         [-36.0889, 148.464418]
       ]
     },
+    "w_101183da": {
+      "name": "Omeo",
+      "store": "full"
+    },
     "w_1fac6e47": {
       "name": "Twins Track",
       "method": "osm",

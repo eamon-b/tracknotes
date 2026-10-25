@@ -69,8 +69,8 @@ import {
   DEFAULT_WAYPOINT_MAX_DISTANCE_METERS,
   VARIANT_WAYPOINT_MAX_DISTANCE_METERS,
 } from './trail-ingest';
-import { ACCESS_MODES } from './types';
-import type { AccessMode } from './types';
+import { ACCESS_MODES, isStoreKind } from './types';
+import type { AccessMode, StoreKind } from './types';
 import type { CommunityCheck, CommunityCheckLevel } from './community-types';
 import { COMMUNITY_LIMITS } from './community-types';
 import { detectRegion } from './region-detect';
@@ -1077,6 +1077,10 @@ function copyAccess(w: Obj, path: string, out: AccessFields): void {
   }
   if (w.acceptsBoxes !== undefined && w.acceptsBoxes !== null)
     out.acceptsBoxes = bool(w.acceptsBoxes, `${path}.acceptsBoxes`);
+  if (w.store !== undefined && w.store !== null) {
+    if (!isStoreKind(w.store)) fail(`${path}.store`, 'is not a known kind of store');
+    out.store = w.store;
+  }
   const accessName = optStr(w.accessName, `${path}.accessName`, S.shortString);
   if (accessName !== undefined) out.accessName = accessName;
   const ascent = optNum(w.offTrailAscentM, `${path}.offTrailAscentM`, 0, 10_000);
@@ -1281,6 +1285,7 @@ type AccessFields = {
   offTrailKm?: number;
   accessMode?: AccessMode;
   acceptsBoxes?: boolean;
+  store?: StoreKind;
   accessName?: string;
   offTrailAscentM?: number;
   offTrailDescentM?: number;
@@ -1290,6 +1295,7 @@ function copyAccessFields(from: AccessFields, to: AccessFields): void {
   if (from.offTrailKm !== undefined) to.offTrailKm = from.offTrailKm;
   if (from.accessMode !== undefined) to.accessMode = from.accessMode;
   if (from.acceptsBoxes !== undefined) to.acceptsBoxes = from.acceptsBoxes;
+  if (from.store !== undefined) to.store = from.store;
   if (from.accessName !== undefined) to.accessName = from.accessName;
   if (from.offTrailAscentM !== undefined) to.offTrailAscentM = from.offTrailAscentM;
   if (from.offTrailDescentM !== undefined) to.offTrailDescentM = from.offTrailDescentM;

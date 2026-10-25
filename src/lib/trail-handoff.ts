@@ -23,7 +23,7 @@
  */
 
 import { hashString, type ImportReport } from './gpx-import';
-import { isAccessMode, type WaypointAccess } from './types';
+import { isAccessMode, isStoreKind, type WaypointAccess } from './types';
 import type {
   ClimateLocationConfig,
   DirectionConfig,
@@ -520,6 +520,7 @@ function applyAccessFields(waypoint: WaypointAccess, value: Record<string, unkno
   delete waypoint.offTrailKm;
   delete waypoint.accessMode;
   delete waypoint.acceptsBoxes;
+  delete waypoint.store;
   delete waypoint.accessName;
   delete waypoint.offTrailAscentM;
   delete waypoint.offTrailDescentM;
@@ -530,6 +531,7 @@ function applyAccessFields(waypoint: WaypointAccess, value: Record<string, unkno
   }
   if (isAccessMode(value.accessMode)) waypoint.accessMode = value.accessMode;
   if (typeof value.acceptsBoxes === 'boolean') waypoint.acceptsBoxes = value.acceptsBoxes;
+  if (isStoreKind(value.store)) waypoint.store = value.store;
   const accessName = readName(value.accessName);
   if (accessName !== null) waypoint.accessName = accessName;
   for (const key of ['offTrailAscentM', 'offTrailDescentM'] as const) {

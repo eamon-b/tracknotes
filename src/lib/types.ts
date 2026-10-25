@@ -20,6 +20,27 @@ export function isAccessMode(value: unknown): value is AccessMode {
 }
 
 /**
+ * What a resupply place sells, as far as the trail data says:
+ *
+ * - `full` — a supermarket or a grocery you can buy a whole carry at;
+ * - `limited` — a general store, a convenience store or a camp store: enough
+ *   to top up, not to plan a long carry around;
+ * - `meals` — food to eat there (a cafe, a pub, a lodge's dining room) and
+ *   perhaps a parcel to collect, but nothing to carry out;
+ * - `none` — no shop at all (a box drop, a trailhead, a locality).
+ *
+ * Absent means the data does not say — never "none".
+ */
+export const STORE_KINDS = ['full', 'limited', 'meals', 'none'] as const;
+
+export type StoreKind = (typeof STORE_KINDS)[number];
+
+/** Narrows untrusted text (GPX extensions, handoff JSON, access.json) to a {@link StoreKind}. */
+export function isStoreKind(value: unknown): value is StoreKind {
+  return typeof value === 'string' && (STORE_KINDS as readonly string[]).includes(value);
+}
+
+/**
  * Where an off-trail place sits relative to the route, carried in GPX
  * `<extensions>` under the `tn:` namespace and preserved all the way to the
  * planner. Every field is optional: a waypoint without them is an ordinary
@@ -36,6 +57,8 @@ export interface WaypointAccess {
   accessMode?: AccessMode;
   /** Whether the place holds a mailed resupply box. */
   acceptsBoxes?: boolean;
+  /** What the place sells ({@link StoreKind}); absent when the data does not say. */
+  store?: StoreKind;
   /** Name of the turn-off itself (e.g. "Monarch Pass (US 50)"). */
   accessName?: string;
   /**
