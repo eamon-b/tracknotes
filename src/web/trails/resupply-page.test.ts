@@ -86,6 +86,10 @@ const radio = (groupSelector: string, value: string): HTMLInputElement => {
   return node;
 };
 
+const tabButtonClick = (tab: string): void => {
+  document.querySelector<HTMLButtonElement>(`.tab-btn[data-tab="${tab}"]`)?.click();
+};
+
 const tileValue = (label: string): string => {
   const tile = [...document.querySelectorAll('.rs-tile')].find(
     el => el.querySelector('.rs-tile-label')?.textContent === label
@@ -167,6 +171,57 @@ describe('the resupply page', () => {
     expect(document.querySelector<HTMLInputElement>('input.rs-zero[data-option-id="w_001"]')?.value).toBe('1.5');
   });
 
+  it('keeps the stored zero days when the box holds something that is not a number', async () => {
+    await bootResupply();
+    const box = (): HTMLInputElement =>
+      document.querySelector<HTMLInputElement>('input.rs-zero[data-option-id="w_001"]')!;
+    box().value = '2';
+    box().dispatchEvent(new Event('change', { bubbles: true }));
+    flushSave();
+    expect(storedDoc().resupplyZeroDays).toEqual({ w_001: 2 });
+
+    // "3e": a number input reports an entry it cannot read as an empty value
+    // with `validity.badInput` set — which must not read as "clear it".
+    const input = box();
+    input.value = '';
+    Object.defineProperty(input, 'validity', { value: { badInput: true, valid: false } });
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    flushSave();
+
+    expect(storedDoc().resupplyZeroDays).toEqual({ w_001: 2 });
+    expect(box().value).toBe('2');
+    expect(box().getAttribute('aria-invalid')).toBe('true');
+    expect(box().classList.contains('is-invalid')).toBe(true);
+  });
+
+  it('keeps the focus on the control the hiker moved to when the table redraws', async () => {
+    await bootResupply();
+    // An arrow key in a decision group checks and focuses the next radio, then fires change.
+    const charlie = radio('tbody.is-decision', 'w_003');
+    charlie.focus();
+    pick(charlie);
+    vi.advanceTimersByTime(0);
+    const now = document.activeElement as HTMLInputElement;
+    expect(now).not.toBe(document.body);
+    expect(now.type).toBe('radio');
+    expect(now.value).toBe('w_003');
+    expect(now.checked).toBe(true);
+
+    // Tab out of a zero-days box: change fires, focus moves to the next control,
+    // and the redraw must leave it there rather than on <body>.
+    const box = document.querySelector<HTMLInputElement>('input.rs-zero[data-option-id="w_001"]')!;
+    box.focus();
+    box.value = '1';
+    box.dispatchEvent(new Event('change', { bubbles: true }));
+    const next = radio('tbody.is-decision', 'w_002');
+    next.focus();
+    vi.advanceTimersByTime(0);
+    const after = document.activeElement as HTMLInputElement;
+    expect(after).not.toBe(document.body);
+    expect(after.name).toBe(next.name);
+    expect(after.value).toBe('w_002');
+  });
+
   it('keeps pace and hours in the planner’s per-browser prefs', async () => {
     await bootResupply();
     const days = () => document.querySelector('tr.rs-end .rs-c-days .rs-figure')?.textContent;
@@ -237,6 +292,100 @@ async function bootPlanner(): Promise<void> {
   await initPlanViewer(TRAIL_ID, makeTrail() as never, { resupplyPageHref: 'resupply.html' });
 }
 
+// ---------------------------------------------------------------------------
+// Two pages on one plan
+// ---------------------------------------------------------------------------
+
+/**
+ * Boot the planner and the resupply page in one document, as two tabs on one
+ * browser's `localStorage`. Each is its own module instance; the ids they
+ * share (the save line, the sync controls) belong to the planner's markup,
+ * which only changes which page's status text a test could read.
+ */
+async function bootBoth(): Promise<void> {
+  await bootPlanner();
+  // A stored document both pages start from, as after any earlier save.
+  $('plan-name-input').dispatchEvent(new Event('input'));
+  (document.getElementById('plan-name-input') as HTMLInputElement).value = 'Both tabs';
+  $('plan-name-input').dispatchEvent(new Event('input'));
+  flushSave();
+  expect(storedDoc().name).toBe('Both tabs');
+
+  const app = document.createElement('main');
+  app.id = 'resupply-app';
+  document.body.appendChild(app);
+  vi.resetModules();
+  const { initResupplyPage } = await import('./resupply-page');
+  await initResupplyPage(TRAIL_ID, makeTrail() as never, { plannerHref: () => 'plan.html' });
+}
+
+/** Deliver the `storage` event another tab's save raises (it never reaches the tab that wrote). */
+const deliverStorage = (key: string): void =>
+  void window.dispatchEvent(new StorageEvent('storage', { key: `${key}-${TRAIL_ID}` }));
+
+describe('the planner and the resupply page open together', () => {
+  it('keeps an edit from each page, whichever saves last and whether or not it heard of the other', async () => {
+    await bootBoth();
+
+    // The resupply page decides Mill Road: Bravo.
+    pick(radio('tbody.is-decision', 'w_002'));
+    flushSave();
+    expect(storedDoc().resupplyStops).toContain('w_002');
+    expect(storedDoc().resupplyStops).not.toContain('w_003');
+
+    // The planner has not heard yet, and unticks Echo — an unrelated edit, on
+    // its stale copy.
+    tabButtonClick('resupply');
+    const echo = document.getElementById('resupply-opt-w_005') as HTMLInputElement;
+    echo.checked = false;
+    echo.dispatchEvent(new Event('change', { bubbles: true }));
+    flushSave();
+
+    expect(storedDoc().resupplyStops).toEqual(['w_001', 'w_002', 'w_004']);
+    expect(storedDoc().name).toBe('Both tabs');
+
+    // Now each hears of the other's save, and both show both edits.
+    deliverStorage('trail-plan-doc');
+    expect(document.querySelector('tbody.is-decision')?.classList.contains('is-undecided')).toBe(false);
+    expect(radio('tbody[data-group-key="w_005"]', '').checked).toBe(true);
+    expect((document.getElementById('resupply-opt-w_003') as HTMLInputElement).checked).toBe(false);
+  });
+
+  it('replays an edit still waiting to be saved on the copy another page saved meanwhile', async () => {
+    await bootBoth();
+
+    // The resupply page's edit is pending (the 800 ms debounce) …
+    const box = document.querySelector<HTMLInputElement>('input.rs-zero[data-option-id="w_001"]')!;
+    box.value = '1';
+    box.dispatchEvent(new Event('change', { bubbles: true }));
+
+    // … when the planner saves an edit of its own and the event arrives.
+    (document.getElementById('plan-name-input') as HTMLInputElement).value = 'Renamed in the planner';
+    $('plan-name-input').dispatchEvent(new Event('input'));
+    flushSave();
+    deliverStorage('trail-plan-doc');
+    flushSave();
+
+    expect(storedDoc().name).toBe('Renamed in the planner');
+    expect(storedDoc().resupplyZeroDays).toEqual({ w_001: 1 });
+  });
+
+  it('keeps each page’s change to the hiker’s figures', async () => {
+    await bootBoth();
+    const hours = $('rs-hours') as HTMLInputElement;
+    hours.value = '6';
+    hours.dispatchEvent(new Event('change'));
+
+    // The planner changes the pace without having heard of the hours.
+    const pace = $('plan-pace') as HTMLSelectElement;
+    pace.value = 'fast';
+    pace.dispatchEvent(new Event('change'));
+
+    expect(storedPrefs().dailyHours).toBe(6);
+    expect(storedPrefs().pace).toBe('fast');
+  });
+});
+
 describe('the planner', () => {
   it('links its Resupply tab to the resupply page', async () => {
     await bootPlanner();
@@ -250,5 +399,7 @@ describe('the planner', () => {
     await bootPlanner();
     expect(document.querySelector('.tab-btn.active')?.getAttribute('data-tab')).toBe('resupply');
     expect(document.querySelector('.resupply-row[data-id="w_004"]')?.classList.contains('is-focused')).toBe(true);
+    // Applied once: a reload keeps whatever tab the hiker moves to.
+    expect(window.location.search).toBe('');
   });
 });
