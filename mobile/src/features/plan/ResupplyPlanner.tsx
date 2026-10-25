@@ -19,7 +19,13 @@ import React, { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { formatDistance, formatElevation } from '@lib/format-distance';
 import type { ResupplyLeg, ResupplyOption, ResupplyPlanSummary } from '@lib/resupply-plan';
-import { legRidesText, legSideTripText } from '@lib/resupply-display';
+import {
+  legRidesText,
+  legSideTripText,
+  resupplyGroupName,
+  resupplyOptionShortName,
+  type LegEndpointNames,
+} from '@lib/resupply-display';
 import { useTheme } from '../../theme';
 import { radii, spacing, touchTarget, typography } from '../../tokens';
 import type { Units } from '../../state/settings-store';
@@ -58,7 +64,7 @@ export function ResupplyPlanner(props: ResupplyPlannerProps) {
         case 'end':
           return <EndRow kind={item.kind} name={item.name} km={item.km} units={units} />;
         case 'leg':
-          return <LegRow leg={item.leg} units={units} />;
+          return <LegRow leg={item.leg} names={item.names} units={units} />;
         case 'group':
           return <GroupRow row={item} units={units} onChoose={onChoose} onZeroDays={onZeroDays} />;
       }
@@ -205,10 +211,19 @@ function EndRow({
   );
 }
 
-const LegRow = React.memo(function LegRow({ leg, units }: { leg: ResupplyLeg; units: Units }) {
+const LegRow = React.memo(function LegRow({
+  leg,
+  names,
+  units,
+}: {
+  leg: ResupplyLeg;
+  names: LegEndpointNames;
+  units: Units;
+}) {
   const { colors } = useTheme();
   const km = (value: number) => formatDistance(value, units);
-  const sideTrip = legSideTripText(leg, km);
+  // An undecided stop's side trip is its longest place's: named by no one place.
+  const sideTrip = legSideTripText(leg, km, names.toDecided ? names.to : null);
   const rides = legRidesText(leg, km);
   return (
     <View
@@ -222,7 +237,7 @@ const LegRow = React.memo(function LegRow({ leg, units }: { leg: ResupplyLeg; un
     >
       <View style={styles.legHead}>
         <Text style={[styles.legRoute, { color: colors.textSecondary }]} numberOfLines={1}>
-          {`${leg.fromName} → ${leg.toName}`}
+          {`${names.from} → ${names.to}`}
         </Text>
         {leg.isLong && (
           <View style={[styles.badge, { backgroundColor: colors.warning }]}>
@@ -265,8 +280,7 @@ const GroupRow = React.memo(function GroupRow({
   const { group, choice, inSection, zeroDays } = row;
   const single = group.options.length === 1;
   const chosenId = choice.kind === 'chosen' ? choice.optionId : null;
-  const title =
-    group.label ?? (single ? group.options[0].name : group.options.map((o) => o.name).join(' / '));
+  const title = resupplyGroupName(group);
 
   return (
     <View
@@ -313,7 +327,9 @@ const GroupRow = React.memo(function GroupRow({
           {group.options.map((option) => (
             <Radio
               key={option.id}
-              label={option.name}
+              // The header names the turn-off; the row only what is beyond it.
+              label={resupplyOptionShortName(option, group)}
+              spokenLabel={option.name}
               checked={chosenId === option.id}
               onPress={() => onChoose(group.key, option.id)}
             >
@@ -356,11 +372,14 @@ const GroupRow = React.memo(function GroupRow({
 
 function Radio({
   label,
+  spokenLabel = label,
   checked,
   onPress,
   children,
 }: {
   label: string;
+  /** What a screen reader says; the place's full name where the label is the short one. */
+  spokenLabel?: string;
   checked: boolean;
   onPress: () => void;
   children?: React.ReactNode;
@@ -370,7 +389,7 @@ function Radio({
     <Pressable
       onPress={onPress}
       accessibilityRole="radio"
-      accessibilityLabel={label}
+      accessibilityLabel={spokenLabel}
       accessibilityState={{ checked }}
       style={({ pressed }) => [styles.radioRow, pressed && styles.pressed]}
     >

@@ -23,7 +23,13 @@ import {
   type ResupplyOptionGroup,
   type ResupplyPlanSummary,
 } from '@lib/resupply-plan';
-import { accessSummary, firstSentence, storeLabel } from '@lib/resupply-display';
+import {
+  accessSummary,
+  firstSentence,
+  legEndpointNames,
+  storeLabel,
+  type LegEndpointNames,
+} from '@lib/resupply-display';
 import { chooseResupplyOption, setResupplyStops, setResupplyZeroDays } from '@lib/plan-editor';
 import { PLAN_LIMITS, type Pace, type PlanDocument } from '@lib/plan-types';
 import type { Units } from '../../state/settings-store';
@@ -51,7 +57,13 @@ export type PlannerRow =
       /** The chosen option's zero days (0 when none are set, or nothing is chosen). */
       zeroDays: number;
     }
-  | { kind: 'leg'; key: string; leg: ResupplyLeg };
+  | {
+      kind: 'leg';
+      key: string;
+      leg: ResupplyLeg;
+      /** What its two ends are called: an undecided stop by its group, "… (not decided)". */
+      names: LegEndpointNames;
+    };
 
 /** Floating-point slack when matching a leg's end to a group's km. */
 const KM_EPSILON = 1e-6;
@@ -87,6 +99,13 @@ export function plannerRows(
   let startPlaced = false;
   let endPlaced = false;
 
+  const legRow = (idx: number, leg: ResupplyLeg): PlannerRow => ({
+    kind: 'leg',
+    key: `leg-${idx}`,
+    leg,
+    names: legEndpointNames(leg, groups, selectedIds),
+  });
+
   const placeStart = () => {
     if (startPlaced) return;
     startPlaced = true;
@@ -98,7 +117,7 @@ export function plannerRows(
     endPlaced = true;
     placeStart();
     for (; legIdx < legs.length; legIdx++) {
-      rows.push({ kind: 'leg', key: `leg-${legIdx}`, leg: legs[legIdx] });
+      rows.push(legRow(legIdx, legs[legIdx]));
     }
     rows.push({ kind: 'end', key: 'end', name: range.endName, km: range.endKm });
   };
@@ -114,12 +133,12 @@ export function plannerRows(
       // A leg ending short of this stop (one the calculator merged away) is
       // still shown, in order, rather than holding up every leg after it.
       while (legIdx < legs.length && legs[legIdx].toKm < group.km - KM_EPSILON) {
-        rows.push({ kind: 'leg', key: `leg-${legIdx}`, leg: legs[legIdx] });
+        rows.push(legRow(legIdx, legs[legIdx]));
         legIdx++;
       }
       const leg = legs[legIdx];
       if (leg && Math.abs(leg.toKm - group.km) < KM_EPSILON) {
-        rows.push({ kind: 'leg', key: `leg-${legIdx}`, leg });
+        rows.push(legRow(legIdx, leg));
         legIdx++;
       }
     }

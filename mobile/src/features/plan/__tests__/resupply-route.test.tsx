@@ -152,7 +152,7 @@ describe('resupply screen', () => {
     expect(text(tree)).toContain('Not decided yet');
     expect(control(tree, 'Resupply at Creede').value).toBe(true);
     // The legs run start → Monarch Pass → Creede → end.
-    expect(text(tree)).toContain('Trail Start → Monarch Pass / Salida');
+    expect(text(tree)).toContain('Trail Start → Monarch Pass (not decided)');
     expect(text(tree)).toContain('Creede → Trail End');
   });
 

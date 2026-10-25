@@ -256,6 +256,47 @@ describe('ResupplyPlanner', () => {
     expect(() => control(tree, 'Clear choices')).toThrow();
   });
 
+  it('names places inside a turn-off without repeating it, and an undecided stop by its group', () => {
+    const cdtGroups = listResupplyOptions([
+      {
+        id: 'w_store',
+        name: 'Monarch Pass (Monarch Crest Store)',
+        type: 'resupply',
+        totalDistance: 100,
+        accessName: 'Monarch Pass (US 50)',
+      },
+      {
+        id: 'w_salida',
+        name: 'Salida (access: Monarch Pass (US 50))',
+        type: 'town-access',
+        totalDistance: 100,
+        offTrailKm: 1.4,
+        accessMode: 'foot',
+        accessName: 'Monarch Pass (US 50)',
+      },
+    ]);
+    const legs = [
+      leg(0, 100, {
+        toName: 'Monarch Pass (Monarch Crest Store) / Salida (access: Monarch Pass (US 50))',
+        sideTripKm: 2.8,
+      }),
+    ];
+    const tree = render({
+      ...props(undefined),
+      rows: plannerRows(cdtGroups, undefined, legs, range, undefined),
+    });
+    const text = allText(tree);
+    expect(text).toContain('Monarch Crest Store');
+    expect(text).not.toContain('(access:');
+    expect(text).toContain('Trail Start → Monarch Pass (US 50) (not decided)');
+    // An undecided stop's side trip goes to no one place.
+    expect(text).toContain('incl. 2.8 km off trail and back');
+    // A screen reader still hears the full name.
+    expect(control(tree, 'Salida (access: Monarch Pass (US 50))').accessibilityState).toEqual({
+      checked: false,
+    });
+  });
+
   it('follows the unit setting', () => {
     const text = allText(render(props(['w_salida'], { units: 'mi' })));
     expect(text).toContain('14.0 mi hitch');
