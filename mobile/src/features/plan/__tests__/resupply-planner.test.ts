@@ -19,6 +19,8 @@ import {
   groupHeading,
   optionFacts,
   plannerRows,
+  sameGroupRow,
+  sameLegRow,
   resupplyEntryText,
   resupplyInputsLine,
   stepZeroDays,
@@ -234,6 +236,34 @@ describe('groupHeading', () => {
   });
 });
 
+describe('row memo comparators', () => {
+  const legs = [leg(0, 100), leg(100, 250), leg(250, 300)];
+  const rowsOf = (selected: string[] | undefined, zero?: Record<string, number>, ls = legs) =>
+    plannerRows(groups, selected, ls, whole, zero);
+  const groupsOf = (rows: PlannerRow[]) =>
+    rows.filter((row): row is Extract<PlannerRow, { kind: 'group' }> => row.kind === 'group');
+  const legsOf = (rows: PlannerRow[]) =>
+    rows.filter((row): row is Extract<PlannerRow, { kind: 'leg' }> => row.kind === 'leg');
+
+  it('reads freshly built rows of the same plan as the same', () => {
+    const [a, b] = [rowsOf(['w_salida', 'w_creede']), rowsOf(['w_salida', 'w_creede'])];
+    groupsOf(a).forEach((row, i) => expect(sameGroupRow(row, groupsOf(b)[i])).toBe(true));
+    legsOf(a).forEach((row, i) => expect(sameLegRow(row, legsOf(b)[i])).toBe(true));
+  });
+
+  it('tells a changed choice, zero days or leg figure apart', () => {
+    const [pass, creede] = groupsOf(rowsOf(['w_salida', 'w_creede']));
+    const [pass2, creede2] = groupsOf(rowsOf(['w_pass', 'w_creede'], { w_creede: 1 }));
+    expect(sameGroupRow(pass, pass2)).toBe(false);
+    expect(sameGroupRow(creede, creede2)).toBe(false);
+
+    const longer = [leg(0, 100, { walkedKm: 106 }), legs[1], legs[2]];
+    const [first] = legsOf(rowsOf(undefined));
+    const [firstLonger] = legsOf(rowsOf(undefined, undefined, longer));
+    expect(sameLegRow(first, firstLonger)).toBe(false);
+  });
+});
+
 describe('undecidedCount', () => {
   it('counts groups with more than one place still ticked, the default included', () => {
     expect(undecidedCount(groups, undefined, null)).toBe(1);
@@ -275,6 +305,12 @@ describe('resupplyEntryText', () => {
   it('says how many turn-offs are still to decide', () => {
     expect(resupplyEntryText(summary(), { hasOptions: true, undecided: 2 })).toBe(
       '5 stops · longest 7 days · 2 to decide',
+    );
+  });
+
+  it('says the figures are the whole trail’s when the Plan section is no range', () => {
+    expect(resupplyEntryText(summary(), { hasOptions: true, undecided: 1, wholeTrail: true })).toBe(
+      'Whole trail · 5 stops · longest 7 days · 1 to decide',
     );
   });
 
@@ -392,9 +428,9 @@ describe('waypointResupplyEditor', () => {
     ]);
   });
 
-  it('takes a single tick out of an undecided group', () => {
-    const next = waypointResupplyEditor(groups, 'w_salida', false, none)(plan());
-    expect(next.resupplyStops).toEqual(['w_pass', 'w_creede']);
+  it('changes nothing when removing a place that is not the group’s choice', () => {
+    const doc = plan();
+    expect(waypointResupplyEditor(groups, 'w_salida', false, none)(doc)).toBe(doc);
   });
 
   it('leaves the plan alone for an id no group offers', () => {

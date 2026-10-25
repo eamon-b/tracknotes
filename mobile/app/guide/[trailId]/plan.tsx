@@ -80,6 +80,7 @@ import { useGuide } from '../../../src/features/guide/GuideContext';
 import { useGuidePositionContext } from '../../../src/features/guide/GuidePositionContext';
 import {
   computePlanExtras,
+  computeResupplyPlan,
   overnightWaypoints,
   PACE_KMH,
   type PlanDay,
@@ -362,6 +363,40 @@ export default function PlanScreen() {
     ],
   );
 
+  // The Resupply row. A section that is no range (start at or past the end)
+  // opens the resupply screen on the whole trail, so the row is worked out —
+  // and labelled — for the whole trail too, rather than reading "Choose where
+  // to resupply" over a screen of real figures.
+  const resupplyEntrySummary = useMemo(
+    () =>
+      validSection
+        ? extras.resupplyPlanSummary
+        : computeResupplyPlan(
+            trail,
+            null,
+            {
+              dailyHours: prefs.dailyHours,
+              baseKmh,
+              longCarryDays: prefs.longCarryDays,
+              foodGramsPerDay: prefs.foodGramsPerDay,
+              resupplyStops,
+              zeroDays: displayPlan.resupplyZeroDays,
+            },
+            extras.resupplyGroups,
+          ).summary,
+    [
+      validSection,
+      extras,
+      trail,
+      prefs.dailyHours,
+      baseKmh,
+      prefs.longCarryDays,
+      prefs.foodGramsPerDay,
+      resupplyStops,
+      displayPlan.resupplyZeroDays,
+    ],
+  );
+
   const [showAllWaypoints, setShowAllWaypoints] = useState(false);
   const candidates = useMemo(
     () => stopCandidates(trail, planDirection, { all: showAllWaypoints }),
@@ -508,9 +543,14 @@ export default function PlanScreen() {
 
         {/* The way into the resupply planner, with its headline in one line. */}
         <ResupplyEntryRow
-          summary={resupplyEntryText(extras.resupplyPlanSummary, {
+          summary={resupplyEntryText(resupplyEntrySummary, {
             hasOptions: extras.resupplyGroups.length > 0,
-            undecided: undecidedCount(extras.resupplyGroups, resupplyStops, sectionConfig),
+            undecided: undecidedCount(
+              extras.resupplyGroups,
+              resupplyStops,
+              validSection ? sectionConfig : null,
+            ),
+            wholeTrail: !validSection,
           })}
           onPress={() =>
             router.push({

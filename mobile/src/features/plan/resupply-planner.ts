@@ -97,6 +97,45 @@ export function groupHeading(group: Pick<ResupplyOptionGroup, 'label' | 'options
   return { title: name, subtitle: '', spokenTitle: name };
 }
 
+type GroupRowValue = Extract<PlannerRow, { kind: 'group' }>;
+type LegRowValue = Extract<PlannerRow, { kind: 'leg' }>;
+
+/**
+ * Whether two group rows draw the same: the same group (groups are memoised on
+ * the trail, so identity is the test), section, choice and zero days.
+ * `plannerRows` builds fresh row objects on every edit, so the screen's rows
+ * are memoised on this rather than on identity — a tap re-renders the group
+ * it changed and the legs either side, not all 70.
+ */
+export function sameGroupRow(a: GroupRowValue, b: GroupRowValue): boolean {
+  if (a.group !== b.group || a.inSection !== b.inSection || a.zeroDays !== b.zeroDays) return false;
+  if (a.choice.kind !== b.choice.kind) return false;
+  return a.choice.kind !== 'chosen' || a.choice.optionId === (b.choice as typeof a.choice).optionId;
+}
+
+/** Whether two leg rows draw the same: every figure and name the row shows. */
+export function sameLegRow(a: LegRowValue, b: LegRowValue): boolean {
+  const x = a.leg;
+  const y = b.leg;
+  return (
+    a.names.from === b.names.from &&
+    a.names.to === b.names.to &&
+    a.names.toDecided === b.names.toDecided &&
+    x.walkedKm === y.walkedKm &&
+    x.ascentM === y.ascentM &&
+    x.descentM === y.descentM &&
+    x.estimatedDays === y.estimatedDays &&
+    x.food.weightKg === y.food.weightKg &&
+    x.isLong === y.isLong &&
+    x.sideTripKm === y.sideTripKm &&
+    x.rides.length === y.rides.length &&
+    x.rides.every(
+      (ride, i) =>
+        ride.km === y.rides[i].km && ride.mode === y.rides[i].mode && ride.end === y.rides[i].end,
+    )
+  );
+}
+
 /** Floating-point slack when matching a leg's end to a group's km. */
 const KM_EPSILON = 1e-6;
 
@@ -218,10 +257,14 @@ function plural(n: number, word: string): string {
  * The Plan screen's Resupply row: "5 stops · longest 7 days", plus how many
  * groups are still to decide. No stop in the section is the full carry, and
  * says so.
+ *
+ * `wholeTrail` is for a Plan screen whose section is not a usable range (its
+ * start at or past its end): the resupply screen then plans the whole trail,
+ * so the row says that is what its figures are for.
  */
 export function resupplyEntryText(
   summary: ResupplyPlanSummary,
-  opts: { hasOptions: boolean; undecided: number },
+  opts: { hasOptions: boolean; undecided: number; wholeTrail?: boolean },
 ): string {
   if (!summary.hasData) return opts.hasOptions ? 'Choose where to resupply' : 'No resupply data';
   const carry = `${plural(summary.longestCarryDays, 'day')}`;
@@ -230,7 +273,8 @@ export function resupplyEntryText(
     : summary.stopsChosen === 0
       ? `No stops · full carry ${carry}`
       : `${plural(summary.stopsChosen, 'stop')} · longest ${carry}`;
-  return opts.undecided > 0 ? `${head} · ${opts.undecided} to decide` : head;
+  const text = opts.undecided > 0 ? `${head} · ${opts.undecided} to decide` : head;
+  return opts.wholeTrail ? `Whole trail · ${text}` : text;
 }
 
 /** What a row says about one option, in the order the screen shows it. */
@@ -341,8 +385,9 @@ export function chooseResupplyEditor(
  *    turn-off with several towns ends up decided rather than with one more
  *    tick in it — and a lone place is simply Yes;
  *  - removing the group's chosen place sets the group to none ("carry
- *    through"); removing a place from a group still undecided takes only that
- *    tick out, leaving the rest of the group as it was.
+ *    through"). Removing a place that is not the group's choice (a group
+ *    still undecided, or already carried through) changes nothing: the
+ *    detail screen only offers Remove on the chosen place.
  *
  * Read off the document when the edit runs, like every other resupply edit.
  * An id no group offers is a no-op (the detail screen offers no toggle then).
@@ -362,14 +407,7 @@ export function waypointResupplyEditor(
     if (choice.kind === 'chosen' && choice.optionId === optionId) {
       return chooseResupplyOption(base, groups, group.key, null);
     }
-    if (choice.kind === 'none') return base;
-    // Undecided: take this one tick out of the stored list (materialising the
-    // every-option default first), leaving the group's other ticks alone.
-    const current = base.resupplyStops ?? groups.flatMap((g) => g.options.map((o) => o.id));
-    return setResupplyStops(
-      base,
-      current.filter((id) => id !== optionId),
-    );
+    return plan;
   };
 }
 
