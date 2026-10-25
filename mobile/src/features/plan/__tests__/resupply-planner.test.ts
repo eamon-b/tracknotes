@@ -22,6 +22,7 @@ import {
   resupplyInputsLine,
   stepZeroDays,
   undecidedCount,
+  waypointResupplyEditor,
   zeroDaysStepEditor,
   ZERO_DAYS_MAX,
   type PlannerRange,
@@ -286,6 +287,52 @@ describe('chooseResupplyEditor', () => {
       plan({ resupplyStops: ['w_salida', 'w_creede'] }),
     );
     expect(next.resupplyStops).toEqual(['w_creede']);
+  });
+});
+
+describe('waypointResupplyEditor', () => {
+  const none = () => undefined;
+
+  it('plans a place by choosing it in its group', () => {
+    expect(waypointResupplyEditor(groups, 'w_salida', true, none)(plan()).resupplyStops).toEqual([
+      'w_salida',
+      'w_creede',
+    ]);
+  });
+
+  it('removes the chosen place by carrying the group through', () => {
+    const next = waypointResupplyEditor(
+      groups,
+      'w_salida',
+      false,
+      none,
+    )(plan({ resupplyStops: ['w_salida', 'w_creede'] }));
+    expect(next.resupplyStops).toEqual(['w_creede']);
+  });
+
+  it('is Yes/No on a lone place', () => {
+    const off = waypointResupplyEditor(groups, 'w_creede', false, none)(plan());
+    expect(off.resupplyStops).toEqual(['w_pass', 'w_salida']);
+    expect(waypointResupplyEditor(groups, 'w_creede', true, none)(off).resupplyStops).toEqual([
+      'w_pass',
+      'w_salida',
+      'w_creede',
+    ]);
+  });
+
+  it('takes a single tick out of an undecided group', () => {
+    const next = waypointResupplyEditor(groups, 'w_salida', false, none)(plan());
+    expect(next.resupplyStops).toEqual(['w_pass', 'w_creede']);
+  });
+
+  it('leaves the plan alone for an id no group offers', () => {
+    const doc = plan();
+    expect(waypointResupplyEditor(groups, 'w_nowhere', true, none)(doc)).toBe(doc);
+  });
+
+  it('builds on the device-local selection while the document has none', () => {
+    const next = waypointResupplyEditor(groups, 'w_salida', true, () => ['w_pass'])(plan());
+    expect(next.resupplyStops).toEqual(['w_salida']);
   });
 });
 

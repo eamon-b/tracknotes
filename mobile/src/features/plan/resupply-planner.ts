@@ -283,6 +283,46 @@ export function chooseResupplyEditor(
 }
 
 /**
+ * The waypoint detail's "Plan resupply here" / "Remove from resupply plan" as
+ * a decision, the same one the resupply screen makes:
+ *
+ *  - planning picks this place in its group (`chooseResupplyOption`), so a
+ *    turn-off with several towns ends up decided rather than with one more
+ *    tick in it — and a lone place is simply Yes;
+ *  - removing the group's chosen place sets the group to none ("carry
+ *    through"); removing a place from a group still undecided takes only that
+ *    tick out, leaving the rest of the group as it was.
+ *
+ * Read off the document when the edit runs, like every other resupply edit.
+ * An id no group offers is a no-op (the detail screen offers no toggle then).
+ */
+export function waypointResupplyEditor(
+  groups: readonly ResupplyOptionGroup[],
+  optionId: string,
+  select: boolean,
+  legacy: () => readonly string[] | undefined,
+): (plan: PlanDocument) => PlanDocument {
+  return (plan) => {
+    const group = groups.find((g) => g.options.some((o) => o.id === optionId));
+    if (!group) return plan;
+    const base = withSelection(plan, legacy());
+    if (select) return chooseResupplyOption(base, groups, group.key, optionId);
+    const choice = resupplyGroupChoice(group, base.resupplyStops);
+    if (choice.kind === 'chosen' && choice.optionId === optionId) {
+      return chooseResupplyOption(base, groups, group.key, null);
+    }
+    if (choice.kind === 'none') return base;
+    // Undecided: take this one tick out of the stored list (materialising the
+    // every-option default first), leaving the group's other ticks alone.
+    const current = base.resupplyStops ?? groups.flatMap((g) => g.options.map((o) => o.id));
+    return setResupplyStops(
+      base,
+      current.filter((id) => id !== optionId),
+    );
+  };
+}
+
+/**
  * The edit for one press of the zero-days stepper: a step from whatever the
  * document holds when it runs, not from the figure the screen rendered with.
  */

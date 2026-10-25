@@ -40,6 +40,7 @@ import {
 import { setResupplyStops } from '@lib/plan-editor';
 import { selectResupplyStops, usePlansStore, type PlanDefaults } from '../../state/plans-store';
 import { selectPrefs, usePlanInputsStore } from './plan-inputs-store';
+import { waypointResupplyEditor } from './resupply-planner';
 
 /**
  * What this module needs from a trail: its waypoints, and the side trips (and
@@ -61,31 +62,6 @@ export function plannedIdsFor(
   selected: ReadonlySet<string> | null,
 ): ReadonlySet<string> | null {
   return plannedResupplyIds(resupplyGroupsFor(trail), selected);
-}
-
-/**
- * Tick or untick one id in a stored selection, producing the list to persist.
- *
- * With no selection yet (`current` undefined) the baseline is every option, the
- * same default the picker shows and the legs card computes from — so the first
- * tap makes that default explicit and changes this one id in it, rather than
- * silently unplanning the rest.
- *
- * The result keeps `allIds`' trail order and is pruned to ids the trail still
- * offers. Callers say which way they want the id to end up, never "flip the
- * stored value": the screens show the *derived* planned state, and a flip of
- * the stored one can disagree with what the hiker is looking at.
- */
-export function setResupplyStopSelected(
-  current: string[] | undefined,
-  allIds: string[],
-  id: string,
-  selected: boolean,
-): string[] {
-  const base = new Set(current ?? allIds);
-  if (selected) base.add(id);
-  else base.delete(id);
-  return allIds.filter((candidate) => base.has(candidate));
 }
 
 /**
@@ -187,6 +163,10 @@ export function usePlannedResupplyStops(
  *    its first tap and invent a plan nobody made.
  *  - `isSelected` is the hiker's own tick, so the button's label and its action
  *    are the same fact.
+ *  - The toggle is the resupply screen's decision (`waypointResupplyEditor`):
+ *    "Plan resupply here" picks this place in its turn-off's group, so the
+ *    group ends up decided rather than holding one more tick; "Remove" of the
+ *    group's chosen place carries the group through. A lone place is Yes/No.
  */
 export interface WaypointResupplyPlan {
   /** Highlighted as a planned stop anywhere in the app. */
@@ -206,7 +186,7 @@ export function useWaypointResupplyPlan(
   /** What to mint the plan with, should this tap be the first edit to it. */
   defaults: PlanDefaults,
 ): WaypointResupplyPlan {
-  const { stored, selected } = useStoredResupplyStops(trailId);
+  const { selected } = useStoredResupplyStops(trailId);
   // Keyed on the trail alone, as `usePlannedResupplyIds` is: ticking a box must
   // not regroup the CDT's 70 options.
   const groups = useMemo(() => resupplyGroupsFor(trail), [trail]);
@@ -221,14 +201,17 @@ export function useWaypointResupplyPlan(
       ? tickedNamesAround(groups, selected, optionId)
       : null;
 
+  // A decision, as on the resupply screen: planning picks this place in its
+  // group, removing the chosen place carries the group through. The label's
+  // direction (`isSelected`) is fixed at the tap; the list is read off the
+  // document when the edit runs.
   const toggle = useCallback(() => {
     if (!optionId) return;
-    saveResupplyStops(
-      trailId,
-      setResupplyStopSelected(stored, allIds, optionId, !isSelected),
-      defaults,
-    );
-  }, [allIds, defaults, isSelected, optionId, stored, trailId]);
+    const legacy = () => selectPrefs(trailId)(usePlanInputsStore.getState()).resupplyStops;
+    void usePlansStore
+      .getState()
+      .apply(trailId, waypointResupplyEditor(groups, optionId, !isSelected, legacy), defaults);
+  }, [defaults, groups, isSelected, optionId, trailId]);
 
   return {
     isPlanned,
