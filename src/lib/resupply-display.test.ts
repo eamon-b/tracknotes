@@ -16,6 +16,7 @@ import {
   legSideTripText,
   resupplyGroupName,
   resupplyOptionShortName,
+  resupplyTurnOffText,
   resupplySummaryText,
   STORE_KIND_LABELS,
   stopAccessText,
@@ -239,15 +240,30 @@ describe('resupplyOptionShortName', () => {
     expect(ghost.options.map(option => resupplyOptionShortName(option, ghost))).toEqual(['Ghost Ranch', 'Abiquiu']);
   });
 
-  it('keeps the full name where there is no group header to lean on', () => {
-    const alone = { label: 'Monarch Pass (US 50)', options: [{ name: 'Salida (access: Monarch Pass (US 50))' }] };
-    expect(resupplyOptionShortName(alone.options[0], alone)).toBe('Salida (access: Monarch Pass (US 50))');
+  it('drops the access part of a one-place turn-off too, but keeps a prefix it has no header for', () => {
+    const chama = { label: 'Cumbres Pass (CO 17)', options: [{ name: 'Chama (access: Cumbres Pass (CO 17))' }] };
+    expect(resupplyOptionShortName(chama.options[0], chama)).toBe('Chama');
+    const crest = { label: 'Monarch Pass (US 50)', options: [{ name: 'Monarch Pass (Monarch Crest Store)' }] };
+    expect(resupplyOptionShortName(crest.options[0], crest)).toBe('Monarch Pass (Monarch Crest Store)');
   });
 
   it('never shortens a name to nothing, or a prefix that is not the group place', () => {
     const group = { label: 'Mill Road', options: [{ name: '(access: Mill Road)' }, { name: 'Millbrook (Store)' }] };
     expect(resupplyOptionShortName(group.options[0], group)).toBe('(access: Mill Road)');
     expect(resupplyOptionShortName(group.options[1], group)).toBe('Millbrook (Store)');
+  });
+});
+
+describe('resupplyTurnOffText', () => {
+  it('says where a one-place group leaves the route, from its label', () => {
+    const chama = { label: 'Cumbres Pass (CO 17)', options: [{ name: 'Chama (access: Cumbres Pass (CO 17))' }] };
+    expect(resupplyTurnOffText(chama)).toBe('turn-off at Cumbres Pass (CO 17)');
+  });
+
+  it('says nothing for a decision group, an unlabelled group or a label that is the place', () => {
+    expect(resupplyTurnOffText(monarch)).toBe('');
+    expect(resupplyTurnOffText({ label: null, options: [{ name: 'Alpha' }] })).toBe('');
+    expect(resupplyTurnOffText({ label: 'Kerikeri', options: [{ name: 'Kerikeri' }] })).toBe('');
   });
 });
 
@@ -280,6 +296,25 @@ describe('legEndpointNames', () => {
     expect(legEndpointNames(leg, groups, ['w_bv', 'w_salida', 'w_poncha']).to).toBe(
       'Monarch Pass (US 50) (not decided)'
     );
+  });
+
+  it('shortens a one-place turn-off at either end', () => {
+    const chama = {
+      key: 'w_chama',
+      km: 3553,
+      label: 'Cumbres Pass (CO 17)',
+      options: [{ id: 'w_chama', name: 'Chama (access: Cumbres Pass (CO 17))' }],
+    };
+    const leg = { fromName: 'Chama (access: Cumbres Pass (CO 17))', fromKm: 3553, toName: 'Trail End', toKm: 4000 };
+    expect(legEndpointNames(leg, [chama], undefined)).toEqual({ from: 'Chama', to: 'Trail End', toDecided: true });
+    const into = {
+      sideTripKm: 0,
+      toName: 'Chama (access: Cumbres Pass (CO 17))',
+      fromName: 'X',
+      fromKm: 3500,
+      toKm: 3553,
+    };
+    expect(legEndpointNames(into, [chama], undefined).to).toBe('Chama');
   });
 
   it('shortens a decided stop and keeps the trail ends', () => {
