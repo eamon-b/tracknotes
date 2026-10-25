@@ -211,7 +211,9 @@ export interface LegEndpointNames {
  * What to call a leg's two ends. A stop with more than one place still ticked
  * (a decision not made yet) is named for its group — "Monarch Pass (US 50)
  * (not decided)" — rather than by every place joined, which is what
- * `resolveResupplyStops` names it; every other end keeps the leg's own name.
+ * `resolveResupplyStops` names it; the one place chosen in a decision group
+ * goes by its short name ("Salida", not "Salida (access: Monarch Pass
+ * (US 50))"); every other end keeps the leg's own name.
  *
  * @param selectedIds the plan's `resupplyStops` (`undefined` = every option),
  *   the selection the legs were computed from.
@@ -223,21 +225,22 @@ export function legEndpointNames(
   })[],
   selectedIds: readonly string[] | undefined
 ): LegEndpointNames {
-  const undecidedAt = (km: number, name: string): string | null => {
+  const nameAt = (km: number, name: string): { name: string; decided: boolean } | null => {
     for (const group of groups) {
       if (Math.abs(group.km - km) > 1e-6) continue;
-      // `resupplyGroupChoice`'s rule: more than one place ticked is undecided.
       const ticked = group.options.filter(option => !selectedIds || selectedIds.includes(option.id));
-      if (ticked.length < 2) continue;
       // The stop's own name is its ticked places joined; matching it keeps the
       // trail start or end, at the same km as a group, from being renamed.
-      if (ticked.map(option => option.name).join(' / ') === name) return `${resupplyGroupName(group)} (not decided)`;
+      if (ticked.length === 0 || ticked.map(option => option.name).join(' / ') !== name) continue;
+      // `resupplyGroupChoice`'s rule: more than one place ticked is undecided.
+      if (ticked.length > 1) return { name: `${resupplyGroupName(group)} (not decided)`, decided: false };
+      return { name: resupplyOptionShortName(ticked[0], group), decided: true };
     }
     return null;
   };
-  const from = undecidedAt(leg.fromKm, leg.fromName);
-  const to = undecidedAt(leg.toKm, leg.toName);
-  return { from: from ?? leg.fromName, to: to ?? leg.toName, toDecided: to === null };
+  const from = nameAt(leg.fromKm, leg.fromName);
+  const to = nameAt(leg.toKm, leg.toName);
+  return { from: from?.name ?? leg.fromName, to: to?.name ?? leg.toName, toDecided: to?.decided ?? true };
 }
 
 /**
