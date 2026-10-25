@@ -174,23 +174,38 @@ const ACCESS_SUFFIX = /\s*\(access:.*\)\s*$/i;
 const TRAILING_PARENS = /\s*\(.*\)\s*$/;
 
 /**
- * An option's name as a row *inside its decision group* shows it, where the
- * group's own header already says where you leave the route: the trailing
- * "(access: Monarch Pass (US 50))" goes, and so does a prefix that repeats the
- * group's place ("Monarch Pass (Monarch Crest Store)" under "Monarch Pass
- * (US 50)" is "Monarch Crest Store"). A group of one option has no header, so
- * its option keeps its full name; so does a name that would be left empty.
- * UIs keep the full name in a tooltip.
+ * An option's short name, for every row and leg line that shows it: the
+ * trailing "(access: Cumbres Pass (CO 17))" goes ("Chama"). Inside a decision
+ * group, whose header already says where you leave the route, so does a prefix
+ * that repeats the group's place ("Monarch Pass (Monarch Crest Store)" under
+ * "Monarch Pass (US 50)" is "Monarch Crest Store"). A name that would be left
+ * empty stays whole. UIs keep the full name as a tooltip or accessibility
+ * label; a one-place turn-off says where it leaves the route with
+ * {@link resupplyTurnOffText}.
  */
 export function resupplyOptionShortName(option: Pick<ResupplyOption, 'name'>, group: NamedGroup): string {
   const full = option.name.trim();
-  if (group.options.length < 2) return full;
   let name = full.replace(ACCESS_SUFFIX, '').trim();
-  const place = group.label?.replace(TRAILING_PARENS, '').trim();
+  const place = group.options.length > 1 ? group.label?.replace(TRAILING_PARENS, '').trim() : undefined;
   if (place && name.startsWith(`${place} (`) && name.endsWith(')')) {
     name = name.slice(place.length + 2, -1).trim();
   }
   return name === '' ? full : name;
+}
+
+/**
+ * Where a one-place group leaves the route, for the row's secondary line —
+ * "turn-off at Cumbres Pass (CO 17)" — from the group's label (the data's
+ * `accessName`), never parsed out of the place's name. Empty for a decision
+ * group (its header says it), a group with no turn-off, or a label that is the
+ * place itself.
+ */
+export function resupplyTurnOffText(group: NamedGroup): string {
+  if (group.options.length !== 1 || !group.label) return '';
+  const label = group.label.trim();
+  const option = group.options[0];
+  if (label === option.name.trim() || label === resupplyOptionShortName(option, group)) return '';
+  return `turn-off at ${label}`;
 }
 
 /** A decision group's name: the turn-off, else its places' short names. */
@@ -211,9 +226,9 @@ export interface LegEndpointNames {
  * What to call a leg's two ends. A stop with more than one place still ticked
  * (a decision not made yet) is named for its group — "Monarch Pass (US 50)
  * (not decided)" — rather than by every place joined, which is what
- * `resolveResupplyStops` names it; the one place chosen in a decision group
- * goes by its short name ("Salida", not "Salida (access: Monarch Pass
- * (US 50))"); every other end keeps the leg's own name.
+ * `resolveResupplyStops` names it; a stop at one place goes by that place's
+ * short name ("Salida", not "Salida (access: Monarch Pass (US 50))"); the
+ * trail start and end keep the leg's own name.
  *
  * @param selectedIds the plan's `resupplyStops` (`undefined` = every option),
  *   the selection the legs were computed from.
