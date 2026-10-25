@@ -252,6 +252,17 @@ describe('resupplyOptionShortName', () => {
     expect(resupplyOptionShortName(group.options[0], group)).toBe('(access: Mill Road)');
     expect(resupplyOptionShortName(group.options[1], group)).toBe('Millbrook (Store)');
   });
+
+  it('strips the group place only when one balanced parenthetical follows it', () => {
+    const wanaka = {
+      label: 'Wanaka (SH6)',
+      options: [{ name: 'Wanaka (Four Square) (closed Sun)' }, { name: 'Wanaka (New World (upstairs))' }],
+    };
+    // Two parentheticals: kept whole, never "Four Square) (closed Sun".
+    expect(resupplyOptionShortName(wanaka.options[0], wanaka)).toBe('Wanaka (Four Square) (closed Sun)');
+    // One, with a nested one inside: stripped.
+    expect(resupplyOptionShortName(wanaka.options[1], wanaka)).toBe('New World (upstairs)');
+  });
 });
 
 describe('resupplyTurnOffText', () => {
@@ -296,6 +307,25 @@ describe('legEndpointNames', () => {
     expect(legEndpointNames(leg, groups, ['w_bv', 'w_salida', 'w_poncha']).to).toBe(
       'Monarch Pass (US 50) (not decided)'
     );
+  });
+
+  it('names an undecided group with no turn-off after its ticked places only', () => {
+    const abc = {
+      key: 'a',
+      km: 500,
+      label: null,
+      options: [
+        { id: 'a', name: 'Alpha' },
+        { id: 'b', name: 'Bravo' },
+        { id: 'c', name: 'Charlie' },
+      ],
+    };
+    const leg = { fromName: 'Trail Start', fromKm: 0, toName: 'Alpha / Bravo', toKm: 500 };
+    expect(legEndpointNames(leg, [abc], ['a', 'b'])).toEqual({
+      from: 'Trail Start',
+      to: 'Alpha / Bravo (not decided)',
+      toDecided: false,
+    });
   });
 
   it('shortens a one-place turn-off at either end', () => {

@@ -187,10 +187,27 @@ export function resupplyOptionShortName(option: Pick<ResupplyOption, 'name'>, gr
   const full = option.name.trim();
   let name = full.replace(ACCESS_SUFFIX, '').trim();
   const place = group.options.length > 1 ? group.label?.replace(TRAILING_PARENS, '').trim() : undefined;
-  if (place && name.startsWith(`${place} (`) && name.endsWith(')')) {
+  // Only a remainder that is one balanced "(…)" is the place's own name:
+  // "Wanaka (Four Square) (closed Sun)" under "Wanaka (SH6)" stays whole
+  // rather than becoming "Four Square) (closed Sun".
+  if (place && name.startsWith(`${place} (`) && isOneParenthetical(name.slice(place.length + 1))) {
     name = name.slice(place.length + 2, -1).trim();
   }
   return name === '' ? full : name;
+}
+
+/** Whether `text` is exactly one balanced parenthetical: "(a (b) c)" yes, "(a) (b)" no. */
+function isOneParenthetical(text: string): boolean {
+  if (!text.startsWith('(') || !text.endsWith(')')) return false;
+  let depth = 0;
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === '(') depth++;
+    else if (text[i] === ')') depth--;
+    if (depth < 0) return false;
+    // Closed before the end: a second parenthetical follows.
+    if (depth === 0 && i < text.length - 1) return false;
+  }
+  return depth === 0;
 }
 
 /**
@@ -248,7 +265,12 @@ export function legEndpointNames(
       // trail start or end, at the same km as a group, from being renamed.
       if (ticked.length === 0 || ticked.map(option => option.name).join(' / ') !== name) continue;
       // `resupplyGroupChoice`'s rule: more than one place ticked is undecided.
-      if (ticked.length > 1) return { name: `${resupplyGroupName(group)} (not decided)`, decided: false };
+      // Named for its turn-off, or failing one for the places still in it —
+      // never one the hiker has unticked.
+      if (ticked.length > 1) {
+        const groupName = group.label || ticked.map(option => resupplyOptionShortName(option, group)).join(' / ');
+        return { name: `${groupName} (not decided)`, decided: false };
+      }
       return { name: resupplyOptionShortName(ticked[0], group), decided: true };
     }
     return null;
