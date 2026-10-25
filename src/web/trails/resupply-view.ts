@@ -216,7 +216,7 @@ function td(key: string, content: string, extraClass = ''): string {
   const column = COLUMNS.find(col => col.key === key)!;
   const classes = [`rs-c-${key}`, column.numeric ? 'rs-num' : '', extraClass].filter(Boolean).join(' ');
   const empty = content.trim() === '' ? ' rs-empty' : '';
-  return `<td class="${classes}${empty}" data-label="${escapeHtml(column.label)}">${content}</td>`;
+  return `<td class="${classes}${empty}" data-label="${escapeHtml(column.label)}"><div class="rs-v">${content}</div></td>`;
 }
 
 /** The five leg cells: distance (with side trip and rides), climb, days, food. */

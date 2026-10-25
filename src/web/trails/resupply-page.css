@@ -214,7 +214,8 @@ input.rs-input { width: 5rem; font-variant-numeric: tabular-nums; }
 .rs-endpoint td { background: var(--bg-secondary); }
 
 /* A chosen stop: the place the food has to reach. */
-.rs-option.is-chosen td { background: var(--resupply-planned-tint); }
+/* Kept light: on a fresh plan every single-option stop is chosen. */
+.rs-option.is-chosen > td:first-child { box-shadow: inset 3px 0 0 var(--resupply-planned); }
 .rs-option.is-chosen .rs-name { color: var(--resupply-planned); }
 
 /* A decision group: one tinted block, a header, its options indented. */
@@ -365,10 +366,10 @@ details.rs-notes p {
   .rs-table td.rs-c-none::before { content: none; }
   .rs-group.is-decision .rs-option .rs-c-stop,
   .rs-none td { padding-left: 0.75rem; }
-  .rs-option.is-chosen td,
   .rs-group-head td,
   .rs-endpoint td { background: transparent; }
-  .rs-option.is-chosen { background: var(--resupply-planned-tint); }
+  .rs-option.is-chosen > td:first-child { box-shadow: none; }
+  .rs-option.is-chosen { box-shadow: inset 4px 0 0 var(--resupply-planned); }
   .rs-group-head { background: var(--accent-light); }
   .rs-group.is-undecided .rs-group-head { background: var(--tint-warn); }
   .rs-endpoint tr { background: var(--bg-secondary); }
