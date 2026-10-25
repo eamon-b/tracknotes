@@ -171,6 +171,28 @@ describe('the resupply page', () => {
     expect(document.querySelector<HTMLInputElement>('input.rs-zero[data-option-id="w_001"]')?.value).toBe('1.5');
   });
 
+  it('clears the choices and the zero days, and offers to only once there are some', async () => {
+    await bootResupply();
+    expect(document.getElementById('rs-clear')).toBeNull();
+
+    pick(radio('tbody.is-decision', 'w_002'));
+    flushSave();
+    const box = document.querySelector<HTMLInputElement>('input.rs-zero[data-option-id="w_001"]')!;
+    box.value = '1';
+    box.dispatchEvent(new Event('change', { bubbles: true }));
+    flushSave();
+    expect(storedDoc().resupplyStops).toBeDefined();
+    expect(storedDoc().resupplyZeroDays).toEqual({ w_001: 1 });
+
+    $('rs-clear').click();
+    flushSave();
+    expect(storedDoc().resupplyStops).toBeUndefined();
+    expect(storedDoc().resupplyZeroDays).toBeUndefined();
+    // Back to every option ticked: the decision is open again, and the button goes.
+    expect(document.querySelector('tbody.is-decision')?.classList.contains('is-undecided')).toBe(true);
+    expect(document.getElementById('rs-clear')).toBeNull();
+  });
+
   it('keeps the stored zero days when the box holds something that is not a number', async () => {
     await bootResupply();
     const box = (): HTMLInputElement =>
