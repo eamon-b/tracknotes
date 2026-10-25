@@ -405,6 +405,30 @@ describe('the Arrive column', () => {
     // The first carry ends at Alpha (km 10), inside day 1 — the 1st of March.
     expect(legRows()[0][7]).toBe('Day 1 (1 Mar)');
   });
+
+  it('counts a rest day before a later arrival, and agrees with the day cards', async () => {
+    await boot(false);
+
+    const date = $('plan-start-date') as HTMLInputElement;
+    date.value = '2026-03-01';
+    date.dispatchEvent(new Event('change'));
+
+    // Camp at km 25 for two nights: day 1 ends there, 2 March is a rest day.
+    tabButton('stops').click();
+    $('stops-list').querySelector<HTMLElement>('.stop-row[data-km="25"]')!.click();
+    $('stops-list').querySelector<HTMLElement>('.nights-btn[data-nights-delta="1"]')!.click();
+
+    tabButton('resupply').click();
+    const arrive = legRows().map(cells => cells[7]);
+    // Alpha (km 10) and Mill Road (km 20) are reached on day 1; Delta (km 30)
+    // on the next walking day, after the rest day — day 3, the 3rd of March.
+    expect(arrive.slice(0, 3)).toEqual(['Day 1 (1 Mar)', 'Day 1 (1 Mar)', 'Day 3 (3 Mar)']);
+
+    // The day card that walks into Delta says the same date.
+    tabButton('days').click();
+    const cards = [...$('days-list').querySelectorAll('.day-card')].map(card => card.textContent ?? '');
+    expect(cards.some(text => text.includes('3 Mar'))).toBe(true);
+  });
 });
 
 // ---------------------------------------------------------------------------
