@@ -25,7 +25,7 @@ import {
 } from '@lib/resupply-plan';
 import { accessSummary, firstSentence, storeLabel } from '@lib/resupply-display';
 import { chooseResupplyOption, setResupplyStops, setResupplyZeroDays } from '@lib/plan-editor';
-import type { Pace, PlanDocument } from '@lib/plan-types';
+import { PLAN_LIMITS, type Pace, type PlanDocument } from '@lib/plan-types';
 import type { Units } from '../../state/settings-store';
 import { formatFoodPerDay, PACE_LABELS } from './plan-format';
 
@@ -58,8 +58,8 @@ const KM_EPSILON = 1e-6;
 
 /** Zero days move in half days. */
 export const ZERO_DAYS_STEP = 0.5;
-/** The stepper's ceiling: a bound on the control, not a judgement of the hiker's. */
-export const ZERO_DAYS_MAX = 30;
+/** The stepper's ceiling: the plan document's own bound (`PLAN_LIMITS.zeroDaysMax`), not a judgement of the hiker's. */
+export const ZERO_DAYS_MAX = PLAN_LIMITS.zeroDaysMax;
 
 function inRange(km: number, range: PlannerRange): boolean {
   return km >= range.startKm - KM_EPSILON && km <= range.endKm + KM_EPSILON;
