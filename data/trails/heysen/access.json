@@ -61,6 +61,14 @@
         [-32.346015, 138.040405]
       ]
     },
+    "w_0b873c07": {
+      "name": "Tanunda",
+      "store": "full"
+    },
+    "w_11665626": {
+      "name": "Myponga",
+      "store": "limited"
+    },
     "w_295f4a99": {
       "name": "Heysen Hideaway",
       "method": "osm",
@@ -152,6 +160,10 @@
         [-34.526809, 138.964295]
       ]
     },
+    "w_3a0f6bed": {
+      "name": "Aldgate",
+      "store": "full"
+    },
     "w_3ac34e6b": {
       "name": "Quorn Caravan Park",
       "method": "osm",
@@ -188,6 +200,10 @@
         [-32.347301, 138.037519],
         [-32.345833, 138.040466]
       ]
+    },
+    "w_48efa918": {
+      "name": "Mylor",
+      "store": "limited"
     },
     "w_4ddbe35f": {
       "name": "Goat Square Cottages",
@@ -300,6 +316,10 @@
         [-33.831139, 139.044037]
       ]
     },
+    "w_73eb3717": {
+      "name": "Hamilton",
+      "store": "none"
+    },
     "w_7c9a0d0c": {
       "name": "The Dutchman Hut",
       "method": "osm",
@@ -334,6 +354,10 @@
         [-34.337333, 138.908796]
       ]
     },
+    "w_84dd5e38": {
+      "name": "Parachilna",
+      "store": "meals"
+    },
     "w_85eb1c33": {
       "name": "Trig Campground",
       "method": "osm",
@@ -361,6 +385,10 @@
       "nearestKm": 984.85,
       "method": "none",
       "reason": "no mapped way reaches the route within 3.0 km"
+    },
+    "w_8cbf45f2": {
+      "name": "Bridgewater",
+      "store": "full"
     },
     "w_90e6cbb2": {
       "name": "Marrabel ‘Walk-in’ site",
@@ -418,6 +446,10 @@
         [-32.346579, 138.041968]
       ]
     },
+    "w_9555e0ce": {
+      "name": "Mt Compass",
+      "store": "full"
+    },
     "w_9e2647e1": {
       "name": "Apartments on Fiedler",
       "method": "osm",
@@ -450,7 +482,8 @@
         [-35.494409, 138.45622],
         [-35.494019, 138.457273],
         [-35.493382, 138.458313]
-      ]
+      ],
+      "store": "limited"
     },
     "w_ad54d6a8": {
       "name": "Meaney’s Rest",
@@ -471,6 +504,14 @@
         [-31.886902, 138.422254],
         [-31.886756, 138.422294]
       ]
+    },
+    "w_b05c73de": {
+      "name": "Norton Summit",
+      "store": "meals"
+    },
+    "w_b24a5fb6": {
+      "name": "Cudlee Creek",
+      "store": "meals"
     },
     "w_b44ca17e": {
       "name": "Griffiths Retreat and Cottage",
@@ -653,7 +694,12 @@
       "path": [
         [-34.340545, 138.915587],
         [-34.339077, 138.916672]
-      ]
+      ],
+      "store": "full"
+    },
+    "w_f4e6e3c9": {
+      "name": "Burra",
+      "store": "full"
     },
     "w_f968253e": {
       "name": "Quandong Apartments",

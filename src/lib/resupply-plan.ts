@@ -48,8 +48,8 @@
  */
 
 import type { ComputedDay, SectionConfig } from './plan-types';
-import type { AccessMode, WaypointAccess } from './types';
-import { isAccessMode } from './types';
+import type { AccessMode, StoreKind, WaypointAccess } from './types';
+import { isAccessMode, isStoreKind } from './types';
 import type { PlanTrail } from './day-calculator';
 import { estimateHikingHoursRaw, WALKED_WHEN_UNSAID_MAX_KM } from './day-calculator';
 import { calculateElevationBetween } from './track-geometry';
@@ -65,7 +65,7 @@ import {
 } from './resupply-calculator';
 
 /** Re-exported so a consumer of this module needs one import, not two. */
-export type { AccessMode };
+export type { AccessMode, StoreKind };
 
 /**
  * The waypoint fields this module reads, declared structurally so every
@@ -145,6 +145,8 @@ export interface ResupplyOption {
   offTrailAscentM?: number;
   offTrailDescentM?: number;
   acceptsBoxes?: boolean;
+  /** What the place sells, when the data says ({@link StoreKind}); `storeLabel` words it. */
+  store?: StoreKind;
   description?: string;
 }
 
@@ -325,6 +327,7 @@ export function resupplyCandidates(trail: ResupplyTrail): ResupplyCandidateWaypo
       type: wp.type,
       description: wp.description,
       acceptsBoxes: wp.acceptsBoxes,
+      ...(wp.store !== undefined ? { store: wp.store } : {}),
       totalDistance: junctionKm,
       offTrailKm: Math.round(walkKm * 10) / 10,
       accessMode: 'foot',
@@ -443,6 +446,7 @@ export function listResupplyOptions(
         option.offTrailDescentM = wp.offTrailDescentM;
       }
       if (typeof wp.acceptsBoxes === 'boolean') option.acceptsBoxes = wp.acceptsBoxes;
+      if (isStoreKind(wp.store)) option.store = wp.store;
       if (typeof wp.description === 'string' && wp.description) option.description = wp.description;
       if (typeof wp.accessName === 'string' && wp.accessName.trim() !== '') {
         accessNames.set(option.id, wp.accessName.trim());

@@ -1,5 +1,5 @@
 import type { GpxData, GpxTrack, GpxRoute, GpxWaypoint, GpxPoint, WaypointAccess } from './types';
-import { isAccessMode } from './types';
+import { isAccessMode, isStoreKind } from './types';
 import { parseCoordinate } from './parse-coordinate';
 import { defaultXmlAdapter, type XmlAdapter, type XmlNode } from './xml-adapter';
 
@@ -156,6 +156,9 @@ function parseWaypointAccess(wpt: XmlNode): WaypointAccess {
   if (acceptsBoxes === 'true') access.acceptsBoxes = true;
   else if (acceptsBoxes === 'false') access.acceptsBoxes = false;
 
+  const store = read('store');
+  if (isStoreKind(store)) access.store = store;
+
   const accessName = read('accessName');
   if (accessName !== null) access.accessName = accessName;
 
@@ -219,6 +222,7 @@ function accessExtensionsXml(wpt: GpxWaypoint): string {
   if (wpt.acceptsBoxes !== undefined) {
     fields.push(`<tn:acceptsBoxes>${wpt.acceptsBoxes}</tn:acceptsBoxes>`);
   }
+  if (wpt.store) fields.push(`<tn:store>${escapeXml(wpt.store)}</tn:store>`);
   if (wpt.accessName) fields.push(`<tn:accessName>${escapeXml(wpt.accessName)}</tn:accessName>`);
   for (const key of ['offTrailAscentM', 'offTrailDescentM'] as const) {
     const metres = wpt[key];

@@ -5,6 +5,10 @@
   "endpoint": "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
   "minDistanceM": 150,
   "places": {
+    "w_0d0eb8e6": {
+      "name": "Kiosk: Standley Chasm",
+      "store": "meals"
+    },
     "w_2bbddefe": {
       "name": "Finke River Trailhead",
       "method": "osm",
@@ -21,6 +25,10 @@
         [-23.658718, 132.678339],
         [-23.65942, 132.67879]
       ]
+    },
+    "w_314d25b4": {
+      "name": "Kiosk: Ormiston Gorge",
+      "store": "meals"
     },
     "w_409f844e": {
       "name": "Rocky Gully",
@@ -41,6 +49,14 @@
         [-23.7588, 133.16812]
       ]
     },
+    "w_51223d01": {
+      "name": "R: Ellery Creek",
+      "store": "none"
+    },
+    "w_58d2a239": {
+      "name": "R: Serpentine Gorge",
+      "store": "none"
+    },
     "w_5b17238e": {
       "name": "Rocky Gully",
       "method": "osm",
@@ -59,6 +75,14 @@
         [-23.758737, 133.168009],
         [-23.7588, 133.16812]
       ]
+    },
+    "w_dd6e26d4": {
+      "name": "R: Standley Chasm",
+      "store": "none"
+    },
+    "w_e7667f46": {
+      "name": "R: Ormiston Gorge",
+      "store": "none"
     }
   }
 }

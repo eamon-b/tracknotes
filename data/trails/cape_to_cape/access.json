@@ -24,6 +24,10 @@
         [-34.27161, 115.04903]
       ]
     },
+    "w_1042b1df": {
+      "name": "Gracetown",
+      "store": "limited"
+    },
     "w_236ca161": {
       "name": "Canal Rocks",
       "method": "osm",
@@ -68,7 +72,8 @@
         [-33.976917, 114.993208],
         [-33.977226, 114.993304],
         [-33.97728, 114.99349]
-      ]
+      ],
+      "store": "limited"
     },
     "w_3e042ac7": {
       "name": "Sugarloaf Rock",
@@ -131,6 +136,10 @@
         [-34.221659, 115.03085],
         [-34.2216, 115.03088]
       ]
+    },
+    "w_946d76a3": {
+      "name": "Yallingup",
+      "store": "limited"
     },
     "w_9863ffae": {
       "name": "Quinninup Falls",

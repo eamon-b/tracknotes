@@ -1,0 +1,505 @@
+{
+  "source": "OpenStreetMap ways via Overpass; heights from Copernicus GLO-30",
+  "attribution": "© OpenStreetMap contributors (ODbL); Copernicus DEM © DLR e.V. 2010-2014 and © Airbus 2014-2018",
+  "fetchedAt": "2026-10-25T01:11:17.495Z",
+  "endpoint": "",
+  "minDistanceM": 150,
+  "places": {
+    "w_03d4d127": {
+      "name": "Lima (access: Monida Pass (I-15))",
+      "store": "limited"
+    },
+    "w_0584b520": {
+      "name": "Twin Lakes",
+      "store": "limited"
+    },
+    "w_09dc7630": {
+      "name": "Pie Town",
+      "store": "meals"
+    },
+    "w_0c3388a6": {
+      "name": "Big Sandy Lodge (access: CDT at Big Sandy trailhead)",
+      "store": "meals"
+    },
+    "w_0c3388a6523a": {
+      "name": "Boulder (access: CDT at Big Sandy trailhead)",
+      "store": "limited"
+    },
+    "w_0e1f087f": {
+      "name": "Babb",
+      "store": "limited"
+    },
+    "w_0ed57d27": {
+      "name": "Jeffrey City",
+      "store": "meals"
+    },
+    "w_0f07fcfd": {
+      "name": "Hachita",
+      "store": "limited"
+    },
+    "w_1140367c": {
+      "name": "Jackson (access: CDT primary route nearest Jackson (Big Hole divide))",
+      "store": "limited"
+    },
+    "w_127ef035": {
+      "name": "Buena Vista",
+      "store": "full"
+    },
+    "w_12e58e1d": {
+      "name": "Grant Village",
+      "store": "limited"
+    },
+    "w_15189e47": {
+      "name": "Twin Lakes (access: CDT / Colorado Trail near CO 82, Twin Lakes)",
+      "store": "limited"
+    },
+    "w_1a52d035": {
+      "name": "Riverside",
+      "store": "limited"
+    },
+    "w_1a53179b": {
+      "name": "Silver City",
+      "store": "full"
+    },
+    "w_1cf0fe43": {
+      "name": "St. Mary (access: CDT near St. Mary Lake (Red Eagle))",
+      "store": "full"
+    },
+    "w_1f186039": {
+      "name": "Waterton Park (Alberta) (access: Waterton Lake border monument (Goat Haunt))",
+      "store": "limited"
+    },
+    "w_2211dfa2": {
+      "name": "Doc Campbell's Post",
+      "store": "limited"
+    },
+    "w_25c0134e": {
+      "name": "Poncha Springs (access: Monarch Pass (US 50))",
+      "store": "limited"
+    },
+    "w_2768514e": {
+      "name": "Rawlins",
+      "store": "full"
+    },
+    "w_284d4af0": {
+      "name": "Wisdom (access: Chief Joseph Pass (MT 43))",
+      "store": "limited"
+    },
+    "w_286a2109": {
+      "name": "Helena (access: MacDonald Pass (US 12))",
+      "store": "full"
+    },
+    "w_2c15812f": {
+      "name": "Breckenridge",
+      "store": "full"
+    },
+    "w_2e27bf91": {
+      "name": "Ghost Ranch",
+      "store": "meals"
+    },
+    "w_3144559f": {
+      "name": "East Glacier Park",
+      "store": "limited"
+    },
+    "w_37e64f5b": {
+      "name": "Wisdom",
+      "store": "limited"
+    },
+    "w_3a66cc01": {
+      "name": "Abiquiu",
+      "store": "limited"
+    },
+    "w_3b869439": {
+      "name": "Granby",
+      "store": "full"
+    },
+    "w_3c8a7822": {
+      "name": "Atlantic City (access: CDT at Atlantic City)",
+      "store": "limited"
+    },
+    "w_43014310": {
+      "name": "Darby (access: Chief Joseph Pass (MT 43))",
+      "store": "full"
+    },
+    "w_493acf03": {
+      "name": "Leadville",
+      "store": "full"
+    },
+    "w_516e4896": {
+      "name": "Darby",
+      "store": "full"
+    },
+    "w_5181dbf7": {
+      "name": "Augusta",
+      "store": "limited"
+    },
+    "w_520feb26": {
+      "name": "Buena Vista (access: Cottonwood Pass (CR 306))",
+      "store": "full"
+    },
+    "w_52c5b67b": {
+      "name": "Browning",
+      "store": "full"
+    },
+    "w_54e7120f": {
+      "name": "Waterton Park (Alberta)",
+      "store": "limited"
+    },
+    "w_5664f9b0": {
+      "name": "Grand Lake",
+      "store": "full"
+    },
+    "w_5bc3d76b": {
+      "name": "Cuba",
+      "store": "full"
+    },
+    "w_5ed7f738": {
+      "name": "Sula (access: Lost Trail Pass (US 93 / MT 43))",
+      "store": "limited"
+    },
+    "w_5f21e258": {
+      "name": "Lima",
+      "store": "limited"
+    },
+    "w_64c6db37": {
+      "name": "Two Medicine",
+      "store": "limited"
+    },
+    "w_64e20c8b": {
+      "name": "Browning (access: CDT through East Glacier Park)",
+      "store": "full"
+    },
+    "w_6706301c": {
+      "name": "Frisco (access: CDT / Colorado Trail at Copper Mountain (CO 91))",
+      "store": "full"
+    },
+    "w_67690f4e": {
+      "name": "South Pass City",
+      "store": "none"
+    },
+    "w_67cbd2ca": {
+      "name": "Deming",
+      "store": "full"
+    },
+    "w_6921fc51": {
+      "name": "St. Mary",
+      "store": "full"
+    },
+    "w_699c7caa": {
+      "name": "Top of the World Store (access: CDT at Pie Town (US 60))",
+      "store": "limited"
+    },
+    "w_72c66eaf": {
+      "name": "Pagosa Springs",
+      "store": "full"
+    },
+    "w_733f7c48": {
+      "name": "Winter Park (access: Berthoud Pass (US 40))",
+      "store": "full"
+    },
+    "w_733f7c482bb6": {
+      "name": "Fraser (access: Berthoud Pass (US 40))",
+      "store": "full"
+    },
+    "w_7aa83d03": {
+      "name": "Old Faithful Village",
+      "store": "limited"
+    },
+    "w_7c8bdad8": {
+      "name": "Big Sandy Lodge",
+      "store": "meals"
+    },
+    "w_7e281dfe": {
+      "name": "Grant Village (access: CDT near Shoshone Lake / South Entrance Road)",
+      "store": "limited"
+    },
+    "w_7f23026e": {
+      "name": "Copper Mountain",
+      "store": "limited"
+    },
+    "w_7f5220c3": {
+      "name": "Butte (access: I-15 at Elk Park Pass)",
+      "store": "full"
+    },
+    "w_80ab4f82": {
+      "name": "Chama (access: Cumbres Pass (CO 17))",
+      "store": "full"
+    },
+    "w_826e6a61": {
+      "name": "Benchmark Wilderness Ranch",
+      "store": "none"
+    },
+    "w_845c3369": {
+      "name": "Chama",
+      "store": "full"
+    },
+    "w_8468fa2d": {
+      "name": "Poncha Springs",
+      "store": "limited"
+    },
+    "w_89aa11e8": {
+      "name": "West Yellowstone (access: Targhee Pass (US 20))",
+      "store": "full"
+    },
+    "w_8f47aeb9": {
+      "name": "West Yellowstone",
+      "store": "full"
+    },
+    "w_90e2bbd4": {
+      "name": "Del Norte",
+      "store": "full"
+    },
+    "w_911c9290": {
+      "name": "Grants (access: CDT through Grants)",
+      "store": "full"
+    },
+    "w_92ec2d82": {
+      "name": "Silverthorne",
+      "store": "full"
+    },
+    "w_92f00f2f": {
+      "name": "Grants",
+      "store": "full"
+    },
+    "w_93cf0c62": {
+      "name": "Fraser",
+      "store": "full"
+    },
+    "w_979d8a8e": {
+      "name": "Dubois (access: Togwotee Pass (US 26 / US 287))",
+      "store": "full"
+    },
+    "w_99b02ca4": {
+      "name": "Macks Inn (Island Park) (access: Red Rock Pass)",
+      "store": "limited"
+    },
+    "w_9a059459": {
+      "name": "Del Norte (access: Wolf Creek Pass (US 160))",
+      "store": "full"
+    },
+    "w_9a51cb11": {
+      "name": "Jeffrey City (access: CDT in the Great Divide Basin nearest US 287)",
+      "store": "meals"
+    },
+    "w_9c1ee5ed": {
+      "name": "Deming (access: CDT at NM 9)",
+      "store": "full"
+    },
+    "w_a191d73a": {
+      "name": "Pagosa Springs (access: Wolf Creek Pass (US 160))",
+      "store": "full"
+    },
+    "w_a191d73aa151": {
+      "name": "South Fork (access: Wolf Creek Pass (US 160))",
+      "store": "full"
+    },
+    "w_a294b780": {
+      "name": "Reserve (access: CDT at NM 12 near Collins Park)",
+      "store": "limited"
+    },
+    "w_a31a2945": {
+      "name": "Atlantic City",
+      "store": "limited"
+    },
+    "w_a3210350": {
+      "name": "Boulder",
+      "store": "limited"
+    },
+    "w_a3f71623": {
+      "name": "Helena",
+      "store": "full"
+    },
+    "w_a562b7b4": {
+      "name": "Hachita (access: CDT at NM 9)",
+      "store": "limited"
+    },
+    "w_a562b7b46150": {
+      "name": "Columbus (access: CDT at NM 9)",
+      "store": "limited"
+    },
+    "w_a7149e6f": {
+      "name": "Jackson",
+      "store": "limited"
+    },
+    "w_a7aaf531": {
+      "name": "Lander (access: WY 28 at South Pass)",
+      "store": "full"
+    },
+    "w_aabd4818": {
+      "name": "Encampment",
+      "store": "limited"
+    },
+    "w_ab40a482": {
+      "name": "Pinedale (access: CDT at Pole Creek / Elkhart Park trailhead)",
+      "store": "full"
+    },
+    "w_acf44c6f": {
+      "name": "Lincoln (access: Rogers Pass (MT 200))",
+      "store": "full"
+    },
+    "w_ae8c59db": {
+      "name": "Steamboat Springs",
+      "store": "full"
+    },
+    "w_aebb7c21": {
+      "name": "Salida (access: Monarch Pass (US 50))",
+      "store": "full"
+    },
+    "w_b142c6a9": {
+      "name": "Lincoln",
+      "store": "full"
+    },
+    "w_b375dd11": {
+      "name": "Benchmark Wilderness Ranch (access: CDT at Benchmark trailhead (South Fork Sun River))",
+      "store": "none"
+    },
+    "w_b375dd112326": {
+      "name": "Augusta (access: CDT at Benchmark trailhead (South Fork Sun River))",
+      "store": "limited"
+    },
+    "w_b8a48a94": {
+      "name": "Top of the World Store",
+      "store": "limited"
+    },
+    "w_b8c596b1": {
+      "name": "Copper Mountain (access: CDT / Colorado Trail at Copper Mountain)",
+      "store": "limited"
+    },
+    "w_baa3b125": {
+      "name": "Salida",
+      "store": "full"
+    },
+    "w_bf8a169c": {
+      "name": "Steamboat Springs (access: Buffalo Pass)",
+      "store": "full"
+    },
+    "w_bfb496d7": {
+      "name": "Monarch Pass (Monarch Crest Store)",
+      "store": "limited"
+    },
+    "w_c4b0f264": {
+      "name": "Silverthorne (access: CDT / Colorado Trail near CO 9, Tenmile Range)",
+      "store": "full"
+    },
+    "w_cb5d8d3b": {
+      "name": "Breckenridge (access: Gold Hill trailhead (CO 9))",
+      "store": "full"
+    },
+    "w_cc7644c6": {
+      "name": "Elliston (access: MacDonald Pass (US 12))",
+      "store": "limited"
+    },
+    "w_cf638c9e": {
+      "name": "Ghost Ranch (access: CDT primary route nearest Ghost Ranch (Chama River rim))",
+      "store": "meals"
+    },
+    "w_cf638c9ea049": {
+      "name": "Abiquiu (access: CDT primary route nearest Ghost Ranch (Chama River rim))",
+      "store": "limited"
+    },
+    "w_d0a4e5e4": {
+      "name": "Dubois",
+      "store": "full"
+    },
+    "w_d1f52485": {
+      "name": "Butte",
+      "store": "full"
+    },
+    "w_d3ac4147": {
+      "name": "Granby (access: CDT at Grand Lake)",
+      "store": "full"
+    },
+    "w_d694b023": {
+      "name": "Anaconda (access: CDT primary route nearest Anaconda (Anaconda-Pintler))",
+      "store": "full"
+    },
+    "w_d927b213": {
+      "name": "Anaconda",
+      "store": "full"
+    },
+    "w_e2179da5": {
+      "name": "Frisco",
+      "store": "full"
+    },
+    "w_e34658ec": {
+      "name": "Doc Campbell's Post (access: CDT primary route nearest Gila Hot Springs)",
+      "store": "limited"
+    },
+    "w_e76b0756": {
+      "name": "Salmon",
+      "store": "full"
+    },
+    "w_e7d8d267": {
+      "name": "Salmon (access: Bannock Pass (ID 29 / MT 324))",
+      "store": "full"
+    },
+    "w_e88378b7": {
+      "name": "Elliston",
+      "store": "limited"
+    },
+    "w_ebbd7d4e": {
+      "name": "Encampment (access: Battle Pass (WY 70))",
+      "store": "limited"
+    },
+    "w_ebbd7d4e82d1": {
+      "name": "Riverside (access: Battle Pass (WY 70))",
+      "store": "limited"
+    },
+    "w_ecd93444": {
+      "name": "Macks Inn (Island Park)",
+      "store": "limited"
+    },
+    "w_eede609e": {
+      "name": "Leadville (access: Tennessee Pass (US 24))",
+      "store": "full"
+    },
+    "w_f0c1c0e8": {
+      "name": "Reserve",
+      "store": "limited"
+    },
+    "w_f133c1df": {
+      "name": "Lordsburg",
+      "store": "full"
+    },
+    "w_f1419e0a": {
+      "name": "Flagg Ranch (access: CDT on the Snake River, south Yellowstone)",
+      "store": "meals"
+    },
+    "w_f195e47e": {
+      "name": "Babb (access: Chief Mountain border crossing (US 17 / MT 17))",
+      "store": "limited"
+    },
+    "w_f2d2fc48": {
+      "name": "Winter Park",
+      "store": "full"
+    },
+    "w_f56930ee": {
+      "name": "Flagg Ranch",
+      "store": "meals"
+    },
+    "w_f762526f": {
+      "name": "Many Glacier (Swiftcurrent)",
+      "store": "limited"
+    },
+    "w_f83addde": {
+      "name": "Lander",
+      "store": "full"
+    },
+    "w_f86cae6d": {
+      "name": "South Fork",
+      "store": "full"
+    },
+    "w_f8aca77a": {
+      "name": "Sula",
+      "store": "limited"
+    },
+    "w_f974074b": {
+      "name": "Columbus",
+      "store": "limited"
+    },
+    "w_fb0c85fc": {
+      "name": "Pinedale",
+      "store": "full"
+    }
+  }
+}

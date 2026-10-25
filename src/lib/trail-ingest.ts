@@ -27,7 +27,7 @@ import {
   WAYPOINT_DEDUPE_DEFAULT_RADIUS_METERS,
   type DedupableWaypoint,
 } from './waypoint-dedupe';
-import type { CombineTracksWarning, GpxData, GpxPoint, TrackBreak, WaypointAccess } from './types';
+import type { CombineTracksWarning, GpxData, GpxPoint, StoreKind, TrackBreak, WaypointAccess } from './types';
 import type {
   EnrichedWaypoint,
   KnownRetraceConfig,
@@ -186,6 +186,7 @@ function waypointAccess(source: WaypointAccess): WaypointAccess {
   if (source.offTrailKm !== undefined) access.offTrailKm = source.offTrailKm;
   if (source.accessMode !== undefined) access.accessMode = source.accessMode;
   if (source.acceptsBoxes !== undefined) access.acceptsBoxes = source.acceptsBoxes;
+  if (source.store !== undefined) access.store = source.store;
   if (source.accessName !== undefined) access.accessName = source.accessName;
   if (source.offTrailAscentM !== undefined) access.offTrailAscentM = source.offTrailAscentM;
   if (source.offTrailDescentM !== undefined) access.offTrailDescentM = source.offTrailDescentM;
@@ -1512,6 +1513,13 @@ export interface BuildTrailOptions {
    */
   variantWaypointAccess?: ReadonlyMap<string, VariantAccess>;
   /**
+   * What each resupply place sells, by waypoint id (the build reads them from
+   * `access.json` entries' `store`). Set on the source waypoint once ids are
+   * minted, so it reaches every row the place appears in — main route,
+   * off-trail, alternate and side trip — and overrides a GPX `<tn:store>`.
+   */
+  waypointStores?: ReadonlyMap<string, StoreKind>;
+  /**
    * What to do when the route passes one waypoint twice, fanning a single
    * source waypoint into several output rows that share an id. The build script
    * throws (the fix is a trail.json change); imports disambiguate instead.
@@ -1886,6 +1894,12 @@ export function buildTrail(gpx: ParsedGpxResult, options: BuildTrailOptions): Pr
 
   // Curated descriptions and anything else keyed by the ids just assigned.
   options.afterWaypointIds?.(waypoints, config);
+  if (options.waypointStores && options.waypointStores.size > 0) {
+    for (const wp of waypoints) {
+      const store = wp.id === undefined ? undefined : options.waypointStores.get(wp.id);
+      if (store !== undefined) wp.store = store;
+    }
+  }
 
   // Enrich waypoints with distance and elevation data
   const waypointMaxDist = config.waypointMaxDistance ?? DEFAULT_WAYPOINT_MAX_DISTANCE_METERS;

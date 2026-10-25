@@ -27,6 +27,10 @@
         [-37.066071, 142.48513]
       ]
     },
+    "w_266c5034": {
+      "name": "Dunkeld",
+      "store": "limited"
+    },
     "w_2dc44101": {
       "name": "Drinking water",
       "method": "osm",
@@ -128,7 +132,8 @@
         [-37.141357, 142.519132],
         [-37.141568, 142.519372],
         [-37.141769, 142.520244]
-      ]
+      ],
+      "store": "limited"
     },
     "w_cc75cbf9": {
       "name": "Drinking water",

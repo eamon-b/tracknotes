@@ -11,6 +11,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { parseGpx, generateGpx, GPX_MAX_POINT_COUNT, GPX_MAX_WAYPOINT_COUNT } from './gpx-parser';
+import { fxpXmlAdapter } from './xml-adapter-fxp';
 import { flattenGpx } from './trail-ingest';
 import type { GpxWaypoint } from './types';
 
@@ -256,6 +257,34 @@ describe('waypoint <extensions> (off-trail access)', () => {
     }
   });
 
+  // The shape te-araroa-data writes on a researched resupply and on its turn-off.
+  const storeGpx = (store: string) => `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="te-araroa-data" xmlns="http://www.topografix.com/GPX/1/1" xmlns:tn="https://tracknotes.app/xmlschemas/gpx-waypoint/1">
+  <wpt lat="-43.9" lon="171.2">
+    <name>Geraldine</name>
+    <type>town-access</type>
+    <extensions><tn:offTrailKm>70.0</tn:offTrailKm><tn:acceptsBoxes>false</tn:acceptsBoxes><tn:store>${store}</tn:store></extensions>
+  </wpt>
+</gpx>`;
+
+  it.each([
+    ['DOMParser', undefined],
+    ['fast-xml-parser', fxpXmlAdapter],
+  ] as const)('reads <tn:store> beside <tn:acceptsBoxes> (%s)', (_name, adapter) => {
+    for (const store of ['full', 'limited', 'meals', 'none']) {
+      expect(parseGpx(storeGpx(store), adapter).waypoints[0]).toMatchObject({
+        offTrailKm: 70,
+        acceptsBoxes: false,
+        store,
+      });
+    }
+  });
+
+  it('drops a store kind it does not know, and leaves an absent one absent', () => {
+    expect('store' in parseGpx(storeGpx('supermarket')).waypoints[0]).toBe(false);
+    expect('store' in byName('Salida')).toBe(false);
+  });
+
   it('survives a generateGpx → parseGpx round trip', () => {
     const source: GpxWaypoint[] = [
       {
@@ -268,10 +297,12 @@ describe('waypoint <extensions> (off-trail access)', () => {
         offTrailKm: 70,
         accessMode: 'hitch',
         acceptsBoxes: false,
+        store: 'full',
         accessName: 'Rangitata road end',
       },
     ];
     const xml = generateGpx('Round Trip', [], source);
+    expect(xml).toContain('<tn:store>full</tn:store>');
 
     expect(xml).toContain('xmlns:tn="https://tracknotes.app/xmlschemas/gpx-waypoint/1"');
     expect(xml).toContain('<tn:offTrailKm>70</tn:offTrailKm>');

@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
   accessPlacements,
+  accessStores,
   mergeTrailAccess,
+  routedAccessIds,
   parseTrailAccessFile,
   stringifyTrailAccessFile,
   unroutedAccessIds,
@@ -103,5 +105,54 @@ describe('trail access file', () => {
     expect(merged.w_a).toBe(FILE.places.w_a);
     expect(merged.w_c).toBe(FILE.places.w_c);
     expect(Object.keys(mergeTrailAccess(FILE, fresh, new Set()))).toEqual(['w_b', 'w_c']);
+  });
+
+  describe('store', () => {
+    const WITH_STORES: TrailAccessFile = {
+      ...FILE,
+      places: {
+        ...FILE.places,
+        w_b: { ...FILE.places.w_b, store: 'meals' },
+        // Store-only: a place with nothing to route (on the route, or the CDT's).
+        w_s: { name: 'Shop', store: 'full' },
+      },
+    };
+
+    it('round-trips a store on any entry and a store-only entry', () => {
+      expect(parseTrailAccessFile(stringifyTrailAccessFile(WITH_STORES), 'f')).toEqual(WITH_STORES);
+      expect(accessStores(WITH_STORES)).toEqual(
+        new Map([
+          ['w_b', 'meals'],
+          ['w_s', 'full'],
+        ])
+      );
+      expect(accessStores(null).size).toBe(0);
+    });
+
+    it('never routes or places a store-only entry', () => {
+      expect([...accessPlacements(WITH_STORES).keys()].sort()).toEqual(['w_b', 'w_c']);
+      expect([...unroutedAccessIds(WITH_STORES)]).toEqual(['w_a']);
+      expect([...routedAccessIds(WITH_STORES)].sort()).toEqual(['w_a', 'w_b', 'w_c']);
+    });
+
+    it('refuses an unknown store, an entry with neither method nor store, and a store-only entry with more', () => {
+      const parse = (places: unknown) => () => parseTrailAccessFile(JSON.stringify({ ...FILE, places }), 'f');
+      expect(parse({ w_x: { name: 'X', store: 'supermarket' } })).toThrow(/store must be/);
+      expect(parse({ w_x: { name: 'X' } })).toThrow(/needs a "method"/);
+      expect(parse({ w_x: { name: 'X', store: 'full', offTrailKm: 2 } })).toThrow(/only "name" and "store"/);
+    });
+
+    it('survives a re-fetch: store-only entries are kept, and a re-fetched walk keeps its store', () => {
+      const fresh = {
+        w_b: { ...FILE.places.w_b, offTrailKm: 3 },
+        w_s: { name: 'Shop', method: 'osm' as const, junction: [34, 135] as [number, number], offTrailKm: 1 },
+      };
+      const merged = mergeTrailAccess(WITH_STORES, fresh, new Set());
+      expect(merged.w_b).toMatchObject({ offTrailKm: 3, store: 'meals' });
+      expect(merged.w_s).toMatchObject({ method: 'osm', offTrailKm: 1, store: 'full' });
+      const kept = mergeTrailAccess(WITH_STORES, {}, new Set());
+      expect(kept.w_s).toBe(WITH_STORES.places.w_s);
+      expect(Object.keys(kept).sort()).toEqual(['w_c', 'w_s']);
+    });
   });
 });

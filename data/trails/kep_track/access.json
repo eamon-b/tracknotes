@@ -5,6 +5,10 @@
   "endpoint": "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
   "minDistanceM": 150,
   "places": {
+    "w_0196c728": {
+      "name": "Northam (1 km east)",
+      "store": "full"
+    },
     "w_01986ced": {
       "name": "Drinking water",
       "method": "osm",
@@ -63,7 +67,8 @@
         [-31.901359, 116.168213],
         [-31.901341, 116.167552],
         [-31.90125, 116.16747]
-      ]
+      ],
+      "store": "full"
     },
     "w_cf1eb062": {
       "name": "Mount Helena",

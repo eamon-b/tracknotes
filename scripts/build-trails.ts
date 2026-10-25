@@ -20,7 +20,13 @@ import { countNoiseByReason } from '../src/lib/poi-noise.js';
 import { findDenseStretches, thinUrbanPois } from '../src/lib/poi-urban.js';
 import { markTrailPOIsForBuild, readTrailPOIFile } from './lib/trail-pois-file.js';
 import { misplacedPois } from './fetch-pois.js';
-import { accessPlacements, readTrailAccessFile, unroutedAccessIds, variantAccess } from './lib/trail-access-file.js';
+import {
+  accessPlacements,
+  accessStores,
+  readTrailAccessFile,
+  unroutedAccessIds,
+  variantAccess,
+} from './lib/trail-access-file.js';
 import { BUNDLED_PLAN_FILLS, inlinePlanShell } from './lib/plan-shell.js';
 import { fillTemplate } from './lib/fill-template.js';
 import { readAppIndex, webDataTime } from './lib/web-data-time.js';
@@ -399,6 +405,7 @@ async function processTrail(
     waypointAccessUnrouted: unroutedAccessIds(accessFile),
     // …and those walked to from an alternate, applied to its waypoints.
     variantWaypointAccess: variantAccess(accessFile),
+    waypointStores: accessStores(accessFile),
 
     // Curated descriptions are keyed by the ids just assigned.
     afterWaypointIds: (waypoints, resolvedConfig) => applyTrailDescriptions(trailDir, resolvedConfig, waypoints),

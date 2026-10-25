@@ -62,10 +62,22 @@
  * (`points[0]`, the branch point), not trail km — the build adds the
  * alternate's `startDistance`. The build applies it to that alternate's
  * waypoints only (`variantAccess`), never to the main route.
+ *
+ * `store` (any entry) is what a resupply place sells — `full`, `limited`,
+ * `meals` or `none` (`StoreKind` in `src/lib/types.ts`) — written by hand from
+ * the place's description, and left out where the description does not make
+ * it clear. A place with nothing to route (on the route, or already given its
+ * distance by its source, like the CDT's) takes a **store-only** entry:
+ * `name` and `store`, no `method`. The build gives every row of the waypoint
+ * its `store` (`accessStores`) and nothing else; `fetch-access` never routes a
+ * store-only entry, keeps it through a re-fetch, and carries an entry's
+ * `store` over when it re-fetches that entry's walk. So a file can exist with
+ * only store-only entries (the CDT's), which says nothing about routing.
  */
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { isStoreKind, type StoreKind } from '../../src/lib/types.js';
 
 export const ACCESS_FILENAME = 'access.json';
 export const ACCESS_SOURCE = 'OpenStreetMap ways via Overpass; heights from Copernicus GLO-30';
@@ -76,7 +88,10 @@ export type AccessMethod = 'osm' | 'manual' | 'none';
 
 export interface TrailAccessEntry {
   name: string;
-  method: AccessMethod;
+  /** Absent only on a store-only entry (`name` + `store`). */
+  method?: AccessMethod;
+  /** What the place sells, by hand from its description; absent when unclear. */
+  store?: StoreKind;
   /**
    * The alternate the walk leaves from, by name, when it is not the main
    * route; `junctionKm`/`nearestKm` are then km along that alternate.
@@ -163,6 +178,16 @@ export function parseTrailAccessFile(text: string, filePath: string): TrailAcces
     if (typeof raw !== 'object' || raw === null) fail(`${where} is not an object`);
     const entry = raw as Record<string, unknown>;
     if (typeof entry.name !== 'string') fail(`${where}.name must be a string`);
+    if (entry.store !== undefined && !isStoreKind(entry.store)) {
+      fail(`${where}.store must be "full", "limited", "meals" or "none"`);
+    }
+    if (entry.method === undefined) {
+      if (entry.store === undefined) fail(`${where} needs a "method" (or, store-only, a "store")`);
+      const extra = Object.keys(entry).filter(key => key !== 'name' && key !== 'store');
+      if (extra.length > 0)
+        fail(`${where}: a store-only entry has only "name" and "store" (found ${extra.join(', ')})`);
+      continue;
+    }
     if (entry.method !== 'osm' && entry.method !== 'manual' && entry.method !== 'none') {
       fail(`${where}.method must be "osm", "manual" or "none"`);
     }
@@ -193,7 +218,8 @@ export function readTrailAccessFile(trailDir: string): TrailAccessFile | null {
 
 /** What the build applies to one entry, or null for a `none` (or incomplete) one. */
 function placementFor(entry: TrailAccessEntry): WaypointAccessPlacement | null {
-  if (entry.method === 'none' || !entry.junction || entry.offTrailKm === undefined) return null;
+  if (entry.method === undefined || entry.method === 'none' || !entry.junction || entry.offTrailKm === undefined)
+    return null;
   return {
     junction: { lat: entry.junction[0], lon: entry.junction[1] },
     offTrailKm: entry.offTrailKm,
@@ -228,6 +254,22 @@ export function unroutedAccessIds(file: TrailAccessFile | null): Set<string> {
   return new Set(
     Object.entries(file?.places ?? {})
       .filter(([, entry]) => entry.method === 'none' && entry.variant === undefined)
+      .map(([id]) => id)
+  );
+}
+
+/** Every entry's `store`, by waypoint id: applied to every row of that waypoint. */
+export function accessStores(file: TrailAccessFile | null): Map<string, StoreKind> {
+  const stores = new Map<string, StoreKind>();
+  for (const [id, entry] of Object.entries(file?.places ?? {})) if (entry.store) stores.set(id, entry.store);
+  return stores;
+}
+
+/** The ids of entries with a walk to route or keep (`method` set) — not store-only ones. */
+export function routedAccessIds(file: TrailAccessFile | null): Set<string> {
+  return new Set(
+    Object.entries(file?.places ?? {})
+      .filter(([, entry]) => entry.method !== undefined)
       .map(([id]) => id)
   );
 }
@@ -269,7 +311,15 @@ export function mergeTrailAccess(
 ): Record<string, TrailAccessEntry> {
   const merged: Record<string, TrailAccessEntry> = { ...fetched };
   for (const [id, entry] of Object.entries(previous?.places ?? {})) {
-    if (entry.method === 'manual' || (failedIds.has(id) && !(id in fetched))) merged[id] = entry;
+    if (entry.method === undefined && id in fetched) {
+      // A store-only place the fetch has now found a walk to: keep its store.
+      merged[id] = { ...fetched[id], store: entry.store };
+    } else if (entry.method === undefined || entry.method === 'manual' || (failedIds.has(id) && !(id in fetched))) {
+      merged[id] = entry;
+    } else if (entry.store !== undefined && id in fetched) {
+      // The walk is re-fetched; what the place sells is hand-written and stays.
+      merged[id] = { ...fetched[id], store: entry.store };
+    }
   }
   return merged;
 }

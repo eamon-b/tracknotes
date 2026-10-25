@@ -5,6 +5,18 @@
   "endpoint": "none: manual entries only",
   "minDistanceM": 150,
   "places": {
+    "w_012fc955": {
+      "name": "Kalamunda MTB park",
+      "store": "meals"
+    },
+    "w_1a7c6b2c": {
+      "name": "Albany",
+      "store": "full"
+    },
+    "w_56ed070d": {
+      "name": "Mundaring Weir Hotel",
+      "store": "meals"
+    },
     "w_57dadd26": {
       "name": "Collie",
       "method": "manual",
@@ -15,7 +27,36 @@
       "descentM": 52,
       "straightLineM": 2212,
       "nearestKm": 324.69,
-      "reason": "The track passes 1-1.5 km west of the town centre (OSM relation 400098). The walk in is the GPX's own from the fork, lifted off the main route by the \"Collie town (return)\" extractSpurs entry; its climb is the build's step sum over that spur, the figure the side trip's Collie row shows."
+      "reason": "The track passes 1-1.5 km west of the town centre (OSM relation 400098). The walk in is the GPX's own from the fork, lifted off the main route by the \"Collie town (return)\" extractSpurs entry; its climb is the build's step sum over that spur, the figure the side trip's Collie row shows.",
+      "store": "full"
+    },
+    "w_58492f3f": {
+      "name": "Denmark",
+      "store": "full"
+    },
+    "w_6d9cbefd": {
+      "name": "Balingup",
+      "store": "limited"
+    },
+    "w_6da6b772": {
+      "name": "Mumballup Tavern",
+      "store": "meals"
+    },
+    "w_8bc16e54": {
+      "name": "Peaceful Bay",
+      "store": "limited"
+    },
+    "w_92d0bdd1": {
+      "name": "Northcliffe",
+      "store": "limited"
+    },
+    "w_93b31a1e": {
+      "name": "Pemberton",
+      "store": "full"
+    },
+    "w_abffd746": {
+      "name": "Donnelly River Village",
+      "store": "limited"
     }
   }
 }
