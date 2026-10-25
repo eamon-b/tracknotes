@@ -101,6 +101,28 @@ function plan(over: Partial<PlanDocument> = {}): PlanDocument {
   };
 }
 
+describe('plannerRows leg names', () => {
+  it('names an undecided stop by its group, and a decided one as the leg does', () => {
+    const legs = [
+      leg(0, 100, { toName: 'Monarch Pass / Salida' }),
+      leg(100, 250, { fromName: 'Monarch Pass / Salida', toName: 'Creede' }),
+    ];
+    const names = plannerRows(groups, undefined, legs, whole, undefined).flatMap((row) =>
+      row.kind === 'leg' ? [row.names] : [],
+    );
+    expect(names[0]).toEqual({
+      from: 'Trail Start',
+      to: 'Monarch Pass (US 50) (not decided)',
+      toDecided: false,
+    });
+    expect(names[1]).toEqual({
+      from: 'Monarch Pass (US 50) (not decided)',
+      to: 'Creede',
+      toDecided: true,
+    });
+  });
+});
+
 describe('plannerRows', () => {
   it('interleaves each leg just above the stop it arrives at', () => {
     const legs = [leg(0, 100), leg(100, 250), leg(250, 300)];
