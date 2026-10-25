@@ -569,6 +569,32 @@ function stopAccess(picked: readonly ResupplyOption[]): StopAccess | null {
   return best;
 }
 
+/**
+ * Where a decision group stands, read from the stored selection: one place
+ * chosen, none, or not decided yet.
+ *
+ * A group is one decision — at Monarch Pass, Salida *or* Poncha Springs *or*
+ * the Crest Store *or* carry on — so more than one ticked option (the
+ * every-option default included) is a decision not yet made, not a plan to
+ * visit both. A single-option group is a Yes/No: the default reads as
+ * `chosen`, since there is nothing else to choose.
+ */
+export type ResupplyGroupChoice = { kind: 'undecided' } | { kind: 'chosen'; optionId: string } | { kind: 'none' };
+
+/**
+ * The state of one group under a selection (`undefined` = every option,
+ * as everywhere else). Ids the group does not have are ignored.
+ */
+export function resupplyGroupChoice(
+  group: Pick<ResupplyOptionGroup, 'options'>,
+  selectedIds: readonly string[] | undefined
+): ResupplyGroupChoice {
+  const picked = selectedIds ? group.options.filter(option => selectedIds.includes(option.id)) : [...group.options];
+  if (picked.length === 0) return { kind: 'none' };
+  if (picked.length === 1) return { kind: 'chosen', optionId: picked[0].id };
+  return { kind: 'undecided' };
+}
+
 /** Every option id the trail offers, in group order — the "All" selection. */
 export function allResupplyOptionIds(groups: readonly ResupplyOptionGroup[]): string[] {
   return groups.flatMap(group => group.options.map(option => option.id));

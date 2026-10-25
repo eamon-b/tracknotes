@@ -17,6 +17,7 @@ import {
   computeResupplyLegs,
   summariseResupplyLegs,
   resupplyCandidates,
+  resupplyGroupChoice,
   nextResupplyStop,
   optionAccess,
   WALKED_WHEN_UNSAID_MAX_KM,
@@ -965,6 +966,26 @@ describe('stops and legs off the route', () => {
       walkedKm: 40,
       rides: [],
     });
+  });
+});
+
+describe('resupplyGroupChoice', () => {
+  const [twins, lone] = listResupplyOptions([
+    { id: 'a', name: 'A', type: 'town-access', totalDistance: 10, offTrailKm: 20, accessMode: 'hitch' },
+    { id: 'b', name: 'B', type: 'town-access', totalDistance: 10, offTrailKm: 25, accessMode: 'hitch' },
+    { id: 'c', name: 'C', type: 'town', totalDistance: 50 },
+  ]);
+
+  it('reads the every-option default as undecided, unless there is only one option', () => {
+    expect(resupplyGroupChoice(twins, undefined)).toEqual({ kind: 'undecided' });
+    expect(resupplyGroupChoice(lone, undefined)).toEqual({ kind: 'chosen', optionId: 'c' });
+  });
+
+  it('is undecided with two ticked, chosen with one, none with none', () => {
+    expect(resupplyGroupChoice(twins, ['a', 'b', 'c'])).toEqual({ kind: 'undecided' });
+    expect(resupplyGroupChoice(twins, ['b', 'c'])).toEqual({ kind: 'chosen', optionId: 'b' });
+    expect(resupplyGroupChoice(twins, ['c', 'gone'])).toEqual({ kind: 'none' });
+    expect(resupplyGroupChoice(lone, [])).toEqual({ kind: 'none' });
   });
 });
 

@@ -35,6 +35,7 @@ import { PLAN_LIMITS, PLAN_WAYPOINT_ID_PATTERN } from './plan-types';
 import { computeDays, isStopAtPlace, stopWalk, type PlanStopInput, type PlanTrail } from './day-calculator';
 import type { TrailPOI } from './trail-types';
 import { baseWaypointType, isAccessWaypoint } from './waypoint-taxonomy';
+import { allResupplyOptionIds, type ResupplyOptionGroup } from './resupply-plan';
 
 // ---------------------------------------------------------------------------
 // Injected clock and id source
@@ -518,6 +519,50 @@ export function setResupplyStops(
     return plan;
   }
   return { ...plan, resupplyStops: [...ids], updatedAt: stamp(opts, plan.updatedAt) };
+}
+
+/**
+ * Make one decision group's choice: exactly `optionId` in the group, or none
+ * of it (`null`), leaving every other group's selection as it was. The group
+ * is found by its `key` among `groups` (`listResupplyOptions`' output for the
+ * trail as the hiker sees it).
+ *
+ * An absent selection means every option, so it is materialised first — every
+ * other group keeps all its options ticked, exactly as it read before. The
+ * chosen id takes the place of the group's first stored id, so the stored
+ * order stays stable and choosing the same thing twice is a no-op (the same
+ * object back, as with {@link setResupplyStops}). Ids no group has (a saved
+ * selection from older trail data) are kept untouched.
+ *
+ * @throws RangeError for a `groupKey` no group has, or an `optionId` that is
+ *   not in that group — a UI handing over either is a bug.
+ */
+export function chooseResupplyOption(
+  plan: PlanDocument,
+  groups: readonly ResupplyOptionGroup[],
+  groupKey: string,
+  optionId: string | null,
+  opts?: PlanEditOptions
+): PlanDocument {
+  const group = groups.find(candidate => candidate.key === groupKey);
+  if (!group) throw new RangeError(`chooseResupplyOption: no resupply group "${groupKey}"`);
+  if (optionId !== null && !group.options.some(option => option.id === optionId)) {
+    throw new RangeError(`chooseResupplyOption: "${optionId}" is not an option of group "${groupKey}"`);
+  }
+  const inGroup = new Set(group.options.map(option => option.id));
+  const current = plan.resupplyStops ?? allResupplyOptionIds(groups);
+  const next: string[] = [];
+  let placed = optionId === null;
+  for (const id of current) {
+    if (!inGroup.has(id)) {
+      next.push(id);
+    } else if (!placed) {
+      next.push(optionId as string);
+      placed = true;
+    }
+  }
+  if (!placed) next.push(optionId as string);
+  return setResupplyStops(plan, next, opts);
 }
 
 // ---------------------------------------------------------------------------
