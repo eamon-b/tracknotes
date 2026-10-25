@@ -446,7 +446,11 @@ function tile(label: string, value: string, note = ''): string {
 const plural = (n: number, word: string): string => `${n} ${word}${n === 1 ? '' : 's'}`;
 
 /** The totals strip: `summariseResupplyPlan`'s figures, and how many decisions are still open. */
-export function renderResupplySummary(summary: ResupplyPlanSummary, undecidedCount: number): string {
+export function renderResupplySummary(
+  summary: ResupplyPlanSummary,
+  undecidedCount: number,
+  { canClear = false, readOnly = false }: { canClear?: boolean; readOnly?: boolean } = {}
+): string {
   if (!summary.hasData) return '<p class="rs-empty-note">Nothing to plan on this trail.</p>';
   const tiles = [
     tile('Stops chosen', String(summary.stopsChosen)),
@@ -465,5 +469,12 @@ export function renderResupplySummary(summary: ResupplyPlanSummary, undecidedCou
     undecidedCount > 0
       ? `<p class="rs-open-note">${escapeHtml(plural(undecidedCount, 'decision'))} not made yet — until you pick, each counts every option still ticked as one stop.</p>`
       : '';
-  return `<div class="rs-tiles">${tiles}</div>${open}`;
+  // Back to "no resupply plan made" (the phone's Clear choices): the choices
+  // and the zero days go. Offered only once there is something to clear.
+  const clear =
+    canClear && !readOnly
+      ? '<button type="button" id="rs-clear" class="plan-header-btn rs-clear">Clear choices</button>'
+      : '';
+  const row = open || clear ? `<div class="rs-open-row">${open}${clear}</div>` : '';
+  return `<div class="rs-tiles">${tiles}</div>${row}`;
 }

@@ -28,6 +28,7 @@ import type { Pace, PlanDocument, PlanThresholds, PlanTrackPoint, PlanWaypoint }
 import { PACE_KMH, PLAN_THRESHOLD_BOUNDS, PLAN_THRESHOLD_STEPS, isPace } from '@lib/plan-types';
 import {
   chooseResupplyOption,
+  resetResupplyPlan,
   refreshStopKms,
   servicesAtStop,
   setDirection as editDirection,
@@ -271,7 +272,14 @@ function render(): void {
   });
 
   const summary = byId('rs-summary');
-  if (summary) summary.innerHTML = renderResupplySummary(summariseResupplyPlan(legs()), view.undecidedCount);
+  if (summary) {
+    const hadFocus = document.activeElement?.id === 'rs-clear';
+    summary.innerHTML = renderResupplySummary(summariseResupplyPlan(legs()), view.undecidedCount, {
+      canClear: storedPlan.resupplyStops !== undefined || storedPlan.resupplyZeroDays !== undefined,
+    });
+    // Clearing removes the button; keep the keyboard near where it was.
+    if (hadFocus) (byId('rs-clear') ?? byId('rs-direction'))?.focus({ preventScroll: true });
+  }
 
   const table = byId('rs-table');
   if (table) {
@@ -451,6 +459,13 @@ function bindControls(): void {
 
   const plannerLink = byId<HTMLAnchorElement>('rs-planner-link');
   if (plannerLink) plannerLink.href = pageOptions.plannerHref();
+
+  // Clear choices: the selection and the zero days (`resetResupplyPlan`).
+  byId('rs-summary')?.addEventListener('click', event => {
+    if (!(event.target as HTMLElement | null)?.closest('#rs-clear')) return;
+    invalidZeroId = null;
+    edit(doc => resetResupplyPlan(doc));
+  });
 
   // Delegated: every render replaces the table's contents.
   const table = byId('rs-table');

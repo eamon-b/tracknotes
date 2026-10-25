@@ -316,6 +316,26 @@ describe('renderResupplySummary', () => {
   });
 });
 
+describe('Clear choices', () => {
+  it('sits beside the open-decisions warning only when there is something to clear', () => {
+    const legs = computeResupplyLegs(trail, resolveResupplyStops(groups, undefined), {
+      dailyHours: 8,
+      baseKmh: PACE_KMH.average,
+      longThresholdDays: 5,
+      gramsPerDay: 800,
+    });
+    const summary = summariseResupplyPlan(legs);
+    expect(tableDom(renderResupplySummary(summary, 1)).querySelector('#rs-clear')).toBeNull();
+    const dom = tableDom(renderResupplySummary(summary, 1, { canClear: true }));
+    const row = dom.querySelector('.rs-open-row')!;
+    expect(row.querySelector('.rs-open-note')).not.toBeNull();
+    expect(row.querySelector('#rs-clear')?.textContent).toBe('Clear choices');
+    expect(
+      tableDom(renderResupplySummary(summary, 0, { canClear: true, readOnly: true })).querySelector('#rs-clear')
+    ).toBeNull();
+  });
+});
+
 describe('accessModeText', () => {
   it('names the way to the place, or says the data gives none', () => {
     const base = { id: 'x', name: 'X', type: 'town-access', km: 0 };

@@ -378,3 +378,14 @@ details.rs-notes p {
   .rs-endpoint tr { background: var(--bg-secondary); }
   .share-panel { left: 0.75rem; right: 0.75rem; width: auto; }
 }
+
+/* The open-decisions warning and Clear choices, side by side. */
+.rs-open-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+}
+.rs-open-row .rs-open-note { flex: 1 1 20rem; margin: 0; }
+.rs-clear { margin-left: auto; }
