@@ -304,7 +304,8 @@ the guide measures a walk:
   day that reaches it, and the walk back to the day after;
 - a water carry that starts or ends at a water source off the route includes
   the walk out of it or in to it;
-- a resupply leg counts the walk to and from the town in its time and food;
+- a resupply leg counts the walk to the town and back, with its climb both
+  ways, in its time and food — all of it on the leg that reaches the town;
 - on the phone, the "From your location" card on a place's page adds the
   walk's climb and time to the trip there.
 

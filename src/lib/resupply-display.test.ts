@@ -12,6 +12,7 @@ import {
   firstSentence,
   legDistanceText,
   legRidesText,
+  legSideTripText,
   resupplySummaryText,
   STORE_KIND_LABELS,
   stopAccessText,
@@ -190,5 +191,12 @@ describe('storeLabel', () => {
   it('says nothing when the data does not', () => {
     expect(storeLabel({})).toBeNull();
     expect(storeLabel({ acceptsBoxes: true })).toBeNull();
+  });
+});
+
+describe('legSideTripText', () => {
+  it('names the side trip a leg includes', () => {
+    expect(legSideTripText({ sideTripKm: 2.8, toName: 'Salida' }, km)).toBe('incl. 2.8 km to Salida and back');
+    expect(legSideTripText({ sideTripKm: 0, toName: 'Salida' }, km)).toBe('');
   });
 });

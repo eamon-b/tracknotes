@@ -16,6 +16,7 @@ import {
   resolveResupplyStops,
   computeResupplyLegs,
   summariseResupplyLegs,
+  summariseResupplyPlan,
   resupplyCandidates,
   resupplyGroupChoice,
   nextResupplyStop,
@@ -894,30 +895,54 @@ describe('stops and legs off the route', () => {
   const legsFor = (candidates: ResupplyCandidateWaypoint[], selected?: string[]) =>
     computeResupplyLegs(trail, resolveResupplyStops(listResupplyOptions(candidates), selected), HIKER);
 
-  it('walks in to a side-trip town and back out, climb and all', () => {
+  it('counts the side trip to a town, there and back, on the leg that arrives', () => {
     const legs = legsFor(resupplyCandidates({ sideTrips: [spur()] }));
     expect(legs).toHaveLength(2);
-    // In: 30 km trail + 3 km up the spur (300 m) = 33/4 + 300/600 = 8.75 h.
+    // 30 km trail + 3 km up the spur (300 m) and 3 km back down (300 m, within
+    // Tranter's 300 m allowance) = 36/4 + 300/600 = 9.5 h.
     expect(legs[0]).toMatchObject({
       toName: 'Spur Town',
       distanceKm: 30,
-      offTrailWalkKm: 3,
-      walkedKm: 33,
+      sideTripKm: 6,
+      sideTripAscentM: 300,
+      sideTripDescentM: 300,
+      offTrailWalkKm: 6,
+      walkedKm: 36,
       ascentM: 300,
-      descentM: 0,
-      estimatedHours: 8.8,
+      descentM: 300,
+      estimatedHours: 9.5,
       estimatedDays: 2,
       rides: [],
     });
-    // Out: back down the spur (300 m down, within Tranter's 300 m allowance) + 70 km.
+    // The next leg starts at the junction: 70 km, flat.
     expect(legs[1]).toMatchObject({
       fromName: 'Spur Town',
       distanceKm: 70,
+      sideTripKm: 0,
+      offTrailWalkKm: 0,
+      walkedKm: 70,
+      ascentM: 0,
+      descentM: 0,
+      estimatedHours: 17.5,
+    });
+  });
+
+  it('walks out of a stop at the start of a section on the leg leaving it', () => {
+    // The section starts at the junction, so the leg that arrived is outside it.
+    const stops = resolveResupplyStops(listResupplyOptions(resupplyCandidates({ sideTrips: [spur()] })), undefined);
+    const legs = computeResupplyLegs(trail, stops, {
+      ...HIKER,
+      section: { startKm: 30, endKm: 100, startName: 'Spur Town', endName: 'End' },
+    });
+    expect(legs).toHaveLength(1);
+    // Back down the spur (300 m down, 0 up) + 70 km.
+    expect(legs[0]).toMatchObject({
+      fromName: 'Spur Town',
+      sideTripKm: 0,
       offTrailWalkKm: 3,
       walkedKm: 73,
       ascentM: 0,
       descentM: 300,
-      estimatedHours: 18.3,
     });
   });
 
@@ -925,15 +950,21 @@ describe('stops and legs off the route', () => {
     const legs = legsFor([
       { id: 'h', name: 'Hitch Town', type: 'town-access', totalDistance: 40, offTrailKm: 20, accessMode: 'hitch' },
     ]);
-    expect(legs[0]).toMatchObject({ distanceKm: 40, offTrailWalkKm: 0, walkedKm: 40, estimatedHours: 10 });
+    expect(legs[0]).toMatchObject({
+      distanceKm: 40,
+      offTrailWalkKm: 0,
+      sideTripKm: 0,
+      walkedKm: 40,
+      estimatedHours: 10,
+    });
     expect(legs[0].rides).toEqual([{ km: 20, mode: 'hitch', end: 'to' }]);
     expect(legs[1].rides).toEqual([{ km: 20, mode: 'hitch', end: 'from' }]);
   });
 
   it('walks a short unsaid distance into town, and lists a long one without walking it', () => {
     const short = legsFor([{ id: 'k', name: 'Kerikeri', type: 'town', totalDistance: 40, offTrailKm: 0.7 }]);
-    expect(short[0]).toMatchObject({ walkedKm: 40.7, offTrailWalkKm: 0.7, rides: [] });
-    expect(short[1]).toMatchObject({ offTrailWalkKm: 0.7, rides: [] });
+    expect(short[0]).toMatchObject({ walkedKm: 41.4, offTrailWalkKm: 1.4, sideTripKm: 1.4, rides: [] });
+    expect(short[1]).toMatchObject({ offTrailWalkKm: 0, rides: [] });
 
     const long = legsFor([{ id: 'w', name: 'Warkworth', type: 'town-access', totalDistance: 40, offTrailKm: 6 }]);
     expect(long[0]).toMatchObject({ walkedKm: 40, offTrailWalkKm: 0 });
@@ -947,12 +978,18 @@ describe('stops and legs off the route', () => {
     ];
     const [stop] = resolveResupplyStops(listResupplyOptions(candidates), undefined);
     expect(stop.access).toMatchObject({ place: 'Near', walkKm: 4, rideKm: 0 });
-    expect(legsFor(candidates)[0]).toMatchObject({ walkedKm: 44, rides: [] });
+    expect(legsFor(candidates)[0]).toMatchObject({ walkedKm: 48, sideTripKm: 8, rides: [] });
   });
 
   it('counts the off-trail walk in the longest carry', () => {
-    const summary = summariseResupplyLegs(legsFor(resupplyCandidates({ sideTrips: [spur()] })));
-    expect(summary.longestKm).toBe(73);
+    const summary = summariseResupplyLegs(
+      legsFor(resupplyCandidates({ sideTrips: [spur({ startDistance: 60, waypoints: [] })] }))
+    );
+    const town = { id: 'spur-town', name: 'Spur Town', type: 'town', totalDistance: 63 };
+    const legs = legsFor(resupplyCandidates({ sideTrips: [spur({ startDistance: 60, waypoints: [town] })] }));
+    expect(summary.longestKm).toBe(100); // no town on that spur: one 100 km leg
+    // 60 km in plus 6 km to the town and back.
+    expect(summariseResupplyLegs(legs).longestKm).toBe(66);
   });
 
   it('gives an on-route stop no access, and its legs no off-trail km', () => {
@@ -1031,5 +1068,98 @@ describe('the built side trips', () => {
     const hotham = groups.flatMap(group => group.options).find(option => option.name === 'Mt Hotham');
     expect(hotham).toMatchObject({ accessMode: 'foot', accessRoute: { name: 'ST S3 Davenport Village' } });
     expect(hotham!.offTrailKm).toBeCloseTo(2.3, 1);
+  });
+});
+
+describe('zero days', () => {
+  const trail = flatTrail(100);
+  const candidates: ResupplyCandidateWaypoint[] = [
+    { id: 'a', name: 'A', type: 'town', totalDistance: 30 },
+    { id: 'b1', name: 'B1', type: 'town-access', totalDistance: 60, offTrailKm: 1, accessMode: 'foot' },
+    { id: 'b2', name: 'B2', type: 'town-access', totalDistance: 60, offTrailKm: 20, accessMode: 'hitch' },
+  ];
+  const stops = resolveResupplyStops(listResupplyOptions(candidates), undefined);
+  // A camp plan of 32 km days (8 h at 4 km/h): A (km 30) is reached on day 1, B (km 60) on day 2.
+  const days: ComputedDay[] = [0, 32, 64, 96].map((startKm, i) => ({
+    dayNumber: i + 1,
+    startKm,
+    endKm: Math.min(100, startKm + 32),
+    distanceKm: Math.min(100, startKm + 32) - startKm,
+    date: `2026-03-0${i + 1}`,
+    startName: `Camp ${i}`,
+    endName: `Camp ${i + 1}`,
+    ascentM: 0,
+    descentM: 0,
+    estimatedHours: 8,
+    waterSources: 0,
+  }));
+
+  it("puts a stop's zero days on the leg arriving there, never into its food", () => {
+    const plain = computeResupplyLegs(trail, stops, HIKER);
+    const rested = computeResupplyLegs(trail, stops, { ...HIKER, zeroDays: { a: 1.5, b1: 0.5, b2: 2 } });
+    expect(rested.map(leg => leg.zeroDays)).toEqual([1.5, 2, 0]);
+    expect(rested.map(leg => leg.food)).toEqual(plain.map(leg => leg.food));
+    expect(rested.map(leg => leg.estimatedDays)).toEqual(plain.map(leg => leg.estimatedDays));
+  });
+
+  it('ignores a value that is not a number of days', () => {
+    const legs = computeResupplyLegs(trail, stops, {
+      ...HIKER,
+      zeroDays: { a: -1, b1: Number.NaN, b2: 'x' as never },
+    });
+    expect(legs.map(leg => leg.zeroDays)).toEqual([0, 0, 0]);
+  });
+
+  it('pushes later arrivals back by the zero days before them, a half day up to a whole', () => {
+    const plain = computeResupplyLegs(trail, stops, { ...HIKER, days });
+    expect(plain.map(leg => leg.arrival)).toEqual([
+      { day: 1, date: '2026-03-01' },
+      { day: 2, date: '2026-03-02' },
+      { day: 4, date: '2026-03-04' },
+    ]);
+    const rested = computeResupplyLegs(trail, stops, { ...HIKER, days, zeroDays: { a: 0.5, b1: 1 } });
+    expect(rested.map(leg => leg.arrival)).toEqual([
+      { day: 1, date: '2026-03-01' },
+      { day: 3, date: '2026-03-03' },
+      { day: 6, date: '2026-03-06' },
+    ]);
+  });
+});
+
+describe('summariseResupplyPlan', () => {
+  it('gives the planner its headline figures, side trips and zero days included', () => {
+    const trail = flatTrail(100);
+    const stops = resolveResupplyStops(listResupplyOptions(resupplyCandidates({ sideTrips: [spur()] })), undefined);
+    const legs = computeResupplyLegs(trail, stops, { ...HIKER, zeroDays: { 'spur-town': 1 } });
+    // Legs: 36 km walked (300 m up), 2 days; 70 km, 3 days.
+    expect(summariseResupplyPlan(legs)).toEqual({
+      stopsChosen: 1,
+      longestLegKm: 70,
+      mostClimbM: 300,
+      longestCarryDays: 3,
+      heaviestFoodKg: legs[1].food.weightKg,
+      totalWalkingKm: 106,
+      totalDays: 6,
+      zeroDays: 1,
+      hasData: true,
+    });
+  });
+
+  it('never counts a ride as walking', () => {
+    const legs = computeResupplyLegs(
+      flatTrail(100),
+      resolveResupplyStops(
+        listResupplyOptions([
+          { id: 'h', name: 'H', type: 'town-access', totalDistance: 40, offTrailKm: 20, accessMode: 'hitch' },
+        ]),
+        undefined
+      ),
+      HIKER
+    );
+    expect(summariseResupplyPlan(legs).totalWalkingKm).toBe(100);
+  });
+
+  it('is empty for no legs', () => {
+    expect(summariseResupplyPlan([])).toMatchObject({ stopsChosen: 0, totalDays: 0, hasData: false });
   });
 });
