@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   assertPlanDocumentWithinLimits,
+  chooseResupplyOption,
   computePlanDays,
   findStop,
   isPlanDocument,
@@ -28,6 +29,7 @@ import { toNoboKm } from './plan-direction';
 import { PLAN_LIMITS, type PlanDocument, type PlanState, type PlanWaypoint } from './plan-types';
 import type { PlanTrail } from './day-calculator';
 import type { TrailPOI } from './trail-types';
+import { listResupplyOptions, resupplyGroupChoice } from './resupply-plan';
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -368,6 +370,61 @@ describe('setResupplyStops', () => {
     expect(later.updatedAt).toBe('2026-09-21T00:00:00.000Z');
     const cleared = setResupplyStops(later, undefined, { now: () => '2026-09-22T00:00:00.000Z' });
     expect(cleared.updatedAt).toBe('2026-09-22T00:00:00.000Z');
+  });
+});
+
+describe('chooseResupplyOption', () => {
+  // Monarch Pass (three options, one turn-off), then a lone town further on.
+  const groups = listResupplyOptions([
+    { id: 'w_salida', name: 'Salida', type: 'town-access', totalDistance: 100, offTrailKm: 35, accessMode: 'hitch' },
+    {
+      id: 'w_poncha',
+      name: 'Poncha',
+      type: 'resupply-access',
+      totalDistance: 100,
+      offTrailKm: 27,
+      accessMode: 'hitch',
+    },
+    { id: 'w_crest', name: 'Crest Store', type: 'resupply', totalDistance: 100 },
+    { id: 'w_lake', name: 'Lake City', type: 'town', totalDistance: 200 },
+  ]);
+  const [monarch, lake] = groups;
+
+  it('materialises "every option" before choosing, leaving the other groups all ticked', () => {
+    const plan = chooseResupplyOption(emptyPlan(), groups, monarch.key, 'w_poncha', opts);
+    expect(plan.resupplyStops).toEqual(['w_poncha', 'w_lake']);
+    expect(resupplyGroupChoice(monarch, plan.resupplyStops)).toEqual({ kind: 'chosen', optionId: 'w_poncha' });
+    expect(resupplyGroupChoice(lake, plan.resupplyStops)).toEqual({ kind: 'chosen', optionId: 'w_lake' });
+  });
+
+  it("replaces the group's choice in place and leaves other groups and unknown ids alone", () => {
+    const start = setResupplyStops(emptyPlan(), ['w_old', 'w_salida', 'w_crest', 'w_lake'], opts);
+    const plan = chooseResupplyOption(start, groups, monarch.key, 'w_crest', opts);
+    expect(plan.resupplyStops).toEqual(['w_old', 'w_crest', 'w_lake']);
+  });
+
+  it('chooses none in a group with null, and a single-option group is a Yes/No', () => {
+    const none = chooseResupplyOption(emptyPlan(), groups, monarch.key, null, opts);
+    expect(none.resupplyStops).toEqual(['w_lake']);
+    expect(resupplyGroupChoice(monarch, none.resupplyStops)).toEqual({ kind: 'none' });
+
+    const no = chooseResupplyOption(none, groups, lake.key, null, opts);
+    expect(no.resupplyStops).toEqual([]);
+    expect(resupplyGroupChoice(lake, no.resupplyStops)).toEqual({ kind: 'none' });
+    const yes = chooseResupplyOption(no, groups, lake.key, 'w_lake', opts);
+    expect(yes.resupplyStops).toEqual(['w_lake']);
+  });
+
+  it('is a no-op when the group already reads that way', () => {
+    const plan = chooseResupplyOption(emptyPlan(), groups, monarch.key, 'w_salida', opts);
+    expect(chooseResupplyOption(plan, groups, monarch.key, 'w_salida', opts)).toBe(plan);
+    const none = chooseResupplyOption(plan, groups, monarch.key, null, opts);
+    expect(chooseResupplyOption(none, groups, monarch.key, null, opts)).toBe(none);
+  });
+
+  it('refuses a group or option it does not know', () => {
+    expect(() => chooseResupplyOption(emptyPlan(), groups, 'w_nowhere', null, opts)).toThrow(RangeError);
+    expect(() => chooseResupplyOption(emptyPlan(), groups, monarch.key, 'w_lake', opts)).toThrow(RangeError);
   });
 });
 
