@@ -8,7 +8,8 @@
  *
  *     w_001  Alpha    town          km 10      on trail, full resupply
  *     w_002  Bravo    town-access   km 20    ┐ one turn-off, "Mill Road": a
- *     w_003  Charlie  food          km 20.05 ┘ decision (one of them, or none)
+ *     w_003  Charlie  food          km 20.05 ┘ decision (one of them, or none);
+ *                                              named "Charlie (access: Mill Road)"
  *     w_004  Delta    resupply      km 30      a long description
  *     w_005  Echo     town          km 40
  */
@@ -55,7 +56,11 @@ function makeTrail() {
         store: 'limited',
         description: 'General store and post office. Closed Sundays.',
       }),
-      wp('w_003', 'Charlie', 'food', 20.05, { accessName: 'Mill Road', offTrailKm: 1.4, accessMode: 'foot' }),
+      wp('w_003', 'Charlie (access: Mill Road)', 'food', 20.05, {
+        accessName: 'Mill Road',
+        offTrailKm: 1.4,
+        accessMode: 'foot',
+      }),
       wp('w_004', 'Delta', 'resupply', 30, { description: 'Store beside U.S. 50 with a hiker box. Closed Mondays.' }),
       wp('w_005', 'Echo', 'town', 40),
     ],
@@ -146,6 +151,23 @@ describe('renderResupplyTable', () => {
     // The leg the open decision implies is shown on its header row: 10 km of
     // trail plus the longest walk among the ticked places (Charlie, 1.4 km each way).
     expect(mill.querySelector('.rs-group-head .rs-c-leg .rs-figure')?.textContent).toBe('12.8');
+  });
+
+  it('names options inside a decision without repeating the turn-off, the full name as a tooltip', () => {
+    const name = render(viewFor(undefined)).querySelector<HTMLElement>('tr[data-option-id="w_003"] .rs-name')!;
+    expect(name.textContent).toBe('Charlie');
+    expect(name.title).toBe('Charlie (access: Mill Road)');
+  });
+
+  it('calls an undecided stop by its group on the legs either side of it', () => {
+    const dom = render(viewFor(undefined));
+    const head = dom.querySelector('.rs-group-head .rs-c-leg')!;
+    // The walk counted is the longest of the places still ticked: no name for it.
+    expect(head.textContent).toContain('incl. 2.8 km off trail and back');
+    expect(head.textContent).not.toContain('Charlie');
+    const delta = dom.querySelector('tr[data-option-id="w_004"] .rs-c-leg')!;
+    expect(delta.textContent).toContain('from Mill Road (not decided)');
+    expect(delta.textContent).not.toContain('Bravo');
   });
 
   it('draws a single-option stop as Yes / No', () => {
