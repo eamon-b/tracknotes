@@ -49,6 +49,8 @@ function applyTrailIdentity(name: string, trailId: string): void {
 
   const planLink = document.getElementById('plan-link') as HTMLAnchorElement | null;
   if (planLink) planLink.href = `./my-plan.html?id=${encodeURIComponent(trailId)}`;
+  const resupplyLink = document.getElementById('resupply-link') as HTMLAnchorElement | null;
+  if (resupplyLink) resupplyLink.href = `./my-resupply.html?id=${encodeURIComponent(trailId)}`;
 }
 
 /**

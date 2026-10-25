@@ -15,6 +15,7 @@
  */
 
 import { fillTemplate } from './fill-template.js';
+import { PLAN_SYNC_DIALOGS_HTML } from '../../src/web/trails/plan-sync-markup.js';
 
 /** The marker line a page carries where the shell goes. */
 export const PLAN_SHELL_MARKER = '<!-- @plan-shell -->';
@@ -97,6 +98,9 @@ export function inlinePlanShell(pageHtml: string, shellHtml: string, fills: Plan
   const values = {
     PLAN_HEADER_TRAIL: fills.headerTrail,
     PLAN_HEADER_EXTRA: fills.headerExtra,
+    // The same on every page, and shared with the resupply page, which mounts
+    // it at runtime (`plan-sync-markup.ts`).
+    PLAN_SYNC_DIALOGS: PLAN_SYNC_DIALOGS_HTML,
   };
   let body = planShellBody(shellHtml);
   for (const [name, value] of Object.entries(values)) {

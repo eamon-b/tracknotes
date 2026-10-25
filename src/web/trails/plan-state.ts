@@ -23,8 +23,15 @@
  */
 
 import type { PlanDirection } from '@lib/plan-direction';
-import type { Pace, PlanDocument, PlanState, PlanWaypoint } from '@lib/plan-types';
-import { PLAN_THRESHOLD_KEYS, isPace, usablePlanThreshold } from '@lib/plan-types';
+import type { Pace, PlanDocument, PlanState, PlanThresholds, PlanWaypoint } from '@lib/plan-types';
+import {
+  DEFAULT_PLAN_THRESHOLDS,
+  PLAN_THRESHOLD_KEYS,
+  PLAN_THRESHOLD_STEPS,
+  clampPlanThreshold,
+  isPace,
+  usablePlanThreshold,
+} from '@lib/plan-types';
 import { isSuggestPrefs, type SuggestPrefs } from '@lib/plan-suggest';
 import {
   assertPlanDocumentWithinLimits,
@@ -37,6 +44,17 @@ import {
 const DOCUMENT_KEY = (trailId: string) => `trail-plan-doc-${trailId}`;
 const LEGACY_KEY = (trailId: string) => `trail-plan-${trailId}`;
 const UI_KEY = (trailId: string) => `trail-plan-ui-${trailId}`;
+
+/**
+ * Which of this trail's records a `storage` event's key names: the document,
+ * the view preferences, or neither. Lets a page open beside the planner (the
+ * resupply page) follow what the planner's tab writes.
+ */
+export function planStorageKind(key: string | null, trailId: string): 'document' | 'prefs' | null {
+  if (key === DOCUMENT_KEY(trailId)) return 'document';
+  if (key === UI_KEY(trailId)) return 'prefs';
+  return null;
+}
 
 // ---------------------------------------------------------------------------
 // The plan document
@@ -298,6 +316,57 @@ export interface PlanUiPrefs {
 }
 
 const DEFAULT_UI_PREFS: PlanUiPrefs = { showAllWaypoints: false };
+
+/**
+ * The starting positions of the pace and hours inputs, for a browser that has
+ * not set them. The initial value of a control the hiker can see and change on
+ * both pages that show them (the planner and the resupply page), not a figure
+ * either page holds on the hiker's behalf.
+ */
+export const INITIAL_PACE: Pace = 'average';
+export const INITIAL_DAILY_HOURS = 8;
+/** The range the hours input offers; a hand-edited value is clamped into it. */
+export const DAILY_HOURS_RANGE = { min: 1, max: 16 } as const;
+
+/** The pace in force: the hiker's, else the input's initial value. */
+export function prefPace(prefs: PlanUiPrefs): Pace {
+  return prefs.pace ?? INITIAL_PACE;
+}
+
+/** The hours per day in force: the hiker's, else the input's initial value. */
+export function prefDailyHours(prefs: PlanUiPrefs): number {
+  return prefs.dailyHours ?? INITIAL_DAILY_HOURS;
+}
+
+/** One planning threshold in force: the hiker's, else the input's initial value. */
+export function prefThreshold(prefs: PlanUiPrefs, key: keyof PlanThresholds): number {
+  return prefs[key] ?? DEFAULT_PLAN_THRESHOLDS[key];
+}
+
+/**
+ * An hours input's entry as a value to store: null for a blank or non-numeric
+ * entry (`Number('')` is 0, which would clamp to the minimum rather than be
+ * ignored), else rounded and clamped into {@link DAILY_HOURS_RANGE}.
+ */
+export function parseDailyHours(raw: string): number | null {
+  if (raw.trim() === '') return null;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) return null;
+  return Math.min(DAILY_HOURS_RANGE.max, Math.max(DAILY_HOURS_RANGE.min, Math.round(parsed)));
+}
+
+/**
+ * A threshold input's entry as a value to store: null for a blank or
+ * non-numeric entry, else rounded to the input's step and clamped into the
+ * shared range.
+ */
+export function parseThreshold(key: keyof PlanThresholds, raw: string): number | null {
+  if (raw.trim() === '') return null;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) return null;
+  const step = PLAN_THRESHOLD_STEPS[key];
+  return clampPlanThreshold(key, Math.round(parsed / step) * step);
+}
 
 /** A pace or hours figure the header inputs could have produced, or undefined. */
 function usablePace(value: unknown): Pace | undefined {

@@ -74,7 +74,9 @@ async function init(): Promise<void> {
   }
 
   applyTrailIdentity(record.trail.config.name || record.name, record.id);
-  await initPlanViewer(record.id, record.trail);
+  await initPlanViewer(record.id, record.trail, {
+    resupplyPageHref: `./my-resupply.html?id=${encodeURIComponent(record.id)}`,
+  });
 }
 
 // A throw inside the viewer would otherwise leave a half-drawn planner and an

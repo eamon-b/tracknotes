@@ -1,3 +1,6 @@
+/* The sync arm's header controls, link dialog and share panel, shared with resupply-page.css. */
+@import url('./plan-sync.css');
+
 /* ---- Reset ---- */
 *, *::before, *::after { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; overflow: hidden; }
@@ -563,6 +566,16 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
   border-radius: 4px;
   font-size: 0.85rem;
 }
+.resupply-page-link {
+  display: block;
+  margin-top: 0.5rem;
+  color: var(--accent-color);
+  font-size: 0.82rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+.resupply-page-link:hover { text-decoration: underline; }
+.resupply-page-link[hidden] { display: none; }
 #resupply-list {
   flex: 1;
   overflow-y: auto;
@@ -592,6 +605,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
 .resupply-row:hover { background: var(--bg-secondary); }
 .resupply-row.is-picked { background: var(--tint-accent); }
 .resupply-row.is-picked:hover { background: var(--tint-accent-strong); }
+/* The option the resupply page's "show on map" link opened the planner on. */
+.resupply-row.is-focused { outline: 2px solid var(--resupply-planned); outline-offset: -2px; }
 .resupply-line {
   display: flex;
   align-items: center;
@@ -845,44 +860,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
 /* Pinned to the light theme's green: the popup stays light in both themes. */
 .wp-popup-alt-btn.is-taken { background: transparent; color: #2D6A4F; }
 
-/* ---- Header: sync, linking and sharing ---- */
-/*
-  Every control here is removed from the page by `plan-sync.ts` when the site
-  was built without VITE_API_BASE_URL, so these rules simply do not apply to an
-  unconfigured build.
-*/
-.plan-header-btn {
-  padding: 0.3rem 0.65rem;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background: var(--bg-primary);
-  color: var(--accent-color);
-  font: inherit;
-  font-size: 0.8rem;
-  font-weight: 500;
-  line-height: 1.4;
-  text-decoration: none;
-  white-space: nowrap;
-  cursor: pointer;
-}
-.plan-header-btn:hover { background: var(--bg-secondary); border-color: var(--accent-color); }
-.plan-header-btn:disabled {
-  color: var(--text-secondary);
-  cursor: default;
-  background: var(--bg-primary);
-  border-color: var(--border-color);
-}
-.plan-header-btn.is-primary {
-  background: var(--accent-color);
-  border-color: var(--accent-color);
-  color: #ffffff;
-}
-#sync-status {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
-#sync-status.sync-warn { color: var(--tint-warn-text); }
+/* Header: sync, linking and sharing — in plan-sync.css, imported at the top. */
 
 /* The read-only header of a shared plan */
 .plan-name-static { font-weight: 600; font-size: 0.95rem; }
@@ -892,74 +870,6 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
   color: var(--text-secondary);
   white-space: nowrap;
 }
-
-.link-dialog {
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 1.25rem;
-  max-width: 24rem;
-  background: var(--bg-primary);
-  color: var(--text);
-}
-.link-dialog::backdrop { background: rgba(0, 0, 0, 0.35); }
-.link-title { margin: 0 0 0.5rem; font-size: 1rem; }
-.link-help { margin: 0 0 0.75rem; font-size: 0.85rem; color: var(--text-secondary); }
-.link-field {
-  display: block;
-  margin-bottom: 0.2rem;
-  font-size: 0.78rem;
-  color: var(--text-secondary);
-}
-.link-input {
-  width: 100%;
-  margin-bottom: 0.6rem;
-  padding: 0.35rem 0.6rem;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background: var(--bg);
-  color: var(--text);
-  font-size: 0.9rem;
-}
-#link-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.12em; }
-.link-error {
-  margin: 0 0 0.5rem;
-  font-size: 0.8rem;
-  color: var(--danger);
-}
-.link-danger {
-  padding: 0.3rem 0.65rem;
-  border: 1px solid var(--danger);
-  border-radius: 4px;
-  background: transparent;
-  color: var(--danger);
-  font: inherit;
-  font-size: 0.8rem;
-  cursor: pointer;
-}
-.link-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
-}
-
-.share-panel {
-  position: fixed;
-  top: 3.2rem;
-  right: 1rem;
-  z-index: 1200;
-  width: 22rem;
-  padding: 0.9rem;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  background: var(--bg-primary);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
-}
-.share-help { margin: 0 0 0.5rem; font-size: 0.82rem; color: var(--text-secondary); }
-.share-row { display: flex; align-items: center; gap: 0.5rem; }
-.share-row .link-input { margin-bottom: 0; }
-.share-row-end { justify-content: space-between; margin-top: 0.7rem; }
-.share-note { margin: 0.5rem 0 0; font-size: 0.78rem; color: var(--text-secondary); }
 
 /* Read-only rows: a stop's nights, note and booked flag as text */
 .stop-editor.is-static {
