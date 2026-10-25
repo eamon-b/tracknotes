@@ -18,7 +18,6 @@ import { DEFAULT_PREFS, usePlanInputsStore } from '../plan-inputs-store';
 import { usePlansStore, type PlanDefaults } from '../../../state/plans-store';
 import {
   plannedIdsFor,
-  setResupplyStopSelected,
   usePlannedResupplyIds,
   useWaypointResupplyPlan,
   type PlannedResupplyTrail,
@@ -130,38 +129,6 @@ describe('plannedIdsFor', () => {
   });
 });
 
-describe('setResupplyStopSelected on an explicit list', () => {
-  const allIds = ['w_pass', 'w_salida', 'w_poncha', 'w_creede'];
-
-  it('first tap from no plan keeps every other option ticked', () => {
-    expect(setResupplyStopSelected(undefined, allIds, 'w_poncha', false)).toEqual([
-      'w_pass',
-      'w_salida',
-      'w_creede',
-    ]);
-  });
-
-  it('adds to an explicit list, in trail order', () => {
-    expect(setResupplyStopSelected(['w_creede'], allIds, 'w_salida', true)).toEqual([
-      'w_salida',
-      'w_creede',
-    ]);
-  });
-
-  it('removes from an explicit list', () => {
-    expect(setResupplyStopSelected(['w_salida', 'w_creede'], allIds, 'w_creede', false)).toEqual([
-      'w_salida',
-    ]);
-  });
-
-  it('prunes ids the trail no longer offers', () => {
-    expect(setResupplyStopSelected(['w_gone', 'w_creede'], allIds, 'w_salida', true)).toEqual([
-      'w_salida',
-      'w_creede',
-    ]);
-  });
-});
-
 describe('usePlannedResupplyIds', () => {
   let latest: ReadonlySet<string> | null = null;
   let renderer: ReactTestRenderer | null = null;
@@ -226,27 +193,6 @@ describe('usePlannedResupplyIds', () => {
     mount();
     // An explicit empty selection is a plan with nothing in it, and it wins.
     expect(latest!.size).toBe(0);
-  });
-});
-
-describe('setResupplyStopSelected', () => {
-  const allIds = ['w_pass', 'w_salida', 'w_poncha', 'w_creede'];
-
-  it('ticks into the every-option default without unplanning the rest', () => {
-    expect(setResupplyStopSelected(undefined, allIds, 'w_poncha', true)).toEqual(allIds);
-  });
-
-  it('unticks out of the every-option default', () => {
-    expect(setResupplyStopSelected(undefined, allIds, 'w_poncha', false)).toEqual([
-      'w_pass',
-      'w_salida',
-      'w_creede',
-    ]);
-  });
-
-  it('is idempotent — asking for the state it is already in changes nothing', () => {
-    expect(setResupplyStopSelected(['w_creede'], allIds, 'w_creede', true)).toEqual(['w_creede']);
-    expect(setResupplyStopSelected(['w_creede'], allIds, 'w_salida', false)).toEqual(['w_creede']);
   });
 });
 
@@ -329,6 +275,36 @@ describe('useWaypointResupplyPlan', () => {
     expect(latest.plannedVia).toBeNull();
     // It is still an option, so it can be ticked on its own.
     expect(latest.toggle).not.toBeNull();
+  });
+
+  it('picks the place in its turn-off’s group, deciding it, from no plan at all', () => {
+    mount('w_salida');
+    press();
+    // Salida takes the group's place; the other groups keep every option.
+    expect(stored()).toEqual(['w_salida', 'w_creede']);
+    expect(latest.isSelected).toBe(true);
+  });
+
+  it('swaps the chosen town at a turn-off rather than adding a second', () => {
+    storePlan(planWith(['w_salida', 'w_creede']));
+    mount('w_poncha');
+    press();
+    expect(stored()).toEqual(['w_poncha', 'w_creede']);
+  });
+
+  it('carries a turn-off through when its chosen town is removed', () => {
+    storePlan(planWith(['w_poncha', 'w_creede']));
+    mount('w_poncha');
+    expect(latest.isSelected).toBe(true);
+    press();
+    expect(stored()).toEqual(['w_creede']);
+  });
+
+  it('takes one tick out of a group still undecided, leaving the rest', () => {
+    storePlan(planWith(['w_pass', 'w_salida', 'w_poncha', 'w_creede']));
+    mount('w_poncha');
+    press();
+    expect(stored()).toEqual(['w_pass', 'w_salida', 'w_creede']);
   });
 
   it('offers no toggle for a resupply the trail does not offer as an option', () => {
