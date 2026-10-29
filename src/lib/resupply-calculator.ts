@@ -27,17 +27,6 @@ export interface FoodCarryEstimate {
   days: number;
 }
 
-export interface ResupplyAnalysis {
-  points: ResupplyPoint[];
-  gaps: ResupplyGap[];
-  longestGapKm: number;
-  longestGapDays: number;
-  hasResupplyData: boolean;
-}
-
-/** Default daily hiking distance for estimating days between resupply */
-export const DEFAULT_DAILY_KM = 20;
-
 // The long-carry threshold and the food per day are the hiker's (`PlanThresholds`
 // in plan-types), so every function below requires them rather than defaulting.
 
@@ -80,37 +69,22 @@ export function calculateFoodWeight(days: number, gramsPerDay: number): FoodCarr
  * With no points at all the whole range is one gap, start to end: the hiker
  * who resupplies nowhere still carries food for every day of it, and that is
  * the carry they most need the figure for. Only an empty range has no gaps.
+ *
+ * Distances only: how many days a gap takes depends on the hiker's pace and
+ * hours, which `computeResupplyLegs` works out from the climb as well.
  */
-export interface ResupplyGapOptions {
-  /** The hiker's long-carry threshold: a gap of more days is `isLong`. */
-  longThresholdDays: number;
-  /** Flat km per day for `estimatedDays`; `computeResupplyLegs` replaces those days with Naismith hours. */
-  dailyKm?: number;
-}
-
-export function computeResupplyGaps(
-  points: ResupplyPoint[],
-  trailStartKm: number,
-  trailEndKm: number,
-  opts: ResupplyGapOptions
-): ResupplyGap[] {
-  const longThresholdDays = requirePositive(opts.longThresholdDays, 'longThresholdDays', 'computeResupplyGaps');
-  const dailyKm = opts.dailyKm ?? DEFAULT_DAILY_KM;
-  const effectiveDailyKm = Math.max(1, dailyKm);
+export function computeResupplyGaps(points: ResupplyPoint[], trailStartKm: number, trailEndKm: number): ResupplyGap[] {
   const gaps: ResupplyGap[] = [];
 
   if (points.length === 0) {
     const dist = trailEndKm - trailStartKm;
     if (dist > 0) {
-      const days = Math.ceil(dist / effectiveDailyKm);
       gaps.push({
         fromName: 'Trail Start',
         toName: 'Trail End',
         fromKm: trailStartKm,
         toKm: trailEndKm,
         distanceKm: Math.round(dist * 10) / 10,
-        estimatedDays: days,
-        isLong: days > longThresholdDays,
       });
     }
     return gaps;
@@ -122,15 +96,12 @@ export function computeResupplyGaps(
   // Gap from trail start to first resupply
   const firstDist = deduped[0].km - trailStartKm;
   if (firstDist > 0) {
-    const days = Math.ceil(firstDist / effectiveDailyKm);
     gaps.push({
       fromName: 'Trail Start',
       toName: deduped[0].name,
       fromKm: trailStartKm,
       toKm: deduped[0].km,
       distanceKm: Math.round(firstDist * 10) / 10,
-      estimatedDays: days,
-      isLong: days > longThresholdDays,
     });
   }
 
@@ -138,56 +109,28 @@ export function computeResupplyGaps(
   for (let i = 0; i < deduped.length - 1; i++) {
     const dist = deduped[i + 1].km - deduped[i].km;
     if (dist <= 0) continue;
-    const days = Math.ceil(dist / effectiveDailyKm);
     gaps.push({
       fromName: deduped[i].name,
       toName: deduped[i + 1].name,
       fromKm: deduped[i].km,
       toKm: deduped[i + 1].km,
       distanceKm: Math.round(dist * 10) / 10,
-      estimatedDays: days,
-      isLong: days > longThresholdDays,
     });
   }
 
   // Gap from last resupply to trail end
   const lastDist = trailEndKm - deduped[deduped.length - 1].km;
   if (lastDist > 0) {
-    const days = Math.ceil(lastDist / effectiveDailyKm);
     gaps.push({
       fromName: deduped[deduped.length - 1].name,
       toName: 'Trail End',
       fromKm: deduped[deduped.length - 1].km,
       toKm: trailEndKm,
       distanceKm: Math.round(lastDist * 10) / 10,
-      estimatedDays: days,
-      isLong: days > longThresholdDays,
     });
   }
 
   return gaps;
-}
-
-/**
- * Full resupply analysis for a trail.
- */
-export function analyzeResupply(
-  waypoints: PlanWaypoint[],
-  totalDistanceKm: number,
-  opts: ResupplyGapOptions
-): ResupplyAnalysis {
-  const points = extractResupplyPoints(waypoints);
-  const hasResupplyData = points.length > 0;
-
-  if (!hasResupplyData) {
-    return { points: [], gaps: [], longestGapKm: 0, longestGapDays: 0, hasResupplyData: false };
-  }
-
-  const gaps = computeResupplyGaps(points, 0, totalDistanceKm, opts);
-  const longestGapKm = gaps.reduce((max, g) => Math.max(max, g.distanceKm), 0);
-  const longestGapDays = gaps.reduce((max, g) => Math.max(max, g.estimatedDays), 0);
-
-  return { points, gaps, longestGapKm, longestGapDays, hasResupplyData };
 }
 
 /**
@@ -217,13 +160,6 @@ export function correlateResupplyWithDays(points: ResupplyPoint[], days: Compute
 export function findNextResupply(waypoints: PlanWaypoint[], currentKm: number): ResupplyPoint | null {
   const points = extractResupplyPoints(waypoints);
   return points.find(p => p.km > currentKm) ?? null;
-}
-
-/**
- * Get food carry estimate for the gap between two resupply points.
- */
-export function foodCarryForGap(gap: ResupplyGap, gramsPerDay: number): FoodCarryEstimate {
-  return calculateFoodWeight(gap.estimatedDays, gramsPerDay);
 }
 
 /**
