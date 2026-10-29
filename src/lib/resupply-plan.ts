@@ -225,8 +225,8 @@ export interface LegRide {
 /**
  * A carry between two stops (or between a stop and the end of the trail).
  *
- * Everything `ResupplyGap` has, plus what a flat km/day estimate cannot know:
- * the climb, the hours it implies, and the food that many days needs.
+ * Everything `ResupplyGap` has (the stops and the km between them), plus the
+ * climb, the hours it implies, the days those hours take, and their food.
  */
 export interface ResupplyLeg extends ResupplyGap {
   /**
@@ -263,6 +263,8 @@ export interface ResupplyLeg extends ResupplyGap {
   estimatedHours: number;
   /** max(1, ceil(hours / dailyHours)) — from the *unrounded* hours. */
   estimatedDays: number;
+  /** `estimatedDays` is over the hiker's long-carry threshold. */
+  isLong: boolean;
   food: FoodCarryEstimate;
   /**
    * Arrival at the leg's far end, when the caller passes a camp plan, from
@@ -750,7 +752,7 @@ function offTrailKmOf(option: Pick<ResupplyOption, 'offTrailKm'>): number {
  * `computeResupplyGaps` — the gaps it returns are then measured properly. What
  * this adds is elevation (route-break aware, so a ferry's landing-to-landing
  * height difference is never climbed), Naismith hours over that climb, days from
- * those hours rather than from a flat km/day, and the food those days weigh.
+ * those hours, and the food those days weigh.
  *
  * `distanceKm` stays plain km subtraction between the two turn-offs: the
  * cumulative scale already excludes route-break gaps, so there is nothing to
@@ -796,7 +798,7 @@ export function computeResupplyLegs(
     .map(stop => ({ name: stop.name, km: stop.km, type: 'resupply' }))
     .sort((a, b) => a.km - b.km);
 
-  const gaps = computeResupplyGaps(points, rangeStartKm, rangeEndKm, { longThresholdDays });
+  const gaps = computeResupplyGaps(points, rangeStartKm, rangeEndKm);
   if (gaps.length === 0) return [];
 
   const trackPoints = trail.track.points;

@@ -310,8 +310,6 @@ export interface ResupplyGap {
   fromKm: number;
   toKm: number;
   distanceKm: number;
-  estimatedDays: number;
-  isLong: boolean; // gap > longThresholdDays at pace
 }
 
 /** Gap between consecutive water sources. */
