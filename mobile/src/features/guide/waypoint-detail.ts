@@ -8,7 +8,6 @@
 
 import type { WaterStatus } from '@lib/comments-api-types';
 import { NO_BREAK_STARTS, type ElevationPoint } from '@lib/track-geometry';
-import type { TrailPOI } from '@lib/trail-types';
 import { categoryToken } from '../elevation/waypoint-category';
 import type { TrailJson } from '../../services/trail-assets';
 import { tripAlongTrail, type TrailTrip } from '../../services/distance-calculator';
@@ -227,24 +226,7 @@ function segmentDistanceMeters(
 // ---------------------------------------------------------------------------
 
 /**
- * The OSM points of interest flagged as describing this waypoint's place.
- *
- * `@lib/poi-dedup` annotates rather than deletes precisely so this lookup can
- * exist: a flagged POI is drawn nowhere — not on the map, not in the list, not
- * on the profile — but it frequently carries `website`, `opening_hours`,
- * `operator` or `capacity` that the curated waypoint lacks. The detail screen is
- * the one place a hidden POI ever surfaces, attributed to OSM and clearly
- * separate from the curated content.
- *
- * Local data only: no SQLite read, no request, so it works the same for an
- * imported guide as for a bundled one. Empty whenever the waypoint has no
- * stable id (nothing could have been flagged against it) or the trail was never
- * enriched.
+ * The OSM points of interest flagged as describing this waypoint's place —
+ * shared with the web's waypoint popups, so it lives in `@lib/poi-display`.
  */
-export function duplicatePoisFor(
-  trail: Pick<TrailJson, 'pois'>,
-  waypointId: string | undefined,
-): TrailPOI[] {
-  if (!waypointId || !trail.pois) return [];
-  return trail.pois.filter((poi) => poi.duplicateOf === waypointId);
-}
+export { duplicatePoisFor } from '@lib/poi-display';

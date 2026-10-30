@@ -20,6 +20,7 @@ import type { TrailPOI } from '@lib/trail-types';
 import {
   countPoisByCategory,
   defaultPoiFilterState,
+  duplicatePoisFor,
   formatOffTrail,
   isPoiCategory,
   normalisePoiFilterState,
@@ -42,6 +43,7 @@ import { poiIcon } from './waypoint-icons';
 export {
   countPoisByCategory,
   defaultPoiFilterState,
+  duplicatePoisFor,
   findPoiByRouteKey,
   formatOffTrail,
   interleavePoisByDistance,
@@ -129,6 +131,41 @@ export function poiPopupHtml(poi: TrailPOI): string {
       <a class="poi-osm-link" href="${escapeHtml(poiOsmUrl(poi))}" target="_blank" rel="noopener noreferrer">View on OpenStreetMap</a>
       <div class="poi-attribution">${escapeHtml(OSM_ATTRIBUTION)}</div>
     </div>
+  `;
+}
+
+/**
+ * "From OpenStreetMap": the tags of the OSM records `@lib/poi-dedup` flagged as
+ * this waypoint's place, for the waypoint's popup — the web half of the phone's
+ * collapsed section on its waypoint screen. Those POIs are drawn nowhere else,
+ * so without this their opening hours, phone and website are lost on the web.
+ *
+ * Collapsed (`<details>`) for the phone's reason: it is uncurated detail about a
+ * place the trail already describes and must not crowd the curated popup. Empty
+ * when there is no such POI. Every record keeps its link out even when none of
+ * its tags is worth a line.
+ */
+export function waypointOsmDetailsHtml(
+  trail: { pois?: readonly TrailPOI[] } | null | undefined,
+  waypointId: string | undefined
+): string {
+  const pois = trail ? duplicatePoisFor(trail, waypointId) : [];
+  if (pois.length === 0) return '';
+  const records = pois
+    .map(
+      poi => `
+        <div class="wp-osm-record">
+          ${tagLinesHtml(summarisePoiTags(poi.tags))}
+          <a class="poi-osm-link" href="${escapeHtml(poiOsmUrl(poi))}" target="_blank" rel="noopener noreferrer">Open in OpenStreetMap</a>
+        </div>`
+    )
+    .join('');
+  return `
+    <details class="wp-osm-details">
+      <summary>From OpenStreetMap</summary>
+      ${records}
+      <div class="poi-attribution">${escapeHtml(OSM_ATTRIBUTION)} · this OSM record describes the same place</div>
+    </details>
   `;
 }
 

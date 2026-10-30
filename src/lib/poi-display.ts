@@ -335,6 +335,25 @@ export function visiblePois(pois: readonly TrailPOI[] | undefined, state: PoiFil
 }
 
 /**
+ * The OSM points of interest flagged as describing this waypoint's place.
+ *
+ * `@lib/poi-dedup` annotates rather than deletes precisely so this lookup can
+ * exist: a flagged POI is drawn nowhere — not on the map, not in the list, not
+ * on the profile — but it frequently carries `website`, `opening_hours`,
+ * `operator` or `capacity` that the curated waypoint lacks. A waypoint's detail
+ * (the phone's waypoint screen, the web's marker popups) is the one place a
+ * hidden POI ever surfaces, attributed to OSM and clearly separate from the
+ * curated content.
+ *
+ * Empty whenever the waypoint has no stable id (nothing could have been
+ * flagged against it) or the trail was never enriched.
+ */
+export function duplicatePoisFor(trail: { pois?: readonly TrailPOI[] }, waypointId: string | undefined): TrailPOI[] {
+  if (!waypointId || !trail.pois) return [];
+  return trail.pois.filter(poi => poi.duplicateOf === waypointId);
+}
+
+/**
  * Mirror POI positions for a reversed trail.
  *
  * Without this a reversed trail would show every POI at its forward km — 3 km

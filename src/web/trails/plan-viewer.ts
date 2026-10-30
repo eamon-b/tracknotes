@@ -99,6 +99,7 @@ import { baseWaypointType, waypointTypeLabel } from '@lib/waypoint-taxonomy';
 import { waypointFamilyClass, waypointIcon } from './waypoint-icons';
 import { accessPathLayer, hasAccessPath } from './access-path';
 import { servicesStripHtml } from './stop-services';
+import { waypointOsmDetailsHtml } from './trail-pois-ui';
 import { stopWalk } from '@lib/day-calculator';
 import { PlanEditQueue, type PlanEdit } from './plan-edit-queue';
 import {
@@ -890,6 +891,7 @@ function waypointPopupContent(wp: PlanWaypoint, km: number): HTMLElement {
     <div class="wp-popup-name">${escapeHtml(wp.name)}</div>
     <div class="wp-popup-sub">${escapeHtml(waypointTypeLabel(wp.type))} · ${km.toFixed(1)} km</div>
     ${servicesStripHtml(servicesAt(km))}
+    ${waypointOsmDetailsHtml(activeTrail(), wp.id)}
     ${action}
     ${alternatesAt(km)
       .map(({ alternate, taken, role }) => alternateChoiceHtml(alternate, taken, role))

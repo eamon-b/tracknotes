@@ -1720,6 +1720,37 @@ a.poi-source-badge:hover {
   color: var(--link);
 }
 
+/* "From OpenStreetMap" in a waypoint popup: the tags of the OSM records the
+   dedup pass hid behind this waypoint, collapsed under the curated detail. */
+.wp-osm-details {
+  margin-top: 0.5rem;
+  max-width: 260px;
+}
+
+.wp-osm-details summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9em;
+}
+
+.wp-osm-record {
+  margin-top: 0.4rem;
+  padding: 0.3rem 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.wp-osm-record .poi-osm-link {
+  margin-top: 0.25rem;
+}
+
+.wp-osm-details .poi-attribution {
+  margin-top: 0.3rem;
+  color: var(--text-secondary, var(--text-muted));
+  font-size: 0.75em;
+  white-space: normal;
+}
+
 .poi-popup .poi-attribution {
   margin-top: 0.3rem;
   color: var(--text-secondary, var(--text-muted));

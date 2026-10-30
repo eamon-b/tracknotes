@@ -161,7 +161,9 @@ generated JSON.
   (`website`, `opening_hours`, `phone`, `operator`), surface them on the waypoint
   it duplicates, attributed to OSM. This is the payoff for annotating rather than
   deleting. Landed on mobile (PR #67) as a collapsed "From OpenStreetMap"
-  section on the waypoint screen; the web page does not show it yet.
+  section on the waypoint screen, and on the web (issue #229) as the same
+  collapsed section in the waypoint marker popups of the trail page and the
+  planner, both through `@lib/poi-display` `duplicatePoisFor`.
 - **Category toggles**: flagged POIs stay out of the visible counts, so
   "camping (13)" means 13 markers.
 
