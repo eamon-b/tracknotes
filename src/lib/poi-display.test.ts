@@ -13,6 +13,7 @@ import type { TrailPOI } from './trail-types';
 import {
   countPoisByCategory,
   defaultPoiFilterState,
+  duplicatePoisFor,
   findPoiByRouteKey,
   formatOffTrail,
   interleavePoisByDistance,
@@ -46,6 +47,33 @@ function poi(over: Partial<TrailPOI> = {}): TrailPOI {
     ...over,
   };
 }
+
+describe('duplicatePoisFor', () => {
+  it('returns the POIs flagged against this waypoint, in order', () => {
+    const trail = {
+      pois: [
+        poi({ id: 1, duplicateOf: 'w_other' }),
+        poi({ id: 2, duplicateOf: 'w_hut' }),
+        poi({ id: 3 }),
+        poi({ id: 4, duplicateOf: 'w_hut' }),
+      ],
+    };
+    expect(duplicatePoisFor(trail, 'w_hut').map(p => p.id)).toEqual([2, 4]);
+  });
+
+  it('is empty when nothing was flagged against the waypoint', () => {
+    expect(duplicatePoisFor({ pois: [poi({ id: 1 }), poi({ id: 2, duplicateOf: 'w_a' })] }, 'w_b')).toEqual([]);
+  });
+
+  it('is empty for a waypoint with no stable id', () => {
+    expect(duplicatePoisFor({ pois: [poi({ duplicateOf: 'w_hut' })] }, undefined)).toEqual([]);
+  });
+
+  it('is empty for a trail that was never enriched', () => {
+    // An absent `pois` means "never fetched", not "found nothing".
+    expect(duplicatePoisFor({}, 'w_hut')).toEqual([]);
+  });
+});
 
 describe('POI naming and links', () => {
   it('falls back to the category when OSM has no name', () => {

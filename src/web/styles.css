@@ -1733,6 +1733,13 @@ a.poi-source-badge:hover {
   font-size: 0.9em;
 }
 
+/* Leaflet only auto-pans a popup when it opens, so the expanded records scroll
+   within a cap rather than growing the popup off the top of the map. */
+.wp-osm-body {
+  max-height: min(40vh, 220px);
+  overflow-y: auto;
+}
+
 .wp-osm-record {
   margin-top: 0.4rem;
   padding: 0.3rem 0.45rem;

@@ -141,7 +141,10 @@ export function poiPopupHtml(poi: TrailPOI): string {
  * so without this their opening hours, phone and website are lost on the web.
  *
  * Collapsed (`<details>`) for the phone's reason: it is uncurated detail about a
- * place the trail already describes and must not crowd the curated popup. Empty
+ * place the trail already describes and must not crowd the curated popup. Its
+ * records scroll inside a capped height: Leaflet lays out and auto-pans a popup
+ * only when it opens, so expanding the section must not grow the popup off the
+ * top of the map. Empty
  * when there is no such POI. Every record keeps its link out even when none of
  * its tags is worth a line.
  */
@@ -163,7 +166,7 @@ export function waypointOsmDetailsHtml(
   return `
     <details class="wp-osm-details">
       <summary>From OpenStreetMap</summary>
-      ${records}
+      <div class="wp-osm-body">${records}</div>
       <div class="poi-attribution">${escapeHtml(OSM_ATTRIBUTION)} · this OSM record describes the same place</div>
     </details>
   `;
