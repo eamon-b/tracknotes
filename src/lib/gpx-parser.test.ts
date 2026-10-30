@@ -105,7 +105,9 @@ describe('parseGpx', () => {
     expect(GPX_MAX_WAYPOINT_COUNT).toBe(20000);
   });
 
-  it('applies the waypoint cap by default', () => {
+  // Parses 20,001 elements to reach the cap: ~1 s of CPU, so it has headroom
+  // for a loaded machine (#251).
+  it('applies the waypoint cap by default', { timeout: 20_000 }, () => {
     const wpts = Array.from({ length: GPX_MAX_WAYPOINT_COUNT + 1 }, () => '<wpt lat="1" lon="2"/>').join('');
     expect(() => parseGpx(`<gpx>${wpts}</gpx>`)).toThrow(/too many waypoints/);
   });

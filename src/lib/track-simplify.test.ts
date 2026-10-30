@@ -47,7 +47,9 @@ describe('simplifyToTarget', () => {
     }
   });
 
-  it('handles the mobile budget on a long track', () => {
+  // A binary search of Douglas-Peucker runs over 25,000 points: most of a
+  // second of CPU, so it has headroom for a loaded machine (#251).
+  it('handles the mobile budget on a long track', { timeout: 20_000 }, () => {
     const points = wigglyTrack(25000);
     const simplified = simplifyToTarget(points, 5000);
     expect(simplified.length).toBeLessThan(5500);

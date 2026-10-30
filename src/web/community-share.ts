@@ -196,8 +196,15 @@ export function initCommunityShare(): CommunityShareController {
     updateSubmit();
   };
 
+  const cancelScheduledChecks = (): void => {
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
+  };
+
   const scheduleChecks = (): void => {
-    if (timer) clearTimeout(timer);
+    cancelScheduledChecks();
     timer = setTimeout(() => {
       timer = null;
       runChecks();
@@ -251,6 +258,9 @@ export function initCommunityShare(): CommunityShareController {
   const submit = async (): Promise<void> => {
     if (!source || busy) return;
     setError('');
+    // Checks run now, so a debounced run still pending from typing is moot, and
+    // landing after a quick 422 it would replace the server's list with ours.
+    cancelScheduledChecks();
     runChecks();
     const country = picker.country();
     if (!checksOk || !rightsBox.checked || !country) {
@@ -340,10 +350,7 @@ export function initCommunityShare(): CommunityShareController {
   return {
     open(next) {
       // A fresh form per import: nothing typed for the previous route carries over.
-      if (timer) {
-        clearTimeout(timer);
-        timer = null;
-      }
+      cancelScheduledChecks();
       source = next;
       nameInput.value = next.name.slice(0, COMMUNITY_LIMITS.nameMax);
       descInput.value = '';

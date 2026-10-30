@@ -55,9 +55,16 @@ function expectSameAsScan(route: LatLon[] | LatLon[][], pois: LatLon[], radiusKm
   return inRange;
 }
 
+/**
+ * The oracle is the point: every POI is also placed by the full scan over the
+ * whole route, which is ~0.5 s of CPU on Te Araroa. Headroom for a loaded
+ * machine (#251), not for a slow index.
+ */
+const ORACLE_TIMEOUT_MS = 20_000;
+
 describe('createRouteIndex', () => {
   for (const id of ['cape_to_cape', 'heysen', 'te_araroa', 'shikoku']) {
-    it(`places POIs along ${id} exactly as the full scan does`, () => {
+    it(`places POIs along ${id} exactly as the full scan does`, { timeout: ORACLE_TIMEOUT_MS }, () => {
       const trail = JSON.parse(fs.readFileSync(path.join(TRAILS_DIR, `${id}.json`), 'utf-8')) as ProcessedTrail;
       const { polylines } = buildRouteScale(trail);
       const flat = polylines.flat();
@@ -66,7 +73,7 @@ describe('createRouteIndex', () => {
     });
   }
 
-  it('handles lone points, track breaks, repeated points and zigzags', () => {
+  it('handles lone points, track breaks, repeated points and zigzags', { timeout: ORACLE_TIMEOUT_MS }, () => {
     const random = rng(7);
     const zigzag: LatLon[] = Array.from({ length: 400 }, (_, i) => ({
       lat: -33 + i * 0.002,
@@ -110,7 +117,7 @@ describe('createRouteIndex', () => {
 });
 
 describe('placePois indexed', () => {
-  it('keeps exactly the POIs the full scan keeps', async () => {
+  it('keeps exactly the POIs the full scan keeps', { timeout: ORACLE_TIMEOUT_MS }, async () => {
     const trail = JSON.parse(fs.readFileSync(path.join(TRAILS_DIR, 'heysen.json'), 'utf-8')) as ProcessedTrail;
     const corridor = prepareCorridor(buildRouteScale(trail).polylines, { searchRadiusKm: 2 });
     const fetched = scatter(corridor.geometry.points, 2000, 3, 1).map((p, i) => ({

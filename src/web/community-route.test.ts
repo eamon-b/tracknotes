@@ -20,8 +20,13 @@ function loadPage(search: string): void {
   window.history.replaceState({}, '', `/community-route.html${search}`);
 }
 
+/**
+ * Poll until `cond` holds. Bounded by wall-clock time rather than a number of
+ * polls, which a loaded machine could use up before the page got there (#251).
+ */
 async function waitFor(cond: () => boolean): Promise<void> {
-  for (let i = 0; i < 150 && !cond(); i++) await new Promise(r => setTimeout(r, 20));
+  const deadline = Date.now() + 15_000;
+  while (!cond() && Date.now() < deadline) await new Promise(r => setTimeout(r, 20));
 }
 
 const $ = (id: string): HTMLElement => document.getElementById(id)!;

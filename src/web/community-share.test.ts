@@ -8,7 +8,9 @@
 import 'fake-indexeddb/auto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
+import { importGpx } from '@lib/gpx-import';
+import type { ProcessedTrail } from '@lib/trail-types';
 import { closeImportedTrailsDb } from './imported-trails-db';
 
 const ROOT = path.resolve(__dirname, '../..');
@@ -50,9 +52,17 @@ async function importAndSave(): Promise<void> {
   await flush();
 }
 
-/** The share module is imported lazily; wait for it to open the panel. */
+/**
+ * The share module is imported lazily; wait for it to open the panel.
+ *
+ * Bounded by wall-clock time, not a number of polls: on a loaded machine the
+ * import alone can take longer than 2 s, and a wait that gave up then failed the
+ * test and left the import to land in the next one, binding a second controller
+ * to that test's page (#251).
+ */
 async function waitForPanel(): Promise<void> {
-  for (let i = 0; i < 100 && $('community-share').hidden; i++) {
+  const deadline = Date.now() + 15_000;
+  while ($('community-share').hidden && Date.now() < deadline) {
     await new Promise(resolve => setTimeout(resolve, 20));
   }
 }
@@ -196,8 +206,11 @@ describe('upload.html community share', () => {
     rights.checked = true;
     rights.dispatchEvent(new Event('change'));
 
+    // Submitted inside the description's check debounce: the run still pending
+    // from typing must not land after the 422 and replace the server's list.
     $<HTMLFormElement>('community-form').dispatchEvent(new Event('submit', { cancelable: true }));
     await flush();
+    await new Promise(resolve => setTimeout(resolve, 300));
     expect($('community-checks').textContent).toContain('Server says duplicate-ish');
     expect($('community-error').hidden).toBe(false);
     expect($('community-done').hidden).toBe(true);
@@ -212,14 +225,20 @@ describe('upload.html community share', () => {
 describe('initCommunityShare', () => {
   const SESSION = { userId: 'u1', token: 'tok', displayName: 'Robin', expiresAt: null };
 
+  // Importing the 4,935-point Cape to Cape GPX is most of a test's CPU time, so
+  // it is done once and each test gets its own copy (#251).
+  let imported: ProcessedTrail;
+  beforeAll(() => {
+    imported = importGpx(GPX).trail;
+  });
+
   async function openPanel(gpxText: string | null = GPX) {
     vi.stubEnv('VITE_API_BASE_URL', 'https://api.example.test');
     const checks = await import('@lib/community-checks');
     const spy = vi.spyOn(checks, 'runCommunityChecks');
-    const { importGpx } = await import('@lib/gpx-import');
     const { initCommunityShare } = await import('./community-share');
     const share = initCommunityShare();
-    const trail = importGpx(GPX).trail;
+    const trail = structuredClone(imported);
     share.open({ trail, name: 'Route A', gpxText });
     return { share, trail, spy };
   }
