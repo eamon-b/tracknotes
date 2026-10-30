@@ -27,8 +27,9 @@ export interface FoodCarryEstimate {
   days: number;
 }
 
-// The long-carry threshold and the food per day are the hiker's (`PlanThresholds`
-// in plan-types), so every function below requires them rather than defaulting.
+// The food per day is the hiker's (`PlanThresholds` in plan-types), so
+// `calculateFoodWeight` requires it rather than defaulting. Days and the
+// long-carry flag depend on pace and hours too, so they are `computeResupplyLegs`'.
 
 /**
  * Extract resupply points from trail waypoints, sorted by km.
