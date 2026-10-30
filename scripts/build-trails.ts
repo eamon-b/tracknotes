@@ -758,7 +758,8 @@ async function main() {
       const staleRejected = poiFile ? staleRejectedKeys(poiFile) : [];
       if (staleRejected.length > 0) {
         console.warn(
-          `  ⚠ pois.json rejected keys match no POI (OSM has caught up?): ${staleRejected.join(', ')} — drop them`
+          `  ⚠ pois.json rejected keys match no POI (retagged or deleted in OSM, or gone since a track edit): ` +
+            `${staleRejected.join(', ')}. Drop them if the place is no longer worth hiding`
         );
       }
       const cities = findDenseStretches(unthinned ?? []);

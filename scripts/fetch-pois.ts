@@ -525,6 +525,15 @@ async function processTrail(
   if (merging && kmRange === null) {
     console.log('  Chunks failed, so merging into the existing file instead of replacing it.');
   }
+  if (merging && existing.rejected.length > 0) {
+    // A merge keeps stored POIs the fetch did not return, so a rejected element
+    // since retagged or deleted in OSM stays in the file and the build's
+    // "rejected keys match no POI" warning cannot fire.
+    console.log(
+      `  Merged, so the ${existing.rejected.length} rejected key(s) still match their stored POIs; ` +
+        'only a clean whole-trail fetch shows whether OSM has dropped them.'
+    );
+  }
 
   const file = buildTrailPOIFile({
     existing,
