@@ -1,23 +1,12 @@
-# Tracknotes Privacy Policy (draft)
+# Tracknotes Privacy Policy
 
-_Draft for review. The public copy ships with the web app at
-`public/privacy.html`, published at
-**<https://trail-maps.vercel.app/privacy.html>** (the Vercel deploy) — keep the
-two in sync._
+**Last updated: 2026-10-31**
 
-_The mobile app links that same URL from Settings → About
-(`PRIVACY_POLICY_URL`, defined in `src/lib/contribution-licence.ts` and imported by
-`mobile/src/features/settings/AboutSection.tsx`), and from the line under every
-form that posts something publicly (`contributionPrivacyLine`);
-change one and change the other. Still outstanding before store submission:
-link the URL from the App Store / Play Store listings, and give this draft a
-human read (issue #31)._
-
-**Last updated: 2026-10-30**
-
-Tracknotes is a hiking guide app for long-distance trails in Australia, New
-Zealand, the United States and Japan. It is designed to work offline-first and
+Tracknotes is a hiking guide app for long-distance trails predominantly in Australia,
+but with the ability to add trails from around the world. It is designed to work offline-first and
 to collect as little personal information as possible.
+
+In the app, there are opportunities to share information with other app users, like adding creating new waypoints or adding comments to waypoints. Our princples for handling this data if you choose to share it publically is that it is in the public domain, but you can still control what is available in our app: you can edit it, delete it or export it for external use when you like. This is expanded in more detail below.
 
 ## What we collect
 
@@ -37,8 +26,9 @@ reduced quality to make them smaller, but does not remove their metadata. A
 photo may therefore keep its EXIF data, including the GPS location where it
 was taken if your camera recorded one, and anyone who views or downloads the
 photo can read it. This is deliberate, so other hikers can see exactly where a
-photo was taken. If you do not want a photo's location published, turn off
-location tagging in your camera app before taking it, or do not attach it.
+photo was taken, as this is often useful information. If you do not want a
+photo's location published, turn off location tagging in your camera app before
+taking it, or do not attach it.
 
 **Waypoints you share (optional).** You can add your own waypoints to a trail
 on the phone. A waypoint you keep to yourself ("Only me") stays on your device
