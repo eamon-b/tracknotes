@@ -1,8 +1,4 @@
-# The Worker and D1 database keep their original Cloudflare names: renaming the
-# Worker would deploy a second Worker without this one's secrets and custom
-# domain, and a D1 database cannot be renamed. Scripts and docs address the
-# database by its binding (`DB`), not its name.
-name = "farout-comments"
+name = "trail-maps-comments"
 main = "src/index.ts"
 compatibility_date = "2025-04-01"
 
@@ -20,8 +16,8 @@ custom_domain = true
 
 [[d1_databases]]
 binding = "DB"
-database_name = "farout-comments"
-database_id = "2d1504b2-13c4-422b-829b-af3a3536a5bd"
+database_name = "trail-maps-comments"
+database_id = "c7eaed8e-395a-46fc-b428-753ea461d1e2"
 
 # Photo attachments live in R2. This is the same bucket the map tiles use; photos
 # go under the `comments/` prefix and are read publicly via PHOTOS_PUBLIC_BASE.
