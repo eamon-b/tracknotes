@@ -80,6 +80,13 @@ describe('parseTrailPOIFile', () => {
     expect(() => parseTrailPOIFile(text, '/x/pois.json')).toThrow(/"rejected" to be an array/);
   });
 
+  it('rejects a rejected entry that is not a <type>/<id> key — it would hide nothing', () => {
+    for (const key of ['270408582', 'Node/270408582', 'node/']) {
+      const text = JSON.stringify(file({ rejected: [key] }));
+      expect(() => parseTrailPOIFile(text, '/x/pois.json')).toThrow(/rejected entry/);
+    }
+  });
+
   it('round-trips a well-formed file', () => {
     const original = file({ pois: [poi(1, 5)], rejected: ['node/9'] });
     expect(parseTrailPOIFile(stringifyTrailPOIFile(original), '/x/pois.json')).toEqual(original);
@@ -163,6 +170,12 @@ describe('staleRejectedKeys', () => {
   it('matches on type as well as id', () => {
     const result = staleRejectedKeys(file({ pois: [poi(7, 10, 'node')], rejected: ['way/7'] }));
     expect(result).toEqual(['way/7']);
+  });
+
+  it('stays empty after a merge: the stored copy of a rejected POI is kept', () => {
+    // The fetch no longer returns node/1 (retagged in OSM), but a merge keeps it.
+    const merged = mergeTrailPOIs([poi(1, 10), poi(2, 20)], [poi(2, 20)]);
+    expect(staleRejectedKeys(file({ pois: merged.pois, rejected: ['node/1'] }))).toEqual([]);
   });
 
   it('is empty when every rejected key is still fetched', () => {

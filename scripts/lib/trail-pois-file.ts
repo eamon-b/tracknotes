@@ -27,7 +27,10 @@
  *   reviewer can see what was thrown away and why it keeps not coming back.
  * - `rejected` is hand-edited: a list of `poiKey` strings (`<type>/<id>`) that
  *   the build drops. A re-fetch reads the existing file and carries the list
- *   over verbatim, so review work is never lost to a refresh.
+ *   over verbatim, so review work is never lost to a refresh. A rejection is
+ *   usually a stopgap (a closed shop OSM still lists): once a fetch that
+ *   replaces the file no longer returns the element, the build warns that the
+ *   key matches no POI, and it can go.
  * - `duplicates` is optional and hand-edited too: `<type>/<id>` → the stable id
  *   of the waypoint that POI is the same place as, for pairs `@lib/poi-dedup`'s
  *   rules cannot safely match (a nickname, `Schlink Hilton` for Schlink Hut; a
@@ -126,6 +129,9 @@ function isPOI(value: unknown): value is TrailPOI {
   );
 }
 
+/** A `poiKey`: `<type>/<id>`, as `rejected` entries and `duplicates` keys are written. */
+const POI_KEY_PATTERN = /^(node|way|relation)\/\d+$/;
+
 /**
  * Parse a POI file's text. Throws an error naming `filePath` for anything
  * malformed — these files are hand-edited, so a bad `rejected` entry must stop
@@ -159,6 +165,12 @@ export function parseTrailPOIFile(text: string, filePath: string): TrailPOIFile 
   if (!Array.isArray(rejected) || rejected.some(entry => typeof entry !== 'string')) {
     fail(filePath, 'expected "rejected" to be an array of "<type>/<id>" strings');
   }
+  // A malformed key rejects nothing, so the POI it was meant to hide still ships.
+  for (const key of rejected as string[]) {
+    if (!POI_KEY_PATTERN.test(key)) {
+      fail(filePath, `rejected entry "${key}" is not a "<type>/<id>" key`);
+    }
+  }
 
   const duplicates = file.duplicates;
   if (duplicates !== undefined) {
@@ -166,7 +178,7 @@ export function parseTrailPOIFile(text: string, filePath: string): TrailPOIFile 
       fail(filePath, 'expected "duplicates" to map "<type>/<id>" to a waypoint id');
     }
     for (const [key, waypointId] of Object.entries(duplicates)) {
-      if (!/^(node|way|relation)\/\d+$/.test(key) || typeof waypointId !== 'string' || waypointId === '') {
+      if (!POI_KEY_PATTERN.test(key) || typeof waypointId !== 'string' || waypointId === '') {
         fail(filePath, `duplicates["${key}"] must map a "<type>/<id>" key to a waypoint id`);
       }
     }
@@ -193,8 +205,10 @@ export function poisForBuild(file: TrailPOIFile): TrailPOI[] {
 /**
  * The `rejected` keys that match no fetched POI. A rejection is a stopgap
  * until OSM catches up (a closed shop still tagged open); once the element is
- * retagged or deleted, a re-fetch no longer returns it, and the build reports
- * the key so it can be dropped.
+ * retagged or deleted, the build reports the key so it can be dropped. Only a
+ * fetch that replaces the file clears an element out of `pois`: a merge
+ * (`--from-km`, or a fetch with failed chunks) keeps the stored copy, and the
+ * key keeps matching it.
  */
 export function staleRejectedKeys(file: TrailPOIFile): string[] {
   const fetched = new Set(file.pois.map(poiKey));
