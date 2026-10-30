@@ -23,9 +23,17 @@ const META = {
   description: 'Four days along the east coast of Hinchinbrook Island, beach to beach over rocky headlands.',
 };
 
+/**
+ * The Thorsborne import as JSON, made once: ~75 tests start from it, and
+ * re-running `importGpx` for each one was most of this file's time (enough to
+ * trip the 5 s timeout on a loaded machine, #251).
+ */
+let thorsborneJson: string | undefined;
+
 /** A fresh, JSON-round-tripped trail (what a client uploads). */
 function thorsborne(): ProcessedTrail {
-  return JSON.parse(JSON.stringify(importGpx(THORSBORNE).trail)) as ProcessedTrail;
+  thorsborneJson ??= JSON.stringify(importGpx(THORSBORNE).trail);
+  return JSON.parse(thorsborneJson) as ProcessedTrail;
 }
 
 function byId(checks: CommunityCheck[], id: string): CommunityCheck {
@@ -589,7 +597,9 @@ describe('the rebuild', () => {
     trail!.track.displayPoints.forEach((p, i) => expect(p).toBe(expected[i]));
   });
 
-  it('falls back to an even stride when Douglas-Peucker would run too long', () => {
+  // Spends the whole 20M-step Douglas-Peucker budget before falling back, by
+  // design: ~1 s of CPU, so it has headroom for a loaded machine (#251).
+  it('falls back to an even stride when Douglas-Peucker would run too long', { timeout: 20_000 }, () => {
     // A sawtooth whose teeth shrink by a metre a point: the point furthest
     // from every chord is the one next to its start, so Douglas-Peucker peels
     // one point per split, O(n²), which is the case the budget exists for.

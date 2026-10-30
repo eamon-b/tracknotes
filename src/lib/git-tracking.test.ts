@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import { readdirSync } from 'fs';
 import { join } from 'path';
 
@@ -15,17 +15,21 @@ describe('git tracking', () => {
     const libDir = join(__dirname);
     const tsFiles = readdirSync(libDir).filter(f => f.endsWith('.ts'));
 
-    const ignored: string[] = [];
-    for (const file of tsFiles) {
-      const filePath = join(libDir, file);
-      try {
-        // git check-ignore exits 0 if the file IS ignored, 1 if it is NOT ignored
-        execSync(`git check-ignore -q "${filePath}"`, { stdio: 'pipe' });
-        ignored.push(file);
-      } catch {
-        // exit code 1 = not ignored, which is what we want
-      }
+    // One `git check-ignore` for every file rather than a process per file: a
+    // hundred-odd spawns took seconds on a loaded machine (#251). It prints the
+    // paths that ARE ignored (NUL-separated with -z) and exits 1 when none are.
+    let output = '';
+    try {
+      output = execFileSync('git', ['check-ignore', '--stdin', '-z'], {
+        cwd: libDir,
+        input: tsFiles.join('\0'),
+        encoding: 'utf8',
+        stdio: 'pipe',
+      });
+    } catch {
+      // exit code 1 = nothing ignored, which is what we want
     }
+    const ignored = output.split('\0').filter(Boolean);
 
     expect(
       ignored,

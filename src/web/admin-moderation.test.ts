@@ -16,8 +16,13 @@ function loadPage(): void {
   document.documentElement.innerHTML = html.replace(/<!DOCTYPE html>/i, '').replace(/<\/?html[^>]*>/gi, '');
 }
 
+/**
+ * Poll until `cond` holds. Bounded by wall-clock time rather than a number of
+ * polls, which a loaded machine could use up before the page got there (#251).
+ */
 async function waitFor(cond: () => boolean): Promise<void> {
-  for (let i = 0; i < 100 && !cond(); i++) await new Promise(r => setTimeout(r, 10));
+  const deadline = Date.now() + 15_000;
+  while (!cond() && Date.now() < deadline) await new Promise(r => setTimeout(r, 10));
 }
 
 const report = {
