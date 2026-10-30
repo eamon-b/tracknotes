@@ -1,6 +1,6 @@
 {
   "trailId": "six_foot_track",
-  "note": "Curated waypoint descriptions, keyed by the stable ids in data/waypoint-ids.json. Applied by scripts/build-trails.ts (overriding any description from the GPX source) and uploadable to the comments API with scripts/upload-descriptions.ts. Listed east to west, from Katoomba to Jenolan Caves, matching the km order of the generated trail data. Mount George has no entry: no source described it beyond a signpost. Descriptions give the permanent place; temporary closures are posted as server-side updates. Sources for each fact: plans/waypoint-description-sources.md.",
+  "note": "Curated waypoint descriptions, keyed by the stable ids in data/waypoint-ids.json. Applied by scripts/build-trails.ts (overriding any description from the GPX source) and uploadable to the comments API with scripts/upload-descriptions.ts. Listed east to west, from Katoomba to Jenolan Caves, matching the km order of the generated trail data. Mount George has no entry: no source described it beyond a signpost. Descriptions give the permanent place; temporary closures are dated ('As of October 2026') so they can be found and removed. Sources for each fact: plans/waypoint-description-sources.md.",
   "descriptions": [
     {
       "waypointId": "w_e864dd52",
@@ -50,7 +50,7 @@
     {
       "waypointId": "w_9853df4e",
       "name": "Jenolan Caves",
-      "description": "The end of the track, reached down a steep, rocky ridge, narrow in places, overlooking the Blue Lake. The caves date back at least 340 million years, and the heritage-listed Caves House (1898) has restaurants, accommodation and a shop for essentials."
+      "description": "The end of the track, reached down a steep, rocky ridge, narrow in places, overlooking the Blue Lake. The caves date back at least 340 million years, and the heritage-listed Caves House (1898) has restaurants, accommodation and a shop for essentials. As of October 2026 NSW National Parks list the Jenolan Karst Conservation Reserve, with the caves precinct and its walking tracks, as closed until 31 December 2026 for infrastructure repairs; the Six Foot Track is closed at the reserve boundary, with no way through to Jenolan Caves."
     }
   ]
 }

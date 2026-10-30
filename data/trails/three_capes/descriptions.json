@@ -1,11 +1,11 @@
 {
   "trailId": "three_capes",
-  "note": "Curated waypoint descriptions, keyed by the stable ids in data/waypoint-ids.json. Applied by scripts/build-trails.ts (overriding any description from the GPX source) and uploadable to the comments API with scripts/upload-descriptions.ts. Listed in walking order from Denmans Cove to Fortescue Bay, with the off-route waypoints (the Cape Pillar spur and Bare Knoll) appended at the end. Pillars of the south, Monument Lookout and Seal spa have no entry: no Parks and Wildlife Service Tasmania page names them. Sources for each fact: plans/waypoint-description-sources.md.",
+  "note": "Curated waypoint descriptions, keyed by the stable ids in data/waypoint-ids.json. Applied by scripts/build-trails.ts (overriding any description from the GPX source) and uploadable to the comments API with scripts/upload-descriptions.ts. Listed in walking order from Denmans Cove to Fortescue Bay, with the off-route waypoints (the Cape Pillar spur and Bare Knoll) appended at the end. Pillars of the south, Monument Lookout and Seal spa have no entry: no Parks and Wildlife Service Tasmania page names them. Temporary closures are dated ('As of October 2026') so they can be found and removed. Sources for each fact: plans/waypoint-description-sources.md.",
   "descriptions": [
     {
       "waypointId": "w_b4f525ef",
       "name": "Denmans Cove",
-      "description": "The start of the Three Capes Track, a bay reached only on the walkers' boat from the Port Arthur Historic Site, a trip of up to 75 minutes. A creek flows out over the beach and the sandbanks move about, so the landing can be a short wade; from September to December the water is knee-deep at times."
+      "description": "The start of the Three Capes Track, a bay reached only on the walkers' boat from the Port Arthur Historic Site, a trip of up to 75 minutes. A creek flows out over the beach and the sandbanks move about, so the landing can be a short wade; from September to December the water is knee-deep at times. The track closes for two weeks each year for maintenance and fuel-reduction burns; as of October 2026 PWS Tasmania gives the next closure as 5–18 April 2027."
     },
     {
       "waypointId": "w_6b79b6ba",
@@ -40,7 +40,7 @@
     {
       "waypointId": "w_e2522cc4",
       "name": "Bare Knoll Campground",
-      "description": "Campground for independent walkers on the Cape Pillar Track, about 1 km past the crossroads with the Old Cape Pillar Track, with 12 tent platforms and a toilet. There is no reliable natural water. Stays are registered at the Fortescue Bay site office, and the Three Capes cabins are open only to Three Capes walkers."
+      "description": "Campground for independent walkers on the Cape Pillar Track, about 1 km past the crossroads with the Old Cape Pillar Track, with 12 tent platforms and a toilet. There is no reliable natural water. Stays are registered at the Fortescue Bay site office, and the Three Capes cabins are open only to Three Capes walkers. As of October 2026 PWS Tasmania gives 5–18 April 2027 as the next annual maintenance closure, which shuts this campground and the Old Cape Pillar Track along with the Three Capes Track."
     },
     {
       "waypointId": "w_00b86ed2",

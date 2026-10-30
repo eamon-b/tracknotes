@@ -11,13 +11,13 @@ The trails authored before this note (Cape to Cape, AAWT, Bibbulmun, Hume & Hove
 - **Primary or authoritative sources only.** A primary source here is the land manager's page, or a government tourism body's full page. The track's own long-standing notes site counts as authoritative. A claim that could not be checked against one of these was removed. Blogs, tour operators and search-result snippets do not count.
 - **Own wording.** The descriptions paraphrase their sources. The phrases flagged in review, and every other close echo found in a pass over all 29 descriptions, were rewritten.
 
-## Current temporary closures not in the descriptions
+## Temporary closures in the descriptions
 
-These were recorded before the dated-sentence rule above; each could become a dated sentence in its waypoint's description:
+Every dated sentence in the bundled text, across all trails, is tracked on #219 for review each quarter and before each fire season; find them with `grep -rn "As of " data/trails/*/descriptions.json`. Each was re-checked against its source on 2026-10-30. The Heysen ones are listed under that trail. The other three, added on #219:
 
-- **Jenolan Caves** (Six Foot Track `w_9853df4e`): NSW National Parks [local alerts](https://www.nationalparks.nsw.gov.au/things-to-do/walking-tracks/six-foot-track/local-alerts), reviewed 19 Oct 2026, say the Jenolan Karst Conservation Reserve, "including the Visitor Precinct and walking tracks", is closed until 31 December 2026, with "no access to the Reserve or Jenolan Caves via the Six Foot Track". The track is closed at the reserve boundary. NSW National Parks currently gives Binda Bush cabins as the track's end. Visit NSW says the closure followed flood damage and landslips.
-- **George Point** (Thorsborne `w_fc1b14f4`): a Queensland Parks park alert, seen only as a search-result snippet, says the George Point toilet was removed because of erosion, until 30 June 2027. It is unverified because the page could not be read (see below). Check it before posting.
-- **Three Capes annual maintenance closure:** PWS Tasmania's [Cape Pillar](https://parks.tas.gov.au/explore-our-parks/tasman-national-park/tasman-cape-pillar) page lists the next closure as 5–18 April 2027. It covers the Three Capes Track, Bare Knoll campground and the Old Cape Pillar Track; the Cape Hauy Track is not closed in 2026.
+- **Jenolan Caves** (Six Foot Track `w_9853df4e`): NSW National Parks' Six Foot Track [local alerts](https://www.nationalparks.nsw.gov.au/things-to-do/walking-tracks/six-foot-track/local-alerts), read through the alerts feed the page loads (`api-prd.nswparks.cloud/api/v1/AlertsClosures/alerts/…`). The "Closure due to construction works" alert (published 9 Oct 2026, to be reviewed 18 Jan 2027) says the Jenolan Karst Conservation Reserve, "including the visitor precinct and walking tracks", is closed until 31 December 2026 for "major infrastructure repairs and upgrades", with "no access to the Reserve or Jenolan Caves via the Six Foot Track". The Blue Mountains "Closure due to damaged areas" alert adds that the Six Foot Track is closed at the reserve boundary. (On 2026-10-19 Visit NSW gave flood damage and landslips as the cause; the description follows NSW National Parks.)
+- **George Point** (Thorsborne `w_fc1b14f4`): Queensland Parks [park alert 22907](https://parks.qld.gov.au/park-alerts/22907), "George Point toilet and sign removed due to erosion", read in full with curl on 2026-10-30 (parks.qld.gov.au answers where the parks.des.qld.gov.au pages below did not). It runs from 17 September 2024 to 30 June 2027 (updated 30 June 2026) and gives: severe erosion from high tides over several years; the camping-area signs and infrastructure, toilet included, removed; no sign marking the pickup point; bush camping under a stand of trees about 2.6 km south of the Mulligan Creek crossing, with no toilet or pack rack; the pickup point 250 m south-west of it along the beach; QPWS reviewing the site's future under the Thorsborne Trail Enhancement project.
+- **Three Capes annual maintenance closure:** PWS Tasmania's [Cape Pillar](https://parks.tas.gov.au/explore-our-parks/tasman-national-park/tasman-cape-pillar) page says the track closes every year for maintenance and fuel-reduction burns, for 14 days, and lists 5–18 April 2027 next (then 24 April – 7 May 2028 and 9–22 April 2029). The closure covers the Three Capes Track, Bare Knoll campground and the Old Cape Pillar Track; the Cape Hauy Track was not affected in 2026. The sentence is on **Denmans Cove** (`w_b4f525ef`) and **Bare Knoll Campground** (`w_e2522cc4`); move it to the next year's dates once the April 2027 closure is over.
 
 ## Three Capes Track (`three_capes`)
 
@@ -297,6 +297,8 @@ Covers main-route waypoints after Burra (km > 489.3, Burra Caravan Park to Parac
 - [Blinman](https://flindersandoutback.com.au/towns/blinman/): copper found by the shepherd Robert Blinman in 1859, the highest town in South Australia, fewer than 50 residents, the North Blinman Hotel, mine tours.
 
 #### Temporary status (dated "As of October 2026" sentences in the bundled text)
+
+All five re-checked against the FOHT pages on 2026-10-30 (#219) and unchanged; the Whistling Trig page still gives the 28 Sep 2026 reading.
 
 - **Whistling Trig Tank** (`w_37b9b2d5`): FOHT says the tank is leaking and stood at 4% on 28 Sep 2026; volunteers are replacing it.
 - **The Dutchman Hut** (`w_7c9a0d0c`): FOHT says the hut is closed for repairs, with the shearing shed beside it open for overnight use.
