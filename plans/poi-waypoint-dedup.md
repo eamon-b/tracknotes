@@ -166,8 +166,9 @@ generated JSON.
   planner, both through `@lib/poi-display` `duplicatePoisFor`. The trail page
   draws no markers for alternate or side-trip waypoints (only a terminus's end
   marker, which carries the section), so a POI flagged against one of those is
-  still shown only on the phone — e.g. Echo Point Hut on the Overland's Cynthia
-  Bay lakeside terminus.
+  still shown only on the phone. In the bundled data that is three POIs, all
+  intermediate waypoints on the Overland's Cynthia Bay lakeside terminus: Echo
+  Point Campsite, Echo Point Hut and Fergy's Paddock Camp Site.
 - **Category toggles**: flagged POIs stay out of the visible counts, so
   "camping (13)" means 13 markers.
 
