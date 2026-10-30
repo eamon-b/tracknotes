@@ -58,6 +58,7 @@ import {
   type ShareForm,
 } from '../src/features/community/share-form';
 import { ChecksList, ChoiceChips } from '../src/features/community/CommunityUi';
+import { ContributionLicence } from '../src/features/comments/ContributionLicence';
 import { ShareFailureCard } from '../src/features/community/ShareFailureCard';
 
 /**
@@ -362,6 +363,7 @@ export default function ShareRouteScreen() {
         <Text style={[styles.checkboxText, { color: colors.textPrimary }]}>{RIGHTS_TEXT}</Text>
       </Pressable>
       {fieldError(errors.rights)}
+      <ContributionLicence verb="sharing" what="this route" />
 
       {checks && (
         <View

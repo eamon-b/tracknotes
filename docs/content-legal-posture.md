@@ -41,14 +41,16 @@ display name the hiker chooses. There is no email, password or sign-up.
 
 1. **Contribution licensing: CC0, granted when posting.** Comments (with their
    water reports and photos), shared waypoints and community routes are
-   dedicated to the public domain under CC0 1.0. The line under the phone's
-   comment composer and waypoint form says so and links the terms
-   (`contributionLicenceLine` and `TERMS_URL` in
-   `src/lib/contribution-licence.ts`). Sharing a community route, on the web
-   or the phone, needs a tick: "I recorded this track myself, or it is openly
-   licensed, and I release it under CC0 (public domain)" (`src/web/upload.html`,
-   `mobile/src/features/community/share-form.ts`). The terms add a fallback
-   licence where CC0 cannot waive a right. CC0 rather than CC-BY-SA because:
+   dedicated to the public domain under CC0 1.0. A line under every form that
+   publishes something says so and links the terms (`contributionLicenceLine`
+   and `TERMS_URL` in `src/lib/contribution-licence.ts`): the phone's comment
+   composer, its waypoint form and its route-share form
+   (`ContributionLicence.tsx`), and the web's route-share form
+   (`renderContributionLicence` in `src/web/community-share.ts`). Sharing a
+   community route also needs a tick: "I recorded this track myself, or it is
+   openly licensed, and I release it under CC0 (public domain)"
+   (`src/web/upload.html`, `mobile/src/features/community/share-form.ts`). The
+   terms add a fallback licence where CC0 cannot waive a right. CC0 rather than CC-BY-SA because:
    - attribution stacking is unworkable across hundreds of small contributions
      shown together;
    - ShareAlike would arguably reach the published trail-data files and
@@ -95,12 +97,16 @@ display name the hiker chooses. There is no email, password or sign-up.
      part of the legal read in #148.
 
 3. **Australian Privacy Act 1988 (APPs): comply, though probably exempt.** The
-   project is almost certainly under the $3M small-business threshold, so much
-   of the Act may not strictly apply. It complies anyway: it is cheap at this
-   scale.
+   project has no revenue, far under the $3M small-business threshold, so much
+   of the Act may not strictly apply. It complies anyway (confirmed by the
+   owner, 2026-10-30): it is cheap at this scale.
    - *APP 1/5, open and notified.* The privacy policy is published at
      `public/privacy.html` and linked from the phone's Settings → About
-     (`PRIVACY_POLICY_URL`). The store listings must link it too (#31).
+     (`PRIVACY_POLICY_URL`). The notice at collection is a second line under
+     every form that publishes something, beside the licence line: "The
+     privacy policy says what is stored and who can see it."
+     (`contributionPrivacyLine`, decided 2026-10-30). The store listings must
+     link the policy too (#31).
    - *APP 3, minimal collection.* No name, email, phone or account. What is
      held: the device identity and display name, what the hiker chooses to
      post, linked-browser records, and network addresses for rate limiting
@@ -111,6 +117,14 @@ display name the hiker chooses. There is no email, password or sign-up.
      but their metadata is kept, deliberately, and the policy says so), and a
      synced plan's stops. Each is posted by the hiker's choice, and the policy
      names each one. GPS position is never sent on its own.
+   - *Times are published as posted* (decided 2026-10-30). A comment's posting
+     time and a water report's `observedAt` (only clamped against the future:
+     `clampObservedAt`) are public to the second; the first draft planned to
+     round the observation time to the day, so a report could not place a
+     hiker at a tank at a given hour. Rounding `observedAt` alone would protect
+     little: the posting time beside it is exact, the feeds and sync depend on
+     it, and a photo's EXIF carries its own time and place. Posting is opt-in,
+     and the policy says both times are public.
    - *APP 6, use.* Data is used to run the service and to moderate it. There
      is no analytics, advertising or third-party tracking.
    - *APP 8, cross-border disclosure.* Data is stored with Cloudflare under an
@@ -159,26 +173,12 @@ display name the hiker chooses. There is no email, password or sign-up.
      sensitive site) come through Report or the contact email. The target is
      acknowledgement within 72 hours, and land-manager requests are honoured
      by default.
-   - The terms are accepted by posting: the licence line under the comment
-     composer and the waypoint form links them ("By posting, you … agree to the
-     terms of service").
+   - The terms are accepted by posting: the licence line under every form that
+     publishes something links them ("By posting, you … agree to the terms of
+     service").
 
 ## Open questions for the legal read
 
-- **Observation times are published to the second.** A water report's
-  `observedAt` is stored and served as the hiker sent it (only clamped against
-  the future: `clampObservedAt`), and every comment, waypoint and route carries
-  its posting time. The first draft planned day granularity so a report could
-  not place a hiker at a tank at a given hour. Decide whether to round
-  `observedAt` (and what the feeds show of `createdAt`) to the day, or accept
-  it. Posting is opt-in, and the policy says the time of posting is public.
-- **The community-route share forms do not link the terms.** Their CC0 tick
-  links the CC0 deed only, so the terms are not shown where a route is shared.
-  Decide whether that tick should use `contributionLicenceLine` like the other
-  forms.
-- **No collection notice at the point of posting.** The forms link the terms
-  at most, never the privacy policy. APP 5 asks for notice "at or before" collection.
-  Decide whether the licence line should also link the policy.
 - **Takedown contact.** Takedowns and privacy requests share one address
   (`privacy@contour-map-tiles.net`), and no response time is committed for
   privacy requests.

@@ -13,9 +13,9 @@ import { Text, TextInput } from 'react-native';
 import TestRenderer, { act, type ReactTestRenderer } from 'react-test-renderer';
 import * as ImagePicker from 'expo-image-picker';
 import { openURL } from 'expo-linking';
-import { TERMS_URL } from '@lib/contribution-licence';
+import { PRIVACY_POLICY_URL, TERMS_URL } from '@lib/contribution-licence';
 import { Composer, PHOTO_FAILED_MESSAGE, POST_FAILED_MESSAGE } from '../Composer';
-import { TERMS_OPEN_FAILED_MESSAGE } from '../ContributionLicence';
+import { PRIVACY_OPEN_FAILED_MESSAGE, TERMS_OPEN_FAILED_MESSAGE } from '../ContributionLicence';
 
 const mockOpenURL = openURL as jest.Mock;
 import { NETWORK_ERROR_MESSAGE } from '../../../api/error-message';
@@ -111,18 +111,22 @@ describe('Composer', () => {
     expect(text).not.toContain('photo into');
   });
 
-  it('makes the whole licence line one link, so a screen reader can open the terms', async () => {
+  it('makes each licence line one link, so a screen reader can open the terms and the policy', async () => {
+    mockOpenURL.mockClear();
     const r = mount({ registered: true, onSubmit: jest.fn() });
-    // Only the outer line presses: a nested pressable <Text> is one TalkBack
+    // Only the outer lines press: a nested pressable <Text> is one TalkBack
     // node with its parent, so a link inside it could never be reached.
     const links = r.root.findAllByType(Text).filter((n) => typeof n.props.onPress === 'function');
-    expect(links).toHaveLength(1);
-    expect(links[0].props.accessibilityRole).toBe('link');
-    await act(async () => {
-      (links[0].props.onPress as () => void)();
-      await new Promise((resolve) => setImmediate(resolve));
-    });
-    expect(mockOpenURL).toHaveBeenCalledWith(TERMS_URL);
+    expect(links).toHaveLength(2);
+    expect(links.map((l) => l.props.accessibilityRole)).toEqual(['link', 'link']);
+    for (const link of links) {
+      await act(async () => {
+        (link.props.onPress as () => void)();
+        await new Promise((resolve) => setImmediate(resolve));
+      });
+    }
+    expect(mockOpenURL.mock.calls).toEqual([[TERMS_URL], [PRIVACY_POLICY_URL]]);
+    expect(renderedText(r)).toContain('says what is stored and who can see it.');
   });
 
   it('spells out the terms URL when the browser cannot open', async () => {
@@ -136,6 +140,18 @@ describe('Composer', () => {
       await new Promise((resolve) => setImmediate(resolve));
     });
     expect(renderedText(r)).toContain(TERMS_OPEN_FAILED_MESSAGE);
+  });
+
+  it('spells out the privacy policy URL when the browser cannot open', async () => {
+    mockOpenURL.mockRejectedValueOnce(new Error('no activity found'));
+    const r = mount({ registered: true, onSubmit: jest.fn() });
+    const link = r.root.findAllByType(Text).filter((n) => typeof n.props.onPress === 'function')[1];
+    await act(async () => {
+      (link.props.onPress as () => void)();
+      await new Promise((resolve) => setImmediate(resolve));
+    });
+    expect(renderedText(r)).toContain(PRIVACY_OPEN_FAILED_MESSAGE);
+    expect(renderedText(r)).not.toContain(TERMS_OPEN_FAILED_MESSAGE);
   });
 
   it('surfaces a network failure inline and keeps the draft', async () => {
