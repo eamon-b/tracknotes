@@ -1,6 +1,6 @@
 {
   "trailId": "thorsborne",
-  "note": "Curated waypoint descriptions, keyed by the stable ids in data/waypoint-ids.json. Applied by scripts/build-trails.ts (overriding any description from the GPX source) and uploadable to the comments API with scripts/upload-descriptions.ts. Listed north to south, from Ramsay Bay to George Point, matching the km order of the generated trail data. Facilities (toilets, platforms) are left out until a Queensland Parks page can be read in full. Sources for each fact: plans/waypoint-description-sources.md.",
+  "note": "Curated waypoint descriptions, keyed by the stable ids in data/waypoint-ids.json. Applied by scripts/build-trails.ts (overriding any description from the GPX source) and uploadable to the comments API with scripts/upload-descriptions.ts. Listed north to south, from Ramsay Bay to George Point, matching the km order of the generated trail data. Facilities (toilets, platforms) are left out until a Queensland Parks page can be read in full. Temporary closures are dated ('As of October 2026') so they can be found and removed. Sources for each fact: plans/waypoint-description-sources.md.",
   "descriptions": [
     {
       "waypointId": "w_360268e6",
@@ -40,7 +40,7 @@
     {
       "waypointId": "w_fc1b14f4",
       "name": "George Point campsite",
-      "description": "The southern end of the trail, at the end of a 5 km beach along Mulligan Bay, where boats from Lucinda (Dungeness) drop off and collect walkers. There is no reliable water between Mulligan Falls and here."
+      "description": "The southern end of the trail, at the end of a 5 km beach along Mulligan Bay, where boats from Lucinda (Dungeness) drop off and collect walkers. There is no reliable water between Mulligan Falls and here. As of October 2026 Queensland Parks report that erosion has removed the camping area's toilet and signs, so nothing marks the pickup point; walkers can bush camp under trees about 2.6 km south of the Mulligan Creek crossing, 250 m short of the pickup point, with no toilet."
     }
   ]
 }
