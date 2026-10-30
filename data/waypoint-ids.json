@@ -2423,11 +2423,39 @@
       "retired": true
     },
     {
+      "id": "w_00b391cd",
+      "name": "Water: Creek, good flow",
+      "type": "water",
+      "lat": 44.84671,
+      "lon": -111.412684
+    },
+    {
+      "id": "w_00f44b27",
+      "name": "Dry: Carry extra water for this section! It's dry, hot…",
+      "type": "maker-note",
+      "lat": 44.878407,
+      "lon": -110.324106
+    },
+    {
+      "id": "w_0157fdd3",
+      "name": "Water: Good flow (3)",
+      "type": "water",
+      "lat": 45.427601,
+      "lon": -111.50923
+    },
+    {
       "id": "w_01848ceb",
       "name": "Official mile 2290",
       "type": "milestone",
       "lat": 44.808046,
       "lon": -113.353173
+    },
+    {
+      "id": "w_01a9bc0e",
+      "name": "Big Sky / Super Butte Cutoff rejoins",
+      "type": "junction",
+      "lat": 44.032902,
+      "lon": -110.170592
     },
     {
       "id": "w_021c7405",
@@ -2459,11 +2487,25 @@
       "retired": true
     },
     {
+      "id": "w_035c4b92",
+      "name": "Water: Tiny trickle and puddles",
+      "type": "water",
+      "lat": 45.76262,
+      "lon": -112.075801
+    },
+    {
       "id": "w_036acdde",
       "name": "Official mile 2950",
       "type": "milestone",
       "lat": 48.48914,
       "lon": -113.365257
+    },
+    {
+      "id": "w_03719a45",
+      "name": "Water: Great flow, probably year long",
+      "type": "water",
+      "lat": 45.04417,
+      "lon": -111.19906
     },
     {
       "id": "w_03bec885",
@@ -2485,6 +2527,13 @@
       "type": "milestone",
       "lat": 45.820294,
       "lon": -112.503924
+    },
+    {
+      "id": "w_04b5c592",
+      "name": "Water: Low flow",
+      "type": "water",
+      "lat": 45.264984,
+      "lon": -111.488743
     },
     {
       "id": "w_0561fe98",
@@ -2515,6 +2564,13 @@
       "lon": -108.375769
     },
     {
+      "id": "w_06f4c1f1",
+      "name": "Water: Great flow (7)",
+      "type": "water",
+      "lat": 45.625703,
+      "lon": -112.034726
+    },
+    {
       "id": "w_073803c9",
       "name": "Elkhart Park (Pinedale) leaves the CDT",
       "type": "junction",
@@ -2523,11 +2579,25 @@
       "retired": true
     },
     {
+      "id": "w_073bec8e",
+      "name": "Water: Good Flow",
+      "type": "water",
+      "lat": 45.041031,
+      "lon": -111.19287
+    },
+    {
       "id": "w_074ca5e3",
       "name": "Mount Taylor summit rejoins",
       "type": "junction",
       "lat": 35.2178,
       "lon": -107.656533
+    },
+    {
+      "id": "w_079b2c64",
+      "name": "Water: Flow, small stream (3)",
+      "type": "water",
+      "lat": 45.39024,
+      "lon": -111.43736
     },
     {
       "id": "w_07c0c3b5",
@@ -2572,11 +2642,39 @@
       "lon": -108.133636
     },
     {
+      "id": "w_09e2dc41",
+      "name": "Water: Flow (2)",
+      "type": "water",
+      "lat": 44.945499,
+      "lon": -111.17651
+    },
+    {
+      "id": "w_0a34c04f",
+      "name": "Water: Good flow (6)",
+      "type": "water",
+      "lat": 45.621803,
+      "lon": -112.033598
+    },
+    {
+      "id": "w_0a34c04f5464",
+      "name": "Water: Good flow, small stream (2)",
+      "type": "water",
+      "lat": 45.6218,
+      "lon": -112.0336
+    },
+    {
       "id": "w_0ab82b0e",
       "name": "MT 29 Little Blackfoot alternate branches",
       "type": "junction",
       "lat": 46.367698,
       "lon": -112.427022
+    },
+    {
+      "id": "w_0b8862e0",
+      "name": "CR 50 road branches",
+      "type": "junction",
+      "lat": 40.327844,
+      "lon": -106.21189
     },
     {
       "id": "w_0c3388a6",
@@ -2621,11 +2719,25 @@
       "lon": -112.437078
     },
     {
+      "id": "w_0dc8a67a",
+      "name": "Dry (4)",
+      "type": "maker-note",
+      "lat": 45.387783,
+      "lon": -111.54885
+    },
+    {
       "id": "w_0ddafb1c",
       "name": "Official mile 2850",
       "type": "milestone",
       "lat": 47.79589,
       "lon": -113.042649
+    },
+    {
+      "id": "w_0df76904",
+      "name": "Lake Solitude cross-country branches off Northern Teton alternate",
+      "type": "junction",
+      "lat": 43.819695,
+      "lon": -110.877983
     },
     {
       "id": "w_0e1f087f",
@@ -2639,7 +2751,8 @@
       "name": "Wyoming old route through Rawlins branches",
       "type": "junction",
       "lat": 41.804017,
-      "lon": -107.233883
+      "lon": -107.233883,
+      "retired": true
     },
     {
       "id": "w_0e867f2c",
@@ -2682,7 +2795,22 @@
       "name": "Wyoming old route 6 rejoins",
       "type": "junction",
       "lat": 41.015941,
-      "lon": -106.896851
+      "lon": -106.896851,
+      "retired": true
+    },
+    {
+      "id": "w_0ffd4fc8",
+      "name": "Collegiate East branches",
+      "type": "junction",
+      "lat": 39.074818,
+      "lon": -106.330427
+    },
+    {
+      "id": "w_10ecff75",
+      "name": "Water: Flow, tiny stream",
+      "type": "water",
+      "lat": 45.3907,
+      "lon": -111.431709
     },
     {
       "id": "w_113eed1d",
@@ -2748,6 +2876,20 @@
       "lon": -106.927229
     },
     {
+      "id": "w_130a1309",
+      "name": "Water: Small Stream 20yds off Trail",
+      "type": "water",
+      "lat": 44.856831,
+      "lon": -111.19746
+    },
+    {
+      "id": "w_1320596d",
+      "name": "Water: Small Spring flow across Trail",
+      "type": "water",
+      "lat": 44.86399,
+      "lon": -111.194869
+    },
+    {
       "id": "w_13449c48",
       "name": "Columbus Route (CDTS) leaves the CDT",
       "type": "junction",
@@ -2798,6 +2940,13 @@
       "lon": -106.269536
     },
     {
+      "id": "w_165c79de",
+      "name": "Water: Flow, small stream",
+      "type": "water",
+      "lat": 45.4513,
+      "lon": -111.64281
+    },
+    {
       "id": "w_16d71423",
       "name": "Official mile 2950",
       "type": "milestone",
@@ -2813,6 +2962,13 @@
       "lon": -106.051521
     },
     {
+      "id": "w_17a5ce38",
+      "name": "FS Road 412 (Battle Pass) rejoins",
+      "type": "junction",
+      "lat": 41.161852,
+      "lon": -106.982179
+    },
+    {
       "id": "w_180b6fce",
       "name": "Official mile 2460",
       "type": "milestone",
@@ -2825,6 +2981,13 @@
       "type": "accommodation",
       "lat": 34.299168,
       "lon": -108.138778
+    },
+    {
+      "id": "w_187ecd0e",
+      "name": "Moffat Road (Rollins Pass) branches",
+      "type": "junction",
+      "lat": 39.935879,
+      "lon": -105.684538
     },
     {
       "id": "w_189a4cc3",
@@ -2847,6 +3010,13 @@
       "lat": 48.03231,
       "lon": -113.017039,
       "retired": true
+    },
+    {
+      "id": "w_19511650",
+      "name": "CR 290 (Collegiate East) branches off Collegiate East",
+      "type": "junction",
+      "lat": 38.722426,
+      "lon": -106.180348
     },
     {
       "id": "w_199736ce",
@@ -2962,6 +3132,13 @@
       "lon": -113.906057
     },
     {
+      "id": "w_1f3b6643",
+      "name": "Water: Slow, small stream",
+      "type": "water",
+      "lat": 45.42601,
+      "lon": -111.52834
+    },
+    {
       "id": "w_202b00bb",
       "name": "Official mile 1310",
       "type": "milestone",
@@ -2983,6 +3160,13 @@
       "lon": -107.027207
     },
     {
+      "id": "w_20f5913e",
+      "name": "CR 290 (Collegiate East) rejoins off Collegiate East",
+      "type": "junction",
+      "lat": 38.712891,
+      "lon": -106.196888
+    },
+    {
       "id": "w_210e201e",
       "name": "Wyoming old route on Ley WY 40 rejoins",
       "type": "junction",
@@ -2991,10 +3175,17 @@
     },
     {
       "id": "w_216f315a",
-      "name": "Cuba Alternate 2 connector (La Ventana road) leaves the CDT off Cuba alternate 2",
+      "name": "Cuba alternate 2 rejoins off Cuba Alternate 2 connector (La Ventana road)",
       "type": "junction",
       "lat": 35.874069,
       "lon": -106.971787
+    },
+    {
+      "id": "w_218ca3ac",
+      "name": "Water: Flow, tiny stream (2)",
+      "type": "water",
+      "lat": 45.58403,
+      "lon": -112.00848
     },
     {
       "id": "w_21bdb814",
@@ -3207,6 +3398,13 @@
       "retired": true
     },
     {
+      "id": "w_2c4480c3",
+      "name": "Teton high route to Jackson Lake rejoins off Famous Alternate: Tetons and Gros Ventre (2018)",
+      "type": "junction",
+      "lat": 43.79554,
+      "lon": -110.855378
+    },
+    {
       "id": "w_2c83687f",
       "name": "Official mile 830",
       "type": "milestone",
@@ -3226,6 +3424,13 @@
       "type": "milestone",
       "lat": 32.845058,
       "lon": -108.319792
+    },
+    {
+      "id": "w_2dde2b4e",
+      "name": "Land: Sage Creek trailhead access road",
+      "type": "maker-note",
+      "lat": 45.070748,
+      "lon": -111.196854
     },
     {
       "id": "w_2e27bf91",
@@ -3325,7 +3530,8 @@
       "name": "Wyoming old route on Ley WY 44 branches",
       "type": "junction",
       "lat": 41.013037,
-      "lon": -106.919276
+      "lon": -106.919276,
+      "retired": true
     },
     {
       "id": "w_341ed3ae",
@@ -3347,6 +3553,13 @@
       "type": "milestone",
       "lat": 32.50821,
       "lon": -108.484502
+    },
+    {
+      "id": "w_3583e046",
+      "name": "Dry: NB: No Water until Ramshorn Lake",
+      "type": "maker-note",
+      "lat": 45.091596,
+      "lon": -111.012897
     },
     {
       "id": "w_35d2b586",
@@ -3391,6 +3604,13 @@
       "lon": -107.298456
     },
     {
+      "id": "w_3766e1f5",
+      "name": "Northern Teton alternate rejoins off Famous Alternate: Tetons and Gros Ventre (2018)",
+      "type": "junction",
+      "lat": 43.819491,
+      "lon": -110.878317
+    },
+    {
       "id": "w_37c19fc6",
       "name": "Official mile 1020",
       "type": "milestone",
@@ -3419,6 +3639,13 @@
       "lon": -108.248222
     },
     {
+      "id": "w_399dbe82",
+      "name": "Water: Lots of water, wet feet on this crossing",
+      "type": "water",
+      "lat": 45.42342,
+      "lon": -111.49113
+    },
+    {
       "id": "w_3a66cc01",
       "name": "Abiquiu",
       "type": "resupply",
@@ -3439,6 +3666,13 @@
       "lat": 45.142295,
       "lon": -113.568527,
       "retired": true
+    },
+    {
+      "id": "w_3b7aff62",
+      "name": "Henderson Mine Road rejoins",
+      "type": "junction",
+      "lat": 39.774234,
+      "lon": -105.889375
     },
     {
       "id": "w_3b869439",
@@ -3499,6 +3733,13 @@
       "retired": true
     },
     {
+      "id": "w_4259a797",
+      "name": "Water: Flow, Small Stream",
+      "type": "water",
+      "lat": 45.33632,
+      "lon": -111.3634
+    },
+    {
       "id": "w_4279e8a4",
       "name": "Official mile 1360",
       "type": "milestone",
@@ -3525,6 +3766,13 @@
       "type": "town-access",
       "lat": 45.685884,
       "lon": -113.933344
+    },
+    {
+      "id": "w_43203c3d",
+      "name": "Water: Good Flow looks reliable",
+      "type": "water",
+      "lat": 45.34053,
+      "lon": -111.36553
     },
     {
       "id": "w_4391a2e0",
@@ -3567,6 +3815,13 @@
       "type": "milestone",
       "lat": 42.685966,
       "lon": -109.260865
+    },
+    {
+      "id": "w_4670823c",
+      "name": "Water: Flow",
+      "type": "water",
+      "lat": 45.358668,
+      "lon": -111.383754
     },
     {
       "id": "w_46c6ccc1",
@@ -3619,6 +3874,20 @@
       "lon": -106.293102
     },
     {
+      "id": "w_4a1b03af",
+      "name": "Water: Good flow around here",
+      "type": "water",
+      "lat": 45.16053,
+      "lon": -111.383979
+    },
+    {
+      "id": "w_4a2ec366",
+      "name": "Zirkel blowdown road rejoins",
+      "type": "junction",
+      "lat": 40.82105,
+      "lon": -106.776189
+    },
+    {
       "id": "w_4a5a43b3",
       "name": "Lake City (access: Spring Creek Pass (CO 149))",
       "type": "town-access",
@@ -3633,11 +3902,25 @@
       "lon": -107.15883
     },
     {
+      "id": "w_4acd349a",
+      "name": "Road to Willow Creek Pass branches",
+      "type": "junction",
+      "lat": 40.332993,
+      "lon": -106.181492
+    },
+    {
       "id": "w_4ae1b66e",
       "name": "Official mile 80",
       "type": "milestone",
       "lat": 32.283143,
       "lon": -108.75366
+    },
+    {
+      "id": "w_4affaeb7",
+      "name": "Water: Cross Creek on Bridge, good flow",
+      "type": "water",
+      "lat": 45.702963,
+      "lon": -112.101732
     },
     {
       "id": "w_4c9ad160",
@@ -3704,6 +3987,13 @@
       "lon": -109.844871
     },
     {
+      "id": "w_4f811c9b",
+      "name": "Land: Follow the road, not the yard",
+      "type": "maker-note",
+      "lat": 45.692041,
+      "lon": -112.013387
+    },
+    {
       "id": "w_502f1512",
       "name": "Official mile 1390",
       "type": "milestone",
@@ -3713,6 +4003,13 @@
     {
       "id": "w_50852d28",
       "name": "Knapsack Col rejoins",
+      "type": "junction",
+      "lat": 43.070892,
+      "lon": -109.645883
+    },
+    {
+      "id": "w_50852d28acd7",
+      "name": "Titcomb Lakes leaves the CDT",
       "type": "junction",
       "lat": 43.070892,
       "lon": -109.645883
@@ -3737,6 +4034,13 @@
       "type": "milestone",
       "lat": 45.272072,
       "lon": -113.583418
+    },
+    {
+      "id": "w_5125d2ca",
+      "name": "Hog Park cutoff branches",
+      "type": "junction",
+      "lat": 41.040853,
+      "lon": -106.927333
     },
     {
       "id": "w_512e635d",
@@ -3905,11 +4209,25 @@
       "retired": true
     },
     {
+      "id": "w_5926e002",
+      "name": "Water: Great flow (8)",
+      "type": "water",
+      "lat": 45.04695,
+      "lon": -111.375144
+    },
+    {
       "id": "w_59ea6982",
       "name": "Official mile 1760",
       "type": "milestone",
       "lat": 42.475048,
       "lon": -108.864366
+    },
+    {
+      "id": "w_5a4c8c6f",
+      "name": "Water: Piped spring into trough near cabin ruins…",
+      "type": "water",
+      "lat": 45.771882,
+      "lon": -112.082308
     },
     {
       "id": "w_5aaaaf44",
@@ -3992,6 +4310,13 @@
       "lon": -113.935349
     },
     {
+      "id": "w_5efe5f11",
+      "name": "Water: Good flow, small stream",
+      "type": "water",
+      "lat": 45.578079,
+      "lon": -111.98914
+    },
+    {
       "id": "w_5f21e258",
       "name": "Lima",
       "type": "resupply",
@@ -4014,6 +4339,13 @@
       "lon": -113.523317
     },
     {
+      "id": "w_60523e1c",
+      "name": "Cuba Alternate 2 connector (La Ventana road) leaves the CDT",
+      "type": "junction",
+      "lat": 35.870159,
+      "lon": -107.031459
+    },
+    {
       "id": "w_60cbdfc8",
       "name": "Official mile 50",
       "type": "milestone",
@@ -4021,11 +4353,19 @@
       "lon": -108.469065
     },
     {
+      "id": "w_61667558",
+      "name": "Gros Ventre Range cross-country rejoins off Famous Alternate: Tetons and Gros Ventre (2018)",
+      "type": "junction",
+      "lat": 43.382991,
+      "lon": -110.356633
+    },
+    {
       "id": "w_61b7db97",
       "name": "Riverview Road leaves the CDT",
       "type": "junction",
       "lat": 42.426303,
-      "lon": -108.644209
+      "lon": -108.644209,
+      "retired": true
     },
     {
       "id": "w_62046729",
@@ -4059,11 +4399,32 @@
       "retired": true
     },
     {
+      "id": "w_63292fa1",
+      "name": "Water: Creeks near road good flow",
+      "type": "water",
+      "lat": 45.306454,
+      "lon": -111.487215
+    },
+    {
       "id": "w_63460f7d",
       "name": "Official mile 820",
       "type": "milestone",
       "lat": 37.194459,
       "lon": -106.591678
+    },
+    {
+      "id": "w_634e40ee",
+      "name": "Water: Bridge, great flow, big creek",
+      "type": "water",
+      "lat": 45.62535,
+      "lon": -112.03492
+    },
+    {
+      "id": "w_6381ea79",
+      "name": "Water: Great flow, doesn't appear to be downstream… (2)",
+      "type": "water",
+      "lat": 45.513565,
+      "lon": -111.800596
     },
     {
       "id": "w_639600b0",
@@ -4078,6 +4439,20 @@
       "type": "milestone",
       "lat": 34.970178,
       "lon": -108.004054
+    },
+    {
+      "id": "w_6419cb0a",
+      "name": "Teton high route to Jackson Lake branches off Famous Alternate: Tetons and Gros Ventre (2018)",
+      "type": "junction",
+      "lat": 44.027728,
+      "lon": -110.725382
+    },
+    {
+      "id": "w_64819000",
+      "name": "Water: Flow, small stream (7)",
+      "type": "water",
+      "lat": 45.392799,
+      "lon": -111.42248
     },
     {
       "id": "w_64a3a3c2",
@@ -4163,6 +4538,13 @@
       "type": "town",
       "lat": 32.270573,
       "lon": -107.747232
+    },
+    {
+      "id": "w_67cf87f3",
+      "name": "Silverthorne / Frisco / Copper bike path rejoins",
+      "type": "junction",
+      "lat": 39.49942,
+      "lon": -106.154586
     },
     {
       "id": "w_68127421",
@@ -4254,6 +4636,34 @@
       "lon": -106.94629
     },
     {
+      "id": "w_6cb6c955",
+      "name": "Water: Great Flow presumably year round w bridge",
+      "type": "water",
+      "lat": 45.308331,
+      "lon": -111.34978
+    },
+    {
+      "id": "w_6d213339",
+      "name": "Water: Great flow",
+      "type": "water",
+      "lat": 45.431351,
+      "lon": -111.55344
+    },
+    {
+      "id": "w_6d244dd9",
+      "name": "Water: Flow, small stream in culvert",
+      "type": "water",
+      "lat": 45.685471,
+      "lon": -112.01672
+    },
+    {
+      "id": "w_6dc23d24",
+      "name": "Water: Flow, small stream (2)",
+      "type": "water",
+      "lat": 45.40375,
+      "lon": -111.47731
+    },
+    {
       "id": "w_6dde07ae",
       "name": "Govina Canyon branches",
       "type": "junction",
@@ -4268,11 +4678,19 @@
       "lon": -109.265182
     },
     {
+      "id": "w_6e31f35e",
+      "name": "South Boundary Trail - Heart Lake branches",
+      "type": "junction",
+      "lat": 44.285731,
+      "lon": -110.497828
+    },
+    {
       "id": "w_6e80c459",
       "name": "Lake of the Woods rejoins",
       "type": "junction",
       "lat": 43.496762,
-      "lon": -109.953337
+      "lon": -109.953337,
+      "retired": true
     },
     {
       "id": "w_6ea464cf",
@@ -4297,11 +4715,25 @@
       "lon": -107.46516
     },
     {
+      "id": "w_7042597f",
+      "name": "Huron Peak leaves the CDT",
+      "type": "junction",
+      "lat": 38.954219,
+      "lon": -106.462269
+    },
+    {
       "id": "w_7080833f",
       "name": "Official mile 3010",
       "type": "milestone",
       "lat": 48.781167,
       "lon": -113.752781
+    },
+    {
+      "id": "w_70b94894",
+      "name": "Water: Good flow (11)",
+      "type": "water",
+      "lat": 45.302873,
+      "lon": -111.489104
     },
     {
       "id": "w_71124d0e",
@@ -4359,7 +4791,8 @@
       "name": "Cirque of the Towers: Temple Pass rejoins off Famous Alternate: east Winds to Glacier trailhead (2018)",
       "type": "junction",
       "lat": 42.742139,
-      "lon": -109.200134
+      "lon": -109.200134,
+      "retired": true
     },
     {
       "id": "w_7290588f",
@@ -4415,7 +4848,8 @@
       "name": "Stemple Pass old road route branches",
       "type": "junction",
       "lat": 46.901316,
-      "lon": -112.488703
+      "lon": -112.488703,
+      "retired": true
     },
     {
       "id": "w_746a6999",
@@ -4430,6 +4864,13 @@
       "type": "milestone",
       "lat": 37.561955,
       "lon": -107.023943
+    },
+    {
+      "id": "w_74ad63fd",
+      "name": "Water: Good flow (8)",
+      "type": "water",
+      "lat": 45.448284,
+      "lon": -111.578654
     },
     {
       "id": "w_75379740",
@@ -4475,11 +4916,19 @@
       "lon": -106.833875
     },
     {
+      "id": "w_769963fe",
+      "name": "Water: Great flow (3)",
+      "type": "water",
+      "lat": 44.862892,
+      "lon": -111.367642
+    },
+    {
       "id": "w_76c34e97",
       "name": "Colorado old route 4 rejoins",
       "type": "junction",
       "lat": 38.492968,
-      "lon": -106.326962
+      "lon": -106.326962,
+      "retired": true
     },
     {
       "id": "w_77083bfc",
@@ -4490,7 +4939,7 @@
     },
     {
       "id": "w_772430aa",
-      "name": "Cirque of the Towers: Temple Pass branches",
+      "name": "Cirque of the Towers: Temple Pass rejoins",
       "type": "junction",
       "lat": 42.622247,
       "lon": -109.130964
@@ -4523,6 +4972,13 @@
       "type": "milestone",
       "lat": 40.349067,
       "lon": -106.079866
+    },
+    {
+      "id": "w_7889c629",
+      "name": "Silverthorne / Frisco / Copper bike path branches off Silverthorne route (Ley red line)",
+      "type": "junction",
+      "lat": 39.628647,
+      "lon": -106.071314
     },
     {
       "id": "w_790d9566",
@@ -4568,11 +5024,25 @@
       "retired": true
     },
     {
+      "id": "w_7b12dba7",
+      "name": "FS Road 412 (Battle Pass) branches",
+      "type": "junction",
+      "lat": 41.170732,
+      "lon": -106.993134
+    },
+    {
       "id": "w_7b208972",
       "name": "Official mile 1590",
       "type": "milestone",
       "lat": 41.397168,
       "lon": -107.32797
+    },
+    {
+      "id": "w_7b50591d",
+      "name": "Dry (3)",
+      "type": "maker-note",
+      "lat": 45.744095,
+      "lon": -112.072403
     },
     {
       "id": "w_7ba92d6c",
@@ -4625,6 +5095,13 @@
       "lon": -110.550094
     },
     {
+      "id": "w_7e2d0d33",
+      "name": "Water: Good flow",
+      "type": "water",
+      "lat": 45.42769,
+      "lon": -111.534889
+    },
+    {
       "id": "w_7e31c4ad",
       "name": "Official mile 2100",
       "type": "milestone",
@@ -4637,6 +5114,20 @@
       "type": "junction",
       "lat": 46.149448,
       "lon": -113.185582
+    },
+    {
+      "id": "w_7f1441c5",
+      "name": "Water: Good flow (5)",
+      "type": "water",
+      "lat": 45.543912,
+      "lon": -111.895554
+    },
+    {
+      "id": "w_7f1441c586f0",
+      "name": "Water: Good flow, small stream with some cattle nearby",
+      "type": "water",
+      "lat": 45.543911,
+      "lon": -111.89555
     },
     {
       "id": "w_7f23026e",
@@ -4683,6 +5174,20 @@
       "retired": true
     },
     {
+      "id": "w_8189fe91",
+      "name": "Dry (5)",
+      "type": "maker-note",
+      "lat": 45.45121,
+      "lon": -111.642574
+    },
+    {
+      "id": "w_81b08b7c",
+      "name": "Moffat Road (Rollins Pass) rejoins",
+      "type": "junction",
+      "lat": 39.872696,
+      "lon": -105.698995
+    },
+    {
       "id": "w_826e6a61",
       "name": "Benchmark Wilderness Ranch",
       "type": "resupply",
@@ -4695,6 +5200,13 @@
       "type": "milestone",
       "lat": 47.634021,
       "lon": -113.076723
+    },
+    {
+      "id": "w_82d39728",
+      "name": "Road to Willow Creek Pass rejoins",
+      "type": "junction",
+      "lat": 40.346337,
+      "lon": -106.115493
     },
     {
       "id": "w_83029bc2",
@@ -4720,6 +5232,13 @@
       "lon": -106.75127
     },
     {
+      "id": "w_83914275",
+      "name": "Water: Great flow. sobo stay left at fork to avoid…",
+      "type": "water",
+      "lat": 45.694861,
+      "lon": -112.015145
+    },
+    {
       "id": "w_845c3369",
       "name": "Chama",
       "type": "town",
@@ -4732,6 +5251,13 @@
       "type": "resupply",
       "lat": 38.515897,
       "lon": -106.075857
+    },
+    {
+      "id": "w_847454b0",
+      "name": "Water: Good flow (4)",
+      "type": "water",
+      "lat": 45.199718,
+      "lon": -111.465204
     },
     {
       "id": "w_84b1cedc",
@@ -4748,6 +5274,20 @@
       "lon": -110.050041
     },
     {
+      "id": "w_85364091",
+      "name": "Henderson Mine Road branches",
+      "type": "junction",
+      "lat": 39.777857,
+      "lon": -105.845038
+    },
+    {
+      "id": "w_857bfe60",
+      "name": "Water: Flow, tiny stream (3)",
+      "type": "water",
+      "lat": 45.601139,
+      "lon": -112.02615
+    },
+    {
       "id": "w_85f6a76d",
       "name": "Official mile 160",
       "type": "milestone",
@@ -4759,7 +5299,22 @@
       "name": "Colorado old route 4 branches",
       "type": "junction",
       "lat": 38.499542,
-      "lon": -106.336878
+      "lon": -106.336878,
+      "retired": true
+    },
+    {
+      "id": "w_8743c766",
+      "name": "Zirkel blowdown road branches",
+      "type": "junction",
+      "lat": 40.836543,
+      "lon": -106.778589
+    },
+    {
+      "id": "w_879697b2",
+      "name": "Sublette Mountain alternate: the eastern loop rejoins",
+      "type": "junction",
+      "lat": 43.754468,
+      "lon": -110.031577
     },
     {
       "id": "w_87b2b3a5",
@@ -4825,12 +5380,33 @@
       "lon": -107.227223
     },
     {
+      "id": "w_8906fb2a",
+      "name": "Water: Bridge at creek, great flow",
+      "type": "water",
+      "lat": 45.69479,
+      "lon": -112.01514
+    },
+    {
       "id": "w_892092b2",
       "name": "Columbus, NM",
       "type": "endpoint",
       "lat": 32.930881,
       "lon": -108.013809,
       "retired": true
+    },
+    {
+      "id": "w_895f1e03",
+      "name": "Land: Keep on the road past the fenced yard",
+      "type": "maker-note",
+      "lat": 45.69161,
+      "lon": -112.0136
+    },
+    {
+      "id": "w_89856723",
+      "name": "Water: Good flow, stream (3)",
+      "type": "water",
+      "lat": 45.39209,
+      "lon": -111.42775
     },
     {
       "id": "w_89aa11e8",
@@ -4876,6 +5452,48 @@
       "lon": -106.431143
     },
     {
+      "id": "w_8c538bb2",
+      "name": "Water: Great flow, looks accessible all along trail…",
+      "type": "water",
+      "lat": 45.358879,
+      "lon": -111.38922
+    },
+    {
+      "id": "w_8c55303e",
+      "name": "Dry (2)",
+      "type": "maker-note",
+      "lat": 45.737224,
+      "lon": -112.064028
+    },
+    {
+      "id": "w_8c70dfe0",
+      "name": "Water: Great Flow presumably year round",
+      "type": "water",
+      "lat": 45.39462,
+      "lon": -111.41216
+    },
+    {
+      "id": "w_8c88b3f5",
+      "name": "Land: Milwaukee Road Rail-Trail end (north)",
+      "type": "maker-note",
+      "lat": 45.898698,
+      "lon": -112.481115
+    },
+    {
+      "id": "w_8cdd02c4",
+      "name": "Torreys Peak leaves the CDT",
+      "type": "junction",
+      "lat": 39.63379,
+      "lon": -105.817557
+    },
+    {
+      "id": "w_8d527953",
+      "name": "Water: Great flow along canyon bottom",
+      "type": "water",
+      "lat": 45.334406,
+      "lon": -111.491458
+    },
+    {
       "id": "w_8d589611",
       "name": "Official mile 1160",
       "type": "milestone",
@@ -4918,11 +5536,32 @@
       "lon": -111.101514
     },
     {
+      "id": "w_900c9a14",
+      "name": "Water: Great flow (9)",
+      "type": "water",
+      "lat": 45.241474,
+      "lon": -111.488537
+    },
+    {
+      "id": "w_902b007a",
+      "name": "Land: Possible private property (NOBO)",
+      "type": "maker-note",
+      "lat": 45.823239,
+      "lon": -112.349582
+    },
+    {
       "id": "w_9050ba3b",
       "name": "Lake City",
       "type": "town",
       "lat": 38.027102,
       "lon": -107.316457
+    },
+    {
+      "id": "w_90a279d2",
+      "name": "Water: Good water in all named creeks in this subrange",
+      "type": "water",
+      "lat": 44.763712,
+      "lon": -111.339531
     },
     {
       "id": "w_90e2bbd4",
@@ -4960,6 +5599,20 @@
       "lon": -108.456317
     },
     {
+      "id": "w_9177e9a2",
+      "name": "Water: Good flow in creeks lower in valleys both N and…",
+      "type": "water",
+      "lat": 44.981497,
+      "lon": -111.369967
+    },
+    {
+      "id": "w_92343515",
+      "name": "Elwood Pass to Creede (South Fork) branches",
+      "type": "junction",
+      "lat": 37.971686,
+      "lon": -106.97218
+    },
+    {
       "id": "w_929df80c",
       "name": "Chama leaves the CDT",
       "type": "junction",
@@ -4995,6 +5648,20 @@
       "lon": -106.663358
     },
     {
+      "id": "w_9358c9d4",
+      "name": "Sublette Mountain alternate: the eastern loop branches",
+      "type": "junction",
+      "lat": 43.756743,
+      "lon": -110.031117
+    },
+    {
+      "id": "w_93afe748",
+      "name": "Dry: Actual trail, creeks north to saddle all dry",
+      "type": "maker-note",
+      "lat": 45.716093,
+      "lon": -112.076309
+    },
+    {
       "id": "w_93cf0c62",
       "name": "Fraser",
       "type": "town",
@@ -5021,6 +5688,13 @@
       "type": "milestone",
       "lat": 39.799353,
       "lon": -105.754511
+    },
+    {
+      "id": "w_952b95eb",
+      "name": "Hitch to Bozeman from Big Sky",
+      "type": "town",
+      "lat": 45.31798,
+      "lon": -111.184387
     },
     {
       "id": "w_95f8d46f",
@@ -5142,6 +5816,20 @@
       "lon": -112.360405
     },
     {
+      "id": "w_9a86cb88",
+      "name": "Land: Short section that may be private land",
+      "type": "maker-note",
+      "lat": 45.815827,
+      "lon": -112.336117
+    },
+    {
+      "id": "w_9a8e63da",
+      "name": "Butte walk-through branches",
+      "type": "junction",
+      "lat": 46.181738,
+      "lon": -112.576426
+    },
+    {
       "id": "w_9acba5ff",
       "name": "Official mile 3010",
       "type": "milestone",
@@ -5222,6 +5910,13 @@
       "lon": -108.603579
     },
     {
+      "id": "w_9d767a16",
+      "name": "Water: Good water in all named creeks in this subrange (2)",
+      "type": "water",
+      "lat": 44.80842,
+      "lon": -111.431004
+    },
+    {
       "id": "w_9ec583a0",
       "name": "Official mile 1250",
       "type": "milestone",
@@ -5258,6 +5953,13 @@
       "lon": -106.33102
     },
     {
+      "id": "w_a04ebb1f",
+      "name": "Water: Great flow, doesn't appear to be downstream…",
+      "type": "water",
+      "lat": 45.51357,
+      "lon": -111.8006
+    },
+    {
       "id": "w_a0769f07",
       "name": "Official mile 1140",
       "type": "milestone",
@@ -5277,6 +5979,13 @@
       "type": "milestone",
       "lat": 39.721038,
       "lon": -105.880595
+    },
+    {
+      "id": "w_a16afaf9",
+      "name": "Water: Flow-Small stream",
+      "type": "water",
+      "lat": 46.03931,
+      "lon": -112.33144
     },
     {
       "id": "w_a191d73a",
@@ -5307,6 +6016,13 @@
       "lon": -108.129
     },
     {
+      "id": "w_a2102f74",
+      "name": "Land: Private road near Sage Creek trailhead",
+      "type": "maker-note",
+      "lat": 45.067853,
+      "lon": -111.189598
+    },
+    {
       "id": "w_a294b780",
       "name": "Reserve (access: CDT at NM 12 near Collins Park)",
       "type": "town-access",
@@ -5335,6 +6051,20 @@
       "lon": -109.720581
     },
     {
+      "id": "w_a372ffec",
+      "name": "Water: Bridge over creek, good flow",
+      "type": "water",
+      "lat": 45.695801,
+      "lon": -112.02464
+    },
+    {
+      "id": "w_a3cf2bc3",
+      "name": "Water: Decent flow",
+      "type": "water",
+      "lat": 45.196632,
+      "lon": -111.458497
+    },
+    {
       "id": "w_a3f71623",
       "name": "Helena",
       "type": "town",
@@ -5342,11 +6072,39 @@
       "lon": -112.017254
     },
     {
+      "id": "w_a403014b",
+      "name": "Water: Good flow, stream",
+      "type": "water",
+      "lat": 45.385929,
+      "lon": -111.4083
+    },
+    {
+      "id": "w_a412a772",
+      "name": "Land: Milwaukee Road Rail-Trail end (south)",
+      "type": "maker-note",
+      "lat": 45.856226,
+      "lon": -112.439253
+    },
+    {
+      "id": "w_a42be834",
+      "name": "Water: Great flow, but surrounded by cattle",
+      "type": "water",
+      "lat": 45.46616,
+      "lon": -111.7726
+    },
+    {
       "id": "w_a4706a67",
       "name": "Southern terminus - Crazy Cook",
       "type": "endpoint",
       "lat": 31.497064,
       "lon": -108.208509
+    },
+    {
+      "id": "w_a4c47cd1",
+      "name": "Land: No-trespassing sign on the old railroad grade",
+      "type": "maker-note",
+      "lat": 45.90907,
+      "lon": -112.488456
     },
     {
       "id": "w_a50c88d7",
@@ -5435,6 +6193,13 @@
       "lon": -113.052771
     },
     {
+      "id": "w_a83b9290",
+      "name": "Water: First legal camping nobo from Ennis. Great flow…",
+      "type": "water",
+      "lat": 45.528987,
+      "lon": -111.844861
+    },
+    {
       "id": "w_a841cb1d",
       "name": "Official mile 420",
       "type": "milestone",
@@ -5507,6 +6272,13 @@
       "lon": -109.563549
     },
     {
+      "id": "w_ab95de5c",
+      "name": "The Country Store",
+      "type": "resupply",
+      "lat": 45.26749,
+      "lon": -111.29167
+    },
+    {
       "id": "w_abe85aad",
       "name": "Official mile 430",
       "type": "milestone",
@@ -5564,6 +6336,20 @@
       "lon": -106.325116
     },
     {
+      "id": "w_af1af353",
+      "name": "Water: Low flow (2)",
+      "type": "water",
+      "lat": 45.712762,
+      "lon": -112.083738
+    },
+    {
+      "id": "w_af48310b",
+      "name": "CR 50 road rejoins",
+      "type": "junction",
+      "lat": 40.332994,
+      "lon": -106.181466
+    },
+    {
       "id": "w_affa9abf",
       "name": "Colorado old route 5 branches",
       "type": "junction",
@@ -5579,11 +6365,25 @@
       "lon": -107.413888
     },
     {
+      "id": "w_b11d0606",
+      "name": "South Boundary Trail - Heart Lake rejoins off Famous Alternate: Tetons and Gros Ventre (2018)",
+      "type": "junction",
+      "lat": 44.10693,
+      "lon": -110.674379
+    },
+    {
       "id": "w_b142c6a9",
       "name": "Lincoln",
       "type": "town",
       "lat": 46.955454,
       "lon": -112.680589
+    },
+    {
+      "id": "w_b1605709",
+      "name": "Gros Ventre Range cross-country branches",
+      "type": "junction",
+      "lat": 43.283003,
+      "lon": -109.831196
     },
     {
       "id": "w_b175ad79",
@@ -5612,6 +6412,13 @@
       "type": "milestone",
       "lat": 34.925041,
       "lon": -107.872526
+    },
+    {
+      "id": "w_b2b6457e",
+      "name": "Water: Flow, small stream (6)",
+      "type": "water",
+      "lat": 45.9567,
+      "lon": -112.29916
     },
     {
       "id": "w_b2ea0121",
@@ -5721,6 +6528,13 @@
       "lon": -107.524705
     },
     {
+      "id": "w_b74d9e61",
+      "name": "Water: Flow small stream",
+      "type": "water",
+      "lat": 46.0287,
+      "lon": -112.31399
+    },
+    {
       "id": "w_b7685e69",
       "name": "Cebolla rejoins",
       "type": "junction",
@@ -5778,6 +6592,13 @@
       "lon": -106.152787
     },
     {
+      "id": "w_b96bcb22",
+      "name": "Water: Great flow, Nice stream",
+      "type": "water",
+      "lat": 45.63809,
+      "lon": -112.0322
+    },
+    {
       "id": "w_b985349c",
       "name": "Official mile 2760",
       "type": "milestone",
@@ -5797,6 +6618,27 @@
       "type": "town",
       "lat": 38.536143,
       "lon": -105.994385
+    },
+    {
+      "id": "w_baa3cc2c",
+      "name": "Creede Cutoff branches",
+      "type": "junction",
+      "lat": 37.970256,
+      "lon": -106.974042
+    },
+    {
+      "id": "w_bb0cbaba",
+      "name": "Water: Great flow (4)",
+      "type": "water",
+      "lat": 45.568462,
+      "lon": -111.921257
+    },
+    {
+      "id": "w_bb0cbabac430",
+      "name": "Water: Great flow, yearlong, large stream with bridge",
+      "type": "water",
+      "lat": 45.56846,
+      "lon": -111.92126
     },
     {
       "id": "w_bb1379e9",
@@ -5820,6 +6662,13 @@
       "lon": -106.199824
     },
     {
+      "id": "w_bbbdd1a2",
+      "name": "Water: Good flow Small stream",
+      "type": "water",
+      "lat": 45.573219,
+      "lon": -111.98546
+    },
+    {
       "id": "w_bbc21f60",
       "name": "Official mile 1170",
       "type": "milestone",
@@ -5827,11 +6676,46 @@
       "lon": -106.394159
     },
     {
+      "id": "w_bc203dfe",
+      "name": "Water: Good flow (12)",
+      "type": "water",
+      "lat": 45.705817,
+      "lon": -112.075421
+    },
+    {
+      "id": "w_bc203dfe36b2",
+      "name": "Water: Great flow, reliable looking stream",
+      "type": "water",
+      "lat": 45.70582,
+      "lon": -112.07542
+    },
+    {
       "id": "w_bc893b3c",
       "name": "Official mile 2450",
       "type": "milestone",
       "lat": 45.920605,
       "lon": -113.50726
+    },
+    {
+      "id": "w_be0f17b4",
+      "name": "Water: Occasional water but mines upstream according…",
+      "type": "water",
+      "lat": 45.457662,
+      "lon": -111.76265
+    },
+    {
+      "id": "w_bf0a0a4b",
+      "name": "Water: Good flow-Small stream",
+      "type": "water",
+      "lat": 45.65052,
+      "lon": -112.02348
+    },
+    {
+      "id": "w_bf44917f",
+      "name": "Butte walk-through rejoins",
+      "type": "junction",
+      "lat": 45.855774,
+      "lon": -112.438941
     },
     {
       "id": "w_bf8a05cd",
@@ -5867,6 +6751,13 @@
       "type": "junction",
       "lat": 39.773672,
       "lon": -105.889301
+    },
+    {
+      "id": "w_c0fc23e6",
+      "name": "Water: Tons of water, green, brackish",
+      "type": "water",
+      "lat": 45.451279,
+      "lon": -111.657718
     },
     {
       "id": "w_c195f163",
@@ -5905,6 +6796,13 @@
       "retired": true
     },
     {
+      "id": "w_c4463d50",
+      "name": "Water: Flow, several small streams and lake",
+      "type": "water",
+      "lat": 45.3894,
+      "lon": -111.45528
+    },
+    {
       "id": "w_c4661d85",
       "name": "Official mile 2410",
       "type": "milestone",
@@ -5917,6 +6815,13 @@
       "type": "town-access",
       "lat": 39.539701,
       "lon": -106.05922
+    },
+    {
+      "id": "w_c4d65a25",
+      "name": "Creede Cutoff rejoins",
+      "type": "junction",
+      "lat": 37.564056,
+      "lon": -106.906273
     },
     {
       "id": "w_c5045d43",
@@ -5955,6 +6860,13 @@
       "lon": -110.195596
     },
     {
+      "id": "w_c5c92180",
+      "name": "Dry: SB: No Water until shelf lake",
+      "type": "maker-note",
+      "lat": 45.157386,
+      "lon": -111.111388
+    },
+    {
       "id": "w_c6d5b942",
       "name": "Official mile 780",
       "type": "milestone",
@@ -5974,6 +6886,13 @@
       "type": "milestone",
       "lat": 35.899046,
       "lon": -107.037771
+    },
+    {
+      "id": "w_c863636d",
+      "name": "Post office, or hitch 6 mi to Ennis",
+      "type": "town",
+      "lat": 45.44425,
+      "lon": -111.7313
     },
     {
       "id": "w_c91d924d",
@@ -5997,11 +6916,33 @@
       "lon": -108.65883
     },
     {
+      "id": "w_ca2a5a1f",
+      "name": "Water: Good flow (2)",
+      "type": "water",
+      "lat": 45.39601,
+      "lon": -111.47191
+    },
+    {
       "id": "w_caafa04b",
       "name": "Lake of the Woods branches",
       "type": "junction",
       "lat": 43.567097,
-      "lon": -110.023219
+      "lon": -110.023219,
+      "retired": true
+    },
+    {
+      "id": "w_cafe315b",
+      "name": "Land: Possible private land (SOBO)",
+      "type": "maker-note",
+      "lat": 45.829128,
+      "lon": -112.354903
+    },
+    {
+      "id": "w_cb017a59",
+      "name": "Water: Great flow (5)",
+      "type": "water",
+      "lat": 44.808764,
+      "lon": -111.429738
     },
     {
       "id": "w_cb11c9dc",
@@ -6031,6 +6972,20 @@
       "type": "town-access",
       "lat": 39.489026,
       "lon": -106.11276
+    },
+    {
+      "id": "w_cb67995f",
+      "name": "Big Sky / Super Butte Cutoff branches",
+      "type": "junction",
+      "lat": 46.052806,
+      "lon": -112.361019
+    },
+    {
+      "id": "w_cb67995f78f7",
+      "name": "Big Sky cutoff, Butte to mi 966 (2022 walked) branches",
+      "type": "junction",
+      "lat": 46.052806,
+      "lon": -112.361019
     },
     {
       "id": "w_cb7526ac",
@@ -6094,6 +7049,27 @@
       "type": "junction",
       "lat": 43.368066,
       "lon": -109.83349
+    },
+    {
+      "id": "w_cdf935ec",
+      "name": "Elwood Pass to Creede (South Fork) rejoins",
+      "type": "junction",
+      "lat": 37.405522,
+      "lon": -106.644264
+    },
+    {
+      "id": "w_ce28261d",
+      "name": "Water: Small Stream w flow",
+      "type": "water",
+      "lat": 44.9175,
+      "lon": -111.19774
+    },
+    {
+      "id": "w_ce828b9e",
+      "name": "Water: Strong Flow",
+      "type": "water",
+      "lat": 44.93337,
+      "lon": -111.18159
     },
     {
       "id": "w_cf2fb6b4",
@@ -6181,6 +7157,13 @@
       "lon": -112.537256
     },
     {
+      "id": "w_d30fac9e",
+      "name": "Big Sky cutoff, Butte to mi 966 (2022 walked) rejoins",
+      "type": "junction",
+      "lat": 44.571548,
+      "lon": -111.188305
+    },
+    {
       "id": "w_d340e2a9",
       "name": "Official mile 700",
       "type": "milestone",
@@ -6208,6 +7191,13 @@
       "type": "milestone",
       "lat": 44.886693,
       "lon": -113.46206
+    },
+    {
+      "id": "w_d46bd1f9",
+      "name": "Dry: Visitor center. after hours NO WATER but outlets…",
+      "type": "maker-note",
+      "lat": 44.830913,
+      "lon": -111.425335
     },
     {
       "id": "w_d47dd706",
@@ -6274,6 +7264,13 @@
       "lon": -113.656936
     },
     {
+      "id": "w_d7c1ee28",
+      "name": "Water: Good flow small stream",
+      "type": "water",
+      "lat": 45.43089,
+      "lon": -111.548309
+    },
+    {
       "id": "w_d8aec3c9",
       "name": "Sweetwater old route (former CDT) branches",
       "type": "junction",
@@ -6286,6 +7283,20 @@
       "type": "town",
       "lat": 46.127018,
       "lon": -112.935243
+    },
+    {
+      "id": "w_d99fb06d",
+      "name": "Northern Teton alternate branches off Famous Alternate: Tetons and Gros Ventre (2018)",
+      "type": "junction",
+      "lat": 44.089763,
+      "lon": -110.724296
+    },
+    {
+      "id": "w_d9d8fa5f",
+      "name": "Water: Great flow, I assume this runs most of the year",
+      "type": "water",
+      "lat": 44.919991,
+      "lon": -111.19845
     },
     {
       "id": "w_da1f582f",
@@ -6309,12 +7320,26 @@
       "lon": -113.905386
     },
     {
+      "id": "w_db7b2e3e",
+      "name": "Water: Great flow, small stream",
+      "type": "water",
+      "lat": 45.42161,
+      "lon": -111.482491
+    },
+    {
       "id": "w_dc70809a",
       "name": "Official mile 2860",
       "type": "milestone",
       "lat": 47.892595,
       "lon": -113.056641,
       "retired": true
+    },
+    {
+      "id": "w_dce4a2ce",
+      "name": "Dry (6)",
+      "type": "maker-note",
+      "lat": 45.728578,
+      "lon": -112.074755
     },
     {
       "id": "w_dcf19209",
@@ -6354,11 +7379,46 @@
       "lon": -108.289907
     },
     {
+      "id": "w_decb93ce",
+      "name": "Our Lady of the Rockies leaves the CDT",
+      "type": "junction",
+      "lat": 45.998785,
+      "lon": -112.442291
+    },
+    {
+      "id": "w_df0b83ba",
+      "name": "Water: Great flow, good source",
+      "type": "water",
+      "lat": 45.48106,
+      "lon": -111.77645
+    },
+    {
       "id": "w_df12aead",
       "name": "Official mile 1350",
       "type": "milestone",
       "lat": 40.039157,
       "lon": -105.738725
+    },
+    {
+      "id": "w_df1abb3a",
+      "name": "Water: Great flow, but livestock nearby",
+      "type": "water",
+      "lat": 45.44833,
+      "lon": -111.76149
+    },
+    {
+      "id": "w_dfd8c9eb",
+      "name": "Water: Flow (3)",
+      "type": "water",
+      "lat": 44.9307,
+      "lon": -111.1843
+    },
+    {
+      "id": "w_dfe6ff67",
+      "name": "Lake Solitude cross-country rejoins off Famous Alternate: Tetons and Gros Ventre (2018)",
+      "type": "junction",
+      "lat": 43.794477,
+      "lon": -110.84261
     },
     {
       "id": "w_e06b0586",
@@ -6380,6 +7440,13 @@
       "type": "endpoint",
       "lat": 31.333332,
       "lon": -108.530222
+    },
+    {
+      "id": "w_e1305868",
+      "name": "Cirque of the Towers: Temple Pass branches off Wind River High Route (Dixon variation)",
+      "type": "junction",
+      "lat": 42.74389,
+      "lon": -109.20434
     },
     {
       "id": "w_e146dade",
@@ -6438,11 +7505,32 @@
       "lon": -113.014813
     },
     {
+      "id": "w_e5678ca7",
+      "name": "Collegiate East rejoins",
+      "type": "junction",
+      "lat": 38.454316,
+      "lon": -106.276571
+    },
+    {
       "id": "w_e5af0d07",
       "name": "Official mile 2170",
       "type": "milestone",
       "lat": 44.526256,
       "lon": -112.119009
+    },
+    {
+      "id": "w_e6eb3b50",
+      "name": "Water: Decent flow (2)",
+      "type": "water",
+      "lat": 45.454739,
+      "lon": -111.600716
+    },
+    {
+      "id": "w_e7192da6",
+      "name": "Water: Camping/hammocking here by water. Nobo, Get…",
+      "type": "water",
+      "lat": 45.74839,
+      "lon": -112.188864
     },
     {
       "id": "w_e76b0756",
@@ -6479,7 +7567,15 @@
       "name": "Wyoming old route through Rawlins rejoins",
       "type": "junction",
       "lat": 41.779519,
-      "lon": -107.249822
+      "lon": -107.249822,
+      "retired": true
+    },
+    {
+      "id": "w_e8526a35",
+      "name": "Water: Good flow, stream (2)",
+      "type": "water",
+      "lat": 45.69242,
+      "lon": -112.012779
     },
     {
       "id": "w_e88378b7",
@@ -6518,6 +7614,20 @@
       "lon": -112.955671
     },
     {
+      "id": "w_e9eba0a1",
+      "name": "Elkhart Park via Seneca Lake (Pinedale) leaves the CDT",
+      "type": "junction",
+      "lat": 43.066837,
+      "lon": -109.649216
+    },
+    {
+      "id": "w_ea903308",
+      "name": "Water: Good water at outlet",
+      "type": "water",
+      "lat": 45.37521,
+      "lon": -111.39757
+    },
+    {
       "id": "w_ebbd7d4e",
       "name": "Encampment (access: Battle Pass (WY 70))",
       "type": "resupply-access",
@@ -6547,7 +7657,7 @@
     },
     {
       "id": "w_ece8bfe4",
-      "name": "Cuba alternate 2 leaves the CDT",
+      "name": "Cuba alternate 2 branches",
       "type": "junction",
       "lat": 35.987236,
       "lon": -106.896355
@@ -6586,6 +7696,20 @@
       "type": "endpoint",
       "lat": 48.995937,
       "lon": -113.659836
+    },
+    {
+      "id": "w_ed9d40fb",
+      "name": "Water: Good flow (7)",
+      "type": "water",
+      "lat": 45.069828,
+      "lon": -111.351116
+    },
+    {
+      "id": "w_edd9f30e",
+      "name": "Water: Flow, small stream (5)",
+      "type": "water",
+      "lat": 45.70514,
+      "lon": -112.066811
     },
     {
       "id": "w_edfc1b4e",
@@ -6629,6 +7753,20 @@
       "type": "milestone",
       "lat": 47.458438,
       "lon": -112.921103
+    },
+    {
+      "id": "w_ef92cf22",
+      "name": "Land: Sage Creek to Big Spring connector (Elkhorn Ranch)",
+      "type": "maker-note",
+      "lat": 45.045957,
+      "lon": -111.199098
+    },
+    {
+      "id": "w_efce1bbd",
+      "name": "Water: Flow, small stream (4)",
+      "type": "water",
+      "lat": 45.42869,
+      "lon": -111.51796
     },
     {
       "id": "w_f0c1c0e8",
@@ -6701,7 +7839,8 @@
       "name": "Stemple Pass old road route rejoins",
       "type": "junction",
       "lat": 46.893595,
-      "lon": -112.49539
+      "lon": -112.49539,
+      "retired": true
     },
     {
       "id": "w_f21eecaf",
@@ -6723,7 +7862,8 @@
       "name": "Wyoming old route 6 branches off Wyoming old route on Ley WY 44",
       "type": "junction",
       "lat": 41.007398,
-      "lon": -106.908623
+      "lon": -106.908623,
+      "retired": true
     },
     {
       "id": "w_f2d2fc48",
@@ -6733,11 +7873,32 @@
       "lon": -105.786695
     },
     {
+      "id": "w_f3d8ec56",
+      "name": "Water: Good flow, small stream (3)",
+      "type": "water",
+      "lat": 45.56984,
+      "lon": -111.97728
+    },
+    {
+      "id": "w_f4007e1f",
+      "name": "Water: Good flow (9)",
+      "type": "water",
+      "lat": 45.81181,
+      "lon": -112.11352
+    },
+    {
       "id": "w_f4049ce1",
       "name": "Official mile 720",
       "type": "milestone",
       "lat": 36.45905,
       "lon": -106.324091
+    },
+    {
+      "id": "w_f444c1a1",
+      "name": "Water: Good flow (10)",
+      "type": "water",
+      "lat": 45.379388,
+      "lon": -111.545395
     },
     {
       "id": "w_f44e6f76",
@@ -6777,6 +7938,13 @@
       "lon": -110.667751
     },
     {
+      "id": "w_f5a9bb55",
+      "name": "Water: Great flow (6)",
+      "type": "water",
+      "lat": 45.229868,
+      "lon": -111.476996
+    },
+    {
       "id": "w_f5b298be",
       "name": "Official mile 2640",
       "type": "milestone",
@@ -6800,7 +7968,7 @@
     },
     {
       "id": "w_f7e32b1e",
-      "name": "Wyoming old route on Ley WY 44 rejoins",
+      "name": "Hog Park cutoff rejoins",
       "type": "junction",
       "lat": 41.01581,
       "lon": -106.906438
@@ -6855,6 +8023,13 @@
       "lon": -106.518802
     },
     {
+      "id": "w_f93116f7",
+      "name": "Water: Great flow (10)",
+      "type": "water",
+      "lat": 45.136869,
+      "lon": -111.335581
+    },
+    {
       "id": "w_f95f63f6",
       "name": "Official mile 1220",
       "type": "milestone",
@@ -6874,6 +8049,13 @@
       "type": "milestone",
       "lat": 35.189477,
       "lon": -107.769368
+    },
+    {
+      "id": "w_faf64685",
+      "name": "Water: Trickle",
+      "type": "water",
+      "lat": 45.389065,
+      "lon": -111.550153
     },
     {
       "id": "w_fb0c85fc",
@@ -6912,6 +8094,13 @@
       "lon": -111.329596
     },
     {
+      "id": "w_fecf42e2",
+      "name": "Dry",
+      "type": "maker-note",
+      "lat": 45.74017,
+      "lon": -112.064555
+    },
+    {
       "id": "w_fee6dece",
       "name": "Official mile 2790",
       "type": "milestone",
@@ -6926,6 +8115,13 @@
       "lon": -108.86737
     },
     {
+      "id": "w_ff8bee1c",
+      "name": "Water: Great flow in main and side creeks in valley",
+      "type": "water",
+      "lat": 45.648941,
+      "lon": -112.023499
+    },
+    {
       "id": "w_ffc4d6cf",
       "name": "Official mile 2610",
       "type": "milestone",
@@ -6938,6 +8134,13 @@
       "type": "milestone",
       "lat": 45.453501,
       "lon": -113.809895
+    },
+    {
+      "id": "w_fffbf8fa",
+      "name": "Water: Great flow (2)",
+      "type": "water",
+      "lat": 45.39271,
+      "lon": -111.45952
     }
   ],
   "grampians_peaks": [
