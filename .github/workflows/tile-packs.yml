@@ -13,6 +13,8 @@ on:
       - scripts/e2e-tile-check.mjs
       - scripts/lib/http-mbtiles.mjs
       - scripts/lib/mvt-contours.mjs
+      - .github/workflows/tile-packs.yml
+      - package.json
   push:
     branches: [main]
     paths:
@@ -20,6 +22,8 @@ on:
       - scripts/e2e-tile-check.mjs
       - scripts/lib/http-mbtiles.mjs
       - scripts/lib/mvt-contours.mjs
+      - .github/workflows/tile-packs.yml
+      - package.json
   schedule:
     - cron: '17 6 * * 1'
   workflow_dispatch:

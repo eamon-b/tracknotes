@@ -6,7 +6,7 @@ import * as path from 'path';
 import { gzipSync } from 'zlib';
 import { execFileSync } from 'child_process';
 import { randomBytes } from 'crypto';
-import { httpRangeReader, readZoomTiles, tableColumns, indexColumns } from './http-mbtiles.mjs';
+import { httpRangeReader, readPrefix, readZoomTiles, tableColumns, indexColumns } from './http-mbtiles.mjs';
 import { checkZ9Tiered, contourElevations } from './mvt-contours.mjs';
 
 // --- A minimal vector tile encoder, enough to build contour tiles ---
@@ -237,8 +237,9 @@ describe('httpRangeReader', () => {
       }
     );
     await expect(ignored(10, 13)).rejects.toThrow(/HTTP 200/);
-    expect(waits).toEqual([2000, 4000, 8000]);
-    expect(cancelled).toBe(3);
+    expect(waits).toEqual([5000, 10000, 20000, 40000]);
+    // Every 200, the last one included, is closed unread.
+    expect(cancelled).toBe(5);
   });
 
   it('retries a 200 (the edge ignored the Range) and takes the 206 that follows', async () => {
@@ -254,6 +255,76 @@ describe('httpRangeReader', () => {
     );
     expect(await flaky(10, 13)).toHaveLength(4);
     expect(calls).toBe(2);
+  });
+
+  it('keeps separate budgets for 429s and ignored Ranges, and never cancels a 206', async () => {
+    const waits: number[] = [];
+    let cancelled = 0;
+    const body = {
+      cancel: async () => {
+        cancelled++;
+      },
+    };
+    const statuses = [429, 200, 429, 200, 206];
+    const mixed = httpRangeReader(
+      'https://x/a.mbtiles',
+      (async () => ({
+        status: statuses.shift(),
+        headers: new Headers(),
+        body,
+        arrayBuffer: async () => new Uint8Array(4).buffer,
+      })) as unknown as typeof fetch,
+      async (ms: number) => {
+        waits.push(ms);
+      }
+    );
+    expect(await mixed(10, 13)).toHaveLength(4);
+    expect(waits).toEqual([5000, 5000, 10000, 10000]);
+    expect(cancelled).toBe(2);
+  });
+
+  it('keeps retrying when cancelling a failed body throws', async () => {
+    let calls = 0;
+    const broken = httpRangeReader(
+      'https://x/a.mbtiles',
+      (async () => {
+        calls++;
+        if (calls === 1) return { status: 200, body: { cancel: () => Promise.reject(new Error('reset')) } };
+        return { status: 206, arrayBuffer: async () => new Uint8Array(4).buffer };
+      }) as unknown as typeof fetch,
+      async () => {}
+    );
+    expect(await broken(10, 13)).toHaveLength(4);
+  });
+});
+
+describe('readPrefix', () => {
+  it('reads the first bytes across chunks and cancels the rest unread', async () => {
+    let pulled = 0;
+    let cancelled = false;
+    const stream = new ReadableStream<Uint8Array>(
+      {
+        pull(controller) {
+          pulled++;
+          controller.enqueue(
+            Uint8Array.from([pulled, pulled, pulled, pulled, pulled, pulled, pulled, pulled, pulled, pulled])
+          );
+        },
+        cancel() {
+          cancelled = true;
+        },
+      },
+      { highWaterMark: 0 }
+    );
+    const head = await readPrefix(new Response(stream, { status: 200 }), 16);
+    expect([...head]).toEqual([...Array(10).fill(1), ...Array(6).fill(2)]);
+    expect(pulled).toBe(2);
+    expect(cancelled).toBe(true);
+  });
+
+  it('returns what there is of a short or empty body', async () => {
+    expect([...(await readPrefix(new Response(Uint8Array.from([1, 2, 3])), 16))]).toEqual([1, 2, 3]);
+    expect(await readPrefix(new Response(null), 16)).toHaveLength(0);
   });
 
   it('waits out a 429, honouring Retry-After, then gives up', async () => {
