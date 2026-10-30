@@ -219,11 +219,41 @@ describe('httpRangeReader', () => {
     expect(await ok(10, 13)).toHaveLength(4);
     expect(calls).toEqual([{ url: 'https://x/a.mbtiles', range: 'bytes=10-13' }]);
 
-    const ignored = httpRangeReader('https://x/a.mbtiles', (async () => ({
-      status: 200,
-      arrayBuffer: async () => new Uint8Array(4).buffer,
-    })) as unknown as typeof fetch);
+    const waits: number[] = [];
+    let cancelled = 0;
+    const ignored = httpRangeReader(
+      'https://x/a.mbtiles',
+      (async () => ({
+        status: 200,
+        body: {
+          cancel: async () => {
+            cancelled++;
+          },
+        },
+        arrayBuffer: async () => new Uint8Array(4).buffer,
+      })) as unknown as typeof fetch,
+      async (ms: number) => {
+        waits.push(ms);
+      }
+    );
     await expect(ignored(10, 13)).rejects.toThrow(/HTTP 200/);
+    expect(waits).toEqual([2000, 4000, 8000]);
+    expect(cancelled).toBe(3);
+  });
+
+  it('retries a 200 (the edge ignored the Range) and takes the 206 that follows', async () => {
+    let calls = 0;
+    const flaky = httpRangeReader(
+      'https://x/a.mbtiles',
+      (async () => {
+        calls++;
+        if (calls === 1) return { status: 200, arrayBuffer: async () => new Uint8Array(1000).buffer };
+        return { status: 206, arrayBuffer: async () => new Uint8Array(4).buffer };
+      }) as unknown as typeof fetch,
+      async () => {}
+    );
+    expect(await flaky(10, 13)).toHaveLength(4);
+    expect(calls).toBe(2);
   });
 
   it('waits out a 429, honouring Retry-After, then gives up', async () => {

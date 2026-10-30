@@ -11,11 +11,15 @@ on:
     paths:
       - mobile/assets/trails/index.json
       - scripts/e2e-tile-check.mjs
+      - scripts/lib/http-mbtiles.mjs
+      - scripts/lib/mvt-contours.mjs
   push:
     branches: [main]
     paths:
       - mobile/assets/trails/index.json
       - scripts/e2e-tile-check.mjs
+      - scripts/lib/http-mbtiles.mjs
+      - scripts/lib/mvt-contours.mjs
   schedule:
     - cron: '17 6 * * 1'
   workflow_dispatch:
