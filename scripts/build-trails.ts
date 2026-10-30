@@ -18,7 +18,7 @@ import {
 import { countDuplicatePois } from '../src/lib/poi-dedup.js';
 import { countNoiseByReason } from '../src/lib/poi-noise.js';
 import { findDenseStretches, thinUrbanPois } from '../src/lib/poi-urban.js';
-import { markTrailPOIsForBuild, readTrailPOIFile } from './lib/trail-pois-file.js';
+import { markTrailPOIsForBuild, readTrailPOIFile, staleRejectedKeys } from './lib/trail-pois-file.js';
 import { misplacedPois } from './fetch-pois.js';
 import {
   accessPlacements,
@@ -741,12 +741,8 @@ async function main() {
       // `config.pois` carries the trail's own rules on top (TrailPoiConfig), and
       // the file's hand-edited `duplicates` map flags the pairs no rule should.
       const poiConfig = processed.config.pois;
-      const {
-        fetched,
-        pois: unthinned,
-        unmatched,
-        replaced,
-      } = markTrailPOIsForBuild(readTrailPOIFile(trailDir), processed, poiConfig);
+      const poiFile = readTrailPOIFile(trailDir);
+      const { fetched, pois: unthinned, unmatched, replaced } = markTrailPOIsForBuild(poiFile, processed, poiConfig);
       // A track edit since the fetch leaves POI km stale (the AAWT's Blue
       // Waterholes POIs sat at km 790 of 688 and, reversed, at km 0). Checked
       // here, reported after the generated file is written: fetch-pois reads
@@ -758,6 +754,12 @@ async function main() {
       }
       for (const { key, ruleMatch, override } of replaced) {
         console.warn(`  ⚠ pois.json duplicates: ${key} → ${override} replaces the rule match ${ruleMatch}`);
+      }
+      const staleRejected = poiFile ? staleRejectedKeys(poiFile) : [];
+      if (staleRejected.length > 0) {
+        console.warn(
+          `  ⚠ pois.json rejected keys match no POI (OSM has caught up?): ${staleRejected.join(', ')} — drop them`
+        );
       }
       const cities = findDenseStretches(unthinned ?? []);
       const pois = thinUrbanPois(unthinned, poiConfig);
