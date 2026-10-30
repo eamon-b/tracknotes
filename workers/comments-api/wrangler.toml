@@ -1,4 +1,4 @@
-name = "trail-maps-comments"
+name = "tracknotes-comments"
 main = "src/index.ts"
 compatibility_date = "2025-04-01"
 
@@ -16,8 +16,8 @@ custom_domain = true
 
 [[d1_databases]]
 binding = "DB"
-database_name = "trail-maps-comments"
-database_id = "c7eaed8e-395a-46fc-b428-753ea461d1e2"
+database_name = "tracknotes-comments"
+database_id = "7ebd1642-b752-4184-904e-54bfa48b658f"
 
 # Photo attachments live in R2. This is the same bucket the map tiles use; photos
 # go under the `comments/` prefix and are read publicly via PHOTOS_PUBLIC_BASE.

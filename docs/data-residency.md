@@ -49,3 +49,4 @@ Summary:
 |------|-----------|-------------|-------------|-------|
 | 2026-08-19 | Claude (session) | `running_in_region: OC` | `location: OC` | Both in Oceania. `jurisdiction: null` — placement is observed, not contractually pinned, so the policy wording ("may be stored or replicated in other regions") stays. Re-check before each release. |
 | 2026-10-30 | Claude (session) | `running_in_region: OC` | `location: OC` | Both in Oceania. `jurisdiction: null`, read replication disabled. Policy wording stays. |
+| 2026-10-30 | Claude (session) | `running_in_region: OC` | `location: OC` | New database `tracknotes-comments` (`7ebd1642-…`, created with `--location oc`) for the Tracknotes rename, replacing `trail-maps-comments` once its data is copied across. `jurisdiction: null`, read replication disabled. Policy wording stays. |
