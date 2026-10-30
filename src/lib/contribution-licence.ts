@@ -3,8 +3,10 @@
  * water reports and photos), shared hiker waypoints and community routes are
  * dedicated to the public domain under CC0 (`docs/content-legal-posture.md`,
  * decision 1) and posted under the terms of service (`docs/terms-of-service.md`,
- * published as `public/terms.html`). One wording, so the phone's composer, its
- * waypoint form and any web form say the same thing.
+ * published as `public/terms.html`), with the privacy policy linked beside
+ * them as the notice at collection (decision 3, APP 5). One wording, so the
+ * phone's composer, its waypoint and route-share forms and the web's
+ * route-share form say the same thing.
  */
 
 /**
@@ -34,4 +36,13 @@ export function contributionLicenceLine(
     link: 'terms of service',
     after: '.',
   };
+}
+
+/**
+ * "The privacy policy says what is stored and who can see it." — shown under
+ * {@link contributionLicenceLine}, split so a UI can make "privacy policy" a
+ * link to {@link PRIVACY_POLICY_URL}.
+ */
+export function contributionPrivacyLine(): { before: string; link: string; after: string } {
+  return { before: 'The ', link: 'privacy policy', after: ' says what is stored and who can see it.' };
 }

@@ -466,3 +466,20 @@ describe('initCommunityShare', () => {
     expect(link.querySelector('[data-role="error"]')!.textContent).toContain('blocks site storage');
   });
 });
+
+describe('the licence lines under the rights tick', () => {
+  it('link the terms and the privacy policy in the shared wording', async () => {
+    const { renderContributionLicence } = await import('./community-share');
+    const el = $('community-licence');
+    renderContributionLicence(el);
+    expect(el.textContent).toBe(
+      'By sharing, you release this route into the public domain (CC0) and agree to the terms of service.' +
+        ' The privacy policy says what is stored and who can see it.'
+    );
+    const links = [...el.querySelectorAll('a')].map(a => [a.textContent, a.getAttribute('href'), a.rel]);
+    expect(links).toEqual([
+      ['terms of service', 'https://trail-maps.vercel.app/terms.html', 'noopener'],
+      ['privacy policy', 'https://trail-maps.vercel.app/privacy.html', 'noopener'],
+    ]);
+  });
+});

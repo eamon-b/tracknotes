@@ -7,12 +7,13 @@ two in sync._
 
 _The mobile app links that same URL from Settings → About
 (`PRIVACY_POLICY_URL`, defined in `src/lib/contribution-licence.ts` and imported by
-`mobile/src/features/settings/AboutSection.tsx`);
+`mobile/src/features/settings/AboutSection.tsx`), and from the line under every
+form that posts something publicly (`contributionPrivacyLine`);
 change one and change the other. Still outstanding before store submission:
 link the URL from the App Store / Play Store listings, and give this draft a
 human read (issue #31)._
 
-**Last updated: 2026-10-19**
+**Last updated: 2026-10-30**
 
 Tracknotes is a hiking guide app for long-distance trails in Australia, New
 Zealand, the United States and Japan. It is designed to work offline-first and
@@ -28,7 +29,8 @@ display name is the only identity shown to other users.
 **Content you post.** Comments, water reports, and photos you attach to
 waypoints, or to OpenStreetMap points of interest (shops, cafés, campgrounds
 and the like) shown in the app, are stored on our servers and shown publicly to
-other users of the app alongside your display name and the time of posting.
+other users of the app alongside your display name and the time of posting
+(for a water report, also the time you say you saw the water).
 
 **Photo location.** Photos are uploaded as taken: the app re-encodes them at a
 reduced quality to make them smaller, but does not remove their metadata. A
