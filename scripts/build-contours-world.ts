@@ -2,10 +2,11 @@
  * World Contour PMTiles Build (sharded, chunked)
  *
  * Generates contour vector tiles for the whole world from the Copernicus GLO-30
- * DEM (`data/dem-glo30/`), one 2°×2° cell at a time, exactly like
- * build-contours-australia.ts — same buffered cubicspline warp, same 10 m
- * gdal_contour, same 4 zoom tiers, same `is_index` classification, so the
- * served schema (layer `contour`, `elevation` + `is_index`, z9–15) is identical.
+ * DEM (`data/dem-glo30/`), one 2°×2° cell at a time, the way the retired
+ * Australia build (build-contours-australia.ts, removed in #228) did — same
+ * buffered cubicspline warp, same 10 m gdal_contour, same 4 zoom tiers, same
+ * `is_index` classification, so the served schema (layer `contour`,
+ * `elevation` + `is_index`, z9–15) is identical.
  *
  * Differences from the Australia build:
  *   - Signed global grid (`scripts/lib/world-grid.ts`): cell ids name the SW
@@ -100,8 +101,7 @@ const DEFAULT_OUTPUT_DIR = path.join(PROJECT_ROOT, 'public/data/tiles');
 const CUSTOM_SELECTION_NAME = 'custom';
 
 // Warp resolution (2x the 1 arc-second source density). Shared with the
-// Australia build and the per-trail pipeline so contours from every producer
-// land on identical elevations.
+// per-trail pipeline so offline packs land on identical elevations.
 const WARP_TR_DEG = CONTOUR_WARP_TR_DEG;
 
 const CLASSIFIED_LAYER = CONTOUR_LAYER;
@@ -547,8 +547,8 @@ function processCell(cell: WorldCell, args: CliArgs, workDir: string): void {
     );
 
     // 2: Generate contours. GLO-30 samples are float32 metres, so the interval
-    //    and the integer tier arithmetic below mean the same thing they do for
-    //    the SRTM-based Australia build.
+    //    and the integer tier arithmetic below mean the same thing they did
+    //    for SRTM's integer samples.
     if (fs.existsSync(rawPath)) fs.unlinkSync(rawPath);
     run(
       [

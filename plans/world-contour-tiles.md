@@ -5,7 +5,8 @@ settings chosen by experiment, built and merged on a rented remote machine,
 served from R2 alongside (initially) the existing Australia archive.
 
 Status: live. The world archive was built in September 2026 and the worker serves it as the
-`world` source; rollout steps 1-5 are done and step 6 is open. Rebuild runbook:
+`world` source; all six rollout steps are done, and since #228 it is the only
+served contour archive (`contours` is an alias of it). Rebuild runbook:
 `docs/world-contours-remote-build.md`. The re-tiered rebuild
 (#135, 572 GB) replaced it on 2026-10-24.
 
@@ -184,9 +185,21 @@ Sizing (estimates, to validate with the first shard):
    direct quality comparison against the production archive on known trails).
 4. Build remaining shards, `--join`, upload `contours/world.pmtiles`.
 5. Deploy worker with the `world` source; verify `/health` + spot tiles.
-6. Point the public demo/docs (PR #25 site) at `world`; later decide whether
-   `contours` becomes an alias of world and the SRTM Australia archive is
-   retired.
+6. Done:
+   - [x] The public demo/docs (PR #25 site) point at `world`, now the single
+     recommended tileset.
+   - [x] Retirement decided and done (#228). Once both archives were re-tiered
+     (#135), the same z14 tiles from both worker sources were compared at 7
+     Australian trails (Overland/Cradle Mtn, Bibbulmun karri near Pemberton,
+     AAWT/Mt Bogong, Larapinta/Mt Sonder, Heysen/Wilpena Pound, Great North
+     Walk/Watagans, South Coast Track): near-identical geometry, elevation
+     ranges within 10–30 m, world 3–15% more line length (DEM-S is
+     hydrologically smoothed), no visible canopy artefacts from GLO-30 being a
+     surface model. So `contours` is now an alias of `world` (kept for shipped
+     app builds), `/health`'s top level follows `world`, the offline packs cut
+     Australia from GLO-30 too, and `build-contours-australia.ts` is deleted.
+     `contours/australia.pmtiles` stays in R2 as a frozen download (2026-10-23
+     build, 12.8 GB, CC BY 4.0).
 
 ## Non-goals (this branch)
 

@@ -64,8 +64,8 @@ const OFFLINE_BASEMAP_LINE: CreditLine = {
 export const CONTOURS_LINE: CreditLine = {
   label: 'Contours',
   text:
-    'SRTM (NASA) in Australia; elsewhere the Copernicus GLO-30 DEM (© DLR e.V. 2010–2014 and ' +
-    '© Airbus Defence and Space GmbH 2014–2018, provided under COPERNICUS by the European Union and ESA).',
+    'Copernicus GLO-30 DEM (© DLR e.V. 2010–2014 and © Airbus Defence and Space GmbH 2014–2018, ' +
+    'provided under COPERNICUS by the European Union and ESA).',
 };
 
 export const CLIMATE_LINE: CreditLine = {

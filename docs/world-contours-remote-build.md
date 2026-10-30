@@ -58,10 +58,10 @@ step runs on the box; the laptop's uplink (~0.9 MB/s) moves nothing.
    converts each merged shard to `.pmtiles` as it lands, waits for the last
    merge, frees the intermediates, joins (section 6), validates and uploads
    at 32 parallel 256 MB parts. Progress is one line per event in `logs/drive-events.log`.
-5. **Australia and the offline packs** on the same box while the world runs
-   (section 7a): packs first (about 45 min), the Australia archive once the
-   cell lane is done (about 2.5 h). Upload each as soon as it validates;
-   neither waits for the world.
+5. **The offline packs** on the same box while the world runs (section 7a):
+   about 45 min. Upload them as soon as they validate; they do not wait for
+   the world. (The October 2026 run also rebuilt the Australia archive here;
+   that archive is retired, #228.)
 6. **Keep the CPU busy at the end.** Each shard merges its batches one after
    another, so the biggest shard (asia-east, 8 batches) is the long pole. When
    the smaller merges finish and cores go idle, pre-tile its last batches in
@@ -161,8 +161,8 @@ grid by `--minimum-detail=4`). `scripts/tile-pipeline.ts` now reads each tier
 as its own tippecanoe layer, gates it with a `-j` `$zoom` filter and folds the
 layers back into `contour` with tile-join `-R` (`renameContourTiers`); the
 experiment's `untiered` variant is the old behaviour. It is a tippecanoe-only
-change, so where a build's tier files survive (Australia's, on the laptop)
-`--merge-only` re-tiers it with no cell rebuild. **The world's do not**: the
+change, so where a build's tier files survive `--merge-only` re-tiers it with
+no cell rebuild. **The world's do not**: the
 September 2026 build deleted them with `--clean-work`, and its kept batches
 and shards would not help (tippecanoe had already dropped the low-zoom lines
 inside them), so re-tiering the world archive is a full rebuild from the DEM
@@ -196,7 +196,7 @@ the script updates an existing checkout in place.)
 `bootstrap.sh` installs build essentials, GDAL ≥ 3.6 (it hard-fails on older),
 sqlite3, git, rclone, Node 22 from NodeSource, tippecanoe built from the pinned
 `felt/tippecanoe` release (`TIPPECANOE_REF`, 2.79.0 — the world build refuses
-any other, as does the Australia build; why that release is in `TIPPECANOE_VERSION`,
+any other; why that release is in `TIPPECANOE_VERSION`,
 `scripts/tile-pipeline.ts`), the `pmtiles` CLI from `protomaps/go-pmtiles`, then
 clones the repo and runs `npm ci`. It prints every version at the end — paste
 that block into the build notes for the record. Re-running it is safe.
@@ -262,7 +262,7 @@ delete the key/token when you decommission it.
 ## 4. Build the `oceania` shard first (quality gate)
 
 `oceania` contains Australia, so its output can be compared directly against
-the production SRTM archive on trails you know.
+the live world archive on trails you know.
 
 ```bash
 cd /mnt/nvme/trail-maps
@@ -297,8 +297,8 @@ pmtiles serve public/data/tiles          # http://localhost:8080/world_oceania/{
 pmtiles tile public/data/tiles/world_oceania.pmtiles 15 28450 18593 | wc -c
 ```
 
-Check against the production archive
-(`https://tiles.contour-map-tiles.net/contours/15/28450/18593.pbf`):
+Check against the live archive
+(`https://tiles.contour-map-tiles.net/world/15/28450/18593.pbf`):
 same contour density, no dangling lines at 2° cell edges, index contours
 present (`is_index` is the **string** `"1"` — MapLibre filters must
 `to-number` it), z9–15 coverage. Only when this looks right do you spend money
@@ -562,72 +562,56 @@ What we learned, beyond section 8:
 
 ## 7. Deploy the Worker and verify
 
-The Worker serves `/{source}/{z}/{x}/{y}.pbf` and gains a `world` source
-mapping to `contours/world.pmtiles` alongside the existing `contours`
-(Australia/SRTM) source.
+The Worker serves `/{source}/{z}/{x}/{y}.pbf`. Both its sources, `world` and
+`contours` (an alias kept for shipped app builds, #228), read
+`contours/world.pmtiles`, so a rebuild needs no Worker change; deploy only if
+the Worker itself changed.
 
 ```bash
 cd workers/contour-tiles && npx wrangler deploy
 
 curl -s https://tiles.contour-map-tiles.net/health | jq .
-#   expect ok: true overall, and a per-source breakdown with world: ok
+#   expect ok: true overall (the top level follows `world`), and world and
+#   contours both ok with the same archive etag
 curl -sI https://tiles.contour-map-tiles.net/world/15/28450/18593.pbf
 #   expect 200 + application/x-protobuf (204 means "no contours here", which is
 #   correct over ocean but wrong at Mt Sonder)
 ```
 
-A missing world archive must not make `/health` fail overall while only
-Australia is deployed — that is by design, so deploying the Worker before the
-upload finishes is safe.
+There is no fallback archive any more: while `world.pmtiles` is missing or
+mid-upload, `/health` fails and every contour tile is a `500`. Upload over the
+live key only once the new archive has validated.
 
-Edge cache: re-uploading the same key leaves stale bytes cached for up to 24 h.
+Edge cache: re-uploading the same key leaves stale bytes cached for up to 24 h,
+under both `/world/…` and `/contours/…` URLs; purge both prefixes if the new
+tiles must land at once.
 
 ---
 
-## 7a. Australia and the offline packs on the same box
+## 7a. The offline packs on the same box
 
-The Australia archive and the 20 offline packs are tippecanoe builds too, and
-the box has the pinned release and the cores the laptop lacks (the laptop's
-last Australia merge took ~24 h). **Nothing comes from the laptop**: a home
-uplink (~0.9 MB/s on 2026-10) would take a day over the inputs, and the box
-downloads all of them in minutes.
+The offline packs are tippecanoe builds too, and the box has the pinned
+release and the cores the laptop lacks. **Nothing comes from the laptop**: a
+home uplink (~0.9 MB/s on 2026-10) would take a day over the inputs, and the
+box downloads all of them in minutes.
 
 **Inputs, fetched on the box:**
 
-- **SRTM for Australia** (`data/dem`, 885 tiles, 22 GB): the same 1" HGT tiles
-  are on AWS's public `elevation-tiles-prod` bucket ("skadi"), gzipped, at
-  `https://s3.amazonaws.com/elevation-tiles-prod/skadi/<S24>/<S24E132>.hgt.gz`.
-  Fetch the tile names in the laptop's `data/dem` (`ls data/dem > tiles.txt`,
-  then `xargs -P 16` curl + gunzip): two minutes. They are not all
-  byte-identical to the laptop's: 708 of 885 differ, only inside SRTM's
-  filled voids (S38E146: 0.15 % of cells, always higher, mean 5 m, max 74 m,
-  in a few compact patches). Accepted on 2026-10; the contours move only
-  inside those patches.
-- **Copernicus GLO-30** for CDT, Te Araroa and Shikoku (`data/dem-glo30`):
+- **Copernicus GLO-30** for every pack, Australia included (`data/dem-glo30`):
   already there if the world DEM is unpurged. Otherwise `build-tiles.ts`
   prints the `fetch-dem-copernicus.ts --bbox` command for what is missing.
+  (Until #228 the Australian packs were cut from SRTM in `data/dem`.)
 - **Basemap**: `--protomaps-url https://build.protomaps.com/<YYYYMMDD>.pmtiles`
   (the newest daily build; `pmtiles extract` reads only each trail's bbox).
   The laptop's `planet.pmtiles` is an Australia-only extract from May 2025.
 - **Te Araroa's GPX** is not in the repo: run `npm run sync:te-araroa` on the
   box first, or its pack fails with "No GPX file found".
 
-**Australia archive** is a full rebuild from the SRTM (the 61 GB of laptop
-tiers are not worth the upload): 248 cells and the merge in **157 min** at
-`--parallel 24`, alongside the world merges. Start it once the world cell
-lane is done so it does not delay the shards still in their cell phase:
-
-```bash
-setsid nohup npx tsx scripts/build-contours-australia.ts --parallel 24 \
-  > logs/australia.log 2>&1 < /dev/null &
-```
-
-Check the Mt Sonder z9 tile before uploading: `tippecanoe-decode -c
-public/data/tiles/australia-contours.pmtiles 9 444 290` must hold only
-multiples of 100 m (2,468 features, 114 KB raw on 2026-10, against 543 KB
-untiered), and `pmtiles verify` must pass. Then
-`npm run upload:tiles -- --contours` (rclone multipart, 12.5 GiB in 8 min) and
-`npm run upload:tiles -- --verify-contours`.
+**The Australia archive is retired** (#228): `contours/australia.pmtiles`
+stays in R2 as a frozen download of its 2026-10-23 build and is not rebuilt.
+The October 2026 run rebuilt it here from SRTM in 157 min at `--parallel 24`;
+`build-contours-australia.ts` and `upload:tiles --contours` are gone (recover
+them from git history if it is ever revived).
 
 **Offline packs:** `build-tiles.ts --trail <dir> --protomaps-url <url>` per
 trail, three at a time (`ls data/trails | xargs -P 3 ...`): trails have their
@@ -740,23 +724,21 @@ Ongoing:
 
 | Item | Cost |
 | --- | --- |
-| R2 storage: `world.pmtiles` ~640 GB + Australia 12.8 GB + packs ~2.5 GB @ $0.015/GB-month | **~$10 / month** |
+| R2 storage: `world.pmtiles` ~572 GB + Australia 12.8 GB + packs ~2.5 GB @ $0.015/GB-month | **~$9 / month** |
 | R2 Class A ops (upload, multipart) | < $0.10 per rebuild |
 | R2 egress | **$0** (zero-egress is the whole reason the archive lives there) |
 
-Keeping the Australia SRTM archive alongside the world one adds ~13 GB
-(~$0.20/month) until it is retired — cheap enough to leave in place until the
-world tileset is proven on real trails.
+The retired Australia archive stays in R2 as a frozen download for ~$0.19 a
+month; retiring it saved the 24 h build and the second pipeline, not storage.
 
 ---
 
 ## 11. After the build
 
-- Point the public demo/docs site at the `world` source.
-- Decide later whether `contours` becomes an alias of `world` and the SRTM
-  Australia archive is retired (see `plans/world-contour-tiles.md` §Rollout).
+- Refresh the world archive's size and tile count on the docs site
+  (`site/contour-tiles/`, from `pmtiles show`).
 - Check the tiers are live: `npm run check:tiered` (the Mt Sonder z9 tile on
-  both worker sources, and every pack's z9). `check:tile-packs` includes it
+  both worker sources, which now read the same archive, and every pack's z9). `check:tile-packs` includes it
   since the October 2026 rebuild, so the weekly workflow keeps checking it.
 - Delete `contours/world-build/` (`npm run cleanup:tiles -- --world-build
   --delete`) and, once every live pack manifest points at the rebuilt packs and

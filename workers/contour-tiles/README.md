@@ -35,11 +35,20 @@ The `{source}` path segment selects one PMTiles archive. The mapping is the
 
 | Source | R2 key |
 | --- | --- |
-| `contours` | `contours/australia.pmtiles` |
 | `world` | `contours/world.pmtiles` |
+| `contours` | `contours/world.pmtiles` (alias) |
+
+`contours` served the Australia archive (`contours/australia.pmtiles`,
+Geoscience Australia DEM-S) until that archive was retired in favour of the
+world one (#228). It stays as an alias of `world` because shipped Tracknotes
+builds (no OTA updates) request `/contours/{z}/{x}/{y}.pbf` for Australian
+trails and read `/health`'s top-level `ok` as that source's health, and public
+endpoint users may use it. `contours/australia.pmtiles` stays in R2 as a
+frozen download (last built 2026-10-23); this Worker no longer serves it.
 
 **Adding a tileset is one entry in `SOURCES` plus uploading the archive to R2** —
-routing, the per-source PMTiles instance cache, edge caching (already keyed by
+routing, the PMTiles instance cache (keyed by R2 key, so aliases share one
+instance), edge caching (already keyed by
 the full pathname, which includes the source segment) and `/health` all pick it
 up automatically. An unknown source is a `404`.
 
@@ -49,20 +58,21 @@ condition: it serves `500`s for tiles and reports `ok: false` under
 
 ### `/health` shape
 
-Top-level fields describe the `contours` source exactly as they always have
-(`ok`, plus `archive`/`tiles` when healthy or `error` when not), and the overall
-HTTP status still follows `contours` alone — so existing consumers keep working
-while `world` is still being built. A `sources` object adds the per-source
+Top-level fields describe `DEFAULT_SOURCE` (`world`) in the shape they always
+had (`ok`, plus `archive`/`tiles` when healthy or `error` when not), and the
+overall HTTP status follows that source alone. Shipped app builds read the
+top-level `ok` as the health of `contours`, which still holds because
+`contours` is an alias of `world`. A `sources` object adds the per-source
 breakdown:
 
 ```json
 {
   "ok": true,
-  "archive": { "key": "contours/australia.pmtiles", "size": 0, "etag": "…" },
-  "tiles": { "minZoom": 9, "maxZoom": 14, "minLon": 0, "minLat": 0, "maxLon": 0, "maxLat": 0 },
+  "archive": { "key": "contours/world.pmtiles", "size": 0, "etag": "…" },
+  "tiles": { "minZoom": 9, "maxZoom": 15, "minLon": 0, "minLat": 0, "maxLon": 0, "maxLat": 0 },
   "sources": {
-    "contours": { "ok": true, "archive": { … }, "tiles": { … } },
-    "world": { "ok": false, "error": "Contour archive not found" }
+    "contours": { "ok": true, "archive": { "key": "contours/world.pmtiles", … }, "tiles": { … } },
+    "world": { "ok": true, "archive": { … }, "tiles": { … } }
   }
 }
 ```
@@ -90,7 +100,7 @@ What is and is not cached:
 ## Staleness after re-uploading the archive
 
 Tiles are immutable for the lifetime of an archive build, but
-`australia.pmtiles` can be re-uploaded. Two separate caches are involved:
+`world.pmtiles` can be re-uploaded. Two separate caches are involved:
 
 - **R2 / in-isolate PMTiles cache** — handled. A re-upload changes the R2 etag;
   the next range read from a stale warm isolate raises `EtagMismatch`, and the
@@ -101,7 +111,10 @@ Tiles are immutable for the lifetime of an archive build, but
 That staleness window is the accepted tradeoff: contour geometry changes rarely
 and never urgently, so no purge machinery is built. If a rebuild ever does need
 to land immediately, either purge the zone cache manually in the Cloudflare
-dashboard or change the URL path so the new tiles have new cache keys.
+dashboard or change the URL path so the new tiles have new cache keys. The edge
+cache is keyed by URL, so `/contours/…` and `/world/…` hold separate entries
+for the same tiles; repointing `contours` from the Australia archive to the
+world one was followed by a purge of `tiles.contour-map-tiles.net/contours/*`.
 
 ## CORS
 

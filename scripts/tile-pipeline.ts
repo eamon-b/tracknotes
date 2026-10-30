@@ -41,7 +41,7 @@ export const INDEX_CONTOUR_INTERVAL = 50; // metres (bold lines)
  * (~30m, 0.000278°); warping at 2x that density with cubicspline resampling
  * interpolates smooth curves between the 30m samples, so gdal_contour traces
  * rounded contours instead of polygonal lines on the DEM lattice. Costs 4x
- * the pixels. Must match WARP_TR_DEG in build-contours-australia.ts so
+ * the pixels. build-contours-world.ts warps at the same resolution, so
  * offline and worker-served contours line up at identical elevations.
  */
 export const CONTOUR_WARP_TR_DEG = 0.000139;
@@ -58,10 +58,10 @@ export interface ContourTier {
 }
 
 /**
- * Contour density tiers, shared by build-contours-australia.ts and
- * build-contours-world.ts. The two archives are served from the same Worker
- * under the same public schema, so their tiers must not drift: this is the
- * single definition of which elevations appear at which zoom.
+ * Contour density tiers, shared by build-contours-world.ts and the per-trail
+ * packs. The packs must show what the Worker serves online, so their tiers
+ * must not drift: this is the single definition of which elevations appear at
+ * which zoom.
  *
  * The clauses partition the elevations exactly once each — see the z13 note.
  */
@@ -380,15 +380,6 @@ export function mgaEpsgForLon(lonCenter: number): number {
  */
 export const AUSTRALIA_BOUNDS = { west: 112, south: -44, east: 154, north: -10 };
 
-export function isWithinAustralia(bounds: { west: number; south: number; east: number; north: number }): boolean {
-  return (
-    bounds.west >= AUSTRALIA_BOUNDS.west &&
-    bounds.east <= AUSTRALIA_BOUNDS.east &&
-    bounds.south >= AUSTRALIA_BOUNDS.south &&
-    bounds.north <= AUSTRALIA_BOUNDS.north
-  );
-}
-
 /**
  * Metric CRS to buffer a track in: MGA inside Australia, otherwise the WGS84
  * UTM zone of the centroid (EPSG:326xx north, 327xx south). MGA is only
@@ -593,7 +584,7 @@ export function checkDependencies(opts: {
   skipBase?: boolean;
   /**
    * Refuse any tippecanoe but TIPPECANOE_VERSION, for builds too long to
-   * gamble on another release (the world and Australia archives, which are published as built).
+   * gamble on another release (the world archive, which is published as built).
    * `TIPPECANOE_ANY_VERSION=1` overrides it. Without it a different capable
    * release only warns.
    */
@@ -669,7 +660,7 @@ export function clipDem(
   verbose: boolean,
   /**
    * Absolute paths of the DEM tiles to mosaic. Omitted, every tile in the
-   * SRTM cache (data/dem) is used — the Australian builds' behaviour.
+   * SRTM cache (data/dem) is used — the grid builds' behaviour.
    */
   demFilePaths?: string[]
 ): void {
