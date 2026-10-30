@@ -77,7 +77,7 @@ export interface ListFilterState {
 
 export const DEFAULT_FILTER: ListFilterState = { query: '', bands: [], sort: 'name' };
 
-export const FILTER_STORAGE_KEY = 'trail-maps-list-filter';
+export const FILTER_STORAGE_KEY = 'tracknotes-list-filter';
 
 const SORTS: { id: TrailSort; label: string }[] = [
   { id: 'name', label: 'Name' },

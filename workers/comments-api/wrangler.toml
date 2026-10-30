@@ -39,7 +39,7 @@ crons = ["*/15 * * * *"]
 PHOTOS_PUBLIC_BASE = "https://data.contour-map-tiles.net"
 
 # Origin of the deployed web site: the Vercel deploy at tracknotes.info (moved
-# from trail-maps.vercel.app, which Vercel still serves). Share links are built as
+# from trail-maps.vercel.app). Share links are built as
 # `SITE_BASE/shared-plan.html?s=<shareId>`, so this must change the day the site
 # moves or every link minted after the move is dead. Tests override it.
 SITE_BASE = "https://tracknotes.info"

@@ -40,12 +40,12 @@ describe('theme', () => {
     });
 
     it('reads a stored preference', () => {
-      localStorage.setItem('trail-maps-theme', 'dark');
+      localStorage.setItem('tracknotes-theme', 'dark');
       expect(getPreference()).toBe('dark');
     });
 
     it('ignores a stored value that is not a known preference', () => {
-      localStorage.setItem('trail-maps-theme', 'chartreuse');
+      localStorage.setItem('tracknotes-theme', 'chartreuse');
       expect(getPreference()).toBe('system');
     });
   });
@@ -113,14 +113,14 @@ describe('theme', () => {
   describe('setPreference', () => {
     it('stores an explicit choice', () => {
       setPreference('dark');
-      expect(localStorage.getItem('trail-maps-theme')).toBe('dark');
+      expect(localStorage.getItem('tracknotes-theme')).toBe('dark');
       expect(getPreference()).toBe('dark');
     });
 
     it('clears the stored choice when going back to system', () => {
       setPreference('light');
       setPreference('system');
-      expect(localStorage.getItem('trail-maps-theme')).toBeNull();
+      expect(localStorage.getItem('tracknotes-theme')).toBeNull();
       expect(getPreference()).toBe('system');
     });
   });

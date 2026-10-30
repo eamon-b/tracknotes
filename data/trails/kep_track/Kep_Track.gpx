@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="trail-maps from OpenStreetMap (ODbL) route relation and waypoints; elevation Copernicus GLO-30" xmlns="http://www.topografix.com/GPX/1/1">
+<gpx version="1.1" creator="tracknotes from OpenStreetMap (ODbL) route relation and waypoints; elevation Copernicus GLO-30" xmlns="http://www.topografix.com/GPX/1/1">
   <metadata><name>Kep Track</name></metadata>
   <wpt lat="-31.657551" lon="116.660092"><ele>153.3</ele><name>Northam RV 48hr Stay</name><desc>RV park; OpenStreetMap marks it as not for tents.</desc><type>poi</type></wpt>
   <wpt lat="-31.747633" lon="116.455190"><ele>290.2</ele><name>Summer Creek Farm Camping Bakers Hill</name><type>campsite</type></wpt>

@@ -207,7 +207,7 @@ export function escapeXml(text: unknown): string {
  * Namespace for the Tracknotes `<wpt><extensions>` fields (off-trail access).
  * Declared on every generated `<gpx>` so a turn-off survives an export.
  */
-export const TN_WAYPOINT_NAMESPACE = 'https://tracknotes.app/xmlschemas/gpx-waypoint/1';
+export const TN_WAYPOINT_NAMESPACE = 'https://tracknotes.info/xmlschemas/gpx-waypoint/1';
 
 /**
  * Serialise the off-trail access fields, or '' when the waypoint has none —

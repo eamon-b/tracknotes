@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="trail-maps from OpenStreetMap (ODbL) route relation and waypoints; elevation Copernicus GLO-30" xmlns="http://www.topografix.com/GPX/1/1">
+<gpx version="1.1" creator="tracknotes from OpenStreetMap (ODbL) route relation and waypoints; elevation Copernicus GLO-30" xmlns="http://www.topografix.com/GPX/1/1">
   <metadata><name>Great North Walk</name></metadata>
   <wpt lat="-32.966008" lon="151.308454"><ele>533.1</ele><name>Barraba Campsite</name><desc>Great North Walk camp site</desc><type>campsite</type></wpt>
   <wpt lat="-33.639029" lon="151.103329"><ele>18.2</ele><name>Berowra Creek camp</name><type>campsite</type></wpt>

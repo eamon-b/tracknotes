@@ -264,7 +264,7 @@ hanging a few extra fields off the waypoint that marks the turn-off:
 
 ```xml
 <gpx xmlns="http://www.topografix.com/GPX/1/1"
-     xmlns:tn="https://tracknotes.app/xmlschemas/gpx-waypoint/1">
+     xmlns:tn="https://tracknotes.info/xmlschemas/gpx-waypoint/1">
   <wpt lat="38.4967" lon="-106.3244">
     <name>Salida</name>
     <type>town-access</type>

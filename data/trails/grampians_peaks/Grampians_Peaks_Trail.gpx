@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="trail-maps from OpenStreetMap (ODbL) route relation and waypoints; elevation Copernicus GLO-30" xmlns="http://www.topografix.com/GPX/1/1">
+<gpx version="1.1" creator="tracknotes from OpenStreetMap (ODbL) route relation and waypoints; elevation Copernicus GLO-30" xmlns="http://www.topografix.com/GPX/1/1">
   <metadata><name>Grampians Peaks Trail</name></metadata>
   <wpt lat="-36.953617" lon="142.436216"><ele>233.5</ele><name>Barigar Hike-in Campground</name><type>campsite</type></wpt>
   <wpt lat="-37.224051" lon="142.539690"><ele>301.4</ele><name>Borough Huts Campground</name><type>campsite</type></wpt>

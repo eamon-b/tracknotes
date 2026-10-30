@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="trail-maps from LIST Transport Segments (NRE Tasmania, CC BY 3.0 AU) + OpenStreetMap waypoints (ODbL); elevation Copernicus GLO-30" xmlns="http://www.topografix.com/GPX/1/1">
+<gpx version="1.1" creator="tracknotes from LIST Transport Segments (NRE Tasmania, CC BY 3.0 AU) + OpenStreetMap waypoints (ODbL); elevation Copernicus GLO-30" xmlns="http://www.topografix.com/GPX/1/1">
   <metadata><name>South Coast Track</name></metadata>
   <wpt lat="-43.582976" lon="146.895197"><ele>7.0</ele><name>Boltons Green Campground</name><type>campsite</type></wpt>
   <wpt lat="-43.497982" lon="146.273481"><ele>3.0</ele><name>Buoy Creek camp site</name><type>campsite</type></wpt>

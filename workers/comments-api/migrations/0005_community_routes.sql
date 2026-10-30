@@ -1,4 +1,4 @@
--- Trail Maps comments API — community routes (`plans/community-routes.md`).
+-- Tracknotes comments API — community routes (`plans/community-routes.md`).
 --
 -- A hiker's imported GPX, shared with everyone. In R2 (the PHOTOS bucket):
 -- the canonical trail JSON at `community/private/<id>/<32 random hex>.json`

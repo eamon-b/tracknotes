@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="trail-maps from LIST Transport Segments (NRE Tasmania, CC BY 3.0 AU) + OpenStreetMap waypoints (ODbL); elevation Copernicus GLO-30" xmlns="http://www.topografix.com/GPX/1/1">
+<gpx version="1.1" creator="tracknotes from LIST Transport Segments (NRE Tasmania, CC BY 3.0 AU) + OpenStreetMap waypoints (ODbL); elevation Copernicus GLO-30" xmlns="http://www.topografix.com/GPX/1/1">
   <metadata><name>Three Capes Track</name></metadata>
   <wpt lat="-43.190047" lon="147.953390"><ele>273.6</ele><name>Bare Knoll Campground</name><type>campsite</type></wpt>
   <wpt lat="-43.142173" lon="147.967378"><ele>11.4</ele><name>Fortescue Bay Campground</name><type>campsite</type></wpt>

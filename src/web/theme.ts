@@ -14,8 +14,8 @@
 export type ThemePreference = 'system' | 'light' | 'dark';
 export type ResolvedTheme = 'light' | 'dark';
 
-const STORAGE_KEY = 'trail-maps-theme';
-const THEME_CHANGE_EVENT = 'trail-maps:themechange';
+const STORAGE_KEY = 'tracknotes-theme';
+const THEME_CHANGE_EVENT = 'tracknotes:themechange';
 const PREFERENCES: ThemePreference[] = ['system', 'light', 'dark'];
 
 const LABELS: Record<ThemePreference, string> = {

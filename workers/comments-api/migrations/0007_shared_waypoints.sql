@@ -1,4 +1,4 @@
--- Trail Maps comments API — shared hiker waypoints.
+-- Tracknotes comments API — shared hiker waypoints.
 --
 -- A place a hiker added to a trail and chose to share with everyone: the water
 -- source or shop the guide is missing (`src/lib/user-waypoints.ts`). Private
