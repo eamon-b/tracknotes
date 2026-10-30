@@ -1,7 +1,7 @@
 /**
  * Direction labelling for the guide's direction toggle.
  *
- * FarOut names each direction of travel (e.g. "Northbound" / "Southbound").
+ * The guide names each direction of travel (e.g. "Northbound" / "Southbound").
  * Bundled trails carry those names in `config.direction`; when a trail lacks
  * them we fall back to generic "Forward" / "Reversed". Pure so the mapping is
  * unit-testable.

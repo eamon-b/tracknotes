@@ -78,7 +78,7 @@ const MIGRATIONS: Record<number, string> = {
     INSERT INTO schema_version (version) VALUES (1);
   `,
 
-  // Migration 2: FarOut-style custom routes (Phase 7). A route is a name plus
+  // Migration 2: custom routes (Phase 7). A route is a name plus
   // an ordered list of tapped points over the bundled trail. Route stats
   // (total_km / ascent_m / descent_m) are DENORMALIZED onto the route row at
   // save time so listing a route never re-resolves geometry against the trail

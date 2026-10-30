@@ -1,3 +1,7 @@
+# The Worker and D1 database keep their original Cloudflare names: renaming the
+# Worker would deploy a second Worker without this one's secrets and custom
+# domain, and a D1 database cannot be renamed. Scripts and docs address the
+# database by its binding (`DB`), not its name.
 name = "farout-comments"
 main = "src/index.ts"
 compatibility_date = "2025-04-01"

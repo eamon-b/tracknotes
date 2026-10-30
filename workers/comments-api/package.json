@@ -1,5 +1,5 @@
 {
-  "name": "farout-comments",
+  "name": "trail-maps-comments",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -7,8 +7,8 @@
     "deploy": "wrangler deploy",
     "test": "vitest run",
     "test:watch": "vitest",
-    "migrate:local": "wrangler d1 migrations apply farout-comments --local",
-    "migrate:remote": "wrangler d1 migrations apply farout-comments --remote"
+    "migrate:local": "wrangler d1 migrations apply DB --local",
+    "migrate:remote": "wrangler d1 migrations apply DB --remote"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "^1.4.6",

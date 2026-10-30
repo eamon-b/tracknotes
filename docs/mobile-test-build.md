@@ -46,7 +46,7 @@ npx eas-cli@latest build --non-interactive --profile preview --platform android
   discarded as if they had succeeded (`mobile/src/sync/comment-sync.ts`), and deploying later
   does not bring them back. Shared waypoints shipped this way (#141). Before any build, with the
   setup from step 1 of "Full release" (`npm ci` in `workers/comments-api/` and the Cloudflare
-  credentials), check that `npx wrangler d1 migrations list farout-comments --remote` lists
+  credentials), check that `npx wrangler d1 migrations list DB --remote` lists
   nothing to apply and that every probe in that step answers. If not, deploy `main` per that
   step. Never deploy the worker from an unmerged branch for a test build: test builds use the
   production API, so that would ship unreviewed worker code to every installed app.
@@ -115,7 +115,7 @@ be rolled forward without a reinstall. The detailed rationale is under "Deploy" 
 
    ```bash
    cd workers/comments-api && npm ci
-   npx wrangler d1 migrations list farout-comments --remote   # what would apply
+   npx wrangler d1 migrations list DB --remote   # what would apply
    npm run migrate:remote && npm run deploy
    curl https://api.contour-map-tiles.net/health              # {"ok":true}
    ```
@@ -138,7 +138,7 @@ be rolled forward without a reinstall. The detailed rationale is under "Deploy" 
 
 3. **App, store build.** Release checklist gate (the rest of the store checklist is issue
    #31): before building, the comments API's remote migrations are all applied
-   (`npx wrangler d1 migrations list farout-comments --remote` lists nothing to apply) and
+   (`npx wrangler d1 migrations list DB --remote` lists nothing to apply) and
    the worker is deployed from `main`, with every probe in step 1 answering 200. A build
    that ships ahead of its worker loses writes to routes that 404 (#141).
 

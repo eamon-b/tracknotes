@@ -1,5 +1,5 @@
 /**
- * FarOut-style check-in composer.
+ * Check-in composer.
  *
  * Turns the live guide state (or a tapped waypoint) into a plain-text check-in
  * ready for the OS share sheet: a natural-language sentence, an optional user

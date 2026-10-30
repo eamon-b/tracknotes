@@ -13,7 +13,7 @@
  * Plan/measure interactions from the old app are intentionally absent — this is
  * the read-only guide view.
  *
- * Markers are FarOut-style badges: a white disc ringed in the waypoint's
+ * Markers are badges: a white disc ringed in the waypoint's
  * category colour with a per-type ink glyph on top (see waypoint-icons). The
  * glyphs are bundled PNGs registered through <Images>, because the map has to
  * work offline and the bundled glyph pbfs carry no pictographs.

@@ -1,4 +1,4 @@
--- FarOut comments API — comment moderation brought up to the shared-waypoint
+-- Trail Maps comments API — comment moderation brought up to the shared-waypoint
 -- level (issue #156).
 --
 --   1. comments.deleted_by gains 'reports': `reportsToHide` distinct reports

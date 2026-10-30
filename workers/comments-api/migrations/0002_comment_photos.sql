@@ -1,4 +1,4 @@
--- FarOut comments API — photo attachments.
+-- Trail Maps comments API — photo attachments.
 --
 -- Photos live in R2 under `comments/{commentId}/{index}.{ext}` and are served
 -- publicly via the existing pub-…r2.dev URL. We store the full public URLs as a

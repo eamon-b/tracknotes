@@ -3,7 +3,7 @@
  *
  * Owns the online/offline decision (subscribed to the downloads store so a
  * finished download flips the base map), a status pill, a degraded-map banner,
- * a recenter button, and the FarOut-style route builder. In builder mode the
+ * a recenter button, and the custom-route builder. In builder mode the
  * pane switches the map into tap-to-add-point mode, overlays the in-progress
  * route, and swaps the FAB stack for a builder toolbar; otherwise it overlays
  * the trail's active saved route (if any). The map itself lives in GuideMap.

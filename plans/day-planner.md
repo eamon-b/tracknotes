@@ -55,7 +55,7 @@ by anyone you send a link to.
   (`guide/[trailId]/waypoint/[waypointId].tsx`) has the favorite heart :279-281 as the model for
   a per-waypoint toggle.
 - **Server** (`workers/comments-api/`): Cloudflare Worker at `api.contour-map-tiles.net`, D1
-  (`farout-comments`) + R2 photos, hand-rolled router `src/index.ts`, migrations `0001`-`0003`.
+  (binding `DB`) + R2 photos, hand-rolled router `src/index.ts`, migrations `0001`-`0003`.
   Identity is an anonymous device token: `POST /v1/devices` mints it, `users.token_hash` stores
   its SHA-256, one token per user (`src/auth.ts:41-91`). Every comment *read* is public; writes
   are bearer-authed. Delta sync is `?since=` + keyset cursor + tombstones + `syncedAt`

@@ -24,8 +24,7 @@ export function convertDistance(km: number, unit: DistanceUnit): number {
 
 /**
  * Convert an elevation in metres to the unit that pairs with a distance unit:
- * metric ('km') stays metres, imperial ('mi') becomes feet — matching FarOut,
- * which shows feet to imperial users.
+ * metric ('km') stays metres, imperial ('mi') becomes feet.
  * (Exposed for callers that need the raw number, e.g. elevation axis ticks.)
  */
 export function convertElevation(meters: number, unit: DistanceUnit): number {
@@ -65,7 +64,7 @@ export function formatDistance(km: number, unit: DistanceUnit, options: FormatDi
 
 /**
  * Format an elevation for display. Metric ('km') shows whole metres; imperial
- * ('mi') shows whole feet with a thousands separator (FarOut convention).
+ * ('mi') shows whole feet with a thousands separator.
  *
  * @example formatElevation(389, 'km') // "389 m"
  * @example formatElevation(389, 'mi') // "1,276 ft"

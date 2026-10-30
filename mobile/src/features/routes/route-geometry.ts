@@ -1,5 +1,5 @@
 /**
- * Pure geometry for FarOut-style custom routes.
+ * Pure geometry for custom routes.
  *
  * A route is an ordered list of tapped points over a distance-sorted trail
  * track. Two point kinds:

@@ -1,5 +1,5 @@
 /**
- * "My Guides" — the FarOut-style guide list.
+ * "My Guides" — the guide list.
  *
  * One card per trail (name, region, unit-aware length, offline-status badge),
  * in sections (`features/guide/guide-sections`): "Hiking now", then the curated

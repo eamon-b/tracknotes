@@ -1,4 +1,4 @@
--- FarOut comments API — community routes, follow-ups to 0005
+-- Trail Maps comments API — community routes, follow-ups to 0005
 -- (`plans/community-routes.md`).
 --
 -- `deattribute_pending`: set, in the same statement that clears

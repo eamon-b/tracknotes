@@ -1,5 +1,5 @@
 /**
- * Shared wire types for the FarOut comments API.
+ * Shared wire types for the comments API.
  *
  * The mobile app imports these via its `@lib` alias; the Cloudflare Worker in
  * `workers/comments-api/` imports them relatively (`../../../src/lib/`).

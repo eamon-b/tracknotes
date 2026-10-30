@@ -1,4 +1,4 @@
--- FarOut comments API — user reports, waypoint descriptions, photo dedupe.
+-- Trail Maps comments API — user reports, waypoint descriptions, photo dedupe.
 --
 -- Three unrelated additions land together because they ship as one release:
 --   1. comment_reports — user-submitted moderation reports (Apple UGC).
