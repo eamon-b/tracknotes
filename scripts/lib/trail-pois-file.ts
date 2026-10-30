@@ -190,6 +190,17 @@ export function poisForBuild(file: TrailPOIFile): TrailPOI[] {
   return sortTrailPOIs(file.pois.filter(poi => !rejected.has(poiKey(poi))));
 }
 
+/**
+ * The `rejected` keys that match no fetched POI. A rejection is a stopgap
+ * until OSM catches up (a closed shop still tagged open); once the element is
+ * retagged or deleted, a re-fetch no longer returns it, and the build reports
+ * the key so it can be dropped.
+ */
+export function staleRejectedKeys(file: TrailPOIFile): string[] {
+  const fetched = new Set(file.pois.map(poiKey));
+  return file.rejected.filter(key => !fetched.has(key));
+}
+
 /** Read a trail directory's POI file, or null when it has none. */
 export function readTrailPOIFile(trailDir: string, io: PoiFileIO = NODE_IO): TrailPOIFile | null {
   const filePath = trailPOIPath(trailDir);

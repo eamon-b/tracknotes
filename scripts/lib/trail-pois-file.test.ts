@@ -10,6 +10,7 @@ import {
   readTrailPOIFile,
   readTrailPOIsForBuild,
   sortTrailPOIs,
+  staleRejectedKeys,
   stringifyTrailPOIFile,
   trailPOIPath,
   type PoiFileIO,
@@ -145,6 +146,27 @@ describe('poisForBuild', () => {
   it('keeps everything when nothing is rejected', () => {
     const result = poisForBuild(file({ pois: [poi(1, 10), poi(2, 20)] }));
     expect(result).toHaveLength(2);
+  });
+});
+
+describe('staleRejectedKeys', () => {
+  it('lists rejected keys the fetch no longer returns', () => {
+    const result = staleRejectedKeys(
+      file({
+        pois: [poi(1, 10), poi(2, 20, 'way')],
+        rejected: ['way/2', 'node/3'],
+      })
+    );
+    expect(result).toEqual(['node/3']);
+  });
+
+  it('matches on type as well as id', () => {
+    const result = staleRejectedKeys(file({ pois: [poi(7, 10, 'node')], rejected: ['way/7'] }));
+    expect(result).toEqual(['way/7']);
+  });
+
+  it('is empty when every rejected key is still fetched', () => {
+    expect(staleRejectedKeys(file({ pois: [poi(1, 10)], rejected: ['node/1'] }))).toEqual([]);
   });
 });
 
