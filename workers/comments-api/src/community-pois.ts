@@ -108,7 +108,7 @@ export interface PoiAnswerCache {
   put(queryHash: string, body: Uint8Array): Promise<boolean>;
 }
 
-const USER_AGENT = 'trail-maps-comments-api/1.0 (+https://github.com/eamon-b/trail-maps)';
+const USER_AGENT = 'tracknotes-comments-api/1.0 (+https://tracknotes.info)';
 
 /** The route as the build queries it, and the Overpass requests that takes. */
 export interface PoiPlan extends TrailPoiSearchPlan {

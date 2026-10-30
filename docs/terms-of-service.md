@@ -2,7 +2,7 @@
 
 <!--
 Maintainers: the public copy ships with the web app at `public/terms.html`,
-published at https://trail-maps.vercel.app/terms.html beside the privacy
+published at https://tracknotes.info/terms.html beside the privacy
 policy. Keep the two in sync: change one and change the other.
 
 The app links the same URL from Settings → About, and from the licence line
@@ -15,7 +15,7 @@ outstanding: link it from the App Store / Play Store listings (#31).
 
 **Last updated: 2026-10-19**
 
-These terms cover the Tracknotes app and the trail-maps website (together,
+These terms cover the Tracknotes app and the Tracknotes website, tracknotes.info (together,
 "Tracknotes"). By using Tracknotes, or by posting anything to it, you agree to
 them. If you do not agree, do not use it.
 
@@ -93,7 +93,7 @@ from land managers are honoured by default.
 Tracknotes has no sign-up: posting registers an anonymous device identity with
 the display name you choose. You can delete it at any time from Settings →
 **Delete account** (shown once you have posted); what that removes is described in the
-[privacy policy](https://trail-maps.vercel.app/privacy.html). Content already
+[privacy policy](https://tracknotes.info/privacy.html). Content already
 released under CC0 may remain in copies others have made.
 
 ## Third-party data

@@ -1,7 +1,7 @@
 {
-  "name": "trail-maps",
+  "name": "tracknotes",
   "version": "1.0.0",
-  "description": "Interactive trail maps for Australian long-distance hiking trails",
+  "description": "Tracknotes: maps, waypoints and trip planning for long-distance hiking trails",
   "type": "module",
   "engines": {
     "node": ">=22"

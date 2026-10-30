@@ -161,7 +161,7 @@ const DEFAULT_ENDPOINT = DEFAULT_OVERPASS_ENDPOINT;
 /** `createOverpassFetcher`'s default `[timeout:]`, restated so --timeout has a baseline to print. */
 const DEFAULT_TIMEOUT_SECONDS = 22;
 /** Overpass etiquette asks clients to identify themselves; kumi.systems enforces it. */
-const USER_AGENT = 'trail-maps-fetch-pois/1.0 (+https://github.com/eamon-b/trail-maps)';
+const USER_AGENT = 'tracknotes-fetch-pois/1.0 (+https://tracknotes.info)';
 
 const ALL_POI_TYPES: POIType[] = [...POI_TYPES];
 

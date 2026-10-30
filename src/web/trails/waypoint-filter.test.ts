@@ -621,7 +621,7 @@ describe('booting the trail viewer', () => {
       fetched.push(String(url));
       return { ok: true, json: async () => makeTrail() } as unknown as Response;
     }) as typeof fetch;
-    window.history.replaceState({}, '', '/trail-maps/trails/heysen/');
+    window.history.replaceState({}, '', '/tracknotes/trails/heysen/');
     try {
       const html = fs.readFileSync(path.join(ROOT, 'src/web/my-trail.html'), 'utf8');
       document.documentElement.innerHTML = html.replace(/<!DOCTYPE html>/i, '').replace(/<\/?html[^>]*>/gi, '');
@@ -632,6 +632,6 @@ describe('booting the trail viewer', () => {
       globalThis.fetch = realFetch;
       window.history.replaceState({}, '', '/');
     }
-    expect(fetched).toEqual([`${window.location.origin}/trail-maps/data/generated/heysen.json`]);
+    expect(fetched).toEqual([`${window.location.origin}/tracknotes/data/generated/heysen.json`]);
   });
 });

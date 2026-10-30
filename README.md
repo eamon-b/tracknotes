@@ -1,9 +1,9 @@
-# Trail Maps & Tracknotes
+# Tracknotes
 
-Maps, elevation profiles, waypoint datasheets and trip planning for long-distance hiking trails. There are two parts:
+Maps, elevation profiles, waypoint datasheets and trip planning for long-distance hiking trails. Tracknotes comes in two forms:
 
-- **Trail Maps** ([trail-maps.vercel.app](https://trail-maps.vercel.app)), a static website for researching and planning a walk at a desk.
-- **Tracknotes**, an offline-first Android/iOS app (Expo / React Native) for carrying the same guide on the trail.
+- **The website** ([tracknotes.info](https://tracknotes.info)), a static site for researching and planning a walk at a desk.
+- **The app**, an offline-first Android/iOS app (Expo / React Native) for carrying the same guide on the trail.
 
 Both run on the same trail data and the same planning code, so a plan made in the browser works out the same days, water carries and resupply legs on the phone.
 

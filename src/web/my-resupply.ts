@@ -41,7 +41,7 @@ async function init(): Promise<void> {
   }
 
   const name = record.trail.config.name || record.name;
-  document.title = `Resupply — ${name} - Trail Maps`;
+  document.title = `Resupply — ${name} - Tracknotes`;
   // textContent, not innerHTML: `name` is whatever the user typed on upload.
   const title = byId('trail-title');
   if (title) title.textContent = name;

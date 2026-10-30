@@ -66,7 +66,7 @@ const GENERATED_DIR = path.join(PROJECT_ROOT, 'public/data/generated');
 const DATA_DIR = path.join(PROJECT_ROOT, 'data/trails');
 
 const DEFAULT_ENDPOINT = 'https://overpass-api.de/api/interpreter';
-const USER_AGENT = 'trail-maps fetch-access (+https://github.com/eamon-b/trail-maps)';
+const USER_AGENT = 'tracknotes-fetch-access (+https://tracknotes.info)';
 const M_PER_DEG = 111_320;
 
 /**

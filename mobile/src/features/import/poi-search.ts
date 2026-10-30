@@ -55,7 +55,7 @@ const MIN_DELAY_MS = 2000;
 /** One retry per instance before moving to the next: the next instance is the better retry. */
 const MAX_RETRIES_PER_ENDPOINT = 1;
 /** Overpass asks clients to identify themselves. */
-const USER_AGENT = 'Tracknotes (+https://github.com/eamon-b/trail-maps)';
+const USER_AGENT = 'Tracknotes (+https://tracknotes.info)';
 
 export { canSearchPois };
 

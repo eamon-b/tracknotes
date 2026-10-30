@@ -38,11 +38,11 @@ crons = ["*/15 * * * *"]
 # returns full URLs built from this + the object key. Tests override it.
 PHOTOS_PUBLIC_BASE = "https://data.contour-map-tiles.net"
 
-# Origin of the deployed web site: the Vercel deploy, verified 2026-09-21 as the
-# site that serves shared-plan.html. Share links are built as
+# Origin of the deployed web site: the Vercel deploy at tracknotes.info (moved
+# from trail-maps.vercel.app, which Vercel still serves). Share links are built as
 # `SITE_BASE/shared-plan.html?s=<shareId>`, so this must change the day the site
 # moves or every link minted after the move is dead. Tests override it.
-SITE_BASE = "https://trail-maps.vercel.app"
+SITE_BASE = "https://tracknotes.info"
 
 # Overpass instances the community-route POI enrichment asks, in order
 # (comma-separated https URLs; `src/community-pois.ts`). Each query goes to the

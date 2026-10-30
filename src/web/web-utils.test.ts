@@ -104,11 +104,11 @@ describe('generatedDataUrl', () => {
 
   it('stays under a site served from a sub-path, as `base: ./` allows', () => {
     // An absolute `/data/generated/…` would have gone to https://host/data/….
-    expect(generatedDataUrl('cdt.json', SITE_ROOT.trailPage, 'https://host/trail-maps/trails/cdt/')).toBe(
-      'https://host/trail-maps/data/generated/cdt.json'
+    expect(generatedDataUrl('cdt.json', SITE_ROOT.trailPage, 'https://host/tracknotes/trails/cdt/')).toBe(
+      'https://host/tracknotes/data/generated/cdt.json'
     );
-    expect(generatedDataUrl('cdt.json', SITE_ROOT.topLevel, 'https://host/trail-maps/shared-plan.html')).toBe(
-      'https://host/trail-maps/data/generated/cdt.json'
+    expect(generatedDataUrl('cdt.json', SITE_ROOT.topLevel, 'https://host/tracknotes/shared-plan.html')).toBe(
+      'https://host/tracknotes/data/generated/cdt.json'
     );
   });
 });

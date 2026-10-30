@@ -347,8 +347,8 @@ describe('the shared plan page', () => {
   });
 
   it('fetches the trail relative to the page, so a sub-path deployment works', async () => {
-    await boot(`?s=${SHARE_ID}`, '/trail-maps/shared-plan.html');
-    expect(requests).toContain(`${window.location.origin}/trail-maps/data/generated/${TRAIL_ID}.json`);
+    await boot(`?s=${SHARE_ID}`, '/tracknotes/shared-plan.html');
+    expect(requests).toContain(`${window.location.origin}/tracknotes/data/generated/${TRAIL_ID}.json`);
   });
 
   it('says so when the link is no longer shared', async () => {
