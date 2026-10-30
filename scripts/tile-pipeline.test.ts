@@ -15,7 +15,6 @@ import {
   CONTOUR_ZOOM_EXPECTATION,
   BASE_ZOOM_EXPECTATION,
   projectedEpsgFor,
-  isWithinAustralia,
   CONTOUR_TIERS,
   CONTOUR_LAYER,
   CONTOUR_TIPPECANOE_DEFAULTS,
@@ -121,13 +120,6 @@ describe('projectedEpsgFor', () => {
 
   it('clamps the antimeridian to zone 60', () => {
     expect(projectedEpsgFor(180, -40)).toBe(32760);
-  });
-});
-
-describe('isWithinAustralia', () => {
-  it('is true for an Australian trail and false for Te Araroa', () => {
-    expect(isWithinAustralia({ west: 137.9, south: -35.7, east: 139.1, north: -31.1 })).toBe(true);
-    expect(isWithinAustralia({ west: 167.8, south: -46.6, east: 175.7, north: -34.4 })).toBe(false);
   });
 });
 

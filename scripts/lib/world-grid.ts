@@ -1,7 +1,8 @@
 /**
  * Global 2°×2° cell grid for the world contour build.
  *
- * The Australia build (`tile-pipeline.ts` / `build-contours-australia.ts`) uses
+ * The Australia builds (`tile-pipeline.ts` grid cells, and the retired
+ * `build-contours-australia.ts`) use
  * cell ids like `E132_S24` where the `S` number is the cell's *north* edge in
  * positive degrees south — unusable outside the southern/eastern quadrant. This
  * module is the signed-degree replacement: every coordinate is a real

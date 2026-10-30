@@ -2,7 +2,7 @@
  * Cloudflare Worker for serving contour vector tiles from PMTiles on R2.
  *
  * URL pattern: /{source}/{z}/{x}/{y}.pbf
- * Example:     /contours/12/3750/2520.pbf
+ * Example:     /world/12/3750/2520.pbf
  *
  * Each source name maps to one PMTiles archive in R2 (see SOURCES).
  */
@@ -77,14 +77,19 @@ function finalize(response: Response, env: Env, request: Request, edgeCacheStatu
  * Served tilesets, keyed by the `{source}` path segment. Adding a tileset is
  * one entry here plus uploading the archive to R2 — nothing else in this file
  * is per-source.
+ *
+ * `contours` served the Australia archive until it was retired (#228); it is
+ * now an alias of `world`, kept because shipped app builds request it for
+ * Australian trails. contours/australia.pmtiles stays in R2 as a frozen
+ * download but is no longer served here.
  */
 const SOURCES: Record<string, string> = {
-  contours: 'contours/australia.pmtiles',
+  contours: 'contours/world.pmtiles',
   world: 'contours/world.pmtiles',
 };
 
 /** The source whose health decides the top-level `ok` of /health. */
-const DEFAULT_SOURCE = 'contours';
+const DEFAULT_SOURCE = 'world';
 
 function isKnownSource(source: string): boolean {
   return Object.hasOwn(SOURCES, source);
@@ -140,18 +145,20 @@ class R2Source implements Source {
   }
 }
 
-// Cache PMTiles instances per source, per isolate lifetime
+// Cache PMTiles instances per archive key, per isolate lifetime, so sources
+// that alias one archive share its directory cache.
 const pmtilesInstances = new Map<string, PMTiles>();
 
 function getPMTiles(bucket: R2Bucket, source: string): PMTiles {
-  let instance = pmtilesInstances.get(source);
+  const key = SOURCES[source];
+  let instance = pmtilesInstances.get(key);
   if (!instance) {
-    const r2Source = new R2Source(bucket, SOURCES[source]);
+    const r2Source = new R2Source(bucket, key);
     // Cloudflare Workers cannot reuse pending I/O promises across requests.
     // ResolvedValueCache stores only completed values and is the cache PMTiles
     // provides specifically for runtimes with that restriction.
     instance = new PMTiles(r2Source, new ResolvedValueCache());
-    pmtilesInstances.set(source, instance);
+    pmtilesInstances.set(key, instance);
   }
   return instance;
 }
@@ -197,7 +204,7 @@ async function sourceHealth(env: Env, source: string): Promise<SourceHealth> {
       },
     };
   } catch (error) {
-    pmtilesInstances.delete(source);
+    pmtilesInstances.delete(key);
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error(`Contour health check failed for ${source}: ${message}`);
     return { ok: false, error: message };
@@ -292,7 +299,7 @@ export default {
     // (`workers_dev = false`), where the code below is live.
     //
     // Staleness tradeoff: tiles are immutable for the lifetime of an archive
-    // build, but australia.pmtiles can be re-uploaded. The R2 side of that is
+    // build, but an archive can be re-uploaded. The R2 side of that is
     // handled by the EtagMismatch retry below; the edge side is not. After a
     // re-upload, edge entries can serve pre-upload tiles for up to their
     // max-age (86400s / 24h). That is the accepted tradeoff — contour geometry
@@ -397,7 +404,7 @@ export default {
         // failure into a thundering herd of cold directory re-reads.
         if (!isEtagMismatch(firstError)) throw firstError;
 
-        pmtilesInstances.delete(tile.source);
+        pmtilesInstances.delete(SOURCES[tile.source]);
         console.warn(
           `Tile ${tile.source}/${tile.z}/${tile.x}/${tile.y}: retrying with fresh PMTiles instance after etag mismatch: ` +
             (firstError instanceof Error ? firstError.message : String(firstError))

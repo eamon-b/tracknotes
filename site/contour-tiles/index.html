@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Contour Map Tiles — free 10 m contour vector tiles for the whole world</title>
-<meta name="description" content="Free contour line vector tiles for the whole world. 10 m intervals from the Copernicus GLO-30 DEM, smoothed, packaged as a single PMTiles archive with HTTP range access — no API key, no tile server. An Australia-only archive from Geoscience Australia's DEM-S is also available." />
+<meta name="description" content="Free contour line vector tiles for the whole world. 10 m intervals from the Copernicus GLO-30 DEM, smoothed, packaged as a single PMTiles archive with HTTP range access — no API key, no tile server." />
 <link rel="stylesheet" href="vendor/maplibre-gl.css" />
 <script src="vendor/maplibre-gl.js"></script>
 <script src="vendor/pmtiles.js"></script>
@@ -88,7 +88,7 @@
   <h1>Contour Map Tiles</h1>
   <p class="tagline">Free contour-line vector tiles for the whole world — 10&nbsp;m intervals
   derived from the Copernicus GLO-30 elevation model, smoothed so they look like a printed topo
-  map rather than a pixel lattice. One PMTiles file per archive, no API key, no server required.</p>
+  map rather than a pixel lattice. One PMTiles file, no API key, no server required.</p>
   <div class="badges">
     <span class="badge"><strong>World</strong> — every land mass except the ice sheets</span>
     <span class="badge">zoom <strong>9–15</strong></span>
@@ -107,23 +107,35 @@ no tile server involved; basemap by <a href="https://openfreemap.org">OpenFreeMa
 10&nbsp;m detail, or drag anywhere on Earth. Lines appear from zoom&nbsp;9.</p>
 
 <section id="archives">
-  <h2>Two archives</h2>
+  <h2>The archive</h2>
   <div class="table-scroll">
   <table>
-    <tr><th></th><th>World</th><th>Australia</th></tr>
-    <tr><th>Archive</th><td><code class="archive-url">ARCHIVE_URL</code></td><td><code class="australia-url">AUSTRALIA_URL</code></td></tr>
-    <tr><th>z/x/y endpoint</th><td><code>https://tiles.contour-map-tiles.net/world/{z}/{x}/{y}.pbf</code></td><td><code>https://tiles.contour-map-tiles.net/contours/{z}/{x}/{y}.pbf</code></td></tr>
-    <tr><th>Coverage</th><td>All land on Earth except the Antarctic and Greenland ice sheets (Iceland is in)</td><td>Mainland Australia + Tasmania</td></tr>
-    <tr><th>Source DEM</th><td>Copernicus GLO-30 (~30 m)</td><td>Geoscience Australia 1-second SRTM DEM-S (~30 m, hydrologically smoothed)</td></tr>
-    <tr><th>Size</th><td>~613 GB, ~232 million tiles</td><td>13.5 GB, ~9.6 million tiles</td></tr>
-    <tr><th>Licence</th><td>Copernicus DEM licence (free, attribution notice required)</td><td>CC-BY 4.0</td></tr>
+    <tr><th>Archive</th><td><code class="archive-url">ARCHIVE_URL</code></td></tr>
+    <tr><th>z/x/y endpoint</th><td><code>https://tiles.contour-map-tiles.net/world/{z}/{x}/{y}.pbf</code></td></tr>
+    <tr><th>Coverage</th><td>All land on Earth except the Antarctic and Greenland ice sheets (Iceland is in)</td></tr>
+    <tr><th>Source DEM</th><td>Copernicus GLO-30 (~30 m)</td></tr>
+    <tr><th>Size</th><td>~613 GB, ~232 million tiles</td></tr>
+    <tr><th>Licence</th><td>Copernicus DEM licence (free, attribution notice required)</td></tr>
   </table>
   </div>
-  <p style="margin-top:12px">Both share one schema, one zoom range and one build pipeline, so a style
-  written for either works with the other unchanged. Over Australia the two differ only in the
-  source elevation model: the Australia archive uses Geoscience Australia's DEM-S, which has had
-  drainage lines and vegetation artefacts cleaned up, so it is still the better pick for Australian
-  terrain. Everywhere else, use the world archive.</p>
+  <p style="margin-top:12px">Use the world archive everywhere, Australia included.</p>
+  <h3>Deprecated: Australia archive</h3>
+  <p>An Australia-only archive built from Geoscience Australia's 1-second SRTM DEM-S is still
+  downloadable but no longer maintained: last built 2026-10-23, it will not be rebuilt, and the
+  z/x/y endpoint no longer serves it. Compared tile for tile against the world archive at seven
+  Australian trails, the two drew near-identical lines (elevations within 10–30&nbsp;m); the world
+  archive has slightly more detail because DEM-S is hydrologically smoothed.</p>
+  <div class="table-scroll">
+  <table>
+    <tr><th>Archive</th><td><code class="australia-url">AUSTRALIA_URL</code></td></tr>
+    <tr><th>Coverage</th><td>Mainland Australia + Tasmania (112.92°E–154°E, 43.86°S–10°S)</td></tr>
+    <tr><th>Source DEM</th><td><a href="https://elevation.fsdf.org.au/">Geoscience Australia 1-second SRTM DEM-S</a> (~30 m, hydrologically smoothed)</td></tr>
+    <tr><th>Size</th><td>13.5 GB, ~9.6 million tiles</td></tr>
+    <tr><th>Licence</th><td>CC-BY 4.0 (see below)</td></tr>
+  </table>
+  </div>
+  <p style="margin-top:12px">It shares the world archive's schema and zoom range, so a style
+  written for one works with the other unchanged.</p>
 </section>
 
 <section id="quick-start">
@@ -162,17 +174,17 @@ no tile server involved; basemap by <a href="https://openfreemap.org">OpenFreeMa
     });
   });
 &lt;/script&gt;</code></pre>
-  <p>Swap the URL for the Australia archive (and its CC-BY attribution, see below) to use that
-  one instead. The same files work anywhere PMTiles is supported: MapLibre (web and native),
+  <p>The same file works anywhere PMTiles is supported: MapLibre (web and native),
   QGIS&nbsp;3.32+, Felt, and the <code>pmtiles</code> CLI.</p>
 
   <h3>Plain z/x/y endpoint</h3>
-  <p>If your client can't speak PMTiles, a conventional tile endpoint fronts each archive,
+  <p>If your client can't speak PMTiles, a conventional tile endpoint fronts the archive,
   edge-cached on Cloudflare's network:</p>
-<pre><code>https://tiles.contour-map-tiles.net/world/{z}/{x}/{y}.pbf      # world archive
-https://tiles.contour-map-tiles.net/contours/{z}/{x}/{y}.pbf   # Australia archive</code></pre>
-  <p>Empty tiles (ocean, the ice sheets) answer <code>204</code> rather than <code>404</code>;
-  <code>GET /health</code> reports each archive. Prefer the <code>pmtiles://</code> URL where you
+<pre><code>https://tiles.contour-map-tiles.net/world/{z}/{x}/{y}.pbf</code></pre>
+  <p><code>/contours/{z}/{x}/{y}.pbf</code>, which used to serve the Australia archive, is now an
+  alias of <code>/world/</code>: it returns the same tiles, so carry the Copernicus notice. Empty
+  tiles (ocean, the ice sheets) answer <code>204</code> rather than <code>404</code>;
+  <code>GET /health</code> reports the archive. Prefer the <code>pmtiles://</code> URL where you
   can — it's served straight from storage with no request limits in front of it.</p>
 </section>
 
@@ -189,7 +201,7 @@ pmtiles extract <span class="archive-url">ARCHIVE_URL</span> \
   <p>Extracts of the world archive from mountain regions run larger than the same area of
   Australia: there is simply more relief to draw. Cap the zoom with <code>--maxzoom=13</code>
   for a much smaller file if 20&nbsp;m detail is enough.</p>
-  <p>The Australia archive is small enough to take whole (13.5&nbsp;GB):</p>
+  <p>The deprecated Australia archive is small enough to take whole (13.5&nbsp;GB):</p>
 <pre><code>curl -O <span class="australia-url">AUSTRALIA_URL</span></code></pre>
   <p>Need MBTiles for an offline mobile app? <code>pmtiles convert</code> does the conversion.</p>
 </section>
@@ -207,9 +219,9 @@ pmtiles extract <span class="archive-url">ARCHIVE_URL</span> \
     <tr><th>Interval</th><td>10 m contours, 50 m index contours</td></tr>
     <tr><th>Zoom range</th><td>z9–z15 (overzooms cleanly beyond 15)</td></tr>
     <tr><th>Density by zoom</th><td>z9: 100 m contours · z10–11: 50 m · z12: 20 m · z13+: full 10 m</td></tr>
-    <tr><th>Coverage</th><td>World: every land mass covered by the Copernicus DEM, excluding the Antarctic and Greenland ice sheets (contours there are enormous and almost meaningless). Australia: mainland + Tasmania (112.92°E–154°E, 43.86°S–10°S).</td></tr>
-    <tr><th>Source DEM</th><td>World: <a href="https://registry.opendata.aws/copernicus-dem/">Copernicus GLO-30</a> (~30 m, a surface model — tree canopy and buildings are in it). Australia: <a href="https://elevation.fsdf.org.au/">Geoscience Australia 1-second SRTM DEM-S</a> (smoothed variant, ~30 m)</td></tr>
-    <tr><th>Size</th><td>World: ~613 GB, ~232 million tiles. Australia: 13.5 GB, ~9.6 million tiles</td></tr>
+    <tr><th>Coverage</th><td>World: every land mass covered by the Copernicus DEM, excluding the Antarctic and Greenland ice sheets (contours there are enormous and almost meaningless).</td></tr>
+    <tr><th>Source DEM</th><td>World: <a href="https://registry.opendata.aws/copernicus-dem/">Copernicus GLO-30</a> (~30 m, a surface model — tree canopy and buildings are in it)</td></tr>
+    <tr><th>Size</th><td>~613 GB, ~232 million tiles</td></tr>
     <tr><th>Built with</th><td>GDAL (cubic-spline oversampled warp + <code>gdal_contour</code>) and <a href="https://github.com/felt/tippecanoe">tippecanoe</a></td></tr>
   </table>
   </div>
@@ -225,12 +237,10 @@ pmtiles extract <span class="archive-url">ARCHIVE_URL</span> \
   <p>These tilesets are a by-product of building offline topo maps for
   <a href="https://github.com/eamon-b/trail-maps">a hiking-trail guide app</a>. The full pipeline —
   chunked, resumable, per-cell and per-shard — is open source in that repo:
-  <a href="https://github.com/eamon-b/trail-maps/blob/main/scripts/build-contours-world.ts"><code>scripts/build-contours-world.ts</code></a>
-  for the world and
-  <a href="https://github.com/eamon-b/trail-maps/blob/main/scripts/build-contours-australia.ts"><code>scripts/build-contours-australia.ts</code></a>
-  for Australia, with the rented-machine runbook in
+  <a href="https://github.com/eamon-b/trail-maps/blob/main/scripts/build-contours-world.ts"><code>scripts/build-contours-world.ts</code></a>,
+  with the rented-machine runbook in
   <a href="https://github.com/eamon-b/trail-maps/blob/main/docs/world-contours-remote-build.md"><code>docs/world-contours-remote-build.md</code></a>.
-  Both archives were last built in October 2026 on a single 32-core NVMe instance: the world is
+  The world archive was last built in October 2026 on a single 32-core NVMe instance:
   ~7,000 cells, ten continental tippecanoe merges and a final join, about 40 hours end to end.
   A write-up of the build (and the failures along the way) is coming soon.</p>
 </section>
@@ -245,7 +255,7 @@ pmtiles extract <span class="archive-url">ARCHIVE_URL</span> \
 <pre><code>Contours produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved</code></pre>
   <p>The contour geometry itself is free for any use, including commercial, as long as that notice
   stays attached.</p>
-  <h3>Australia archive</h3>
+  <h3>Australia archive (deprecated)</h3>
   <p>Elevation data © Commonwealth of Australia (Geoscience Australia), licensed under
   <a href="https://creativecommons.org/licenses/by/4.0/">CC-BY 4.0</a>. The derived contour tiles
   are likewise CC-BY 4.0 — free for any use, including commercial, with attribution:</p>

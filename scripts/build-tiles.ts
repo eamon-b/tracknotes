@@ -3,8 +3,8 @@
  *
  * Generates MBTiles files for each trail from open data:
  *   1. Creates corridor polygon from GPX track (buffered 20km)
- *   2. Clips the DEM to the corridor (SRTM cache in Australia, Copernicus
- *      GLO-30 elsewhere — fetch it first with fetch-dem-copernicus.ts)
+ *   2. Clips the Copernicus GLO-30 DEM to the corridor (fetch it first with
+ *      fetch-dem-copernicus.ts)
  *   3. Generates contour line vector tiles
  *   4. Extracts base map vector tiles from Protomaps
  *   5. Writes tile manifest JSON
@@ -37,7 +37,6 @@ import {
   writeManifest,
   validateMbtilesArtifact,
   projectedEpsgFor,
-  isWithinAustralia,
   BASE_ZOOM_EXPECTATION,
   CONTOUR_ZOOM_EXPECTATION,
 } from './tile-pipeline.js';
@@ -175,8 +174,7 @@ function computeBounds(points: TrackPoint[]): { west: number; south: number; eas
 }
 
 /**
- * Copernicus GLO-30 tiles covering `bounds` plus the corridor buffer, for a
- * trail outside the SRTM cache's Australian coverage.
+ * Copernicus GLO-30 tiles covering `bounds` plus the corridor buffer.
  *
  * The bucket's land mask (the tileList.txt fetch-dem-copernicus caches) says
  * which 1° tiles exist; a land tile missing on disk fails the build with the
@@ -331,12 +329,12 @@ async function processTrail(trailDir: string, args: CliArgs): Promise<void> {
   // Step 1: Generate corridor polygon
   generateCorridor(gpxPath, corridorPath, tileConfig.epsg, args.verbose);
 
-  // Step 2: Clip DEM (needed for contours). The SRTM cache only covers
-  // Australia; anywhere else the contours come from Copernicus GLO-30, the
-  // same source as the world contour archive.
+  // Step 2: Clip DEM (needed for contours). Copernicus GLO-30 everywhere,
+  // Australia included: the same source as the world contour archive the app
+  // draws online, so a pack shows the same lines as the online map (#228).
   if (!args.skipContours) {
-    const demFiles = isWithinAustralia(bounds) ? undefined : glo30TilesForBounds(bounds);
-    if (demFiles) console.log(`  DEM: ${demFiles.length} Copernicus GLO-30 tile(s)`);
+    const demFiles = glo30TilesForBounds(bounds);
+    console.log(`  DEM: ${demFiles.length} Copernicus GLO-30 tile(s)`);
     clipDem(corridorPath, demPath, args.verbose, demFiles);
   }
 

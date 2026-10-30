@@ -8,12 +8,10 @@
 #   2. Authenticate: wrangler login (or CLOUDFLARE_API_TOKEN in the environment)
 #
 # Usage:
-#   ./scripts/upload-tiles.sh                  # Upload all per-trail files (not national contours)
+#   ./scripts/upload-tiles.sh                  # Upload all per-trail files
 #   ./scripts/upload-tiles.sh bibbulmun        # Upload one trail
 #   ./scripts/upload-tiles.sh --grid           # Upload all grid tiles
 #   ./scripts/upload-tiles.sh --grid E114_S34  # Upload one grid cell
-#   ./scripts/upload-tiles.sh --contours       # Upload australia-contours.pmtiles
-#   ./scripts/upload-tiles.sh --verify-contours # Check the Worker can read the archive
 #   ./scripts/upload-tiles.sh --no-purge <...>   # Leave the edge cache alone (see purge_public_url)
 #
 # The script reads from public/data/tiles/ (the build output directory)
@@ -29,9 +27,6 @@ set -euo pipefail
 BUCKET="${R2_BUCKET:-aus-map-data}"
 TILES_DIR="${TILES_DIR:-public/data/tiles}"
 GRID_DIR="$TILES_DIR/grid"
-CONTOUR_LOCAL_FILENAME="australia-contours.pmtiles"
-CONTOUR_OBJECT_KEY="contours/australia.pmtiles"
-CONTOUR_WORKER_URL="${CONTOUR_WORKER_URL:-https://tiles.contour-map-tiles.net}"
 # Public URL of the same bucket, for checking what is already published.
 TILE_PUBLIC_URL="${TILE_PUBLIC_URL:-https://data.contour-map-tiles.net}"
 # Zone of TILE_PUBLIC_URL, for purging republished manifests (not a secret).
@@ -139,9 +134,9 @@ read_manifest_entries() {
   ' "$manifest_file"
 }
 
-# wrangler `r2 object put` rejects uploads over ~300MiB. Te Araroa's contours
-# (~850MB) and the Australia contour PMTiles are both past it, so anything
-# that large goes through an S3-compatible multipart client. RCLONE_REMOTE
+# wrangler `r2 object put` rejects uploads over ~300MiB. Te Araroa's and the
+# CDT's contours (~1 GB+) are past it, so anything that large goes through an
+# S3-compatible multipart client. RCLONE_REMOTE
 # selects the Cloudflare S3 remote (defaults to "r2").
 RCLONE_REMOTE="${RCLONE_REMOTE:-r2}"
 WRANGLER_MAX_BYTES="${WRANGLER_MAX_BYTES:-$((300 * 1024 * 1024))}"
@@ -409,103 +404,6 @@ upload_grid() {
   fi
 }
 
-# --- Contour PMTiles upload ---
-
-# The Australia contour PMTiles is several GB, over wrangler's limit (see
-# WRANGLER_MAX_BYTES above), so it normally goes through rclone.
-
-validate_contour_archive() {
-  local pmtiles_file="$1"
-  local magic
-
-  # PMTiles v3 begins with the ASCII bytes "PMTiles" followed by version 3.
-  magic=$(od -An -tx1 -N8 "$pmtiles_file" | tr -d ' \n')
-  if [ "$magic" != "504d54696c657303" ]; then
-    echo "Error: $pmtiles_file is not a valid PMTiles v3 archive."
-    exit 1
-  fi
-}
-
-verify_contours() {
-  require_command "curl" "Install curl, then retry."
-
-  local health_url="${CONTOUR_WORKER_URL%/}/health"
-  local body
-  if ! body=$(curl --silent --show-error --fail-with-body "$health_url"); then
-    echo "Error: the contour Worker did not confirm the R2 archive at $CONTOUR_OBJECT_KEY."
-    if [ -n "$body" ]; then
-      echo "Worker response: $body"
-    fi
-    echo "Check that RCLONE_REMOTE points to the same Cloudflare account as $CONTOUR_WORKER_URL."
-    return 1
-  fi
-
-  if [[ ! "$body" =~ \"ok\"[[:space:]]*:[[:space:]]*true ]]; then
-    echo "Error: unexpected contour Worker health response: $body"
-    return 1
-  fi
-
-  echo "Verified: $CONTOUR_WORKER_URL can read $BUCKET/$CONTOUR_OBJECT_KEY"
-}
-
-upload_contours() {
-  require_tiles_dir
-
-  local pmtiles_file="$TILES_DIR/$CONTOUR_LOCAL_FILENAME"
-
-  if [ ! -f "$pmtiles_file" ]; then
-    echo "Error: $pmtiles_file not found. Run build-contours-australia first."
-    exit 1
-  fi
-
-  validate_contour_archive "$pmtiles_file"
-
-  local size
-  size=$(wc -c < "$pmtiles_file")
-
-  if [ "$size" -le "$WRANGLER_MAX_BYTES" ]; then
-    echo "Uploading contour PMTiles via wrangler..."
-    upload_file "$pmtiles_file" "$CONTOUR_OBJECT_KEY" \
-      "application/octet-stream" \
-      "public, max-age=2592000"
-  else
-    echo "Contour PMTiles is $((size / 1024 / 1024))MB — over wrangler's 300MiB limit."
-    echo "R2 destination: ${RCLONE_REMOTE}:$BUCKET/$CONTOUR_OBJECT_KEY"
-    echo "The rclone remote must belong to the same account as $CONTOUR_WORKER_URL."
-    if command -v rclone &> /dev/null && rclone listremotes | grep -q "^${RCLONE_REMOTE}:"; then
-      echo "Checking object access without requesting bucket-management permissions..."
-      if ! rclone lsf --s3-no-check-bucket --max-depth 1 "${RCLONE_REMOTE}:$BUCKET" > /dev/null; then
-        echo "Error: rclone cannot access the existing $BUCKET bucket."
-        echo "Check the remote endpoint and that the token has Object Read & Write access to this bucket."
-        exit 1
-      fi
-      echo "Uploading via rclone (multipart)..."
-      # Same Cache-Control the wrangler path sets: without it the custom
-      # domain serves the archive uncached (cf-cache-status: DYNAMIC) and every
-      # range read is an R2 class B operation.
-      rclone copyto --progress --s3-no-check-bucket \
-        --s3-upload-cutoff 64M --s3-chunk-size 64M \
-        --header-upload "Cache-Control: public, max-age=2592000" \
-        "$pmtiles_file" "${RCLONE_REMOTE}:$BUCKET/$CONTOUR_OBJECT_KEY"
-    else
-      cat <<EOF
-No rclone remote named "${RCLONE_REMOTE}" found. To upload files this large:
-  1. Create an R2 API token (S3 credentials) in the Cloudflare dashboard:
-     R2 > Manage R2 API Tokens > Create (Object Read & Write on $BUCKET)
-  2. Run "rclone config" and create a uniquely named S3 remote using:
-       provider: Cloudflare
-       endpoint: https://<owning-account-id>.r2.cloudflarestorage.com
-       advanced option no_check_bucket: true
-  3. Re-run with that remote name:
-       RCLONE_REMOTE=<remote-name> npm run upload:tiles -- --contours
-EOF
-      exit 1
-    fi
-  fi
-  verify_contours
-  echo "Done: $CONTOUR_OBJECT_KEY"
-}
-
 # --- Main dispatch ---
 
 # --no-purge may sit anywhere in the arguments.
@@ -515,21 +413,13 @@ for arg in "$@"; do
 done
 set -- "${args[@]+"${args[@]}"}"
 
-# Every mode but the contour archive publishes manifests, and so purges.
-case "${1:-}" in
-  --contours|--verify-contours) ;;
-  *) require_purge_token ;;
-esac
+# Every mode publishes manifests, and so purges.
+require_purge_token
 
 if [ $# -ge 1 ] && [ "$1" = "--grid" ]; then
   # Grid mode
   shift
   upload_grid "${1:-}"
-elif [ $# -ge 1 ] && [ "$1" = "--contours" ]; then
-  # Contour PMTiles mode
-  upload_contours
-elif [ $# -ge 1 ] && [ "$1" = "--verify-contours" ]; then
-  verify_contours
 elif [ $# -ge 1 ]; then
   # Upload specific trail(s)
   for trail_id in "$@"; do
@@ -546,9 +436,6 @@ else
     upload_trail "$trail_id"
   done
   upload_root_manifest
-  echo ""
-  echo "Note: the Australia-wide online contour archive is a separate upload."
-  echo "Run: npm run upload:tiles -- --contours"
 fi
 
 echo ""

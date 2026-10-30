@@ -6,7 +6,7 @@
  * compute on the world build (issue #34).
  *
  * Each variant runs the production per-cell pipeline from
- * build-contours-australia.ts — buffered gdalwarp (`-tap`) → gdal_contour -i 10
+ * build-contours-world.ts (as the retired Australia build did) — buffered gdalwarp (`-tap`) → gdal_contour -i 10
  * → 4 zoom-tier ogr2ogr splits carrying `is_index` → tippecanoe (one layer per
  * tier, gated by zoom) → tile-join (tiers folded into `contour`) — with one or
  * more knobs changed, and writes `data/experiments/{run}/{variant}.pmtiles`
@@ -443,7 +443,7 @@ function featureCount(filePath: string): number {
 
 /**
  * Build one variant end to end. Mirrors processCell() in
- * build-contours-australia.ts: buffered warp from a VRT mosaic, 10 m contours,
+ * build-contours-world.ts: buffered warp from a VRT mosaic, 10 m contours,
  * per-tier classify+clip, then tippecanoe — here writing PMTiles directly
  * instead of merging hundreds of cells.
  */
