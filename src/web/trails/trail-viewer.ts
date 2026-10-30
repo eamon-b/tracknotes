@@ -1213,8 +1213,10 @@ function drawTermini(termini: RouteVariant[]): void {
     })
       .addTo(map!)
       .bindPopup(
-        `<strong>${escapeHtml(endName)}</strong><br>End of ${escapeHtml(terminus.name)}` +
-          `<br>${escapeHtml(terminus.distance)} km from the junction`
+        () =>
+          `<strong>${escapeHtml(endName)}</strong><br>End of ${escapeHtml(terminus.name)}` +
+          `<br>${escapeHtml(terminus.distance)} km from the junction` +
+          waypointOsmDetailsHtml(trailState.currentTrail, endWaypoint?.id)
       );
   });
 }

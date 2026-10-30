@@ -163,7 +163,11 @@ generated JSON.
   deleting. Landed on mobile (PR #67) as a collapsed "From OpenStreetMap"
   section on the waypoint screen, and on the web (issue #229) as the same
   collapsed section in the waypoint marker popups of the trail page and the
-  planner, both through `@lib/poi-display` `duplicatePoisFor`.
+  planner, both through `@lib/poi-display` `duplicatePoisFor`. The trail page
+  draws no markers for alternate or side-trip waypoints (only a terminus's end
+  marker, which carries the section), so a POI flagged against one of those is
+  still shown only on the phone — e.g. Echo Point Hut on the Overland's Cynthia
+  Bay lakeside terminus.
 - **Category toggles**: flagged POIs stay out of the visible counts, so
   "camping (13)" means 13 markers.
 
