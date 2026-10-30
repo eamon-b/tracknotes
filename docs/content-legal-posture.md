@@ -179,5 +179,5 @@ display name the hiker chooses. There is no email, password or sign-up.
 ## Open questions for the legal read
 
 - **Takedown contact.** Takedowns and privacy requests share one address
-  (`privacy@contour-map-tiles.net`), and no response time is committed for
+  (`privacy@tracknotes.info`), and no response time is committed for
   privacy requests.

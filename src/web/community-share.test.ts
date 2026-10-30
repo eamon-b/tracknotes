@@ -478,8 +478,8 @@ describe('the licence lines under the rights tick', () => {
     );
     const links = [...el.querySelectorAll('a')].map(a => [a.textContent, a.getAttribute('href'), a.rel]);
     expect(links).toEqual([
-      ['terms of service', 'https://trail-maps.vercel.app/terms.html', 'noopener'],
-      ['privacy policy', 'https://trail-maps.vercel.app/privacy.html', 'noopener'],
+      ['terms of service', 'https://tracknotes.info/terms.html', 'noopener'],
+      ['privacy policy', 'https://tracknotes.info/privacy.html', 'noopener'],
     ]);
   });
 });
