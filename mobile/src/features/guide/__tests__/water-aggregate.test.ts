@@ -135,6 +135,55 @@ describe('aggregateWaterStatus', () => {
   });
 });
 
+describe('aggregateWaterStatus at day resolution (issue #248)', () => {
+  // The comments API publishes observedAt only to the day: midnight UTC.
+  const NOON = NOW + DAY / 2;
+  const observedOn = (status: WaterReport['waterStatus'], daysAgo: number): WaterReport => ({
+    waterStatus: status,
+    observedAt: new Date(NOW - daysAgo * DAY).toISOString(),
+    createdAt: new Date(NOON).toISOString(),
+  });
+
+  it('dates a report observed today from midnight UTC, so it reads as today', () => {
+    const agg = aggregateWaterStatus([observedOn('flowing', 0)], NOON)!;
+    expect(agg.ageDays).toBeCloseTo(0.5, 6);
+    expect(agg.weight).toBeCloseTo(Math.exp(-0.5 / WATER_DECAY_DAYS), 6);
+    expect(formatWaterStatusChip(agg)).toBe('Flowing · today');
+  });
+
+  it('keeps a day-old report a day old', () => {
+    const agg = aggregateWaterStatus([observedOn('low', 1)], NOW)!;
+    expect(agg.ageDays).toBe(1);
+    expect(formatWaterStatusChip(agg)).toBe('Low · 1d');
+  });
+
+  it('decays by whole days with the 30-day constant', () => {
+    const agg = aggregateWaterStatus([observedOn('dry', WATER_DECAY_DAYS)], NOW)!;
+    expect(agg.weight).toBeCloseTo(Math.exp(-1), 6);
+  });
+
+  it('keeps the 120-day window edge: day 120 is in, any later instant is out', () => {
+    expect(aggregateWaterStatus([observedOn('flowing', WATER_WINDOW_DAYS)], NOW)).not.toBeNull();
+    // The same midnight seen an hour later is past the window.
+    expect(
+      aggregateWaterStatus([observedOn('flowing', WATER_WINDOW_DAYS)], NOW + DAY / 24),
+    ).toBeNull();
+    expect(aggregateWaterStatus([observedOn('flowing', WATER_WINDOW_DAYS + 1)], NOW)).toBeNull();
+  });
+
+  it('lets a report from a later day outweigh one from the day before', () => {
+    const agg = aggregateWaterStatus([observedOn('flowing', 3), observedOn('dry', 2)], NOW)!;
+    expect(agg.status).toBe('dry');
+  });
+
+  it('treats tomorrow’s midnight (the server’s 10-minute skew allowance) as zero-age', () => {
+    const justBeforeMidnight = NOW + DAY - 5 * 60 * 1000;
+    const agg = aggregateWaterStatus([observedOn('flowing', -1)], justBeforeMidnight)!;
+    expect(agg.ageDays).toBe(0);
+    expect(agg.weight).toBeCloseTo(1, 6);
+  });
+});
+
 describe('buildWaterStatusMap', () => {
   it('ranks each waypoint independently and omits ones with no in-window reports', () => {
     const map = buildWaterStatusMap(

@@ -189,10 +189,30 @@ export function validateDescription(raw: unknown): string {
   return trimmed;
 }
 
+const DAY_MS = 86_400_000;
+
 /**
- * Validate + clamp an optional `observedAt` timestamp. Malformed timestamps are
- * rejected; timestamps further than 10 min into the future are clamped down to
- * `now + 10min` (never rejected). Returns an ISO string or null.
+ * Coarsen an instant to its day: midnight UTC of the UTC calendar date it
+ * falls on, as an ISO timestamp (`2026-10-30T00:00:00.000Z`). A water report's
+ * `observedAt` is held and published at this granularity only (issue #248),
+ * so it cannot place a hiker at a tank at a given hour.
+ *
+ * The day is the UTC date, not the hiker's local one: clients send
+ * `toISOString()` (always `Z`), so the server never knows the local offset,
+ * and flooring in UTC only ever moves the time *earlier*, by under a day — a
+ * report can look up to a day older than it is, never fresher. The shape stays
+ * a full ISO timestamp so clients that `Date.parse` it or compare it as a
+ * string against other ISO times keep working.
+ */
+export function observedDayIso(ms: number): string {
+  return new Date(Math.floor(ms / DAY_MS) * DAY_MS).toISOString();
+}
+
+/**
+ * Validate + clamp + coarsen an optional `observedAt` timestamp. Malformed
+ * timestamps are rejected; timestamps further than 10 min into the future are
+ * clamped down to `now + 10min` (never rejected); the result is then coarsened
+ * to its UTC day (`observedDayIso`). Returns an ISO string or null.
  */
 export function clampObservedAt(raw: unknown, nowMs: number): string | null {
   if (raw === undefined || raw === null) return null;
@@ -204,8 +224,19 @@ export function clampObservedAt(raw: unknown, nowMs: number): string | null {
     throw new HttpError(400, 'invalid_observed_at', 'observedAt must be a valid ISO 8601 timestamp');
   }
   const ceiling = nowMs + OBSERVED_AT_FUTURE_TOLERANCE_MS;
-  const clamped = Math.min(parsed, ceiling);
-  return new Date(clamped).toISOString();
+  return observedDayIso(Math.min(parsed, ceiling));
+}
+
+/**
+ * The published form of a stored `observed_at`: coarsened to its UTC day
+ * again on the way out, so a row written before migration `0010` (or by a
+ * worker deployed after it) never publishes a finer time. Null stays null, as
+ * does a value that no longer parses.
+ */
+export function publishedObservedAt(stored: string | null): string | null {
+  if (stored === null) return null;
+  const parsed = Date.parse(stored);
+  return Number.isNaN(parsed) ? null : observedDayIso(parsed);
 }
 
 /** A pagination limit parser: clamps to [1, max], defaulting to `fallback`. */

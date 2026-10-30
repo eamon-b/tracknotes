@@ -86,7 +86,9 @@ display name the hiker chooses. There is no email, password or sign-up.
      its age ("Flowing · 3 days ago"), not as the newest row: reports older
      than 120 days are ignored and the rest decay with a 30-day constant, so
      one recent "dry" outweighs a stack of old "flowing"
-     (`mobile/src/features/guide/water-aggregate.ts`).
+     (`mobile/src/features/guide/water-aggregate.ts`). A report's age runs from
+     its observation day's midnight UTC when it has one, else from its exact
+     posting time; at day resolution the window and decay work unchanged.
    - *No one-time acknowledgement* (decided 2026-10-19, issue #144). The first
      draft required one before community water data was first shown; the
      attribution replaces it, and nothing is put in the hiker's way.
@@ -116,14 +118,20 @@ display name the hiker chooses. There is no email, password or sign-up.
      but their metadata is kept, deliberately, and the policy says so), and a
      synced plan's stops. Each is posted by the hiker's choice, and the policy
      names each one. GPS position is never sent on its own.
-   - *Times are published as posted* (decided 2026-10-30). A comment's posting
-     time and a water report's `observedAt` (only clamped against the future:
-     `clampObservedAt`) are public to the second; the first draft planned to
-     round the observation time to the day, so a report could not place a
-     hiker at a tank at a given hour. Rounding `observedAt` alone would protect
-     little: the posting time beside it is exact, the feeds and sync depend on
-     it, and a photo's EXIF carries its own time and place. Posting is opt-in,
-     and the policy says both times are public.
+   - *Observation time to the day* (decided by the owner, issue #248,
+     superseding the 2026-10-30 "published as posted" decision). A water
+     report's `observedAt` is stored and published only as a date, so a report
+     cannot place a hiker at a tank at a given hour: `clampObservedAt` clamps
+     it against the future, then floors it to midnight UTC of its UTC date
+     (`2026-10-30T00:00:00.000Z`), every read coarsens it again, and migration
+     `0010` coarsened the rows held before. The day is the UTC date, not the
+     hiker's local one: clients send UTC, so the server never knows the
+     offset, and flooring in UTC only makes a report look older (by under a
+     day), never fresher, which is the safe error for water. A comment's
+     posting time (`createdAt`) stays exact: the feeds, sync and moderation
+     depend on it, and a photo's EXIF still carries its own time and place.
+     Posting is opt-in, and the policy says the posting time is public and the
+     observation is kept to the day.
    - *APP 6, use.* Data is used to run the service and to moderate it. There
      is no analytics, advertising or third-party tracking.
    - *APP 8, cross-border disclosure.* Data is stored with Cloudflare under an
@@ -143,7 +151,7 @@ display name the hiker chooses. There is no email, password or sign-up.
    - *APP 12/13, access, correction and deletion.* Settings → Delete account
      calls `DELETE /v1/me`, which works by **anonymising in place, not deleting
      rows**. The display name becomes "Deleted user", every token is revoked,
-     and the account's comments (text, water status, observation time, photos),
+     and the account's comments (text, water status, observation date, photos),
      shared waypoints (name, note, position) and plans (contents and share
      link) are erased to empty tombstones. The tombstones are kept so that
      synced devices drop them. The account's community routes stay published
