@@ -2,7 +2,7 @@
  * Tests for the contour tile worker's input validation and security.
  *
  * The worker at workers/contour-tiles/src/index.ts uses parseTilePath()
- * to parse tile paths, validates source === 'contours', and enforces
+ * to parse tile paths, accepts only the sources in sources.ts, and enforces
  * MAX_ZOOM. CORS is configurable via env.ALLOWED_ORIGIN.
  */
 
@@ -11,12 +11,7 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 // The worker's own parser (a dependency-free module), not a copy of it.
 import { parseTilePath } from '../../workers/contour-tiles/src/tile-path';
-
-const ALLOWED_SOURCES = ['contours'];
-
-function isAllowedSource(source: string): boolean {
-  return ALLOWED_SOURCES.includes(source);
-}
+import { isKnownSource as isAllowedSource } from '../../workers/contour-tiles/src/sources';
 
 describe('parseTilePath', () => {
   it('parses valid contour tile path', () => {

@@ -114,7 +114,15 @@ to land immediately, either purge the zone cache manually in the Cloudflare
 dashboard or change the URL path so the new tiles have new cache keys. The edge
 cache is keyed by URL, so `/contours/…` and `/world/…` hold separate entries
 for the same tiles; repointing `contours` from the Australia archive to the
-world one was followed by a purge of `tiles.contour-map-tiles.net/contours/*`.
+world one was followed by a purge of `tiles.contour-map-tiles.net/contours/*`;
+`npm run check:tiered` (root) confirms both took effect: `/health` reports
+`sources.contours.archive.key` as `contours/world.pmtiles`, and `/contours/…`
+and `/world/…` serve byte-identical tiles. A purge clears only the edge:
+browsers and phones may keep tiles they already hold for their `max-age`
+(86400 s), so devices can show the old lines for up to a day after it.
+
+The source → archive mapping lives in `src/sources.ts`, free of runtime
+dependencies so the root suite tests it (`src/lib/contour-worker-sources.test.ts`).
 
 ## CORS
 

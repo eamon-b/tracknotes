@@ -8,6 +8,7 @@
  */
 
 import { EtagMismatch, PMTiles, RangeResponse, ResolvedValueCache, Source } from 'pmtiles';
+import { DEFAULT_SOURCE, isKnownSource, SOURCES } from './sources';
 import { parseTilePath } from './tile-path';
 
 interface Env {
@@ -71,28 +72,6 @@ function finalize(response: Response, env: Env, request: Request, edgeCacheStatu
     statusText: response.statusText,
     headers,
   });
-}
-
-/**
- * Served tilesets, keyed by the `{source}` path segment. Adding a tileset is
- * one entry here plus uploading the archive to R2 — nothing else in this file
- * is per-source.
- *
- * `contours` served the Australia archive until it was retired (#228); it is
- * now an alias of `world`, kept because shipped app builds request it for
- * Australian trails. contours/australia.pmtiles stays in R2 as a frozen
- * download but is no longer served here.
- */
-const SOURCES: Record<string, string> = {
-  contours: 'contours/world.pmtiles',
-  world: 'contours/world.pmtiles',
-};
-
-/** The source whose health decides the top-level `ok` of /health. */
-const DEFAULT_SOURCE = 'world';
-
-function isKnownSource(source: string): boolean {
-  return Object.hasOwn(SOURCES, source);
 }
 
 /**
