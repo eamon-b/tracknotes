@@ -29,8 +29,7 @@ Record the output and date below each time this is re-checked.
 
 ## Australian Privacy Principles (APP) posture
 
-The original analysis lives in `docs/content-legal-posture.md` (extracted from
-the retired part-6b crowd-sourcing design; still valid for the APP analysis).
+The full analysis is in `docs/content-legal-posture.md` (decision 3).
 Summary:
 
 - APP 8 (cross-border disclosure) applies if user content leaves Australia.

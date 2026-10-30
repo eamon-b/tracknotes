@@ -1,46 +1,69 @@
 # Legal & Licensing Posture (user-contributed content)
 
-> Extracted verbatim from the retired `plans/part-6b-crowdsourcing-design.md` §8
-> (deleted 2026-08-22 with the rest of the pre-rebuild plans). The **decisions**
-> below — CC0 for contributions, the safety-critical water disclaimer, the
-> Australian Privacy Principles posture, and the ToS/takedown shape — are still
-> the project's position. A draft ToS is `docs/terms-of-service.md` (published
-> as `public/terms.html`, awaiting a legal read), and the CC0 line is shown
-> where comments are posted and waypoints shared (issue #148); the store
-> listing link is still outstanding (#31).
->
-> **Stale infrastructure references.** The text was written against the Supabase
-> design that was never built. Read "Supabase Sydney", "RLS", "Edge Function",
-> "pre-moderated", "the weekly fold", and the `devices`/submissions schema as
-> the shipped equivalents: Cloudflare D1 + R2 (`workers/comments-api/`),
-> anonymous device-token auth, live **post**-moderation with a report/flag
-> endpoint, and `DELETE /v1/me` (soft-delete + anonymize) for APP 12/13. Current
-> storage placement is tracked in `docs/data-residency.md`; what is actually
-> disclosed to users is in `docs/privacy-policy.md`.
+The project's decisions on what hikers contribute: the licence it is given
+under, how hiker-reported water is presented, the Australian Privacy Principles
+posture, and moderation and takedown. It records *why*; what users are told is
+in the user-facing drafts, which win if this note disagrees with them:
 
----
+- `docs/privacy-policy.md` (published as `public/privacy.html`): what is
+  collected, where it is stored, and what deleting an account removes.
+- `docs/terms-of-service.md` (published as `public/terms.html`): the CC0 grant,
+  acceptable use, moderation and the liability disclaimer.
+- `docs/data-residency.md`: where Cloudflare actually holds the data, and why
+  residency is never promised.
+- `docs/architecture/workers.md`: how the comments API implements all of it.
 
-## 8. Legal
+Both drafts await a human (ideally legal) read before the store listings link
+them (issues #31, #148).
 
-**Decisions:**
+Rewritten 2026-10-30 (issue #232) against the shipped Cloudflare backend. The
+first version was an extract from the retired Supabase-era crowdsourcing design
+(Sydney storage, row-level security, an Edge Function, pre-moderation, a weekly
+fold, optional email), none of which was built.
 
-1. **Contribution licensing — CC0 (public domain dedication), granted at submission
-   time.** The submit sheet's first-use notice includes: *"Contributions are dedicated
-   to the public domain (CC0) so they can be freely redistributed, including in this
-   app and other mapping projects."* CC0 is chosen over CC-BY-SA because: (a)
-   attribution stacking is unworkable when hundreds of micro-contributions are folded
-   into one JSON artifact; (b) ShareAlike would arguably contaminate the published
-   trail-data files and complicate any future licensing of the dataset; (c) **OSM
-   compatibility** — CC0 data can be ingested into OpenStreetMap (ODbL) without a
-   waiver, whereas CC-BY-SA is not ODbL-compatible; keeping the door open to
-   contributing water-point data upstream to OSM is worth more than attribution. The
-   in-app display-name credit for linked users (Section 5) is a product courtesy, not
-   a license term.
+## What is contributed
 
-   *Community routes and OpenStreetMap POIs (2026-10, issue #163).* CC0 covers
-   only what the hiker contributes: the route, its waypoints and text, and the
-   display name. The points of interest the comments API adds to a published
-   route (`enrichCommunityRoutePois`) are OpenStreetMap data, © OpenStreetMap
+Everything a hiker publishes goes through the comments API
+(`workers/comments-api/`, Cloudflare D1 + R2) under an anonymous device
+identity: a random id, a sign-in token held server-side only as a hash, and the
+display name the hiker chooses. There is no email, password or sign-up.
+
+- **Comments** at a curated waypoint, a community route's waypoint, a shared
+  waypoint or an OpenStreetMap POI, optionally with a water status
+  (`flowing`/`low`/`dry`), an observation time and photos.
+- **Shared waypoints** (`hw_`): position, name, type and note.
+- **Community routes**: the processed route, its text and region, and
+  optionally the original GPX, kept privately.
+- **Plans** synced for the built-in trails. Private to the account unless the
+  hiker makes a share link; not a public contribution.
+
+## Decisions
+
+1. **Contribution licensing: CC0, granted when posting.** Comments (with their
+   water reports and photos), shared waypoints and community routes are
+   dedicated to the public domain under CC0 1.0. The line under the phone's
+   comment composer and waypoint form says so and links the terms
+   (`contributionLicenceLine` and `TERMS_URL` in
+   `src/lib/contribution-licence.ts`). Sharing a community route, on the web
+   or the phone, needs a tick: "I recorded this track myself, or it is openly
+   licensed, and I release it under CC0 (public domain)" (`src/web/upload.html`,
+   `mobile/src/features/community/share-form.ts`). The terms add a fallback
+   licence where CC0 cannot waive a right. CC0 rather than CC-BY-SA because:
+   - attribution stacking is unworkable across hundreds of small contributions
+     shown together;
+   - ShareAlike would arguably reach the published trail-data files and
+     complicate any future licensing of the dataset;
+   - CC0 data can go into OpenStreetMap (ODbL) without a waiver, where CC-BY-SA
+     cannot, and contributing water-point data upstream is worth more than
+     attribution.
+
+   The display name shown beside a contribution is a courtesy, not a licence
+   term.
+
+   *Community routes and OpenStreetMap POIs (issue #163).* CC0 covers only what
+   the hiker contributes: the route, its waypoints and text, and the display
+   name. The POIs the comments API adds to a published route
+   (`enrichCommunityRoutePois`) are OpenStreetMap data, © OpenStreetMap
    contributors under the ODbL, and are never relicensed: they sit in their own
    `pois` array, and the route's `config.dataSource` says so ("…under CC0.
    Points of interest © OpenStreetMap contributors, under the Open Database
@@ -49,55 +72,113 @@
    credits. The API's `licence: 'CC0-1.0'` describes the hiker's contribution,
    not the POIs. The same split holds for an import's POIs on the phone and the
    web, which never leave the device.
-2. **Safety-critical water-data disclaimer.** Water status is the one datum where a
-   wrong value can hurt someone. Required: persistent "Reported by <name> · <date>"
-   attribution on hiker-reported water, with no hedging or advice: the hiker
-   judges it, and another hiker's shared water still counts in the carry
-   calculators (decided 2026-10-18). The phone shows that line on the List
-   pane row (read to screen readers too) and on the waypoint screen
-   (`hikerReportLine`, #167), and it is what sets another hiker's pin apart
-   from curated data and from the hiker's own ("Added by you"). **No one-time
-   acknowledgement** (decided 2026-10-19, issue #144): the first draft of this
-   section required one before community water data was first displayed; the
-   attribution note replaces it, and nothing is put in the hiker's way. The existing
-   `unknown`-when-stale rule in Section 2.3 is itself a safety control. Also a ToS
-   clause disclaiming reliance on user-submitted data to the extent permitted by the
-   Australian Consumer Law (blanket disclaimers can't exclude ACL consumer guarantees,
-   so the wording must be "to the maximum extent permitted by law" and reviewed once
-   before launch).
-3. **Australian Privacy Act 1988 (APPs).** PII collected is minimal by design: an
-   anonymous device identity (the auth uid, §5), optional email, submission
-   timestamps + trail locations. Compliance posture:
-   - *APP 1/5 — open + collection notice:* a privacy policy page and an in-app notice
-     at first submission stating what is collected, why, that storage is in Australia
-     (Supabase Sydney, Section 4), and the contact address.
-   - *APP 3 — minimal collection:* no name, no phone, no account required; email only
-     if the user opts in; observation locations are trail features, not user tracking.
-     One deliberate mitigation: published data never includes device identifiers, and
-     `observed_at` is published at day granularity so a fold can't be used to place a
-     specific hiker at a specific tank at a specific hour.
-   - *APP 11 — security:* RLS everywhere, service-role key only in CI secrets.
-   - *APP 12/13 — access + correction/deletion:* a settings-screen "Delete my
-     contributions and data" action (Edge Function), plus the same via email
-     request. The flow is **anonymize-in-place, not row deletion** — the first
-     draft's "delete device row, tombstone submissions" was both impossible and
-     dangerous: submission rows FK the device row (so it could not be deleted
-     as written), and deleting *approved* observations would make the next
-     weekly fold silently flip published water statuses — a privacy request
-     must never mutate safety data. Concretely: erase and unlink the email;
-     hard-delete or tombstone only *unpublished* (queued/pending) rows; keep
-     approved/published rows but sever their device link — `device_id` is
-     nullable with `ON DELETE SET NULL` (§2.2), so deleting the `devices` row
-     anonymizes everything it touched in one statement. Published aggregates
-     are unaffected by design: they are CC0, already carry no device identifier
-     (see APP 3), and the notice says so explicitly.
-   - The project is almost certainly under the $3M small-business threshold, so much
-     of the Act may not strictly apply — comply anyway; it is cheap at this scale and
-     the residency choice was made for it.
-4. **ToS + takedown.** A short ToS covering the CC0 grant, acceptable use, moderation
-   rights, and disclaimer, accepted implicitly at first submission (link + "by
-   submitting you agree"). Takedown process: any content can be reported via the 6a
-   feedback email; target acknowledge within 72h; since all content is pre-moderated
-   and text-only, takedown means rejecting/unpublishing a row and running the fold —
-   minutes of work. Land-manager requests (e.g. a parks service asking to remove a
-   sensitive site) are honored by default.
+
+2. **Hiker-reported water: attribution, no gate.** Water status is the one
+   datum where a wrong value can hurt someone. The controls:
+   - *Attribution.* Another hiker's shared waypoint carries "Reported by
+     <name> · <date>" (`hikerReportLine`, #167) on the phone's List pane row
+     (read to screen readers too) and on the waypoint screen. That line is what
+     sets it apart from curated data and from the hiker's own ("Added by you").
+     There is no hedging or advice: the hiker judges it, and another hiker's
+     shared water still counts in the carry calculators (decided 2026-10-18).
+   - *Freshness.* Water reports on comments are shown as a ranked verdict with
+     its age ("Flowing · 3 days ago"), not as the newest row: reports older
+     than 120 days are ignored and the rest decay with a 30-day constant, so
+     one recent "dry" outweighs a stack of old "flowing"
+     (`mobile/src/features/guide/water-aggregate.ts`).
+   - *No one-time acknowledgement* (decided 2026-10-19, issue #144). The first
+     draft required one before community water data was first shown; the
+     attribution replaces it, and nothing is put in the hiker's way.
+   - *Terms.* The terms disclaim reliance on user-posted information "to the
+     maximum extent permitted by law" and preserve the Australian Consumer Law
+     guarantees, which a blanket disclaimer cannot exclude. That wording is
+     part of the legal read in #148.
+
+3. **Australian Privacy Act 1988 (APPs): comply, though probably exempt.** The
+   project is almost certainly under the $3M small-business threshold, so much
+   of the Act may not strictly apply. It complies anyway: it is cheap at this
+   scale.
+   - *APP 1/5, open and notified.* The privacy policy is published at
+     `public/privacy.html` and linked from the phone's Settings → About
+     (`PRIVACY_POLICY_URL`). The store listings must link it too (#31).
+   - *APP 3, minimal collection.* No name, email, phone or account. What is
+     held: the device identity and display name, what the hiker chooses to
+     post, linked-browser records, and network addresses for rate limiting
+     (deleted soon after 24 hours, with no account id). Location is not absent:
+     a shared waypoint placed with "Use my location", a community route's
+     track and optional raw GPX (which can hold recording times; the
+     processed route drops them), a photo's EXIF GPS (photos are re-encoded
+     but their metadata is kept, deliberately, and the policy says so), and a
+     synced plan's stops. Each is posted by the hiker's choice, and the policy
+     names each one. GPS position is never sent on its own.
+   - *APP 6, use.* Data is used to run the service and to moderate it. There
+     is no analytics, advertising or third-party tracking.
+   - *APP 8, cross-border disclosure.* Data is stored with Cloudflare under an
+     Oceania location hint, which is best-effort, so the policy says it may be
+     stored or replicated in other regions and never promises residency
+     (`docs/data-residency.md`). Two other disclosures leave Australia, and the
+     policy names both: a community route's text and a sample of its
+     coordinates go to Anthropic's API for the automated review, and a route's
+     outline (never an identity) goes to the public Overpass instances named in
+     the policy. An instance is added to the policy before it is added to the
+     code (`OVERPASS_ENDPOINTS`, `INTERACTIVE_OVERPASS_ENDPOINTS`; #231).
+   - *APP 11, security.* Sign-in and linked-browser tokens are stored only as
+     one-way hashes. Admin actions need an account flagged admin in D1.
+     Private objects in R2 (a community route's canonical JSON and raw GPX)
+     sit at unguessable keys that are never returned. Every write is rate
+     limited per account, and account registration and link codes per network.
+   - *APP 12/13, access, correction and deletion.* Settings → Delete account
+     calls `DELETE /v1/me`, which works by **anonymising in place, not deleting
+     rows**. The display name becomes "Deleted user", every token is revoked,
+     and the account's comments (text, water status, observation time, photos),
+     shared waypoints (name, note, position) and plans (contents and share
+     link) are erased to empty tombstones. The tombstones are kept so that
+     synced devices drop them. The account's community routes stay published
+     under CC0 but are de-attributed: the route is rewritten without the
+     display name, older public copies are purged, and the raw GPX is deleted.
+     Reports the account filed keep their reason but lose any text. Requests
+     by email to the policy's contact address are handled the same way. The
+     reasons for this shape:
+     - a privacy request must never silently change what other hikers rely on
+       (a community route, the water history of a source);
+     - CC0 copies others already hold cannot be recalled.
+
+     The privacy policy states exactly what remains.
+
+4. **Moderation and takedown: post-moderation, report-driven.** Content is
+   published when posted. Every comment, shared waypoint and community route
+   has a Report action.
+   - Three distinct reporters, counting only accounts at least 24 hours old
+     and only reports since the last admin restore, hide a comment, a shared
+     waypoint or an unverified community route until an admin looks at it.
+   - Community routes also get an automated review on submission. It fails
+     open, and only a confident reject hides an unverified route.
+   - Admins can hide, restore, delete, and ban an account, with or without its
+     content (`src/web/admin-moderation.html`).
+   - Takedown requests (copyright complaints, land managers asking to remove a
+     sensitive site) come through Report or the contact email. The target is
+     acknowledgement within 72 hours, and land-manager requests are honoured
+     by default.
+   - The terms are accepted by posting: the licence line under the comment
+     composer and the waypoint form links them ("By posting, you … agree to the
+     terms of service").
+
+## Open questions for the legal read
+
+- **Observation times are published to the second.** A water report's
+  `observedAt` is stored and served as the hiker sent it (only clamped against
+  the future: `clampObservedAt`), and every comment, waypoint and route carries
+  its posting time. The first draft planned day granularity so a report could
+  not place a hiker at a tank at a given hour. Decide whether to round
+  `observedAt` (and what the feeds show of `createdAt`) to the day, or accept
+  it. Posting is opt-in, and the policy says the time of posting is public.
+- **The community-route share forms do not link the terms.** Their CC0 tick
+  links the CC0 deed only, so the terms are not shown where a route is shared.
+  Decide whether that tick should use `contributionLicenceLine` like the other
+  forms.
+- **No collection notice at the point of posting.** The forms link the terms
+  at most, never the privacy policy. APP 5 asks for notice "at or before" collection.
+  Decide whether the licence line should also link the policy.
+- **Takedown contact.** Takedowns and privacy requests share one address
+  (`privacy@contour-map-tiles.net`), and no response time is committed for
+  privacy requests.
