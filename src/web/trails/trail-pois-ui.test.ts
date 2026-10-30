@@ -18,7 +18,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { TrailPOI } from '@lib/trail-types';
-import { defaultPoiFilterState, poiControlHtml, poiKey, poiPopupHtml, poiRowHtml } from './trail-pois-ui';
+import {
+  defaultPoiFilterState,
+  poiControlHtml,
+  poiKey,
+  poiPopupHtml,
+  poiRowHtml,
+  waypointOsmDetailsHtml,
+} from './trail-pois-ui';
 
 const ROOT = path.resolve(__dirname, '../../..');
 
@@ -77,6 +84,53 @@ describe('POI markup', () => {
   it('shows the OSM ele tag in the elevation column when there is one', () => {
     expect(poiRowHtml(poi({ tags: { ele: '117.6' } }))).toContain('>118<');
     expect(poiRowHtml(poi({ tags: { ele: 'about 100' } }))).toContain('—');
+  });
+});
+
+describe('"From OpenStreetMap" on a waypoint popup', () => {
+  const pois = [
+    poi({ id: 1, tags: { opening_hours: 'Mo-Su 08:00-18:00' } }),
+    poi({
+      id: 2,
+      type: 'way',
+      duplicateOf: 'w_hut',
+      tags: { opening_hours: 'Mo-Fr 09:00-17:00', phone: '+61 8 1234 5678', website: 'example.org' },
+    }),
+    poi({ id: 3, duplicateOf: 'w_other', tags: { phone: '000' } }),
+  ];
+
+  it('shows the tags of the POIs flagged as this waypoint, collapsed and credited', () => {
+    const html = waypointOsmDetailsHtml({ pois }, 'w_hut');
+    expect(html).toContain('<details class="wp-osm-details">');
+    expect(html).toContain('<summary>From OpenStreetMap</summary>');
+    expect(html).toContain('Mo-Fr 09:00-17:00');
+    expect(html).toContain('href="tel:+61812345678"');
+    expect(html).toContain('href="https://example.org/"');
+    expect(html).toContain('https://www.openstreetmap.org/way/2');
+    expect(html).toContain('© OpenStreetMap contributors');
+    // Not the unflagged POI, nor one flagged against another waypoint.
+    expect(html).not.toContain('Mo-Su 08:00-18:00');
+    expect(html).not.toContain('tel:000');
+  });
+
+  it('is empty without a flagged POI, a waypoint id or any POIs', () => {
+    expect(waypointOsmDetailsHtml({ pois }, 'w_none')).toBe('');
+    expect(waypointOsmDetailsHtml({ pois }, undefined)).toBe('');
+    expect(waypointOsmDetailsHtml({}, 'w_hut')).toBe('');
+    expect(waypointOsmDetailsHtml(null, 'w_hut')).toBe('');
+  });
+
+  it('escapes the OSM tags and never links an unsafe website', () => {
+    const html = waypointOsmDetailsHtml(
+      {
+        pois: [
+          poi({ duplicateOf: 'w_hut', tags: { opening_hours: '<script>x</script>', website: 'javascript:alert(1)' } }),
+        ],
+      },
+      'w_hut'
+    );
+    expect(html).not.toContain('<script');
+    expect(html).not.toContain('href="javascript:');
   });
 });
 

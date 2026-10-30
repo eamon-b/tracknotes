@@ -50,6 +50,7 @@ import {
   poiRowHtml,
   savePoiFilterState,
   visiblePois,
+  waypointOsmDetailsHtml,
   OSM_ATTRIBUTION,
   type PoiFilterState,
 } from './trail-pois-ui';
@@ -675,10 +676,12 @@ function repaintRowType(row: HTMLElement, type: string, isMainWaypoint: boolean)
 /** Push the new icon (and popup text) onto the map markers for this waypoint. */
 function refreshMarkersForWaypoint(waypointId: string): void {
   if (!map) return;
-  for (const { marker, waypoint, index } of waypointMarkers) {
+  for (const { marker, waypoint } of waypointMarkers) {
     if (waypoint.id !== waypointId) continue;
     marker.setIcon(createWaypointIcon(waypoint.type));
-    marker.setPopupContent(waypointPopupHtml(waypoint, index));
+    // The popup is bound as a function of `waypoint`, which the type change
+    // edited in place: an open one only has to be redrawn.
+    marker.getPopup()?.update();
   }
   const trail = trailState.currentTrail;
   const offTrail = trail?.offTrailWaypoints ?? [];
@@ -1229,7 +1232,9 @@ function createWaypointIcon(type?: string): L.DivIcon {
 
 /**
  * Marker popup body. Extracted so a category change can rewrite it in place
- * rather than by rebuilding every marker on the map.
+ * rather than by rebuilding every marker on the map. Markers bind it as a
+ * function, so it is built when the popup opens: the imported-trail page's POIs
+ * (and so the "From OpenStreetMap" section) can arrive after the markers.
  */
 function waypointPopupHtml(wp: Waypoint, index: number): string {
   return `
@@ -1239,6 +1244,7 @@ function waypointPopupHtml(wp: Waypoint, index: number): string {
       ${wp.elevation ? `<br>${Math.round(wp.elevation)}m elevation` : ''}
       ${walkInLine(wp)}
       <br><a href="#" class="popup-show-in-table" data-waypoint-index="${index}">Show in table</a>
+      ${waypointOsmDetailsHtml(trailState.currentTrail, wp.id)}
     `;
 }
 
@@ -1284,7 +1290,7 @@ function drawWaypointMarkers(waypoints: Waypoint[]): void {
       icon: createWaypointIcon(wp.type),
     })
       .addTo(map!)
-      .bindPopup(waypointPopupHtml(wp, index));
+      .bindPopup(() => waypointPopupHtml(wp, index));
 
     const path = wp.offTrailPath;
     if (hasAccessPath(path)) {
@@ -1308,11 +1314,16 @@ function drawOffTrailWaypointMarkers(waypoints: OffTrailWaypoint[]): void {
     const marker = L.marker([wp.lat, wp.lon], {
       icon: createWaypointIcon(wp.type),
       opacity: 1,
-    }).addTo(map!).bindPopup(`
+    })
+      .addTo(map!)
+      .bindPopup(
+        () => `
       <strong>${escapeHtml(wp.name || 'Waypoint')}</strong><br>
       ${escapeHtml(wp.type || 'waypoint')}<br>
       ${(wp.distanceFromTrail / 1000).toFixed(1)} km from trail
-    `);
+      ${waypointOsmDetailsHtml(trailState.currentTrail, wp.id)}
+    `
+      );
 
     offTrailMarkers.push(marker);
   });
