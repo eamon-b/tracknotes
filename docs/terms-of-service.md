@@ -1,14 +1,17 @@
-# Tracknotes Terms of Service (draft)
+# Tracknotes Terms of Service
 
-_Draft for review: this text has not been read by a lawyer and needs a human
-(ideally legal) review before the store listings link it. The public copy ships
-with the web app at `public/terms.html`, published at
-**<https://trail-maps.vercel.app/terms.html>** beside the privacy policy — keep
-the two in sync. The app links the same URL from Settings → About, and from the
-licence line under the comment composer, the waypoint form, the
-route-share forms and the web's route Edit form (`TERMS_URL` in `src/lib/contribution-licence.ts`). The decisions it carries
-out are in `docs/content-legal-posture.md`. Still outstanding (issue #148):
-link it from the App Store / Play Store listings (#31)._
+<!--
+Maintainers: the public copy ships with the web app at `public/terms.html`,
+published at https://trail-maps.vercel.app/terms.html beside the privacy
+policy. Keep the two in sync: change one and change the other.
+
+The app links the same URL from Settings → About, and from the licence line
+under the comment composer, the waypoint form, the route-share forms and the
+web's route Edit form (`TERMS_URL` in `src/lib/contribution-licence.ts`). The
+decisions it carries out are in `docs/content-legal-posture.md`. Reviewed by
+the owner (2026-10-31); it has had no legal read (issue #148). Still
+outstanding: link it from the App Store / Play Store listings (#31).
+-->
 
 **Last updated: 2026-10-19**
 
