@@ -115,7 +115,7 @@ no tile server involved; basemap by <a href="https://openfreemap.org">OpenFreeMa
     <tr><th>z/x/y endpoint</th><td><code>https://tiles.contour-map-tiles.net/world/{z}/{x}/{y}.pbf</code></td><td><code>https://tiles.contour-map-tiles.net/contours/{z}/{x}/{y}.pbf</code></td></tr>
     <tr><th>Coverage</th><td>All land on Earth except the Antarctic and Greenland ice sheets (Iceland is in)</td><td>Mainland Australia + Tasmania</td></tr>
     <tr><th>Source DEM</th><td>Copernicus GLO-30 (~30 m)</td><td>Geoscience Australia 1-second SRTM DEM-S (~30 m, hydrologically smoothed)</td></tr>
-    <tr><th>Size</th><td>~750 GB, ~232 million tiles</td><td>11.9 GB, ~8.5 million tiles</td></tr>
+    <tr><th>Size</th><td>~613 GB, ~232 million tiles</td><td>13.5 GB, ~9.6 million tiles</td></tr>
     <tr><th>Licence</th><td>Copernicus DEM licence (free, attribution notice required)</td><td>CC-BY 4.0</td></tr>
   </table>
   </div>
@@ -178,7 +178,7 @@ https://tiles.contour-map-tiles.net/contours/{z}/{x}/{y}.pbf   # Australia archi
 
 <section id="download">
   <h2>Extract a region</h2>
-  <p>The world archive is ~750&nbsp;GB, so you almost certainly don't want all of it. Pull just
+  <p>The world archive is ~613&nbsp;GB, so you almost certainly don't want all of it. Pull just
   your area of interest with the <a href="https://github.com/protomaps/go-pmtiles">pmtiles CLI</a> —
   it range-reads only the tiles inside your bounding box, so it's fast and small (Switzerland is a
   few GB, Tasmania ~350&nbsp;MB, a single national park usually a few MB):</p>
@@ -189,7 +189,7 @@ pmtiles extract <span class="archive-url">ARCHIVE_URL</span> \
   <p>Extracts of the world archive from mountain regions run larger than the same area of
   Australia: there is simply more relief to draw. Cap the zoom with <code>--maxzoom=13</code>
   for a much smaller file if 20&nbsp;m detail is enough.</p>
-  <p>The Australia archive is small enough to take whole (11.9&nbsp;GB):</p>
+  <p>The Australia archive is small enough to take whole (13.5&nbsp;GB):</p>
 <pre><code>curl -O <span class="australia-url">AUSTRALIA_URL</span></code></pre>
   <p>Need MBTiles for an offline mobile app? <code>pmtiles convert</code> does the conversion.</p>
 </section>
@@ -209,7 +209,7 @@ pmtiles extract <span class="archive-url">ARCHIVE_URL</span> \
     <tr><th>Density by zoom</th><td>z9: 100 m contours · z10–11: 50 m · z12: 20 m · z13+: full 10 m</td></tr>
     <tr><th>Coverage</th><td>World: every land mass covered by the Copernicus DEM, excluding the Antarctic and Greenland ice sheets (contours there are enormous and almost meaningless). Australia: mainland + Tasmania (112.92°E–154°E, 43.86°S–10°S).</td></tr>
     <tr><th>Source DEM</th><td>World: <a href="https://registry.opendata.aws/copernicus-dem/">Copernicus GLO-30</a> (~30 m, a surface model — tree canopy and buildings are in it). Australia: <a href="https://elevation.fsdf.org.au/">Geoscience Australia 1-second SRTM DEM-S</a> (smoothed variant, ~30 m)</td></tr>
-    <tr><th>Size</th><td>World: ~750 GB, ~232 million tiles. Australia: 11.9 GB, ~8.5 million tiles</td></tr>
+    <tr><th>Size</th><td>World: ~613 GB, ~232 million tiles. Australia: 13.5 GB, ~9.6 million tiles</td></tr>
     <tr><th>Built with</th><td>GDAL (cubic-spline oversampled warp + <code>gdal_contour</code>) and <a href="https://github.com/felt/tippecanoe">tippecanoe</a></td></tr>
   </table>
   </div>
@@ -230,8 +230,8 @@ pmtiles extract <span class="archive-url">ARCHIVE_URL</span> \
   <a href="https://github.com/eamon-b/trail-maps/blob/main/scripts/build-contours-australia.ts"><code>scripts/build-contours-australia.ts</code></a>
   for Australia, with the rented-machine runbook in
   <a href="https://github.com/eamon-b/trail-maps/blob/main/docs/world-contours-remote-build.md"><code>docs/world-contours-remote-build.md</code></a>.
-  The Australia archive was built on a laptop over a day; the world took ~7,000 cells on an
-  80-core box, ten continental tippecanoe merges, and a final join on a 3&nbsp;TB NVMe instance.
+  Both archives were last built in October 2026 on a single 32-core NVMe instance: the world is
+  ~7,000 cells, ten continental tippecanoe merges and a final join, about 40 hours end to end.
   A write-up of the build (and the failures along the way) is coming soon.</p>
 </section>
 

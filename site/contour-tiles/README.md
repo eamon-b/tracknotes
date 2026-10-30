@@ -2,8 +2,8 @@
 
 Static one-page site documenting the public contour tilesets in the R2 bucket
 `aus-map-data`: the world archive (`contours/world.pmtiles`, Copernicus GLO-30,
-~750 GB) and the Australia archive (`contours/australia.pmtiles`, Geoscience
-Australia DEM-S, 11.9 GB). Live MapLibre demo on the world archive, usage
+~613 GB) and the Australia archive (`contours/australia.pmtiles`, Geoscience
+Australia DEM-S, 13.5 GB). Live MapLibre demo on the world archive, usage
 snippets, schema, extract instructions, and the attribution each licence requires.
 
 Deployed on Cloudflare Pages (project `aus-contour-tiles`), served at
@@ -27,9 +27,10 @@ Notes:
   `AUSTRALIA_URL` constants at the top of the inline script in `index.html`;
   the docs snippets are populated from them at runtime. Change those constants
   to move a tileset.
-- The world archive's size and tile count on the page (~750 GB, ~232 million
-  tiles) come from the 2026-09-14 build; refresh them from `pmtiles show` after
-  a rebuild.
+- The archive sizes and tile counts on the page (world ~613 GB, ~232 million
+  tiles; Australia 13.5 GB, ~9.6 million) come from the October 2026 rebuild
+  (world 2026-10-24, Australia 2026-10-23); refresh them after a rebuild from
+  the object's `content-length` and the PMTiles header's addressed-tile count.
 - Browser access to the archive requires the CORS rules on the `aus-map-data`
   bucket (GET/HEAD, wildcard origin, `etag`/`content-range` exposed). They were
   set 2026-08-19 via `wrangler r2 bucket cors set`.
