@@ -49,3 +49,4 @@ Summary:
 | Date | Checked by | D1 location | R2 location | Notes |
 |------|-----------|-------------|-------------|-------|
 | 2026-08-19 | Claude (session) | `running_in_region: OC` | `location: OC` | Both in Oceania. `jurisdiction: null` — placement is observed, not contractually pinned, so the policy wording ("may be stored or replicated in other regions") stays. Re-check before each release. |
+| 2026-10-30 | Claude (session) | `running_in_region: OC` | `location: OC` | New database `trail-maps-comments` (`c7eaed8e-…`), which replaced `farout-comments` (deleted the same day) when the Worker was renamed. `jurisdiction: null`, read replication disabled. Policy wording stays. |
