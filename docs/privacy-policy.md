@@ -237,7 +237,7 @@ collect personal information from them.
 ## Contact
 
 Questions or removal requests:
-[privacy@contour-map-tiles.net](mailto:privacy@contour-map-tiles.net)
+[privacy@tracknotes.info](mailto:privacy@tracknotes.info)
 
 ## Changes
 

@@ -131,4 +131,4 @@ These terms are governed by the laws of Australia.
 ## Contact
 
 Questions, takedown requests and reports:
-[privacy@contour-map-tiles.net](mailto:privacy@contour-map-tiles.net)
+[privacy@tracknotes.info](mailto:privacy@tracknotes.info)
