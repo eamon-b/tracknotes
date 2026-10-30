@@ -20,7 +20,7 @@ const manifest = (...files: Array<{ name: string; key?: string }>) => ({
 });
 
 describe('packPrefixes', () => {
-  it('finds trail and grid prefixes with a manifest, and nothing else', () => {
+  it('finds trail prefixes with a manifest, and nothing else', () => {
     expect(
       packPrefixes([
         obj('larapinta/manifest.json'),
@@ -32,7 +32,7 @@ describe('packPrefixes', () => {
         obj('contours/world.pmtiles'),
         obj('nomanifest/base.mbtiles'),
       ])
-    ).toEqual(['grid/E114_S34/', 'larapinta/']);
+    ).toEqual(['larapinta/']);
   });
 });
 

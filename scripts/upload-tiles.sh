@@ -10,14 +10,12 @@
 # Usage:
 #   ./scripts/upload-tiles.sh                  # Upload all per-trail files
 #   ./scripts/upload-tiles.sh bibbulmun        # Upload one trail
-#   ./scripts/upload-tiles.sh --grid           # Upload all grid tiles
-#   ./scripts/upload-tiles.sh --grid E114_S34  # Upload one grid cell
 #   ./scripts/upload-tiles.sh --no-purge <...>   # Leave the edge cache alone (see purge_public_url)
 #
 # The script reads from public/data/tiles/ (the build output directory)
 # and uploads to the aus-map-data R2 bucket.
 #
-# Per-trail and per-grid-cell uploads are manifest-driven: each directory must
+# Per-trail uploads are manifest-driven: each trail directory must
 # contain a manifest.json (written by the tile build), whose files[] entries
 # name the local files to upload and the content-addressed remote keys to put
 # them at. The manifest is uploaded last — see upload_manifest_dir.
@@ -26,7 +24,6 @@ set -euo pipefail
 
 BUCKET="${R2_BUCKET:-aus-map-data}"
 TILES_DIR="${TILES_DIR:-public/data/tiles}"
-GRID_DIR="$TILES_DIR/grid"
 # Public URL of the same bucket, for checking what is already published.
 TILE_PUBLIC_URL="${TILE_PUBLIC_URL:-https://data.contour-map-tiles.net}"
 # Zone of TILE_PUBLIC_URL, for purging republished manifests (not a secret).
@@ -353,57 +350,6 @@ upload_root_manifest() {
   fi
 }
 
-# --- Grid tile upload functions ---
-
-upload_grid_cell() {
-  local cell_id="$1"
-  local cell_dir="$GRID_DIR/$cell_id"
-
-  if [ ! -d "$cell_dir" ]; then
-    echo "Error: No tiles found for grid cell '$cell_id' at $cell_dir"
-    exit 1
-  fi
-
-  echo "Uploading grid cell $cell_id..."
-
-  # Grid manifests come from the same writeManifest() as trail manifests, so
-  # they carry the same content-addressed keys — keep both paths identical.
-  upload_manifest_dir "$cell_dir" "grid/$cell_id"
-
-  echo "Done: grid/$cell_id"
-}
-
-upload_grid() {
-  local specific_cell="${1:-}"
-
-  require_tiles_dir
-
-  if [ ! -d "$GRID_DIR" ]; then
-    echo "Error: $GRID_DIR does not exist. Run build-grid-tiles first."
-    exit 1
-  fi
-
-  if [ -n "$specific_cell" ]; then
-    # Upload a specific grid cell
-    upload_grid_cell "$specific_cell"
-  else
-    # Upload all grid cells
-    for cell_dir in "$GRID_DIR"/E*_S*/; do
-      [ -d "$cell_dir" ] || continue
-      cell_id=$(basename "$cell_dir")
-      upload_grid_cell "$cell_id"
-    done
-
-    # Upload grid index
-    if [ -f "$GRID_DIR/index.json" ]; then
-      echo "Uploading grid index..."
-      upload_file "$GRID_DIR/index.json" "grid/index.json" \
-        "application/json" \
-        "public, max-age=3600"
-    fi
-  fi
-}
-
 # --- Main dispatch ---
 
 # --no-purge may sit anywhere in the arguments.
@@ -416,11 +362,7 @@ set -- "${args[@]+"${args[@]}"}"
 # Every mode publishes manifests, and so purges.
 require_purge_token
 
-if [ $# -ge 1 ] && [ "$1" = "--grid" ]; then
-  # Grid mode
-  shift
-  upload_grid "${1:-}"
-elif [ $# -ge 1 ]; then
+if [ $# -ge 1 ]; then
   # Upload specific trail(s)
   for trail_id in "$@"; do
     upload_trail "$trail_id"
@@ -431,7 +373,7 @@ else
   for trail_dir in "$TILES_DIR"/*/; do
     [ -d "$trail_dir" ] || continue
     trail_id=$(basename "$trail_dir")
-    # Skip the grid directory (not a trail)
+    # Not a trail: output of the deleted grid pipeline, if an old build left it
     [ "$trail_id" = "grid" ] && continue
     upload_trail "$trail_id"
   done

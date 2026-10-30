@@ -14,7 +14,7 @@
  * phone has moved on they are dead weight — the #135 rebuild supersedes about
  * 2 GB of packs at once.
  *
- * What it deletes, per pack prefix (`<trail>/` or `grid/<cell>/`): every
+ * What it deletes, per pack prefix (`<trail>/`): every
  * `.mbtiles` object directly under the prefix that the live `manifest.json`
  * there does not list, by content-addressed key or by plain name (old app
  * builds download the plain name), once that manifest has been live for
@@ -72,14 +72,14 @@ export interface CleanupPlan {
 }
 
 /**
- * The pack prefixes of a listing: every directory holding a `manifest.json`,
- * one level down (`<trail>/`) or under `grid/` (`grid/<cell>/`).
+ * The pack prefixes of a listing: every top-level directory holding a
+ * `manifest.json` (`<trail>/`).
  */
 export function packPrefixes(objects: BucketObject[]): string[] {
   const prefixes = new Set<string>();
   for (const o of objects) {
-    const m = o.path.match(/^((?:grid\/)?[^/]+\/)manifest\.json$/);
-    if (m && m[1] !== 'grid/') prefixes.add(m[1]);
+    const m = o.path.match(/^([^/]+\/)manifest\.json$/);
+    if (m) prefixes.add(m[1]);
   }
   return [...prefixes].sort();
 }
