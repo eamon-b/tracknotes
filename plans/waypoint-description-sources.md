@@ -6,7 +6,7 @@ The trails authored before this note (Cape to Cape, AAWT, Bibbulmun, Hume & Hove
 
 ## Rules applied
 
-- **Permanent place only.** A bundled description describes the place as it normally is, with its facilities as normally provided. Where a facility's normal state is unclear, the description leaves it out. A temporary closure goes in the bundled text only as a dated sentence ("As of October 2026, …") so it can be found and removed later: there is no separate synced-only channel, because `upload:descriptions` pushes the same file (owner's decision on #217). The dated sentences are listed under each trail.
+- **Permanent place only.** A bundled description describes the place as it normally is, with its facilities as normally provided. Where a facility's normal state is unclear, the description leaves it out. A temporary closure goes in the bundled text only as a dated sentence ("As of October 2026, …") so it can be found and removed later: there is no separate synced-only channel, because `upload:descriptions` pushes the same file (owner's decision on #217). The dated sentences are listed under [Temporary closures in the descriptions](#temporary-closures-in-the-descriptions) below, except the Heysen ones, which are listed under that trail.
 - **Facts, not advice.** Agency advice is turned into the fact behind it. For example, "boiling … is recommended" becomes "the tank water is untreated", and "should not be relied on" becomes "there is no reliable natural water". The agency's own wording stays here in the sources file.
 - **Primary or authoritative sources only.** A primary source here is the land manager's page, or a government tourism body's full page. The track's own long-standing notes site counts as authoritative. A claim that could not be checked against one of these was removed. Blogs, tour operators and search-result snippets do not count.
 - **Own wording.** The descriptions paraphrase their sources. The phrases flagged in review, and every other close echo found in a pass over all 29 descriptions, were rewritten.
@@ -15,8 +15,8 @@ The trails authored before this note (Cape to Cape, AAWT, Bibbulmun, Hume & Hove
 
 Every dated sentence in the bundled text, across all trails, is tracked on #219 for review each quarter and before each fire season; find them with `grep -rn "As of " data/trails/*/descriptions.json`. Each was re-checked against its source on 2026-10-30. The Heysen ones are listed under that trail. The other three, added on #219:
 
-- **Jenolan Caves** (Six Foot Track `w_9853df4e`): NSW National Parks' Six Foot Track [local alerts](https://www.nationalparks.nsw.gov.au/things-to-do/walking-tracks/six-foot-track/local-alerts), read through the alerts feed the page loads (`api-prd.nswparks.cloud/api/v1/AlertsClosures/alerts/…`). The "Closure due to construction works" alert (published 9 Oct 2026, to be reviewed 18 Jan 2027) says the Jenolan Karst Conservation Reserve, "including the visitor precinct and walking tracks", is closed until 31 December 2026 for "major infrastructure repairs and upgrades", with "no access to the Reserve or Jenolan Caves via the Six Foot Track". The Blue Mountains "Closure due to damaged areas" alert adds that the Six Foot Track is closed at the reserve boundary. (On 2026-10-19 Visit NSW gave flood damage and landslips as the cause; the description follows NSW National Parks.)
-- **George Point** (Thorsborne `w_fc1b14f4`): Queensland Parks [park alert 22907](https://parks.qld.gov.au/park-alerts/22907), "George Point toilet and sign removed due to erosion", read in full with curl on 2026-10-30 (parks.qld.gov.au answers where the parks.des.qld.gov.au pages below did not). It runs from 17 September 2024 to 30 June 2027 (updated 30 June 2026) and gives: severe erosion from high tides over several years; the camping-area signs and infrastructure, toilet included, removed; no sign marking the pickup point; bush camping under a stand of trees about 2.6 km south of the Mulligan Creek crossing, with no toilet or pack rack; the pickup point 250 m south-west of it along the beach; QPWS reviewing the site's future under the Thorsborne Trail Enhancement project.
+- **Jenolan Caves** (Six Foot Track `w_9853df4e`): NSW National Parks' Six Foot Track [local alerts](https://www.nationalparks.nsw.gov.au/things-to-do/walking-tracks/six-foot-track/local-alerts), read through the alerts feed the page loads (`api-prd.nswparks.cloud/api/v1/AlertsClosures/alerts/…`). The "Closure due to construction works" alert (published 9 Oct 2026, to be reviewed 18 Jan 2027) says the Jenolan Karst Conservation Reserve, "including the visitor precinct and walking tracks", is closed until 31 December 2026 for "major infrastructure repairs and upgrades", with "no access to the Reserve or Jenolan Caves via the Six Foot Track". The Blue Mountains "Closure due to damaged areas" alert adds that the Six Foot Track is closed at the reserve boundary. NSW National Parks still gives Binda Bush cabins as the track's end; the descriptions do not mention it. (On 2026-10-19 Visit NSW gave flood damage and landslips as the cause; the description follows NSW National Parks.)
+- **George Point** (Thorsborne `w_fc1b14f4`): Queensland Parks [park alert 22907](https://parks.qld.gov.au/park-alerts/22907), "George Point toilet and sign removed due to erosion", read in full with curl on 2026-10-30. It runs from 17 September 2024 to 30 June 2027 (updated 30 June 2026) and gives: severe erosion from high tides over several years; the camping-area signs and infrastructure, toilet included, removed; no sign marking the pickup point; bush camping under a stand of trees about 2.6 km south of the Mulligan Creek crossing, with no toilet or pack rack; the pickup point 250 m south-west of it along the beach; QPWS reviewing the site's future under the Thorsborne Trail Enhancement project. The description says Queensland Parks removed the toilet and signs because of erosion, gives the alert's 30 June 2027 end date, and places the bush camping 250 m short of the unmarked pickup point. The alert page answered, but the Queensland Parks trail pages listed under the Thorsborne section still answered 403 on 2026-10-30, so the trail's normal facilities remain unconfirmed.
 - **Three Capes annual maintenance closure:** PWS Tasmania's [Cape Pillar](https://parks.tas.gov.au/explore-our-parks/tasman-national-park/tasman-cape-pillar) page says the track closes every year for maintenance and fuel-reduction burns, for 14 days, and lists 5–18 April 2027 next (then 24 April – 7 May 2028 and 9–22 April 2029). The closure covers the Three Capes Track, Bare Knoll campground and the Old Cape Pillar Track; the Cape Hauy Track was not affected in 2026. The sentence is on **Denmans Cove** (`w_b4f525ef`) and **Bare Knoll Campground** (`w_e2522cc4`); move it to the next year's dates once the April 2027 closure is over.
 
 ## Three Capes Track (`three_capes`)
@@ -25,7 +25,7 @@ All six PWS Tasmania pages below were read in full with curl on 2026-10-19.
 
 - Parks and Wildlife Service Tasmania (PWS), [Three Capes Track walk notes](https://parks.tas.gov.au/explore-our-parks/tasman-national-park/three-capes-track/walk-notes). Gives:
   - the boat from Port Arthur, taking up to 75 minutes
-  - Denmans Cove: the creek, the shifting sandbanks, and water knee-high at times from September to December
+  - Denmans Cove: the creek, the shifting sandbanks, and water knee-high at times from September to December (its dated annual-closure sentence comes from the Cape Pillar page below)
   - day 1: 4 km through eucalypt woodland and coastal heath to Surveyors, whose deck looks to Cape Raoul
   - day 2: Arthur's Peak over Crescent Bay to Cape Raoul, then down the forested slopes of Crescent Mountain and across the broad, windswept Ellarwey Valley to Munro, which looks over Munro Bight and Cape Hauy
   - day 3: The Blade at Cape Pillar looking to Tasman Island, as an out-and-back from Munro with packs left at the cabin, then through forest and heathland to Retakunna, which looks to Mount Fortescue
@@ -46,6 +46,7 @@ All six PWS Tasmania pages below were read in full with curl on 2026-10-19.
   - bookings required from 1 October to 30 April
 - PWS, [Cape Pillar](https://parks.tas.gov.au/explore-our-parks/tasman-national-park/tasman-cape-pillar). Gives:
   - Bare Knoll: about 1 km from the Old Cape Pillar / Three Capes crossroads, 12 tent platforms and a toilet, and "natural water sources should not be relied on"
+  - the annual maintenance closure, next 5–18 April 2027, which shuts Bare Knoll too: the dated sentence on Denmans Cove and Bare Knoll (see [Temporary closures in the descriptions](#temporary-closures-in-the-descriptions))
   - registration at the Fortescue Bay site office
   - "Cabin accommodation facilities are only available to these walkers"
   - Mount Fortescue's wet forests
@@ -59,7 +60,7 @@ All six PWS Tasmania pages below were read in full with curl on 2026-10-19.
 
 ## Thorsborne Trail (`thorsborne`)
 
-**What could not be read.** Every Queensland Parks page and PDF answered 403 (a Cloudflare challenge) to both curl, with a browser User-Agent, and WebFetch on 2026-10-19:
+**What could not be read.** Every Queensland Parks page and PDF below answered 403 (a Cloudflare challenge) to both curl, with a browser User-Agent, and WebFetch on 2026-10-19, and the parks.qld.gov.au trail pages still did on 2026-10-30. The one exception is park alert 22907, read in full on 2026-10-30, which confirmed the George Point closure (see [Temporary closures in the descriptions](#temporary-closures-in-the-descriptions)):
 - parks.qld.gov.au: the `walking`, `camping/thorsborne-trail`, `visiting-safely` and `journeys/thorsborne-trail` pages
 - parks.des.qld.gov.au: the Thorsborne map PDF and the Hinchinbrook discovery guide PDF
 
@@ -92,7 +93,7 @@ Every Thorsborne statement now rests on that page.
 
 **Little Ramsay Bay** quotes TEQ's water sources for that leg, the Nina Bay creeks and the Blacksand Beach lagoon. It no longer claims a creek upstream of the Little Ramsay lagoon.
 
-**Still to do:** once a Queensland Parks page can be read, re-add the facilities and confirm George Point's normal facilities.
+**Still to do:** once the Queensland Parks trail pages can be read, re-add the facilities and confirm George Point's normal facilities (the alert covers only the temporary removal).
 
 ## Six Foot Track (`six_foot_track`)
 
