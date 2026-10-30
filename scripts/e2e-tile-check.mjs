@@ -48,7 +48,14 @@
  *                           every pack's contours.mbtiles (read with Range
  *                           requests: scripts/lib/http-mbtiles.mjs). An
  *                           untiered archive fails here while passing every
- *                           other check.
+ *                           other check. Also checks `contours` really is the
+ *                           alias of `world` (#228): /health reports
+ *                           sources.contours.archive.key as world.pmtiles
+ *                           (the alias deploy took effect) and both sources
+ *                           serve byte-identical Australian tiles through the
+ *                           edge (the purge of /contours/* took effect). Both
+ *                           archives were tiered, so the density check alone
+ *                           cannot tell them apart.
  *
  * No build state or external npm deps required — reads only the committed
  * trail index, hits public URLs, uses Node's built-in fetch + zlib. Exits
@@ -563,23 +570,35 @@ const TIERED_SOURCES = ['world', 'contours'];
 const TIERED_SPOT_MIN_FEATURES = 300;
 const TIERED_SPOT_MAX_FEATURES = 5_000;
 
+/**
+ * Fetch one contour tile through the edge with gzip accepted, as the app does.
+ * Returns { status, bytes } (bytes decoded, or null for a non-200 or a body
+ * that would not gunzip), or null when the fetch itself failed (recorded).
+ */
+async function fetchContourTile(label) {
+  let res;
+  try {
+    res = await fetch(`${CONTOUR_URL}/${label}.pbf`, { headers: { 'Accept-Encoding': 'gzip' } });
+  } catch (e) {
+    failures.push(`[tiered] ${label} fetch failed: ${e.message}`);
+    return null;
+  }
+  if (res.status !== 200) return { status: res.status, bytes: null };
+  return { status: 200, bytes: decodeTileBody(Buffer.from(await res.arrayBuffer()), `[tiered] ${label}`) };
+}
+
 async function checkTieredSpotTiles() {
   const { name, z, x, y } = TIERED_SPOT_TILE;
   console.log(`\n[tiered] Worker z9 contours tiered (${name}, ${z}/${x}/${y})`);
   for (const source of TIERED_SOURCES) {
     const label = `${source}/${z}/${x}/${y}`;
-    let res;
-    try {
-      res = await fetch(`${CONTOUR_URL}/${label}.pbf`, { headers: { 'Accept-Encoding': 'gzip' } });
-    } catch (e) {
-      failures.push(`[tiered] ${label} fetch failed: ${e.message}`);
+    const tile = await fetchContourTile(label);
+    if (!tile) continue;
+    if (tile.status !== 200) {
+      failures.push(`[tiered] ${label} → HTTP ${tile.status} (expected 200: ${name} has contours at z9)`);
       continue;
     }
-    if (res.status !== 200) {
-      failures.push(`[tiered] ${label} → HTTP ${res.status} (expected 200: ${name} has contours at z9)`);
-      continue;
-    }
-    const bytes = decodeTileBody(Buffer.from(await res.arrayBuffer()), `[tiered] ${label}`);
+    const bytes = tile.bytes;
     if (!bytes) continue;
     let result;
     try {
@@ -598,6 +617,72 @@ async function checkTieredSpotTiles() {
       );
     } else {
       console.log(`      ✓ ${label}: ${result.features} features, all 100 m lines (${bytes.length} bytes)`);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// The `contours` alias (#228). `contours` served the Australia archive until it
+// was retired; the worker now maps it to world.pmtiles. Both archives were
+// built tiered, so the density check above passes whether or not the alias
+// deploy and the purge of the edge-cached /contours/* URLs took effect. These
+// checks tell the two apart: what the worker says it reads, and what the edge
+// actually serves.
+// ---------------------------------------------------------------------------
+
+const ALIAS_SOURCE = 'contours';
+const ALIAS_TARGET_SOURCE = 'world';
+const WORLD_ARCHIVE_KEY = 'contours/world.pmtiles';
+
+/** Australian tiles both sources must serve byte for byte (z9 and a z12). */
+const ALIAS_SAMPLE_TILES = [
+  TIERED_SPOT_TILE,
+  { name: LAND_POINTS[0][0], ...lonLatToTile(LAND_POINTS[0][2], LAND_POINTS[0][1], 12) },
+];
+
+async function checkContoursAlias() {
+  console.log(`\n[tiered] /${ALIAS_SOURCE} is an alias of /${ALIAS_TARGET_SOURCE} (#228)`);
+
+  let body;
+  try {
+    const res = await fetch(`${CONTOUR_URL}/health`, { headers: { Accept: 'application/json' } });
+    body = await res.json();
+  } catch (e) {
+    failures.push(`[alias] /health unreadable: ${e.message}`);
+  }
+  if (body) {
+    const key = body.sources?.[ALIAS_SOURCE]?.archive?.key;
+    if (key === WORLD_ARCHIVE_KEY) {
+      console.log(`      ✓ /health: sources.${ALIAS_SOURCE}.archive.key = ${key}`);
+    } else {
+      failures.push(
+        `[alias] /health sources.${ALIAS_SOURCE}.archive.key is ${JSON.stringify(key)}, expected ` +
+          `${WORLD_ARCHIVE_KEY} — the worker deploy that aliases ${ALIAS_SOURCE} to ${ALIAS_TARGET_SOURCE} is not live`
+      );
+    }
+  }
+
+  for (const { name, z, x, y } of ALIAS_SAMPLE_TILES) {
+    const path = `${z}/${x}/${y}`;
+    const alias = await fetchContourTile(`${ALIAS_SOURCE}/${path}`);
+    const target = await fetchContourTile(`${ALIAS_TARGET_SOURCE}/${path}`);
+    if (!alias || !target) continue;
+    if (alias.status !== 200 || target.status !== 200) {
+      failures.push(
+        `[alias] ${path} (${name}): ${ALIAS_SOURCE} → HTTP ${alias.status}, ` +
+          `${ALIAS_TARGET_SOURCE} → HTTP ${target.status} (expected 200 from both)`
+      );
+      continue;
+    }
+    if (!alias.bytes || !target.bytes) continue;
+    if (alias.bytes.equals(target.bytes)) {
+      console.log(`      ✓ ${path} (${name}): identical under both sources (${alias.bytes.length} bytes)`);
+    } else {
+      failures.push(
+        `[alias] ${path} (${name}): /${ALIAS_SOURCE} serves ${alias.bytes.length} bytes, ` +
+          `/${ALIAS_TARGET_SOURCE} ${target.bytes.length} — the edge still holds the retired ` +
+          `archive's tiles under /${ALIAS_SOURCE}/* (purge it) or the alias deploy is not live`
+      );
     }
   }
 }
@@ -718,6 +803,7 @@ async function main() {
   if (packs || tiered) {
     if (packs) await checkTrailOfflineArtifacts();
     if (tiered) await checkTieredSpotTiles();
+    if (tiered) await checkContoursAlias();
     if (tiered) await checkTieredPacks();
   } else {
     await checkContourHealth();
@@ -725,6 +811,7 @@ async function main() {
     await checkHighZoomTiles();
     await checkTrailOfflineArtifacts();
     await checkTieredSpotTiles();
+    await checkContoursAlias();
     await checkTieredPacks();
     await checkGridBaseReachable();
   }

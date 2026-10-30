@@ -152,3 +152,12 @@ be rolled forward without a reinstall. The detailed rationale is under "Deploy" 
 
    The `.aab` it produces is uploaded through Play Console (or `eas submit`, not yet set up).
    iOS is not set up yet — see "Things that go wrong".
+
+   **Release notes for the first build after #228.** Since the Australia contour archive was
+   retired, the worker's `contours` source serves Copernicus GLO-30, so installed builds from
+   before #228 now draw GLO-30 contours on Australian trails while their credits screen
+   (`CONTOURS_LINE`) still says "SRTM (NASA) in Australia". No code can change a shipped build
+   (no OTA), and the line still carries the full Copernicus notice, so the licence is met; the
+   wording is only out of date until hikers update. Say so in the store release notes, e.g.
+   "Contour lines in Australia now come from the Copernicus GLO-30 elevation model, as
+   everywhere else; the map credits say so." The current `credits.ts` names only GLO-30.

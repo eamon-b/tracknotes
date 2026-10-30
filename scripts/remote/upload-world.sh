@@ -6,8 +6,9 @@
 #   remote: aus-map-data / contours/world.pmtiles
 #
 # wrangler `r2 object put` caps out around 300 MiB, so this goes through
-# rclone's S3 multipart uploader — same approach as the --contours branch of
-# scripts/upload-tiles.sh, tuned for a much bigger file.
+# rclone's S3 multipart uploader, tuned for a file this big. (The retired
+# Australia archive was uploaded the same way by upload-tiles.sh --contours,
+# removed in #228.)
 #
 # Usage:
 #   ./scripts/remote/upload-world.sh                 # validate + upload + verify
