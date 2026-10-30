@@ -1,4 +1,4 @@
--- FarOut comments API — day-planner plans, per-device tokens, browser linking.
+-- Trail Maps comments API — day-planner plans, per-device tokens, browser linking.
 --
 -- Three tables land together because they ship as one release (see
 -- `plans/day-planner.md`, "Server (Phase 2)"):

@@ -58,4 +58,4 @@
 1. **[2026-07-29] Use Opus subagents regularly**
    Do instead: delegate well-scoped implementation chunks to parallel `model: "opus"` Agent calls; keep orchestration/integration in the main session.
 2. **[2026-07-29] Tracknotes rebuild plan is the source of truth**
-   Do instead: follow `/home/eamon/.claude/plans/i-want-to-start-melodic-reddy.md` (FarOut UX clone, phased).
+   Do instead: follow `/home/eamon/.claude/plans/i-want-to-start-melodic-reddy.md` (guide-app UX rebuild, phased).

@@ -1,5 +1,5 @@
 /**
- * Routes repository — FarOut-style custom routes, scoped by trail.
+ * Routes repository — custom routes, scoped by trail.
  *
  * A route is a name + denormalized stats (total km / ascent / descent computed
  * at save time) plus an ordered list of `route_points`. Points are stored as

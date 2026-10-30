@@ -2,7 +2,7 @@
  * Map key for the guide's track classes, and for the OSM points of interest.
  *
  * Colour and stroke alone tell the three classes apart on the map; this names
- * them, the way FarOut's map key does. Only the classes actually present on the
+ * them, as a map key. Only the classes actually present on the
  * trail get a row, so a trail with no side trips never advertises one.
  *
  * The POI row is the exception to "colour + stroke": POIs are drawn in six

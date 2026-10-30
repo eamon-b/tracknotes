@@ -49,9 +49,9 @@ export interface ThemeColors {
   /** Informational/neutral-emphasis color */
   info: string;
 
-  // Waypoint category colors (FarOut-style map markers + datasheet icons).
+  // Waypoint category colors (map markers + datasheet icons).
   // The waypoint-type-meta registry (ported later from src/lib) keys into
-  // these — every FarOut category has a hook here.
+  // these — every waypoint category has a hook here.
   waypointWater: string;
   waypointCamp: string;
   waypointTown: string;

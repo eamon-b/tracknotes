@@ -1,5 +1,5 @@
 /**
- * First-class, FarOut-style elevation profile rendered with Skia.
+ * First-class elevation profile rendered with Skia.
  *
  * Ported from the old app's `ElevationProfile` and extended for the new guide:
  *  - extreme-preserving LOD (precomputed once; selected per zoom — never

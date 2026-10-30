@@ -33,8 +33,7 @@ export function formatDays(days: number): string {
 
 /**
  * Food-carry weight from the calculator's estimate. Metric ('km') shows
- * kilograms; imperial ('mi') shows pounds — matching FarOut, which shows lbs
- * to imperial users. Always one decimal.
+ * kilograms; imperial ('mi') shows pounds. Always one decimal.
  *
  * @example formatFoodWeight(2, 'km') // "2.0 kg"
  * @example formatFoodWeight(2, 'mi') // "4.4 lb"

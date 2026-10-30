@@ -4,8 +4,8 @@
  * What lives here:
  *  - `units` — km vs mi, the global distance-display preference.
  *  - `perTrailDirection` — the chosen hiking direction for each guide
- *    ('default' | 'reversed'), keyed by trail id. FarOut lets you flip a
- *    guide's direction; the guide shell re-applies this via
+ *    ('default' | 'reversed'), keyed by trail id. A guide's direction
+ *    can be flipped; the guide shell re-applies this via
  *    `createReversedTrail` whenever it changes.
  *  - `poiFilter` — which OpenStreetMap points of interest to draw. One global
  *    state, not per trail: it is the phone's twin of the web page's

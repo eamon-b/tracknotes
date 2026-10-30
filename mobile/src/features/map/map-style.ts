@@ -158,7 +158,7 @@ export function isRedownloadFixable(degradation: MapDegradation): boolean {
  * base maps rather than pulled from the app palette.
  *
  * Hue budget on the map — every overlay owns a hue so nothing is ambiguous:
- *   red     main track          (FarOut's convention: the trail itself)
+ *   red     main track          (the trail itself)
  *   violet  alternate routes    (a real, walkable substitute for a main span)
  *   teal    side trips          (out-and-back spurs off the trail)
  *   amber   custom route overlay (GuideMap: the user's own drawn route)

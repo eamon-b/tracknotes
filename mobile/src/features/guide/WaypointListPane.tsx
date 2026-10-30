@@ -1,5 +1,5 @@
 /**
- * Waypoint list pane — a FarOut-style datasheet.
+ * Waypoint list pane — a datasheet.
  *
  * Rows are ordered by cumulative distance and show type, name, and either a
  * plain km (no GPS) or a signed, unit-aware distance-from-me ("12.4 km ahead" /
