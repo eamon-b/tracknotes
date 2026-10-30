@@ -30,22 +30,39 @@ import { TextDecoder, TextEncoder } from 'node:util';
 /** 429s retried before giving up: the data domain rate-limits bursts. */
 const RATE_LIMIT_RETRIES = 6;
 
+/**
+ * 200s (Range ignored) retried before giving up. Cloudflare bypasses its cache
+ * for the packs over its size limit (CDT, Te Araroa) and now and then answers
+ * one of those with the whole object instead of the range: on 2026-10-30 the
+ * tile-packs check failed that way and passed by hand minutes later.
+ */
+const RANGE_IGNORED_RETRIES = 3;
+
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
  * A RangeReader over HTTP. Throws on anything but a 206 of the right length,
  * after waiting out a 429 (Retry-After, else 5 s doubling) a few times: a
  * pack read is hundreds of small requests, enough to trip the zone's
- * rate limit when several packs are read at once.
+ * rate limit when several packs are read at once. A 200 (the edge ignored
+ * the Range) is retried a few times too, without reading its body.
  */
 export function httpRangeReader(url, fetchFn = fetch, sleep = delay) {
   return async (start, end) => {
     let res;
-    for (let attempt = 0; ; attempt++) {
+    for (let limited = 0, ignored = 0; ;) {
       res = await fetchFn(url, { headers: { Range: `bytes=${start}-${end}` } });
-      if (res.status !== 429 || attempt === RATE_LIMIT_RETRIES) break;
-      const retryAfter = Number(res.headers?.get?.('retry-after'));
-      await sleep(retryAfter > 0 ? retryAfter * 1000 : 5000 * 2 ** attempt);
+      if (res.status === 429 && limited < RATE_LIMIT_RETRIES) {
+        const retryAfter = Number(res.headers?.get?.('retry-after'));
+        const backoff = 5000 * 2 ** limited++;
+        await sleep(retryAfter > 0 ? retryAfter * 1000 : backoff);
+      } else if (res.status === 200 && ignored < RANGE_IGNORED_RETRIES) {
+        // Don't download a gigabyte to throw it away.
+        await res.body?.cancel?.();
+        await sleep(2000 * 2 ** ignored++);
+      } else {
+        break;
+      }
     }
     if (res.status !== 206) {
       throw new Error(`range request for ${url} → HTTP ${res.status} (expected 206)`);
