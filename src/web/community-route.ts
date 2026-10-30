@@ -38,6 +38,7 @@ import {
   localCopyId,
   multilineHtml,
   regionLabel,
+  renderContributionLicence,
   reviewHtml,
   statusBadgeHtml,
 } from './community-ui';
@@ -316,6 +317,7 @@ function initOwnerTools(page: RoutePage): void {
   nameInput.maxLength = COMMUNITY_LIMITS.nameMax;
   descInput.maxLength = COMMUNITY_LIMITS.descriptionMax;
   creditInput.maxLength = COMMUNITY_LIMITS.creditMax;
+  renderContributionLicence($('edit-licence')!, 'posting', 'your changes');
 
   const picker = initRegionPicker(
     $('edit-country') as HTMLSelectElement,

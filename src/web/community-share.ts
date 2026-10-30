@@ -21,19 +21,20 @@
  */
 
 import { runCommunityChecks } from '@lib/community-checks';
-import {
-  PRIVACY_POLICY_URL,
-  TERMS_URL,
-  contributionLicenceLine,
-  contributionPrivacyLine,
-} from '@lib/contribution-licence';
 import { detectRegion } from '@lib/region-detect';
 import { COMMUNITY_LIMITS, type CommunityCheck, type CommunitySubmitRequest } from '@lib/community-types';
 import type { ProcessedTrail } from '@lib/trail-types';
 import { ApiError, NetworkError } from './api/client';
 import { checksFromError, communityRouteHref, duplicateRouteId, submitCommunityRoute } from './api/community';
 import { clearSession, loadSession, unlinkThisBrowser, type WebSession } from './api/session';
-import { checksListHtml, initRegionPicker, utf8Bytes, utf8ToBase64, type RegionPicker } from './community-ui';
+import {
+  checksListHtml,
+  initRegionPicker,
+  renderContributionLicence,
+  utf8Bytes,
+  utf8ToBase64,
+  type RegionPicker,
+} from './community-ui';
 import { renderLinkForm } from './link-browser';
 
 /** The worker's own wording from an error envelope, when it sent one. */
@@ -65,27 +66,6 @@ function byId<T extends HTMLElement>(id: string): T {
   return node as T;
 }
 
-/**
- * The licence and privacy lines under the rights tick, in the words the
- * phone's forms use (`@lib/contribution-licence`), with their links.
- */
-export function renderContributionLicence(el: HTMLElement): void {
-  const lines = [
-    { ...contributionLicenceLine('sharing', 'this route'), href: TERMS_URL },
-    { ...contributionPrivacyLine(), href: PRIVACY_POLICY_URL },
-  ];
-  el.replaceChildren(
-    ...lines.flatMap((line, i) => {
-      const link = document.createElement('a');
-      link.href = line.href;
-      link.target = '_blank';
-      link.rel = 'noopener';
-      link.textContent = line.link;
-      return [...(i > 0 ? [' '] : []), line.before, link, line.after];
-    })
-  );
-}
-
 /** Wire the panel. Call once; `open()` it per saved import. */
 export function initCommunityShare(): CommunityShareController {
   const panel = byId('community-share');
@@ -103,7 +83,7 @@ export function initCommunityShare(): CommunityShareController {
   const stateSelect = byId<HTMLSelectElement>('community-state');
   const stateWrapper = byId('community-state-field');
   const rightsBox = byId<HTMLInputElement>('community-rights');
-  renderContributionLicence(byId('community-licence'));
+  renderContributionLicence(byId('community-licence'), 'sharing', 'this route');
   const includeGpxField = byId('community-include-gpx-field');
   const includeGpxBox = byId<HTMLInputElement>('community-include-gpx');
   const includeGpxNote = byId('community-include-gpx-note');

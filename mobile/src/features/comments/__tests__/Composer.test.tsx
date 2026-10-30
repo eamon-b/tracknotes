@@ -145,7 +145,11 @@ describe('Composer', () => {
   it('spells out the privacy policy URL when the browser cannot open', async () => {
     mockOpenURL.mockRejectedValueOnce(new Error('no activity found'));
     const r = mount({ registered: true, onSubmit: jest.fn() });
-    const link = r.root.findAllByType(Text).filter((n) => typeof n.props.onPress === 'function')[1];
+    const link = r.root
+      .findAllByType(Text)
+      .find(
+        (n) => n.props.accessibilityHint === 'Opens the Tracknotes privacy policy in your browser',
+      )!;
     await act(async () => {
       (link.props.onPress as () => void)();
       await new Promise((resolve) => setImmediate(resolve));
