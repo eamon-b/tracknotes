@@ -1,12 +1,33 @@
 # Tracknotes Privacy Policy
 
+<!--
+Maintainers: the public copy ships with the web app at `public/privacy.html`,
+published at https://trail-maps.vercel.app/privacy.html (the Vercel deploy).
+Keep the two in sync: change one and change the other.
+
+The mobile app links that same URL from Settings → About (`PRIVACY_POLICY_URL`,
+defined in `src/lib/contribution-licence.ts` and imported by
+`mobile/src/features/settings/AboutSection.tsx`), and from the line under every
+form that posts something publicly (`contributionPrivacyLine`). Still
+outstanding before store submission: link the URL from the App Store / Play
+Store listings (issue #31). Reviewed by the owner (2026-10-31); it has had no
+legal read.
+-->
+
 **Last updated: 2026-10-31**
 
-Tracknotes is a hiking guide app for long-distance trails predominantly in Australia,
-but with the ability to add trails from around the world. It is designed to work offline-first and
-to collect as little personal information as possible.
+Tracknotes is a hiking guide app for long-distance trails, mostly in
+Australia, with built-in guides for New Zealand, the United States and Japan,
+and the option to import routes from anywhere. It is designed to work
+offline-first and to collect as little personal information as possible.
 
-In the app, there are opportunities to share information with other app users, like adding creating new waypoints or adding comments to waypoints. Our princples for handling this data if you choose to share it publically is that it is in the public domain, but you can still control what is available in our app: you can edit it, delete it or export it for external use when you like. This is expanded in more detail below.
+In the app you can share information with other users, such as adding new
+waypoints or commenting on waypoints. Our principle for anything you choose to
+share publicly is that it is in the public domain, but you still control what
+is available in our app: you can delete anything you have shared, edit shared
+waypoints and community routes, and download community routes. Because shared
+content is in the public domain, copies others have already made may remain.
+The details are below.
 
 ## What we collect
 
