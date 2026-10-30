@@ -52,6 +52,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { execFile, execFileSync } from 'child_process';
+import { fileURLToPath } from 'url';
 import {
   PROJECT_ROOT,
   CONTOUR_INTERVAL,
@@ -128,7 +129,7 @@ interface Bbox {
   north: number;
 }
 
-interface CliArgs {
+export interface CliArgs {
   shard: string | null;
   bbox: Bbox | null;
   cell: string | null;
@@ -356,8 +357,48 @@ function cellDoneMarker(workDir: string, cellId: string): string {
 }
 
 /** Written after a batch's tippecanoe exits 0; a killed run leaves a headerless mbtiles and no marker. */
-function batchDoneMarker(batchPath: string): string {
+export function batchDoneMarker(batchPath: string): string {
   return `${batchPath}.done`;
+}
+
+/** A batch's file name in the work dir, e.g. `batch-03.mbtiles` (index 0-based). */
+export function batchFileName(index: number): string {
+  return `batch-${String(index).padStart(2, '0')}.mbtiles`;
+}
+
+/**
+ * The cells half of a batch's `.done` label: what went in, e.g.
+ * `2 cells, 1.5 MB (S26E132…S26E134)`. Also the line logged for the batch.
+ */
+export function batchCellsLabel(cells: string[], bytes: number): string {
+  return `${cells.length} cells, ${formatBytes(bytes)} (${cells[0]}…${cells[cells.length - 1]})`;
+}
+
+/** The full `.done` label: the cells, then the tippecanoe release and settings (see batchSettingsLabel). */
+export function batchDoneLabel(cellsLabel: string, settings: string): string {
+  return `${cellsLabel}, ${settings}`;
+}
+
+/**
+ * Whether a batch left by an earlier run can be reused: its mbtiles and marker
+ * both exist and the marker names exactly the cells and settings this run
+ * would tile it with. `markerText` is null when there is no marker.
+ */
+export function canReuseBatch(batchExists: boolean, markerText: string | null, label: string): boolean {
+  return batchExists && markerText === label;
+}
+
+/** Whether a kept batch's marker was written with this run's tippecanoe release and settings (--join-batches). */
+export function batchMatchesSettings(markerText: string, settings: string): boolean {
+  return markerText.endsWith(`, ${settings}`);
+}
+
+/**
+ * The --batch indexes that name no batch of a shard with `batchCount` batches.
+ * Empty when every index is in range (or no subset was asked for).
+ */
+export function outOfRangeBatches(onlyBatches: number[] | null, batchCount: number): number[] {
+  return onlyBatches ? onlyBatches.filter(i => i >= batchCount) : [];
 }
 
 /**
@@ -376,7 +417,7 @@ let settingsLabel: string | undefined;
  * 2026-10, or any later change to the quality bundle) or by another release
  * (TIPPECANOE_ANY_VERSION=1, another box) is re-tiled rather than shipped.
  */
-function batchSettingsLabel(): string {
+export function batchSettingsLabel(): string {
   settingsLabel ??=
     `tippecanoe ${installedTippecanoeVersion() ?? 'unknown'} ` +
     `settings ${contourSettingsHash(WORLD_CONTOUR_OPTIONS)}`;
@@ -713,7 +754,7 @@ const MERGE_BATCH_BYTES = 90 * 1024 * 1024 * 1024;
  * Consecutive in sorted-cell-id order, so batches stay geographically compact
  * and only tiles straddling a seam get re-encoded.
  */
-function batchCellsByBytes(cellIds: string[], bytesByCell: Map<string, number>, maxBytes: number): string[][] {
+export function batchCellsByBytes(cellIds: string[], bytesByCell: Map<string, number>, maxBytes: number): string[][] {
   const batches: string[][] = [];
   let current: string[] = [];
   let currentBytes = 0;
@@ -735,6 +776,13 @@ function batchCellsByBytes(cellIds: string[], bytesByCell: Map<string, number>, 
   return batches;
 }
 
+export type MergeMode = 'full' | 'batches-only' | 'join-batches';
+
+/** Which half (or both) of a shard merge the flags ask for. */
+export function mergeModeFor(args: { joinBatches: boolean; batchesOnly: boolean }): MergeMode {
+  return args.joinBatches ? 'join-batches' : args.batchesOnly ? 'batches-only' : 'full';
+}
+
 /**
  * Merge every completed cell's tier FlatGeobufs in this shard's work dir into
  * one .mbtiles with tippecanoe.
@@ -750,8 +798,6 @@ function batchCellsByBytes(cellIds: string[], bytesByCell: Map<string, number>, 
  * with E2BIG at the end of a multi-hour build. As separate argv entries the
  * limit is the full ARG_MAX (~2MB).
  */
-type MergeMode = 'full' | 'batches-only' | 'join-batches';
-
 function mergeToMbtiles(
   workDir: string,
   outputPath: string,
@@ -819,13 +865,11 @@ function mergeToMbtiles(
 
   // One batch is the whole shard: tile it in one run, then fold the tier
   // layers into `contour` with the same tile-join a batched shard gets.
-  if (onlyBatches) {
-    const missing = onlyBatches.filter(i => i >= batches.length);
-    if (missing.length > 0) {
-      throw new Error(
-        `--batch ${missing.join(',')}: this shard has ${batches.length} batch(es), numbered 0-${batches.length - 1}`
-      );
-    }
+  const missing = outOfRangeBatches(onlyBatches, batches.length);
+  if (missing.length > 0) {
+    throw new Error(
+      `--batch ${missing.join(',')}: this shard has ${batches.length} batch(es), numbered 0-${batches.length - 1}`
+    );
   }
 
   if (batches.length === 1 && mode === 'full') {
@@ -847,10 +891,10 @@ function mergeToMbtiles(
   const batchPaths: string[] = [];
   try {
     batches.forEach((cells, i) => {
-      const batchPath = path.join(workDir, `batch-${String(i).padStart(2, '0')}.mbtiles`);
+      const batchPath = path.join(workDir, batchFileName(i));
       const batchBytes = cells.reduce((a, id) => a + (bytesByCell.get(id) ?? 0), 0);
-      const cellsLabel = `${cells.length} cells, ${formatBytes(batchBytes)} (${cells[0]}…${cells[cells.length - 1]})`;
-      const label = `${cellsLabel}, ${batchSettingsLabel()}`;
+      const cellsLabel = batchCellsLabel(cells, batchBytes);
+      const label = batchDoneLabel(cellsLabel, batchSettingsLabel());
       if (onlyBatches && !onlyBatches.includes(i)) return;
       console.log(`    batch ${i + 1}/${batches.length}: ${cellsLabel}`);
       // A batch is hours of single-threaded tippecanoe. Its marker records what
@@ -859,7 +903,8 @@ function mergeToMbtiles(
       // than tiling the same cells again, and never reuses one tiled with
       // other settings.
       const marker = batchDoneMarker(batchPath);
-      if (fs.existsSync(batchPath) && fs.existsSync(marker) && fs.readFileSync(marker, 'utf8') === label) {
+      const markerText = fs.existsSync(marker) ? fs.readFileSync(marker, 'utf8') : null;
+      if (canReuseBatch(fs.existsSync(batchPath), markerText, label)) {
         console.log(`      ↺ ${path.basename(batchPath)} already built (${formatBytes(fileSizeBytes(batchPath))})`);
         batchPaths.push(batchPath);
         return;
@@ -940,7 +985,7 @@ function joinKeptBatches(workDir: string, outputPath: string, verbose: boolean):
     );
   }
   const settings = batchSettingsLabel();
-  const stale = batchPaths.filter(p => !fs.readFileSync(batchDoneMarker(p), 'utf8').endsWith(`, ${settings}`));
+  const stale = batchPaths.filter(p => !batchMatchesSettings(fs.readFileSync(batchDoneMarker(p), 'utf8'), settings));
   if (stale.length > 0) {
     throw new Error(
       `--join-batches: ${stale.map(p => path.basename(p)).join(', ')} ` +
@@ -986,6 +1031,20 @@ function tippecanoeMerge(layerArgs: string[], outputPath: string, tmpDir: string
 /** Shard files converted for the join (see joinShards) land here. */
 const PMTILES_SHARDS_DIR = 'pmtiles-shards';
 
+/** Where a shard mbtiles' conversion goes, e.g. `world_oceania.mbtiles` → `{dir}/world_oceania.pmtiles`. */
+export function shardPmtilesPath(mbtilesPath: string, dir: string): string {
+  return path.join(dir, path.basename(mbtilesPath).replace(/\.mbtiles$/, '.pmtiles'));
+}
+
+/**
+ * A conversion left by an earlier --join is reused only when it is strictly
+ * newer than its shard mbtiles; a shard rebuilt since (or touched at the same
+ * instant) is converted again. `conversionMtimeMs` is null when there is none.
+ */
+export function canReuseConversion(conversionMtimeMs: number | null, shardMtimeMs: number): boolean {
+  return conversionMtimeMs !== null && conversionMtimeMs > shardMtimeMs;
+}
+
 /**
  * Convert every shard mbtiles to `.pmtiles`, all at once, reusing a
  * conversion newer than its source. Each convert is about one core of mostly
@@ -996,8 +1055,9 @@ async function convertShardsToPmtiles(shardFiles: string[], dir: string): Promis
   ensureDir(dir);
   return Promise.all(
     shardFiles.map(async mbtiles => {
-      const out = path.join(dir, path.basename(mbtiles).replace(/\.mbtiles$/, '.pmtiles'));
-      if (fs.existsSync(out) && fs.statSync(out).mtimeMs > fs.statSync(mbtiles).mtimeMs) {
+      const out = shardPmtilesPath(mbtiles, dir);
+      const outMtimeMs = fs.existsSync(out) ? fs.statSync(out).mtimeMs : null;
+      if (canReuseConversion(outMtimeMs, fs.statSync(mbtiles).mtimeMs)) {
         console.log(`    reusing ${path.basename(out)}`);
         return out;
       }
@@ -1300,7 +1360,7 @@ async function main(): Promise<void> {
       return;
     }
 
-    const mergeMode: MergeMode = args.joinBatches ? 'join-batches' : args.batchesOnly ? 'batches-only' : 'full';
+    const mergeMode = mergeModeFor(args);
     console.log(
       mergeMode === 'join-batches'
         ? '\nStep 3: Joining kept batches into the shard MBTiles...'
@@ -1347,7 +1407,10 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch(error => {
-  console.error('Fatal error:', error);
-  process.exit(1);
-});
+// Guarded so a test can import the pure helpers without starting a build.
+if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url))) {
+  main().catch(error => {
+    console.error('Fatal error:', error);
+    process.exit(1);
+  });
+}
