@@ -508,7 +508,7 @@ rebuild and all 20 offline packs. Times are UTC, 2026-10-23 unless noted.
 | Cells, all shards | 04:25 → 14:43 (~10 h; at 26 cores: asia-east 2 h 19, asia-west 2 h 09, north-america 1 h 15, africa 1 h 15, south-america 1 h 13, central-america 27 min) |
 | Merges | oceania 10:15 (31 GB), europe 11:41 (44 GB), central-america 2 h 55 for its one batch (17 GB), rest 5 min, iceland 18 min; a 92 GB batch takes 2.5-3 h once the CPU is saturated; asia-east has 8 |
 | Offline packs, 19 (3 at a time) | 10:47 → 11:32 (CDT 45 min; the rest under 4 min each) |
-| Australia, full rebuild at `--parallel 24` | 14:44 → 17:21 (157 min, 12.8 GB) |
+| Australia, full rebuild at `--parallel 24` | 14:44 → 17:21 (157 min, 13.5 GB) |
 | Australia + 19 packs uploaded and verified | 20:17 → 20:32 (12.5 GiB at ~35 MiB/s) |
 | Last merge (asia-east, 8 batches, 193 GB) | 2026-10-24 10:01 |
 | Shards to `.pmtiles`, as each merge landed | Oct 24 07:45 → 10:41 (asia-east, 193 GB, took 40 min once merged) |
@@ -741,7 +741,7 @@ Ongoing:
 
 | Item | Cost |
 | --- | --- |
-| R2 storage: `world.pmtiles` ~572 GB + Australia 12.8 GB + packs ~2.5 GB @ $0.015/GB-month | **~$9 / month** |
+| R2 storage: `world.pmtiles` ~613 GB + Australia 13.5 GB + packs ~2.5 GB @ $0.015/GB-month | **~$9 / month** |
 | R2 Class A ops (upload, multipart) | < $0.10 per rebuild |
 | R2 egress | **$0** (zero-egress is the whole reason the archive lives there) |
 

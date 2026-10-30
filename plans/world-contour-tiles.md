@@ -199,7 +199,7 @@ Sizing (estimates, to validate with the first shard):
      app builds), `/health`'s top level follows `world`, the offline packs cut
      Australia from GLO-30 too, and `build-contours-australia.ts` is deleted.
      `contours/australia.pmtiles` stays in R2 as a frozen download (2026-10-23
-     build, 12.8 GB, CC BY 4.0).
+     build, 13.5 GB, CC BY 4.0).
 
 ## Non-goals (this branch)
 
