@@ -208,8 +208,8 @@ describe('community-route.html: owner, report and the no-track view', () => {
       'By posting, you release your changes into the public domain (CC0)'
     );
     expect([...$('edit-licence').querySelectorAll('a')].map(a => a.getAttribute('href'))).toEqual([
-      'https://trail-maps.vercel.app/terms.html',
-      'https://trail-maps.vercel.app/privacy.html',
+      'https://tracknotes.info/terms.html',
+      'https://tracknotes.info/privacy.html',
     ]);
     (document.getElementById('edit-name') as HTMLInputElement).value = 'Cape Walk Renamed';
     $('edit-form').dispatchEvent(new Event('submit', { cancelable: true }));

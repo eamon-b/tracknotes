@@ -13,7 +13,7 @@ the owner (2026-10-31); it has had no legal read (issue #148). Still
 outstanding: link it from the App Store / Play Store listings (#31).
 -->
 
-**Last updated: 2026-10-19**
+**Last updated: 2026-10-31**
 
 These terms cover the Tracknotes app and the Tracknotes website, tracknotes.info (together,
 "Tracknotes"). By using Tracknotes, or by posting anything to it, you agree to

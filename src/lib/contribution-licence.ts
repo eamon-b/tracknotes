@@ -10,8 +10,9 @@
  */
 
 /**
- * The web site (the Vercel deploy of `public/`, at tracknotes.info). The store listings link these pages, so the
- * origin must match theirs; store review flags a mismatch.
+ * The web site: the Vercel deploy of `public/`, at tracknotes.info. The store
+ * listings link these pages, so the origin must match theirs; store review
+ * flags a mismatch.
  */
 const SITE_ORIGIN = 'https://tracknotes.info';
 
