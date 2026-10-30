@@ -35,6 +35,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { routeBreakStarts } from '@lib/route-breaks';
 import { useTheme } from '../../theme';
 import { glyphSizes, radii, spacing, touchTarget, typography } from '../../tokens';
+import { readCorridorRecord } from '../../services/corridor-pack';
 import { resolveOfflinePack } from '../../services/offline-pack-resolver';
 import { useDownloadsStore } from '../../state/downloads-store';
 import { useFavoritesStore } from '../../state/favorites-store';
@@ -95,20 +96,25 @@ import { VariantInfoCard } from './VariantInfoCard';
 
 /** Same env var the Offline Maps screen uses; empty disables re-download. */
 const TILE_BASE_URL = process.env.EXPO_PUBLIC_TILE_BASE_URL ?? '';
+/** Where a corridor pack's tiles come from (`services/corridor-pack`). */
+const CONTOUR_TILE_URL = process.env.EXPO_PUBLIC_CONTOUR_TILE_URL ?? '';
 
 export function MapPane() {
   const { colors } = useTheme();
   const { trail, trailId, direction } = useGuide();
-  // An imported guide has no tile pack of its own; it borrows a bundled one
-  // when its track sits inside that trail's coverage (see
+  // An imported guide has no server-built pack; it borrows a bundled one when
+  // its track sits inside that trail's coverage, and otherwise has a corridor
+  // pack of its own built on the phone, under its own id (see
   // `services/offline-pack-resolver`). Everything tile-shaped below — the
   // download state that decides offline vs online, the style the map mounts,
   // and the banner's re-download — keys on the resolved pack, not on trailId.
-  const packTrailId = useMemo(() => {
-    const pack = resolveOfflinePack(trailId, trail);
-    if (pack.kind === 'own') return trailId;
-    return pack.kind === 'bundled' ? pack.packTrailId : null;
-  }, [trailId, trail]);
+  const pack = useMemo(() => resolveOfflinePack(trailId, trail), [trailId, trail]);
+  const packTrailId =
+    pack.kind === 'own' || pack.kind === 'corridor'
+      ? trailId
+      : pack.kind === 'bundled'
+        ? pack.packTrailId
+        : null;
 
   const download = useDownloadsStore((s) => (packTrailId ? s.byTrail[packTrailId] : undefined));
   // `downloading` forces the map online for the duration: an update replaces
@@ -119,6 +125,7 @@ export function MapPane() {
   const downloading = download?.downloading ?? false;
 
   const startDownload = useDownloadsStore((s) => s.startDownload);
+  const startCorridorDownload = useDownloadsStore((s) => s.startCorridorDownload);
 
   // --- Degraded-basemap reporting ------------------------------------------
   // GuideMap tells us what actually mounted (which may be worse than what we
@@ -140,10 +147,25 @@ export function MapPane() {
   // who taps this with no signal without the base map that was still working.
   const onRedownload = useCallback(() => {
     if (!packTrailId) return;
+    if (pack.kind === 'corridor') {
+      // A corridor pack is rebuilt at the width the hiker chose for it; with
+      // no pack on disk there is no choice to repeat — that is the Offline
+      // maps screen's job.
+      const record = readCorridorRecord(packTrailId);
+      if (!record) return;
+      setDismissed(null);
+      setResolution(null);
+      void startCorridorDownload(packTrailId, trail, {
+        bufferKm: record.bufferKm,
+        tileUrl: CONTOUR_TILE_URL,
+        name: typeof trail.name === 'string' ? trail.name : undefined,
+      });
+      return;
+    }
     setDismissed(null);
     setResolution(null);
     void startDownload(packTrailId, TILE_BASE_URL);
-  }, [startDownload, packTrailId]);
+  }, [startDownload, startCorridorDownload, packTrailId, pack.kind, trail]);
 
   const favoriteIds = useFavoritesStore((s) => s.byTrail[trailId]);
   const favoriteSet = useMemo(() => new Set(favoriteIds ?? []), [favoriteIds]);

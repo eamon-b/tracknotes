@@ -11,9 +11,19 @@
  * Cancellation uses a mutable `{ cancelled }` signal that `downloadTrailTiles`
  * checks between files. Signals are mutable refs, so they live in a
  * module-level map rather than in reactive state.
+ *
+ * A corridor pack — an import's or community route's own pack, built on the
+ * phone (`services/corridor-pack`) — goes through `startCorridorDownload`
+ * instead: same `byTrail` key (the pack id, here the guide's own id), same
+ * `downloading`/`progress`/`error` contract, plus tile counts. Its cancel
+ * aborts the in-flight tile requests as well. It is never checked against the
+ * R2 manifest URL (`checkForUpdates` skips it): its "update" is the route
+ * changing, which the screen compares itself.
  */
 
 import { create } from 'zustand';
+import { downloadCorridorPack, readCorridorRecord } from '../services/corridor-pack';
+import type { CorridorTrailInput } from '../services/corridor-tiles';
 import { tileManager } from '../services/tile-manager';
 import type { TileStatusState } from '../services/tile-service';
 
@@ -41,6 +51,20 @@ export interface TrailDownload {
   updateAvailable?: boolean;
   /** Version string of the newer remote pack, when one was found. */
   remoteVersion?: string;
+  /** Corridor builds only: tiles fetched (or found already staged) so far. */
+  tilesDone?: number;
+  /** Corridor builds only: tiles this build fetches in all. */
+  tilesTotal?: number;
+}
+
+/** What a corridor build needs beyond the route itself. */
+export interface CorridorDownloadRequest {
+  /** Corridor half-width the hiker chose, in km. */
+  bufferKm: number;
+  /** Tile worker base URL (`EXPO_PUBLIC_CONTOUR_TILE_URL`). */
+  tileUrl: string;
+  /** Display name for the mbtiles metadata. */
+  name?: string;
 }
 
 const IDLE: TrailDownload = { state: 'absent', downloading: false, progress: 0 };
@@ -61,14 +85,43 @@ export interface DownloadsState {
   checkForUpdates: (trailIds: string[], baseUrl: string) => Promise<void>;
   /** Begin downloading a trail's tiles from `baseUrl`. */
   startDownload: (trailId: string, baseUrl: string) => Promise<void>;
-  /** Request cancellation of an in-flight download. */
-  cancel: (trailId: string) => void;
+  /** Build (or rebuild, or resume) a route's corridor pack on the phone. */
+  startCorridorDownload: (
+    trailId: string,
+    trail: CorridorTrailInput,
+    request: CorridorDownloadRequest,
+  ) => Promise<void>;
+  /**
+   * Request cancellation of an in-flight download. Resolves once that
+   * download has stopped and patched its final state (at once when none runs),
+   * so a caller about to delete the pack's files can wait for it.
+   */
+  cancel: (trailId: string) => Promise<void>;
   /** Delete a trail's tiles and refresh status. */
   deleteTiles: (trailId: string) => void;
+  /** Drop a pack's entry entirely (its guide left the phone). */
+  forget: (trailId: string) => void;
+}
+
+/** A running download's cancellation signal and the promise of its end. */
+interface RunningDownload {
+  cancelled: boolean;
+  abort?: () => void;
+  /** Resolves when the download has stopped, whatever the outcome. */
+  settled: Promise<void>;
 }
 
 /** Mutable cancellation signals, keyed by trail id (not reactive state). */
-const signals = new Map<string, { cancelled: boolean }>();
+const signals = new Map<string, RunningDownload>();
+
+/** A signal whose `settled` resolves when `markSettled` is called. */
+function runningDownload(abort?: () => void): { signal: RunningDownload; markSettled: () => void } {
+  let markSettled = () => {};
+  const settled = new Promise<void>((resolve) => {
+    markSettled = resolve;
+  });
+  return { signal: { cancelled: false, abort, settled }, markSettled };
+}
 
 export const useDownloadsStore = create<DownloadsState>((set, get) => {
   const patch = (trailId: string, next: Partial<TrailDownload>) =>
@@ -106,6 +159,12 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => {
         trailIds.map(async (trailId) => {
           // Disk is the source of truth for completeness, not the store.
           const status = tileManager.getTrailStatus(trailId);
+          // A corridor pack has no server manifest: asking for one would be a
+          // request for a pack the bucket has never heard of.
+          if (readCorridorRecord(trailId)) {
+            patch(trailId, { state: status.state, updateAvailable: false });
+            return;
+          }
           if (status.state !== 'complete' || get().byTrail[trailId]?.downloading) {
             // checkForTileUpdate reports updateAvailable for an incomplete pack
             // (there is nothing valid to compare against), which is not what
@@ -136,7 +195,7 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => {
       // Ignore if already running.
       if (get().byTrail[trailId]?.downloading) return;
 
-      const signal = { cancelled: false };
+      const { signal, markSettled } = runningDownload();
       signals.set(trailId, signal);
       // `downloading` is load-bearing beyond the progress bar: an *update*
       // re-download replaces base.mbtiles / contours.mbtiles while on-disk
@@ -185,12 +244,71 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => {
         });
       } finally {
         signals.delete(trailId);
+        markSettled();
+      }
+    },
+
+    startCorridorDownload: async (trailId, trail, request) => {
+      if (get().byTrail[trailId]?.downloading) return;
+
+      const controller = new AbortController();
+      const { signal, markSettled } = runningDownload(() => controller.abort());
+      signals.set(trailId, signal);
+      // As startDownload: `downloading` sends a mounted map online before the
+      // pack it may be holding open is replaced.
+      patch(trailId, {
+        downloading: true,
+        progress: 0,
+        error: undefined,
+        tilesDone: 0,
+        tilesTotal: undefined,
+      });
+      tileManager.clearValidationCache(trailId);
+
+      try {
+        await downloadCorridorPack(trailId, trail, {
+          ...request,
+          signal: controller.signal,
+          onProgress: ({ tilesDone, tilesTotal }) => {
+            patch(trailId, {
+              progress: tilesTotal > 0 ? tilesDone / tilesTotal : 0,
+              tilesDone,
+              tilesTotal,
+            });
+          },
+        });
+        const status = tileManager.getTrailStatus(trailId);
+        tileManager.clearValidationCache(trailId);
+        patch(trailId, {
+          downloading: false,
+          progress: 1,
+          state: status.state,
+          updateAvailable: false,
+          remoteVersion: undefined,
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        const cancelled = signal.cancelled;
+        const status = tileManager.getTrailStatus(trailId);
+        tileManager.clearValidationCache(trailId);
+        patch(trailId, {
+          downloading: false,
+          progress: 0,
+          state: status.state,
+          error: cancelled ? undefined : message,
+        });
+      } finally {
+        signals.delete(trailId);
+        markSettled();
       }
     },
 
     cancel: (trailId) => {
       const signal = signals.get(trailId);
-      if (signal) signal.cancelled = true;
+      if (!signal) return Promise.resolve();
+      signal.cancelled = true;
+      signal.abort?.();
+      return signal.settled;
     },
 
     deleteTiles: (trailId) => {
@@ -202,6 +320,15 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => {
         error: undefined,
         updateAvailable: false,
         remoteVersion: undefined,
+      });
+    },
+
+    forget: (trailId) => {
+      set((s) => {
+        if (!(trailId in s.byTrail)) return s;
+        const byTrail = { ...s.byTrail };
+        delete byTrail[trailId];
+        return { byTrail };
       });
     },
   };

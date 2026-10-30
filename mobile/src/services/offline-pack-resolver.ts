@@ -4,10 +4,12 @@
  * Tile packs are built server-side, one per *bundled* trail (a 20 km corridor
  * around its track, see `scripts/build-tiles.ts`), and downloaded into
  * `{documentDir}/tiles/{trailId}/`. A user-imported GPX — and a community route
- * (`c_…`), which is someone else's import — has no pack of its own and never
- * will, so the app does the next best thing: if the import or community route
- * lies inside a bundled trail's coverage, it reuses *that* trail's pack. (Below,
- * "import" covers both: neither is one of our own trails, `isCuratedTrailId`.)
+ * (`c_…`), which is someone else's import — has no server-built pack. If the
+ * import or community route lies inside a bundled trail's coverage, it reuses
+ * *that* trail's pack; otherwise the phone builds it a **corridor pack** of its
+ * own from the tiles along the route (`services/corridor-pack`), in its own
+ * directory. (Below, "import" covers both: neither is one of our own trails,
+ * `isCuratedTrailId`.)
  *
  * The reuse is an alias, not a copy. Directory names stay equal to the bundled
  * trail id (`tileManager.getDownloadedTrails()` enumerates dir names, so a
@@ -25,11 +27,15 @@
  * candidate's; failing that, when at least {@link MIN_PACK_OVERLAP} of the
  * import's bbox *area* is covered, and then the best-covered candidate wins.
  *
- * It is an approximation in both directions and that is accepted for v1: a
- * matched import can still find blank tiles where it wanders off the corridor
- * (the map degrades to empty ground, not an error), and a genuinely uncovered
- * import is told plainly that offline maps aren't available rather than being
- * walked into a 404. Per-bbox packs are the real fix and are out of scope.
+ * It is an approximation in both directions and that is accepted: a matched
+ * import can still find blank tiles where it wanders off the corridor (the map
+ * degrades to empty ground, not an error). An uncovered import gets a corridor
+ * pack (`kind: 'corridor'`) built to its own track. The borrow wins whenever
+ * it applies: the bundled pack is already built, wider than most corridors,
+ * and may already be on the phone.
+ *
+ * `'none'` is left for an import with no track points to build around, and for
+ * a build with no tile server configured (`EXPO_PUBLIC_CONTOUR_TILE_URL`).
  */
 
 import { calculateTrailBounds, type TrackPoint, type TrailBounds } from './trail-bounds';
@@ -62,8 +68,17 @@ export type OfflinePackResolution =
   | { kind: 'own' }
   /** An import that falls inside a bundled trail's coverage. */
   | { kind: 'bundled'; packTrailId: string; packName: string }
+  /** An import outside every bundled pack: its own pack, built on the phone. */
+  | { kind: 'corridor' }
   /** An import with no usable pack — online only. */
   | { kind: 'none' };
+
+/**
+ * Whether this build can assemble corridor packs: they are fetched from the
+ * tile worker, so without its URL there is nothing to build from.
+ */
+export const CORRIDOR_TILES_CONFIGURED =
+  (process.env.EXPO_PUBLIC_CONTOUR_TILE_URL ?? '').length > 0;
 
 /** The minimum a trail has to expose for its bbox to be computed. */
 export interface PackTrailInput {
@@ -192,14 +207,17 @@ export function resetBundledPackCandidates(): void {
 
 /**
  * Which pack this guide should use. Bundled guides own theirs; imports borrow
- * one when their bbox is covered (see the module docs for the rule).
+ * one when their bbox is covered, and otherwise get a corridor pack built on
+ * the phone (see the module docs for the rule).
  *
  * @param candidates test seam — defaults to the bundled coverage table.
+ * @param corridorTiles test seam — whether corridor packs can be built here.
  */
 export function resolveOfflinePack(
   trailId: string,
   trail: PackTrailInput | null | undefined,
   candidates: readonly PackCandidate[] = bundledPackCandidates(),
+  corridorTiles: boolean = CORRIDOR_TILES_CONFIGURED,
 ): OfflinePackResolution {
   if (isCuratedTrailId(trailId)) return { kind: 'own' };
 
@@ -207,8 +225,10 @@ export function resolveOfflinePack(
   if (!bounds) return { kind: 'none' };
 
   const pack = pickPack(bounds, candidates);
-  if (!pack) return { kind: 'none' };
-  return { kind: 'bundled', packTrailId: pack.trailId, packName: pack.name };
+  if (pack) return { kind: 'bundled', packTrailId: pack.trailId, packName: pack.name };
+  // A corridor is drawn around the full-resolution points, never displayPoints.
+  if (corridorTiles && (trail?.track?.points?.length ?? 0) > 0) return { kind: 'corridor' };
+  return { kind: 'none' };
 }
 
 // ---------------------------------------------------------------------------
@@ -221,8 +241,14 @@ export interface OfflinePackPlan {
   packTrailId: string | null;
   /** Whether the download and delete actions apply at all. */
   packAvailable: boolean;
-  /** Line explaining a borrowed or missing pack; null when the guide owns one. */
+  /** Line explaining a borrowed, phone-built or missing pack; null when the guide owns one. */
   note: string | null;
+  /**
+   * True for a corridor pack: built on the phone (`services/corridor-pack`)
+   * rather than downloaded, with a corridor width the hiker picks, and an
+   * "update" that means the route changed since it was built.
+   */
+  corridor: boolean;
 }
 
 /**
@@ -235,18 +261,27 @@ export function offlinePackPlan(
 ): OfflinePackPlan {
   switch (resolution.kind) {
     case 'own':
-      return { packTrailId: trailId, packAvailable: true, note: null };
+      return { packTrailId: trailId, packAvailable: true, note: null, corridor: false };
     case 'bundled':
       return {
         packTrailId: resolution.packTrailId,
         packAvailable: true,
         note: `Uses the ${resolution.packName} offline pack — this guide's track is inside its coverage.`,
+        corridor: false,
+      };
+    case 'corridor':
+      return {
+        packTrailId: trailId,
+        packAvailable: true,
+        note: 'Offline maps for this route are built on your phone from the map tiles along it. Choose how far either side of the route to cover.',
+        corridor: true,
       };
     case 'none':
       return {
         packTrailId: null,
         packAvailable: false,
-        note: "Offline maps aren't available for imported trails outside a bundled trail's coverage. The map works online.",
+        note: "Offline maps aren't available for this route: it has no track to build one around, or this build has no tile server. The map works online.",
+        corridor: false,
       };
   }
 }

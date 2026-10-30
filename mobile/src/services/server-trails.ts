@@ -57,8 +57,8 @@ export function isServerKnown(id: string): boolean {
 
 /**
  * Whether this is one of our own trails — bundled or in the R2 catalog — as
- * opposed to a community route or an import. Only these have offline packs
- * and curated waypoint ids.
+ * opposed to a community route or an import. Only these have server-built
+ * offline packs and curated waypoint ids.
  */
 export function isCuratedTrailId(id: string): boolean {
   if (isLocalOnlyTrailId(id)) return false;

@@ -2,6 +2,25 @@ import { useDownloadsStore } from '../downloads-store';
 import { tileManager } from '../../services/tile-manager';
 import { resolveStyleSource } from '../../features/map/map-style';
 import type { DownloadOptions } from '../../services/tile-service';
+import {
+  CorridorCancelledError,
+  downloadCorridorPack,
+  readCorridorRecord,
+  type CorridorDownloadOptions,
+} from '../../services/corridor-pack';
+
+jest.mock('../../services/corridor-pack', () => {
+  class CorridorCancelledError extends Error {}
+  return {
+    CorridorCancelledError,
+    downloadCorridorPack: jest.fn(),
+    readCorridorRecord: jest.fn(() => null),
+  };
+});
+
+const mockCorridorDownload = downloadCorridorPack as jest.Mock;
+const mockCorridorRecord = readCorridorRecord as jest.Mock;
+const ROUTE = { track: { points: [{ lat: -35, lon: 140 }] } };
 
 jest.mock('../../services/tile-manager', () => ({
   tileManager: {
@@ -272,6 +291,122 @@ describe('downloads-store', () => {
       const s = useDownloadsStore.getState().get('aawt');
       expect(s.updateAvailable).toBe(false);
       expect(s.remoteVersion).toBeUndefined();
+    });
+  });
+
+  describe('corridor packs', () => {
+    it("builds with tile-count progress under the guide's own id", async () => {
+      const seen: number[] = [];
+      mockCorridorDownload.mockImplementation(
+        async (_id: string, _trail: unknown, opts: CorridorDownloadOptions) => {
+          opts.onProgress?.({ tilesDone: 25, tilesTotal: 100, bytes: 1000 });
+          seen.push(useDownloadsStore.getState().get('u_x').progress);
+        },
+      );
+      mockGetStatus.mockReturnValue(status('complete'));
+
+      await useDownloadsStore
+        .getState()
+        .startCorridorDownload('u_x', ROUTE, { bufferKm: 5, tileUrl: 'https://tiles.example' });
+
+      expect(mockCorridorDownload).toHaveBeenCalledWith(
+        'u_x',
+        ROUTE,
+        expect.objectContaining({ bufferKm: 5, tileUrl: 'https://tiles.example' }),
+      );
+      expect(seen).toEqual([0.25]);
+      const s = useDownloadsStore.getState().get('u_x');
+      expect(s).toMatchObject({ downloading: false, state: 'complete', tilesTotal: 100 });
+      expect(s.error).toBeUndefined();
+    });
+
+    it('cancel aborts the in-flight requests and shows no error', async () => {
+      let signal: AbortSignal | undefined;
+      mockCorridorDownload.mockImplementation(
+        (_id: string, _trail: unknown, opts: CorridorDownloadOptions) =>
+          new Promise((_resolve, reject) => {
+            signal = opts.signal;
+            opts.signal?.addEventListener('abort', () => reject(new CorridorCancelledError()));
+          }),
+      );
+      mockGetStatus.mockReturnValue(status('absent'));
+
+      const run = useDownloadsStore
+        .getState()
+        .startCorridorDownload('u_x', ROUTE, { bufferKm: 5, tileUrl: 'https://tiles.example' });
+      expect(useDownloadsStore.getState().get('u_x').downloading).toBe(true);
+      useDownloadsStore.getState().cancel('u_x');
+      await run;
+
+      expect(signal?.aborted).toBe(true);
+      const s = useDownloadsStore.getState().get('u_x');
+      expect(s.downloading).toBe(false);
+      expect(s.error).toBeUndefined();
+    });
+
+    it('cancel resolves only once the build has stopped and patched its state', async () => {
+      let finish: (() => void) | undefined;
+      mockCorridorDownload.mockImplementation(
+        (_id: string, _trail: unknown, opts: CorridorDownloadOptions) =>
+          new Promise((_resolve, reject) => {
+            // The build winds down (closing its staging files) some time after the abort.
+            opts.signal?.addEventListener('abort', () => {
+              finish = () => reject(new CorridorCancelledError());
+            });
+          }),
+      );
+      mockGetStatus.mockReturnValue(status('absent'));
+
+      void useDownloadsStore
+        .getState()
+        .startCorridorDownload('u_x', ROUTE, { bufferKm: 5, tileUrl: 'https://tiles.example' });
+      let cancelled = false;
+      const cancel = useDownloadsStore
+        .getState()
+        .cancel('u_x')
+        .then(() => {
+          cancelled = true;
+        });
+      await Promise.resolve();
+      expect(cancelled).toBe(false);
+      expect(useDownloadsStore.getState().get('u_x').downloading).toBe(true);
+
+      finish?.();
+      await cancel;
+      expect(useDownloadsStore.getState().get('u_x').downloading).toBe(false);
+      // Nothing left to patch after it: forgetting the entry now sticks.
+      useDownloadsStore.getState().forget('u_x');
+      await Promise.resolve();
+      expect('u_x' in useDownloadsStore.getState().byTrail).toBe(false);
+    });
+
+    it('cancel with nothing running resolves at once', async () => {
+      await expect(useDownloadsStore.getState().cancel('u_none')).resolves.toBeUndefined();
+    });
+
+    it("records a failed build's message", async () => {
+      mockCorridorDownload.mockRejectedValue(new Error('Choose a narrower corridor.'));
+      mockGetStatus.mockReturnValue(status('absent'));
+      await useDownloadsStore
+        .getState()
+        .startCorridorDownload('u_x', ROUTE, { bufferKm: 20, tileUrl: 'https://tiles.example' });
+      expect(useDownloadsStore.getState().get('u_x').error).toBe('Choose a narrower corridor.');
+    });
+
+    it('never asks the pack bucket about a corridor pack', async () => {
+      mockGetStatus.mockReturnValue(status('complete'));
+      mockCorridorRecord.mockReturnValueOnce({ bufferKm: 5 });
+      await useDownloadsStore.getState().checkForUpdates(['u_x'], 'https://tiles.example');
+      expect(mockCheckForUpdate).not.toHaveBeenCalled();
+      expect(useDownloadsStore.getState().get('u_x').updateAvailable).toBe(false);
+    });
+
+    it("forget drops a pack's entry", () => {
+      useDownloadsStore.setState({
+        byTrail: { u_x: { state: 'complete', downloading: false, progress: 1 } },
+      });
+      useDownloadsStore.getState().forget('u_x');
+      expect(useDownloadsStore.getState().byTrail).toEqual({});
     });
   });
 

@@ -17,6 +17,9 @@
 export const SOURCES: Readonly<Record<string, string>> = {
   contours: 'contours/world.pmtiles',
   world: 'contours/world.pmtiles',
+  // Not contours: the Protomaps planet basemap the bundled offline packs are
+  // extracted from. Phones build an imported route's offline pack from it (#227).
+  base: 'basemap/planet.pmtiles',
 };
 
 /** The source whose health decides the top-level `ok` of /health. */

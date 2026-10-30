@@ -10,7 +10,11 @@
  * - the in-memory caches over those (`plans-store`, `favorites-store`,
  *   `routes-store`);
  * - the device-local preferences: pace and daily hours (`plan-inputs-store`),
- *   the hiking direction, and the "Hiking now" pin (`settings-store`).
+ *   the hiking direction, and the "Hiking now" pin (`settings-store`);
+ * - its own offline map: the corridor pack built on the phone under
+ *   `tiles/{trailId}/` (`corridor-pack`), with any interrupted build's staging
+ *   files, and its download state. A *borrowed* bundled pack is a different
+ *   directory and stays — other guides may use it.
  *
  * The plan is HARD-deleted, not tombstoned: only local-only guides (`u_`
  * imports, `c_` community routes) are ever removed, and their plans were never
@@ -31,7 +35,9 @@ import { useFavoritesStore } from '../state/favorites-store';
 import { usePlansStore } from '../state/plans-store';
 import { useUserWaypointsStore } from '../state/user-waypoints-store';
 import { useSettingsStore } from '../state/settings-store';
+import { useDownloadsStore } from '../state/downloads-store';
 import { isLocalOnlyTrailId } from './server-trails';
+import { tileManager } from './tile-manager';
 
 export async function deleteLocalTrailData(db: SqlDatabase, trailId: string): Promise<void> {
   if (!isLocalOnlyTrailId(trailId)) return;
@@ -48,4 +54,18 @@ export async function deleteLocalTrailData(db: SqlDatabase, trailId: string): Pr
   const settings = useSettingsStore.getState();
   settings.clearDirection(trailId);
   settings.clearCurrentTrailIf(trailId);
+
+  // Last, and never fatal: a pack that will not delete is wasted space, not a
+  // reason to keep a removed guide's other data.
+  // A build in flight is waited out first: it holds its staging files open and
+  // patches its final state on the way out, which must land before both the
+  // directory goes and the entry is forgotten.
+  const downloads = useDownloadsStore.getState();
+  await downloads.cancel(trailId);
+  try {
+    tileManager.deleteTrail(trailId);
+  } catch (err) {
+    console.warn(`[local-trail-data] could not delete offline maps for ${trailId}`, err);
+  }
+  downloads.forget(trailId);
 }
