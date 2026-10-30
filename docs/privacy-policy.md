@@ -40,7 +40,8 @@ display name is the only identity shown to other users.
 waypoints, or to OpenStreetMap points of interest (shops, cafés, campgrounds
 and the like) shown in the app, are stored on our servers and shown publicly to
 other users of the app alongside your display name and the time of posting
-(for a water report, also the time you say you saw the water).
+(for a water report, also the day you say you saw the water: we keep and show
+only the date, never the time of day).
 
 **Photo location.** Photos are uploaded as taken: the app re-encodes them at a
 reduced quality to make them smaller, but does not remove their metadata. A
@@ -201,7 +202,7 @@ every comment you posted, every waypoint you shared and every plan you saved
 (they disappear from all devices on their next sync), including ones that were
 already deleted or hidden:
 
-- **Comments:** the text, water status and observation time are erased, and
+- **Comments:** the text, water status and observation date are erased, and
   your uploaded photos are deleted.
 - **Plans:** the plan's contents are erased and any shared plan link is
   removed, so it stops working.

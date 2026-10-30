@@ -94,7 +94,7 @@ describe('validation', () => {
     expect(((await res.json()) as { error: { code: string } }).error.code).toBe('invalid_comment_id');
   });
 
-  it('clamps a far-future observedAt to <= now + 10min', async () => {
+  it('clamps a far-future observedAt to <= now + 10min, to the day', async () => {
     const device = await registerDevice();
     const farFuture = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
     const { res } = await createComment(device, { observedAt: farFuture });
@@ -103,6 +103,7 @@ describe('validation', () => {
     const observedMs = Date.parse(body.observedAt as string);
     expect(observedMs).toBeLessThanOrEqual(Date.now() + 10 * 60 * 1000 + 1000);
     expect(observedMs).toBeLessThan(Date.parse(farFuture));
+    expect(body.observedAt).toMatch(/^\d{4}-\d{2}-\d{2}T00:00:00\.000Z$/);
   });
 });
 

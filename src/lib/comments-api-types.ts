@@ -254,7 +254,10 @@ export interface PutCommentRequest {
   waypointId: string;
   text?: string | null;
   waterStatus?: WaterStatus | null;
-  /** ISO 8601; server clamps to <= now + 10 min. */
+  /**
+   * ISO 8601; the server clamps it to <= now + 10 min, then keeps only the day:
+   * midnight UTC of its UTC date (issue #248).
+   */
   observedAt?: string | null;
 }
 

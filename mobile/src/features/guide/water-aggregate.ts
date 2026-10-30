@@ -28,7 +28,11 @@ export const WATER_DECAY_DAYS = 30;
 
 const DAY_MS = 86_400_000;
 
-/** One cached water report. `observedAt` wins over `createdAt` when present. */
+/**
+ * One cached water report. `observedAt` wins over `createdAt` when present; the
+ * comments API publishes it only to the day, as midnight UTC (issue #248), so
+ * its age is counted from that midnight.
+ */
 export interface WaterReport {
   waterStatus: WaterStatus;
   observedAt: string | null;
