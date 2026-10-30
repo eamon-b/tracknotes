@@ -34,11 +34,50 @@ const RATE_LIMIT_RETRIES = 6;
  * 200s (Range ignored) retried before giving up. Cloudflare bypasses its cache
  * for the packs over its size limit (CDT, Te Araroa) and now and then answers
  * one of those with the whole object instead of the range: on 2026-10-30 the
- * tile-packs check failed that way and passed by hand minutes later.
+ * tile-packs check failed that way and passed by hand minutes later, so the
+ * waits (5 s doubling, 75 s in all) outlast a short spell of it.
  */
-const RANGE_IGNORED_RETRIES = 3;
+const RANGE_IGNORED_RETRIES = 4;
 
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+/**
+ * Close a response without reading it: a 200 to a Range request is the whole
+ * object, a gigabyte for the CDT. A body that already failed is ignored.
+ */
+async function discardBody(res) {
+  await res.body?.cancel?.().catch(() => {});
+}
+
+/**
+ * The first `n` bytes of a response, then the rest is cancelled unread: for a
+ * probe that accepts a 200 (the Range ignored) without downloading the object.
+ * @param {Response} res
+ * @param {number} n
+ */
+export async function readPrefix(res, n) {
+  if (!res.body) return new Uint8Array(0);
+  const reader = res.body.getReader();
+  const chunks = [];
+  let length = 0;
+  try {
+    while (length < n) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      length += value.length;
+    }
+  } finally {
+    await reader.cancel().catch(() => {});
+  }
+  const out = new Uint8Array(length);
+  let at = 0;
+  for (const chunk of chunks) {
+    out.set(chunk, at);
+    at += chunk.length;
+  }
+  return out.subarray(0, n);
+}
 
 /**
  * A RangeReader over HTTP. Throws on anything but a 206 of the right length,
@@ -57,14 +96,14 @@ export function httpRangeReader(url, fetchFn = fetch, sleep = delay) {
         const backoff = 5000 * 2 ** limited++;
         await sleep(retryAfter > 0 ? retryAfter * 1000 : backoff);
       } else if (res.status === 200 && ignored < RANGE_IGNORED_RETRIES) {
-        // Don't download a gigabyte to throw it away.
-        await res.body?.cancel?.();
-        await sleep(2000 * 2 ** ignored++);
+        await discardBody(res);
+        await sleep(5000 * 2 ** ignored++);
       } else {
         break;
       }
     }
     if (res.status !== 206) {
+      await discardBody(res);
       throw new Error(`range request for ${url} → HTTP ${res.status} (expected 206)`);
     }
     const bytes = new Uint8Array(await res.arrayBuffer());

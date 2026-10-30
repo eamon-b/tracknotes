@@ -10,6 +10,7 @@ export function httpRangeReader(
   fetchFn?: typeof fetch,
   sleep?: (ms: number) => Promise<void>
 ): RangeReader;
+export function readPrefix(res: Response, n: number): Promise<Uint8Array>;
 export function parseRecord(payload: Uint8Array): RecordValue[];
 export function tableColumns(sql: string): Array<{ name: string; rowidAlias: boolean }>;
 export function indexColumns(sql: string): string[];

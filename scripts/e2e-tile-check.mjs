@@ -76,7 +76,7 @@
 
 import { readFileSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
-import { httpRangeReader, readZoomTiles } from './lib/http-mbtiles.mjs';
+import { httpRangeReader, readPrefix, readZoomTiles } from './lib/http-mbtiles.mjs';
 import { checkZ9Tiered } from './lib/mvt-contours.mjs';
 
 const CONTOUR_URL = (process.env.CONTOUR_TILE_URL || 'https://tiles.contour-map-tiles.net').replace(/\/$/, '');
@@ -529,7 +529,9 @@ async function checkTrailOfflineArtifacts() {
           failures.push(`[${trailId}] ${label} is suspiciously small (${file.size} bytes) — likely an empty stub`);
         }
 
-        const head = Buffer.from(await res.arrayBuffer());
+        // A 200 is the whole object (the edge ignored the Range): take its
+        // first bytes and drop the rest unread, not a gigabyte for the CDT.
+        const head = Buffer.from(res.status === 206 ? await res.arrayBuffer() : await readPrefix(res, 16));
         const magic = head.subarray(0, 16).toString('latin1');
         if (res.status === 206 || head.length >= 16) {
           if (magic !== SQLITE_MAGIC) {
