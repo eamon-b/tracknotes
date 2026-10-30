@@ -70,7 +70,7 @@ export const SITE_ROOT = { topLevel: './', trailPage: '../../' } as const;
  *
  * Relative to the page, as `index.html` fetches `./data/generated/index.json`:
  * Vite builds with `base: './'` so the site works from a sub-path
- * (`https://host/trail-maps/`), where an absolute `/data/…` misses it.
+ * (`https://host/tracknotes/`), where an absolute `/data/…` misses it.
  *
  * @param file  Path under `data/generated/`, e.g. `heysen.json`.
  * @param siteRoot  The page's way back to the site root (`SITE_ROOT`).

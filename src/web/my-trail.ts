@@ -38,7 +38,7 @@ function showPanel(id: 'loading-panel' | 'missing-panel' | 'trail-panel'): void 
 
 /** Fill in the bits a bundled page gets from `{{…}}` template substitution. */
 function applyTrailIdentity(name: string, trailId: string): void {
-  document.title = `${name} - Trail Maps`;
+  document.title = `${name} - Tracknotes`;
 
   // textContent, not innerHTML: `name` is whatever the user typed on upload.
   const title = document.getElementById('trail-title');

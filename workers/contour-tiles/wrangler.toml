@@ -25,4 +25,4 @@ bucket_name = "aus-map-data"
 
 # Optionally lock CORS down in production:
 # [vars]
-# ALLOWED_ORIGIN = "https://trailmaps.example.com"
+# ALLOWED_ORIGIN = "https://tracknotes.info"

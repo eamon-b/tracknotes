@@ -2,7 +2,7 @@
 
 <!--
 Maintainers: the public copy ships with the web app at `public/privacy.html`,
-published at https://trail-maps.vercel.app/privacy.html (the Vercel deploy).
+published at https://tracknotes.info/privacy.html (the Vercel deploy).
 Keep the two in sync: change one and change the other.
 
 The mobile app links that same URL from Settings → About (`PRIVACY_POLICY_URL`,

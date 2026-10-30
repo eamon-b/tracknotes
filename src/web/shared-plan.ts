@@ -58,7 +58,7 @@ function showMissing(title: string, detail: string): void {
  */
 function applyIdentity(shared: SharedPlanResponse, shareId: string): void {
   const name = shared.document.name || 'Shared plan';
-  document.title = `${name} - Trail Maps`;
+  document.title = `${name} - Tracknotes`;
 
   const title = byId('trail-title');
   if (title) title.textContent = name;

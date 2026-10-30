@@ -40,7 +40,7 @@ function showMissing(): void {
 
 /** Fill in the bits a bundled plan page gets from `{{…}}` substitution. */
 function applyTrailIdentity(name: string, trailId: string): void {
-  document.title = `Plan — ${name} - Trail Maps`;
+  document.title = `Plan — ${name} - Tracknotes`;
 
   // textContent, not innerHTML: `name` is whatever the user typed on upload.
   const title = byId('trail-title');

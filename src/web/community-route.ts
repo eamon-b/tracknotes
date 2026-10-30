@@ -102,7 +102,7 @@ function formatDate(iso: string | null | undefined): string {
 }
 
 function renderHeader(detail: CommunityRouteDetail): void {
-  document.title = `${detail.name} - Community route - Trail Maps`;
+  document.title = `${detail.name} - Community route - Tracknotes`;
   $('trail-title')!.textContent = detail.name;
   $('breadcrumb-name')!.textContent = detail.name;
   $('status-badge')!.innerHTML = statusBadgeHtml(detail.status);

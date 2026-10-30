@@ -584,7 +584,7 @@ describe('booting the planner', () => {
       fetched.push(String(url));
       return { ok: true, json: async () => makeTrail() } as unknown as Response;
     }) as typeof fetch;
-    window.history.replaceState({}, '', `/trail-maps/trails/${TRAIL_ID}/plan.html`);
+    window.history.replaceState({}, '', `/tracknotes/trails/${TRAIL_ID}/plan.html`);
     try {
       const html = bundledPlanPageHtml();
       document.documentElement.innerHTML = html.replace(/<!DOCTYPE html>/i, '').replace(/<\/?html[^>]*>/gi, '');
@@ -595,6 +595,6 @@ describe('booting the planner', () => {
       globalThis.fetch = realFetch;
       window.history.replaceState({}, '', '/');
     }
-    expect(fetched).toEqual([`${window.location.origin}/trail-maps/data/generated/${TRAIL_ID}.json`]);
+    expect(fetched).toEqual([`${window.location.origin}/tracknotes/data/generated/${TRAIL_ID}.json`]);
   });
 });

@@ -1,5 +1,5 @@
 /**
- * Trail Maps comments API — a Cloudflare Worker over D1.
+ * Tracknotes comments API — a Cloudflare Worker over D1.
  *
  * Hand-rolled router (no framework), mirroring the sibling `contour-tiles`
  * worker: wide-open CORS, a JSON `/health` endpoint, and a single `fetch`

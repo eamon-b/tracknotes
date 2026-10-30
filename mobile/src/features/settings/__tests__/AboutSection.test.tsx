@@ -75,7 +75,7 @@ describe('AboutSection', () => {
   it('points at the published privacy policy URL', () => {
     // Hard-coded on purpose: this is the URL the store listings link, and the
     // Vercel deploy of public/privacy.html. Changing one means changing both.
-    expect(PRIVACY_POLICY_URL).toBe('https://trail-maps.vercel.app/privacy.html');
+    expect(PRIVACY_POLICY_URL).toBe('https://tracknotes.info/privacy.html');
   });
 
   it('offers the policy without needing an identity or a network', () => {
@@ -128,7 +128,7 @@ describe('AboutSection', () => {
   });
 
   it('points at the published terms of service, beside the privacy policy', () => {
-    expect(TERMS_URL).toBe('https://trail-maps.vercel.app/terms.html');
+    expect(TERMS_URL).toBe('https://tracknotes.info/terms.html');
   });
 
   it('opens the terms of service, and spells out the URL when it cannot', async () => {

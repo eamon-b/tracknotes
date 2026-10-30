@@ -10,10 +10,10 @@
  */
 
 /**
- * The Vercel deploy of `public/`. The store listings link these pages, so the
+ * The web site (the Vercel deploy of `public/`, at tracknotes.info). The store listings link these pages, so the
  * origin must match theirs; store review flags a mismatch.
  */
-const SITE_ORIGIN = 'https://trail-maps.vercel.app';
+const SITE_ORIGIN = 'https://tracknotes.info';
 
 /** `public/privacy.html`, linked from the phone's Settings → About. */
 export const PRIVACY_POLICY_URL = `${SITE_ORIGIN}/privacy.html`;
