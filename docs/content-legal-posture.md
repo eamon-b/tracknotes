@@ -13,13 +13,9 @@ in the user-facing drafts, which win if this note disagrees with them:
   residency is never promised.
 - `docs/architecture/workers.md`: how the comments API implements all of it.
 
-Both drafts await a human (ideally legal) read before the store listings link
-them (issues #31, #148).
+Both drafts have been reviewed by a human, but the text was AI written.
 
-Rewritten 2026-10-30 (issue #232) against the shipped Cloudflare backend. The
-first version was an extract from the retired Supabase-era crowdsourcing design
-(Sydney storage, row-level security, an Edge Function, pre-moderation, a weekly
-fold, optional email), none of which was built.
+Rewritten 2026-10-30 (issue #232) against the shipped Cloudflare backend.
 
 ## What is contributed
 
