@@ -1,4 +1,4 @@
--- Trail Maps comments API — OSM POIs for community routes (issue #163,
+-- Tracknotes comments API — OSM POIs for community routes (issue #163,
 -- `plans/community-routes.md` "POI enrichment").
 --
 -- A submitted route is stored without POIs (`runCommunityChecks` drops any the

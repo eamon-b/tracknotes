@@ -14,7 +14,7 @@
       var root = document.documentElement;
       root.classList.add('js');
       var pref = 'system';
-      try { pref = localStorage.getItem('trail-maps-theme') || 'system'; } catch (e) { /* storage disabled */ }
+      try { pref = localStorage.getItem('tracknotes-theme') || 'system'; } catch (e) { /* storage disabled */ }
       if (pref !== 'light' && pref !== 'dark') pref = 'system';
       root.dataset.themePref = pref;
       root.dataset.theme = pref === 'system'

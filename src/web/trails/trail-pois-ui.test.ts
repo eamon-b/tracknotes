@@ -265,7 +265,7 @@ beforeEach(() => {
   window.localStorage.clear();
   // The page starts with POIs off; most of these tests are about what they do
   // once on, so they start from a hiker who has turned them on.
-  window.localStorage.setItem('trail-maps-poi-filter', JSON.stringify({ enabled: true }));
+  window.localStorage.setItem('tracknotes-poi-filter', JSON.stringify({ enabled: true }));
 });
 
 describe('POIs in the viewer', () => {
@@ -337,7 +337,7 @@ describe('POIs in the viewer', () => {
     master.dispatchEvent(new Event('change', { bubbles: true }));
 
     expect(document.querySelectorAll('tr.poi-row')).toHaveLength(0);
-    expect(window.localStorage.getItem('trail-maps-poi-filter')).toContain('"enabled":false');
+    expect(window.localStorage.getItem('tracknotes-poi-filter')).toContain('"enabled":false');
 
     // A fresh page load starts from the stored choice.
     await boot(makeTrail(samplePois()));

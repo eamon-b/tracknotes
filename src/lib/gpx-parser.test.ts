@@ -259,7 +259,7 @@ describe('waypoint <extensions> (off-trail access)', () => {
 
   // The shape te-araroa-data writes on a researched resupply and on its turn-off.
   const storeGpx = (store: string) => `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="te-araroa-data" xmlns="http://www.topografix.com/GPX/1/1" xmlns:tn="https://tracknotes.app/xmlschemas/gpx-waypoint/1">
+<gpx version="1.1" creator="te-araroa-data" xmlns="http://www.topografix.com/GPX/1/1" xmlns:tn="https://tracknotes.info/xmlschemas/gpx-waypoint/1">
   <wpt lat="-43.9" lon="171.2">
     <name>Geraldine</name>
     <type>town-access</type>
@@ -304,7 +304,7 @@ describe('waypoint <extensions> (off-trail access)', () => {
     const xml = generateGpx('Round Trip', [], source);
     expect(xml).toContain('<tn:store>full</tn:store>');
 
-    expect(xml).toContain('xmlns:tn="https://tracknotes.app/xmlschemas/gpx-waypoint/1"');
+    expect(xml).toContain('xmlns:tn="https://tracknotes.info/xmlschemas/gpx-waypoint/1"');
     expect(xml).toContain('<tn:offTrailKm>70</tn:offTrailKm>');
     expect(xml).toContain('<tn:acceptsBoxes>false</tn:acceptsBoxes>');
 

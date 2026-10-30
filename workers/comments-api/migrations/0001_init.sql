@@ -1,4 +1,4 @@
--- Trail Maps comments API — initial schema.
+-- Tracknotes comments API — initial schema.
 --
 -- Anonymous device identity (users) plus post-moderated per-waypoint comments
 -- with optional structured water reports. Comments are soft-deleted (tombstoned)

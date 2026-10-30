@@ -212,7 +212,7 @@ export function poiRowHtml(poi: TrailPOI): string {
 
 // === Persisted filter state ===
 
-export const POI_FILTER_STORAGE_KEY = 'trail-maps-poi-filter';
+export const POI_FILTER_STORAGE_KEY = 'tracknotes-poi-filter';
 
 /**
  * The web page's starting state: POIs off until the hiker turns them on, since
