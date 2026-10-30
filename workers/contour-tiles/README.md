@@ -115,7 +115,7 @@ dashboard or change the URL path so the new tiles have new cache keys. The edge
 cache is keyed by URL, so `/contours/…` and `/world/…` hold separate entries
 for the same tiles; repointing `contours` from the Australia archive to the
 world one was followed by a purge of `tiles.contour-map-tiles.net/contours/*`;
-`npm run check:tiered` (root) confirms both took effect: `/health` reports
+`npm run check:contours-alias` (root) confirms both took effect: `/health` reports
 `sources.contours.archive.key` as `contours/world.pmtiles`, and `/contours/…`
 and `/world/…` serve byte-identical tiles. A purge clears only the edge:
 browsers and phones may keep tiles they already hold for their `max-age`
