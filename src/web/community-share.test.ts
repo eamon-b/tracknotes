@@ -469,9 +469,9 @@ describe('initCommunityShare', () => {
 
 describe('the licence lines under the rights tick', () => {
   it('link the terms and the privacy policy in the shared wording', async () => {
-    const { renderContributionLicence } = await import('./community-share');
+    const { renderContributionLicence } = await import('./community-ui');
     const el = $('community-licence');
-    renderContributionLicence(el);
+    renderContributionLicence(el, 'sharing', 'this route');
     expect(el.textContent).toBe(
       'By sharing, you release this route into the public domain (CC0) and agree to the terms of service.' +
         ' The privacy policy says what is stored and who can see it.'

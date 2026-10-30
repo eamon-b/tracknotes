@@ -7,6 +7,12 @@
  */
 
 import type { CommunityAiReview, CommunityCheck } from '@lib/community-types';
+import {
+  PRIVACY_POLICY_URL,
+  TERMS_URL,
+  contributionLicenceLine,
+  contributionPrivacyLine,
+} from '@lib/contribution-licence';
 import { hashString } from '@lib/gpx-import';
 import { COUNTRIES, findCountry } from '@lib/trail-regions';
 import { multilineHtml } from './community-labels';
@@ -45,6 +51,28 @@ export function checksListHtml(checks: readonly CommunityCheck[]): string {
 }
 
 /** Value of the country `<select>` that reveals the free two-letter field. */
+/**
+ * The licence and privacy lines under a form that publishes something (the
+ * upload page's share step, the route page's owner Edit form), in the words
+ * the phone's forms use (`@lib/contribution-licence`), with their links.
+ */
+export function renderContributionLicence(el: HTMLElement, verb: 'posting' | 'sharing', what: string): void {
+  const lines = [
+    { ...contributionLicenceLine(verb, what), href: TERMS_URL },
+    { ...contributionPrivacyLine(), href: PRIVACY_POLICY_URL },
+  ];
+  el.replaceChildren(
+    ...lines.flatMap((line, i) => {
+      const link = document.createElement('a');
+      link.href = line.href;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.textContent = line.link;
+      return [...(i > 0 ? [' '] : []), line.before, link, line.after];
+    })
+  );
+}
+
 export const OTHER_COUNTRY = '__other';
 
 export interface RegionPicker {

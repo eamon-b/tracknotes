@@ -45,8 +45,9 @@ display name the hiker chooses. There is no email, password or sign-up.
    publishes something says so and links the terms (`contributionLicenceLine`
    and `TERMS_URL` in `src/lib/contribution-licence.ts`): the phone's comment
    composer, its waypoint form and its route-share form
-   (`ContributionLicence.tsx`), and the web's route-share form
-   (`renderContributionLicence` in `src/web/community-share.ts`). Sharing a
+   (`ContributionLicence.tsx`), and the web's route-share form and the route
+   owner's Edit form, which republishes the route's text
+   (`renderContributionLicence` in `src/web/community-ui.ts`). Sharing a
    community route also needs a tick: "I recorded this track myself, or it is
    openly licensed, and I release it under CC0 (public domain)"
    (`src/web/upload.html`, `mobile/src/features/community/share-form.ts`). The

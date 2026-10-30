@@ -203,6 +203,14 @@ describe('community-route.html: owner, report and the no-track view', () => {
     expect($('edit-btn').hidden).toBe(false);
 
     $('edit-btn').click();
+    // The edit republishes public text, so it carries the licence and privacy lines.
+    expect($('edit-licence').textContent).toContain(
+      'By posting, you release your changes into the public domain (CC0)'
+    );
+    expect([...$('edit-licence').querySelectorAll('a')].map(a => a.getAttribute('href'))).toEqual([
+      'https://trail-maps.vercel.app/terms.html',
+      'https://trail-maps.vercel.app/privacy.html',
+    ]);
     (document.getElementById('edit-name') as HTMLInputElement).value = 'Cape Walk Renamed';
     $('edit-form').dispatchEvent(new Event('submit', { cancelable: true }));
     await waitFor(() => $('trail-title').textContent === 'Cape Walk Renamed');
