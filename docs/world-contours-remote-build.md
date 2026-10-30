@@ -586,13 +586,15 @@ Edge cache: re-uploading the same key leaves stale bytes cached for up to 24 h,
 under both `/world/…` and `/contours/…` URLs; purge both prefixes if the new
 tiles must land at once.
 
-Then run `npm run check:tiered`. Besides the tier density, it fails unless
+Then run `npm run check:tiered` for the tier density, and
+`npm run check:contours-alias`, which fails unless
 `/health` reports `sources.contours.archive.key` as `contours/world.pmtiles`
 (the Worker deploy that made `contours` an alias is live) and `/contours/…` and
 `/world/…` serve byte-identical tiles for Mt Sonder z9 and a Kosciuszko z12
 (the edge no longer holds the retired Australia tiles under `/contours/*`).
 The density check alone passes either way, because the Australia archive was
-tiered too. After the #228 cutover, run it once the Worker is deployed and
+tiered too. The alias check is not part of `check:tiered` (CI runs that on pull
+requests, before the Worker change is deployed). After the #228 cutover, run it once the Worker is deployed and
 `tiles.contour-map-tiles.net/contours/*` is purged.
 
 A purge reaches only Cloudflare's edge. Tiles go out with
@@ -753,9 +755,9 @@ month; retiring it saved the 24 h build and the second pipeline, not storage.
 - Refresh the world archive's size and tile count on the docs site
   (`site/contour-tiles/`, from `pmtiles show`).
 - Check the tiers are live: `npm run check:tiered` (the Mt Sonder z9 tile on
-  both worker sources, which now read the same archive, and every pack's z9;
-  it also asserts the `contours` alias in `/health` and that both sources serve
-  identical tiles, see section 7). `check:tile-packs` includes it
+  both worker sources, which now read the same archive, and every pack's z9),
+  and `npm run check:contours-alias` (the `contours` alias in `/health` and
+  identical tiles under both sources, see section 7). `check:tile-packs` includes it
   since the October 2026 rebuild, so the weekly workflow keeps checking it.
 - Delete `contours/world-build/` (`npm run cleanup:tiles -- --world-build
   --delete`) and, once every live pack manifest points at the rebuilt packs and

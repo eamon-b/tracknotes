@@ -48,8 +48,9 @@
  *                           every pack's contours.mbtiles (read with Range
  *                           requests: scripts/lib/http-mbtiles.mjs). An
  *                           untiered archive fails here while passing every
- *                           other check. Also checks `contours` really is the
- *                           alias of `world` (#228): /health reports
+ *                           other check.
+ *   7. Contours alias     — (--alias, and every full run) `contours` really
+ *                           is the alias of `world` (#228): /health reports
  *                           sources.contours.archive.key as world.pmtiles
  *                           (the alias deploy took effect) and both sources
  *                           serve byte-identical Australian tiles through the
@@ -65,6 +66,7 @@
  *         node scripts/e2e-tile-check.mjs --packs    # trail offline sets only
  *         node scripts/e2e-tile-check.mjs --tiered   # tiered contours only
  *         node scripts/e2e-tile-check.mjs --packs --tiered  # packs, and tiered contours
+ *         node scripts/e2e-tile-check.mjs --alias    # contours alias of world (after deploy + purge)
  * Env:    CONTOUR_TILE_URL   (default: the worker the app's builds use)
  *         TILE_BASE_URL      (default: the pack host the app's builds use)
  *
@@ -800,11 +802,14 @@ async function main() {
 
   const packs = process.argv.includes('--packs');
   const tiered = process.argv.includes('--tiered');
-  if (packs || tiered) {
+  // Opt-in, not part of --tiered: it can only pass once #228 is deployed and
+  // the edge purged, and the tile-packs workflow runs --tiered on the PR.
+  const alias = process.argv.includes('--alias');
+  if (packs || tiered || alias) {
     if (packs) await checkTrailOfflineArtifacts();
     if (tiered) await checkTieredSpotTiles();
-    if (tiered) await checkContoursAlias();
     if (tiered) await checkTieredPacks();
+    if (alias) await checkContoursAlias();
   } else {
     await checkContourHealth();
     await checkContourWorker();
