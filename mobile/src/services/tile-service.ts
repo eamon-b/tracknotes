@@ -41,10 +41,36 @@ export type { TileFileName };
  * every reader below falls back to the plain logical name, so those keep
  * working untouched and without a re-download.
  */
-type StoredManifest = TileManifest & { localNames?: Record<string, string> };
+export type StoredManifest = TileManifest & {
+  localNames?: Record<string, string>;
+  /** Present only on a corridor pack built on the phone (`corridor-pack`). */
+  corridor?: CorridorPackRecord;
+};
+
+/**
+ * What a corridor pack records about how it was built — see
+ * `services/corridor-pack`. Its manifest is written on the phone, never fetched.
+ */
+export interface CorridorPackRecord {
+  /** Corridor half-width the hiker chose, in km either side of the route. */
+  bufferKm: number;
+  /** Geometry fingerprint of the route the tiles were chosen from. */
+  sourceVersion: string;
+  /** ISO time the pack was promoted. */
+  builtAt: string;
+  /**
+   * False when the corridor held no contour tiles at all (the worker answered
+   * every one empty): the pack is then base-only by design, `manifest.files`
+   * lists base.mbtiles alone, and the map renders without contours rather than
+   * reporting them dropped.
+   */
+  contours: boolean;
+  /** Tiles stored across both files. */
+  tileCount: number;
+}
 
 /** Read a trail's saved manifest, or null when it is absent or unreadable. */
-function readStoredManifest(trailId: string): StoredManifest | null {
+export function readStoredManifest(trailId: string): StoredManifest | null {
   // Guarded end to end, existence probe included: this runs for ids that were
   // never downloaded and may never be downloadable (a user-imported `u_` guide
   // has no pack of its own), and "no pack on disk" has to be an answer, never a
@@ -241,10 +267,17 @@ export function getTrailTileStatus(trailId: string): TrailTileStatus {
     // corrupt manifest — treat as unverifiable
   }
 
+  // A base-only corridor pack (no contour tiles existed along the route) is
+  // complete without contours.mbtiles; every other pack needs both files.
+  const required = new Set<TileFileName>(
+    manifest?.corridor?.contours === false ? ['base.mbtiles'] : TILE_FILES,
+  );
+
   let state: TileStatusState;
   if (expectedSizes) {
     // Verify every expected tile is present at exactly its recorded size.
     const verified = files.every((f) => {
+      if (!required.has(f.name)) return true;
       const expected = expectedSizes!.get(f.name);
       return expected != null && f.exists && f.sizeBytes === expected;
     });
@@ -255,6 +288,15 @@ export function getTrailTileStatus(trailId: string): TrailTileStatus {
   }
 
   return { trailId, files, complete: state === 'complete', state, totalSizeBytes, version };
+}
+
+/**
+ * Whether a pack is meant to carry contours. False only for a base-only
+ * corridor pack (see {@link CorridorPackRecord.contours}); a bundled pack, or
+ * any pack with no manifest, always is.
+ */
+export function packHasContours(trailId: string): boolean {
+  return readStoredManifest(trailId)?.corridor?.contours !== false;
 }
 
 // ---------------------------------------------------------------------------
@@ -310,7 +352,10 @@ export async function validateMbtiles(
  * written by downloadTrailTiles, which must be validated *before* they are
  * renamed over the live file.
  */
-async function validateMbtilesFile(trailId: string, fileName: string): Promise<MbtilesValidation> {
+export async function validateMbtilesFile(
+  trailId: string,
+  fileName: string,
+): Promise<MbtilesValidation> {
   // openDatabaseAsync CREATES an empty SQLite database when the path is
   // missing, which would turn "file absent" into "file present but empty" —
   // an mbtiles with no tiles table, i.e. exactly the shape that SIGABRTs
@@ -491,7 +536,7 @@ export async function checkForTileUpdate(
 }
 
 /** Suffix for in-flight downloads staged alongside their final destination. */
-const PART_SUFFIX = '.part';
+export const PART_SUFFIX = '.part';
 
 /**
  * Result of comparing a file against a manifest MD5 digest.
@@ -757,15 +802,54 @@ export async function downloadTrailTiles(
   // the check above (`continue`), and may have been the last one.
   throwIfCancelled();
 
-  // ---- Phase 2: promote all validated .part files at once -------------------
+  // ---- Phases 2–4: promote the files, then the manifest, then sweep --------
+  promoteStagedTiles(trailId, staged, {
+    currentNames,
+    keptNames: currentNames,
+    // The manifest that will record where the promoted files went: the new one
+    // when the server had it, otherwise the one already on disk (a manifest
+    // fetch can fail while a perfectly good pack sits there).
+    record: manifest ?? storedManifest,
+  });
+}
+
+/** What {@link promoteStagedTiles} needs to know about the pack on disk. */
+export interface PromoteOptions {
+  /** On-disk names of the pack's files now, by logical name (generation base). */
+  currentNames: Record<TileFileName, string>;
   /**
-   * The manifest that will record where the promoted files went: the new one
-   * when the server had it, otherwise the one already on disk (a manifest fetch
-   * can fail while a perfectly good pack sits there).
+   * Files that stay live without being replaced this run, by logical name.
+   * `downloadTrailTiles` keeps every file it did not re-fetch; a corridor build
+   * replaces the whole pack, so it keeps none — a file it did not stage (the
+   * contours of a now base-only pack) is swept with the old generations.
    */
-  const record = manifest ?? storedManifest;
+  keptNames: Partial<Record<TileFileName, string>>;
+  /**
+   * The manifest to write once the files are in place (`localNames` is added
+   * here). Null when there is none to record — then the files keep their plain
+   * logical names, as a manifest-less legacy pack always has.
+   */
+  record: object | null;
+}
+
+/**
+ * Install validated `{name}.part` staging files as a pack's live files: the
+ * commit step shared by `downloadTrailTiles` and the corridor-pack builder.
+ *
+ * Each file lands on a never-opened generation name ({@link nextTileFileName},
+ * #45), then the manifest naming them is written, then superseded generations
+ * are swept — strictly in that order, so an interruption costs dead bytes
+ * rather than a pack the app cannot find. A failed rename discards every
+ * staging file and throws; the old pack and manifest are untouched.
+ */
+export function promoteStagedTiles(
+  trailId: string,
+  staged: readonly TileFileName[],
+  { currentNames, keptNames, record }: PromoteOptions,
+): void {
+  const dir = trailTilesDir(trailId);
   /** On-disk names once this run's promotions are done, by logical name. */
-  const newNames = { ...currentNames };
+  const newNames: Partial<Record<TileFileName, string>> = { ...keptNames };
   try {
     for (const name of staged) {
       // A promoted file lands on a *new* path rather than over the old one:
@@ -790,7 +874,7 @@ export async function downloadTrailTiles(
     const msg = err instanceof Error ? err.message : String(err);
     const detail = `Failed to install downloaded tiles for ${trailId}: ${msg}`;
     console.error('[tile-service]', detail);
-    cleanupStaged();
+    for (const name of TILE_FILES) deletePart(dir, name);
     throw new Error(detail);
   }
 

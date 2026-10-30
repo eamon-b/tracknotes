@@ -8,6 +8,7 @@ import {
   provisionGlyphs,
   buildTopoStyle,
   validateMbtilesCached,
+  packHasContours,
 } from '../tile-service';
 
 const mockDirExists = jest.fn(() => false);
@@ -44,6 +45,7 @@ jest.mock('../tile-service', () => ({
   provisionGlyphs: jest.fn().mockResolvedValue('/mock/fonts'),
   buildTopoStyle: jest.fn().mockReturnValue({ version: 8, layers: [] }),
   validateMbtilesCached: jest.fn().mockResolvedValue({ ok: true }),
+  packHasContours: jest.fn().mockReturnValue(true),
 }));
 
 const mockGetStatus = getTrailTileStatus as jest.MockedFunction<typeof getTrailTileStatus>;
@@ -54,6 +56,7 @@ const mockClearCache = clearMbtilesValidationCache as jest.MockedFunction<
 const mockProvisionGlyphs = provisionGlyphs as jest.MockedFunction<typeof provisionGlyphs>;
 const mockBuildStyle = buildTopoStyle as jest.MockedFunction<typeof buildTopoStyle>;
 const mockValidate = validateMbtilesCached as jest.MockedFunction<typeof validateMbtilesCached>;
+const mockHasContours = packHasContours as jest.MockedFunction<typeof packHasContours>;
 
 describe('TileManager', () => {
   let manager: TileManager;
@@ -210,6 +213,29 @@ describe('TileManager', () => {
 
     expect(result).toBeNull();
     expect(mockBuildStyle).not.toHaveBeenCalled();
+  });
+
+  it('getOfflineStyle renders a base-only corridor pack without contours, reporting nothing dropped', async () => {
+    mockGetStatus.mockReturnValue({
+      trailId: 'u_route',
+      files: [],
+      complete: true,
+      state: 'complete' as const,
+      totalSizeBytes: 10000,
+    });
+    mockValidate.mockResolvedValue({ ok: true });
+    mockHasContours.mockReturnValueOnce(false);
+
+    const result = await manager.getOfflineStyle('u_route');
+
+    expect(mockBuildStyle).toHaveBeenCalledWith('u_route', '/mock/fonts', {
+      includeContours: false,
+      theme: 'light',
+    });
+    expect(result).toMatchObject({ contoursDropped: false });
+    expect(result?.reason).toBeUndefined();
+    // The absent contours file is never opened.
+    expect(mockValidate).not.toHaveBeenCalledWith('u_route', 'contours.mbtiles');
   });
 
   it('getOfflineStyle reports dropped contours instead of degrading silently', async () => {

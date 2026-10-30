@@ -31,12 +31,13 @@ npx tsc --noEmit # typecheck
 ## Sources
 
 The `{source}` path segment selects one PMTiles archive. The mapping is the
-`SOURCES` record in `src/index.ts`:
+`SOURCES` record in `src/sources.ts`:
 
 | Source | R2 key |
 | --- | --- |
 | `world` | `contours/world.pmtiles` |
 | `contours` | `contours/world.pmtiles` (alias) |
+| `base` | `basemap/planet.pmtiles` |
 
 `contours` served the Australia archive (`contours/australia.pmtiles`,
 Geoscience Australia DEM-S) until that archive was retired in favour of the
@@ -45,6 +46,21 @@ builds (no OTA updates) request `/contours/{z}/{x}/{y}.pbf` for Australian
 trails and read `/health`'s top-level `ok` as that source's health, and public
 endpoint users may use it. `contours/australia.pmtiles` stays in R2 as a
 frozen download (last built 2026-10-23); this Worker no longer serves it.
+
+`base` is not contours: it is the Protomaps planet basemap (z0–15), the same
+archive `scripts/build-tiles.ts` extracts the bundled offline packs' `base.mbtiles`
+from. Tracknotes downloads it tile by tile along an imported or community
+route to build that route's offline pack on the phone (issue #227), so it must
+be a whole-planet daily build from build.protomaps.com (~120 GB; not
+`data/protomaps/planet.pmtiles`, which despite its name is a 2 GB Australia
+extract) whose basemap major version matches `scripts/topo-style.json` (v4).
+It is over wrangler's size limit; rclone streams it from the build server
+straight into R2, without a local copy:
+`rclone copyurl https://build.protomaps.com/<YYYYMMDD>.pmtiles r2:aus-map-data/basemap/planet.pmtiles`
+(then check `sources.base` in the Worker's `/health` shows maxZoom 15 and world bounds).
+Replacing it is safe while phones download: the etag-mismatch retry below picks
+up the new archive, and a pack built across the switch mixes two builds of the
+same schema.
 
 **Adding a tileset is one entry in `SOURCES` plus uploading the archive to R2** —
 routing, the PMTiles instance cache (keyed by R2 key, so aliases share one

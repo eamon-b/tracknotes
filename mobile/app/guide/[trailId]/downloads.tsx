@@ -13,20 +13,46 @@
  * that resolved pack id rather than by the route's trailId, so borrowing is a
  * single substitution and an uncovered import disables the actions instead of
  * requesting a pack the server has never heard of.
+ *
+ * An import or community route outside every bundled pack gets a **corridor
+ * pack** instead (`plan.corridor`): built on the phone from the tiles along the
+ * route (`services/corridor-pack`), under the guide's own id. How far either
+ * side of the route it covers is the hiker's call — a chip row whose initial
+ * value is visible and editable (the width of the pack on disk, else
+ * {@link INITIAL_CORRIDOR_KM}), with the tile count it comes to shown before
+ * anything is fetched. The width is recorded in the pack's manifest, on this
+ * device only. Its "update" is the route having changed since the pack was
+ * built (the manifest's `sourceVersion` against the route's fingerprint now) —
+ * never a request to the pack bucket.
  */
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useTheme } from '../../../src/theme';
 import { radii, spacing, touchTarget, typography } from '../../../src/tokens';
+import { ScreenScrollView } from '../../../src/navigation/ScreenScrollView';
+import { ChoiceChips } from '../../../src/features/community/CommunityUi';
 import { useGuide } from '../../../src/features/guide/GuideContext';
 import { useTrailTitle } from '../../../src/features/guide/use-trail-title';
+import {
+  hasCorridorProgress,
+  planCorridor,
+  readCorridorRecord,
+  tooLargeMessage,
+} from '../../../src/services/corridor-pack';
 import { offlinePackPlan, resolveOfflinePack } from '../../../src/services/offline-pack-resolver';
 import { tileManager } from '../../../src/services/tile-manager';
 import { useDownloadsStore, type TrailDownload } from '../../../src/state/downloads-store';
 
 const TILE_BASE_URL = process.env.EXPO_PUBLIC_TILE_BASE_URL ?? '';
+/** The tile worker a corridor pack is built from. */
+const CONTOUR_TILE_URL = process.env.EXPO_PUBLIC_CONTOUR_TILE_URL ?? '';
+
+/** Corridor widths offered, in km either side of the route. */
+const CORRIDOR_WIDTH_CHOICES_KM = [2, 5, 10, 20] as const;
+/** The chip selected before the hiker picks one, when no pack is on disk yet. */
+const INITIAL_CORRIDOR_KM = 5;
 
 const IDLE: TrailDownload = { state: 'absent', downloading: false, progress: 0 };
 
@@ -53,6 +79,7 @@ export default function DownloadsScreen() {
   const download =
     useDownloadsStore((s) => (packTrailId ? s.byTrail[packTrailId] : undefined)) ?? IDLE;
   const startDownload = useDownloadsStore((s) => s.startDownload);
+  const startCorridorDownload = useDownloadsStore((s) => s.startCorridorDownload);
   const cancel = useDownloadsStore((s) => s.cancel);
   const deleteTiles = useDownloadsStore((s) => s.deleteTiles);
   const refreshStatus = useDownloadsStore((s) => s.refreshStatus);
@@ -77,24 +104,80 @@ export default function DownloadsScreen() {
     [packTrailId, download.state],
   );
 
-  const missingBaseUrl = TILE_BASE_URL.length === 0;
-  const canDownload = plan.packAvailable && !missingBaseUrl && packTrailId != null;
+  // --- Corridor packs -------------------------------------------------------
+  // What is on disk now: re-read whenever a build starts, ends or is deleted.
+  const record = useMemo(
+    () => (plan.corridor && packTrailId ? readCorridorRecord(packTrailId) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- download moves the disk
+    [plan.corridor, packTrailId, download],
+  );
+  const interrupted = useMemo(
+    () =>
+      plan.corridor && packTrailId != null && !download.downloading
+        ? hasCorridorProgress(packTrailId)
+        : false,
+    [plan.corridor, packTrailId, download],
+  );
+  // The hiker's pick; until they make one, the pack's own width or the initial.
+  const [pickedKm, setPickedKm] = useState<number | null>(null);
+  const bufferKm = pickedKm ?? record?.bufferKm ?? INITIAL_CORRIDOR_KM;
+  const corridor = useMemo(
+    () => (plan.corridor ? planCorridor(trail, bufferKm) : null),
+    [plan.corridor, trail, bufferKm],
+  );
+  const routeChanged =
+    record != null && corridor != null && record.sourceVersion !== corridor.sourceVersion;
+  const widthChanged = record != null && record.bufferKm !== bufferKm;
+
+  const missingBaseUrl = plan.corridor ? CONTOUR_TILE_URL.length === 0 : TILE_BASE_URL.length === 0;
+  const canDownload =
+    plan.packAvailable &&
+    !missingBaseUrl &&
+    packTrailId != null &&
+    (!plan.corridor || (corridor != null && !corridor.tooLarge));
+
+  const onDownload = () => {
+    if (!packTrailId) return;
+    if (plan.corridor) {
+      void startCorridorDownload(packTrailId, trail, {
+        bufferKm,
+        tileUrl: CONTOUR_TILE_URL,
+        name: title,
+      });
+    } else {
+      void startDownload(packTrailId, TILE_BASE_URL);
+    }
+  };
 
   // Ask the server whether a newer pack exists — on open, and again once a
   // download finishes so the badge is re-derived rather than guessed. The store
   // ignores anything that isn't a complete pack and swallows network failures,
   // so this is a no-op when there is nothing to say.
+  // A corridor pack is never asked about: it has no server manifest.
   useEffect(() => {
-    if (missingBaseUrl || !packTrailId) return;
+    if (missingBaseUrl || !packTrailId || plan.corridor) return;
     void checkForUpdates([packTrailId], TILE_BASE_URL);
-  }, [packTrailId, checkForUpdates, missingBaseUrl, download.state, download.downloading]);
+  }, [
+    packTrailId,
+    checkForUpdates,
+    missingBaseUrl,
+    plan.corridor,
+    download.state,
+    download.downloading,
+  ]);
 
   const updateAvailable =
     !!download.updateAvailable && download.state === 'complete' && !download.downloading;
 
   const statusText = useMemo(() => {
     if (!plan.packAvailable) return 'Offline maps unavailable';
-    if (download.downloading) return `Downloading… ${Math.round(download.progress * 100)}%`;
+    if (download.downloading) {
+      const pct = Math.round(download.progress * 100);
+      if (plan.corridor && download.tilesTotal) {
+        return `Downloading… ${pct}% (${download.tilesDone ?? 0} of ${download.tilesTotal} tiles)`;
+      }
+      return `Downloading… ${pct}%`;
+    }
     if (download.error) return `Error: ${download.error}`;
     switch (download.state) {
       case 'complete':
@@ -102,12 +185,29 @@ export default function DownloadsScreen() {
       case 'partial':
         return 'Partial download — re-download to finish';
       default:
-        return 'Not downloaded';
+        return interrupted ? 'Download interrupted — resume to finish' : 'Not downloaded';
     }
-  }, [download, plan.packAvailable]);
+  }, [download, plan.packAvailable, plan.corridor, interrupted]);
+
+  const actionLabel = plan.corridor
+    ? download.state === 'complete'
+      ? widthChanged
+        ? `Rebuild at ${bufferKm} km`
+        : 'Rebuild'
+      : interrupted
+        ? 'Resume download'
+        : 'Download'
+    : updateAvailable
+      ? 'Update'
+      : download.state === 'complete'
+        ? 'Re-download'
+        : 'Download';
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <ScreenScrollView
+      style={{ backgroundColor: colors.background }}
+      contentContainerStyle={styles.container}
+    >
       <View
         style={[
           styles.panel,
@@ -129,9 +229,25 @@ export default function DownloadsScreen() {
             Update available{download.remoteVersion ? ` (${download.remoteVersion})` : ''}
           </Text>
         )}
+        {routeChanged && !download.downloading && (
+          <Text
+            style={[
+              styles.badge,
+              { color: colors.downloadActive, borderColor: colors.downloadActive },
+            ]}
+          >
+            Route changed since this map was built — rebuild to match it
+          </Text>
+        )}
         {sizeBytes > 0 && (
           <Text style={[styles.meta, { color: colors.textSecondary }]}>
             On device: {formatBytes(sizeBytes)}
+            {record ? ` · ${record.bufferKm} km either side` : ''}
+          </Text>
+        )}
+        {record && !record.contours && (
+          <Text style={[styles.meta, { color: colors.textSecondary }]}>
+            No contour lines were available along this route, so this map has none.
           </Text>
         )}
 
@@ -150,9 +266,43 @@ export default function DownloadsScreen() {
         )}
       </View>
 
+      {plan.corridor && corridor && (
+        <View
+          style={[
+            styles.panel,
+            { backgroundColor: colors.surfaceElevated, borderColor: colors.border },
+          ]}
+        >
+          <Text style={[styles.status, { color: colors.textPrimary }]}>
+            Cover how far either side of the route?
+          </Text>
+          <ChoiceChips
+            accessibilityLabel="Distance either side of the route"
+            choices={CORRIDOR_WIDTH_CHOICES_KM.map((km) => ({
+              value: String(km),
+              label: `${km} km`,
+            }))}
+            selected={String(bufferKm)}
+            onSelect={(value) => {
+              if (!download.downloading) setPickedKm(Number(value));
+            }}
+          />
+          <Text style={[styles.meta, { color: colors.textSecondary }]}>
+            {corridor.totalTiles.toLocaleString('en')} map tiles to fetch at {bufferKm} km either
+            side. A wider corridor shows more around the route and takes more space.
+          </Text>
+          {corridor.tooLarge && (
+            <Text style={[styles.warning, { color: colors.warning }]}>
+              {tooLargeMessage(corridor.totalTiles)}
+            </Text>
+          )}
+        </View>
+      )}
+
       {missingBaseUrl && plan.packAvailable && (
         <Text style={[styles.warning, { color: colors.warning }]}>
-          EXPO_PUBLIC_TILE_BASE_URL is not set — downloads are disabled.
+          {plan.corridor ? 'EXPO_PUBLIC_CONTOUR_TILE_URL' : 'EXPO_PUBLIC_TILE_BASE_URL'} is not set
+          — downloads are disabled.
         </Text>
       )}
 
@@ -161,21 +311,15 @@ export default function DownloadsScreen() {
           <ActionButton label="Cancel" variant="danger" onPress={() => cancel(packTrailId)} />
         ) : (
           <ActionButton
-            label={
-              updateAvailable
-                ? 'Update'
-                : download.state === 'complete'
-                  ? 'Re-download'
-                  : 'Download'
-            }
+            label={actionLabel}
             variant="accent"
             disabled={!canDownload}
-            onPress={() => packTrailId && startDownload(packTrailId, TILE_BASE_URL)}
+            onPress={onDownload}
           />
         )}
 
         {packTrailId &&
-          (download.state === 'complete' || download.state === 'partial') &&
+          (download.state === 'complete' || download.state === 'partial' || interrupted) &&
           !download.downloading && (
             <ActionButton
               label="Delete"
@@ -184,7 +328,7 @@ export default function DownloadsScreen() {
             />
           )}
       </View>
-    </View>
+    </ScreenScrollView>
   );
 }
 
@@ -217,7 +361,6 @@ function ActionButton({
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     padding: spacing.lg,
     gap: spacing.lg,
   },

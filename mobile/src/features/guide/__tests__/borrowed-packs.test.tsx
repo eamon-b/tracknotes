@@ -14,6 +14,17 @@ import {
 } from '../borrowed-packs';
 import { getTrailJson, listTrails, type TrailIndexEntry } from '../../../services/trail-loader';
 
+// As a build with a tile server configured: an uncovered route with points gets
+// a corridor pack of its own.
+jest.mock('../../../services/offline-pack-resolver', () => {
+  const actual = jest.requireActual('../../../services/offline-pack-resolver');
+  return {
+    ...actual,
+    resolveOfflinePack: (id: string, trail: unknown) =>
+      actual.resolveOfflinePack(id, trail, undefined, true),
+  };
+});
+
 const bundled = listTrails()[0];
 const bundledTrail = getTrailJson(bundled.id)!;
 
@@ -59,6 +70,15 @@ describe('resolveBorrowedPack', () => {
 
   it('is null outside every pack', async () => {
     expect(await resolveBorrowedPack(entry({}), async () => outsideTrail)).toBeNull();
+  });
+
+  it("is the guide's own corridor pack outside every bundled pack, when it has points", async () => {
+    const withPoints = {
+      track: { ...outsideTrail.track, points: outsideTrail.track.displayPoints },
+    };
+    expect(await resolveBorrowedPack(entry({}), async () => withPoints)).toEqual({
+      packTrailId: 'u_x',
+    });
   });
 
   it('reads a guide once, and again when the copy on the phone changes', async () => {

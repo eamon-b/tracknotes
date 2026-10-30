@@ -172,10 +172,9 @@ export default function GuideListScreen() {
     }
   }, [refresh]);
 
-  // Offline-tile statuses, for bundled and catalog trails only: tile packs are
-  // built server-side per published trailId, so no directory is ever named
-  // after an imported or community id and asking the tile manager about one is
-  // a pointless probe.
+  // Offline-tile statuses for bundled and catalog trails, whose packs are built
+  // server-side per published trailId. An imported or community id has a tile
+  // directory only once its own corridor pack is known to apply (below).
   //
   // An import or community route can still *borrow* a bundled pack when its
   // track sits inside that trail's coverage (`services/offline-pack-resolver`).
@@ -187,6 +186,15 @@ export default function GuideListScreen() {
   }, [hydrate, trails]);
 
   const borrowedPacks = useBorrowedPacks(trails);
+
+  // A route outside every bundled pack gets its own, built on the phone
+  // (`services/corridor-pack`) under its own id: hydrate those once known.
+  useEffect(() => {
+    const own = Object.entries(borrowedPacks)
+      .filter(([id, pack]) => pack.packTrailId === id)
+      .map(([id]) => id);
+    if (own.length > 0) hydrate(own);
+  }, [hydrate, borrowedPacks]);
 
   const confirmDelete = (trail: TrailIndexEntry) => {
     if (trail.source !== 'imported') return;

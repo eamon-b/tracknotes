@@ -15,6 +15,7 @@ import {
   provisionGlyphs,
   buildTopoStyle,
   validateMbtilesCached,
+  packHasContours,
   type TrailTileStatus,
   type DownloadOptions,
   type ProgressCallback,
@@ -138,6 +139,16 @@ export class TileManager {
           'falling back to online style. Re-download the offline maps for this trail.',
       );
       return null;
+    }
+
+    // A base-only corridor pack has no contours by design (none existed along
+    // the route): render it without them, and report nothing dropped.
+    if (!packHasContours(trailId)) {
+      const glyphsPath = await provisionGlyphs();
+      return {
+        style: buildTopoStyle(trailId, glyphsPath, { includeContours: false, theme }),
+        contoursDropped: false,
+      };
     }
 
     const contours = await validateMbtilesCached(trailId, 'contours.mbtiles');

@@ -180,13 +180,63 @@ describe('bundledPackCandidates', () => {
   });
 });
 
+describe('resolveOfflinePack — corridor packs', () => {
+  /** A track with full-resolution points spanning the box. */
+  function trackWithPoints(west: number, south: number, east: number, north: number) {
+    const points = [
+      { lat: south, lon: west },
+      { lat: north, lon: east },
+    ];
+    return { track: { points, displayPoints: points } };
+  }
+
+  it('gives an uncovered import its own corridor pack when tiles can be fetched', () => {
+    expect(resolveOfflinePack('u_abc', trackWithPoints(-50, -50, -49, -49), PACKS, true)).toEqual({
+      kind: 'corridor',
+    });
+  });
+
+  it('still borrows a covering bundled pack rather than building one', () => {
+    expect(resolveOfflinePack('c_abc', trackWithPoints(2, 2, 3, 3), PACKS, true)).toEqual({
+      kind: 'bundled',
+      packTrailId: 'bigtrail',
+      packName: 'Big Trail',
+    });
+  });
+
+  it('is none without a tile server, or without full-resolution points', () => {
+    expect(resolveOfflinePack('u_abc', trackWithPoints(-50, -50, -49, -49), PACKS, false)).toEqual({
+      kind: 'none',
+    });
+    // displayPoints alone give a bbox but nothing to draw a corridor around.
+    expect(resolveOfflinePack('u_abc', trailSpanning(-50, -50, -49, -49), PACKS, true)).toEqual({
+      kind: 'none',
+    });
+  });
+
+  it('never gives a bundled trail a corridor pack', () => {
+    expect(resolveOfflinePack('heysen', trackWithPoints(-50, -50, -49, -49), [], true)).toEqual({
+      kind: 'own',
+    });
+  });
+});
+
 describe('offlinePackPlan', () => {
   it('drives a bundled guide off its own id, with nothing to explain', () => {
     expect(offlinePackPlan({ kind: 'own' }, 'heysen')).toEqual({
       packTrailId: 'heysen',
       packAvailable: true,
       note: null,
+      corridor: false,
     });
+  });
+
+  it("drives a corridor pack off the guide's own id and says it is built on the phone", () => {
+    const plan = offlinePackPlan({ kind: 'corridor' }, 'u_abc');
+    expect(plan.packTrailId).toBe('u_abc');
+    expect(plan.packAvailable).toBe(true);
+    expect(plan.corridor).toBe(true);
+    expect(plan.note).toMatch(/built on your phone/);
   });
 
   it('drives a borrowing import off the LENT pack id and names it', () => {

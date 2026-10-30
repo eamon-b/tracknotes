@@ -15,8 +15,10 @@ import { usePlanInputsStore } from '../../features/plan/plan-inputs-store';
 import { useRoutesStore } from '../../features/routes/routes-store';
 import { useFavoritesStore } from '../../state/favorites-store';
 import { usePlansStore } from '../../state/plans-store';
+import { useDownloadsStore } from '../../state/downloads-store';
 import { useSettingsStore } from '../../state/settings-store';
 import { deleteLocalTrailData } from '../local-trail-data';
+import { tileManager } from '../tile-manager';
 
 const GONE = 'c_AbCdEfGhIjKlMnOp';
 const KEPT = 'u_kept';
@@ -105,6 +107,38 @@ describe('deleteLocalTrailData', () => {
     expect(Object.keys(usePlansStore.getState().byTrail)).toEqual([KEPT]);
   });
 
+  it("deletes the route's own offline map and forgets its download state", async () => {
+    const db = await createMigratedTestDb();
+    const deleteTrail = jest.spyOn(tileManager, 'deleteTrail').mockImplementation(() => {});
+    useDownloadsStore.setState({
+      byTrail: {
+        [GONE]: { state: 'complete', downloading: false, progress: 1 },
+        [KEPT]: { state: 'complete', downloading: false, progress: 1 },
+      },
+    });
+
+    await deleteLocalTrailData(db as never, GONE);
+
+    expect(deleteTrail).toHaveBeenCalledWith(GONE);
+    expect(deleteTrail).not.toHaveBeenCalledWith(KEPT);
+    expect(Object.keys(useDownloadsStore.getState().byTrail)).toEqual([KEPT]);
+    deleteTrail.mockRestore();
+  });
+
+  it('finishes the rest of the cleanup when the tiles will not delete', async () => {
+    const db = await createMigratedTestDb();
+    const deleteTrail = jest.spyOn(tileManager, 'deleteTrail').mockImplementation(() => {
+      throw new Error('EBUSY');
+    });
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    useSettingsStore.setState({ currentTrailId: GONE });
+
+    await expect(deleteLocalTrailData(db as never, GONE)).resolves.toBeUndefined();
+    expect(useSettingsStore.getState().currentTrailId).toBeNull();
+    deleteTrail.mockRestore();
+    warn.mockRestore();
+  });
+
   it('leaves another trail pinned as the current hike', async () => {
     const db = await createMigratedTestDb();
     useSettingsStore.setState({ currentTrailId: KEPT });
@@ -116,7 +150,10 @@ describe('deleteLocalTrailData', () => {
     const db = await createMigratedTestDb();
     await seed(db, 'heysen');
     useSettingsStore.setState({ currentTrailId: 'heysen' });
+    const deleteTrail = jest.spyOn(tileManager, 'deleteTrail').mockImplementation(() => {});
     await deleteLocalTrailData(db as never, 'heysen');
+    expect(deleteTrail).not.toHaveBeenCalled();
+    deleteTrail.mockRestore();
     expect(await count(db, 'favorites', 'heysen')).toBe(1);
     expect(await count(db, 'plans', 'heysen')).toBe(1);
     expect(useSettingsStore.getState().currentTrailId).toBe('heysen');

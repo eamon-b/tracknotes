@@ -169,6 +169,18 @@ website's "Fetch elevation" button), your device sends the track's coordinates
 directly to the public Open-Elevation service (api.open-elevation.com), which
 returns the terrain height at each. Nothing goes through our server.
 
+**Offline maps for a route you imported.** A trail we publish has a
+ready-made offline map. A route you imported, or a community route, does not,
+so when you download offline maps for one, your phone builds it: it asks our
+map tile server (tiles.contour-map-tiles.net, run on Cloudflare) for the map
+and contour tiles along the route, out to the width you choose. Those
+requests carry the tiles' map coordinates, the network address they came from
+and the technical details every request from an app carries (such as the app
+and operating-system version). Nothing else in them identifies you, and they
+never include the route file, its name or your account, but taken together
+they outline where the route goes. We do not log or keep them
+beyond Cloudflare's own request handling.
+
 ## Where data is stored
 
 - **On your device:** downloaded maps, trail guides, your settings, favorites,

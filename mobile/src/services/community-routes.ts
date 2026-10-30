@@ -27,8 +27,8 @@
  * (`server-trails`): every load and save of the state registers the ids
  * (`registerCommunityTrailIds`), so it gets comments, plan sync and shared
  * hiker waypoints like a bundled trail. It has no curated descriptions, and
- * its offline map pack is borrowed from a covering bundled trail, as for an
- * import.
+ * its offline map is, as for an import, a covering bundled trail's pack or a
+ * corridor pack built on the phone (`offline-pack-resolver`).
  *
  * Keep this module free of `trail-loader` imports: the loader depends on it.
  */

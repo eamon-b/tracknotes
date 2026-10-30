@@ -262,8 +262,9 @@ export interface GuideMapProps {
   trailId: string;
   /**
    * Tile-pack directory to read offline tiles from. Equal to `trailId` for a
-   * bundled guide; an imported guide borrows a bundled trail's pack, so the two
-   * differ there (see `services/offline-pack-resolver`). Defaults to `trailId`.
+   * bundled guide and for an import's own corridor pack; an import inside a
+   * bundled trail's coverage borrows that trail's pack, so the two differ there
+   * (see `services/offline-pack-resolver`). Defaults to `trailId`.
    */
   tilePackId?: string;
   /** Which base map to render; also the map's remount key. */

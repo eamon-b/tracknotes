@@ -1,6 +1,8 @@
 /**
- * Which bundled offline pack each imported or community guide on My Guides
- * borrows, so its card can show that pack's download status.
+ * Which offline pack each imported or community guide on My Guides uses, so its
+ * card can show that pack's download status: a bundled pack it borrows, or its
+ * own corridor pack built on the phone (`services/corridor-pack`), whose pack
+ * id is the guide's own id.
  *
  * The rule is `services/offline-pack-resolver`'s, the one the Offline maps
  * screen and the map pane use; it needs the guide's track, and My Guides reads
@@ -18,11 +20,15 @@ import { useEffect, useMemo, useState } from 'react';
 import { resolveOfflinePack } from '../../services/offline-pack-resolver';
 import { loadTrail, type TrailIndexEntry } from '../../services/trail-loader';
 
-/** The bundled pack a local guide uses offline. */
+/** The pack a local guide uses offline. */
 export interface BorrowedPack {
-  /** Bundled trail id: the tile directory and the downloads-store key. */
+  /**
+   * The tile directory and downloads-store key: a bundled trail's id, or the
+   * guide's own for a corridor pack.
+   */
   packTrailId: string;
-  packName: string;
+  /** Whose pack it is, for a borrowed one; absent for the guide's own. */
+  packName?: string;
 }
 
 type Loader = (id: string) => Promise<Parameters<typeof resolveOfflinePack>[1]>;
@@ -59,6 +65,8 @@ export function resolveBorrowedPack(
       const resolution = trail ? resolveOfflinePack(entry.id, trail) : null;
       if (resolution?.kind === 'bundled') {
         pack = { packTrailId: resolution.packTrailId, packName: resolution.packName };
+      } else if (resolution?.kind === 'corridor') {
+        pack = { packTrailId: entry.id };
       }
     } catch {
       // Unreadable: no pack, the same answer the guide's own screens give.

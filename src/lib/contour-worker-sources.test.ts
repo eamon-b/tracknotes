@@ -19,6 +19,10 @@ describe('contour worker sources', () => {
     expect(archiveKeyForSource('contours')).toBe(archiveKeyForSource('world'));
   });
 
+  it('serves the planet basemap as base, for phone-built corridor packs (#227)', () => {
+    expect(archiveKeyForSource('base')).toBe('basemap/planet.pmtiles');
+  });
+
   it('no longer serves the retired Australia archive', () => {
     expect(Object.values(SOURCES)).not.toContain('contours/australia.pmtiles');
   });

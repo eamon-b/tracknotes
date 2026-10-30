@@ -706,6 +706,34 @@ describe('buildTopoStyle without contours', () => {
 // downloadTrailTiles — validation of downloaded files
 // ---------------------------------------------------------------------------
 
+describe('getTrailTileStatus — corridor packs', () => {
+  const dir = 'file:///mock/document/tiles/u_route';
+
+  function writeCorridorManifest(contours: boolean) {
+    const files = [{ name: 'base.mbtiles', size: 5000 }];
+    if (contours) files.push({ name: 'contours.mbtiles', size: 3000 });
+    mockFileContents[`${dir}/manifest.json`] = JSON.stringify({
+      trailId: 'u_route',
+      version: 'corridor-x',
+      files,
+      localNames: { 'base.mbtiles': 'base-1.mbtiles', 'contours.mbtiles': 'contours-1.mbtiles' },
+      corridor: { bufferKm: 5, sourceVersion: 'x', builtAt: '', contours, tileCount: 10 },
+    });
+    mockFiles[`${dir}/manifest.json`] = { exists: true, size: 10 };
+    mockFiles[`${dir}/base-1.mbtiles`] = { exists: true, size: 5000 };
+  }
+
+  it('is complete without contours.mbtiles when the pack is base-only by design', () => {
+    writeCorridorManifest(false);
+    expect(getTrailTileStatus('u_route').state).toBe('complete');
+  });
+
+  it('still needs contours.mbtiles when the corridor recorded some', () => {
+    writeCorridorManifest(true);
+    expect(getTrailTileStatus('u_route').state).toBe('partial');
+  });
+});
+
 describe('downloadTrailTiles validation', () => {
   const TRAIL_ID = 'aawt';
   const BASE_URL = 'https://tiles.example.com';
