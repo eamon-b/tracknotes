@@ -433,18 +433,3 @@ export interface TrailTileConfig {
   /** Metric CRS the corridor is buffered in (MGA 28349-28356 in Australia, NZTM 2193, UTM 326xx/327xx). */
   epsg: number;
 }
-
-// Grid Tile Types
-
-export interface GridCell {
-  id: string; // e.g. "E114_S34"
-  bounds: [number, number, number, number]; // [west, south, east, north]
-  totalSize: number; // bytes (base + contours)
-}
-
-export interface GridIndex {
-  version: string; // ISO date
-  cellSizeDeg: [number, number]; // [lonDeg, latDeg] e.g. [2, 2]
-  bounds: [number, number, number, number]; // [west, south, east, north] of full grid
-  cells: GridCell[];
-}
