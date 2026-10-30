@@ -13,7 +13,9 @@ in the user-facing drafts, which win if this note disagrees with them:
   residency is never promised.
 - `docs/architecture/workers.md`: how the comments API implements all of it.
 
-Both drafts have been reviewed by a human, but the text was AI written.
+Both drafts were written by AI and reviewed by the owner. Neither has had a
+legal read (#148 tracks the terms). The store listings must still link them
+(#31).
 
 Rewritten 2026-10-30 (issue #232) against the shipped Cloudflare backend.
 
