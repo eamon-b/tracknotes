@@ -1,8 +1,8 @@
 /**
  * The terms every public contribution is made under: comments (with their
  * water reports and photos), shared hiker waypoints and community routes are
- * dedicated to the public domain under CC0 (`docs/content-legal-posture.md`
- * §8.1) and posted under the terms of service (`docs/terms-of-service.md`,
+ * dedicated to the public domain under CC0 (`docs/content-legal-posture.md`,
+ * decision 1) and posted under the terms of service (`docs/terms-of-service.md`,
  * published as `public/terms.html`). One wording, so the phone's composer, its
  * waypoint form and any web form say the same thing.
  */
