@@ -525,13 +525,16 @@ export async function getAdminComments(request: Request, env: Env, ctx: Executio
 }
 
 // ---------------------------------------------------------------------------
-// POST /v1/admin/comments/:id/restore — undo a report hide
+// POST /v1/admin/comments/:id/restore — undo a report hide, or keep a live one
 // ---------------------------------------------------------------------------
 
 /**
  * Undo a hide by reports. Reports filed before the restore no longer count
- * towards hiding it again. An owner's or admin's delete is final — it has
- * already removed the photos — so it is refused.
+ * towards hiding it again, and the automated review never claims it again.
+ * On a live comment it is the admin's "Keep": it sets `restored_at` the same
+ * way (settling its reports and review) and leaves `updated_at` alone, since
+ * nothing a phone sees changes. An owner's or admin's delete is final — it
+ * has already removed the photos — so it is refused.
  */
 export async function adminRestoreComment(
   request: Request,
@@ -545,7 +548,12 @@ export async function adminRestoreComment(
     .bind(id)
     .first<Pick<CommentRow, 'deleted_at' | 'deleted_by'>>();
   if (!row) throw new HttpError(404, 'not_found', 'Comment not found');
-  if (row.deleted_at === null) return noContent();
+  if (row.deleted_at === null) {
+    await env.DB.prepare(`UPDATE comments SET restored_at = ? WHERE id = ? AND deleted_at IS NULL`)
+      .bind(new Date().toISOString(), id)
+      .run();
+    return noContent();
+  }
   if (row.deleted_by !== 'reports') {
     throw new HttpError(
       409,

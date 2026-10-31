@@ -20,7 +20,7 @@
  *   POST   /v1/waypoints/:id/report      report (one per reporter)
  *   GET    /v1/trails/:trailId/waypoints public full / delta read
  *   GET    /v1/admin/waypoints           admin listing, reported first
- *   POST   /v1/admin/waypoints/:id/restore admin undo of an admin or report hide
+ *   POST   /v1/admin/waypoints/:id/restore admin undo of an admin or report hide, or keep
  */
 
 import { HttpError, json, noContent, readJson } from './http';
@@ -481,8 +481,10 @@ export async function adminListSharedWaypoints(request: Request, env: Env, ctx: 
 
 /**
  * Undo an admin or report hide. Reports filed before the restore no longer
- * count towards hiding it again. A waypoint its owner deleted is theirs to
- * share again, not an admin's to publish, so it is refused.
+ * count towards hiding it again, and the automated review never claims it
+ * again. On a live waypoint it is the admin's "Keep": it sets `restored_at`
+ * the same way and leaves `updated_at` alone. A waypoint its owner deleted is
+ * theirs to share again, not an admin's to publish, so it is refused.
  */
 export async function adminRestoreSharedWaypoint(
   request: Request,
@@ -494,7 +496,12 @@ export async function adminRestoreSharedWaypoint(
   await requireAdmin(request, env, ctx);
   const row = await readRow(env, id);
   if (!row) throw new HttpError(404, 'not_found', 'Waypoint not found');
-  if (row.deleted_at === null) return noContent();
+  if (row.deleted_at === null) {
+    await env.DB.prepare(`UPDATE shared_waypoints SET restored_at = ? WHERE id = ? AND deleted_at IS NULL`)
+      .bind(writeStamp(), id)
+      .run();
+    return noContent();
+  }
   if (row.deleted_by === 'owner') {
     throw new HttpError(409, 'owner_deleted', 'Its owner deleted this waypoint');
   }

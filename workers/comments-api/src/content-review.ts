@@ -18,8 +18,9 @@
  * final. Anything else leaves it up, and `needs_human` heads the admin queue.
  * It **fails open**: no key, an API error or an unusable answer hides nothing,
  * and the three-report hide (`COMMENT_REPORTS_TO_HIDE`, `reportsToHide`) is the
- * backstop either way. Once an admin has restored a post, the review never
- * hides it again — only reporters can.
+ * backstop either way. Once an admin has restored a post, or kept a live one
+ * (the same restore endpoint), the review never hides it again — only
+ * reporters can.
  *
  * Only the post itself goes to the model (text, water status, a waypoint's
  * name, type, description and position, and the reports' reasons and notes);
@@ -440,13 +441,16 @@ export async function reviewContent(
     const hide = contentReviewHides(review) && row.deleted_at === null && row.restored_at === null;
     if (hide) review.hid = true;
     // Both guarded by the version read above, in one transaction. The first
-    // leaves `updated_at` alone, so the hide after it still matches.
+    // leaves `updated_at` alone, so the hide after it still matches. It also
+    // checks `restored_at` and `deleted_by`, which an admin's Keep and an
+    // account deletion of a hidden post change without moving `updated_at`.
     const stamp = stampAfter(row.updated_at);
     await env.DB.batch([
       env.DB.prepare(
         `UPDATE ${table} SET review_status = ?, review_json = ?
-          WHERE id = ? AND review_status = 'pending' AND updated_at = ?`
-      ).bind(review.status, JSON.stringify(review), id, row.updated_at),
+          WHERE id = ? AND review_status = 'pending' AND updated_at = ?
+            AND restored_at IS ? AND deleted_by IS ?`
+      ).bind(review.status, JSON.stringify(review), id, row.updated_at, row.restored_at, row.deleted_by),
       ...(hide
         ? [
             env.DB.prepare(
@@ -531,7 +535,12 @@ export function parseContentReview(raw: string | null): ContentReview | null {
   }
 }
 
-/** SQL for the admin queues' order: posts the review would remove or wants a human for, first. */
+/**
+ * SQL for the admin queues' order: posts the review would remove or wants a
+ * human for, first — until an admin has restored or kept one (`restored_at`),
+ * which settles it.
+ */
 export function reviewFlaggedSql(alias: string): string {
-  return `(${alias}.review_status = 'done' AND json_extract(${alias}.review_json, '$.verdict') IN ('remove', 'needs_human'))`;
+  return `(${alias}.review_status = 'done' AND ${alias}.restored_at IS NULL
+    AND json_extract(${alias}.review_json, '$.verdict') IN ('remove', 'needs_human'))`;
 }

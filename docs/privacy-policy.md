@@ -257,9 +257,12 @@ already deleted or hidden:
 
 What stays in our database for each is an empty record: its ID, the trail (and
 waypoint or place) it belonged to, a waypoint's type, and when it was created,
-changed and deleted, so that devices which synced it know to drop it. Reports
-you filed are kept as a moderation record (the reason you chose and when), but
-any text you wrote in them is erased. This is immediate and irreversible.
+changed and deleted, so that devices which synced it know to drop it. If the
+automated review looked at one, its verdict (keep, remove or ask an admin, how
+sure it was and the kind of problem) stays with it, but its one-line summary of
+your post is erased. Reports you filed are kept as a moderation record (the
+reason you chose and when), but any text you wrote in them is erased. This is
+immediate and irreversible.
 
 A community route you shared can be deleted at any time from its page
 (**Delete**); this removes it from the public list and deletes the stored route
