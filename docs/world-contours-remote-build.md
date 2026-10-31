@@ -45,7 +45,7 @@ step runs on the box; the laptop's uplink (~0.9 MB/s) moves nothing.
      It covers rclone, wrangler and the manifest purge. Revoke it at the end.
 3. **Bootstrap** (~10 min): `bash bootstrap-al2023.sh` (curl it from `main`),
    then `scripts/remote/rclone-from-token.sh`.
-4. **Start everything at once**, detached, from `/mnt/nvme/trail-maps`:
+4. **Start everything at once**, detached, from `/mnt/nvme/tracknotes`:
 
    ```bash
    . /etc/profile.d/geo.sh
@@ -182,10 +182,10 @@ ssh root@<box>
 fallocate -l 64G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
 
 # Put the checkout on the big NVMe volume, not a small root disk
-export CHECKOUT_DIR=/mnt/nvme/trail-maps
+export CHECKOUT_DIR=/mnt/nvme/tracknotes
 
-curl -fsSL https://raw.githubusercontent.com/eamon-b/trail-maps/main/scripts/remote/bootstrap.sh -o bootstrap.sh
-REPO_URL=https://github.com/eamon-b/trail-maps.git \
+curl -fsSL https://raw.githubusercontent.com/eamon-b/tracknotes/main/scripts/remote/bootstrap.sh -o bootstrap.sh
+REPO_URL=https://github.com/eamon-b/tracknotes.git \
 REPO_REF=main \
 bash bootstrap.sh
 ```
@@ -207,15 +207,15 @@ that block into the build notes for the record. Re-running it is safe.
 (the 2026-10 box): it installs the build tools with dnf, the geo stack
 (GDAL 3.13, sqlite, Node 22, rclone) from conda-forge into a micromamba env on
 the NVMe, builds tippecanoe 2.79.0 with the system compiler, and clones the
-repo to `/mnt/nvme/trail-maps`. It needs `/mnt/nvme` mounted first; the
+repo to `/mnt/nvme/tracknotes`. It needs `/mnt/nvme` mounted first; the
 commands to stripe the instance-store drives are in its header, and a human
 runs them (an agent's shell blocks `mkfs`).
 
 ```bash
 ssh -i <key>.pem ec2-user@<box>
-curl -fsSL https://raw.githubusercontent.com/eamon-b/trail-maps/main/scripts/remote/bootstrap-al2023.sh -o bootstrap-al2023.sh
+curl -fsSL https://raw.githubusercontent.com/eamon-b/tracknotes/main/scripts/remote/bootstrap-al2023.sh -o bootstrap-al2023.sh
 bash bootstrap-al2023.sh                     # ~10 min
-/mnt/nvme/trail-maps/scripts/remote/rclone-from-token.sh   # [r2] remote from ~/token
+/mnt/nvme/tracknotes/scripts/remote/rclone-from-token.sh   # [r2] remote from ~/token
 ```
 
 It writes `/etc/profile.d/geo.sh`, which only login shells read: **every**
@@ -265,7 +265,7 @@ delete the key/token when you decommission it.
 the live world archive on trails you know.
 
 ```bash
-cd /mnt/nvme/trail-maps
+cd /mnt/nvme/tracknotes
 ./scripts/remote/run-shard.sh oceania
 ```
 
