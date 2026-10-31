@@ -414,7 +414,7 @@ export async function getMyComments(request: Request, env: Env, ctx: ExecutionCo
     waypointId: row.waypoint_id,
     text: row.text,
     waterStatus: row.water_status,
-    observedAt: row.observed_at,
+    observedAt: publishedObservedAt(row.observed_at),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     photoUrls: parsePhotoUrls(row.photo_urls_json) ?? [],

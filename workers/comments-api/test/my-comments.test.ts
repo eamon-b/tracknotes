@@ -1,4 +1,5 @@
 import { SELF } from 'cloudflare:test';
+import { env } from 'cloudflare:workers';
 import { describe, expect, it } from 'vitest';
 import { authHeaders, createComment, registerDevice, url, wpId } from './helpers';
 import type { MyCommentsResponse } from '../../../src/lib/comments-api-types';
@@ -41,6 +42,17 @@ describe('GET /v1/me/comments — personal export', () => {
     expect(second.deletedAt).not.toBeNull();
     expect(JSON.stringify(body)).not.toContain('Exporter');
     expect(first).not.toHaveProperty('displayName');
+  });
+
+  it('exports a water report’s observation only to the day, even from a row stored to the second', async () => {
+    const me = await registerDevice();
+    const { id } = await createComment(me, { waypointId: wpId('obs'), text: 'tank full', waterStatus: 'flowing' });
+    // As a row written before migration 0010 holds it.
+    await env.DB.prepare(`UPDATE comments SET observed_at = ? WHERE id = ?`).bind('2026-10-20T14:05:33.000Z', id).run();
+
+    const res = await SELF.fetch(url('/v1/me/comments'), { headers: authHeaders(me) });
+    const body = (await res.json()) as MyCommentsResponse;
+    expect(body.comments.find((c) => c.id === id)?.observedAt).toBe('2026-10-20T00:00:00.000Z');
   });
 
   it('pages through every comment with the cursor', async () => {
