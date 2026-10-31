@@ -270,7 +270,7 @@ cat <<EOF
 
 Bootstrap complete.
 
-Next steps (see docs/world-contours-remote-build.md):
+Next steps (see contours/docs/world-contours-remote-build.md):
   cd $CHECKOUT_DIR
   ./scripts/remote/run-shard.sh oceania          # first shard — quality gate
   ./scripts/remote/status.sh                     # progress
