@@ -24,6 +24,12 @@
  * device only. Its "update" is the route having changed since the pack was
  * built (the manifest's `sourceVersion` against the route's fingerprint now) —
  * never a request to the pack bucket.
+ *
+ * An interrupted build only resumes for the corridor it was started for: any
+ * other width, or a changed route, starts afresh and discards its tiles. So
+ * while one is on disk the chips default to its width, "Resume" is offered only
+ * when the chosen width and the route still match it, and any other choice says
+ * plainly what it will throw away.
  */
 
 import { useEffect, useMemo, useState } from 'react';
@@ -33,11 +39,13 @@ import { useTheme } from '../../../src/theme';
 import { radii, spacing, touchTarget, typography } from '../../../src/tokens';
 import { ScreenScrollView } from '../../../src/navigation/ScreenScrollView';
 import { ChoiceChips } from '../../../src/features/community/CommunityUi';
+import { corridorResume } from '../../../src/features/guide/corridor-resume';
 import { useGuide } from '../../../src/features/guide/GuideContext';
 import { useTrailTitle } from '../../../src/features/guide/use-trail-title';
 import {
   hasCorridorProgress,
   planCorridor,
+  readCorridorProgress,
   readCorridorRecord,
   tooLargeMessage,
 } from '../../../src/services/corridor-pack';
@@ -118,13 +126,24 @@ export default function DownloadsScreen() {
         : false,
     [plan.corridor, packTrailId, download],
   );
-  // The hiker's pick; until they make one, the pack's own width or the initial.
+  // Which corridor the interrupted build's tiles are for (null when unknown).
+  const progress = useMemo(
+    () => (interrupted && packTrailId ? readCorridorProgress(packTrailId) : null),
+    [interrupted, packTrailId],
+  );
+  // The hiker's pick; until they make one, the interrupted build's width (so
+  // the default resumes it), else the pack's own, else the initial.
   const [pickedKm, setPickedKm] = useState<number | null>(null);
-  const bufferKm = pickedKm ?? record?.bufferKm ?? INITIAL_CORRIDOR_KM;
+  const bufferKm = pickedKm ?? progress?.bufferKm ?? record?.bufferKm ?? INITIAL_CORRIDOR_KM;
   const corridor = useMemo(
     () => (plan.corridor ? planCorridor(trail, bufferKm) : null),
     [plan.corridor, trail, bufferKm],
   );
+  // Only the same width over the same route picks up the interrupted tiles.
+  const resume = corridor
+    ? corridorResume(interrupted, progress, bufferKm, corridor.sourceVersion)
+    : null;
+  const resumable = resume?.resumable ?? false;
   const routeChanged =
     record != null && corridor != null && record.sourceVersion !== corridor.sourceVersion;
   const widthChanged = record != null && record.bufferKm !== bufferKm;
@@ -185,17 +204,20 @@ export default function DownloadsScreen() {
       case 'partial':
         return 'Partial download — re-download to finish';
       default:
-        return interrupted ? 'Download interrupted — resume to finish' : 'Not downloaded';
+        if (!interrupted) return 'Not downloaded';
+        return progress
+          ? `Download at ${progress.bufferKm} km interrupted — resume to finish`
+          : 'Download interrupted';
     }
-  }, [download, plan.packAvailable, plan.corridor, interrupted]);
+  }, [download, plan.packAvailable, plan.corridor, interrupted, progress]);
 
   const actionLabel = plan.corridor
-    ? download.state === 'complete'
-      ? widthChanged
-        ? `Rebuild at ${bufferKm} km`
-        : 'Rebuild'
-      : interrupted
-        ? 'Resume download'
+    ? resumable
+      ? 'Resume download'
+      : download.state === 'complete'
+        ? widthChanged
+          ? `Rebuild at ${bufferKm} km`
+          : 'Rebuild'
         : 'Download'
     : updateAvailable
       ? 'Update'
@@ -291,6 +313,9 @@ export default function DownloadsScreen() {
             {corridor.totalTiles.toLocaleString('en')} map tiles to fetch at {bufferKm} km either
             side. A wider corridor shows more around the route and takes more space.
           </Text>
+          {resume?.warning && !download.downloading && (
+            <Text style={[styles.warning, { color: colors.warning }]}>{resume.warning}</Text>
+          )}
           {corridor.tooLarge && (
             <Text style={[styles.warning, { color: colors.warning }]}>
               {tooLargeMessage(corridor.totalTiles)}
