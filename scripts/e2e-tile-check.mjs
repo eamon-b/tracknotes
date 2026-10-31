@@ -80,7 +80,7 @@ import { httpRangeReader, readPrefix, readZoomTiles } from './lib/http-mbtiles.m
 import { checkZ9Tiered } from './lib/mvt-contours.mjs';
 
 const CONTOUR_URL = (process.env.CONTOUR_TILE_URL || 'https://tiles.contour-map-tiles.net').replace(/\/$/, '');
-const TILE_BASE_URL = (process.env.TILE_BASE_URL || 'https://data.contour-map-tiles.net').replace(/\/$/, '');
+const TILE_BASE_URL = (process.env.TILE_BASE_URL || 'https://data.tracknotes.info').replace(/\/$/, '');
 
 // ---------------------------------------------------------------------------
 // Tile math + candidate tiles over high-relief Australian land (contours exist)
