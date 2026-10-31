@@ -14,8 +14,8 @@ and the archive itself are served without it:
 
 | Hostname | Serves |
 | --- | --- |
-| `contour-map-tiles.net` | docs + live demo (Cloudflare Pages, `site/contour-tiles/`) |
-| `data.contour-map-tiles.net` | the R2 bucket directly — the PMTiles archive and offline tile packs |
+| `contour-map-tiles.net` | docs + live demo (Cloudflare Pages, `contours/site/`) |
+| `data.contour-map-tiles.net` | the R2 bucket directly — the PMTiles archives |
 | `tiles.contour-map-tiles.net` | this Worker: z/x/y tile endpoint |
 
 Clients that speak PMTiles should read the archive straight off
