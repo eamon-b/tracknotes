@@ -45,7 +45,7 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 
-const BUCKET = process.env.R2_BUCKET || 'aus-map-data';
+const BUCKET = process.env.R2_BUCKET || 'tracknotes-data';
 const RCLONE_REMOTE = process.env.RCLONE_REMOTE || 'r2';
 const DEFAULT_GRACE_DAYS = 7;
 const WORLD_BUILD_PREFIX = 'contours/world-build/';

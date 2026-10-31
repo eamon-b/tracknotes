@@ -13,7 +13,7 @@
 #   ./scripts/upload-tiles.sh --no-purge <...>   # Leave the edge cache alone (see purge_public_url)
 #
 # The script reads from public/data/tiles/ (the build output directory)
-# and uploads to the aus-map-data R2 bucket.
+# and uploads to the tracknotes-data R2 bucket.
 #
 # Per-trail uploads are manifest-driven: each trail directory must
 # contain a manifest.json (written by the tile build), whose files[] entries
@@ -22,7 +22,7 @@
 
 set -euo pipefail
 
-BUCKET="${R2_BUCKET:-aus-map-data}"
+BUCKET="${R2_BUCKET:-tracknotes-data}"
 TILES_DIR="${TILES_DIR:-public/data/tiles}"
 # Public URL of the same bucket, for checking what is already published.
 TILE_PUBLIC_URL="${TILE_PUBLIC_URL:-https://data.tracknotes.info}"

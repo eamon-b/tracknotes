@@ -24,11 +24,12 @@ binding = "DB"
 database_name = "tracknotes-comments"
 database_id = "7ebd1642-b752-4184-904e-54bfa48b658f"
 
-# Photo attachments live in R2. This is the same bucket the map tiles use; photos
-# go under the `comments/` prefix and are read publicly via PHOTOS_PUBLIC_BASE.
+# Photo attachments live in R2, in the app's own bucket (trail data and offline
+# packs too; the public contour dataset keeps `aus-map-data`). Photos go under
+# the `comments/` prefix and are read publicly via PHOTOS_PUBLIC_BASE.
 [[r2_buckets]]
 binding = "PHOTOS"
-bucket_name = "aus-map-data"
+bucket_name = "tracknotes-data"
 
 # Community-route maintenance (`runCommunityMaintenance` in src/community.ts):
 # retries de-attributions an account deletion left pending, re-runs AI
