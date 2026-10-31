@@ -5,7 +5,9 @@
  * months ago, "dry" last week). Rather than showing the raw newest row, this
  * module ranks the cached reports client-side: every report inside a 120-day
  * window contributes `exp(-ageDays / 30)` to its status, and the status with the
- * greatest total wins (ties broken by the more recent report). A single recent
+ * greatest total wins (ties broken by the more recent report: observation day
+ * first, then when it was posted, since two reports observed the same day carry
+ * the same midnight). A single recent
  * "dry" therefore outweighs a stack of stale "flowing" without a lone outlier
  * overturning a well-corroborated recent consensus.
  *
@@ -76,8 +78,20 @@ export function waterWindowStartIso(nowMs: number): string {
 interface Tally {
   weight: number;
   latestMs: number;
+  /**
+   * Posting time of the report behind `latestMs`. `observedAt` is published
+   * only to the day, so two same-day reports share `latestMs`; this tells
+   * which was posted later (NaN when `createdAt` does not parse).
+   */
+  latestCreatedMs: number;
   latestIso: string;
   count: number;
+}
+
+/** True when (timeMs, createdMs) is more recent than the tally's latest report. */
+function isMoreRecent(timeMs: number, createdMs: number, tally: Tally): boolean {
+  if (timeMs !== tally.latestMs) return timeMs > tally.latestMs;
+  return createdMs > tally.latestCreatedMs;
 }
 
 /**
@@ -102,11 +116,13 @@ export function aggregateWaterStatus(
 
     const weight = Math.exp(-Math.max(0, ageDays) / WATER_DECAY_DAYS);
     const iso = report.observedAt ?? report.createdAt;
+    const createdMs = Date.parse(report.createdAt);
     const existing = tallies.get(report.waterStatus);
     if (!existing) {
       tallies.set(report.waterStatus, {
         weight,
         latestMs: timeMs,
+        latestCreatedMs: createdMs,
         latestIso: iso,
         count: 1,
       });
@@ -114,8 +130,9 @@ export function aggregateWaterStatus(
     }
     existing.weight += weight;
     existing.count += 1;
-    if (timeMs > existing.latestMs) {
+    if (isMoreRecent(timeMs, createdMs, existing)) {
       existing.latestMs = timeMs;
+      existing.latestCreatedMs = createdMs;
       existing.latestIso = iso;
     }
   }
@@ -130,7 +147,7 @@ export function aggregateWaterStatus(
     // Float sums rarely tie exactly, so treat a hair's difference as a tie and
     // let recency decide — that keeps the verdict stable and explainable.
     const tied = Math.abs(diff) < 1e-9;
-    if (diff > 0 || (tied && tally.latestMs > winner.tally.latestMs)) {
+    if (diff > 0 || (tied && isMoreRecent(tally.latestMs, tally.latestCreatedMs, winner.tally))) {
       winner = { status, tally };
     }
   }

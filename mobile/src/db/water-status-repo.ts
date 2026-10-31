@@ -51,7 +51,7 @@ export async function listWaterReportsByTrail(
       WHERE trail_id = ?
         AND water_status IS NOT NULL
         AND COALESCE(observed_at, created_at) >= ?
-      ORDER BY waypoint_id ASC, COALESCE(observed_at, created_at) DESC`,
+      ORDER BY waypoint_id ASC, COALESCE(observed_at, created_at) DESC, created_at DESC, id DESC`,
     [trailId, sinceIso],
   );
   return rows.map((row) => ({
