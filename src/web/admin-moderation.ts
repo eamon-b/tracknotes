@@ -89,12 +89,42 @@ export function reviewHtml(review: ContentReview | null): string {
   }</span></dd>`;
 }
 
-/** Hidden provisionally, or the review wants a human: the row needs an admin. */
-function needsAttention(row: { deletedBy: DeletedBy; review: ContentReview | null }): boolean {
+interface Moderated {
+  deletedBy: DeletedBy;
+  restoredAt: string | null;
+  reportCount: number;
+  review: ContentReview | null;
+}
+
+/**
+ * Hidden provisionally, or live with a review that wants a human (or would
+ * remove it, below the hide threshold): the row needs an admin. A restore or
+ * Keep (`restoredAt`) settles the review.
+ */
+export function needsAttention(row: Moderated): boolean {
   return (
     row.deletedBy === 'reports' ||
-    (row.deletedBy === null && row.review?.verdict !== undefined && row.review.verdict !== 'keep')
+    (row.deletedBy === null &&
+      row.restoredAt === null &&
+      row.review?.verdict !== undefined &&
+      row.review.verdict !== 'keep')
   );
+}
+
+/**
+ * A live row an admin can Keep: the restore endpoint on a live post sets
+ * `restoredAt`, so its reports so far stop counting and the review never asks
+ * about it again.
+ */
+function keepable(row: Moderated): boolean {
+  return row.deletedBy === null && (needsAttention(row) || row.reportCount > 0);
+}
+
+/** Restore a hidden row, or Keep a live one: the same endpoint. */
+function restoreButton(kind: string, id: string, row: Moderated, canRestoreHidden: boolean): string {
+  return row.deletedBy === null
+    ? button(kind, id, 'restore', 'Keep', keepable(row), 'is-primary')
+    : button(kind, id, 'restore', 'Restore', canRestoreHidden, 'is-primary');
 }
 
 function button(
@@ -166,7 +196,7 @@ export function commentRowHtml(comment: AdminComment): string {
         ${reviewHtml(comment.review)}
       </dl>
       <div class="admin-row-actions">
-        ${button('comment', id, 'restore', 'Restore', comment.deletedBy === 'reports', 'is-primary')}
+        ${restoreButton('comment', id, comment, comment.deletedBy === 'reports')}
         ${button('comment', id, 'delete', hidden ? 'Delete for good' : 'Delete', comment.deletedBy === null || comment.deletedBy === 'reports', 'is-danger')}
         ${banButtons('comment', id, comment)}
       </div>
@@ -199,7 +229,7 @@ export function waypointRowHtml(waypoint: AdminSharedWaypoint): string {
         ${reviewHtml(waypoint.review)}
       </dl>
       <div class="admin-row-actions">
-        ${button('waypoint', id, 'restore', 'Restore', waypoint.deletedBy === 'reports' || waypoint.deletedBy === 'admin', 'is-primary')}
+        ${restoreButton('waypoint', id, waypoint, waypoint.deletedBy === 'reports' || waypoint.deletedBy === 'admin')}
         ${button('waypoint', id, 'delete', 'Delete', !hidden, 'is-danger')}
         ${banButtons('waypoint', id, waypoint)}
       </div>

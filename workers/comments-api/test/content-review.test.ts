@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   authHeaders,
   createComment,
+  deleteMe,
   makeAdmin,
   registerDevice,
   reportComment,
@@ -21,6 +22,7 @@ import {
   parseContentReviewOutput,
   parseScreenOutput,
   rerunStaleContentReviews,
+  reviewFlaggedSql,
   reviewOnReport,
   runContentReview,
   screenOnPost,
@@ -376,5 +378,124 @@ describe('the cron re-run and the admin queue', () => {
     const wps = await SELF.fetch(url('/v1/admin/waypoints?limit=500'), { headers: authHeaders(admin) });
     const wpBody = (await wps.json()) as AdminSharedWaypointsResponse;
     expect(wpBody.waypoints.every((w) => w.review === null || typeof w.review === 'object')).toBe(true);
+  });
+
+  it('an admin Keep settles a flagged live comment: off the top of the queue, never claimed again', async () => {
+    const { id } = await reportedComment('queue-keep');
+    await reviewOnReport(env, 'comment', id, {
+      client: fakeClient({ ...REMOVE, verdict: 'needs_human', confidence: 0.6 }),
+    });
+    const before = await env.DB.prepare(`SELECT updated_at FROM comments WHERE id = ?`)
+      .bind(id)
+      .first<{ updated_at: string }>();
+    const flagged = await env.DB.prepare(`SELECT ${reviewFlaggedSql('c')} AS flagged FROM comments c WHERE c.id = ?`)
+      .bind(id)
+      .first<{ flagged: number }>();
+    expect(flagged?.flagged).toBe(1);
+
+    const admin = await registerDevice('Admin');
+    await makeAdmin(admin.userId);
+    const res = await SELF.fetch(url(`/v1/admin/comments/${id}/restore`), {
+      method: 'POST',
+      headers: authHeaders(admin),
+    });
+    expect(res.status).toBe(204);
+
+    const after = await env.DB.prepare(
+      `SELECT c.deleted_at, c.restored_at, c.updated_at, ${reviewFlaggedSql('c')} AS flagged FROM comments c WHERE c.id = ?`
+    )
+      .bind(id)
+      .first<{ deleted_at: string | null; restored_at: string | null; updated_at: string; flagged: number }>();
+    expect(after?.deleted_at).toBeNull();
+    expect(after?.restored_at).not.toBeNull();
+    // Nothing a phone sees changed, so it is not re-synced.
+    expect(after?.updated_at).toBe(before?.updated_at);
+    expect(after?.flagged).toBe(0);
+
+    // The earlier report no longer counts, so it cannot start a review.
+    const client = fakeClient(REMOVE);
+    await env.DB.prepare(`UPDATE comments SET review_status = 'failed' WHERE id = ?`).bind(id).run();
+    await reviewOnReport(env, 'comment', id, { client });
+    expect(client.calls).toHaveLength(0);
+  });
+
+  it('an admin Keep of a live shared waypoint sets restored_at without touching updated_at', async () => {
+    const owner = await registerDevice('Owner');
+    const id = newWaypointId();
+    expect((await putWaypoint(owner, id, WATER)).status).toBe(201);
+    const before = await env.DB.prepare(`SELECT updated_at FROM shared_waypoints WHERE id = ?`)
+      .bind(id)
+      .first<{ updated_at: string }>();
+    const admin = await registerDevice('Admin');
+    await makeAdmin(admin.userId);
+    const res = await SELF.fetch(url(`/v1/admin/waypoints/${id}/restore`), {
+      method: 'POST',
+      headers: authHeaders(admin),
+    });
+    expect(res.status).toBe(204);
+    const after = await env.DB.prepare(`SELECT deleted_at, restored_at, updated_at FROM shared_waypoints WHERE id = ?`)
+      .bind(id)
+      .first<{ deleted_at: string | null; restored_at: string | null; updated_at: string }>();
+    expect(after?.deleted_at).toBeNull();
+    expect(after?.restored_at).not.toBeNull();
+    expect(after?.updated_at).toBe(before?.updated_at);
+  });
+
+  it('a review that finishes after an admin Keep records its verdict without hiding', async () => {
+    const { id } = await reportedComment('queue-keep-race');
+    const admin = await registerDevice('Admin');
+    await makeAdmin(admin.userId);
+    // The admin keeps it while the model is thinking.
+    const client: ReviewClient = {
+      beta: {
+        messages: {
+          create: async (params: CreateParams) => {
+            await SELF.fetch(url(`/v1/admin/comments/${id}/restore`), {
+              method: 'POST',
+              headers: authHeaders(admin),
+            });
+            return fakeClient(REMOVE).beta.messages.create(params);
+          },
+        },
+      },
+    } as ReviewClient;
+    await reviewOnReport(env, 'comment', id, { client });
+    let row = await commentRow(id);
+    expect(row?.deleted_at).toBeNull();
+    // The stale write lost its guard; the cron's re-run records it, unhidden.
+    expect(row?.review_status).toBe('pending');
+    await env.DB.prepare(`UPDATE comments SET review_requested_at = ? WHERE id = ?`)
+      .bind(new Date(Date.now() - STALE_CONTENT_REVIEW_AFTER_MS - 1000).toISOString(), id)
+      .run();
+    await rerunStaleContentReviews(env, { client: fakeClient(REMOVE) }, 100);
+    row = await commentRow(id);
+    expect(row?.deleted_at).toBeNull();
+    expect(row?.review_status).toBe('done');
+    expect(reviewOf(row)?.hid).toBeUndefined();
+  });
+});
+
+describe('account deletion', () => {
+  it('drops the review summary, which paraphrases the erased text, and keeps the verdict', async () => {
+    const { id, author } = await reportedComment('delete-summary');
+    await reviewOnReport(env, 'comment', id, { client: fakeClient(REMOVE) });
+    expect(reviewOf(await commentRow(id))?.summary).toBe(REMOVE.summary);
+
+    const wp = newWaypointId();
+    expect((await putWaypoint(author, wp, WATER)).status).toBe(201);
+    await screenOnPost(env, 'waypoint', wp, 'x', {
+      ai: fakeAi({ safe: false, categories: ['S2'] }),
+      client: fakeClient(KEEP),
+    });
+
+    expect((await deleteMe(author)).status).toBe(204);
+    const review = reviewOf(await commentRow(id));
+    expect(review).toMatchObject({ verdict: 'remove', status: 'done' });
+    expect(review?.summary).toBeUndefined();
+    const wpRow = await env.DB.prepare(`SELECT review_json FROM shared_waypoints WHERE id = ?`)
+      .bind(wp)
+      .first<{ review_json: string | null }>();
+    expect(reviewOf(wpRow)).toMatchObject({ verdict: 'keep' });
+    expect(reviewOf(wpRow)?.summary).toBeUndefined();
   });
 });

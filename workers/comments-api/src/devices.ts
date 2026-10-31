@@ -134,13 +134,16 @@ export async function deleteMe(request: Request, env: Env, ctx: ExecutionContext
   await env.DB.batch([
     // Every row the account wrote is blanked, including ones already deleted
     // (by its owner, an admin or reports): a tombstone keeps only its id,
-    // where it was filed and when. A row already deleted keeps its stamps,
+    // where it was filed and when (the automated review keeps its verdict
+    // but drops its summary, which paraphrases the text). A row already
+    // deleted keeps its stamps,
     // so it is not sent to phones as a second tombstone. (SQLite evaluates
     // every SET expression against the row as it was.)
     env.DB.prepare(
       `UPDATE comments
           SET text = '', water_status = NULL, observed_at = NULL,
               photo_urls_json = NULL, photo_hashes_json = NULL,
+              review_json = json_remove(review_json, '$.summary'),
               deleted_by = CASE WHEN deleted_at IS NULL OR deleted_by = 'reports' THEN 'owner' ELSE deleted_by END,
               updated_at = CASE WHEN deleted_at IS NULL THEN ? ELSE updated_at END,
               deleted_at = COALESCE(deleted_at, ?)
@@ -159,6 +162,7 @@ export async function deleteMe(request: Request, env: Env, ctx: ExecutionContext
     env.DB.prepare(
       `UPDATE shared_waypoints
           SET name = '', description = '', lat = 0, lon = 0, deleted_by = 'owner',
+              review_json = json_remove(review_json, '$.summary'),
               updated_at = CASE WHEN deleted_at IS NULL THEN ? ELSE updated_at END,
               deleted_at = COALESCE(deleted_at, ?)
         WHERE user_id = ?`

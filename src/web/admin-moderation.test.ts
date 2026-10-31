@@ -154,6 +154,32 @@ describe('admin-moderation.html', () => {
     );
   });
 
+  it('offers Keep on a live flagged row, and a Keep settles the review', async () => {
+    const { commentRowHtml, needsAttention } = await import('./admin-moderation');
+    const flagged = {
+      ...comment,
+      deletedAt: null,
+      deletedBy: null,
+      review: { ...comment.review, verdict: 'needs_human' as const, hid: undefined },
+    };
+    const row = document.createElement('div');
+    row.innerHTML = commentRowHtml(flagged as never);
+    const keep = row.querySelector<HTMLButtonElement>('button[data-action="restore"]')!;
+    expect(keep.textContent).toBe('Keep');
+    expect(keep.disabled).toBe(false);
+    expect(row.querySelector('.admin-row-attention')).not.toBeNull();
+
+    const kept = { ...flagged, restoredAt: '2026-10-04T00:00:00Z' };
+    expect(needsAttention(kept as never)).toBe(false);
+    // Hidden by reports again after a Keep: still needs an admin.
+    expect(needsAttention({ ...kept, deletedBy: 'reports' } as never)).toBe(true);
+
+    // A live row with no reports and no review has nothing to keep.
+    const quiet = document.createElement('div');
+    quiet.innerHTML = commentRowHtml({ ...flagged, review: null, reportCount: 0, reports: [] } as never);
+    expect(quiet.querySelector<HTMLButtonElement>('button[data-action="restore"]')!.disabled).toBe(true);
+  });
+
   it('offers no ban controls for a deleted account or an admin', async () => {
     const { commentRowHtml, waypointRowHtml } = await import('./admin-moderation');
     const deleted = document.createElement('div');
