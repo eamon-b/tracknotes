@@ -37,6 +37,18 @@ describe('matchesFamily', () => {
     expect(matchesFamily('junction', 'shelter')).toBe(false);
   });
 
+  it('lists a teahouse under Water, Town and Shelter, and its turn-off under Town only', () => {
+    // The distance strip and the water carry count a teahouse as all three;
+    // a Three Passes Water chip that hid them would list nothing at all.
+    expect(familyForType('teahouse')).toBe('shelter');
+    expect(matchesFamily('teahouse', 'water')).toBe(true);
+    expect(matchesFamily('teahouse', 'town')).toBe(true);
+    expect(matchesFamily('teahouse', 'shelter')).toBe(true);
+    expect(matchesFamily('teahouse', 'camp')).toBe(false);
+    expect(matchesFamily('teahouse-access', 'water')).toBe(false);
+    expect(matchesFamily('teahouse-access', 'town')).toBe(true);
+  });
+
   it('the favorites family is an id-based cut, not a type-based one', () => {
     // Type is irrelevant; only the isFavorite flag decides.
     expect(matchesFamily('water', 'favorites', true)).toBe(true);

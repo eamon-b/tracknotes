@@ -2,9 +2,13 @@
  * Pure helpers for the waypoint list's category filter chips and the signed,
  * unit-aware distance-from-me shown on each row.
  *
- * React-free so both the grouping and the formatting are unit-testable; the
- * families are derived from the same `waypoint-category` token registry the map
- * and datasheet use, so a type only ever belongs to one family.
+ * React-free so both the grouping and the formatting are unit-testable. A
+ * type's home family is derived from the same `waypoint-category` token
+ * registry the map and datasheet use (its marker colour). The Water and Town
+ * chips also take every type the planner counts as water or resupply
+ * (`@lib/waypoint-taxonomy`), so a `teahouse` — drawn as a shelter, but the
+ * next water and the next meal on a teahouse trek — is listed under all three,
+ * as it is on the web and in the distance strip.
  *
  * The chips scope the OpenStreetMap rows the list interleaves too, which is a
  * separate mapping (`poiCategoriesForFamily`): POI categories are their own
@@ -13,6 +17,7 @@
 
 import { formatDistance, formatElevation, type DistanceUnit } from '@lib/format-distance';
 import { POI_CATEGORIES } from '@lib/poi-display';
+import { isResupplyWaypoint, isWaterWaypoint } from '@lib/waypoint-taxonomy';
 import type { TrailPOICategory } from '@lib/trail-types';
 import { categoryToken, type WaypointColorToken } from '../elevation/waypoint-category';
 
@@ -58,6 +63,11 @@ export function familyForType(type: string): Exclude<WaypointFamily, 'all'> | 'o
  * Whether a waypoint is shown under the given family filter. `isFavorite` and
  * `isPlanned` are only consulted for their own families (id-based cuts); the
  * type-based families ignore both.
+ *
+ * Water and Town widen the home family with the planner's own predicates, so
+ * the chip never hides a place the water carry or resupply plan counts. The
+ * widening adds no turn-off to Water (`isWaterWaypoint` takes none); one that
+ * is there already is there by its marker colour, as on the map.
  */
 export function matchesFamily(
   type: string,
@@ -68,7 +78,10 @@ export function matchesFamily(
   if (family === 'all') return true;
   if (family === 'favorites') return isFavorite;
   if (family === 'planned') return isPlanned;
-  return familyForType(type) === family;
+  if (familyForType(type) === family) return true;
+  if (family === 'water') return isWaterWaypoint(type);
+  if (family === 'town') return isResupplyWaypoint(type);
+  return false;
 }
 
 const FAMILY_TO_POI_CATEGORIES: Record<WaypointFamily, readonly TrailPOICategory[]> = {

@@ -7,7 +7,7 @@
   "states": [],
   "lengthKm": 215.4,
   "gpxFile": "three-passes.gpx",
-  "description": "The old approach walk from the road head at Jiri over the Lamjura La and through Solu to the Dudh Koshi, joined to the Everest Three Passes circuit and walked anticlockwise for acclimatisation: up the Bhote Koshi past Thame, over the Renjo La to Gokyo, across the Ngozumpa glacier and over the Cho La, up the Khumbu to Gorak Shep (walked out and back from Lobuche, for Everest Base Camp and Kala Patthar), over the Kongma La to Chhukhung, and down the Imja valley past Tengboche and Namche to Lukla. Every village has lodges with meals and a bed; Jiri, Namche and Lukla are the only real shops. Alternatives: the Gokyo valley via Machhermo instead of Thame and the Renjo La, the Khunde high route from Namche to Thame, and the north-side return from Pangboche through Phortse. Hikers flying in start at Lukla, an hour above Chheplung. Glacier crossings move from year to year: follow the current cairns.",
+  "description": "The old approach walk from the road head at Jiri over the Lamjura La and through Solu to the Dudh Koshi, joined to the Everest Three Passes circuit and walked anticlockwise for acclimatisation: up the Bhote Koshi past Thame, over the Renjo La to Gokyo, across the Ngozumpa glacier and over the Cho La, up the Khumbu to Gorak Shep (walked out and back from Lobuche, for Everest Base Camp and Kala Patthar), over the Kongma La to Chhukhung, and down the Imja valley past Tengboche and Namche to Lukla. Every village has lodges with meals and a bed; Jiri, Namche and Lukla are the only real shops. Many of the high lodges close in winter (December to February), and some in the monsoon, among them those at Gorak Shep, Lobuche, Dzongla, Thagnak and Lungden: out of season, check which are open before counting on one for a bed, a meal or water. Alternatives: the Gokyo valley via Machhermo instead of Thame and the Renjo La, the Khunde high route from Namche to Thame, and the north-side return from Pangboche through Phortse. Hikers flying in start at Lukla, an hour above Chheplung. Glacier crossings move from year to year: follow the current cairns.",
   "dataSource": {
     "text": "Tracks routed over the OpenStreetMap footpath network and waypoints resolved to OpenStreetMap places, peaks and saddles (© OpenStreetMap contributors, ODbL). Elevation from SRTM 1-arcsec (NASA, public domain).",
     "url": "https://www.openstreetmap.org/copyright",
@@ -20,7 +20,16 @@
     "fallbackToLongest": false,
     "maxJunctionDistanceMeters": 150
   },
-  "revisitedWaypointIds": "suffix",
+  "revisitedWaypoints": [
+    "Lobuche",
+    "Namche Bazaar",
+    "Jorsalle",
+    "Monjo",
+    "Phakding",
+    "Ghat",
+    "Chheplung",
+    "Chaurikharka"
+  ],
   "knownRetraces": [
     {
       "turnaroundKm": 157.9,
