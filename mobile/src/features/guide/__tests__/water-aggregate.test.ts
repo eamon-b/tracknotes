@@ -176,6 +176,22 @@ describe('aggregateWaterStatus at day resolution (issue #248)', () => {
     expect(agg.status).toBe('dry');
   });
 
+  it('lets the later-posted report win when two statuses were observed the same day', () => {
+    // Both carry the same midnight; only createdAt says which came last.
+    const morning: WaterReport = {
+      waterStatus: 'flowing',
+      observedAt: new Date(NOW).toISOString(),
+      createdAt: new Date(NOW + 8 * 3_600_000).toISOString(),
+    };
+    const evening: WaterReport = {
+      waterStatus: 'dry',
+      observedAt: new Date(NOW).toISOString(),
+      createdAt: new Date(NOW + 18 * 3_600_000).toISOString(),
+    };
+    expect(aggregateWaterStatus([morning, evening], NOON)!.status).toBe('dry');
+    expect(aggregateWaterStatus([evening, morning], NOON)!.status).toBe('dry');
+  });
+
   it('treats tomorrow’s midnight (the server’s 10-minute skew allowance) as zero-age', () => {
     const justBeforeMidnight = NOW + DAY - 5 * 60 * 1000;
     const agg = aggregateWaterStatus([observedOn('flowing', -1)], justBeforeMidnight)!;

@@ -1,15 +1,18 @@
 /**
- * Settings' comment export: hidden without an account, hands the share sheet
- * the JSON, says when there is nothing to export, and reports a failure inline.
+ * Settings' comment export: hidden without an account, writes the JSON to a
+ * file and hands the share sheet that file, says when there is nothing to
+ * export, and reports a failure inline.
  */
 
 import React from 'react';
-import { Share, Text } from 'react-native';
+import { Text } from 'react-native';
+import * as Sharing from 'expo-sharing';
 import TestRenderer, { act, type ReactTestRenderer } from 'react-test-renderer';
 import { CommentExportSection, EXPORT_FAILED_MESSAGE } from '../CommentExportSection';
 import { useIdentityStore } from '../../../state/identity-store';
 import { getSession } from '../../../api/auth';
 import { fetchMyComments } from '../../../api/my-comments';
+import { writeCommentExportFile } from '../comment-export-file';
 
 jest.mock('../../../theme', () => ({
   useTheme: () => ({ colors: new Proxy({}, { get: () => '#123456' }) }),
@@ -29,8 +32,19 @@ jest.mock('../../../api/auth', () => ({
 
 jest.mock('../../../api/my-comments', () => ({ fetchMyComments: jest.fn() }));
 
+jest.mock('expo-sharing', () => ({
+  isAvailableAsync: jest.fn(),
+  shareAsync: jest.fn(),
+}));
+
+jest.mock('../comment-export-file', () => ({ writeCommentExportFile: jest.fn() }));
+
 const mockGetSession = getSession as jest.Mock;
 const mockFetch = fetchMyComments as jest.Mock;
+const mockShare = Sharing.shareAsync as jest.Mock;
+const mockShareAvailable = Sharing.isAvailableAsync as jest.Mock;
+const mockWrite = writeCommentExportFile as jest.Mock;
+const FILE_URI = 'file:///cache/comment-export/tracknotes-comments-2026-10-31.json';
 
 const SESSION = { userId: 'u1', token: 't1', displayName: 'Trail Ghost' };
 const COMMENT = {
@@ -48,18 +62,16 @@ const COMMENT = {
 };
 
 let mounted: ReactTestRenderer | null = null;
-let shareSpy: jest.SpyInstance;
 
 beforeEach(() => {
   jest.clearAllMocks();
   useIdentityStore.setState({ status: 'unknown', session: null, authError: false });
-  shareSpy = jest
-    .spyOn(Share, 'share')
-    .mockResolvedValue({ action: Share.sharedAction, activityType: undefined });
+  mockShareAvailable.mockResolvedValue(true);
+  mockShare.mockResolvedValue(undefined);
+  mockWrite.mockReturnValue(FILE_URI);
 });
 
 afterEach(() => {
-  shareSpy.mockRestore();
   const tree = mounted;
   mounted = null;
   if (tree) act(() => tree.unmount());
@@ -101,17 +113,32 @@ describe('CommentExportSection', () => {
     expect(r.toJSON()).toBeNull();
   });
 
-  it('shares the comments as JSON, without the display name', async () => {
+  it('shares the comments as a JSON file, without the display name', async () => {
     mockGetSession.mockResolvedValue(SESSION);
     mockFetch.mockResolvedValue([COMMENT]);
     const r = await mount();
     await pressExport(r);
 
-    expect(shareSpy).toHaveBeenCalledTimes(1);
-    const { message } = shareSpy.mock.calls[0][0] as { message: string };
-    expect(JSON.parse(message).comments).toEqual([COMMENT]);
-    expect(message).not.toContain('Trail Ghost');
+    expect(mockWrite).toHaveBeenCalledTimes(1);
+    const contents = mockWrite.mock.calls[0][0] as string;
+    expect(JSON.parse(contents).comments).toEqual([COMMENT]);
+    expect(contents).not.toContain('Trail Ghost');
+    expect(mockShare).toHaveBeenCalledTimes(1);
+    expect(mockShare.mock.calls[0][0]).toBe(FILE_URI);
+    expect(mockShare.mock.calls[0][1]).toMatchObject({ mimeType: 'application/json' });
     expect(renderedText(r)).toContain('Exported 1 comment.');
+  });
+
+  it('reports a device that cannot share inline, without writing a file', async () => {
+    mockGetSession.mockResolvedValue(SESSION);
+    mockFetch.mockResolvedValue([COMMENT]);
+    mockShareAvailable.mockResolvedValue(false);
+    const r = await mount();
+    await pressExport(r);
+
+    expect(mockWrite).not.toHaveBeenCalled();
+    expect(mockShare).not.toHaveBeenCalled();
+    expect(renderedText(r)).toContain(EXPORT_FAILED_MESSAGE);
   });
 
   it('says so, and opens no sheet, when there is nothing to export', async () => {
@@ -120,7 +147,7 @@ describe('CommentExportSection', () => {
     const r = await mount();
     await pressExport(r);
 
-    expect(shareSpy).not.toHaveBeenCalled();
+    expect(mockShare).not.toHaveBeenCalled();
     expect(renderedText(r)).toContain('You haven’t posted any comments.');
   });
 
@@ -130,7 +157,7 @@ describe('CommentExportSection', () => {
     const r = await mount();
     await pressExport(r);
 
-    expect(shareSpy).not.toHaveBeenCalled();
+    expect(mockShare).not.toHaveBeenCalled();
     expect(renderedText(r)).toContain(EXPORT_FAILED_MESSAGE);
   });
 });
