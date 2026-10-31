@@ -43,6 +43,13 @@ export type { TileFileName };
  */
 export type StoredManifest = TileManifest & {
   localNames?: Record<string, string>;
+  /**
+   * The newest on-disk name each logical file has had, live or not. A file a
+   * rebuild left out (the contours of a now base-only corridor pack) drops out
+   * of `localNames` but stays here, so its next generation still counts up
+   * from the last path MapLibre may hold open (#45) instead of restarting at 1.
+   */
+  generations?: Record<string, string>;
   /** Present only on a corridor pack built on the phone (`corridor-pack`). */
   corridor?: CorridorPackRecord;
 };
@@ -675,7 +682,13 @@ export async function downloadTrailTiles(
       // pack, whose surviving files are on disk under the names the old
       // manifest gave them. Dropping those here would hide a perfectly good
       // file from the skip check below and re-download it for nothing.
-      manifestFile(trailId).writeSync(JSON.stringify({ ...manifest, localNames: currentNames }));
+      manifestFile(trailId).writeSync(
+        JSON.stringify({
+          ...manifest,
+          localNames: currentNames,
+          generations: storedManifest?.generations,
+        }),
+      );
     }
     // Update: the new manifest is staged in memory and written only after every
     // file has downloaded, validated and been renamed into place. Writing it
@@ -813,6 +826,13 @@ export async function downloadTrailTiles(
   });
 }
 
+/** The later of two generations of one file (`base-3.mbtiles` over `base-2.mbtiles`). */
+function newestGeneration(recorded: string | undefined, current: string): string {
+  if (!recorded) return current;
+  const generation = (name: string) => Number(/-(\d+)\.[^.]+$/.exec(name)?.[1] ?? 0);
+  return generation(recorded) > generation(current) ? recorded : current;
+}
+
 /** What {@link promoteStagedTiles} needs to know about the pack on disk. */
 export interface PromoteOptions {
   /** On-disk names of the pack's files now, by logical name (generation base). */
@@ -850,6 +870,10 @@ export function promoteStagedTiles(
   const dir = trailTilesDir(trailId);
   /** On-disk names once this run's promotions are done, by logical name. */
   const newNames: Partial<Record<TileFileName, string>> = { ...keptNames };
+  /** The newest name each file has had, including ones no longer live. */
+  const generations: Record<string, string> = {
+    ...readStoredManifest(trailId)?.generations,
+  };
   try {
     for (const name of staged) {
       // A promoted file lands on a *new* path rather than over the old one:
@@ -860,7 +884,9 @@ export function promoteStagedTiles(
       // on reading the damaged one. Phase 3 records where the file went; with
       // no manifest at all — none fetched and none on disk — there is nowhere
       // to record it, so those packs keep the plain names they always had.
-      const target = record ? nextTileFileName(currentNames[name]) : name;
+      const target = record
+        ? nextTileFileName(newestGeneration(generations[name], currentNames[name]))
+        : name;
       const dest = new File(dir, target);
       // rename()/move() reject an existing destination on both platforms, so
       // unlink first — the target is normally free, but a run interrupted
@@ -887,7 +913,13 @@ export function promoteStagedTiles(
   // *stored* manifest when no new one was fetched changes nothing but those
   // names, which is exactly what a manifest-less re-download still has to say.
   if (record) {
-    manifestFile(trailId).writeSync(JSON.stringify({ ...record, localNames: newNames }));
+    manifestFile(trailId).writeSync(
+      JSON.stringify({
+        ...record,
+        localNames: newNames,
+        generations: { ...generations, ...newNames },
+      }),
+    );
   }
 
   // ---- Phase 4: sweep superseded generations -------------------------------

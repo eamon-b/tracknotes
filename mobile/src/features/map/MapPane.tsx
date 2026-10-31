@@ -167,6 +167,19 @@ export function MapPane() {
     void startDownload(packTrailId, TILE_BASE_URL);
   }, [startDownload, startCorridorDownload, packTrailId, pack.kind, trail]);
 
+  // Whether the banner can offer a re-download that will actually run: a
+  // corridor pack is rebuilt from the tile worker, and only at a width already
+  // on disk; any other pack comes from the pack bucket. Re-read with the
+  // degradation, which is what changes when the pack on disk does.
+  const canRedownload = useMemo(() => {
+    if (!packTrailId) return false;
+    if (pack.kind === 'corridor') {
+      return CONTOUR_TILE_URL.length > 0 && readCorridorRecord(packTrailId) != null;
+    }
+    return TILE_BASE_URL.length > 0;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- degradation moves the disk
+  }, [packTrailId, pack.kind, degradation]);
+
   const favoriteIds = useFavoritesStore((s) => s.byTrail[trailId]);
   const favoriteSet = useMemo(() => new Set(favoriteIds ?? []), [favoriteIds]);
   const units = useSettingsStore((s) => s.units);
@@ -562,9 +575,7 @@ export function MapPane() {
           <DegradedMapBanner
             message={degradationMessage(degradation)}
             onRedownload={
-              isRedownloadFixable(degradation) && TILE_BASE_URL.length > 0 && packTrailId
-                ? onRedownload
-                : undefined
+              isRedownloadFixable(degradation) && canRedownload ? onRedownload : undefined
             }
             onDismiss={() => setDismissed(degradation)}
           />

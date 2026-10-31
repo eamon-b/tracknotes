@@ -12,9 +12,11 @@ import {
   downloadCorridorPack,
   hasCorridorProgress,
   planCorridor,
+  readCorridorProgress,
   readCorridorRecord,
   resetRequestPacing,
   retryAfterMs,
+  TileServerNotReadyError,
   TileSourceMissingError,
 } from '../corridor-pack';
 import * as tileService from '../tile-service';
@@ -39,6 +41,9 @@ const TRAIL = {
   },
 };
 
+/** A worker whose `/health` serves both sources. */
+const HEALTHY = { ok: true, sources: { base: { ok: true }, world: { ok: true } } };
+
 type Responder = (
   url: string,
 ) => { status: number; body?: Uint8Array; headers?: Record<string, string> } | Error;
@@ -46,10 +51,16 @@ type Responder = (
 const PBF = new Uint8Array([0x1a, 0x02, 0x08, 0x01]);
 const fetchMock = jest.fn();
 let calls: string[] = [];
+let healthCalls = 0;
 
-function respondWith(responder: Responder): void {
+function respondWith(responder: Responder, health: unknown = HEALTHY): void {
   fetchMock.mockImplementation(async (url: string, init?: { signal?: AbortSignal }) => {
     if (init?.signal?.aborted) throw new Error('Aborted');
+    if (url.endsWith('/health')) {
+      healthCalls++;
+      if (health instanceof Error) throw health;
+      return { status: 200, ok: true, text: async () => JSON.stringify(health) };
+    }
     calls.push(url);
     const result = responder(url);
     if (result instanceof Error) throw result;
@@ -90,6 +101,7 @@ beforeEach(() => {
   resetRequestPacing();
   fetchMock.mockReset();
   calls = [];
+  healthCalls = 0;
   tileService.clearMbtilesValidationCache();
   jest.spyOn(console, 'error').mockImplementation(() => {});
 });
@@ -267,6 +279,82 @@ describe('downloadCorridorPack', () => {
     expect(calls.length).toBeLessThan(planCorridor(TRAIL, 1)!.baseTiles);
   });
 
+  it("checks the worker's /health once before any tile", async () => {
+    respondWith(() => ({ status: 200, body: PBF }));
+    await downloadCorridorPack(TRAIL_ID, TRAIL, options());
+    expect(healthCalls).toBe(1);
+  });
+
+  it('fails before any tile when /health says a source is not served', async () => {
+    respondWith(() => ({ status: 200, body: PBF }), {
+      ok: true,
+      sources: {
+        world: { ok: true },
+        base: { ok: false, error: 'basemap/planet.pmtiles not found' },
+      },
+    });
+    const error = await downloadCorridorPack(TRAIL_ID, TRAIL, options()).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(TileServerNotReadyError);
+    expect((error as Error).message).toMatch(/base: basemap\/planet\.pmtiles not found/);
+    expect(calls).toHaveLength(0);
+    expect(readStoredManifest(TRAIL_ID)).toBeNull();
+  });
+
+  it('fails before any tile when /health lacks a source entirely (an older worker)', async () => {
+    respondWith(() => ({ status: 200, body: PBF }), { ok: true, sources: { world: { ok: true } } });
+    await expect(downloadCorridorPack(TRAIL_ID, TRAIL, options())).rejects.toThrow(
+      /base not served/,
+    );
+    expect(calls).toHaveLength(0);
+  });
+
+  it('says to check the connection when /health cannot be reached', async () => {
+    respondWith(() => ({ status: 200, body: PBF }), new TypeError('Network request failed'));
+    await expect(downloadCorridorPack(TRAIL_ID, TRAIL, options())).rejects.toThrow(
+      /Check the connection/,
+    );
+    // One try plus one per retry delay.
+    expect(healthCalls).toBe(3);
+    expect(calls).toHaveLength(0);
+  });
+
+  it('records which corridor an interrupted build holds, and clears it on success', async () => {
+    let ok = 0;
+    respondWith(() => (ok++ < 10 ? { status: 200, body: PBF } : { status: 500 }));
+    await expect(
+      downloadCorridorPack(
+        TRAIL_ID,
+        TRAIL,
+        options({ bufferKm: 2, concurrency: 1, retryDelaysMs: [] }),
+      ),
+    ).rejects.toThrow();
+    expect(readCorridorProgress(TRAIL_ID)).toEqual({
+      bufferKm: 2,
+      sourceVersion: corridorSourceVersion(TRAIL),
+    });
+
+    respondWith(() => ({ status: 200, body: PBF }));
+    await downloadCorridorPack(TRAIL_ID, TRAIL, options({ bufferKm: 2 }));
+    expect(readCorridorProgress(TRAIL_ID)).toBeNull();
+    expect(packDirNames(TRAIL_ID)).not.toContain('corridor-progress.json');
+  });
+
+  it('honours a cancel that comes in while the files are validated', async () => {
+    const controller = new AbortController();
+    respondWith(() => ({ status: 200, body: PBF }));
+    const validate = tileService.validateMbtilesFile;
+    jest.spyOn(tileService, 'validateMbtilesFile').mockImplementation(async (...args) => {
+      controller.abort();
+      return validate(...args);
+    });
+    await expect(
+      downloadCorridorPack(TRAIL_ID, TRAIL, options({ signal: controller.signal })),
+    ).rejects.toBeInstanceOf(CorridorCancelledError);
+    expect(readStoredManifest(TRAIL_ID)).toBeNull();
+    // Everything fetched stays for a resume.
+    expect(readCorridorProgress(TRAIL_ID)?.bufferKm).toBe(1);
+  });
+
   it('retries a 5xx and a network error, then succeeds', async () => {
     const seen = new Map<string, number>();
     respondWith((url) => {
@@ -405,6 +493,23 @@ describe('downloadCorridorPack', () => {
     await downloadCorridorPack(TRAIL_ID, TRAIL, options({ bufferKm: 2 }));
     expect(packDirNames(TRAIL_ID)).toEqual(['base-2.mbtiles', 'manifest.json']);
     expect(getTrailTileStatus(TRAIL_ID).state).toBe('complete');
+  });
+
+  it('keeps counting contours generations up across a base-only rebuild (#45)', async () => {
+    respondWith(() => ({ status: 200, body: PBF }));
+    await downloadCorridorPack(TRAIL_ID, TRAIL, options());
+    respondWith((url) =>
+      parse(url).source === 'base' ? { status: 200, body: PBF } : { status: 204 },
+    );
+    await downloadCorridorPack(TRAIL_ID, TRAIL, options({ bufferKm: 2 }));
+    respondWith(() => ({ status: 200, body: PBF }));
+    await downloadCorridorPack(TRAIL_ID, TRAIL, options({ bufferKm: 5 }));
+    // contours-1 may still be open in MapLibre: the new one must not reuse it.
+    expect(packDirNames(TRAIL_ID)).toEqual([
+      'base-3.mbtiles',
+      'contours-2.mbtiles',
+      'manifest.json',
+    ]);
   });
 
   it('refuses a corridor over the cap before fetching anything', async () => {

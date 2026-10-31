@@ -18,6 +18,10 @@
  * - **contours** — the worker's `world` source (Copernicus GLO-30), the one
  *   the online map draws everywhere, zooms 9–15.
  *
+ * Before any tile, the worker's `/health` must report both sources ok
+ * (`checkTileServer`): a worker deployed before its archive was uploaded would
+ * answer every tile with a 500, retried before it failed with a raw status.
+ *
  * The worker answers 200 with an uncompressed tile, 204 for an empty one
  * (ocean, outside an archive's zooms — skipped), and is retried on network
  * errors and 5xx. It answers 404 only for a source it does not serve or a
@@ -50,7 +54,10 @@
  * **Resume.** A cancelled or failed build keeps its `.part` files, stamped with
  * a key of route fingerprint + width + source. The next build of the same
  * corridor skips the tiles they already hold; any other corridor starts them
- * afresh. Deleting the pack deletes them with the directory.
+ * afresh. `corridor-progress.json` beside them records the same width and
+ * fingerprint for the screen (`readCorridorProgress`), which defaults the width
+ * to it and offers "Resume" only for that corridor. A cancel is honoured up to
+ * the promotion itself. Deleting the pack deletes them with the directory.
  */
 
 import { File } from 'expo-file-system';
@@ -187,6 +194,53 @@ export function hasCorridorProgress(trailId: string): boolean {
   }
 }
 
+/** The corridor an interrupted build was for: only that corridor resumes it. */
+export interface CorridorProgressRecord {
+  bufferKm: number;
+  /** Route fingerprint the build started from. */
+  sourceVersion: string;
+}
+
+/**
+ * Beside the `.part` files: which corridor they hold. Their own metadata says
+ * the same (the staging key), but reading it means opening SQLite, and the
+ * screen needs it synchronously to default the width chips to it and to say
+ * whether "Resume" really resumes.
+ */
+const PROGRESS_FILE = 'corridor-progress.json';
+
+/**
+ * The corridor an interrupted build was for, or null when there is none (or
+ * its record is missing or unreadable — then the screen cannot promise a
+ * resume, and does not).
+ */
+export function readCorridorProgress(trailId: string): CorridorProgressRecord | null {
+  if (!hasCorridorProgress(trailId)) return null;
+  try {
+    const file = new File(trailTilesDir(trailId), PROGRESS_FILE);
+    if (!file.exists) return null;
+    const parsed = JSON.parse(file.textSync()) as Partial<CorridorProgressRecord>;
+    return typeof parsed.bufferKm === 'number' && typeof parsed.sourceVersion === 'string'
+      ? { bufferKm: parsed.bufferKm, sourceVersion: parsed.sourceVersion }
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCorridorProgress(trailId: string, record: CorridorProgressRecord): void {
+  new File(trailTilesDir(trailId), PROGRESS_FILE).writeSync(JSON.stringify(record));
+}
+
+function deleteCorridorProgress(trailId: string): void {
+  try {
+    const file = new File(trailTilesDir(trailId), PROGRESS_FILE);
+    if (file.exists) file.delete();
+  } catch {
+    // Dead bytes at worst: readCorridorProgress ignores it without a .part.
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Download
 // ---------------------------------------------------------------------------
@@ -238,6 +292,20 @@ export class TileSourceMissingError extends Error {
         `Try again later. (HTTP 404 for ${url})`,
     );
     this.name = 'TileSourceMissingError';
+  }
+}
+
+/**
+ * The worker's `/health` says it cannot serve a source this build needs: the
+ * worker predates it, or its archive is not in R2 yet.
+ */
+export class TileServerNotReadyError extends Error {
+  constructor(detail: string) {
+    super(
+      "The map server can't provide offline maps for this route yet. " +
+        `Try again later. (${detail})`,
+    );
+    this.name = 'TileServerNotReadyError';
   }
 }
 
@@ -383,6 +451,55 @@ async function fetchTile(
   throw new Error(`Couldn't fetch ${url} (${lastError})`);
 }
 
+/** The worker sources a corridor build reads. */
+const REQUIRED_SOURCES: readonly CorridorSource[] = ['base', CONTOUR_SOURCE];
+
+/**
+ * Ask the worker's `/health` whether it serves every source the build needs,
+ * before a single tile request. A worker deployed before its archive was
+ * uploaded answers each tile with a 500, which the build would only give up on
+ * after retrying the first tiles; one that predates the source answers 404.
+ * `/health` names both plainly, and answers 503 (with the same body) when its
+ * default source is down, so the body is read whatever the status.
+ */
+async function checkTileServer(
+  tileUrl: string,
+  signal: AbortSignal,
+  retryDelaysMs: readonly number[],
+): Promise<void> {
+  let lastError = '';
+  for (let attempt = 0; attempt <= retryDelaysMs.length; attempt++) {
+    if (attempt > 0) await sleep(retryDelaysMs[attempt - 1] ?? 0, signal);
+    let body: { sources?: Record<string, { ok?: boolean; error?: string }> };
+    try {
+      const response = await fetch(`${tileUrl}/health`, { signal });
+      if (response.status === 404) {
+        throw new TileServerNotReadyError(`HTTP 404 for ${tileUrl}/health`);
+      }
+      body = JSON.parse(await response.text());
+    } catch (err) {
+      if (signal.aborted) throw new CorridorCancelledError();
+      if (err instanceof TileServerNotReadyError) throw err;
+      lastError = err instanceof Error ? err.message : String(err);
+      continue;
+    }
+    const missing = REQUIRED_SOURCES.filter((source) => body.sources?.[source]?.ok !== true);
+    if (missing.length > 0) {
+      const detail = missing
+        .map((source) => {
+          const error = body.sources?.[source]?.error;
+          return error ? `${source}: ${error}` : `${source} not served`;
+        })
+        .join('; ');
+      throw new TileServerNotReadyError(detail);
+    }
+    return;
+  }
+  throw new Error(
+    `Couldn't reach the map server. Check the connection and try again. (${lastError})`,
+  );
+}
+
 interface FillResult {
   count: number;
   minZoom: number;
@@ -510,6 +627,7 @@ export async function downloadCorridorPack(
   if (!root.exists) root.create();
   const dir = trailTilesDir(trailId);
   if (!dir.exists) dir.create();
+  const retryDelaysMs = options.retryDelaysMs ?? DEFAULT_RETRY_DELAYS_MS;
 
   const key = (source: CorridorSource) => `${plan.sourceVersion}|${plan.bufferKm}|${source}|v1`;
   const tilesTotal = plan.totalTiles;
@@ -525,7 +643,7 @@ export async function downloadCorridorPack(
     abort: () => inner.abort(),
     concurrency: options.concurrency ?? DEFAULT_CONCURRENCY,
     policy: {
-      retryDelaysMs: options.retryDelaysMs ?? DEFAULT_RETRY_DELAYS_MS,
+      retryDelaysMs,
       requestsPerSecond: options.requestsPerSecond ?? MAX_REQUESTS_PER_SECOND,
       rateLimitWaitMs: options.rateLimitWaitMs ?? RATE_LIMIT_WAIT_MS,
     },
@@ -568,6 +686,10 @@ export async function downloadCorridorPack(
   };
 
   try {
+    await checkTileServer(tileUrl, inner.signal, retryDelaysMs);
+    // Recorded before the first tile lands, so an interrupted build always
+    // says which corridor its .part files hold (see readCorridorProgress).
+    writeCorridorProgress(trailId, { bufferKm: plan.bufferKm, sourceVersion: plan.sourceVersion });
     const base = await build('base.mbtiles', 'base', BASE_MIN_ZOOM);
     if (!base) {
       throw new Error('No map tiles came back for this route. Check the connection and try again.');
@@ -597,6 +719,7 @@ export async function downloadCorridorPack(
           const part = new File(dir, `${n}${PART_SUFFIX}`);
           if (part.exists) part.delete();
         }
+        deleteCorridorProgress(trailId);
         throw new Error(`${name} is not a usable tile database (${validation.reason})`);
       }
       files.push({ name, size: new File(dir, partName).size ?? 0 });
@@ -609,6 +732,9 @@ export async function downloadCorridorPack(
       contours: contours != null,
       tileCount: base.count + (contours?.count ?? 0),
     };
+    // Promotion is the commit: a cancel that came in while the files were
+    // being validated still stops it, and the .part files stay for a resume.
+    if (inner.signal.aborted) throw new CorridorCancelledError();
     promoteStagedTiles(trailId, staged, {
       currentNames: packFileNames(trailId),
       keptNames: {},
@@ -622,6 +748,7 @@ export async function downloadCorridorPack(
         corridor,
       },
     });
+    deleteCorridorProgress(trailId);
   } catch (err) {
     if (options.signal?.aborted || err instanceof CorridorCancelledError) {
       throw new CorridorCancelledError();
