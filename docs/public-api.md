@@ -57,8 +57,9 @@ A trail's comments, oldest change first (`BulkSyncResponse`).
   page's `syncedAt` and pass it as the next `since`.
 
 A live comment carries `id`, `waypointId`, `displayName`, `text`,
-`waterStatus` (`flowing` | `low` | `dry` | null), `observedAt`, `createdAt`,
-`updatedAt` and, when it has any, `photoUrls`.
+`waterStatus` (`flowing` | `low` | `dry` | null), `observedAt` (the day only:
+midnight UTC of the observation's UTC date), `createdAt`, `updatedAt` and, when
+it has any, `photoUrls`.
 
 ### `GET /v1/trails/:trailId/waypoints/:waypointId/comments`
 
