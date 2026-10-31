@@ -148,7 +148,10 @@ display name the hiker chooses. There is no email, password or sign-up.
      Private objects in R2 (a community route's canonical JSON and raw GPX)
      sit at unguessable keys that are never returned. Every write is rate
      limited per account, and account registration and link codes per network.
-   - *APP 12/13, access, correction and deletion.* Settings → Delete account
+   - *APP 12/13, access, correction and deletion.* Access to comments is
+     self-serve: Settings → Your comments → Export my comments
+     (`GET /v1/me/comments`) gives the hiker every comment the account posted,
+     deleted and hidden ones included, as JSON (decided 2026-10-31). Settings → Delete account
      calls `DELETE /v1/me`, which works by **anonymising in place, not deleting
      rows**. The display name becomes "Deleted user", every token is revoked,
      and the account's comments (text, water status, observation date, photos),
@@ -166,7 +169,25 @@ display name the hiker chooses. There is no email, password or sign-up.
 
      The privacy policy states exactly what remains.
 
-4. **Moderation and takedown: post-moderation, report-driven.** Content is
+4. **The public API: documented, not promoted** (decided 2026-10-31). The
+   comment reads (`GET /v1/trails/:id/comments`, the per-waypoint feed) have
+   always been public and unauthenticated, and CC0 lets anyone copy what they
+   return. The privacy policy now says so plainly, and `docs/public-api.md`
+   describes the reads for anyone who finds them. The project does not
+   advertise a bulk export or publish a dataset dump, because:
+   - each comment carries its display name and to-the-second times, and a
+     photo can carry its EXIF location, so an easy bulk export would make it
+     trivial to follow one hiker along a trail;
+   - a mirror keeps what a later delete, account deletion or moderation hide
+     removes here, so every advertised copy weakens those.
+
+   **Display names are left out of every export.** The app's public reads
+   still carry them (the app shows them), but anything offered as an export —
+   today only the hiker's own — omits them. The name is a courtesy, not a
+   licence term (decision 1), so leaving it out costs no one a right. A future
+   dataset for OpenStreetMap or anyone else would follow the same rule.
+
+5. **Moderation and takedown: post-moderation, report-driven.** Content is
    published when posted. Every comment, shared waypoint and community route
    has a Report action.
    - Three distinct reporters, counting only accounts at least 24 hours old

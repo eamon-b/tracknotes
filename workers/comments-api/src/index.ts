@@ -17,6 +17,7 @@ import {
   deleteComment,
   getAdminComments,
   getBulkSync,
+  getMyComments,
   getWaypointFeed,
   putComment,
 } from './comments';
@@ -119,6 +120,12 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
     // /v1/me/devices/:deviceId
     if (rest.length === 3 && rest[0] === 'me' && rest[1] === 'devices') {
       if (method === 'DELETE') return await revokeDevice(request, env, ctx, rest[2]);
+      return methodNotAllowed();
+    }
+
+    // /v1/me/comments — the caller's own comments (personal export)
+    if (rest.length === 2 && rest[0] === 'me' && rest[1] === 'comments') {
+      if (method === 'GET') return await getMyComments(request, env, ctx);
       return methodNotAllowed();
     }
 
