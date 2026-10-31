@@ -36,7 +36,7 @@ The hashing and merge rules live in `scripts/lib/trail-data-catalog.ts`.
 ### The R2 catalog
 
 `npm run publish:trail-data` (`scripts/publish-trail-data.ts`) uploads to the
-`aus-map-data` bucket, served at `https://data.tracknotes.info`. The
+`tracknotes-data` bucket, served at `https://data.tracknotes.info`. The
 offline tile packs use the same bucket and domain.
 
 | Object | Content | Cache-Control |

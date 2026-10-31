@@ -4,7 +4,7 @@
  *
  * Reads `mobile/assets/trails/index.json` (written by `build-mobile-trails.ts`)
  * and every file it lists, checks the index describes those files exactly,
- * then uploads to the `aus-map-data` bucket (public at
+ * then uploads to the `tracknotes-data` bucket (public at
  * https://data.tracknotes.info):
  *
  *   trails/v1/<id>.<md5[0..12]>.json   each trail file, content-addressed, immutable
@@ -35,7 +35,7 @@
  *     with `--remove <id>` (`unapprovedRemovals`).
  * `--dry-run` reports the same refusals; `--check` only compares.
  *
- * Env: R2_BUCKET (default aus-map-data), TRAIL_DATA_BASE_URL (default
+ * Env: R2_BUCKET (default tracknotes-data), TRAIL_DATA_BASE_URL (default
  * https://data.tracknotes.info). Uploads run `wrangler`, a root
  * devDependency that `npm run` puts on PATH, logged in with `wrangler login`
  * or a `CLOUDFLARE_API_TOKEN` in the environment.
@@ -75,7 +75,7 @@ const MOBILE_TRAILS_DIR = path.join(ROOT, 'mobile', 'assets', 'trails');
 const VALIDATION_SOURCE = path.join(ROOT, 'workers', 'comments-api', 'src', 'validation.ts');
 
 const DEFAULT_BASE_URL = 'https://data.tracknotes.info';
-const DEFAULT_BUCKET = 'aus-map-data';
+const DEFAULT_BUCKET = 'tracknotes-data';
 
 export interface PublishOptions {
   all: boolean;
