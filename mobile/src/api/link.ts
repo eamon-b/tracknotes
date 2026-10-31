@@ -81,7 +81,8 @@ export interface LinkDeps {
 /** Message thrown when the device linking UI is reachable without an identity. */
 export const NO_IDENTITY_MESSAGE = 'This device has no account yet.';
 
-async function sessionContext(deps?: LinkDeps): Promise<ApiContext> {
+/** The stored session as a request context; the other `/v1/me` wrappers reuse it. */
+export async function sessionContext(deps?: LinkDeps): Promise<ApiContext> {
   const baseUrl = deps?.baseUrl ?? getBaseUrl();
   if (!baseUrl) throw new Error('The comments server is not configured in this build.');
   const session = await getSession();

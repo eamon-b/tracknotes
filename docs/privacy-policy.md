@@ -38,10 +38,17 @@ display name is the only identity shown to other users.
 
 **Content you post.** Comments, water reports, and photos you attach to
 waypoints, or to OpenStreetMap points of interest (shops, cafés, campgrounds
-and the like) shown in the app, are stored on our servers and shown publicly to
-other users of the app alongside your display name and the time of posting
-(for a water report, also the day you say you saw the water: we keep and show
-only the date, never the time of day).
+and the like) shown in the app, are stored on our servers and published: every
+user of the app sees them, and anyone can read them through our public API,
+not only users of the app. What is published is the text, the water status,
+the photos, your display name, and the time of posting to the second (for a
+water report, also the day you say you saw the water: we keep and show only
+the date, never the time of day). Taken together, a display name's comments
+show where and when its hiker was on a trail, so choose a display name you are
+comfortable having linked to that. You can delete a comment at any time: that
+takes it off the app and the public API, and deletes its photos, but our copy
+of the text is kept, marked deleted, and our admins can still see it for
+moderation. Copies others have already made through the public API may remain.
 
 **Photo location.** Photos are uploaded as taken: the app re-encodes them at a
 reduced quality to make them smaller, but does not remove their metadata. A
@@ -204,6 +211,16 @@ spam is removed. A shared waypoint or an unverified community route that
 several established users report is hidden automatically until an admin looks
 at it. Repeat abuse
 may result in a device being blocked from posting.
+
+## Getting a copy of your comments
+
+Settings → **Your comments** → **Export my comments** (on the phone)
+downloads every comment and water report you have posted, including ones you
+or a moderator have since deleted, as a JSON file you can save or send. It
+holds what we store for each: the trail and waypoint or place, the text, water
+status, times, photo links, and whether and by whom it was deleted. It does
+not include your display name. Export before you delete your account if you
+want a copy: once the account is deleted there is nothing left to export.
 
 ## Deleting your data
 

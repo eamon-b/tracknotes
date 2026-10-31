@@ -128,6 +128,12 @@ be rolled forward without a reinstall. The detailed rationale is under "Deploy" 
    curl -sf -o /dev/null https://api.contour-map-tiles.net/v1/trails/heysen/waypoints   # 0007
    ```
 
+   A route that needs a token answers 401 once deployed, and 404 before:
+
+   ```bash
+   curl -s -o /dev/null -w '%{http_code}\n' https://api.contour-map-tiles.net/v1/me/comments   # 401 (personal export)
+   ```
+
    Add a line here whenever a new migration adds routes. Deploy (from `main`) after every merge
    that changes `workers/comments-api/`, not only at release, then run these probes.
 

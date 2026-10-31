@@ -28,6 +28,8 @@ import type {
   BulkSyncResponse,
   FeedComment,
   FeedResponse,
+  MyComment,
+  MyCommentsResponse,
   SyncEntry,
   WaterStatus,
 } from '../../../src/lib/comments-api-types';
@@ -36,6 +38,8 @@ const FEED_DEFAULT_LIMIT = 20;
 const FEED_MAX_LIMIT = 100;
 const BULK_DEFAULT_LIMIT = 500;
 const BULK_MAX_LIMIT = 1000;
+const MINE_DEFAULT_LIMIT = 500;
+const MINE_MAX_LIMIT = 1000;
 const ADMIN_DEFAULT_LIMIT = 100;
 const ADMIN_MAX_LIMIT = 500;
 
@@ -361,6 +365,65 @@ export async function getBulkSync(
   const payload: BulkSyncResponse = { comments, nextCursor, syncedAt };
   // A token-bearing response is personal (`mine`), so no shared cache may keep it.
   return json(payload, 200, viewerId !== null ? { 'Cache-Control': 'private, no-store' } : {});
+}
+
+// ---------------------------------------------------------------------------
+// GET /v1/me/comments — the caller's own comments (personal export)
+// ---------------------------------------------------------------------------
+
+/**
+ * Every comment the account posted, oldest first, deleted and hidden ones
+ * included with when and by whom: the hiker's copy of what the server holds.
+ * No display name, as in every export. Any of the account's tokens may read it,
+ * a linked browser included; it is personal, so no shared cache may keep it.
+ */
+export async function getMyComments(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  const user = await requireUser(request, env, ctx);
+  const url = new URL(request.url);
+  const limit = parseLimit(url.searchParams.get('limit'), MINE_DEFAULT_LIMIT, MINE_MAX_LIMIT);
+  const cursor = decodeCursor(url.searchParams.get('cursor'));
+
+  const conditions = ['user_id = ?'];
+  const binds: unknown[] = [user.id];
+  if (cursor) {
+    conditions.push('(created_at > ? OR (created_at = ? AND id > ?))');
+    binds.push(cursor.sortValue, cursor.sortValue, cursor.id);
+  }
+  binds.push(limit + 1);
+
+  const { results } = await env.DB.prepare(
+    `SELECT * FROM comments
+      WHERE ${conditions.join(' AND ')}
+      ORDER BY created_at ASC, id ASC
+      LIMIT ?`
+  )
+    .bind(...binds)
+    .all<CommentRow>();
+
+  let nextCursor: string | null = null;
+  const page = results;
+  if (page.length > limit) {
+    page.length = limit;
+    const last = page[page.length - 1];
+    nextCursor = encodeCursor(last.created_at, last.id);
+  }
+
+  const comments: MyComment[] = page.map((row) => ({
+    id: row.id,
+    trailId: row.trail_id,
+    waypointId: row.waypoint_id,
+    text: row.text,
+    waterStatus: row.water_status,
+    observedAt: row.observed_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    photoUrls: parsePhotoUrls(row.photo_urls_json) ?? [],
+    deletedAt: row.deleted_at,
+    deletedBy: row.deleted_by,
+  }));
+
+  const payload: MyCommentsResponse = { comments, nextCursor };
+  return json(payload, 200, { 'Cache-Control': 'private, no-store' });
 }
 
 // ---------------------------------------------------------------------------

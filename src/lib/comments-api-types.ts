@@ -362,6 +362,37 @@ export interface BulkSyncResponse {
   syncedAt: string;
 }
 
+/**
+ * One of the caller's own comments, as `GET /v1/me/comments` returns it: the
+ * hiker's personal export. Every comment the account posted is listed,
+ * including ones deleted or hidden since, because the export is the account's
+ * view of what the server holds about it. No display name: the export is the
+ * hiker's own, and names are left out of every export.
+ */
+export interface MyComment {
+  id: string;
+  trailId: string;
+  waypointId: string;
+  text: string | null;
+  waterStatus: WaterStatus | null;
+  observedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  /** Full public R2 URLs of attached photos, in upload order (empty once deleted). */
+  photoUrls: string[];
+  /** When it was taken down, or null while it is published. */
+  deletedAt: string | null;
+  /** Who took it down: the hiker, an admin, or other hikers' reports. */
+  deletedBy: DeletedBy | null;
+}
+
+/** GET /v1/me/comments response, oldest first. */
+export interface MyCommentsResponse {
+  comments: MyComment[];
+  /** Keyset cursor for the next page, or null when exhausted. */
+  nextCursor: string | null;
+}
+
 /** A fully-detailed comment row for the admin console. */
 export interface AdminComment {
   id: string;
