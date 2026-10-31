@@ -113,13 +113,15 @@ export interface TrailConfig {
   /** Retraces that are part of the route, each with why (silences the build's warning). */
   knownRetraces?: KnownRetraceConfig[];
   /**
-   * A route that genuinely passes the same place twice, not as an out-and-back
-   * `extractSpurs` could lift out (Three Passes walks back down through Namche
-   * to Lukla days after walking up): `'suffix'` lists every pass and gives the
-   * later ones `<id>_2`, `<id>_3`, as imports do. Default `'throw'`, which fails
-   * the build so an accidental double match is fixed rather than shipped.
+   * Names of the waypoints the route genuinely passes more than once, not as an
+   * out-and-back `extractSpurs` could lift out (Three Passes walks back down
+   * through Namche to Lukla days after walking up). Every pass of a listed
+   * waypoint is kept, the later ones as `<id>_2`, `<id>_3` (as imports do), and
+   * the build logs each one. A repeat of any waypoint *not* listed still fails
+   * the build, so an accidental double match is fixed rather than shipped, and a
+   * listed name the route no longer repeats is warned about.
    */
-  revisitedWaypointIds?: 'throw' | 'suffix';
+  revisitedWaypoints?: string[];
   /** Merge near-duplicate waypoints (same name + type within radius, default 150m). */
   dedupeWaypoints?: boolean | { radiusMeters?: number };
   /** Max distance (meters) from track to match waypoints (default 500). */

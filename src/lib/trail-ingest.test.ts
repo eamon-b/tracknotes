@@ -180,16 +180,38 @@ describe('buildTrail', () => {
     expect(suffixed.waypoints.map(w => w.id)).toEqual(['dup', 'dup_2', 'dup_3']);
   });
 
-  it('suffixes revisited waypoints when trail.json asks, and the caller can still insist on throwing', () => {
+  it('suffixes only the waypoints trail.json lists as revisited, logging each pass', () => {
     const collide = () => ['dup', 'dup', 'dup'];
-    const revisiting = { ...config(), revisitedWaypointIds: 'suffix' as const };
+    const names = buildTrail(load('simple-trail'), { config: config() }).waypoints.map(w => w.name);
+    const log = vi.fn();
+    const warn = vi.fn();
 
-    const suffixed = buildTrail(load('simple-trail'), { config: revisiting, mintWaypointIds: collide });
+    const suffixed = buildTrail(load('simple-trail'), {
+      config: config({ revisitedWaypoints: [names[1], names[2], 'Nowhere'] }),
+      mintWaypointIds: collide,
+      log,
+      warn,
+    });
     expect(suffixed.waypoints.map(w => w.id)).toEqual(['dup', 'dup_2', 'dup_3']);
+    const revisitLogs = log.mock.calls.map(([m]) => m as string).filter(m => m.includes('revisitedWaypoints'));
+    expect(revisitLogs).toHaveLength(2);
+    expect(revisitLogs[0]).toContain('dup_2');
+    // A listed name the route never repeats is stale.
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('"Nowhere"'));
 
+    // A repeat that is not listed still fails the build, naming the fix.
     expect(() =>
-      buildTrail(load('simple-trail'), { config: revisiting, mintWaypointIds: collide, duplicateWaypointIds: 'throw' })
-    ).toThrow(/revisitedWaypointIds/);
+      buildTrail(load('simple-trail'), { config: config({ revisitedWaypoints: [names[1]] }), mintWaypointIds: collide })
+    ).toThrow(new RegExp(`add "${names[2]}" to "revisitedWaypoints"`));
+
+    // And the caller can still insist on throwing.
+    expect(() =>
+      buildTrail(load('simple-trail'), {
+        config: config({ revisitedWaypoints: names }),
+        mintWaypointIds: collide,
+        duplicateWaypointIds: 'throw',
+      })
+    ).toThrow(/revisitedWaypoints/);
   });
 
   it('lets the caller replace the waypoint list and post-process ids', () => {

@@ -1948,7 +1948,10 @@ export function buildTrail(gpx: ParsedGpxResult, options: BuildTrailOptions): Pr
     enrichedWaypoints,
     config,
     waypointMaxDist,
-    options.duplicateWaypointIds ?? config.revisitedWaypointIds ?? 'throw'
+    options.duplicateWaypointIds ??
+      (config.revisitedWaypoints?.length ? { revisited: new Set(config.revisitedWaypoints) } : 'throw'),
+    log,
+    warn
   );
 
   // Merge near-duplicate waypoints: some sources mark one physical feature with
@@ -2238,36 +2241,65 @@ function cleanElevation(points: GpxPoint[], options?: ElevationCleaningOptions):
   return cleaned;
 }
 
+/**
+ * `'throw'` fails on any repeat, `'suffix'` suffixes every repeat silently (an
+ * import, which cannot ask for a trail.json edit), and `revisited` suffixes the
+ * named waypoints only — logging each pass — and throws on any other repeat.
+ */
+type DuplicateWaypointIdPolicy = 'throw' | 'suffix' | { revisited: ReadonlySet<string> };
+
 function resolveDuplicateWaypointIds(
   enrichedWaypoints: EnrichedWaypoint[],
   config: TrailConfig,
   waypointMaxDist: number,
-  policy: 'throw' | 'suffix'
+  policy: DuplicateWaypointIdPolicy,
+  log: (message: string) => void,
+  warn: (message: string) => void
 ): void {
   const seenWaypointIds = new Map<string, EnrichedWaypoint>();
   const counts = new Map<string, number>();
+  const revisitedNames = new Set<string>();
 
   for (const wp of enrichedWaypoints) {
     if (!wp.id) continue;
     const first = seenWaypointIds.get(wp.id);
     if (first) {
-      if (policy === 'throw') {
+      const listed = typeof policy === 'object' && policy.revisited.has(wp.name);
+      if (policy === 'throw' || (typeof policy === 'object' && !listed)) {
         throw new Error(
           `Duplicate waypoint id "${wp.id}" ("${wp.name}") in trail "${config.id}": matched ` +
             `at km ${first.totalDistance} and km ${wp.totalDistance}. The route passes this ` +
             `waypoint twice — lift the out-and-back section out with an "extractSpurs" entry ` +
             `in trail.json, or lower "waypointMaxDistance" (currently ${waypointMaxDist}m) so ` +
             `the second pass falls outside the match threshold. If the route really does ` +
-            `pass it twice, set "revisitedWaypointIds": "suffix".`
+            `pass it twice, add "${wp.name}" to "revisitedWaypoints".`
         );
       }
-      // Imports cannot ask the user to edit a trail.json, so the later passes
-      // get a suffixed id and stay individually addressable.
+      // The later passes get a suffixed id and stay individually addressable
+      // (imports cannot ask the user to edit a trail.json, so they always do).
       const next = (counts.get(wp.id) ?? 1) + 1;
       counts.set(wp.id, next);
+      if (listed) {
+        revisitedNames.add(wp.name);
+        log(
+          `  ✓ "${wp.name}" passed again at km ${wp.totalDistance} (first at km ${first.totalDistance}): ` +
+            `${wp.id}_${next} (revisitedWaypoints)`
+        );
+      }
       wp.id = `${wp.id}_${next}`;
       continue;
     }
     seenWaypointIds.set(wp.id, wp);
+  }
+
+  if (typeof policy === 'object') {
+    for (const name of policy.revisited) {
+      if (!revisitedNames.has(name)) {
+        warn(
+          `  Warning: revisitedWaypoints lists "${name}", which the route no longer passes twice. ` +
+            'Remove it from trail.json.'
+        );
+      }
+    }
   }
 }

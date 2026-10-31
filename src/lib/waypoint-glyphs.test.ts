@@ -44,7 +44,9 @@ describe('waypointGlyph / waypointFamily', () => {
   it('draws a teahouse with its own glyph in the shelter family, turn-off included', () => {
     expect(MAP_GLYPH_NAMES).toContain('teahouse');
     expect(waypointGlyph('teahouse')).toBe('teahouse');
-    expect(waypointGlyph('tea-house')).toBe('teahouse');
+    // Drawn only for the type the planner counts: an unknown spelling stays
+    // the generic point rather than a cup that promises water and meals.
+    expect(waypointGlyph('tea-house')).toBe(FALLBACK_GLYPH);
     expect(waypointGlyph('teahouse-access')).toBe('teahouse');
     expect(waypointFamily('teahouse')).toBe('shelter');
   });

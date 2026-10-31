@@ -59,9 +59,10 @@ const TYPE_TO_GLYPH: Record<string, MapGlyphName> = {
   motel: 'bed',
 
   // A lodge on a teahouse trek: bed, meals and water in one (its own glyph,
-  // because it is resupply and water as well as a bed).
+  // because it is resupply and water as well as a bed). No `tea-house` alias:
+  // the planner's families only know `teahouse`, and a marker must not promise
+  // what the water carry and resupply plan then ignore.
   teahouse: 'teahouse',
-  'tea-house': 'teahouse',
 
   // Towns and supplies
   town: 'town',
