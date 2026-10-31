@@ -66,6 +66,9 @@ function byId<T extends HTMLElement>(id: string): T {
   return node as T;
 }
 
+/** How long typing settles before the local checks re-run. */
+export const CHECK_DEBOUNCE_MS = 250;
+
 /** Wire the panel. Call once; `open()` it per saved import. */
 export function initCommunityShare(): CommunityShareController {
   const panel = byId('community-share');
@@ -208,7 +211,7 @@ export function initCommunityShare(): CommunityShareController {
     timer = setTimeout(() => {
       timer = null;
       runChecks();
-    }, 250);
+    }, CHECK_DEBOUNCE_MS);
   };
 
   /**

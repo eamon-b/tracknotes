@@ -210,7 +210,8 @@ describe('upload.html community share', () => {
     // from typing must not land after the 422 and replace the server's list.
     $<HTMLFormElement>('community-form').dispatchEvent(new Event('submit', { cancelable: true }));
     await flush();
-    await new Promise(resolve => setTimeout(resolve, 300));
+    const { CHECK_DEBOUNCE_MS } = await import('./community-share');
+    await new Promise(resolve => setTimeout(resolve, CHECK_DEBOUNCE_MS + 50));
     expect($('community-checks').textContent).toContain('Server says duplicate-ish');
     expect($('community-error').hidden).toBe(false);
     expect($('community-done').hidden).toBe(true);
