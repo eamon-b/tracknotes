@@ -100,11 +100,14 @@ const tileValue = (label: string): string => {
 beforeEach(() => {
   window.localStorage.clear();
   window.history.replaceState(null, '', '/');
+  // A build with no API, whatever the shell running the tests has set.
+  vi.stubEnv('VITE_API_BASE_URL', '');
   vi.useFakeTimers();
 });
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.unstubAllEnvs();
 });
 
 describe('the resupply page', () => {

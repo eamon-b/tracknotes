@@ -12,6 +12,11 @@
 --                        one left pending (its `waitUntil` cut short)
 --
 -- Plain columns: `deleted_by` keeps its values, so neither table is rebuilt.
+--
+-- It shares the number 0010 with `0010_observed_at_day.sql` (the two branches
+-- crossed). Wrangler records applied migrations by file name, so both apply,
+-- in name order, and neither may be renamed now: a renamed file reads as new
+-- and would run again. The next migration is 0011.
 
 ALTER TABLE comments ADD COLUMN review_status TEXT;
 ALTER TABLE comments ADD COLUMN review_json TEXT;

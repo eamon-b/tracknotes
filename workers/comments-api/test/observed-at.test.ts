@@ -106,9 +106,10 @@ describe('observedAt end to end', () => {
   });
 });
 
-describe('migration 0010: coarsen stored observed_at', () => {
+describe('migration 0010_observed_at_day: coarsen stored observed_at', () => {
   async function runMigration(): Promise<void> {
-    const migration = env.TEST_MIGRATIONS.find((m) => m.name.startsWith('0010_'));
+    // By full name: `0010_content_review` shares the number (see its header).
+    const migration = env.TEST_MIGRATIONS.find((m) => m.name.startsWith('0010_observed_at_day'));
     expect(migration).toBeDefined();
     for (const query of migration!.queries) await env.DB.prepare(query).run();
   }
