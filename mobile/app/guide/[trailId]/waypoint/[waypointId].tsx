@@ -91,6 +91,7 @@ import {
 import type { PlanDocument } from '@lib/plan-types';
 import {
   editPlanOnRoute,
+  everyRouteResupplyOptionIds,
   mainKmToRoute,
   planToRoute,
   setPlanAlternate,
@@ -201,24 +202,13 @@ export default function WaypointDetailScreen() {
   const isFav = useFavoritesStore(selectIsFavorite(trailId, waypointId));
   const toggleFavorite = useFavoritesStore((s) => s.toggle);
 
-  // --- Resupply plan -------------------------------------------------------
-  // One read for both halves: what the banner says, and what a tap does. Only a
-  // waypoint the trail offers as an option gets a toggle at all, and a turn-off
-  // planned by the place it serves gets the banner without one — it was never
-  // ticked, so there is nothing here to untick.
-  //
-  // Both this and the "Stop here" toggle below can be the first edit a trail's
-  // plan ever gets, so both carry the same defaults the Plan screen mints with.
+  // The resupply toggle and the "Stop here" toggle below can each be the first
+  // edit a trail's plan ever gets, so both carry the defaults the Plan screen
+  // mints with.
   const planDefaults = useMemo(
     () => ({ name: trail.config.name, direction: planDirectionOf(direction) }),
     [trail.config.name, direction],
   );
-  const {
-    isPlanned,
-    plannedVia,
-    isSelected,
-    toggle: toggleResupply,
-  } = useWaypointResupplyPlan(trailId, trail, waypoint?.id, planDefaults);
 
   // The plan's view of THIS waypoint. The guide trail is direction-applied and
   // a stop is stored NOBO-absolute, so the conversion goes through the same
@@ -236,6 +226,30 @@ export default function WaypointDetailScreen() {
   // that route (`@lib/plan-alternates`), as on the Plan screen. A waypoint on a
   // stretch an alternate bypasses is not on the route, so it offers no stop.
   const { route, trail: routeTrail, baseTrail } = usePlanRoute(plan);
+
+  // --- Resupply plan -------------------------------------------------------
+  // One read for both halves: what the banner says, and what a tap does. Only a
+  // waypoint the route as planned offers as an option gets a toggle at all, and
+  // a turn-off planned by the place it serves gets the banner without one — it
+  // was never ticked, so there is nothing here to untick. The decision is the
+  // planner's, on the planner's route: a town on a taken alternate is an option
+  // here, and an edit leaves the towns on every other route as they were.
+  const everyResupplyOptionId = useMemo(
+    () => everyRouteResupplyOptionIds(plannableTrail(baseTrail)),
+    [baseTrail],
+  );
+  const {
+    isPlanned,
+    plannedVia,
+    isSelected,
+    toggle: toggleResupply,
+  } = useWaypointResupplyPlan(
+    trailId,
+    routeTrail,
+    everyResupplyOptionId,
+    waypoint?.id,
+    planDefaults,
+  );
   // A place on an alternate is on the route only while the plan takes it; then
   // it is one of the route trail's waypoints, already in route km.
   const routeWaypoint = useMemo(

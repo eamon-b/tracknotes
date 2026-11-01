@@ -175,7 +175,10 @@ export interface WaypointResupplyPlan {
 
 export function useWaypointResupplyPlan(
   trailId: string,
+  /** The route as planned (`usePlanRoute`), so a town on a taken alternate is an option. */
   trail: PlannedResupplyTrail,
+  /** Every option on every route (`everyRouteResupplyOptionIds`), for a first edit to write out. */
+  everyOptionId: readonly string[],
   waypointId: string | null | undefined,
   /** What to mint the plan with, should this tap be the first edit to it. */
   defaults: PlanDefaults,
@@ -210,8 +213,12 @@ export function useWaypointResupplyPlan(
     const legacy = () => selectPrefs(trailId)(usePlanInputsStore.getState()).resupplyStops;
     void usePlansStore
       .getState()
-      .apply(trailId, waypointResupplyEditor(groups, optionId, !isSelected, legacy), defaults);
-  }, [defaults, groups, isSelected, optionId, trailId]);
+      .apply(
+        trailId,
+        waypointResupplyEditor(groups, optionId, !isSelected, everyOptionId, legacy),
+        defaults,
+      );
+  }, [defaults, everyOptionId, groups, isSelected, optionId, trailId]);
 
   return {
     isPlanned,

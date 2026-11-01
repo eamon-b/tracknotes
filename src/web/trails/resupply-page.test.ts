@@ -55,13 +55,13 @@ function loadPage(html: string): void {
   document.documentElement.innerHTML = html.replace(/<!DOCTYPE html>/i, '').replace(/<\/?html[^>]*>/gi, '');
 }
 
-async function bootResupply(): Promise<void> {
+async function bootResupply(trail: unknown = makeTrail()): Promise<void> {
   loadPage(
     fillTemplate(read('src/web/trails/resupply-template.html'), { TRAIL_ID, TRAIL_NAME: 'Resupply Page Fixture' })
   );
   vi.resetModules();
   const { initResupplyPage } = await import('./resupply-page');
-  await initResupplyPage(TRAIL_ID, makeTrail() as never, {
+  await initResupplyPage(TRAIL_ID, trail as never, {
     plannerHref: focus => (focus ? `plan.html?focus=${focus}` : 'plan.html'),
   });
 }
@@ -148,6 +148,84 @@ describe('the resupply page', () => {
     pick(radio('tbody.is-decision', ''));
     flushSave();
     expect(storedDoc().resupplyStops).toEqual(['w_001', 'w_005']);
+  });
+
+  describe('leaving inside the save debounce', () => {
+    const enterZeroDays = (id: string, value: string): void => {
+      const input = document.querySelector<HTMLInputElement>(`input.rs-zero[data-option-id="${id}"]`)!;
+      input.value = value;
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+    const key = `trail-plan-doc-${TRAIL_ID}`;
+
+    it('saves the edit on pagehide, once, and the timer has nothing left to do', async () => {
+      await bootResupply();
+      enterZeroDays('w_001', '2');
+      expect(storedDoc()?.resupplyZeroDays).toBeUndefined();
+
+      window.dispatchEvent(new Event('pagehide'));
+      expect(storedDoc().resupplyZeroDays).toEqual({ w_001: 2 });
+      expect($('save-status').textContent).toBe('Saved');
+
+      const written = window.localStorage.getItem(key);
+      const writes = vi.spyOn(Storage.prototype, 'setItem');
+      flushSave();
+      window.dispatchEvent(new Event('pagehide'));
+      expect(writes.mock.calls.filter(([name]) => name === key)).toHaveLength(0);
+      writes.mockRestore();
+      expect(window.localStorage.getItem(key)).toBe(written);
+    });
+
+    it('writes nothing on pagehide when no save is pending', async () => {
+      await bootResupply();
+      const before = window.localStorage.getItem(key);
+      window.dispatchEvent(new Event('pagehide'));
+      expect(window.localStorage.getItem(key)).toBe(before);
+    });
+
+    it('lands on the copy the planner saved meanwhile, keeping both', async () => {
+      await bootResupply();
+      enterZeroDays('w_001', '2');
+      // The planner's tab saved since; its `storage` event has not arrived.
+      const { loadOrMigratePlan, savePlanDocument } = await import('./plan-state');
+      const fresh = loadOrMigratePlan(TRAIL_ID, makeTrail() as never).plan;
+      savePlanDocument(TRAIL_ID, { ...fresh, name: 'Named in the planner' });
+
+      window.dispatchEvent(new Event('pagehide'));
+      expect(storedDoc().name).toBe('Named in the planner');
+      expect(storedDoc().resupplyZeroDays).toEqual({ w_001: 2 });
+    });
+  });
+
+  it('swaps the zero-days box for a note where the walk starts, and a flip brings it back', async () => {
+    const trail = makeTrail();
+    trail.waypoints.push({
+      id: 'w_006',
+      name: 'Foxtrot',
+      type: 'town',
+      lat: -34.05,
+      lon: 138.05,
+      totalDistance: 50,
+    });
+    await bootResupply(trail);
+    const box = () => document.querySelector<HTMLInputElement>('input.rs-zero[data-option-id="w_006"]');
+
+    box()!.value = '2';
+    box()!.dispatchEvent(new Event('change', { bubbles: true }));
+    flushSave();
+    const north = Number(tileValue('Total days'));
+
+    $('rs-direction').click();
+    flushSave();
+    expect(box()).toBeNull();
+    expect(document.querySelector('tr[data-option-id="w_006"] .rs-zero-note')?.textContent).toContain('on arrival');
+    expect(Number(tileValue('Total days'))).toBe(north - 2);
+    expect(storedDoc().resupplyZeroDays).toEqual({ w_006: 2 });
+
+    $('rs-direction').click();
+    flushSave();
+    expect(box()?.value).toBe('2');
+    expect(Number(tileValue('Total days'))).toBe(north);
   });
 
   it('stores zero days per chosen stop and adds them to the total once', async () => {

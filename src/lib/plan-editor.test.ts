@@ -494,9 +494,21 @@ describe('chooseResupplyOption', () => {
     { id: 'w_lake', name: 'Lake City', type: 'town', totalDistance: 200 },
   ]);
   const [monarch, lake] = groups;
+  const every = ['w_salida', 'w_poncha', 'w_crest', 'w_lake'];
+
+  it('writes out every route, not just the groups it was handed', () => {
+    const plan = chooseResupplyOption(emptyPlan(), groups, lake.key, null, [...every, 'w_quorn'], opts);
+    expect(plan.resupplyStops).toEqual(['w_salida', 'w_poncha', 'w_crest', 'w_quorn']);
+  });
+
+  it('keeps the zero days of a town another route reaches', () => {
+    const start = setResupplyZeroDays(emptyPlan(), 'w_quorn', 2, opts);
+    const plan = chooseResupplyOption(start, groups, lake.key, null, [...every, 'w_quorn'], opts);
+    expect(plan.resupplyZeroDays).toEqual({ w_quorn: 2 });
+  });
 
   it('materialises "every option" before choosing, leaving the other groups all ticked', () => {
-    const plan = chooseResupplyOption(emptyPlan(), groups, monarch.key, 'w_poncha', opts);
+    const plan = chooseResupplyOption(emptyPlan(), groups, monarch.key, 'w_poncha', every, opts);
     expect(plan.resupplyStops).toEqual(['w_poncha', 'w_lake']);
     expect(resupplyGroupChoice(monarch, plan.resupplyStops)).toEqual({ kind: 'chosen', optionId: 'w_poncha' });
     expect(resupplyGroupChoice(lake, plan.resupplyStops)).toEqual({ kind: 'chosen', optionId: 'w_lake' });
@@ -504,53 +516,53 @@ describe('chooseResupplyOption', () => {
 
   it("replaces the group's choice in place and leaves other groups and unknown ids alone", () => {
     const start = setResupplyStops(emptyPlan(), ['w_old', 'w_salida', 'w_crest', 'w_lake'], opts);
-    const plan = chooseResupplyOption(start, groups, monarch.key, 'w_crest', opts);
+    const plan = chooseResupplyOption(start, groups, monarch.key, 'w_crest', every, opts);
     expect(plan.resupplyStops).toEqual(['w_old', 'w_crest', 'w_lake']);
   });
 
   it('chooses none in a group with null, and a single-option group is a Yes/No', () => {
-    const none = chooseResupplyOption(emptyPlan(), groups, monarch.key, null, opts);
+    const none = chooseResupplyOption(emptyPlan(), groups, monarch.key, null, every, opts);
     expect(none.resupplyStops).toEqual(['w_lake']);
     expect(resupplyGroupChoice(monarch, none.resupplyStops)).toEqual({ kind: 'none' });
 
-    const no = chooseResupplyOption(none, groups, lake.key, null, opts);
+    const no = chooseResupplyOption(none, groups, lake.key, null, every, opts);
     expect(no.resupplyStops).toEqual([]);
     expect(resupplyGroupChoice(lake, no.resupplyStops)).toEqual({ kind: 'none' });
-    const yes = chooseResupplyOption(no, groups, lake.key, 'w_lake', opts);
+    const yes = chooseResupplyOption(no, groups, lake.key, 'w_lake', every, opts);
     expect(yes.resupplyStops).toEqual(['w_lake']);
   });
 
   it('is a no-op when the group already reads that way', () => {
-    const plan = chooseResupplyOption(emptyPlan(), groups, monarch.key, 'w_salida', opts);
-    expect(chooseResupplyOption(plan, groups, monarch.key, 'w_salida', opts)).toBe(plan);
-    const none = chooseResupplyOption(plan, groups, monarch.key, null, opts);
-    expect(chooseResupplyOption(none, groups, monarch.key, null, opts)).toBe(none);
+    const plan = chooseResupplyOption(emptyPlan(), groups, monarch.key, 'w_salida', every, opts);
+    expect(chooseResupplyOption(plan, groups, monarch.key, 'w_salida', every, opts)).toBe(plan);
+    const none = chooseResupplyOption(plan, groups, monarch.key, null, every, opts);
+    expect(chooseResupplyOption(none, groups, monarch.key, null, every, opts)).toBe(none);
   });
 
   it('writes nothing for a lone place that already reads as chosen under the default', () => {
     const plan = emptyPlan();
     // "Absent = every option" reads the lone Lake City as chosen; choosing it
     // again must keep the default rather than materialise every id.
-    expect(chooseResupplyOption(plan, groups, lake.key, 'w_lake', opts)).toBe(plan);
+    expect(chooseResupplyOption(plan, groups, lake.key, 'w_lake', every, opts)).toBe(plan);
   });
 
   it('drops the zero days of the places a choice leaves out, none included', () => {
-    let plan = chooseResupplyOption(emptyPlan(), groups, monarch.key, 'w_salida', opts);
+    let plan = chooseResupplyOption(emptyPlan(), groups, monarch.key, 'w_salida', every, opts);
     plan = setResupplyZeroDays(plan, 'w_salida', 2, opts);
     plan = setResupplyZeroDays(plan, 'w_lake', 1, opts);
 
-    const poncha = chooseResupplyOption(plan, groups, monarch.key, 'w_poncha', opts);
+    const poncha = chooseResupplyOption(plan, groups, monarch.key, 'w_poncha', every, opts);
     expect(poncha.resupplyZeroDays).toEqual({ w_lake: 1 });
 
-    const none = chooseResupplyOption(plan, groups, monarch.key, null, opts);
+    const none = chooseResupplyOption(plan, groups, monarch.key, null, every, opts);
     expect(none.resupplyZeroDays).toEqual({ w_lake: 1 });
-    const noLake = chooseResupplyOption(none, groups, lake.key, null, opts);
+    const noLake = chooseResupplyOption(none, groups, lake.key, null, every, opts);
     expect(noLake).not.toHaveProperty('resupplyZeroDays');
   });
 
   it('refuses a group or option it does not know', () => {
-    expect(() => chooseResupplyOption(emptyPlan(), groups, 'w_nowhere', null, opts)).toThrow(RangeError);
-    expect(() => chooseResupplyOption(emptyPlan(), groups, monarch.key, 'w_lake', opts)).toThrow(RangeError);
+    expect(() => chooseResupplyOption(emptyPlan(), groups, 'w_nowhere', null, every, opts)).toThrow(RangeError);
+    expect(() => chooseResupplyOption(emptyPlan(), groups, monarch.key, 'w_lake', every, opts)).toThrow(RangeError);
   });
 });
 

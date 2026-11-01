@@ -13,11 +13,13 @@
 import React from 'react';
 import TestRenderer, { act, type ReactTestRenderer } from 'react-test-renderer';
 import { setResupplyStops } from '@lib/plan-editor';
+import { allResupplyOptionIds } from '@lib/resupply-plan';
 import type { PlanDocument } from '@lib/plan-types';
 import { DEFAULT_PREFS, usePlanInputsStore } from '../plan-inputs-store';
 import { usePlansStore, type PlanDefaults } from '../../../state/plans-store';
 import {
   plannedIdsFor,
+  resupplyGroupsFor,
   usePlannedResupplyIds,
   useWaypointResupplyPlan,
   type PlannedResupplyTrail,
@@ -200,9 +202,13 @@ describe('useWaypointResupplyPlan', () => {
   let latest!: WaypointResupplyPlan;
   let renderer: ReactTestRenderer | null = null;
 
-  function mount(waypointId: string | undefined) {
+  function mount(
+    waypointId: string | undefined,
+    routeTrail: PlannedResupplyTrail = trail,
+    every: readonly string[] = allResupplyOptionIds(resupplyGroupsFor(trail)),
+  ) {
     function Harness() {
-      latest = useWaypointResupplyPlan('cdt', trail, waypointId, DEFAULTS);
+      latest = useWaypointResupplyPlan('cdt', routeTrail, every, waypointId, DEFAULTS);
       return null;
     }
     act(() => {
@@ -243,6 +249,36 @@ describe('useWaypointResupplyPlan', () => {
     press();
     expect(stored()).toEqual(['w_pass', 'w_salida', 'w_poncha', 'w_creede']);
     expect(latest.isSelected).toBe(true);
+  });
+
+  describe('with an alternate taken', () => {
+    // The route as planned: Creede bypassed, Quorn on the alternate instead.
+    const routeTrail: PlannedResupplyTrail = {
+      waypoints: [
+        ...(trail.waypoints ?? []).filter((wp) => wp.id !== 'w_creede'),
+        { id: 'w_quorn', name: 'Quorn', type: 'town', totalDistance: 240 },
+      ],
+    };
+    const every = [...allResupplyOptionIds(resupplyGroupsFor(trail)), 'w_quorn'];
+
+    it('plans a main-route town without touching the town on the alternate', () => {
+      storePlan({ ...planWith(undefined), resupplyZeroDays: { w_quorn: 2 } });
+      mount('w_salida', routeTrail, every);
+      press();
+      expect(stored()).toContain('w_quorn');
+      expect(usePlansStore.getState().byTrail.cdt?.resupplyZeroDays).toEqual({ w_quorn: 2 });
+    });
+
+    it('offers the town on the alternate, which the guide trail does not list', () => {
+      mount('w_quorn', routeTrail, every);
+      expect(latest.toggle).not.toBeNull();
+      expect(latest.isSelected).toBe(true);
+    });
+
+    it('offers nothing for a town the route bypasses', () => {
+      mount('w_creede', routeTrail, every);
+      expect(latest.toggle).toBeNull();
+    });
   });
 
   it('is not selected in a group still undecided, so its button picks it', () => {

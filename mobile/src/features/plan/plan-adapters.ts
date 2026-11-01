@@ -487,7 +487,7 @@ export function computeResupplyPlan(
     ...(inputs.days ? { days: inputs.days } : {}),
     ...(inputs.zeroDays ? { zeroDays: inputs.zeroDays } : {}),
   });
-  return { groups, stops, legs, summary: summariseResupplyPlan(legs) };
+  return { groups, stops, legs, summary: summariseResupplyPlan(legs, inputs.dailyHours) };
 }
 
 /** Resolve a display name for an exact km (a waypoint at that km, else null). */

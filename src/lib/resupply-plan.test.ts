@@ -11,6 +11,7 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import {
   allResupplyOptionIds,
+  legArrivesAtStop,
   listResupplyOptions,
   plannedResupplyIds,
   resolveResupplyStops,
@@ -956,7 +957,8 @@ describe('stops and legs off the route', () => {
         computeResupplyLegs(trail, stops, {
           ...HIKER,
           ...(section ? { section: { ...section, startName: 'S', endName: 'E' } } : {}),
-        })
+        }),
+        HIKER.dailyHours
       ).totalWalkingKm;
     expect(walking()).toBe(106);
     expect(walking({ startKm: 0, endKm: 50 }) + walking({ startKm: 50, endKm: 100 })).toBe(106);
@@ -1167,20 +1169,48 @@ describe('zero days', () => {
   });
 });
 
+describe('legArrivesAtStop', () => {
+  const stopsAt = (...kms: number[]) => kms.map(km => ({ km, name: `T${km}`, optionIds: [`t${km}`] }));
+
+  it('says no at the trail’s start and yes at its end, so a flip changes the answer', () => {
+    const legs = computeResupplyLegs(flatTrail(100), stopsAt(0, 50, 100), {
+      ...HIKER,
+      zeroDays: { t0: 2, t50: 1, t100: 3 },
+    });
+    expect([0, 50, 100].map(km => legArrivesAtStop(legs, km))).toEqual([false, true, true]);
+    expect(summariseResupplyPlan(legs, HIKER.dailyHours).zeroDays).toBe(4);
+  });
+
+  it('says no at a section’s start, whose stop the section before arrives at', () => {
+    const legs = computeResupplyLegs(flatTrail(100), stopsAt(50, 75), {
+      ...HIKER,
+      section: { startKm: 50, endKm: 100, startName: 'S', endName: 'E' },
+    });
+    expect(legArrivesAtStop(legs, 50)).toBe(false);
+    expect(legArrivesAtStop(legs, 75)).toBe(true);
+  });
+
+  it('does not take the run to the trail end for an arrival', () => {
+    const legs = computeResupplyLegs(flatTrail(100), stopsAt(50), HIKER);
+    expect(legArrivesAtStop(legs, 100)).toBe(false);
+  });
+});
+
 describe('summariseResupplyPlan', () => {
   it('gives the planner its headline figures, side trips and zero days included', () => {
     const trail = flatTrail(100);
     const stops = resolveResupplyStops(listResupplyOptions(resupplyCandidates({ sideTrips: [spur()] })), undefined);
     const legs = computeResupplyLegs(trail, stops, { ...HIKER, zeroDays: { 'spur-town': 1 } });
-    // Legs: 36 km walked (300 m up), 2 days; 70 km, 3 days.
-    expect(summariseResupplyPlan(legs)).toEqual({
+    // Legs: 36 km walked (300 m up), 9.5 h, 2 days; 70 km, 17.5 h, 3 days. The
+    // total is the 27 h over 8 h a day, 4 days, not 2 + 3; plus the zero day.
+    expect(summariseResupplyPlan(legs, HIKER.dailyHours)).toEqual({
       stopsChosen: 1,
       longestLegKm: 70,
       mostClimbM: 300,
       longestCarryDays: 3,
       heaviestFoodKg: legs[1].food.weightKg,
       totalWalkingKm: 106,
-      totalDays: 6,
+      totalDays: 5,
       zeroDays: 1,
       hasData: true,
     });
@@ -1197,10 +1227,79 @@ describe('summariseResupplyPlan', () => {
       ),
       HIKER
     );
-    expect(summariseResupplyPlan(legs).totalWalkingKm).toBe(100);
+    expect(summariseResupplyPlan(legs, HIKER.dailyHours).totalWalkingKm).toBe(100);
+  });
+
+  describe('total days', () => {
+    const totalWith = (kms: number[], totalKm = 100, zeroDays?: Record<string, number>) => {
+      const stops = kms.map(km => ({ km, name: `T${km}`, optionIds: [`t${km}`] }));
+      const legs = computeResupplyLegs(flatTrail(totalKm), stops, { ...HIKER, zeroDays });
+      return summariseResupplyPlan(legs, HIKER.dailyHours).totalDays;
+    };
+
+    it('does not grow with the stops ticked: 100 km at 4 km/h and 8 h is 4 days', () => {
+      expect(totalWith([])).toBe(4);
+      expect(totalWith([34])).toBe(4);
+      expect(totalWith([34, 35])).toBe(4);
+      expect(totalWith([10, 20, 30, 40, 50, 60, 70, 80, 90])).toBe(4);
+    });
+
+    it('keeps each leg’s own days, and its food, rounded up', () => {
+      const legs = computeResupplyLegs(
+        flatTrail(100),
+        [
+          { km: 34, name: 'A', optionIds: ['a'] },
+          { km: 35, name: 'B', optionIds: ['b'] },
+        ],
+        HIKER
+      );
+      expect(legs.map(leg => leg.estimatedDays)).toEqual([2, 1, 3]);
+      expect(legs.map(leg => leg.food.days)).toEqual([2, 1, 3]);
+      expect(legs.map(leg => leg.walkingHours)).toEqual([8.5, 0.25, 16.25]);
+      expect(summariseResupplyLegs(legs).totalFoodKg).toBe(
+        Math.round((6 * DEFAULT_PLAN_THRESHOLDS.foodGramsPerDay) / 100) / 10
+      );
+    });
+
+    it('works from the unrounded hours', () => {
+      // Two legs of 8.025 h show as 8.0 h each; together they spill into a third day.
+      const legs = computeResupplyLegs(flatTrail(65), [{ km: 32.1, name: 'A', optionIds: ['a'] }], {
+        ...HIKER,
+        section: { startKm: 0, endKm: 64.2, startName: 'S', endName: 'E' },
+      });
+      expect(legs.map(leg => leg.estimatedHours)).toEqual([8, 8]);
+      expect(summariseResupplyPlan(legs, HIKER.dailyHours).totalDays).toBe(3);
+    });
+
+    it('adds zero days after the rounding, half days included', () => {
+      expect(totalWith([50], 100, { t50: 1.5 })).toBe(5.5);
+    });
+
+    it('does not round a whole number of days up over floating-point dust', () => {
+      // 96 km is exactly 3 days; thirds of it do not add back up exactly.
+      const third = 96 / 3;
+      const stops = [
+        { km: third, name: 'A', optionIds: ['a'] },
+        { km: 2 * third, name: 'B', optionIds: ['b'] },
+      ];
+      const legs = computeResupplyLegs(flatTrail(96), stops, HIKER);
+      const dusty = legs.map(leg => ({ ...leg, walkingHours: leg.walkingHours + 1e-12 }));
+      expect(summariseResupplyPlan(dusty, HIKER.dailyHours).totalDays).toBe(3);
+    });
+
+    it('is at least a day once there is a leg', () => {
+      const [leg] = computeResupplyLegs(flatTrail(1), [], HIKER);
+      expect(summariseResupplyPlan([{ ...leg, walkingHours: 0 }], HIKER.dailyHours).totalDays).toBe(1);
+    });
+
+    it('throws on hours per day it cannot divide by', () => {
+      for (const bad of [0, -8, Number.NaN, Number.POSITIVE_INFINITY]) {
+        expect(() => summariseResupplyPlan([], bad)).toThrow(RangeError);
+      }
+    });
   });
 
   it('is empty for no legs', () => {
-    expect(summariseResupplyPlan([])).toMatchObject({ stopsChosen: 0, totalDays: 0, hasData: false });
+    expect(summariseResupplyPlan([], HIKER.dailyHours)).toMatchObject({ stopsChosen: 0, totalDays: 0, hasData: false });
   });
 });

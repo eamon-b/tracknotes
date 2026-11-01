@@ -43,6 +43,7 @@ import { findNearestByDistance } from '@lib/track-geometry';
 import {
   alternateMarkers,
   alternatesOverlap,
+  everyRouteResupplyOptionIds,
   mainKmToRoute,
   plannableAlternates,
   plannedRouteFor,
@@ -2113,38 +2114,36 @@ function changeNights(key: StopKey, delta: number): void {
  * Tick or untick one resupply option.
  *
  * The stored value is always an explicit list, so the first tick of a fresh
- * plan starts from "everything" (what the page is currently showing) rather
- * than from nothing. Ids the trail no longer has drop out here, which is the
- * only place a stale selection is ever pruned.
+ * plan starts from "everything", on every route, rather than from nothing. Ids
+ * this route does not offer are kept, as `chooseResupplyOption` keeps them:
+ * they may be towns on an alternate, with zero days of their own, and a tick
+ * here says nothing about those.
  */
 function toggleResupply(id: string): void {
   if (readOnly) return;
-  const all = allResupplyOptionIds(resupplyGroups());
+  const every = everyRouteResupplyOptionIds(trail);
   applyEdit(doc => {
-    const picked = new Set(doc.resupplyStops ?? all);
-    if (picked.has(id)) picked.delete(id);
-    else picked.add(id);
-    return editResupplyStops(
-      doc,
-      all.filter(optionId => picked.has(optionId))
-    );
+    const current = doc.resupplyStops ?? every;
+    return editResupplyStops(doc, current.includes(id) ? current.filter(other => other !== id) : [...current, id]);
   });
 }
 
-function setAllResupply(all: boolean): void {
-  if (readOnly) return;
-  setResupplyStops(all ? allResupplyOptionIds(resupplyGroups()) : []);
-}
-
 /**
- * Write the resupply selection into the document.
+ * All or None, for the options on the route as shown; the other routes' ticks
+ * stay as they are.
  *
  * Through the shared editor, like every other edit: a selection that did not
  * change comes back as the same document and `applyEdit` drops it, so pressing
  * All on an already-full list is not a save — and not a `PUT`.
  */
-function setResupplyStops(ids: string[]): void {
-  applyEdit(doc => editResupplyStops(doc, ids));
+function setAllResupply(all: boolean): void {
+  if (readOnly) return;
+  const shown = allResupplyOptionIds(resupplyGroups());
+  const every = everyRouteResupplyOptionIds(trail);
+  applyEdit(doc => {
+    const others = (doc.resupplyStops ?? every).filter(id => !shown.includes(id));
+    return editResupplyStops(doc, all ? [...shown, ...others] : others);
+  });
 }
 
 /**
@@ -2302,6 +2301,20 @@ function commitSave(): void {
   const ok = writeLocal();
   setSaveStatus(ok ? 'saved' : 'error');
   syncController?.onLocalSave();
+}
+
+/**
+ * The page is going (a link, Back, the tab closing): an edit still inside the
+ * debounce is saved now, or it is lost with the timer. The write is synchronous
+ * and `commitSave`'s own, so the edit queue sees one ordinary save and the
+ * timer cannot save it again. The sync arm is told too: its request may not
+ * outlive the page, but the next boot read pushes this copy, which is newer,
+ * and a page restored from the back/forward cache still knows it is unsynced.
+ */
+function onPageHide(): void {
+  if (saveDebounceTimer === null) return;
+  cancelPendingSave();
+  commitSave();
 }
 
 /**
@@ -2953,6 +2966,7 @@ export async function initPlanViewer(
   if (!readOnly && stored !== loaded) scheduleSave();
   // Another tab — the resupply page, most often — saving this plan.
   if (!readOnly) window.addEventListener('storage', onStorage);
+  if (!readOnly) window.addEventListener('pagehide', onPageHide);
 
   // Redraw elevation on resize
   window.addEventListener(

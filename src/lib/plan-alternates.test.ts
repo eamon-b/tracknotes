@@ -4,6 +4,7 @@ import {
   alternateMarkers,
   buildPlannedRoute,
   editPlanOnRoute,
+  everyRouteResupplyOptionIds,
   mainKmToRoute,
   plannableAlternates,
   plannedRouteTrail,
@@ -14,7 +15,16 @@ import {
   type PlannableTrail,
   type PlannableVariant,
 } from './plan-alternates';
-import { assertPlanDocumentWithinLimits, computePlanDays, isPlanDocument, setNights, toggleStop } from './plan-editor';
+import {
+  assertPlanDocumentWithinLimits,
+  chooseResupplyOption,
+  computePlanDays,
+  isPlanDocument,
+  setNights,
+  setResupplyZeroDays,
+  toggleStop,
+} from './plan-editor';
+import { listResupplyOptions, resupplyCandidates, resupplyGroupChoice } from './resupply-plan';
 import { createReversedTrail } from './trail-reverse';
 import type { PlanDocument, PlanStop } from './plan-types';
 
@@ -160,6 +170,75 @@ describe('plannableAlternates', () => {
 // ---------------------------------------------------------------------------
 // The route and its km
 // ---------------------------------------------------------------------------
+
+describe('everyRouteResupplyOptionIds', () => {
+  /** A town on the main route, and one only the alternate reaches. */
+  function townsTrail() {
+    const base = trailFixture();
+    const alternate = bowAlternate();
+    return {
+      ...base,
+      waypoints: [...base.waypoints, { id: 'w_main', name: 'Main Town', type: 'town', totalDistance: 60 }],
+      alternates: [
+        {
+          ...alternate,
+          waypoints: [
+            ...(alternate.waypoints ?? []),
+            { id: 'w_quorn', name: 'Quorn', type: 'town', totalDistance: 30 },
+          ],
+        },
+      ],
+    };
+  }
+  const groupsOf = (trail: Parameters<typeof resupplyCandidates>[0]) => listResupplyOptions(resupplyCandidates(trail));
+  const quornChoice = (trail: ReturnType<typeof townsTrail>, doc: PlanDocument) => {
+    const route = buildPlannedRoute(trail, [ALT]);
+    const group = groupsOf(plannedRouteTrail(trail, route)).find(g => g.options.some(o => o.id === 'w_quorn'))!;
+    return resupplyGroupChoice(group, doc.resupplyStops);
+  };
+
+  it('lists the main route, then what only an alternate reaches', () => {
+    expect(everyRouteResupplyOptionIds(townsTrail())).toEqual(['w_main', 'w_quorn']);
+  });
+
+  it('leaves out what is on no route: a sub-alternate no plan can take', () => {
+    const trail = townsTrail();
+    const child = {
+      ...bowAlternate('Alt: Child', 25, 35),
+      parent: { name: ALT, index: 0 },
+      waypoints: [{ id: 'w_child', name: 'Child Town', type: 'town', totalDistance: 30 }],
+    };
+    expect(everyRouteResupplyOptionIds({ ...trail, alternates: [...trail.alternates, child] })).not.toContain(
+      'w_child'
+    );
+  });
+
+  it('gives the same ids for the reversed trail', () => {
+    const trail = townsTrail();
+    const reversed = createReversedTrail(trail as never) as unknown as typeof trail;
+    expect(new Set(everyRouteResupplyOptionIds(reversed))).toEqual(new Set(everyRouteResupplyOptionIds(trail)));
+  });
+
+  it('holds an alternate-only town through a choice made on the main route', () => {
+    const trail = townsTrail();
+    const groups = groupsOf(trail);
+    const every = everyRouteResupplyOptionIds(trail);
+    const chosen = chooseResupplyOption(plan([]), groups, groups[0].key, null, every, { now });
+    const taken = setPlanAlternate(chosen, trail, ALT, true, { now });
+    // Never decided, and a lone place: it reads as chosen, as on a fresh plan.
+    expect(quornChoice(trail, taken)).toEqual({ kind: 'chosen', optionId: 'w_quorn' });
+  });
+
+  it('keeps an alternate town and its zero days through an edit on the main route', () => {
+    const trail = townsTrail();
+    const groups = groupsOf(trail);
+    const every = everyRouteResupplyOptionIds(trail);
+    const rested = setResupplyZeroDays(plan([], [ALT]), 'w_quorn', 2, { now });
+    const edited = chooseResupplyOption(rested, groups, groups[0].key, null, every, { now });
+    expect(edited.resupplyZeroDays).toEqual({ w_quorn: 2 });
+    expect(quornChoice(trail, edited)).toEqual({ kind: 'chosen', optionId: 'w_quorn' });
+  });
+});
 
 describe('buildPlannedRoute', () => {
   const trail = trailFixture();

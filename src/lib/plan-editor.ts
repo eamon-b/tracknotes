@@ -35,7 +35,7 @@ import { PLAN_LIMITS, PLAN_WAYPOINT_ID_PATTERN, isStoredZeroDays } from './plan-
 import { computeDays, isStopAtPlace, stopWalk, type PlanStopInput, type PlanTrail } from './day-calculator';
 import type { TrailPOI } from './trail-types';
 import { baseWaypointType, isAccessWaypoint } from './waypoint-taxonomy';
-import { allResupplyOptionIds, resupplyGroupChoice, type ResupplyOptionGroup } from './resupply-plan';
+import { resupplyGroupChoice, type ResupplyOptionGroup } from './resupply-plan';
 
 // ---------------------------------------------------------------------------
 // Injected clock and id source
@@ -611,9 +611,11 @@ export function setResupplyZeroDays(
  * is found by its `key` among `groups` (`listResupplyOptions`' output for the
  * trail as the hiker sees it).
  *
- * An absent selection means every option, so it is materialised first — every
- * other group keeps all its options ticked, exactly as it read before. The
- * chosen id takes the place of the group's first stored id, so the stored
+ * An absent selection means every option, so it is materialised first, from
+ * `everyOptionId` — every option on *every* route (`everyRouteResupplyOptionIds`
+ * in `plan-alternates`), not just those in `groups`, or a choice on one route
+ * would untick the towns only another reaches. Every other group keeps all its
+ * options ticked, exactly as it read before. The chosen id takes the place of the group's first stored id, so the stored
  * order stays stable. A choice the group already reads as — including a lone
  * place under the absent default, which reads as chosen — is a no-op: the
  * same object back, nothing written, and the default kept. Ids no group has
@@ -631,6 +633,7 @@ export function chooseResupplyOption(
   groups: readonly ResupplyOptionGroup[],
   groupKey: string,
   optionId: string | null,
+  everyOptionId: readonly string[],
   opts?: PlanEditOptions
 ): PlanDocument {
   const group = groups.find(candidate => candidate.key === groupKey);
@@ -646,7 +649,7 @@ export function chooseResupplyOption(
     return plan;
   }
   const inGroup = new Set(group.options.map(option => option.id));
-  const current = plan.resupplyStops ?? allResupplyOptionIds(groups);
+  const current = plan.resupplyStops ?? everyOptionId;
   const next: string[] = [];
   let placed = optionId === null;
   for (const id of current) {

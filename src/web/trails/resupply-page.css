@@ -265,6 +265,14 @@ input.rs-input { width: 5rem; font-variant-numeric: tabular-nums; }
 }
 
 /* An entry that was not taken (not a number of days, or past the limit). */
+.rs-zero-note {
+  display: block;
+  min-width: 9rem;
+  font-size: 0.75rem;
+  text-align: left;
+  white-space: normal;
+  color: var(--text-secondary);
+}
 .rs-zero.is-invalid { border-color: var(--danger); outline: 1px solid var(--danger); }
 
 .rs-c-days.is-long .rs-figure { color: var(--danger); }

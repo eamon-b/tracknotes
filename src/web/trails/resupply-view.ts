@@ -13,6 +13,7 @@
 import type { StopServices } from '@lib/plan-editor';
 import { PLAN_LIMITS } from '@lib/plan-types';
 import {
+  legArrivesAtStop,
   optionAccess,
   resupplyGroupChoice,
   type ResupplyGroupChoice,
@@ -31,6 +32,7 @@ import {
   resupplyOptionShortName,
   resupplyTurnOffText,
   storeLabel,
+  ZERO_DAYS_AT_START_NOTE,
   type LegEndpointNames,
 } from '@lib/resupply-display';
 import { baseWaypointType, waypointTypeLabel } from '@lib/waypoint-taxonomy';
@@ -57,6 +59,8 @@ export interface ResupplyOptionRow {
   leg: ResupplyLeg | null;
   /** The hiker's zero days here (0 when none are stored). */
   zeroDays: number;
+  /** A leg arrives at this stop, so zero days here count (`legArrivesAtStop`). */
+  arrivedAt: boolean;
 }
 
 /** A group of options reached from one point on the route. */
@@ -135,6 +139,8 @@ export function buildResupplyView(input: ResupplyViewInput): ResupplyView {
     const choice = resupplyGroupChoice(group, input.selectedIds);
     const leg = choice.kind === 'none' ? null : legAt(group.km);
     if (choice.kind === 'undecided') undecidedCount++;
+    // Of all the legs: the last one, drawn on the end row, can arrive at a stop.
+    const arrivedAt = legArrivesAtStop(legs, group.km);
     const options = group.options.map(option => {
       const chosen = choice.kind === 'chosen' && choice.optionId === option.id;
       return {
@@ -142,6 +148,7 @@ export function buildResupplyView(input: ResupplyViewInput): ResupplyView {
         chosen,
         leg: chosen ? leg : null,
         zeroDays: zeroDaysFor(input.zeroDays, option.id),
+        arrivedAt,
       };
     });
     return {
@@ -305,6 +312,7 @@ function stopCell(option: ResupplyOption, opts: ResupplyRenderOptions, group: Re
 
 function zeroDaysInput(row: ResupplyOptionRow, readOnly: boolean): string {
   if (!row.chosen) return '';
+  if (!row.arrivedAt) return `<span class="rs-zero-note">${escapeHtml(ZERO_DAYS_AT_START_NOTE)}</span>`;
   const id = `rs-zero-${row.option.id}`;
   return (
     `<label class="rs-visually-hidden" for="${escapeHtml(id)}">Zero days at ${escapeHtml(row.option.name)}</label>` +
