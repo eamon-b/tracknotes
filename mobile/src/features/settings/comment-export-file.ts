@@ -30,7 +30,8 @@ export function writeCommentExportFile(contents: string, exportedAt: string): st
   if (dir.exists) dir.delete();
   dir.create({ intermediates: true, idempotent: true });
   const file = new File(dir, commentExportFileName(exportedAt));
-  file.create();
-  file.write(contents);
+  // writeSync, not write: since SDK 58 `write` returns a promise, and the share
+  // sheet must not open on a file that is still being written.
+  file.writeSync(contents);
   return file.uri;
 }
