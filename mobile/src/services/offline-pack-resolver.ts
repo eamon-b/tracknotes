@@ -35,7 +35,7 @@
  * and may already be on the phone.
  *
  * `'none'` is left for an import with no track points to build around, and for
- * a build with no tile server configured (`EXPO_PUBLIC_CONTOUR_TILE_URL`).
+ * a build with no tile servers configured (`CORRIDOR_TILES_CONFIGURED`).
  */
 
 import { calculateTrailBounds, type TrackPoint, type TrailBounds } from './trail-bounds';
@@ -73,12 +73,18 @@ export type OfflinePackResolution =
   /** An import with no usable pack — online only. */
   | { kind: 'none' };
 
+/** The two workers a corridor pack is fetched from (`corridor-pack`). */
+export const CORRIDOR_TILE_URLS = {
+  basemapTileUrl: process.env.EXPO_PUBLIC_BASEMAP_TILE_URL ?? '',
+  contourTileUrl: process.env.EXPO_PUBLIC_CONTOUR_TILE_URL ?? '',
+};
+
 /**
- * Whether this build can assemble corridor packs: they are fetched from the
- * tile worker, so without its URL there is nothing to build from.
+ * Whether this build can assemble corridor packs: without both workers' URLs
+ * there is nothing to build from.
  */
 export const CORRIDOR_TILES_CONFIGURED =
-  (process.env.EXPO_PUBLIC_CONTOUR_TILE_URL ?? '').length > 0;
+  CORRIDOR_TILE_URLS.basemapTileUrl.length > 0 && CORRIDOR_TILE_URLS.contourTileUrl.length > 0;
 
 /** The minimum a trail has to expose for its bbox to be computed. */
 export interface PackTrailInput {

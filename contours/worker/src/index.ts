@@ -1,17 +1,18 @@
 /**
- * Cloudflare Worker for serving contour vector tiles from PMTiles on R2.
+ * Cloudflare Worker for serving vector tiles from PMTiles on R2.
  *
  * URL pattern: /{source}/{z}/{x}/{y}.pbf
  * Example:     /world/12/3750/2520.pbf
  *
- * Each source name maps to one PMTiles archive in R2 (see SOURCES).
+ * Each source name maps to one PMTiles archive in R2 (see sources.ts). Deployed
+ * twice: the public contour dataset, and the app's own basemap (`[env.app]`).
  */
 
 import { EtagMismatch, PMTiles, RangeResponse, ResolvedValueCache, Source } from 'pmtiles';
-import { DEFAULT_SOURCE, isKnownSource, SOURCES } from './sources';
+import { healthSummary, isKnownSource, resolveSourceConfig, type SourceConfig, type SourceVars } from './sources';
 import { parseTilePath } from './tile-path';
 
-interface Env {
+interface Env extends SourceVars {
   TILES_BUCKET: R2Bucket;
   ALLOWED_ORIGIN?: string; // unset (`*`) in production: the tile endpoint is public (README)
 }
@@ -128,8 +129,7 @@ class R2Source implements Source {
 // that alias one archive share its directory cache.
 const pmtilesInstances = new Map<string, PMTiles>();
 
-function getPMTiles(bucket: R2Bucket, source: string): PMTiles {
-  const key = SOURCES[source];
+function getPMTiles(bucket: R2Bucket, key: string): PMTiles {
   let instance = pmtilesInstances.get(key);
   if (!instance) {
     const r2Source = new R2Source(bucket, key);
@@ -157,15 +157,14 @@ interface SourceHealth {
 }
 
 /** Probe one source's archive. Never throws. */
-async function sourceHealth(env: Env, source: string): Promise<SourceHealth> {
-  const key = SOURCES[source];
+async function sourceHealth(env: Env, source: string, key: string): Promise<SourceHealth> {
   try {
     const object = await env.TILES_BUCKET.head(key);
     if (!object) {
-      return { ok: false, error: 'Contour archive not found' };
+      return { ok: false, error: 'Archive not found' };
     }
 
-    const header = await getPMTiles(env.TILES_BUCKET, source).getHeader();
+    const header = await getPMTiles(env.TILES_BUCKET, key).getHeader();
     return {
       ok: true,
       archive: {
@@ -185,7 +184,7 @@ async function sourceHealth(env: Env, source: string): Promise<SourceHealth> {
   } catch (error) {
     pmtilesInstances.delete(key);
     const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error(`Contour health check failed for ${source}: ${message}`);
+    console.error(`Health check failed for ${source}: ${message}`);
     return { ok: false, error: message };
   }
 }
@@ -194,33 +193,27 @@ async function sourceHealth(env: Env, source: string): Promise<SourceHealth> {
  * Health check. Never edge-cached (Cache-Control: no-store) — it exists to
  * report the *current* state of the R2 archives.
  *
- * The top-level shape still describes DEFAULT_SOURCE exactly as it always did,
- * so existing consumers keep working; `sources` adds the per-source breakdown.
- * A source whose archive is not uploaded yet reports ok:false under `sources`
- * without failing the overall check.
+ * The top-level shape still describes the default source exactly as it always
+ * did, so existing consumers keep working; `sources` adds the per-source
+ * breakdown (`healthSummary`).
  *
  * Returns a CORS-free response; the caller runs it through finalize().
  */
-async function healthResponse(env: Env): Promise<Response> {
+async function healthResponse(env: Env, config: SourceConfig): Promise<Response> {
   const headers = {
     'Content-Type': 'application/json',
     'Cache-Control': 'no-store',
   };
 
-  const names = Object.keys(SOURCES);
-  const results = await Promise.all(names.map((name) => sourceHealth(env, name)));
+  const names = Object.keys(config.sources);
+  const results = await Promise.all(names.map((name) => sourceHealth(env, name, config.sources[name])));
   const sources: Record<string, SourceHealth> = {};
   names.forEach((name, i) => {
     sources[name] = results[i];
   });
 
-  const primary = sources[DEFAULT_SOURCE];
-  const body = { ...primary, sources };
-
-  return new Response(JSON.stringify(body), {
-    status: primary.ok ? 200 : 503,
-    headers,
-  });
+  const { status, body } = healthSummary(config, sources);
+  return new Response(JSON.stringify(body), { status, headers });
 }
 
 /**
@@ -255,9 +248,12 @@ export default {
       return finalize(new Response('Method not allowed', { status: 405 }), env, request);
     }
 
+    // Throws on a bad `[env.*]` config, so the mistake shows on every request.
+    const config = resolveSourceConfig(env);
+
     const url = new URL(request.url);
     if (url.pathname === '/health') {
-      return finalize(await healthResponse(env), env, request);
+      return finalize(await healthResponse(env, config), env, request);
     }
 
     const tile = parseTilePath(url.pathname);
@@ -266,15 +262,16 @@ export default {
       return finalize(new Response('Not found. Use: /{source}/{z}/{x}/{y}.pbf', { status: 404 }), env, request);
     }
 
-    if (!isKnownSource(tile.source)) {
+    if (!isKnownSource(config, tile.source)) {
       return finalize(new Response(`Unknown source: ${tile.source}`, { status: 404 }), env, request);
     }
+    const archiveKey = config.sources[tile.source];
 
     // --- Edge cache -------------------------------------------------------
     //
     // NOTE: `caches.default` is a NO-OP on *.workers.dev — that cache lives at
     // the zone level and workers.dev is a shared zone, so put/match silently do
-    // nothing there. The Worker answers only on tiles.contour-map-tiles.net
+    // nothing there. Each deployment answers only on its custom domain
     // (`workers_dev = false`), where the code below is live.
     //
     // Staleness tradeoff: tiles are immutable for the lifetime of an archive
@@ -312,7 +309,7 @@ export default {
     // a HEAD miss stores a usable entry rather than poisoning the cache with an
     // empty body; finalize() strips the body on the way out.
     const serveTile = async (): Promise<Response> => {
-      const pmtiles = getPMTiles(env.TILES_BUCKET, tile.source);
+      const pmtiles = getPMTiles(env.TILES_BUCKET, archiveKey);
 
       // Check metadata for zoom range
       const header = await pmtiles.getHeader();
@@ -383,7 +380,7 @@ export default {
         // failure into a thundering herd of cold directory re-reads.
         if (!isEtagMismatch(firstError)) throw firstError;
 
-        pmtilesInstances.delete(SOURCES[tile.source]);
+        pmtilesInstances.delete(archiveKey);
         console.warn(
           `Tile ${tile.source}/${tile.z}/${tile.x}/${tile.y}: retrying with fresh PMTiles instance after etag mismatch: ` +
             (firstError instanceof Error ? firstError.message : String(firstError))

@@ -7,22 +7,24 @@
  * borrows a bundled one only when it lies inside that trail's coverage
  * (`offline-pack-resolver`). For every other route the phone assembles its own:
  * it fetches each z/x/y vector tile within the hiker's chosen distance of the
- * route (`corridor-tiles`) from the tile worker (`EXPO_PUBLIC_CONTOUR_TILE_URL`)
- * and writes them into the very same on-disk shape as a bundled pack —
+ * route (`corridor-tiles`) from two tile workers and writes them into the very
+ * same on-disk shape as a bundled pack —
  * `{documentDir}/tiles/{trailId}/base.mbtiles` + `contours.mbtiles` +
  * `manifest.json` — so `tileManager.getOfflineStyle`, validation, generation
  * names, status and storage accounting all treat it as any other pack.
  *
- * - **base** — the worker's `base` source (the Protomaps planet, the same schema
- *   the bundled `base.mbtiles` is extracted from), zooms 4–15;
- * - **contours** — the worker's `world` source (Copernicus GLO-30), the one
- *   the online map draws everywhere, zooms 9–15.
+ * - **base** — the `base` source of the app's tile worker
+ *   (`EXPO_PUBLIC_BASEMAP_TILE_URL`): the Protomaps planet, the same schema the
+ *   bundled `base.mbtiles` is extracted from, zooms 4–15;
+ * - **contours** — the `world` source of the public contour worker
+ *   (`EXPO_PUBLIC_CONTOUR_TILE_URL`): Copernicus GLO-30, the one the online map
+ *   draws everywhere, zooms 9–15.
  *
- * Before any tile, the worker's `/health` must report both sources ok
+ * Before any tile, each worker's `/health` must report its source ok
  * (`checkTileServer`): a worker deployed before its archive was uploaded would
  * answer every tile with a 500, retried before it failed with a raw status.
  *
- * The worker answers 200 with an uncompressed tile, 204 for an empty one
+ * A worker answers 200 with an uncompressed tile, 204 for an empty one
  * (ocean, outside an archive's zooms — skipped), and is retried on network
  * errors and 5xx. It answers 404 only for a source it does not serve or a
  * malformed path, so a 404 fails the build at once: it means the worker in
@@ -32,7 +34,7 @@
  * contours as if the route had none. Any hard failure aborts every other
  * request of the build. Tiles are stored gzipped, as tile-join stores them.
  *
- * **Throttle.** The zone in front of the worker blocks an IP that sends more
+ * **Throttle.** The zone in front of a worker blocks an IP that sends more
  * than 500 requests in 10 s (a 429 for the next 10 s), and every tile is a
  * Worker invocation. So request *starts* are paced to
  * {@link MAX_REQUESTS_PER_SECOND} across every build in the process, whatever
@@ -124,7 +126,7 @@ const WRITE_BATCH = 64;
 /** Waits before each retry of a tile; one more attempt than entries. */
 const DEFAULT_RETRY_DELAYS_MS = [1_000, 3_000, 8_000];
 
-/** Worker source names (`contours/worker`). */
+/** Worker source names (`contours/worker`: its app and dataset deployments). */
 export type CorridorSource = 'base' | 'world';
 
 /** The worker source corridor packs take their contours from. */
@@ -253,8 +255,10 @@ export interface CorridorProgress {
 }
 
 export interface CorridorDownloadOptions {
-  /** Tile worker base URL (`EXPO_PUBLIC_CONTOUR_TILE_URL`). */
-  tileUrl: string;
+  /** The app's tile worker, which serves `base` (`EXPO_PUBLIC_BASEMAP_TILE_URL`). */
+  basemapTileUrl: string;
+  /** The contour worker, which serves `world` (`EXPO_PUBLIC_CONTOUR_TILE_URL`). */
+  contourTileUrl: string;
   /** Corridor half-width the hiker chose, in km. */
   bufferKm: number;
   /** Display name, for the mbtiles `name` metadata. */
@@ -451,12 +455,9 @@ async function fetchTile(
   throw new Error(`Couldn't fetch ${url} (${lastError})`);
 }
 
-/** The worker sources a corridor build reads. */
-const REQUIRED_SOURCES: readonly CorridorSource[] = ['base', CONTOUR_SOURCE];
-
 /**
- * Ask the worker's `/health` whether it serves every source the build needs,
- * before a single tile request. A worker deployed before its archive was
+ * Ask a worker's `/health` whether it serves the source the build wants from
+ * it, before a single tile request. A worker deployed before its archive was
  * uploaded answers each tile with a 500, which the build would only give up on
  * after retrying the first tiles; one that predates the source answers 404.
  * `/health` names both plainly, and answers 503 (with the same body) when its
@@ -464,6 +465,7 @@ const REQUIRED_SOURCES: readonly CorridorSource[] = ['base', CONTOUR_SOURCE];
  */
 async function checkTileServer(
   tileUrl: string,
+  source: CorridorSource,
   signal: AbortSignal,
   retryDelaysMs: readonly number[],
 ): Promise<void> {
@@ -483,15 +485,11 @@ async function checkTileServer(
       lastError = err instanceof Error ? err.message : String(err);
       continue;
     }
-    const missing = REQUIRED_SOURCES.filter((source) => body.sources?.[source]?.ok !== true);
-    if (missing.length > 0) {
-      const detail = missing
-        .map((source) => {
-          const error = body.sources?.[source]?.error;
-          return error ? `${source}: ${error}` : `${source} not served`;
-        })
-        .join('; ');
-      throw new TileServerNotReadyError(detail);
+    const health = body.sources?.[source];
+    if (health?.ok !== true) {
+      throw new TileServerNotReadyError(
+        health?.error ? `${source}: ${health.error}` : `${source} not served`,
+      );
     }
     return;
   }
@@ -613,8 +611,11 @@ export async function downloadCorridorPack(
   const plan = planCorridor(trail, options.bufferKm);
   if (!plan) throw new Error('This route has no track to build an offline map around.');
   if (plan.tooLarge) throw new Error(tooLargeMessage(plan.totalTiles));
-  const tileUrl = options.tileUrl.replace(/\/$/, '');
-  if (!tileUrl) throw new Error('No tile server is configured.');
+  const tileUrls: Record<CorridorSource, string> = {
+    base: options.basemapTileUrl.replace(/\/$/, ''),
+    world: options.contourTileUrl.replace(/\/$/, ''),
+  };
+  if (!tileUrls.base || !tileUrls.world) throw new Error('No tile server is configured.');
 
   // Cancel aborts the in-flight requests too, and a failed tile stops the rest
   // (`fillStaging` aborts `inner` when one does).
@@ -665,7 +666,7 @@ export async function downloadCorridorPack(
     const writer = await openStaging(trailId, partName, key(source));
     try {
       const tiles = listTiles(plan.tileSet, minZoom, CORRIDOR_MAX_ZOOM);
-      const result = await fillStaging(writer, tiles, `${tileUrl}/${source}`, ctx);
+      const result = await fillStaging(writer, tiles, `${tileUrls[source]}/${source}`, ctx);
       if (result) {
         // The zooms actually present: MapLibre stoi()s these, and an archive
         // with nothing at the shallow zooms must not claim them.
@@ -686,7 +687,8 @@ export async function downloadCorridorPack(
   };
 
   try {
-    await checkTileServer(tileUrl, inner.signal, retryDelaysMs);
+    await checkTileServer(tileUrls.base, 'base', inner.signal, retryDelaysMs);
+    await checkTileServer(tileUrls[CONTOUR_SOURCE], CONTOUR_SOURCE, inner.signal, retryDelaysMs);
     // Recorded before the first tile lands, so an interrupted build always
     // says which corridor its .part files hold (see readCorridorProgress).
     writeCorridorProgress(trailId, { bufferKm: plan.bufferKm, sourceVersion: plan.sourceVersion });
