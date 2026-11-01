@@ -60,7 +60,8 @@ npx eas-cli@latest build --non-interactive --profile preview --platform android
   (64-bit phones and the emulator), `development-device` and `production` are
   `arm64-v8a,armeabi-v7a` (every phone, no emulator). `development` keeps all four. So a
   `preview` APK will not install on a 32-bit-only phone; add `armeabi-v7a` to its list for one,
-  and see "Things that go wrong" before going back to more than two.
+  and see "Things that go wrong" before going back to more than two. The same profiles cap
+  Gradle at two workers (`--max-workers=2` in `gradleCommand`).
 
 ### From CI
 
@@ -106,6 +107,11 @@ because the package name and signing key are the same.
   `android.resourceClass` to `large` in `eas.json` if the Expo plan allows it (the account is on
   the Free plan). The GitHub log only says `Build failed`; the Gradle output is on the EAS build
   page.
+- **The build is `CANCELED` at exactly 45 minutes and the Gradle output stops long before** — EAS
+  ended it at its time limit; the Actions run fails with it. Build `796c9c6e`, on two ABIs and
+  four Gradle workers, printed nothing after 620 s, with `:app:configureCMakeRelWithDebInfo` as
+  the last `:app` task, although that task finishes locally. The cause was not found; `eas.json`
+  caps the workers because of it.
 - **`This account has used its Android builds from the Free plan this month`** — not a build
   failure. EAS refuses the build straight after the upload, so no build page exists and the
   Actions run fails in the *EAS build* step after about two minutes. The message gives the reset
