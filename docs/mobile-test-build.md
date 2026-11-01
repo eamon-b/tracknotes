@@ -55,6 +55,12 @@ npx eas-cli@latest build --non-interactive --profile preview --platform android
   switch seeds it from the local value, `1`). Test builds reuse the current `versionCode`; each `production` build bumps
   it (`autoIncrement`), since Play rejects a reused one — see "Full release".
   `npx eas-cli@latest build:version:get -p android` shows the current value.
+- Each cloud profile compiles two ABIs, not React Native's default four, set by
+  `ORG_GRADLE_PROJECT_reactNativeArchitectures` in `eas.json`: `preview` is `arm64-v8a,x86_64`
+  (64-bit phones and the emulator), `development-device` and `production` are
+  `arm64-v8a,armeabi-v7a` (every phone, no emulator). `development` keeps all four. So a
+  `preview` APK will not install on a 32-bit-only phone; add `armeabi-v7a` to its list for one,
+  and see "Things that go wrong" before going back to more than two.
 
 ### From CI
 
@@ -91,6 +97,14 @@ because the package name and signing key are the same.
 
 ## Things that go wrong
 
+- **`Gradle build daemon disappeared unexpectedly`, EAS error
+  `EAS_BUILD_UNKNOWN_GRADLE_ERROR`** — the worker (4 vCPU, 15.6 GB) ran out of memory, or
+  something else killed the daemon: the daemon log stops with no `OutOfMemoryError` and no JVM
+  crash report. Since Expo SDK 58, compiling all four ABIs overlaps the JVMs, Metro, `hermesc`
+  and clang by more than the worker has (build `8ad43463`, killed in worklets `x86_64`), which
+  is why `eas.json` builds two. If it comes back, take an ABI off the failing profile, or set
+  `android.resourceClass` to `large` in `eas.json` if the Expo plan allows it. The GitHub log
+  only says `Build failed`; the Gradle output is on the EAS build page.
 - **`Distribution Certificate is not validated for non-interactive builds`** — iOS only. The
   first iOS build has to be run interactively (`eas build --profile preview --platform ios`
   without `--non-interactive`) with an Apple sign-in so EAS can validate the certificate;

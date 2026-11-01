@@ -24,6 +24,9 @@
     },
     "development-device": {
       "extends": "base",
+      "env": {
+        "ORG_GRADLE_PROJECT_reactNativeArchitectures": "arm64-v8a,armeabi-v7a"
+      },
       "developmentClient": true,
       "distribution": "internal",
       "ios": {
@@ -35,6 +38,9 @@
     },
     "preview": {
       "extends": "base",
+      "env": {
+        "ORG_GRADLE_PROJECT_reactNativeArchitectures": "arm64-v8a,x86_64"
+      },
       "distribution": "internal",
       "android": {
         "buildType": "apk"
@@ -42,6 +48,9 @@
     },
     "production": {
       "extends": "base",
+      "env": {
+        "ORG_GRADLE_PROJECT_reactNativeArchitectures": "arm64-v8a,armeabi-v7a"
+      },
       "autoIncrement": true
     }
   },
