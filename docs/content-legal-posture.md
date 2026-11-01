@@ -162,14 +162,35 @@ display name the hiker chooses. There is no email, password or sign-up.
      synced devices drop them. The account's community routes stay published
      under CC0 but are de-attributed: the route is rewritten without the
      display name, older public copies are purged, and the raw GPX is deleted.
-     Reports the account filed keep their reason but lose any text. Requests
-     by email to the policy's contact address are handled the same way. The
+     Reports the account filed keep their reason but lose any text. The
      reasons for this shape:
      - a privacy request must never silently change what other hikers rely on
        (a community route, the water history of a source);
      - CC0 copies others already hold cannot be recalled.
 
      The privacy policy states exactly what remains.
+   - *APP 1, 12 and 13, requests by email* (decided 2026-11-02, issue #250).
+     Access and correction requests and complaints go to
+     `privacy@tracknotes.info`, the same address as takedowns: this is a
+     one-person project with no revenue, so a second address adds nothing. The
+     policy commits to a response within 30 days for all three (the APPs ask
+     organisations for a "reasonable period", and 30 days is the OAIC's
+     benchmark) and sends an unhappy complainant to the OAIC. If the project is
+     exempt (above), the OAIC may decline such a complaint; the policy still
+     names it.
+     - A hiker has no email on file, display names are not unique and no
+       account id is shown in the app, so an email alone proves nothing. The
+       policy says the requester may have to show the account is theirs, for
+       example by posting a short code from it, and that nothing is handed over
+       or changed until they have.
+     - Comments have no edit path for anyone (`PUT` only creates, and replays
+       an existing id), so correcting one means deleting and reposting it. The
+       deleted text stays in our copy, marked deleted, as the policy says.
+     - An erasure asked for by email is manual. No admin route does what
+       `DELETE /v1/me` does (it needs the account's own token): a ban with
+       `removeContent` takes down comments and shared waypoints only. The
+       simple answer is the account's own Settings → Delete account; if that
+       is lost, the same result is reached by hand in D1 and R2.
 
 4. **The public API: documented, not promoted** (decided 2026-10-31). The
    comment reads (`GET /v1/trails/:id/comments`, the per-waypoint feed) have
@@ -212,15 +233,9 @@ display name the hiker chooses. There is no email, password or sign-up.
    - Admins can hide, restore, delete, and ban an account, with or without its
      content (`src/web/admin-moderation.html`).
    - Takedown requests (copyright complaints, land managers asking to remove a
-     sensitive site) come through Report or the contact email. The target is
-     acknowledgement within 72 hours, and land-manager requests are honoured
-     by default.
+     sensitive site) come through Report or `privacy@tracknotes.info`, the one
+     contact address (decision 3). The target is acknowledgement within 72
+     hours, and land-manager requests are honoured by default.
    - The terms are accepted by posting: the licence line under every form that
      publishes something links them ("By posting, you … agree to the terms of
      service").
-
-## Open questions for the legal read
-
-- **Takedown contact.** Takedowns and privacy requests share one address
-  (`privacy@tracknotes.info`), and no response time is committed for
-  privacy requests.
