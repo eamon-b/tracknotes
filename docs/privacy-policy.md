@@ -14,7 +14,7 @@ Store listings (issue #31). Reviewed by the owner (2026-10-31); it has had no
 legal read.
 -->
 
-**Last updated: 2026-10-31**
+**Last updated: 2026-11-01**
 
 Tracknotes is a hiking guide app for long-distance trails, mostly in
 Australia, with built-in guides for New Zealand, the United States and Japan,

@@ -136,9 +136,9 @@ export async function deleteMe(request: Request, env: Env, ctx: ExecutionContext
     // (by its owner, an admin or reports): a tombstone keeps only its id,
     // where it was filed and when (the automated review keeps its verdict
     // but drops its summary, which paraphrases the text). A row already
-    // deleted keeps its stamps,
-    // so it is not sent to phones as a second tombstone. (SQLite evaluates
-    // every SET expression against the row as it was.)
+    // deleted keeps its stamps, so it is not sent to phones as a second
+    // tombstone. (SQLite evaluates every SET expression against the row as
+    // it was.)
     env.DB.prepare(
       `UPDATE comments
           SET text = '', water_status = NULL, observed_at = NULL,
