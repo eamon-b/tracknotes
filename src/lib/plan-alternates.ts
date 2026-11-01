@@ -41,6 +41,7 @@
 import { haversineDistance } from './distance';
 import { KM_EPSILON } from './plan-direction';
 import { poiVariantFinder } from './poi-display';
+import { allResupplyOptionIds, listResupplyOptions, resupplyCandidates, type ResupplyTrail } from './resupply-plan';
 import type { PlanDocument, PlanStop } from './plan-types';
 import { PLAN_LIMITS } from './plan-types';
 import { stamp } from './plan-editor';
@@ -176,6 +177,28 @@ export function plannableAlternates(trail: PlannableTrail): PlanAlternate[] {
     });
   });
   return options.sort((a, b) => a.startKm - b.startKm);
+}
+
+/**
+ * Every resupply option on any route the plan could walk: the main route's,
+ * then each plannable alternate's. The list an absent selection stands for
+ * when an edit has to write it out.
+ *
+ * Writing out only the current route's options would untick the towns on every
+ * other route: the CDT, the Heysen and Three Passes each have some only an
+ * alternate reaches, and an explicit selection without one reads as "not going
+ * there". The alternates' own waypoints are read rather than a route spliced
+ * for each one, since the CDT has 46 of them and ids do not depend on the
+ * splice or the direction, so any copy of the trail gives the same ids.
+ */
+export function everyRouteResupplyOptionIds(trail: PlannableTrail & ResupplyTrail): string[] {
+  const onAlternates = plannableAlternates(trail).flatMap(
+    alternate => trail.alternates?.[alternate.index].waypoints ?? []
+  );
+  const ids = allResupplyOptionIds(listResupplyOptions(resupplyCandidates(trail)));
+  // Listed by km on their own, after the main route's.
+  ids.push(...allResupplyOptionIds(listResupplyOptions(onAlternates)));
+  return [...new Set(ids)];
 }
 
 /** True when two alternates cover some of the same main route. */

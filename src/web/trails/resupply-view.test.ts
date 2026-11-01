@@ -23,6 +23,7 @@ import {
   summariseResupplyPlan,
 } from '@lib/resupply-plan';
 import { PACE_KMH } from '@lib/plan-types';
+import { ZERO_DAYS_AT_START_NOTE } from '@lib/resupply-display';
 import {
   accessModeText,
   buildResupplyView,
@@ -285,6 +286,45 @@ describe('renderResupplyTable', () => {
   });
 });
 
+describe('zero days at a stop no leg arrives at', () => {
+  // A town at each end of the trail, as Albany and Kalamunda are on the Bibbulmun.
+  const ends = makeTrail();
+  const town = (id: string, name: string, km: number) => ({
+    id,
+    name,
+    type: 'town',
+    lat: -34 - km / 1000,
+    lon: 138 + km / 1000,
+    totalDistance: km,
+  });
+  ends.waypoints = [town('w_first', 'First', 0), town('w_mid', 'Mid', 25), town('w_last', 'Last', 50)];
+  const endGroups = listResupplyOptions(resupplyCandidates(ends));
+  const zeroDays = { w_first: 2, w_last: 3 };
+  const legs = computeResupplyLegs(ends, resolveResupplyStops(endGroups, undefined), {
+    dailyHours: 8,
+    baseKmh: PACE_KMH.average,
+    longThresholdDays: 5,
+    gramsPerDay: 800,
+    zeroDays,
+  });
+  const dom = render(buildResupplyView({ groups: endGroups, selectedIds: undefined, legs, zeroDays, totalKm: 50 }));
+  const cell = (id: string) => dom.querySelector(`tr[data-option-id="${id}"] .rs-c-zero`)!;
+
+  it('says why at the start, in place of the input', () => {
+    expect(cell('w_first').querySelector('input')).toBeNull();
+    expect(cell('w_first').textContent).toBe(ZERO_DAYS_AT_START_NOTE);
+  });
+
+  it('keeps the input at the trail’s end: the last leg arrives there, though the end row draws it', () => {
+    expect(cell('w_last').querySelector<HTMLInputElement>('input.rs-zero')?.value).toBe('3');
+    expect(cell('w_mid').querySelector('input.rs-zero')).not.toBeNull();
+  });
+
+  it('counts exactly what the inputs show', () => {
+    expect(summariseResupplyPlan(legs, 8).zeroDays).toBe(3);
+  });
+});
+
 describe('renderResupplySummary', () => {
   it('shows the plan figures and counts the open decisions', () => {
     const view = viewFor(undefined, { w_001: 1 });
@@ -295,7 +335,7 @@ describe('renderResupplySummary', () => {
       gramsPerDay: 800,
       zeroDays: { w_001: 1 },
     });
-    const dom = tableDom(renderResupplySummary(summariseResupplyPlan(legs), view.undecidedCount));
+    const dom = tableDom(renderResupplySummary(summariseResupplyPlan(legs, 8), view.undecidedCount));
     const tiles = [...dom.querySelectorAll('.rs-tile')].map(tile => ({
       label: tile.querySelector('.rs-tile-label')?.textContent,
       value: tile.querySelector('.rs-tile-value')?.textContent,
@@ -324,7 +364,7 @@ describe('Clear choices', () => {
       longThresholdDays: 5,
       gramsPerDay: 800,
     });
-    const summary = summariseResupplyPlan(legs);
+    const summary = summariseResupplyPlan(legs, 8);
     expect(tableDom(renderResupplySummary(summary, 1)).querySelector('#rs-clear')).toBeNull();
     const dom = tableDom(renderResupplySummary(summary, 1, { canClear: true }));
     const row = dom.querySelector('.rs-open-row')!;

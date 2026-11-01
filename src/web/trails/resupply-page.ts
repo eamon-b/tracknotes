@@ -15,7 +15,9 @@
  *
  * Two deliberate omissions: no arrival dates, and no camp plan handed to
  * `computeResupplyLegs` (`days`) — the legs are walking days, and the zero days
- * entered here are added once, by `summariseResupplyPlan`.
+ * entered here are added once, by `summariseResupplyPlan`. So the total days
+ * and an arrival day never share a page: the planner's Resupply tab shows
+ * arrivals from the camp plan, and no total.
  *
  * Stored stop km are NOBO-absolute, but this page never writes a stop: what it
  * edits — the resupply selection, the zero days (both by option id) and the
@@ -35,7 +37,12 @@ import {
   setResupplyZeroDays,
   stampPlanData,
 } from '@lib/plan-editor';
-import { plannedRouteFor, plannedRouteTrail, type PlannedRoute } from '@lib/plan-alternates';
+import {
+  everyRouteResupplyOptionIds,
+  plannedRouteFor,
+  plannedRouteTrail,
+  type PlannedRoute,
+} from '@lib/plan-alternates';
 import {
   computeResupplyLegs,
   listResupplyOptions,
@@ -45,6 +52,7 @@ import {
   type ResupplyLeg,
   type ResupplyOptionGroup,
 } from '@lib/resupply-plan';
+import { TOTAL_DAYS_NOTE } from '@lib/resupply-display';
 import { createReversedTrail } from '@lib/trail-reverse';
 import { getDirectionLabel, type PlanDirection } from '@lib/plan-direction';
 import type { RouteBreak, RouteVariant, TrailPOI } from '@lib/trail-types';
@@ -274,9 +282,13 @@ function render(): void {
   const summary = byId('rs-summary');
   if (summary) {
     const hadFocus = document.activeElement?.id === 'rs-clear';
-    summary.innerHTML = renderResupplySummary(summariseResupplyPlan(legs()), view.undecidedCount, {
-      canClear: storedPlan.resupplyStops !== undefined || storedPlan.resupplyZeroDays !== undefined,
-    });
+    summary.innerHTML = renderResupplySummary(
+      summariseResupplyPlan(legs(), prefDailyHours(uiPrefs)),
+      view.undecidedCount,
+      {
+        canClear: storedPlan.resupplyStops !== undefined || storedPlan.resupplyZeroDays !== undefined,
+      }
+    );
     // Clearing removes the button; keep the keyboard near where it was.
     if (hadFocus) (byId('rs-clear') ?? byId('rs-direction'))?.focus({ preventScroll: true });
   }
@@ -400,7 +412,8 @@ function edit(change: PlanEdit, { soon = false }: { soon?: boolean } = {}): bool
 function chooseOption(groupKey: string, value: string): void {
   const options = groups();
   const optionId = value === '' ? null : value;
-  edit(doc => chooseResupplyOption(doc, options, groupKey, optionId), { soon: true });
+  const everyOptionId = everyRouteResupplyOptionIds(trail);
+  edit(doc => chooseResupplyOption(doc, options, groupKey, optionId, everyOptionId), { soon: true });
 }
 
 /**
@@ -521,6 +534,20 @@ function writeLocal(): boolean {
   if (ok) editQueue.saved(storedPlan);
   if (moved) render();
   return ok;
+}
+
+/**
+ * The page is going (a link, Back, the tab closing): an edit still inside the
+ * debounce is saved now, or it is lost with the timer. The write is synchronous
+ * and `commitSave`'s own, so the edit queue sees one ordinary save and the
+ * timer cannot save it again. The sync arm is told too: its request may not
+ * outlive the page, but the next boot read pushes this copy, which is newer,
+ * and a page restored from the back/forward cache still knows it is unsynced.
+ */
+function onPageHide(): void {
+  if (saveDebounceTimer === null) return;
+  cancelPendingSave();
+  commitSave();
 }
 
 function setSaveStatus(status: 'saved' | 'unsaved' | 'error'): void {
@@ -652,7 +679,7 @@ export async function initResupplyPage(
     <section id="rs-table" class="rs-table-wrap" aria-label="Resupply stops"></section>
     <p class="rs-footnote">Leg km is walked distance: trail km plus any side trip to the stop and back.
       Hitches, shuttles and boats are listed under the leg and never counted as walking. Days and food
-      cover walking days only; zero days are added once, in the total.</p>`;
+      cover walking days only; zero days are added once, in the total. ${escapeHtml(TOTAL_DAYS_NOTE)}</p>`;
   mountPlanSyncDialogs(document.body);
 
   fillInputs();
@@ -662,4 +689,5 @@ export async function initResupplyPage(
   syncController = initPlanSync(planSyncHost());
   if (stored !== loaded) scheduleSave();
   window.addEventListener('storage', onStorage);
+  window.addEventListener('pagehide', onPageHide);
 }

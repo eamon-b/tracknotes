@@ -110,6 +110,17 @@ export function accessSummary(
 }
 
 /**
+ * What a chosen stop says in place of its zero-days input when no leg arrives
+ * there in the view (`legArrivesAtStop`). A stored figure is kept: the same
+ * stop can be the far end in the other direction.
+ */
+export const ZERO_DAYS_AT_START_NOTE = 'Zero days count on arrival, and this is where the walk starts.';
+
+/** Beside the total days, which the days on the legs do not add up to. */
+export const TOTAL_DAYS_NOTE =
+  "Each leg's days are rounded up so its food lasts. Total days come from all the walking hours, so they can be fewer than the legs added up.";
+
+/**
  * The one line that sits above a set of legs — the web's Resupply datasheet
  * subtitle and the Days-tab collapsible, the phone's Resupply section subtitle.
  *

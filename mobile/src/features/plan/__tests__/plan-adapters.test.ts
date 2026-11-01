@@ -621,6 +621,9 @@ describe('resupply selection', () => {
     expect(rested.legs.map((l) => l.zeroDays)).toEqual([1.5, 0]);
     expect(rested.legs.map((l) => l.food)).toEqual(without.legs.map((l) => l.food));
     expect(rested.summary.totalDays).toBe(without.summary.totalDays + 1.5);
+    // The hiker's hours per day reach the total: it halves when they double.
+    const longer = computeResupplyPlan(twoTownTrail(), null, { ...inputs, dailyHours: 16 });
+    expect(longer.summary.totalDays).toBeLessThan(without.summary.totalDays);
     expect(rested.summary.stopsChosen).toBe(1);
     // No camp plan is passed, so no leg carries an arrival day.
     expect(rested.legs.every((l) => l.arrival === undefined)).toBe(true);

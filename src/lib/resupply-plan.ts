@@ -47,9 +47,16 @@
  * Zero days at a stop (`zeroDays`, the hiker's, by option id) are days in
  * town: they add to the trip's days (`summariseResupplyPlan`'s `totalDays`),
  * but never to the food carried — a leg's food covers its walking days only.
- * Only a stop decided on one place takes them. They do not move a camp plan's
- * arrival days: its stops' extra nights are the rest it plans, and adding the
- * zero days too would count the same rest twice.
+ * Only a stop decided on one place takes them, and only a leg arriving there
+ * counts them ({@link legArrivesAtStop}), so a stop the walk starts from takes
+ * none in that view. They do not move a camp plan's arrival days: its stops'
+ * extra nights are the rest it plans, and adding the zero days too would count
+ * the same rest twice.
+ *
+ * Days are rounded up per leg, never for the trip. A leg's `estimatedDays` is
+ * whole days because its food has to last the part-day too; adding those up
+ * would charge the trip for a day at every stop, so `totalDays` comes from the
+ * legs' unrounded hours and can be fewer than the legs added together.
  *
  * Nothing here is cached. `computeResupplyLegs` walks the track once per leg,
  * which on a web (full-resolution) track is real work — callers recompute only
@@ -261,6 +268,8 @@ export interface ResupplyLeg extends ResupplyGap {
   descentM: number;
   /** Naismith hours over the track, rounded to 0.1 for display. */
   estimatedHours: number;
+  /** The same hours unrounded: what the days and the trip's total are worked from. */
+  walkingHours: number;
   /** max(1, ceil(hours / dailyHours)) — from the *unrounded* hours. */
   estimatedDays: number;
   /** `estimatedDays` is over the hiker's long-carry threshold. */
@@ -320,7 +329,7 @@ export interface ResupplyPlanSummary {
   heaviestFoodKg: number;
   /** All walking, trail and side trips, km (one decimal). Rides are not walking. */
   totalWalkingKm: number;
-  /** Walking days plus zero days. */
+  /** ceil(all the walking hours / hours per day) plus zero days; see {@link summariseResupplyPlan}. */
   totalDays: number;
   /** The zero days in that total. */
   zeroDays: number;
@@ -358,6 +367,9 @@ const TRAIL_END_NAME = 'Trail End';
 
 /** Floating-point slack, so a km difference of exactly the threshold still joins. */
 const KM_EPSILON = 1e-9;
+
+/** Floating-point slack on a sum of hours, so a whole number of days stays one. */
+const DAYS_EPSILON = 1e-9;
 
 /**
  * Every waypoint that could be a resupply option: the main route's, plus the
@@ -868,6 +880,7 @@ export function computeResupplyLegs(
       ascentM,
       descentM,
       estimatedHours: Math.round(rawHours * 10) / 10,
+      walkingHours: rawHours,
       estimatedDays,
       isLong: estimatedDays > longThresholdDays,
       // Walking days only: zero days are spent in town, eating town food.
@@ -899,6 +912,18 @@ function stopZeroDays(stop: ResupplyStop, zeroDays: ComputeResupplyLegsOptions['
   const id = stop.optionIds[0];
   const value = Object.prototype.hasOwnProperty.call(zeroDays, id) ? zeroDays[id] : undefined;
   return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : 0;
+}
+
+/**
+ * Whether a leg of these arrives at the stop at `km`. Zero days are counted on
+ * arrival, so a stop none arrives at takes none: where the walk starts — a
+ * trail's start (Albany, going south), or a section's — however many are
+ * stored. Web and phone both ask this before offering the input, so neither
+ * shows a figure the total leaves out. The run to the trail end is not an
+ * arrival at a stop, as in `computeResupplyLegs`.
+ */
+export function legArrivesAtStop(legs: readonly ResupplyLeg[], km: number): boolean {
+  return legs.some(leg => leg.toName !== TRAIL_END_NAME && Math.abs(leg.toKm - km) <= KM_EPSILON);
 }
 
 function rideOf(access: StopAccess, end: LegRide['end']): LegRide {
@@ -955,17 +980,27 @@ export function summariseResupplyLegs(legs: readonly ResupplyLeg[]): ResupplySum
  * The planner's headline figures, for the summary above the legs: stops
  * chosen, the longest leg (as walked), the most climbing on one leg, the
  * longest carry (days), the heaviest food carry, all the walking (trail and
- * side trips; rides are not walking) and the total days (walking days plus
- * zero days). Recovered from the legs alone, like {@link summariseResupplyLegs},
- * so it can never disagree with the table it sits above.
+ * side trips; rides are not walking) and the total days. Recovered from the
+ * legs, like {@link summariseResupplyLegs}, so it can never disagree with the
+ * table it sits above.
+ *
+ * `totalDays` is every walking hour over the hiker's hours per day, rounded up
+ * once, plus the zero days. It is not the legs' `estimatedDays` added up: each
+ * of those is rounded up for its food, so that sum grows with every stop ticked
+ * though the walk does not. Food stays per leg for the same reason in reverse:
+ * what is carried on a leg has to cover its last part-day.
+ *
+ * @param dailyHours the hiker's, as passed to `computeResupplyLegs`.
+ * @throws RangeError if `dailyHours` is not a positive finite number.
  */
-export function summariseResupplyPlan(legs: readonly ResupplyLeg[]): ResupplyPlanSummary {
+export function summariseResupplyPlan(legs: readonly ResupplyLeg[], dailyHours: number): ResupplyPlanSummary {
+  const hoursPerDay = requirePositive(dailyHours, 'dailyHours', 'summariseResupplyPlan');
   let longestLegKm = 0;
   let mostClimbM = 0;
   let longestCarryDays = 0;
   let heaviestFoodGrams = 0;
   let walkingKm = 0;
-  let walkingDays = 0;
+  let walkingHours = 0;
   let zeroDays = 0;
 
   for (const leg of legs) {
@@ -974,9 +1009,12 @@ export function summariseResupplyPlan(legs: readonly ResupplyLeg[]): ResupplyPla
     longestCarryDays = Math.max(longestCarryDays, leg.estimatedDays);
     heaviestFoodGrams = Math.max(heaviestFoodGrams, leg.food.weightGrams);
     walkingKm += leg.walkedKm;
-    walkingDays += leg.estimatedDays;
+    walkingHours += leg.walkingHours;
     zeroDays += leg.zeroDays;
   }
+
+  // At least a day once there is a leg, as for each leg's own days.
+  const walkingDays = legs.length === 0 ? 0 : Math.max(1, Math.ceil(walkingHours / hoursPerDay - DAYS_EPSILON));
 
   return {
     stopsChosen: summariseResupplyLegs(legs).stops,

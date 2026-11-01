@@ -16,6 +16,7 @@
  */
 
 import {
+  legArrivesAtStop,
   resupplyGroupChoice,
   type ResupplyGroupChoice,
   type ResupplyLeg,
@@ -59,6 +60,8 @@ export type PlannerRow =
       inSection: boolean;
       /** The chosen option's zero days (0 when none are set, or nothing is chosen). */
       zeroDays: number;
+      /** A leg arrives here, so zero days here count (`legArrivesAtStop`). */
+      arrivedAt: boolean;
     }
   | {
       kind: 'leg';
@@ -102,13 +105,14 @@ type LegRowValue = Extract<PlannerRow, { kind: 'leg' }>;
 
 /**
  * Whether two group rows draw the same: the same group (groups are memoised on
- * the trail, so identity is the test), section, choice and zero days.
+ * the trail, so identity is the test), section, arrival, choice and zero days.
  * `plannerRows` builds fresh row objects on every edit, so the screen's rows
  * are memoised on this rather than on identity — a tap re-renders the group
  * it changed and the legs either side, not all 70.
  */
 export function sameGroupRow(a: GroupRowValue, b: GroupRowValue): boolean {
   if (a.group !== b.group || a.inSection !== b.inSection || a.zeroDays !== b.zeroDays) return false;
+  if (a.arrivedAt !== b.arrivedAt) return false;
   if (a.choice.kind !== b.choice.kind) return false;
   return a.choice.kind !== 'chosen' || a.choice.optionId === (b.choice as typeof a.choice).optionId;
 }
@@ -222,6 +226,7 @@ export function plannerRows(
       choice,
       inSection,
       zeroDays: chosenId !== null ? zeroDaysOf(zeroDays, chosenId) : 0,
+      arrivedAt: legArrivesAtStop(legs, group.km),
     });
   }
   placeEnd();
@@ -372,9 +377,11 @@ export function chooseResupplyEditor(
   groups: readonly ResupplyOptionGroup[],
   groupKey: string,
   optionId: string | null,
+  everyOptionId: readonly string[],
   legacy: () => readonly string[] | undefined,
 ): (plan: PlanDocument) => PlanDocument {
-  return (plan) => chooseResupplyOption(withSelection(plan, legacy()), groups, groupKey, optionId);
+  return (plan) =>
+    chooseResupplyOption(withSelection(plan, legacy()), groups, groupKey, optionId, everyOptionId);
 }
 
 /**
@@ -396,16 +403,17 @@ export function waypointResupplyEditor(
   groups: readonly ResupplyOptionGroup[],
   optionId: string,
   select: boolean,
+  everyOptionId: readonly string[],
   legacy: () => readonly string[] | undefined,
 ): (plan: PlanDocument) => PlanDocument {
   return (plan) => {
     const group = groups.find((g) => g.options.some((o) => o.id === optionId));
     if (!group) return plan;
     const base = withSelection(plan, legacy());
-    if (select) return chooseResupplyOption(base, groups, group.key, optionId);
+    if (select) return chooseResupplyOption(base, groups, group.key, optionId, everyOptionId);
     const choice = resupplyGroupChoice(group, base.resupplyStops);
     if (choice.kind === 'chosen' && choice.optionId === optionId) {
-      return chooseResupplyOption(base, groups, group.key, null);
+      return chooseResupplyOption(base, groups, group.key, null, everyOptionId);
     }
     return plan;
   };
