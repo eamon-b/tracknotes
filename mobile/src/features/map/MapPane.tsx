@@ -36,7 +36,11 @@ import { routeBreakStarts } from '@lib/route-breaks';
 import { useTheme } from '../../theme';
 import { glyphSizes, radii, spacing, touchTarget, typography } from '../../tokens';
 import { readCorridorRecord } from '../../services/corridor-pack';
-import { resolveOfflinePack } from '../../services/offline-pack-resolver';
+import {
+  CORRIDOR_TILE_URLS,
+  CORRIDOR_TILES_CONFIGURED,
+  resolveOfflinePack,
+} from '../../services/offline-pack-resolver';
 import { useDownloadsStore } from '../../state/downloads-store';
 import { useFavoritesStore } from '../../state/favorites-store';
 import { usePlannedResupplyIds } from '../plan/use-planned-resupply';
@@ -96,8 +100,6 @@ import { VariantInfoCard } from './VariantInfoCard';
 
 /** Same env var the Offline Maps screen uses; empty disables re-download. */
 const TILE_BASE_URL = process.env.EXPO_PUBLIC_TILE_BASE_URL ?? '';
-/** Where a corridor pack's tiles come from (`services/corridor-pack`). */
-const CONTOUR_TILE_URL = process.env.EXPO_PUBLIC_CONTOUR_TILE_URL ?? '';
 
 export function MapPane() {
   const { colors } = useTheme();
@@ -157,7 +159,7 @@ export function MapPane() {
       setResolution(null);
       void startCorridorDownload(packTrailId, trail, {
         bufferKm: record.bufferKm,
-        tileUrl: CONTOUR_TILE_URL,
+        ...CORRIDOR_TILE_URLS,
         name: typeof trail.name === 'string' ? trail.name : undefined,
       });
       return;
@@ -168,13 +170,13 @@ export function MapPane() {
   }, [startDownload, startCorridorDownload, packTrailId, pack.kind, trail]);
 
   // Whether the banner can offer a re-download that will actually run: a
-  // corridor pack is rebuilt from the tile worker, and only at a width already
+  // corridor pack is rebuilt from the tile workers, and only at a width already
   // on disk; any other pack comes from the pack bucket. Re-read with the
   // degradation, which is what changes when the pack on disk does.
   const canRedownload = useMemo(() => {
     if (!packTrailId) return false;
     if (pack.kind === 'corridor') {
-      return CONTOUR_TILE_URL.length > 0 && readCorridorRecord(packTrailId) != null;
+      return CORRIDOR_TILES_CONFIGURED && readCorridorRecord(packTrailId) != null;
     }
     return TILE_BASE_URL.length > 0;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- degradation moves the disk

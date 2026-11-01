@@ -54,9 +54,6 @@ rebuilds both, or the lines visibly change when a phone goes offline.
 The `contours` source (an alias of `world`) and the top-level `ok` in `/health`
 are kept for clients outside the app; the app reads neither.
 
-One source here is the app's, not the dataset's: `base`, the Protomaps planet
-basemap (`basemap/planet.pmtiles`), which the phone reads alongside `world` to
-build offline maps for imported and community routes (`corridor-pack.ts`
-needs both `sources.base.ok` and `sources.world.ok`). Until the archive is
-uploaded, `/health` reports it as not found and those builds stop before
-fetching anything.
+The app's basemap is not part of the dataset. It runs the same `worker/` code
+as a second deployment, on the app's zone and bucket (`tiles.tracknotes.info`,
+`tracknotes-data`), so nothing here serves or pays for a planet.

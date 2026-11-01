@@ -61,8 +61,10 @@ export interface TrailDownload {
 export interface CorridorDownloadRequest {
   /** Corridor half-width the hiker chose, in km. */
   bufferKm: number;
-  /** Tile worker base URL (`EXPO_PUBLIC_CONTOUR_TILE_URL`). */
-  tileUrl: string;
+  /** The app's tile worker (`EXPO_PUBLIC_BASEMAP_TILE_URL`). */
+  basemapTileUrl: string;
+  /** The contour worker (`EXPO_PUBLIC_CONTOUR_TILE_URL`). */
+  contourTileUrl: string;
   /** Display name for the mbtiles metadata. */
   name?: string;
 }

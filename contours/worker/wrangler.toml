@@ -23,6 +23,31 @@ custom_domain = true
 binding = "TILES_BUCKET"
 bucket_name = "aus-map-data"
 
+# The settings above deploy the public contour dataset (`wrangler deploy`). Its
+# sources are the defaults in src/sources.ts.
+
 # Optionally lock CORS down in production:
 # [vars]
 # ALLOWED_ORIGIN = "https://tracknotes.info"
+
+# --- The app's own tile Worker ------------------------------------------------
+# The same code, deployed with `wrangler deploy --env app`, at tiles.tracknotes.info
+# from the app's bucket. It serves the `base` basemap only, so the public contour
+# endpoint never serves a planet from the dataset's bucket. `routes`, `vars` and
+# `r2_buckets` are given in full here, so none of the above's apply.
+[env.app]
+name = "tracknotes-tiles"
+
+[[env.app.routes]]
+pattern = "tiles.tracknotes.info"
+custom_domain = true
+
+[[env.app.r2_buckets]]
+binding = "TILES_BUCKET"
+bucket_name = "tracknotes-data"
+
+[env.app.vars]
+DEFAULT_SOURCE = "base"
+
+[env.app.vars.SOURCES]
+base = "basemap/planet.pmtiles"

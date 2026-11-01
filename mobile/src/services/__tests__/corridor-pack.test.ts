@@ -29,7 +29,8 @@ jest.mock('expo-file-system', () => require('./fake-tile-storage').fileSystemMod
 jest.mock('expo-sqlite', () => require('./fake-tile-storage').sqliteModule);
 /* eslint-enable @typescript-eslint/no-require-imports */
 
-const TILE_URL = 'https://tiles.example.net';
+const BASEMAP_URL = 'https://tiles.example.app';
+const CONTOUR_URL = 'https://tiles.example.net';
 const TRAIL_ID = 'u_route';
 /** ~1.8 km in South Australia. */
 const TRAIL = {
@@ -41,8 +42,9 @@ const TRAIL = {
   },
 };
 
-/** A worker whose `/health` serves both sources. */
-const HEALTHY = { ok: true, sources: { base: { ok: true }, world: { ok: true } } };
+/** Each worker's `/health`: neither serves the other's source. */
+const HEALTHY_BASEMAP = { ok: true, sources: { base: { ok: true } } };
+const HEALTHY_CONTOURS = { ok: true, sources: { world: { ok: true } } };
 
 type Responder = (
   url: string,
@@ -51,13 +53,18 @@ type Responder = (
 const PBF = new Uint8Array([0x1a, 0x02, 0x08, 0x01]);
 const fetchMock = jest.fn();
 let calls: string[] = [];
-let healthCalls = 0;
+let healthCalls: string[] = [];
 
-function respondWith(responder: Responder, health: unknown = HEALTHY): void {
+/** The `/health` body for a URL; an Error stands for that worker being unreachable. */
+const healthyAt = (url: string): unknown =>
+  url.startsWith(BASEMAP_URL) ? HEALTHY_BASEMAP : HEALTHY_CONTOURS;
+
+function respondWith(responder: Responder, healthAt: (url: string) => unknown = healthyAt): void {
   fetchMock.mockImplementation(async (url: string, init?: { signal?: AbortSignal }) => {
     if (init?.signal?.aborted) throw new Error('Aborted');
     if (url.endsWith('/health')) {
-      healthCalls++;
+      healthCalls.push(url);
+      const health = healthAt(url);
       if (health instanceof Error) throw health;
       return { status: 200, ok: true, text: async () => JSON.stringify(health) };
     }
@@ -81,7 +88,8 @@ function parse(url: string) {
 }
 
 const options = (overrides: Partial<Parameters<typeof downloadCorridorPack>[2]> = {}) => ({
-  tileUrl: TILE_URL,
+  basemapTileUrl: BASEMAP_URL,
+  contourTileUrl: CONTOUR_URL,
   bufferKm: 1,
   retryDelaysMs: [0, 0],
   concurrency: 4,
@@ -101,7 +109,7 @@ beforeEach(() => {
   resetRequestPacing();
   fetchMock.mockReset();
   calls = [];
-  healthCalls = 0;
+  healthCalls = [];
   tileService.clearMbtilesValidationCache();
   jest.spyOn(console, 'error').mockImplementation(() => {});
 });
@@ -279,29 +287,56 @@ describe('downloadCorridorPack', () => {
     expect(calls.length).toBeLessThan(planCorridor(TRAIL, 1)!.baseTiles);
   });
 
-  it("checks the worker's /health once before any tile", async () => {
+  it("checks each worker's /health once before any tile", async () => {
     respondWith(() => ({ status: 200, body: PBF }));
     await downloadCorridorPack(TRAIL_ID, TRAIL, options());
-    expect(healthCalls).toBe(1);
+    expect(healthCalls).toEqual([`${BASEMAP_URL}/health`, `${CONTOUR_URL}/health`]);
   });
 
-  it('fails before any tile when /health says a source is not served', async () => {
-    respondWith(() => ({ status: 200, body: PBF }), {
-      ok: true,
-      sources: {
-        world: { ok: true },
-        base: { ok: false, error: 'basemap/planet.pmtiles not found' },
-      },
-    });
+  it('takes the basemap from the app worker and the contours from the contour worker', async () => {
+    respondWith(() => ({ status: 200, body: PBF }));
+    await downloadCorridorPack(TRAIL_ID, TRAIL, options());
+    const from = (source: string) => calls.filter((u) => parse(u).source === source);
+    expect(from('base').length).toBeGreaterThan(0);
+    expect(from('world').length).toBeGreaterThan(0);
+    expect(from('base').every((u) => u.startsWith(`${BASEMAP_URL}/base/`))).toBe(true);
+    expect(from('world').every((u) => u.startsWith(`${CONTOUR_URL}/world/`))).toBe(true);
+  });
+
+  it('fails before any tile when the app worker says base is not served', async () => {
+    respondWith(
+      () => ({ status: 200, body: PBF }),
+      (url) =>
+        url.startsWith(BASEMAP_URL)
+          ? { ok: false, sources: { base: { ok: false, error: 'Archive not found' } } }
+          : HEALTHY_CONTOURS,
+    );
     const error = await downloadCorridorPack(TRAIL_ID, TRAIL, options()).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(TileServerNotReadyError);
-    expect((error as Error).message).toMatch(/base: basemap\/planet\.pmtiles not found/);
+    expect((error as Error).message).toMatch(/base: Archive not found/);
     expect(calls).toHaveLength(0);
     expect(readStoredManifest(TRAIL_ID)).toBeNull();
   });
 
-  it('fails before any tile when /health lacks a source entirely (an older worker)', async () => {
-    respondWith(() => ({ status: 200, body: PBF }), { ok: true, sources: { world: { ok: true } } });
+  it('fails before any tile when the contour worker says world is not served', async () => {
+    respondWith(
+      () => ({ status: 200, body: PBF }),
+      (url) =>
+        url.startsWith(BASEMAP_URL)
+          ? HEALTHY_BASEMAP
+          : { ok: false, sources: { world: { ok: false, error: 'Archive not found' } } },
+    );
+    await expect(downloadCorridorPack(TRAIL_ID, TRAIL, options())).rejects.toThrow(
+      /world: Archive not found/,
+    );
+    expect(calls).toHaveLength(0);
+  });
+
+  it('fails before any tile when /health lacks the source entirely (an older worker)', async () => {
+    respondWith(
+      () => ({ status: 200, body: PBF }),
+      () => ({ ok: true, sources: { contours: { ok: true } } }),
+    );
     await expect(downloadCorridorPack(TRAIL_ID, TRAIL, options())).rejects.toThrow(
       /base not served/,
     );
@@ -309,13 +344,27 @@ describe('downloadCorridorPack', () => {
   });
 
   it('says to check the connection when /health cannot be reached', async () => {
-    respondWith(() => ({ status: 200, body: PBF }), new TypeError('Network request failed'));
+    respondWith(
+      () => ({ status: 200, body: PBF }),
+      () => new TypeError('Network request failed'),
+    );
     await expect(downloadCorridorPack(TRAIL_ID, TRAIL, options())).rejects.toThrow(
       /Check the connection/,
     );
     // One try plus one per retry delay.
-    expect(healthCalls).toBe(3);
+    expect(healthCalls).toHaveLength(3);
     expect(calls).toHaveLength(0);
+  });
+
+  it('refuses to start without either worker URL', async () => {
+    respondWith(() => ({ status: 200, body: PBF }));
+    await expect(
+      downloadCorridorPack(TRAIL_ID, TRAIL, options({ basemapTileUrl: '' })),
+    ).rejects.toThrow(/No tile server/);
+    await expect(
+      downloadCorridorPack(TRAIL_ID, TRAIL, options({ contourTileUrl: '' })),
+    ).rejects.toThrow(/No tile server/);
+    expect(healthCalls).toHaveLength(0);
   });
 
   it('records which corridor an interrupted build holds, and clears it on success', async () => {
