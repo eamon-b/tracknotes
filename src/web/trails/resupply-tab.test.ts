@@ -277,6 +277,115 @@ describe('unticking options', () => {
 // All / None
 // ---------------------------------------------------------------------------
 
+describe('leaving inside the save debounce', () => {
+  it('saves the edit on pagehide, and only once', async () => {
+    await boot();
+    const key = `trail-plan-doc-${TRAIL_ID}`;
+    check('w_004').click();
+    expect(JSON.parse(localStorage.getItem(key) ?? '{}').resupplyStops).toBeUndefined();
+
+    window.dispatchEvent(new Event('pagehide'));
+    expect(JSON.parse(localStorage.getItem(key) ?? '{}').resupplyStops).not.toContain('w_004');
+
+    const writes = vi.spyOn(Storage.prototype, 'setItem');
+    flushSave();
+    window.dispatchEvent(new Event('pagehide'));
+    expect(writes.mock.calls.filter(([name]) => name === key)).toHaveLength(0);
+    writes.mockRestore();
+  });
+
+  it('writes nothing for a shared plan, which is only read', async () => {
+    document.documentElement.innerHTML = bundledPlanPageHtml()
+      .replace(/<!DOCTYPE html>/i, '')
+      .replace(/<\/?html[^>]*>/gi, '');
+    vi.resetModules();
+    const { initPlanViewer } = await import('./plan-viewer');
+    await initPlanViewer(TRAIL_ID, makeTrail() as never, {
+      readOnly: true,
+      preloadedPlan: {
+        id: 'shared',
+        trailId: TRAIL_ID,
+        name: 'Shared',
+        direction: 'NOBO',
+        startDate: null,
+        stops: [],
+        updatedAt: '2026-01-01T00:00:00.000Z',
+        version: 1,
+      } as never,
+    });
+    window.dispatchEvent(new Event('pagehide'));
+    expect(localStorage.getItem(`trail-plan-doc-${TRAIL_ID}`)).toBeNull();
+  });
+});
+
+describe('a selection holding a town on another route', () => {
+  const key = `trail-plan-doc-${TRAIL_ID}`;
+  const docWith = (over: Record<string, unknown>) => ({
+    id: 'plan-1',
+    trailId: TRAIL_ID,
+    name: 'Mine',
+    direction: 'NOBO',
+    startDate: null,
+    stops: [],
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    version: 1,
+    ...over,
+  });
+  const stored = () => JSON.parse(localStorage.getItem(key) ?? 'null');
+
+  it('keeps the id and its zero days through a tick', async () => {
+    localStorage.setItem(
+      key,
+      JSON.stringify(docWith({ resupplyStops: ['w_001', 'w_004', 'w_alt_town'], resupplyZeroDays: { w_alt_town: 2 } }))
+    );
+    await boot();
+    check('w_005').click();
+    check('w_001').click();
+    flushSave();
+    expect(stored().resupplyStops).toEqual(['w_004', 'w_alt_town', 'w_005']);
+    expect(stored().resupplyZeroDays).toEqual({ w_alt_town: 2 });
+  });
+
+  it('keeps it through All and None, which are about the route shown', async () => {
+    localStorage.setItem(
+      key,
+      JSON.stringify(docWith({ resupplyStops: ['w_001', 'w_alt_town'], resupplyZeroDays: { w_alt_town: 2 } }))
+    );
+    await boot();
+    $('resupply-none').click();
+    flushSave();
+    expect(stored().resupplyStops).toEqual(['w_alt_town']);
+    $('resupply-all').click();
+    flushSave();
+    expect(stored().resupplyStops).toEqual(['w_001', 'w_002', 'w_003', 'w_004', 'w_005', 'w_alt_town']);
+    expect(stored().resupplyZeroDays).toEqual({ w_alt_town: 2 });
+  });
+
+  it('writes out an alternate-only town on the first tick of a fresh plan', async () => {
+    const trail = makeTrail();
+    const points = trail.track.points.slice(1, 4).map(p => ({ lat: p.lat - 0.01, lon: p.lon, ele: p.ele }));
+    const withAlternate = {
+      ...trail,
+      alternates: [
+        {
+          name: 'Alt: Quorn',
+          type: 'alternate',
+          points,
+          distance: 22,
+          startDistance: 10,
+          endDistance: 30,
+          waypoints: [{ id: 'w_quorn', name: 'Quorn', type: 'town', totalDistance: 20 }],
+        },
+      ],
+    };
+    await boot(true, withAlternate);
+    check('w_001').click();
+    flushSave();
+    expect(stored().resupplyStops).toContain('w_quorn');
+    expect(stored().resupplyStops).not.toContain('w_001');
+  });
+});
+
 describe('the All and None buttons', () => {
   it('empties and refills the plan', async () => {
     await boot();

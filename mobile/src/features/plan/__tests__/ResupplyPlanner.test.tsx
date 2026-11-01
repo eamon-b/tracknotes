@@ -17,6 +17,7 @@ import {
   type ResupplyLeg,
   type ResupplyPlanSummary,
 } from '@lib/resupply-plan';
+import { TOTAL_DAYS_NOTE, ZERO_DAYS_AT_START_NOTE } from '@lib/resupply-display';
 import { ResupplyPlanner, type ResupplyPlannerProps } from '../ResupplyPlanner';
 import { plannerRows } from '../resupply-planner';
 
@@ -64,6 +65,7 @@ function leg(fromKm: number, toKm: number, over: Partial<ResupplyLeg> = {}): Res
     ascentM: 5120,
     descentM: 4870,
     estimatedHours: 44.6,
+    walkingHours: 44.6,
     food: { weightGrams: 4080, weightKg: 4.1, days: 6 },
     ...over,
   };
@@ -231,18 +233,45 @@ describe('ResupplyPlanner', () => {
   });
 
   it('offers zero days on a chosen stop only, and steps them by option id', () => {
-    const p = props(['w_salida', 'w_creede'], {}, [], { w_salida: 1.5 });
+    const arriving = [leg(0, 100), leg(100, 250)];
+    const p = props(['w_salida', 'w_creede'], {}, arriving, { w_salida: 1.5 });
     const tree = render(p);
     expect(allText(tree)).toContain('1½ days');
     act(() => control(tree, 'More zero days at Salida').onPress());
     expect(p.onZeroDays).toHaveBeenCalledWith('w_salida', 1);
 
     // Monarch Pass is undecided by default: no stepper there, only Creede's.
-    const undecided = render(props(undefined));
+    const undecided = render(props(undefined, {}, arriving));
     const stepperLabels = undecided.root
       .findAllByType(Text)
       .filter((n) => n.props.children === 'Zero days');
     expect(stepperLabels).toHaveLength(1);
+  });
+
+  it('says why there is no stepper where the walk starts, and keeps the figure', () => {
+    const section = { startKm: 250, endKm: 300, startName: 'Creede', endName: 'End' };
+    const rows = plannerRows(
+      groups,
+      ['w_creede'],
+      [leg(250, 300, { fromName: 'Creede', toName: 'Trail End' })],
+      section,
+      { w_creede: 2 },
+    );
+    const tree = render(props(['w_creede'], { rows }));
+    expect(allText(tree)).toContain(ZERO_DAYS_AT_START_NOTE);
+    expect(allText(tree)).not.toContain('2 days');
+    expect(
+      tree.root.findAll((n) => n.props.accessibilityLabel === 'More zero days at Creede'),
+    ).toEqual([]);
+    expect(
+      tree.root.findAll(
+        (n) => n.props.accessibilityLabel === `Zero days at Creede: ${ZERO_DAYS_AT_START_NOTE}`,
+      ).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it('says why the total can be less than the legs added up', () => {
+    expect(allText(render(props(undefined)))).toContain(TOTAL_DAYS_NOTE);
   });
 
   it('opens the inputs and clears the choices', () => {
@@ -350,7 +379,8 @@ describe('ResupplyPlanner', () => {
   });
 
   it('names the place or turn-off on every repeated control', () => {
-    const tree = render(props(['w_salida', 'w_creede'], {}, [], { w_salida: 1 }));
+    const arriving = [leg(0, 100), leg(100, 250)];
+    const tree = render(props(['w_salida', 'w_creede'], {}, arriving, { w_salida: 1 }));
     expect(control(tree, 'Fewer zero days at Salida')).toBeDefined();
     expect(control(tree, 'More zero days at Creede')).toBeDefined();
     expect(control(tree, 'None – carry through at Monarch Pass (US 50)')).toBeDefined();

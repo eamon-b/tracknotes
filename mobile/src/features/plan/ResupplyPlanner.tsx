@@ -34,6 +34,8 @@ import {
   legSideTripText,
   resupplyGroupName,
   resupplyOptionShortName,
+  TOTAL_DAYS_NOTE,
+  ZERO_DAYS_AT_START_NOTE,
   type LegEndpointNames,
 } from '@lib/resupply-display';
 import { useTheme } from '../../theme';
@@ -150,6 +152,9 @@ function PlannerHeader({
           <Text style={[styles.caption, { color: colors.textSecondary }]}>
             No legs to show: this trail has no length to plan over.
           </Text>
+        )}
+        {summary.hasData && (
+          <Text style={[styles.caption, { color: colors.textSecondary }]}>{TOTAL_DAYS_NOTE}</Text>
         )}
         {!hasOptions && summary.hasData && (
           <Text style={[styles.caption, { color: colors.textSecondary }]}>
@@ -321,7 +326,7 @@ function GroupRowView({
   onZeroDays: (optionId: string, direction: 1 | -1) => void;
 }) {
   const { colors } = useTheme();
-  const { group, choice, inSection, zeroDays } = row;
+  const { group, choice, inSection, zeroDays, arrivedAt } = row;
   const single = group.options.length === 1;
   const chosenId = choice.kind === 'chosen' ? choice.optionId : null;
   const chosen = group.options.find((option) => option.id === chosenId) ?? null;
@@ -399,7 +404,15 @@ function GroupRowView({
         </View>
       )}
 
-      {chosen !== null && inSection && (
+      {chosen !== null && inSection && !arrivedAt && (
+        <Text
+          style={[styles.caption, { color: colors.textSecondary }]}
+          accessibilityLabel={`Zero days at ${chosenName}: ${ZERO_DAYS_AT_START_NOTE}`}
+        >
+          {ZERO_DAYS_AT_START_NOTE}
+        </Text>
+      )}
+      {chosen !== null && inSection && arrivedAt && (
         <View style={styles.zeroRow}>
           <Text style={[styles.zeroLabel, { color: colors.textSecondary }]}>Zero days</Text>
           <View style={styles.stepper}>

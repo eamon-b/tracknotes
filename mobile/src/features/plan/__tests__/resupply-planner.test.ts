@@ -7,6 +7,7 @@
  */
 
 import {
+  allResupplyOptionIds,
   listResupplyOptions,
   type ResupplyCandidateWaypoint,
   type ResupplyLeg,
@@ -76,10 +77,14 @@ function leg(fromKm: number, toKm: number, over: Partial<ResupplyLeg> = {}): Res
     ascentM: 1000,
     descentM: 900,
     estimatedHours: 20,
+    walkingHours: 20,
     food: { weightGrams: 2040, weightKg: 2, days: 3 },
     ...over,
   };
 }
+
+/** Every option on every route: here, the one route's. */
+const EVERY = allResupplyOptionIds(groups);
 
 /** A compact picture of the rows: 'start', 'leg 0→100', 'group w_pass', … */
 function shape(rows: PlannerRow[]): string[] {
@@ -374,24 +379,62 @@ describe('zero days', () => {
   });
 });
 
+describe('zero days at a stop no leg arrives at', () => {
+  const groupRows = (rows: PlannerRow[]) =>
+    rows.filter((row): row is Extract<PlannerRow, { kind: 'group' }> => row.kind === 'group');
+  const section = { startKm: 100, endKm: 300, startName: 'Pass', endName: 'End' };
+
+  it('marks a section’s start stop as arrived at by nothing, and keeps its figure', () => {
+    const legs = [leg(100, 250, { fromName: 'Monarch Pass' }), leg(250, 300)];
+    const [pass, creede] = groupRows(
+      plannerRows(groups, ['w_salida', 'w_creede'], legs, section, { w_salida: 2 }),
+    );
+    expect(pass).toMatchObject({ arrivedAt: false, zeroDays: 2 });
+    expect(creede.arrivedAt).toBe(true);
+  });
+
+  it('tells a stop arrived at from one that is not, so a memoised row redraws', () => {
+    const selected = ['w_salida', 'w_creede'];
+    const whole = { startKm: 0, endKm: 300, startName: 'Start', endName: 'End' };
+    const [arrived] = groupRows(
+      plannerRows(groups, selected, [leg(0, 100), leg(100, 250), leg(250, 300)], whole, undefined),
+    );
+    expect(sameGroupRow(arrived, { ...arrived, arrivedAt: false })).toBe(false);
+  });
+});
+
 describe('chooseResupplyEditor', () => {
+  it('writes out the towns only another route reaches', () => {
+    const next = chooseResupplyEditor(
+      groups,
+      'w_creede',
+      null,
+      [...EVERY, 'w_quorn'],
+      () => undefined,
+    )(plan());
+    expect(next.resupplyStops).toContain('w_quorn');
+    expect(next.resupplyStops).not.toContain('w_creede');
+  });
+
   it('picks one place in a group, keeping every other group as it read', () => {
-    const next = chooseResupplyEditor(groups, 'w_pass', 'w_salida', () => undefined)(plan());
+    const next = chooseResupplyEditor(groups, 'w_pass', 'w_salida', EVERY, () => undefined)(plan());
     expect(next.resupplyStops).toEqual(['w_salida', 'w_creede']);
   });
 
   it('carries a group through with null', () => {
-    const next = chooseResupplyEditor(groups, 'w_creede', null, () => undefined)(plan());
+    const next = chooseResupplyEditor(groups, 'w_creede', null, EVERY, () => undefined)(plan());
     expect(next.resupplyStops).toEqual(['w_pass', 'w_salida']);
   });
 
   it('starts from a selection an older build left on the device', () => {
-    const next = chooseResupplyEditor(groups, 'w_pass', 'w_salida', () => ['w_pass'])(plan());
+    const next = chooseResupplyEditor(groups, 'w_pass', 'w_salida', EVERY, () => ['w_pass'])(
+      plan(),
+    );
     expect(next.resupplyStops).toEqual(['w_salida']);
   });
 
   it('prefers the document’s selection over the device-local one', () => {
-    const next = chooseResupplyEditor(groups, 'w_pass', null, () => ['w_pass'])(
+    const next = chooseResupplyEditor(groups, 'w_pass', null, EVERY, () => ['w_pass'])(
       plan({ resupplyStops: ['w_salida', 'w_creede'] }),
     );
     expect(next.resupplyStops).toEqual(['w_creede']);
@@ -399,13 +442,25 @@ describe('chooseResupplyEditor', () => {
 });
 
 describe('waypointResupplyEditor', () => {
+  it('keeps the zero days of a town on an alternate when a main-route town is planned', () => {
+    const rested = plan({ resupplyZeroDays: { w_quorn: 2 } });
+    const next = waypointResupplyEditor(
+      groups,
+      'w_salida',
+      true,
+      [...EVERY, 'w_quorn'],
+      () => undefined,
+    )(rested);
+    expect(next.resupplyStops).toContain('w_quorn');
+    expect(next.resupplyZeroDays).toEqual({ w_quorn: 2 });
+  });
+
   const none = () => undefined;
 
   it('plans a place by choosing it in its group', () => {
-    expect(waypointResupplyEditor(groups, 'w_salida', true, none)(plan()).resupplyStops).toEqual([
-      'w_salida',
-      'w_creede',
-    ]);
+    expect(
+      waypointResupplyEditor(groups, 'w_salida', true, EVERY, none)(plan()).resupplyStops,
+    ).toEqual(['w_salida', 'w_creede']);
   });
 
   it('removes the chosen place by carrying the group through', () => {
@@ -413,33 +468,32 @@ describe('waypointResupplyEditor', () => {
       groups,
       'w_salida',
       false,
+      EVERY,
       none,
     )(plan({ resupplyStops: ['w_salida', 'w_creede'] }));
     expect(next.resupplyStops).toEqual(['w_creede']);
   });
 
   it('is Yes/No on a lone place', () => {
-    const off = waypointResupplyEditor(groups, 'w_creede', false, none)(plan());
+    const off = waypointResupplyEditor(groups, 'w_creede', false, EVERY, none)(plan());
     expect(off.resupplyStops).toEqual(['w_pass', 'w_salida']);
-    expect(waypointResupplyEditor(groups, 'w_creede', true, none)(off).resupplyStops).toEqual([
-      'w_pass',
-      'w_salida',
-      'w_creede',
-    ]);
+    expect(
+      waypointResupplyEditor(groups, 'w_creede', true, EVERY, none)(off).resupplyStops,
+    ).toEqual(['w_pass', 'w_salida', 'w_creede']);
   });
 
   it('changes nothing when removing a place that is not the group’s choice', () => {
     const doc = plan();
-    expect(waypointResupplyEditor(groups, 'w_salida', false, none)(doc)).toBe(doc);
+    expect(waypointResupplyEditor(groups, 'w_salida', false, EVERY, none)(doc)).toBe(doc);
   });
 
   it('leaves the plan alone for an id no group offers', () => {
     const doc = plan();
-    expect(waypointResupplyEditor(groups, 'w_nowhere', true, none)(doc)).toBe(doc);
+    expect(waypointResupplyEditor(groups, 'w_nowhere', true, EVERY, none)(doc)).toBe(doc);
   });
 
   it('builds on the device-local selection while the document has none', () => {
-    const next = waypointResupplyEditor(groups, 'w_salida', true, () => ['w_pass'])(plan());
+    const next = waypointResupplyEditor(groups, 'w_salida', true, EVERY, () => ['w_pass'])(plan());
     expect(next.resupplyStops).toEqual(['w_salida']);
   });
 });

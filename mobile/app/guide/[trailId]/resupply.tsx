@@ -27,6 +27,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import type { SectionConfig } from '@lib/plan-types';
+import { everyRouteResupplyOptionIds } from '@lib/plan-alternates';
 import { useGuide } from '../../../src/features/guide/GuideContext';
 import { ResupplyPlanner } from '../../../src/features/plan/ResupplyPlanner';
 import { WalkingInputsCard } from '../../../src/features/plan/PlanInputsCard';
@@ -49,7 +50,7 @@ import {
   resupplyGroupsFor,
 } from '../../../src/features/plan/use-planned-resupply';
 import { selectPlan, usePlansStore } from '../../../src/state/plans-store';
-import { usePlanRoute } from '../../../src/features/plan/use-plan-route';
+import { plannableTrail, usePlanRoute } from '../../../src/features/plan/use-plan-route';
 import { useSettingsStore } from '../../../src/state/settings-store';
 
 /** How far past the route's end a passed section may reach and still be taken. */
@@ -65,7 +66,11 @@ export default function ResupplyScreen() {
   const plan = usePlansStore(selectPlan(trailId));
   // The route the plan walks, so a town on an alternate the plan takes is
   // offered, and the section's km (route km, from the Plan screen) line up.
-  const { trail } = usePlanRoute(plan);
+  const { trail, baseTrail } = usePlanRoute(plan);
+  const everyOptionId = useMemo(
+    () => everyRouteResupplyOptionIds(plannableTrail(baseTrail)),
+    [baseTrail],
+  );
   const units = useSettingsStore((s) => s.units);
   const params = useLocalSearchParams<{
     startKm?: string;
@@ -153,9 +158,13 @@ export default function ResupplyScreen() {
   const onChoose = useCallback(
     (groupKey: string, optionId: string | null) => {
       const legacy = () => selectPrefs(trailId)(usePlanInputsStore.getState()).resupplyStops;
-      void applyEdit(trailId, chooseResupplyEditor(groups, groupKey, optionId, legacy), defaults);
+      void applyEdit(
+        trailId,
+        chooseResupplyEditor(groups, groupKey, optionId, everyOptionId, legacy),
+        defaults,
+      );
     },
-    [applyEdit, defaults, groups, trailId],
+    [applyEdit, defaults, everyOptionId, groups, trailId],
   );
   const onZeroDays = useCallback(
     (optionId: string, step: 1 | -1) => {
