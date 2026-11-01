@@ -49,13 +49,16 @@ import {
   readCorridorRecord,
   tooLargeMessage,
 } from '../../../src/services/corridor-pack';
-import { offlinePackPlan, resolveOfflinePack } from '../../../src/services/offline-pack-resolver';
+import {
+  CORRIDOR_TILE_URLS,
+  CORRIDOR_TILES_CONFIGURED,
+  offlinePackPlan,
+  resolveOfflinePack,
+} from '../../../src/services/offline-pack-resolver';
 import { tileManager } from '../../../src/services/tile-manager';
 import { useDownloadsStore, type TrailDownload } from '../../../src/state/downloads-store';
 
 const TILE_BASE_URL = process.env.EXPO_PUBLIC_TILE_BASE_URL ?? '';
-/** The tile worker a corridor pack is built from. */
-const CONTOUR_TILE_URL = process.env.EXPO_PUBLIC_CONTOUR_TILE_URL ?? '';
 
 /** Corridor widths offered, in km either side of the route. */
 const CORRIDOR_WIDTH_CHOICES_KM = [2, 5, 10, 20] as const;
@@ -148,7 +151,7 @@ export default function DownloadsScreen() {
     record != null && corridor != null && record.sourceVersion !== corridor.sourceVersion;
   const widthChanged = record != null && record.bufferKm !== bufferKm;
 
-  const missingBaseUrl = plan.corridor ? CONTOUR_TILE_URL.length === 0 : TILE_BASE_URL.length === 0;
+  const missingBaseUrl = plan.corridor ? !CORRIDOR_TILES_CONFIGURED : TILE_BASE_URL.length === 0;
   const canDownload =
     plan.packAvailable &&
     !missingBaseUrl &&
@@ -160,7 +163,7 @@ export default function DownloadsScreen() {
     if (plan.corridor) {
       void startCorridorDownload(packTrailId, trail, {
         bufferKm,
-        tileUrl: CONTOUR_TILE_URL,
+        ...CORRIDOR_TILE_URLS,
         name: title,
       });
     } else {
@@ -326,8 +329,10 @@ export default function DownloadsScreen() {
 
       {missingBaseUrl && plan.packAvailable && (
         <Text style={[styles.warning, { color: colors.warning }]}>
-          {plan.corridor ? 'EXPO_PUBLIC_CONTOUR_TILE_URL' : 'EXPO_PUBLIC_TILE_BASE_URL'} is not set
-          — downloads are disabled.
+          {plan.corridor
+            ? 'EXPO_PUBLIC_BASEMAP_TILE_URL or EXPO_PUBLIC_CONTOUR_TILE_URL'
+            : 'EXPO_PUBLIC_TILE_BASE_URL'}{' '}
+          is not set — downloads are disabled.
         </Text>
       )}
 

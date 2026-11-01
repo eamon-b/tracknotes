@@ -61,6 +61,11 @@
  *                           edge (the purge of /contours/* took effect). Both
  *                           archives were tiered, so the density check alone
  *                           cannot tell them apart.
+ *   8. Basemap            — (--base, and every full run) the app's own tile
+ *                           worker reports `sources.base.ok` with the planet's
+ *                           maxZoom 15 and world bounds: corridor packs stop at
+ *                           this health check without it. Only a warning until
+ *                           the planet is uploaded (BASEMAP_UPLOADED below).
  *
  * No build state or external npm deps required — reads only the committed
  * trail index, hits public URLs, uses Node's built-in fetch + zlib. Exits
@@ -71,7 +76,9 @@
  *         node scripts/e2e-tile-check.mjs --tiered   # tiered contours only
  *         node scripts/e2e-tile-check.mjs --packs --tiered  # packs, and tiered contours
  *         node scripts/e2e-tile-check.mjs --alias    # contours alias of world (after deploy + purge)
+ *         node scripts/e2e-tile-check.mjs --base     # the app tile worker's basemap
  * Env:    CONTOUR_TILE_URL   (default: the worker the app's builds use)
+ *         BASEMAP_TILE_URL   (default: the app tile worker the app's builds use)
  *         TILE_BASE_URL      (default: the pack host the app's builds use)
  *
  * The defaults are the URLs in mobile/eas.json, so the probes go through the
@@ -84,6 +91,7 @@ import { httpRangeReader, readPrefix, readZoomTiles } from './lib/http-mbtiles.m
 import { checkZ9Tiered } from './lib/mvt-contours.mjs';
 
 const CONTOUR_URL = (process.env.CONTOUR_TILE_URL || 'https://tiles.contour-map-tiles.net').replace(/\/$/, '');
+const BASEMAP_URL = (process.env.BASEMAP_TILE_URL || 'https://tiles.tracknotes.info').replace(/\/$/, '');
 const TILE_BASE_URL = (process.env.TILE_BASE_URL || 'https://data.tracknotes.info').replace(/\/$/, '');
 
 // ---------------------------------------------------------------------------
@@ -186,6 +194,8 @@ function isValidMvt(buf) {
 
 const failures = [];
 const notes = [];
+// Printed on every run, passing or not, unlike `notes`; they fail nothing.
+const warnings = [];
 
 /**
  * Node's fetch (undici) transparently decompresses gzip responses even when
@@ -792,21 +802,71 @@ async function checkTieredPacks() {
   });
 }
 
-async function checkGridBaseReachable() {
-  // Light reachability check on the R2 map-tile bucket (grid index).
-  const url = `${TILE_BASE_URL}/grid/index.json`;
+// ---------------------------------------------------------------------------
+// The app's basemap (#269): the `base` source of the app's own tile worker, a
+// second deployment of contours/worker. A corridor pack needs it, and stops at
+// its health check without it (mobile/src/services/corridor-pack.ts).
+// ---------------------------------------------------------------------------
+
+/**
+ * False until the planet is in `tracknotes-data`: an app worker that is not
+ * deployed yet, or has no archive, is expected and only warns. Set it to true
+ * once the upload is done, so that losing the basemap fails this check. An
+ * archive that is there is held to the checks below either way.
+ */
+const BASEMAP_UPLOADED = false;
+const BASEMAP_SOURCE = 'base';
+/** A whole planet, not an extract: corridor packs are built anywhere on Earth. */
+const WORLD_MIN_LON_SPAN = 350;
+
+function basemapNotReady(message) {
+  console.log(`      ${BASEMAP_UPLOADED ? '✗' : '⚠'} ${message}`);
+  (BASEMAP_UPLOADED ? failures : warnings).push(`[basemap] ${message}`);
+}
+
+async function checkBasemapHealth() {
+  console.log(`\n[basemap] App tile worker /health (the gate on corridor packs)`);
+  console.log(`      ${BASEMAP_URL}`);
+
+  let health;
   try {
-    const res = await fetch(url);
-    if (res.status === 200) {
-      const json = await res.json();
-      const cells = Array.isArray(json?.cells) ? json.cells.length : Object.keys(json || {}).length;
-      console.log(`\n[grid] ✓ ${url} reachable (index lists ${cells} entries)`);
-    } else {
-      notes.push(`[grid] ${url} → HTTP ${res.status} (grid upload may be pending)`);
-      console.log(`\n[grid] ⚠ ${url} → HTTP ${res.status} (non-fatal)`);
+    const res = await fetch(`${BASEMAP_URL}/health`, { headers: { Accept: 'application/json' } });
+    // 503 is /health saying its default source is down: read the body for why.
+    if (res.status !== 200 && res.status !== 503) {
+      basemapNotReady(`/health → HTTP ${res.status}`);
+      return;
     }
+    health = await res.json();
   } catch (e) {
-    console.log(`\n[grid] ⚠ ${url} unreachable: ${e.message} (non-fatal)`);
+    basemapNotReady(`/health unreadable: ${e.cause?.message ?? e.message}`);
+    return;
+  }
+
+  const body = health?.sources?.[BASEMAP_SOURCE];
+  if (body?.ok !== true) {
+    basemapNotReady(
+      `/health sources.${BASEMAP_SOURCE}.ok=${JSON.stringify(body?.ok)}` +
+        (body?.error ? ` — worker error: ${body.error}` : '')
+    );
+    return;
+  }
+  console.log(`      ✓ sources.${BASEMAP_SOURCE}.ok: true (${body.archive?.key ?? 'unnamed archive'})`);
+
+  const { maxZoom, minLon, maxLon } = body.tiles ?? {};
+  if (maxZoom === EXPECTED_MAX_ZOOM) {
+    console.log(`      ✓ archive maxZoom ${maxZoom}`);
+  } else {
+    failures.push(
+      `[basemap] archive maxZoom is ${maxZoom}, expected ${EXPECTED_MAX_ZOOM}: corridor packs ask for tiles to z15`
+    );
+  }
+  if (maxLon - minLon >= WORLD_MIN_LON_SPAN) {
+    console.log(`      ✓ archive spans ${minLon} to ${maxLon}`);
+  } else {
+    failures.push(
+      `[basemap] archive spans longitudes ${minLon} to ${maxLon}, not the world: an extract, not the planet ` +
+        '(contours/worker/README.md)'
+    );
   }
 }
 
@@ -820,11 +880,13 @@ async function main() {
   // Opt-in, not part of --tiered: it can only pass once #228 is deployed and
   // the edge purged, and the tile-packs workflow runs --tiered on the PR.
   const alias = process.argv.includes('--alias');
-  if (packs || tiered || alias) {
+  const basemap = process.argv.includes('--base');
+  if (packs || tiered || alias || basemap) {
     if (packs) await checkTrailOfflineArtifacts();
     if (tiered) await checkTieredSpotTiles();
     if (tiered) await checkTieredPacks();
     if (alias) await checkContoursAlias();
+    if (basemap) await checkBasemapHealth();
   } else {
     await checkContourHealth();
     await checkContourWorker();
@@ -833,10 +895,14 @@ async function main() {
     await checkTieredSpotTiles();
     await checkContoursAlias();
     await checkTieredPacks();
-    await checkGridBaseReachable();
+    await checkBasemapHealth();
   }
 
   console.log('\n' + '='.repeat(70));
+  if (warnings.length > 0) {
+    console.log(`${warnings.length} warning(s), not failures:`);
+    for (const w of warnings) console.log(`  ⚠ ${w}`);
+  }
   if (failures.length === 0) {
     console.log('RESULT: PASS — every check run succeeded.');
     console.log('='.repeat(70));

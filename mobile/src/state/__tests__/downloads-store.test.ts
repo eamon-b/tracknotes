@@ -21,6 +21,11 @@ jest.mock('../../services/corridor-pack', () => {
 const mockCorridorDownload = downloadCorridorPack as jest.Mock;
 const mockCorridorRecord = readCorridorRecord as jest.Mock;
 const ROUTE = { track: { points: [{ lat: -35, lon: 140 }] } };
+const REQUEST = {
+  bufferKm: 5,
+  basemapTileUrl: 'https://tiles.example.app',
+  contourTileUrl: 'https://tiles.example.net',
+};
 
 jest.mock('../../services/tile-manager', () => ({
   tileManager: {
@@ -305,14 +310,12 @@ describe('downloads-store', () => {
       );
       mockGetStatus.mockReturnValue(status('complete'));
 
-      await useDownloadsStore
-        .getState()
-        .startCorridorDownload('u_x', ROUTE, { bufferKm: 5, tileUrl: 'https://tiles.example' });
+      await useDownloadsStore.getState().startCorridorDownload('u_x', ROUTE, REQUEST);
 
       expect(mockCorridorDownload).toHaveBeenCalledWith(
         'u_x',
         ROUTE,
-        expect.objectContaining({ bufferKm: 5, tileUrl: 'https://tiles.example' }),
+        expect.objectContaining(REQUEST),
       );
       expect(seen).toEqual([0.25]);
       const s = useDownloadsStore.getState().get('u_x');
@@ -331,9 +334,7 @@ describe('downloads-store', () => {
       );
       mockGetStatus.mockReturnValue(status('absent'));
 
-      const run = useDownloadsStore
-        .getState()
-        .startCorridorDownload('u_x', ROUTE, { bufferKm: 5, tileUrl: 'https://tiles.example' });
+      const run = useDownloadsStore.getState().startCorridorDownload('u_x', ROUTE, REQUEST);
       expect(useDownloadsStore.getState().get('u_x').downloading).toBe(true);
       useDownloadsStore.getState().cancel('u_x');
       await run;
@@ -357,9 +358,7 @@ describe('downloads-store', () => {
       );
       mockGetStatus.mockReturnValue(status('absent'));
 
-      void useDownloadsStore
-        .getState()
-        .startCorridorDownload('u_x', ROUTE, { bufferKm: 5, tileUrl: 'https://tiles.example' });
+      void useDownloadsStore.getState().startCorridorDownload('u_x', ROUTE, REQUEST);
       let cancelled = false;
       const cancel = useDownloadsStore
         .getState()
@@ -389,7 +388,7 @@ describe('downloads-store', () => {
       mockGetStatus.mockReturnValue(status('absent'));
       await useDownloadsStore
         .getState()
-        .startCorridorDownload('u_x', ROUTE, { bufferKm: 20, tileUrl: 'https://tiles.example' });
+        .startCorridorDownload('u_x', ROUTE, { ...REQUEST, bufferKm: 20 });
       expect(useDownloadsStore.getState().get('u_x').error).toBe('Choose a narrower corridor.');
     });
 
