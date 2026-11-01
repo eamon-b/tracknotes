@@ -1,6 +1,8 @@
 # contour-tiles worker
 
-Serves contour vector tiles out of PMTiles archives on R2.
+Serves vector tiles out of PMTiles archives on R2. The same code is deployed
+twice (see [Deployments](#deployments)): this README is mainly about the first,
+the public contour dataset.
 
 - Public hostname: `https://tiles.contour-map-tiles.net` (the only one: the
   `workers.dev` URL is off, `workers_dev = false`, issue #159)
@@ -24,19 +26,47 @@ for clients that can only consume z/x/y URLs.
 
 ```bash
 npm run dev      # wrangler dev
-npm run deploy   # wrangler deploy (requires `wrangler login`)
+npm run deploy   # wrangler deploy (requires `wrangler login`): the contour dataset
+npx wrangler deploy --env app  # the app's tile Worker
 npx tsc --noEmit # typecheck
 ```
 
+## Deployments
+
+| | Contour dataset | App tile Worker |
+| --- | --- | --- |
+| Deploy with | `wrangler deploy` | `wrangler deploy --env app` |
+| Worker | `contour-tiles` | `tracknotes-tiles` |
+| Hostname | `tiles.contour-map-tiles.net` | `tiles.tracknotes.info` |
+| R2 bucket | `aus-map-data` | `tracknotes-data` |
+| Sources | `world`, `contours` (defaults in `src/sources.ts`) | `base` (`[env.app.vars]`) |
+| `/health` follows | `world` | `base` |
+
+A deployment that sets its own sources sets `SOURCES` (a table of source name
+to R2 key) and `DEFAULT_SOURCE` together in `wrangler.toml`. With neither, it
+serves the defaults in `src/sources.ts`. Anything else, such as a `DEFAULT_SOURCE`
+that is not one of its `SOURCES`, makes every request fail rather than quietly
+serving the dataset's sources from the wrong bucket.
+
+The app's Worker exists so that the public endpoint does not serve a whole
+planet basemap to anyone at our bandwidth cost, from the dataset's bucket
+(issue #269). Its requests and R2 reads are the app's, and the zone in front of
+it is `tracknotes.info`.
+
 ## Sources
 
-The `{source}` path segment selects one PMTiles archive. The mapping is the
-`SOURCES` record in `src/sources.ts`:
+The `{source}` path segment selects one PMTiles archive. The dataset's mapping
+is the `SOURCES` record in `src/sources.ts`:
 
 | Source | R2 key |
 | --- | --- |
 | `world` | `contours/world.pmtiles` |
 | `contours` | `contours/world.pmtiles` (alias) |
+
+The app's Worker has one:
+
+| Source | R2 key |
+| --- | --- |
 | `base` | `basemap/planet.pmtiles` |
 
 `contours` served the Australia archive (`contours/australia.pmtiles`,
@@ -56,13 +86,14 @@ be a whole-planet daily build from build.protomaps.com (~120 GB; not
 extract) whose basemap major version matches `scripts/topo-style.json` (v4).
 It is over wrangler's size limit; rclone streams it from the build server
 straight into R2, without a local copy:
-`rclone copyurl https://build.protomaps.com/<YYYYMMDD>.pmtiles r2:aus-map-data/basemap/planet.pmtiles`
-(then check `sources.base` in the Worker's `/health` shows maxZoom 15 and world bounds).
+`rclone copyurl https://build.protomaps.com/<YYYYMMDD>.pmtiles r2:tracknotes-data/basemap/planet.pmtiles`
+(then check `sources.base` in `https://tiles.tracknotes.info/health` shows maxZoom 15 and world
+bounds; `node scripts/e2e-tile-check.mjs --base` from the repo root does).
 Replacing it is safe while phones download: the etag-mismatch retry below picks
 up the new archive, and a pack built across the switch mixes two builds of the
 same schema.
 
-**Adding a tileset is one entry in `SOURCES` plus uploading the archive to R2** —
+**Adding a tileset to the dataset is one entry in `SOURCES` plus uploading the archive to R2** —
 routing, the PMTiles instance cache (keyed by R2 key, so aliases share one
 instance), edge caching (already keyed by
 the full pathname, which includes the source segment) and `/health` all pick it
@@ -74,12 +105,12 @@ condition: it serves `500`s for tiles and reports `ok: false` under
 
 ### `/health` shape
 
-Top-level fields describe `DEFAULT_SOURCE` (`world`) in the shape they always
-had (`ok`, plus `archive`/`tiles` when healthy or `error` when not), and the
-overall HTTP status follows that source alone. Shipped app builds read the
-top-level `ok` as the health of `contours`, which still holds because
-`contours` is an alias of `world`. A `sources` object adds the per-source
-breakdown:
+Top-level fields describe the deployment's default source (`world` on the
+dataset, `base` on the app's Worker) in the shape they always had (`ok`, plus
+`archive`/`tiles` when healthy or `error` when not), and the overall HTTP status
+follows that source alone. Shipped app builds read the top-level `ok` as the
+health of `contours`, which still holds because `contours` is an alias of
+`world`. A `sources` object adds the per-source breakdown:
 
 ```json
 {
@@ -137,7 +168,8 @@ and `/world/…` serve byte-identical tiles. A purge clears only the edge:
 browsers and phones may keep tiles they already hold for their `max-age`
 (86400 s), so devices can show the old lines for up to a day after it.
 
-The source → archive mapping lives in `src/sources.ts`, free of runtime
+The source → archive mapping and the choice of a deployment's sources live in
+`src/sources.ts`, free of runtime
 dependencies so the root suite tests it (`src/lib/contour-worker-sources.test.ts`).
 
 ## CORS

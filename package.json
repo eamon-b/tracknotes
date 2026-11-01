@@ -27,7 +27,7 @@
     "fetch:fonts": "tsx scripts/fetch-font-glyphs.ts",
     "upload:tiles": "bash scripts/upload-tiles.sh",
     "cleanup:tiles": "tsx scripts/cleanup-superseded-tiles.ts",
-    "check:tile-packs": "node scripts/e2e-tile-check.mjs --packs --tiered",
+    "check:tile-packs": "node scripts/e2e-tile-check.mjs --packs --tiered --base",
     "check:tiered": "node scripts/e2e-tile-check.mjs --tiered",
     "check:contours-alias": "node scripts/e2e-tile-check.mjs --alias",
     "upload:descriptions": "tsx scripts/upload-descriptions.ts",

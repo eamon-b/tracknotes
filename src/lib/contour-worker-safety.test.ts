@@ -11,7 +11,9 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 // The worker's own parser (a dependency-free module), not a copy of it.
 import { parseTilePath } from '../../contours/worker/src/tile-path';
-import { isKnownSource as isAllowedSource } from '../../contours/worker/src/sources';
+import { isKnownSource, resolveSourceConfig } from '../../contours/worker/src/sources';
+
+const isAllowedSource = (source: string): boolean => isKnownSource(resolveSourceConfig({}), source);
 
 describe('parseTilePath', () => {
   it('parses valid contour tile path', () => {

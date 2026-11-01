@@ -31,6 +31,7 @@ EAS profiles (`eas.json`): `base`, `development`, `development-device`, `preview
 ```
 EXPO_PUBLIC_API_BASE_URL=http://localhost:8787          # deployed: https://api.tracknotes.info
 EXPO_PUBLIC_CONTOUR_TILE_URL=https://tiles.contour-map-tiles.net   # unset: maps silently render without contours
+EXPO_PUBLIC_BASEMAP_TILE_URL=https://tiles.tracknotes.info   # unset (or no contour URL): no offline maps built for imported/community routes
 EXPO_PUBLIC_TILE_BASE_URL=https://data.tracknotes.info       # unset: Offline Maps disables downloads
 ```
 
