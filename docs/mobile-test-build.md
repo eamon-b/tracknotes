@@ -103,8 +103,13 @@ because the package name and signing key are the same.
   crash report. Since Expo SDK 58, compiling all four ABIs overlaps the JVMs, Metro, `hermesc`
   and clang by more than the worker has (build `8ad43463`, killed in worklets `x86_64`), which
   is why `eas.json` builds two. If it comes back, take an ABI off the failing profile, or set
-  `android.resourceClass` to `large` in `eas.json` if the Expo plan allows it. The GitHub log
-  only says `Build failed`; the Gradle output is on the EAS build page.
+  `android.resourceClass` to `large` in `eas.json` if the Expo plan allows it (the account is on
+  the Free plan). The GitHub log only says `Build failed`; the Gradle output is on the EAS build
+  page.
+- **`This account has used its Android builds from the Free plan this month`** — not a build
+  failure. EAS refuses the build straight after the upload, so no build page exists and the
+  Actions run fails in the *EAS build* step after about two minutes. The message gives the reset
+  date.
 - **`Distribution Certificate is not validated for non-interactive builds`** — iOS only. The
   first iOS build has to be run interactively (`eas build --profile preview --platform ios`
   without `--non-interactive`) with an Apple sign-in so EAS can validate the certificate;
