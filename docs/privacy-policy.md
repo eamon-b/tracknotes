@@ -14,7 +14,7 @@ Store listings (issue #31). Reviewed by the owner (2026-10-31); it has had no
 legal read.
 -->
 
-**Last updated: 2026-11-01**
+**Last updated: 2026-11-02**
 
 Tracknotes is a hiking guide app for long-distance trails, mostly in
 Australia, with built-in guides for New Zealand, the United States and Japan,
@@ -285,8 +285,30 @@ collect personal information from them.
 
 ## Contact
 
-Questions or removal requests:
-[privacy@tracknotes.info](mailto:privacy@tracknotes.info)
+[privacy@tracknotes.info](mailto:privacy@tracknotes.info) is our one address
+for everything: questions, takedown and removal requests (the
+[terms of service](https://tracknotes.info/terms.html) cover takedowns), privacy
+requests and complaints. If you email us, we use your address only to deal with
+your message.
+
+**Access and correction.** Ask us what we hold about you, or ask us to correct
+it, and we will respond within 30 days. You can do much of this yourself: see
+**Getting a copy of your comments** above, change your display name in Settings
+(on the phone), and edit your shared waypoints and community routes. Comments
+cannot be edited: to correct one, delete it and post it again. We can change
+only our own copy, not copies others have already made.
+
+We hold no name or email for you, and display names are not unique, so tell us
+the display name you use and expect us to ask you to show the account is yours,
+for example by posting a short code from it. We will not hand over or change
+anything until you have. If we cannot tie you to an account, we will tell you.
+
+**Complaints.** Email us what went wrong with how we handled your information.
+We will look into it and reply within 30 days with what we found and what we
+will do about it. If you are not happy with our reply, or do not get one within
+30 days, you can complain to the Office of the Australian Information
+Commissioner (OAIC):
+[oaic.gov.au/privacy/privacy-complaints](https://www.oaic.gov.au/privacy/privacy-complaints).
 
 ## Changes
 
