@@ -864,7 +864,7 @@ export function computeResupplyLegs(
     if (into && into.rideKm > 0) rides.push(rideOf(into, 'to'));
 
     const rawHours = estimateHikingHoursRaw(walkedKm, ascentM, descentM, baseKmh);
-    const estimatedDays = Math.max(1, Math.ceil(rawHours / dailyHours));
+    const estimatedDays = Math.max(1, Math.ceil(rawHours / dailyHours - DAYS_EPSILON));
 
     const zeroDays = toStop ? (zeroDaysAt.get(gap.toKm) ?? 0) : 0;
 
