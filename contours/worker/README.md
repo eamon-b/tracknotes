@@ -53,6 +53,14 @@ planet basemap to anyone at our bandwidth cost, from the dataset's bucket
 (issue #269). Its requests and R2 reads are the app's, and the zone in front of
 it is `tracknotes.info`.
 
+The Worker itself has no rate limit and answers any origin (`ALLOWED_ORIGIN`
+is unset), so before the planet basemap is uploaded, give the
+`tracknotes.info` zone the same rules the dataset's zone has: a rate-limit
+rule on `tiles.tracknotes.info` (the app paces corridor builds to 30
+requests/s on the assumption that a zone rule blocks an IP above 500
+requests / 10 s) and a cache rule. Without them anyone can scrape the whole
+basemap at our cost, which is what this deployment exists to avoid.
+
 ## Sources
 
 The `{source}` path segment selects one PMTiles archive. The dataset's mapping

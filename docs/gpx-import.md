@@ -409,7 +409,9 @@ either side of the route to cover (2, 5, 10 or 20 km; 5 km is selected to
 start), and the screen shows how many map tiles that comes to before anything
 is fetched. **Download** then fetches the basemap and contour tiles along the
 route — the main line, split at any ferry or other break, plus every alternate
-and side trip — from the Tracknotes tile server, so the server sees which tiles
+and side trip — from two tile servers (the basemap from Tracknotes' own, `tiles.tracknotes.info`,
+the contours from the public world-contours dataset's,
+`tiles.contour-map-tiles.net`), so the servers see which tiles
 you ask for, which is the shape of your route. Tiles are fetched at no more than
 30 a second, so a large corridor takes a while (40,000 tiles, the most one map
 may have, is about 22 minutes); a corridor over that is refused — choose a
