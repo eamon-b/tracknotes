@@ -463,6 +463,30 @@ describe('PUT /v1/plans/:id', () => {
     }
   });
 
+  it('keeps the zero days before day 1, and stores null as none', async () => {
+    const device = await registerDevice('Start zero days');
+    const id = crypto.randomUUID();
+    const res = await putPlan(device, id, planBody(id, { startZeroDays: 1.5 }));
+    expect(res.status).toBe(201);
+    expect(((await res.json()) as PlanSyncEntry).document.startZeroDays).toBe(1.5);
+
+    const other = await registerDevice('No start zero days');
+    const noneId = crypto.randomUUID();
+    const none = await putPlan(other, noneId, planBody(noneId, { startZeroDays: null as never }));
+    expect(none.status).toBe(201);
+    expect(((await none.json()) as PlanSyncEntry).document).not.toHaveProperty('startZeroDays');
+  });
+
+  it('refuses malformed zero days before day 1', async () => {
+    const device = await registerDevice('Bad start zero days');
+    for (const bad of [0, 0.3, -1, 14.5, '1', [1], { days: 1 }]) {
+      const planId = crypto.randomUUID();
+      const res = await putPlan(device, planId, planBody(planId, { startZeroDays: bad as never }));
+      expect(res.status, JSON.stringify(bad)).toBe(400);
+      expect(((await res.json()) as { error: { code: string } }).error.code).toBe('invalid_start_zero_days');
+    }
+  });
+
   it('accepts an empty plan name — the mobile client mints plans unnamed', async () => {
     const device = await registerDevice('Unnamed');
     const id = crypto.randomUUID();

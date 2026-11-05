@@ -521,6 +521,19 @@ export function validatePlanDocument(body: Record<string, unknown>, pathId: stri
     if (entries.length > 0) document.resupplyZeroDays = zeroDays;
   }
 
+  // Zero days before day 1: one figure on the same half-day steps as a
+  // resupply stop's. Absent (or null) is none; 0 is refused like any other
+  // value the editor never writes, since it stores none as no field.
+  if (body.startZeroDays !== undefined && body.startZeroDays !== null) {
+    if (!isStoredZeroDays(body.startZeroDays)) {
+      throw planError(
+        'invalid_start_zero_days',
+        `startZeroDays must be a half-day step from 0.5 to ${PLAN_LIMITS.zeroDaysMax}`
+      );
+    }
+    document.startZeroDays = body.startZeroDays;
+  }
+
   if (alternates !== undefined && alternates.length > 0) {
     document.alternates = alternates;
   }

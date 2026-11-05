@@ -20,6 +20,9 @@ import {
   setResupplyStops,
   setResupplyZeroDays,
   setStartDate,
+  setStartZeroDays,
+  startZeroDateOffset,
+  startZeroDaysOf,
   setStopBooked,
   setStopNote,
   splitUnplannedTail,
@@ -285,6 +288,24 @@ describe('computePlanDays', () => {
     expect(days.every(d => d.offTrailKm === undefined)).toBe(true);
   });
 
+  it('moves every date on by the whole zero days before day 1', () => {
+    let plan = setStartDate(emptyPlan(), '2026-10-01', opts);
+    plan = toggleStop(plan, { id: 'w_a', km: 20, name: 'Camp A' }, opts);
+    plan = setNights(plan, { waypointId: 'w_a', km: 20 }, 2, opts);
+    const dates = (p: PlanDocument) => computePlanDays(flatTrail(), p, { baseKmh: 4 }).map(d => d.date);
+    expect(dates(plan)).toEqual(['2026-10-01', '2026-10-03']);
+    expect(dates(setStartZeroDays(plan, 2, opts))).toEqual(['2026-10-03', '2026-10-05']);
+    // A half day is spent on day 1's own date.
+    expect(dates(setStartZeroDays(plan, 0.5, opts))).toEqual(['2026-10-01', '2026-10-03']);
+    expect(dates(setStartZeroDays(plan, 1.5, opts))).toEqual(['2026-10-02', '2026-10-04']);
+    // The days themselves, and their rest days, are unchanged.
+    const days = computePlanDays(flatTrail(), setStartZeroDays(plan, 2, opts), { baseKmh: 4 });
+    expect(days.map(d => [d.dayNumber, d.restDays])).toEqual([
+      [1, 1],
+      [2, 0],
+    ]);
+  });
+
   it('leaves dates undefined when there is no start date', () => {
     const plan = toggleStop(emptyPlan(), { id: 'w_a', km: 20, name: 'Camp A' }, opts);
     const days = computePlanDays(flatTrail(), plan, { baseKmh: 4 });
@@ -416,6 +437,63 @@ describe('resetResupplyPlan', () => {
   it('is a no-op with neither', () => {
     const plan = emptyPlan();
     expect(resetResupplyPlan(plan, opts)).toBe(plan);
+  });
+});
+
+describe('setStartZeroDays', () => {
+  it('stores whole and half days, and removes the field at 0', () => {
+    const one = setStartZeroDays(emptyPlan(), 1.5, opts);
+    expect(one.startZeroDays).toBe(1.5);
+    expect(setStartZeroDays(one, PLAN_LIMITS.zeroDaysMax, opts).startZeroDays).toBe(14);
+    const cleared = setStartZeroDays(one, 0, opts);
+    expect(cleared).not.toHaveProperty('startZeroDays');
+    // Byte-identical to a plan that never had any.
+    const plan = emptyPlan();
+    expect(
+      JSON.stringify({ ...setStartZeroDays(setStartZeroDays(plan, 2, opts), 0, opts), updatedAt: plan.updatedAt })
+    ).toBe(JSON.stringify(plan));
+  });
+
+  it('returns the same object when nothing changes', () => {
+    const plan = emptyPlan();
+    expect(setStartZeroDays(plan, 0, opts)).toBe(plan);
+    const set = setStartZeroDays(plan, 1, opts);
+    expect(setStartZeroDays(set, 1, opts)).toBe(set);
+  });
+
+  it('restamps updatedAt and leaves the input alone', () => {
+    const plan = setStartZeroDays(emptyPlan(), 1, { now: () => '2026-09-21T00:00:00.000Z' });
+    expect(plan.updatedAt).toBe('2026-09-21T00:00:00.000Z');
+    const next = setStartZeroDays(plan, 2, { now: () => '2026-09-22T00:00:00.000Z' });
+    expect(plan.startZeroDays).toBe(1);
+    expect(next.updatedAt).toBe('2026-09-22T00:00:00.000Z');
+  });
+
+  it('throws RangeError on a value that is not a half-day step from 0 to 14', () => {
+    for (const bad of [-0.5, 0.25, 1.3, 14.5, 15, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(() => setStartZeroDays(emptyPlan(), bad, opts), String(bad)).toThrow(RangeError);
+    }
+  });
+
+  it('is checked by the loader and the limits check like every other field', () => {
+    const plan = setStartZeroDays(emptyPlan(), 2.5, opts);
+    expect(isPlanDocument(JSON.parse(JSON.stringify(plan)))).toBe(true);
+    expect(() => assertPlanDocumentWithinLimits(plan)).not.toThrow();
+    for (const bad of ['two', 0, 0.3, 20, -1, null, [1]]) {
+      expect(isPlanDocument({ ...plan, startZeroDays: bad }), JSON.stringify(bad)).toBe(false);
+      expect(
+        () => assertPlanDocumentWithinLimits({ ...plan, startZeroDays: bad as number }),
+        JSON.stringify(bad)
+      ).toThrow();
+    }
+  });
+
+  it('reads as days and a whole-day date offset', () => {
+    expect(startZeroDaysOf(emptyPlan())).toBe(0);
+    expect(startZeroDaysOf({ startZeroDays: 2.5 })).toBe(2.5);
+    expect(startZeroDateOffset({ startZeroDays: 0.5 })).toBe(0);
+    expect(startZeroDateOffset({ startZeroDays: 1.5 })).toBe(1);
+    expect(startZeroDateOffset({ startZeroDays: 3 })).toBe(3);
   });
 });
 
