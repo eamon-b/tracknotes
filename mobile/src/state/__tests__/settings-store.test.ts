@@ -136,4 +136,17 @@ describe('settings-store', () => {
     const merged = merge(undefined, useSettingsStore.getState()) as SettingsState;
     expect(merged.poiFilter).toEqual(defaultPoiFilterState());
   });
+
+  it('keeps the resupply legs off until the hiker turns them on', () => {
+    const merge = useSettingsStore.persist.getOptions().merge!;
+    const state = useSettingsStore.getState();
+    expect((merge(undefined, state) as SettingsState).showResupplyLegs).toBe(false);
+    expect((merge({ showResupplyLegs: 'yes' }, state) as SettingsState).showResupplyLegs).toBe(
+      false,
+    );
+    expect((merge({ showResupplyLegs: true }, state) as SettingsState).showResupplyLegs).toBe(true);
+    expect(useSettingsStore.persist.getOptions().partialize!(state)).toHaveProperty(
+      'showResupplyLegs',
+    );
+  });
 });

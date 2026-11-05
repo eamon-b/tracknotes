@@ -197,3 +197,42 @@ describe('PoiLayersSheet — the on-phone search (imports only)', () => {
     expect(findButton(renderWith(POIS))).toHaveLength(0);
   });
 });
+
+describe('PoiLayersSheet — the resupply legs switch', () => {
+  const renderWith = (
+    props: Partial<React.ComponentProps<typeof PoiLayersSheet>>,
+  ): ReactTestRenderer => {
+    let tree!: ReactTestRenderer;
+    act(() => {
+      tree = TestRenderer.create(
+        <PoiLayersSheet visible onClose={jest.fn()} pois={POIS} {...props} />,
+      );
+    });
+    mounted.push(tree);
+    return tree;
+  };
+
+  it('is offered only for a trail with resupply to plan', () => {
+    expect(switches(renderWith({})).has('Show resupply legs')).toBe(false);
+    const onChange = jest.fn();
+    const legs = switches(renderWith({ resupplyLegs: { value: false, onChange } })).get(
+      'Show resupply legs',
+    )!;
+    expect(legs.value).toBe(false);
+    act(() => {
+      (legs.onValueChange as (v: boolean) => void)(true);
+    });
+    expect(onChange).toHaveBeenCalledWith(true);
+  });
+
+  it('stands alone for a trail with no points of interest to offer', () => {
+    const tree = renderWith({
+      pois: [],
+      showPoiControls: false,
+      resupplyLegs: { value: true, onChange: jest.fn() },
+    });
+    expect([...switches(tree).keys()]).toEqual(['Show resupply legs']);
+    expect(texts(tree)).toContain('Map layers');
+    expect(texts(tree).join(' ')).not.toContain(OSM_ATTRIBUTION);
+  });
+});

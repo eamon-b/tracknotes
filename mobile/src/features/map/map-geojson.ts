@@ -262,6 +262,40 @@ export function buildPlannedTrailLines(
   return { walked: feature(walked), bypassed: feature(bypassed) };
 }
 
+/** One resupply leg's line, as `@lib/route-ranges` `rangeLines` cuts it. */
+export interface LegLineInput {
+  index: number;
+  runs: LatLon[][];
+}
+
+/**
+ * The resupply legs as one collection, a MultiLineString per leg (a leg that
+ * crosses a route break is several runs, never one line across the water),
+ * each coloured from `palette` in turn so neighbouring legs differ. `leg` is
+ * the leg's 1-based number, as the resupply screen counts them. A leg too
+ * short to draw is left out.
+ */
+export function buildResupplyLegCollection(
+  lines: readonly LegLineInput[],
+  palette: readonly string[],
+): FeatureCollection<MultiLineString> {
+  const features = lines
+    .filter((line) => line.runs.length > 0)
+    .map((line): Feature<MultiLineString> => ({
+      type: 'Feature',
+      id: `resupply-leg-${line.index}`,
+      geometry: {
+        type: 'MultiLineString',
+        coordinates: line.runs.map((run) => run.map((p) => [p.lon, p.lat])),
+      },
+      properties: {
+        leg: line.index + 1,
+        color: palette.length > 0 ? palette[line.index % palette.length] : '#000000',
+      },
+    }));
+  return { type: 'FeatureCollection', features };
+}
+
 /**
  * The crossings between stretches, as straight two-point lines to be drawn
  * dashed — a ferry or a river is a link, not trail. Empty for every trail whose

@@ -15,6 +15,9 @@
  *    watch by itself. Off until the hiker taps "Show my location"; turning
  *    location off in a guide clears it again. GPS is opt-in, never a side
  *    effect of having once granted the OS permission.
+ *  - `showResupplyLegs` — whether the guide map draws the resupply legs
+ *    (the layers sheet's switch). Off until the hiker turns it on: the
+ *    coloured bands are a planning view, not how the trail is drawn.
  *  - `currentTrailId` — the guide the walker is on right now, or null. My
  *    Guides lists it first, and a fresh launch opens straight into it, so a
  *    walker mid-trail is not scrolling past every other trail each time.
@@ -47,6 +50,8 @@ export interface SettingsState {
   gpsOnGuideOpen: boolean;
   /** The trail being hiked now, or null when none is chosen. */
   currentTrailId: string | null;
+  /** Draw the resupply legs on the guide map (the layers sheet's switch). */
+  showResupplyLegs: boolean;
 
   setUnits: (units: Units) => void;
   setDirection: (trailId: string, direction: Direction) => void;
@@ -56,6 +61,7 @@ export interface SettingsState {
   setPoiEnabled: (enabled: boolean) => void;
   setPoiCategory: (category: TrailPOICategory, visible: boolean) => void;
   setGpsOnGuideOpen: (on: boolean) => void;
+  setShowResupplyLegs: (on: boolean) => void;
   /** Mark a trail as the one being hiked now; null clears it. */
   setCurrentTrail: (trailId: string | null) => void;
   /** Clear the current trail only if it is `trailId` (e.g. that guide was deleted). */
@@ -72,6 +78,7 @@ export const useSettingsStore = create<SettingsState>()(
       poiFilter: defaultPoiFilterState(),
       gpsOnGuideOpen: false,
       currentTrailId: null,
+      showResupplyLegs: false,
 
       setUnits: (units) => set({ units }),
 
@@ -110,6 +117,7 @@ export const useSettingsStore = create<SettingsState>()(
         })),
 
       setGpsOnGuideOpen: (gpsOnGuideOpen) => set({ gpsOnGuideOpen }),
+      setShowResupplyLegs: (showResupplyLegs) => set({ showResupplyLegs }),
       setCurrentTrail: (trailId) => set({ currentTrailId: trailId }),
 
       clearCurrentTrailIf: (trailId) =>
@@ -126,6 +134,7 @@ export const useSettingsStore = create<SettingsState>()(
         poiFilter: s.poiFilter,
         gpsOnGuideOpen: s.gpsOnGuideOpen,
         currentTrailId: s.currentTrailId,
+        showResupplyLegs: s.showResupplyLegs,
       }),
       // A blob written by an older build knows nothing about categories added
       // since, and a corrupted one knows nothing at all; normalising on the way
@@ -138,6 +147,7 @@ export const useSettingsStore = create<SettingsState>()(
           poiFilter: normalisePoiFilterState(saved.poiFilter),
           gpsOnGuideOpen: saved.gpsOnGuideOpen === true,
           currentTrailId: typeof saved.currentTrailId === 'string' ? saved.currentTrailId : null,
+          showResupplyLegs: saved.showResupplyLegs === true,
         };
       },
     },

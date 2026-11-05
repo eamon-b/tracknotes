@@ -87,6 +87,7 @@ import {
   buildPoiCollection,
   buildRouteBreakCollection,
   buildPlannedTrailLines,
+  buildResupplyLegCollection,
   buildTrailLine,
   buildUserLocationGeoJSON,
   buildTerminusEndCollection,
@@ -95,6 +96,7 @@ import {
   trailCameraBounds,
   type KmLatLon,
   type LatLon,
+  type LegLineInput,
   type MapPoi,
   type MapVariant,
   type MapWaypoint,
@@ -110,6 +112,7 @@ import {
   mapInk,
   planStopRing,
   mapRemountKey,
+  resupplyLegColors,
   TRACK_DASH,
   TRACK_WIDTHS,
   trackColors,
@@ -289,6 +292,13 @@ export interface GuideMapProps {
    * `displayPoints`: drawn dashed rather than as the trail.
    */
   bypassedKm?: readonly (readonly [number, number])[];
+  /**
+   * The resupply legs (`@lib/route-ranges` `rangeLines` over the route as the
+   * plan walks it), drawn as coloured bands under the track, numbered as the
+   * resupply screen numbers them. Absent or null draws none: the layers
+   * sheet's "Resupply legs" switch is off, or there is nothing to plan.
+   */
+  resupplyLegs?: readonly LegLineInput[] | null;
   /** Side trips (dashed overlay). */
   sideTrips?: MapVariant[];
   /**
@@ -495,6 +505,14 @@ function buildTrackStyles(theme: MapTheme) {
       lineJoin: 'round' as const,
       lineDasharray: TRACK_DASH.terminus as unknown as number[],
     },
+    /** A resupply leg's band: coloured per feature (`buildResupplyLegCollection`). */
+    resupplyLeg: {
+      lineColor: ['get', 'color'] as unknown as string,
+      lineWidth: trackWidthExpression(TRACK_WIDTHS.resupplyLeg) as unknown as number,
+      lineOpacity: 0.6,
+      lineCap: 'butt' as const,
+      lineJoin: 'round' as const,
+    },
     /** Main route bypassed by an alternate the plan takes. */
     bypassed: {
       lineColor: track.main,
@@ -546,6 +564,7 @@ export const GuideMap = memo(
       alternates,
       takenAlternateIds,
       bypassedKm,
+      resupplyLegs,
       sideTrips,
       termini,
       waypoints,
@@ -694,6 +713,13 @@ export const GuideMap = memo(
     const routeBreakCollection = useMemo(
       () => buildRouteBreakCollection(displayPoints, breaks),
       [displayPoints, breaks],
+    );
+    const resupplyLegCollection = useMemo(
+      () =>
+        resupplyLegs && resupplyLegs.length > 0
+          ? buildResupplyLegCollection(resupplyLegs, resupplyLegColors(mapTheme))
+          : null,
+      [resupplyLegs, mapTheme],
     );
     const accessCollection = useMemo(() => buildAccessPathCollection(accessPath), [accessPath]);
     const alternatesCollection = useMemo(
@@ -1072,6 +1098,22 @@ export const GuideMap = memo(
       [labelFont, ink.labelText, ink.labelHalo],
     );
 
+    // Each leg's number along its band, as the resupply screen counts them.
+    const resupplyLegLabelStyle = useMemo(
+      () => ({
+        symbolPlacement: 'line-center' as const,
+        textField: ['concat', 'Leg ', ['to-string', ['get', 'leg']]] as unknown as string,
+        textFont: labelFont,
+        textSize: 12,
+        textColor: ink.labelText,
+        textHaloColor: ink.labelHalo,
+        textHaloWidth: 2.5,
+        textAllowOverlap: false,
+        textOptional: true,
+      }),
+      [labelFont, ink.labelText, ink.labelHalo],
+    );
+
     const userDotStyle = useMemo(
       () => ({
         circleRadius: 6,
@@ -1283,6 +1325,16 @@ export const GuideMap = memo(
         {/* The main route a taken alternate bypasses: dashed in the trail's
             red, so the way "Stay on the main route" goes back to stays on the
             map without reading as the route walked. */}
+        {/* Resupply legs, when switched on: a wide band per leg in turn-taking
+            colours, under the taken alternates and the main track so the
+            trail stays on top and each leg shows either side of it. */}
+        {/* Always mounted (empty when off), as the bypassed line is: a source
+            that comes and goes shifts its siblings' slots. */}
+        <GeoJSONSource id="guide-resupply-legs" data={resupplyLegCollection ?? EMPTY_COLLECTION}>
+          <Layer type="line" id="guide-resupply-legs-layer" style={trackStyles.resupplyLeg} />
+          <Layer type="symbol" id="guide-resupply-legs-labels" style={resupplyLegLabelStyle} />
+        </GeoJSONSource>
+
         <GeoJSONSource id="guide-trail-bypassed" data={plannedLines?.bypassed ?? EMPTY_COLLECTION}>
           <Layer type="line" id="guide-trail-bypassed-layer" style={trackStyles.bypassed} />
         </GeoJSONSource>

@@ -14,6 +14,11 @@
  * reaching for a gesture-driven sheet library — a switch list does not need
  * drag-to-dismiss, and this keeps the app's one dialog pattern.
  *
+ * Above the POIs, for a trail with resupply to plan, a "Resupply legs" switch
+ * draws the resupply screen's carries on the map (`settings-store`
+ * `showResupplyLegs`, passed in by the pane). A trail with no POIs to offer
+ * opens the sheet for that switch alone (`showPoiControls` false).
+ *
  * The footer is not decoration: POIs are uncurated third-party data drawn
  * beside the trail's own checked waypoints, and the walker is told so wherever
  * they are shown, with the OSM credit line.
@@ -51,9 +56,23 @@ export interface PoiLayersSheetProps {
    * a bundled trail's POIs come from the build.
    */
   onFindPois?: () => void;
+  /**
+   * The POI rows (master switch, categories, OSM footer). Default true; false
+   * for a trail that has none and cannot search, opened for the legs alone.
+   */
+  showPoiControls?: boolean;
+  /** The "Resupply legs" switch; absent when the trail has no resupply to plan. */
+  resupplyLegs?: { value: boolean; onChange: (next: boolean) => void };
 }
 
-export function PoiLayersSheet({ visible, onClose, pois, onFindPois }: PoiLayersSheetProps) {
+export function PoiLayersSheet({
+  visible,
+  onClose,
+  pois,
+  onFindPois,
+  showPoiControls = true,
+  resupplyLegs,
+}: PoiLayersSheetProps) {
   const { colors } = useTheme();
   // A bottom sheet in an edge-to-edge Modal: its last row clears the navigation bar.
   const { bottom } = useSafeAreaInsets();
@@ -86,8 +105,14 @@ export function PoiLayersSheet({ visible, onClose, pois, onFindPois }: PoiLayers
         >
           <View style={styles.header}>
             <View style={styles.headings}>
-              <Text style={[styles.title, { color: colors.textPrimary }]}>Points of interest</Text>
-              <Text style={[styles.subtitle, { color: colors.textSecondary }]}>OpenStreetMap</Text>
+              <Text style={[styles.title, { color: colors.textPrimary }]}>
+                {showPoiControls ? 'Points of interest' : 'Map layers'}
+              </Text>
+              {showPoiControls ? (
+                <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+                  OpenStreetMap
+                </Text>
+              ) : null}
             </View>
             <Pressable
               onPress={onClose}
@@ -104,53 +129,80 @@ export function PoiLayersSheet({ visible, onClose, pois, onFindPois }: PoiLayers
             contentContainerStyle={styles.listContent}
             bounces={false}
           >
-            {onFindPois && empty ? (
-              <View style={styles.findBlock}>
-                <Text style={[styles.note, styles.findNote, { color: colors.textSecondary }]}>
-                  This guide has no points of interest yet. Search OpenStreetMap along the route to
-                  add water, campsites, shops, transport and more. You’ll see how much data it uses
-                  before anything is sent.
-                </Text>
-                <FindButton onPress={onFindPois} primary />
+            {resupplyLegs ? (
+              <View style={[styles.masterRow, { borderColor: colors.border }]}>
+                <View style={styles.legsText}>
+                  <Text style={[styles.masterLabel, { color: colors.textPrimary }]}>
+                    Resupply legs
+                  </Text>
+                  <Text style={[styles.note, styles.legsNote, { color: colors.textSecondary }]}>
+                    Each carry between your resupply stops in its own colour, numbered as in the
+                    resupply planner.
+                  </Text>
+                </View>
+                <Switch
+                  value={resupplyLegs.value}
+                  onValueChange={resupplyLegs.onChange}
+                  accessibilityRole="switch"
+                  accessibilityLabel="Show resupply legs"
+                  accessibilityState={{ checked: resupplyLegs.value }}
+                  trackColor={{ true: colors.accentMuted, false: colors.border }}
+                  thumbColor={resupplyLegs.value ? colors.accent : colors.surface}
+                />
               </View>
             ) : null}
 
-            <View style={[styles.masterRow, { borderColor: colors.border }]}>
-              <Text style={[styles.masterLabel, { color: colors.textPrimary }]}>
-                Show points of interest
-              </Text>
-              <Switch
-                value={filter.enabled}
-                onValueChange={setPoiEnabled}
-                accessibilityRole="switch"
-                accessibilityLabel="Show points of interest"
-                accessibilityState={{ checked: filter.enabled }}
-                trackColor={{ true: colors.accentMuted, false: colors.border }}
-                thumbColor={filter.enabled ? colors.accent : colors.surface}
-              />
-            </View>
+            {showPoiControls ? (
+              <>
+                {onFindPois && empty ? (
+                  <View style={styles.findBlock}>
+                    <Text style={[styles.note, styles.findNote, { color: colors.textSecondary }]}>
+                      This guide has no points of interest yet. Search OpenStreetMap along the route
+                      to add water, campsites, shops, transport and more. You’ll see how much data
+                      it uses before anything is sent.
+                    </Text>
+                    <FindButton onPress={onFindPois} primary />
+                  </View>
+                ) : null}
 
-            {POI_CATEGORIES.map((category) => (
-              <CategoryRow
-                key={category}
-                category={category}
-                count={counts[category]}
-                // A category with nothing to show is inert rather than hidden:
-                // "Emergency · 0" is the answer to "why do I see none?".
-                enabled={filter.enabled}
-                visible={filter.categories[category]}
-                onChange={(next) => setPoiCategory(category, next)}
-              />
-            ))}
+                <View style={[styles.masterRow, { borderColor: colors.border }]}>
+                  <Text style={[styles.masterLabel, { color: colors.textPrimary }]}>
+                    Show points of interest
+                  </Text>
+                  <Switch
+                    value={filter.enabled}
+                    onValueChange={setPoiEnabled}
+                    accessibilityRole="switch"
+                    accessibilityLabel="Show points of interest"
+                    accessibilityState={{ checked: filter.enabled }}
+                    trackColor={{ true: colors.accentMuted, false: colors.border }}
+                    thumbColor={filter.enabled ? colors.accent : colors.surface}
+                  />
+                </View>
 
-            <Text style={[styles.note, { color: colors.textSecondary }]}>
-              Uncurated OpenStreetMap data, shown alongside the trail’s own waypoints so you can
-              judge it.
-            </Text>
-            <Text style={[styles.attribution, { color: colors.textSecondary }]}>
-              {OSM_ATTRIBUTION}
-            </Text>
-            {onFindPois && !empty ? <FindButton onPress={onFindPois} /> : null}
+                {POI_CATEGORIES.map((category) => (
+                  <CategoryRow
+                    key={category}
+                    category={category}
+                    count={counts[category]}
+                    // A category with nothing to show is inert rather than hidden:
+                    // "Emergency · 0" is the answer to "why do I see none?".
+                    enabled={filter.enabled}
+                    visible={filter.categories[category]}
+                    onChange={(next) => setPoiCategory(category, next)}
+                  />
+                ))}
+
+                <Text style={[styles.note, { color: colors.textSecondary }]}>
+                  Uncurated OpenStreetMap data, shown alongside the trail’s own waypoints so you can
+                  judge it.
+                </Text>
+                <Text style={[styles.attribution, { color: colors.textSecondary }]}>
+                  {OSM_ATTRIBUTION}
+                </Text>
+                {onFindPois && !empty ? <FindButton onPress={onFindPois} /> : null}
+              </>
+            ) : null}
           </ScrollView>
         </Pressable>
       </Pressable>
@@ -295,6 +347,12 @@ const styles = StyleSheet.create({
     ...typography.body,
     flex: 1,
     fontWeight: '600',
+  },
+  legsText: {
+    flex: 1,
+  },
+  legsNote: {
+    marginTop: spacing.xs,
   },
   row: {
     flexDirection: 'row',
