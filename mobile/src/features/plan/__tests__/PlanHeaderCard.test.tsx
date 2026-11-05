@@ -47,6 +47,8 @@ function render(overrides: Partial<React.ComponentProps<typeof PlanHeaderCard>> 
     directionLabel: 'Westbound',
     onName: jest.fn(),
     onStartDate: jest.fn(),
+    startZeroDays: 0,
+    onStartZeroDays: jest.fn(),
     ...overrides,
   };
   let tree!: ReactTestRenderer;
@@ -54,6 +56,13 @@ function render(overrides: Partial<React.ComponentProps<typeof PlanHeaderCard>> 
     tree = TestRenderer.create(<PlanHeaderCard {...props} />);
   });
   return { tree, props };
+}
+
+function press(tree: ReactTestRenderer, label: string): void {
+  const target = tree.root.findAll(
+    (n) => n.props.accessibilityLabel === label && typeof n.props.onPress === 'function',
+  )[0];
+  act(() => (target.props.onPress as () => void)());
 }
 
 function type(tree: ReactTestRenderer, label: string, text: string): void {
@@ -116,5 +125,25 @@ describe('PlanHeaderCard', () => {
     expect(field(tree, 'Start date').props.value).toBe('2026-10-01');
     type(tree, 'Start date', '');
     expect(props.onStartDate).toHaveBeenCalledWith(null);
+  });
+
+  it('steps the zero days before day 1, held inside 0 and the limit', () => {
+    const none = render();
+    expect(allText(none.tree)).toContain('Zero days before day 1');
+    expect(field(none.tree, 'Fewer zero days before day 1').props.accessibilityState).toEqual({
+      disabled: true,
+    });
+    press(none.tree, 'More zero days before day 1');
+    expect(none.props.onStartZeroDays).toHaveBeenCalledWith(1);
+
+    const some = render({ startZeroDays: 1.5 });
+    expect(allText(some.tree)).toContain('1½ days');
+    press(some.tree, 'Fewer zero days before day 1');
+    expect(some.props.onStartZeroDays).toHaveBeenCalledWith(-1);
+
+    const most = render({ startZeroDays: 14 });
+    expect(field(most.tree, 'More zero days before day 1').props.accessibilityState).toEqual({
+      disabled: true,
+    });
   });
 });

@@ -97,6 +97,8 @@ export default function ResupplyScreen() {
   // The document's selection; the device-local one only while it has none.
   const stored = plan?.resupplyStops ?? prefs.resupplyStops;
   const zeroDays = plan?.resupplyZeroDays;
+  // Set in the plan settings; counted in the total days here.
+  const startZeroDays = plan?.startZeroDays;
 
   const totalKm = trail.track.totalDistance;
   const range = useMemo<PlannerRange>(() => {
@@ -127,6 +129,7 @@ export default function ResupplyScreen() {
         foodGramsPerDay: prefs.foodGramsPerDay,
         resupplyStops: stored,
         zeroDays,
+        startZeroDays,
       },
       groups,
     );
@@ -141,6 +144,7 @@ export default function ResupplyScreen() {
     prefs.foodGramsPerDay,
     stored,
     zeroDays,
+    startZeroDays,
   ]);
   const rows = useMemo(
     () => plannerRows(groups, stored, resupply.legs, range, zeroDays),

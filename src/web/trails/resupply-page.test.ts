@@ -252,6 +252,20 @@ describe('the resupply page', () => {
     expect(document.querySelector<HTMLInputElement>('input.rs-zero[data-option-id="w_001"]')?.value).toBe('1.5');
   });
 
+  it('counts the zero days before day 1 in the total days', async () => {
+    await bootResupply();
+    const input = document.querySelector<HTMLInputElement>('input.rs-zero[data-option-id="w_001"]')!;
+    input.value = '1';
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    flushSave();
+    const before = Number(tileValue('Total days'));
+
+    // Set on the planner's header; this page only counts them.
+    window.localStorage.setItem(`trail-plan-doc-${TRAIL_ID}`, JSON.stringify({ ...storedDoc(), startZeroDays: 2.5 }));
+    await bootResupply();
+    expect(Number(tileValue('Total days'))).toBe(before + 2.5);
+  });
+
   it('clears the choices and the zero days, and offers to only once there are some', async () => {
     await bootResupply();
     expect(document.getElementById('rs-clear')).toBeNull();

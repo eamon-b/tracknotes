@@ -640,4 +640,27 @@ describe('resupply selection', () => {
     expect(extras.resupplyPlanSummary.stopsChosen).toBe(1);
     expect(extras.resupplyPlanSummary.zeroDays).toBe(2);
   });
+
+  it('counts the zero days before day 1 in the total days, never in the food', () => {
+    const inputs = {
+      dailyHours: 8,
+      baseKmh: PACE_KMH.average,
+      longCarryDays: DEFAULT_PLAN_THRESHOLDS.longCarryDays,
+      foodGramsPerDay: DEFAULT_PLAN_THRESHOLDS.foodGramsPerDay,
+      resupplyStops: ['t3'],
+    };
+    const without = computeResupplyPlan(twoTownTrail(), null, inputs);
+    const rested = computeResupplyPlan(twoTownTrail(), null, { ...inputs, startZeroDays: 1.5 });
+    expect(rested.summary.totalDays).toBe(without.summary.totalDays + 1.5);
+    expect(rested.legs.map((l) => l.food)).toEqual(without.legs.map((l) => l.food));
+
+    const extras = computePlanExtras(twoTownTrail(), fullTrailSection(twoTownTrail()), {
+      dailyHours: 8,
+      baseKmh: PACE_KMH.average,
+      thresholds: DEFAULT_PLAN_THRESHOLDS,
+      resupplyStops: ['t3'],
+      startZeroDays: 2,
+    });
+    expect(extras.resupplyPlanSummary.zeroDays).toBe(2);
+  });
 });

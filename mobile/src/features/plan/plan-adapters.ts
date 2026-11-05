@@ -391,6 +391,8 @@ export interface PlanExtrasInputs {
   resupplyStops?: readonly string[];
   /** The hiker's zero days per resupply option id (`PlanDocument.resupplyZeroDays`). */
   zeroDays?: Readonly<Record<string, number>>;
+  /** The zero days before day 1 (`PlanDocument.startZeroDays`), counted in the total days. */
+  startZeroDays?: number;
 }
 
 /**
@@ -413,6 +415,7 @@ export function computePlanExtras(
     foodGramsPerDay: inputs.thresholds.foodGramsPerDay,
     resupplyStops: inputs.resupplyStops,
     zeroDays: inputs.zeroDays,
+    startZeroDays: inputs.startZeroDays,
     days: inputs.days,
   });
 
@@ -445,6 +448,8 @@ export interface ResupplyPlanInputs {
   resupplyStops?: readonly string[];
   /** Zero days per option id. */
   zeroDays?: Readonly<Record<string, number>>;
+  /** Zero days before day 1, counted in the summary's total days. */
+  startZeroDays?: number;
   /** Only for `computePlan`'s legacy arrival days; the resupply screen never passes one. */
   days?: ComputedDay[];
 }
@@ -487,7 +492,10 @@ export function computeResupplyPlan(
     ...(inputs.days ? { days: inputs.days } : {}),
     ...(inputs.zeroDays ? { zeroDays: inputs.zeroDays } : {}),
   });
-  return { groups, stops, legs, summary: summariseResupplyPlan(legs, inputs.dailyHours) };
+  const summary = summariseResupplyPlan(legs, inputs.dailyHours, {
+    startZeroDays: inputs.startZeroDays,
+  });
+  return { groups, stops, legs, summary };
 }
 
 /** Resolve a display name for an exact km (a waypoint at that km, else null). */

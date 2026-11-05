@@ -24,6 +24,7 @@ import {
   sameLegRow,
   resupplyEntryText,
   resupplyInputsLine,
+  startZeroDaysStepEditor,
   stepZeroDays,
   undecidedCount,
   waypointResupplyEditor,
@@ -376,6 +377,18 @@ describe('zero days', () => {
     const once = edit(plan());
     expect(once.resupplyZeroDays).toEqual({ w_creede: 0.5 });
     expect(edit(once).resupplyZeroDays).toEqual({ w_creede: 1 });
+  });
+
+  it('steps the zero days before day 1 the same way, and drops the field at 0', () => {
+    const up = startZeroDaysStepEditor(1);
+    const once = up(plan());
+    expect(once.startZeroDays).toBe(0.5);
+    expect(up(once).startZeroDays).toBe(1);
+    const back = startZeroDaysStepEditor(-1)(once);
+    expect(back).not.toHaveProperty('startZeroDays');
+    // Nothing to take away: the same document, so nothing is written.
+    const none = plan();
+    expect(startZeroDaysStepEditor(-1)(none)).toBe(none);
   });
 });
 

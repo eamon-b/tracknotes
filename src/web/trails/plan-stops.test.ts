@@ -378,6 +378,42 @@ describe('the editor under a ticked row', () => {
     expect(dayText('.day-card-rest')[0]).toBe('+2 rest days at Camp One');
   });
 
+  it('moves every date on by the zero days before day 1, and saves them', async () => {
+    await boot();
+    setStartDate('2026-03-01');
+    tabButton('stops').click();
+    clickRow('Camp One');
+    clickRow('Salida');
+    tabButton('days').click();
+    expect(dayText('.day-card-date')).toEqual(['Sun, 1 Mar 2026', 'Mon, 2 Mar 2026', 'Tue, 3 Mar 2026']);
+
+    const zero = $('plan-start-zero-days') as HTMLInputElement;
+    const setZero = (value: string): void => {
+      zero.value = value;
+      zero.dispatchEvent(new Event('change'));
+    };
+    setZero('2');
+    expect(dayText('.day-card-date')).toEqual(['Tue, 3 Mar 2026', 'Wed, 4 Mar 2026', 'Thu, 5 Mar 2026']);
+    expect(document.querySelector('.days-start-zero')?.textContent).toBe('2 zero days before day 1');
+    flushSave();
+    expect((savedDocument() as { startZeroDays?: number }).startZeroDays).toBe(2);
+
+    // Half days round to the half day; one is spent on day 1's own date.
+    setZero('1.4');
+    expect(zero.value).toBe('1.5');
+    expect(dayText('.day-card-date')).toEqual(['Mon, 2 Mar 2026', 'Tue, 3 Mar 2026', 'Wed, 4 Mar 2026']);
+
+    // Past the limit is held at it; blank is none, and the field goes.
+    setZero('99');
+    expect(zero.value).toBe('14');
+    setZero('');
+    expect(zero.value).toBe('');
+    expect(document.querySelector('.days-start-zero')).toBeNull();
+    expect(dayText('.day-card-date')).toEqual(['Sun, 1 Mar 2026', 'Mon, 2 Mar 2026', 'Tue, 3 Mar 2026']);
+    flushSave();
+    expect(savedDocument()).not.toHaveProperty('startZeroDays');
+  });
+
   it('will not go below one night', async () => {
     await boot();
     clickRow('Salida');

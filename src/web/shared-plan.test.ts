@@ -228,6 +228,19 @@ describe('the shared plan page', () => {
     expect(document.getElementById('plan-start-date')).toBeNull();
   });
 
+  it('shows the zero days before day 1 in the header and above the days', async () => {
+    sharedReply = {
+      status: 200,
+      body: { document: sharedDoc({ startZeroDays: 1.5 }), trailId: TRAIL_ID, ownerDisplayName: HOSTILE_NAME },
+    };
+    await boot();
+    expect($('plan-date-group').textContent).toContain('1.5 zero days before day 1');
+    expect(document.getElementById('plan-start-zero-days')).toBeNull();
+    expect(document.querySelector('.days-start-zero')?.textContent).toBe('1.5 zero days before day 1');
+    // Day 1 is a day after the 1 April start: the half day is spent on its own date.
+    expect(document.querySelector('.day-card-date')?.textContent).toContain('2 Apr');
+  });
+
   it('says whose plan it is, and offers the app link', async () => {
     await boot();
 

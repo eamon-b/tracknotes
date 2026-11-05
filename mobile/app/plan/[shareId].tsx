@@ -24,6 +24,7 @@ import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'rea
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import {
   computePlanDays,
+  startZeroDaysOf,
   refreshStopKms,
   splitUnplannedTail,
   stampPlanData,
@@ -334,6 +335,7 @@ export default function SharedPlanScreen() {
         <DaySplitList
           days={days}
           unplanned={unplanned}
+          startZeroDays={startZeroDaysOf(shared.document)}
           targetHours={prefs.dailyHours}
           units={units}
           endWarning={endWarning}

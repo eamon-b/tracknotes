@@ -32,6 +32,7 @@ import type { ThemeColors } from '../../tokens/themes';
 import type { Units } from '../../state/settings-store';
 import { planFloorHours, planWindowHours, type PlanDay } from './plan-adapters';
 import { formatHours } from './plan-format';
+import { formatZeroDays } from './resupply-planner';
 
 /** One glyph per POI category, in the order a hiker scans for them. */
 const POI_GLYPHS: { category: TrailPOICategory; glyph: string }[] = [
@@ -107,8 +108,15 @@ export function DaySplitList({
   pois,
   onDayPress,
   endWarning,
+  startZeroDays = 0,
 }: {
   days: PlanDay[];
+  /**
+   * Zero days before day 1 (`PlanDocument.startZeroDays`): one line above the
+   * first card, as a stop's rest days are a line on its card — they are why
+   * day 1's date is later than the start date.
+   */
+  startZeroDays?: number;
   /**
    * Why the stop a day ends at needs checking after a data update
    * (`stop-issues.dayEndWarning`), by the day's end km; null for none.
@@ -162,6 +170,11 @@ export function DaySplitList({
 
   return (
     <View style={styles.list}>
+      {startZeroDays > 0 && days.length > 0 && (
+        <Text style={[styles.rest, { color: colors.accent }]}>
+          {`Zero days before day 1: ${formatZeroDays(startZeroDays)}`}
+        </Text>
+      )}
       {days.map((day, i) => (
         <Pressable
           key={day.dayNumber}
