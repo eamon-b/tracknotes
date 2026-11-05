@@ -40,7 +40,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View, type HostInstance, type ScrollViewInstance } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { formatDistance } from '@lib/format-distance';
+import { formatDistance, formatElevation } from '@lib/format-distance';
+import { canExportIcs, type PlanExportTrail } from '@lib/plan-export';
 import { poisBetween } from '@lib/poi-display';
 import { routeBreakStarts } from '@lib/route-breaks';
 import { trailElevationIsUsable } from '@lib/elevation-backfill';
@@ -133,6 +134,8 @@ import { WaterCarryCard } from '../../../src/features/plan/WaterCarryCard';
 import { PlanThresholdsCard } from '../../../src/features/plan/PlanThresholdsCard';
 import { StopIssuesCard } from '../../../src/features/plan/StopIssuesCard';
 import { dayEndWarning, stopIssueRows } from '../../../src/features/plan/stop-issues';
+import { PlanExportCard } from '../../../src/features/plan/PlanExportCard';
+import { sharePlanExport, type PlanExportKind } from '../../../src/features/plan/plan-export-share';
 
 export default function PlanScreen() {
   const { colors } = useTheme();
@@ -405,6 +408,40 @@ export default function PlanScreen() {
       displayPlan.startZeroDays,
     ],
   );
+
+  // Export: the plan as the screen shows it — the route-km document, the route
+  // as planned, the day cards — and only a resupply selection the hiker made
+  // (an absent one is every option, which plans nothing). Built on press, so
+  // the legs with their arrival days are worked out only when asked for.
+  const exportPlan = async (kind: PlanExportKind) => {
+    const chosen = displayPlan.resupplyStops ?? prefs.resupplyStops;
+    const resupply = chosen
+      ? computeResupplyPlan(
+          trail,
+          sectionConfig,
+          {
+            dailyHours: prefs.dailyHours,
+            baseKmh,
+            longCarryDays: prefs.longCarryDays,
+            foodGramsPerDay: prefs.foodGramsPerDay,
+            resupplyStops: chosen,
+            zeroDays: displayPlan.resupplyZeroDays,
+            days: plannedDays,
+          },
+          extras.resupplyGroups,
+        )
+      : null;
+    await sharePlanExport(kind, {
+      plan: { ...displayPlan, name: displayPlan.name || trail.config.name },
+      trail: trail as unknown as PlanExportTrail,
+      days: plannedDays,
+      unplanned,
+      resupplyStops: resupply?.stops ?? [],
+      resupplyLegs: resupply?.legs ?? [],
+      formatDistance: (km) => formatDistance(km, units),
+      formatElevation: (m) => formatElevation(m, units),
+    });
+  };
 
   const [showAllWaypoints, setShowAllWaypoints] = useState(false);
   const candidates = useMemo(
@@ -742,6 +779,13 @@ export default function PlanScreen() {
                 hasData={extras.water.hasWaterData}
                 dryStretchKm={prefs.dryStretchKm}
                 units={units}
+              />
+            </Section>
+
+            <Section title="Export">
+              <PlanExportCard
+                canExportCalendar={canExportIcs({ plan: displayPlan, days: plannedDays })}
+                onExport={exportPlan}
               />
             </Section>
           </>
