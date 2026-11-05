@@ -187,6 +187,13 @@
                   title="Download this trail as a file the Tracknotes mobile app can open">
             Export for Tracknotes
           </button>
+          <!-- Shown by tracknotes-export.ts only when this browser has a plan
+               for the trail. -->
+          <label id="export-tracknotes-plan-toggle" class="export-plan-toggle" hidden
+                 title="Send the plan you made on this site with the trail. A phone on an older Tracknotes app can't open a file with a plan: untick to export the trail alone.">
+            <input type="checkbox" id="export-tracknotes-plan" checked>
+            Include my plan
+          </label>
         </div>
       </div>
       <div class="waypoint-filter-bar">

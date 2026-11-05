@@ -18,7 +18,6 @@ import {
   type CommunityReportReason,
   type CommunityRouteDetail,
 } from '@lib/community-types';
-import { handoffFileName, serializeTrailHandoff } from '@lib/trail-handoff';
 import type { ProcessedTrail } from '@lib/trail-types';
 import { ApiError, NetworkError, getApiBase } from './api/client';
 import {
@@ -44,6 +43,7 @@ import {
 } from './community-ui';
 import { getTrail, isIndexedDbAvailable, putTrail } from './imported-trails-db';
 import { renderLinkForm } from './link-browser';
+import { initTracknotesExport } from './tracknotes-export';
 import { initTrailViewer, setTrailName } from './trails/trail-viewer';
 import { escapeHtml, getQueryParam } from './web-utils';
 
@@ -146,25 +146,6 @@ function namedCopy(pristine: ProcessedTrail, name: string): ProcessedTrail {
   const copy: ProcessedTrail = structuredClone(pristine);
   copy.config = { ...copy.config, name, shortName: name };
   return copy;
-}
-
-/** Download the trail as the `.tracknotes.json` the app opens, under its current name. */
-function initTracknotesExport(page: RoutePage, pristine: ProcessedTrail): void {
-  const button = $('export-tracknotes-btn') as HTMLButtonElement | null;
-  if (!button) return;
-  button.disabled = false;
-  button.addEventListener('click', () => {
-    const trail = namedCopy(pristine, page.detail.name);
-    const blob = new Blob([serializeTrailHandoff(trail)], { type: 'application/json;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = handoffFileName(trail);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  });
 }
 
 function initSave(page: RoutePage, pristine: ProcessedTrail): void {
@@ -494,7 +475,13 @@ async function init(): Promise<void> {
   initSave(page, pristine);
   initReport(page);
   initOwnerTools(page);
-  initTracknotesExport(page, pristine);
+  // The trail as the `.tracknotes.json` the app opens, under its current name.
+  // A route has no plan page of its own on this site; a plan made here lives
+  // under the copy "Save to my trails" keeps, so that is the one offered.
+  initTracknotesExport({
+    trail: () => namedCopy(pristine, page.detail.name),
+    planTrailId: localCopyId(page.detail.id),
+  });
 
   showPanel('trail-panel');
   await initTrailViewer(detail.id, trail);
