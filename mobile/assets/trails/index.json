@@ -10,10 +10,10 @@
       "NSW",
       "ACT"
     ],
-    "dataVersion": "2026-10-25",
-    "updatedAt": "2026-10-25T01:13:57.095Z",
-    "md5": "cad159ba5e7067c292cf68c8f703dc84",
-    "bytes": 1159562
+    "dataVersion": "2026-11-05",
+    "updatedAt": "2026-11-05T21:14:21.656Z",
+    "md5": "39725b715325310169bafae619550fac",
+    "bytes": 1159697
   },
   {
     "id": "hume-and-hovell",
@@ -24,10 +24,10 @@
     "states": [
       "NSW"
     ],
-    "dataVersion": "2026-10-25",
-    "updatedAt": "2026-10-25T01:13:57.095Z",
-    "md5": "b6787888b947d022fd1baf923e5fcd6b",
-    "bytes": 720354
+    "dataVersion": "2026-11-05",
+    "updatedAt": "2026-11-05T21:14:21.656Z",
+    "md5": "489b9395fac769c0953565938453bb3c",
+    "bytes": 720558
   },
   {
     "id": "bibbulmun",
@@ -38,10 +38,10 @@
     "states": [
       "WA"
     ],
-    "dataVersion": "2026-10-25",
-    "updatedAt": "2026-10-25T01:13:57.095Z",
-    "md5": "dea67a620dca9bcd9754bb1d8a5e3d9d",
-    "bytes": 1088547
+    "dataVersion": "2026-11-05",
+    "updatedAt": "2026-11-05T21:14:21.656Z",
+    "md5": "62b34ac0eefbfe100fe17b5a6bc3a3ad",
+    "bytes": 1088787
   },
   {
     "id": "cape_to_cape",
@@ -64,10 +64,10 @@
     "lengthKm": 4817,
     "country": "US",
     "states": [],
-    "dataVersion": "2026-10-30",
-    "updatedAt": "2026-10-30T22:00:21.573Z",
-    "md5": "2cbba3c0df8aac7680111029153379f6",
-    "bytes": 3105764
+    "dataVersion": "2026-11-05",
+    "updatedAt": "2026-11-05T21:19:31.590Z",
+    "md5": "377ea043c456aec18a7bc0fe2f436981",
+    "bytes": 3106521
   },
   {
     "id": "grampians_peaks",
@@ -78,10 +78,10 @@
     "states": [
       "VIC"
     ],
-    "dataVersion": "2026-10-25",
-    "updatedAt": "2026-10-25T01:13:57.095Z",
-    "md5": "19db04cbe7bd69ab98e5e907dd164d3c",
-    "bytes": 693333
+    "dataVersion": "2026-11-05",
+    "updatedAt": "2026-11-05T21:14:21.656Z",
+    "md5": "4524ac8da1707859fb754f159b487ffc",
+    "bytes": 693399
   },
   {
     "id": "great_north_walk",
@@ -92,10 +92,10 @@
     "states": [
       "NSW"
     ],
-    "dataVersion": "2026-10-25",
-    "updatedAt": "2026-10-25T01:13:57.095Z",
-    "md5": "8c07d5220e109976f17626d45e3aebf8",
-    "bytes": 778344
+    "dataVersion": "2026-11-05",
+    "updatedAt": "2026-11-05T21:14:21.656Z",
+    "md5": "12e30328ec1d1aa7c57a5a14311d7637",
+    "bytes": 778444
   },
   {
     "id": "great_ocean_walk",
@@ -106,10 +106,10 @@
     "states": [
       "VIC"
     ],
-    "dataVersion": "2026-10-20",
-    "updatedAt": "2026-10-20T00:52:37.639Z",
-    "md5": "006e92fdc29af2e1bdc1a8cd5975e862",
-    "bytes": 588474
+    "dataVersion": "2026-11-05",
+    "updatedAt": "2026-11-05T21:14:21.656Z",
+    "md5": "1980d9848b484a494a492c1bf4468671",
+    "bytes": 588577
   },
   {
     "id": "great_south_west_walk",
@@ -120,10 +120,10 @@
     "states": [
       "VIC"
     ],
-    "dataVersion": "2026-10-25",
-    "updatedAt": "2026-10-25T01:13:57.095Z",
-    "md5": "9008eb9e5870de0a4f66eeebbf4aa7b8",
-    "bytes": 594393
+    "dataVersion": "2026-11-05",
+    "updatedAt": "2026-11-05T21:14:21.656Z",
+    "md5": "80d0248df027c3cd75365a741ca6fd62",
+    "bytes": 594460
   },
   {
     "id": "heysen",
@@ -134,10 +134,10 @@
     "states": [
       "SA"
     ],
-    "dataVersion": "2026-10-25",
-    "updatedAt": "2026-10-25T01:13:57.095Z",
-    "md5": "bef01a3d054947770e3e2375965f2238",
-    "bytes": 1248240
+    "dataVersion": "2026-11-05",
+    "updatedAt": "2026-11-05T21:14:21.656Z",
+    "md5": "a1701eb31c671ae269075eb858c593bf",
+    "bytes": 1248550
   },
   {
     "id": "kep_track",
@@ -148,10 +148,10 @@
     "states": [
       "WA"
     ],
-    "dataVersion": "2026-10-25",
-    "updatedAt": "2026-10-25T01:13:57.095Z",
-    "md5": "2838be21934f1c8c386b9548277349db",
-    "bytes": 313388
+    "dataVersion": "2026-11-05",
+    "updatedAt": "2026-11-05T21:14:21.656Z",
+    "md5": "a25ec73ef3acfaed3db8f1b11e83df43",
+    "bytes": 313421
   },
   {
     "id": "larapinta",
@@ -176,10 +176,10 @@
     "states": [
       "TAS"
     ],
-    "dataVersion": "2026-10-23",
-    "updatedAt": "2026-10-23T04:49:06.348Z",
-    "md5": "ce7e6d6ad72f0dc29f36b81ec9c2d366",
-    "bytes": 659767
+    "dataVersion": "2026-11-05",
+    "updatedAt": "2026-11-05T21:14:21.656Z",
+    "md5": "a996bd3c4b889d543d7b9b5d821e86fc",
+    "bytes": 659800
   },
   {
     "id": "royal_coast_track",
@@ -230,10 +230,10 @@
     "states": [
       "TAS"
     ],
-    "dataVersion": "2026-10-23",
-    "updatedAt": "2026-10-23T04:49:06.348Z",
-    "md5": "cb91be356a536810adc4a0d318027928",
-    "bytes": 345811
+    "dataVersion": "2026-11-05",
+    "updatedAt": "2026-11-05T21:14:21.656Z",
+    "md5": "ab35b5a99743a52b7093e76e180543ca",
+    "bytes": 345845
   },
   {
     "id": "te_araroa",
@@ -245,10 +245,10 @@
       "NI",
       "SI"
     ],
-    "dataVersion": "2026-10-25",
-    "updatedAt": "2026-10-25T09:00:01.439Z",
-    "md5": "af0da5616837ecbd156b02a484337e13",
-    "bytes": 1931676
+    "dataVersion": "2026-11-05",
+    "updatedAt": "2026-11-05T21:14:21.656Z",
+    "md5": "3687cce1856d78af1993ac641e682c2c",
+    "bytes": 1932632
   },
   {
     "id": "thorsborne",

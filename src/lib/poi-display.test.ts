@@ -17,6 +17,7 @@ import {
   findPoiByRouteKey,
   formatOffTrail,
   interleavePoisByDistance,
+  mergedPoiTags,
   mirrorPoiDistances,
   normalisePoiFilterState,
   safeHttpUrl,
@@ -27,6 +28,7 @@ import {
   poisBetween,
   poiOsmUrl,
   poiRouteKey,
+  selfDuplicatesOf,
   slimPoi,
   summarisePoiTags,
   visiblePois,
@@ -72,6 +74,53 @@ describe('duplicatePoisFor', () => {
   it('is empty for a trail that was never enriched', () => {
     // An absent `pois` means "never fetched", not "found nothing".
     expect(duplicatePoisFor({}, 'w_hut')).toEqual([]);
+  });
+
+  it('includes a second OSM record of a POI flagged against the waypoint', () => {
+    const trail = {
+      pois: [
+        poi({ id: 1, duplicateOf: 'w_mobil' }),
+        poi({ id: 2, duplicateOfPoi: 'node/1' }),
+        poi({ id: 3, duplicateOfPoi: 'node/9' }),
+        poi({ id: 9 }),
+      ],
+    };
+    expect(duplicatePoisFor(trail, 'w_mobil').map(p => p.id)).toEqual([1, 2]);
+    expect(duplicatePoisFor(trail, 'w_other')).toEqual([]);
+  });
+});
+
+describe('selfDuplicatesOf / mergedPoiTags', () => {
+  const station = poi({
+    id: 1,
+    category: 'resupply',
+    name: 'Ampol',
+    tags: { amenity: 'fuel', website: 'https://ampol.example/' },
+  });
+  const shop = poi({
+    id: 2,
+    category: 'resupply',
+    name: 'Ampol Foodary',
+    tags: { shop: 'convenience', website: 'https://other.example/', opening_hours: '24/7' },
+    duplicateOfPoi: 'node/1',
+  });
+
+  it('finds the records folded into a POI', () => {
+    const pois = [station, shop, poi({ id: 3, duplicateOfPoi: 'way/1' })];
+    expect(selfDuplicatesOf(pois, station).map(p => p.id)).toEqual([2]);
+    expect(selfDuplicatesOf(pois, shop)).toEqual([]);
+    expect(selfDuplicatesOf(undefined, station)).toEqual([]);
+  });
+
+  it("fills the POI's gaps from them, never its own values or its primary tag", () => {
+    const merged = mergedPoiTags(station, [shop]);
+    expect(merged).toEqual({ amenity: 'fuel', website: 'https://ampol.example/', opening_hours: '24/7' });
+    // The popup still says what the shown record is.
+    expect(summarisePoiTags(merged)[0]).toEqual({ label: 'OSM tag', value: 'amenity=fuel' });
+  });
+
+  it("is the POI's own tags when nothing was folded into it", () => {
+    expect(mergedPoiTags(station, [])).toEqual(station.tags);
   });
 });
 
@@ -217,6 +266,13 @@ describe('slimming a POI for the phone', () => {
 
   it('omits duplicateOf entirely when the POI is not a duplicate', () => {
     expect('duplicateOf' in slimPoi(poi())).toBe(false);
+    expect('duplicateOfPoi' in slimPoi(poi())).toBe(false);
+  });
+
+  it('keeps the POI-duplicate flag but drops its review-only distance', () => {
+    const slim = slimPoi(poi({ duplicateOfPoi: 'way/7', duplicateOfPoiDistanceM: 29 }));
+    expect(slim.duplicateOfPoi).toBe('way/7');
+    expect('duplicateOfPoiDistanceM' in slim).toBe(false);
   });
 });
 
@@ -264,10 +320,17 @@ describe('the POI filter state', () => {
     expect(visiblePois(pois, state).map(p => p.id)).toEqual([1]);
   });
 
+  it('never shows a second OSM record of a place another POI shows', () => {
+    const state = defaultPoiFilterState();
+    const pois = [poi({ id: 1 }), poi({ id: 2, duplicateOfPoi: 'node/1' })];
+    expect(visiblePois(pois, state).map(p => p.id)).toEqual([1]);
+  });
+
   it('leaves duplicates out of the checkbox counts, so counts match markers', () => {
     const counts = countPoisByCategory([
       poi({ category: 'camping' }),
       poi({ category: 'camping', duplicateOf: 'w_abc' }),
+      poi({ category: 'camping', duplicateOfPoi: 'node/1' }),
     ]);
     expect(counts.camping).toBe(1);
   });

@@ -23,6 +23,8 @@
  * `mirrorPoiDistances` from here.
  */
 
+import { isDuplicatePoi } from './poi-dedup';
+import { poiKey } from './trail-pois';
 import type { TrailPOI, TrailPOICategory } from './trail-types';
 
 /** The six families the enrichment produces, in the order the UI lists them. */
@@ -230,9 +232,10 @@ function round(value: number, places: number): number {
  * of payload nobody looks at. Keeping only `POI_DISPLAY_TAG_KEYS` and rounding
  * to the same precision `truncateWaypoint` uses roughly halves that.
  *
- * `duplicateDistanceM` goes too: it is a review aid for judging the dedup pass,
- * meaningless once the data is on a phone. `duplicateOf` stays — the app hides
- * flagged POIs and shows their OSM detail on the waypoint they duplicate.
+ * `duplicateDistanceM` and `duplicateOfPoiDistanceM` go too: they are review
+ * aids for judging the dedup passes, meaningless once the data is on a phone.
+ * `duplicateOf` and `duplicateOfPoi` stay — the app hides flagged POIs and
+ * shows their OSM detail on the waypoint or POI they duplicate.
  */
 export function slimPoi(poi: TrailPOI): TrailPOI {
   const tags: Record<string, string> = {};
@@ -253,6 +256,7 @@ export function slimPoi(poi: TrailPOI): TrailPOI {
     distanceFromTrail: round(poi.distanceFromTrail, 2),
   };
   if (poi.duplicateOf !== undefined) slim.duplicateOf = poi.duplicateOf;
+  if (poi.duplicateOfPoi !== undefined) slim.duplicateOfPoi = poi.duplicateOfPoi;
   return slim;
 }
 
@@ -295,7 +299,8 @@ export function normalisePoiFilterState(raw: unknown): PoiFilterState {
 }
 
 /**
- * POIs per category, excluding those flagged as duplicating a waypoint.
+ * POIs per category, excluding those flagged as duplicating a waypoint or
+ * another POI.
  *
  * These numbers label the filter checkboxes, so they have to agree with what
  * `visiblePois` will actually draw — "camping (13)" must mean 13 markers.
@@ -310,7 +315,7 @@ export function countPoisByCategory(pois: readonly TrailPOI[]): Record<TrailPOIC
     emergency: 0,
   };
   for (const poi of pois) {
-    if (poi.duplicateOf) continue;
+    if (isDuplicatePoi(poi)) continue;
     if (isPoiCategory(poi.category)) counts[poi.category] += 1;
   }
   return counts;
@@ -329,7 +334,8 @@ export function visiblePois(pois: readonly TrailPOI[] | undefined, state: PoiFil
     // A POI the curated waypoint data already covers is never drawn: the
     // waypoint is the one marker for that place, and showing both puts two
     // pins a few metres apart. The POI stays in the data for its OSM detail.
-    if (poi.duplicateOf) return false;
+    // Likewise one OSM record of a place another record already shows.
+    if (isDuplicatePoi(poi)) return false;
     return isPoiCategory(poi.category) ? state.categories[poi.category] : true;
   });
 }
@@ -345,12 +351,53 @@ export function visiblePois(pois: readonly TrailPOI[] | undefined, state: PoiFil
  * hidden POI ever surfaces, attributed to OSM and clearly separate from the
  * curated content.
  *
+ * Includes a POI flagged `duplicateOfPoi` a POI that is itself flagged against
+ * this waypoint: OSM mapped the place twice and the waypoint covers both
+ * (`Mobil` and `Mobil Mart`). In trail order.
+ *
  * Empty whenever the waypoint has no stable id (nothing could have been
  * flagged against it) or the trail was never enriched.
  */
 export function duplicatePoisFor(trail: { pois?: readonly TrailPOI[] }, waypointId: string | undefined): TrailPOI[] {
   if (!waypointId || !trail.pois) return [];
-  return trail.pois.filter(poi => poi.duplicateOf === waypointId);
+  const direct = new Set(trail.pois.filter(poi => poi.duplicateOf === waypointId).map(poiKey));
+  if (direct.size === 0) return [];
+  return trail.pois.filter(
+    poi =>
+      poi.duplicateOf === waypointId ||
+      (!poi.duplicateOf && poi.duplicateOfPoi !== undefined && direct.has(poi.duplicateOfPoi))
+  );
+}
+
+/**
+ * The OSM records `@lib/poi-dedup` `markSelfDuplicatePois` folded into this
+ * POI: the same place mapped again (`Ampol Foodary` beside `Ampol`), hidden
+ * everywhere so the place has one marker. In trail order; empty for a POI
+ * nothing points at.
+ */
+export function selfDuplicatesOf(pois: readonly TrailPOI[] | undefined, poi: TrailPOI): TrailPOI[] {
+  if (!pois) return [];
+  const key = poiKey(poi);
+  return pois.filter(other => other.duplicateOfPoi === key && !other.duplicateOf);
+}
+
+/**
+ * A POI's tags with the gaps filled from the records folded into it
+ * (`selfDuplicatesOf`): the fuel station's `opening_hours` and the shop's
+ * `website` on one popup. The POI's own value always wins, and its primary tag
+ * (`amenity=fuel`, `PRIMARY_TAG_KEYS`) is never replaced or added to, so the
+ * popup still says what the shown record is. Earlier duplicates fill first.
+ */
+export function mergedPoiTags(poi: TrailPOI, duplicates: readonly TrailPOI[]): Record<string, string> {
+  const merged: Record<string, string> = { ...(poi.tags ?? {}) };
+  const primary = new Set<string>(PRIMARY_TAG_KEYS);
+  for (const duplicate of duplicates) {
+    for (const [key, value] of Object.entries(duplicate.tags ?? {})) {
+      if (primary.has(key) || key in merged) continue;
+      if (typeof value === 'string' && value.trim() !== '') merged[key] = value;
+    }
+  }
+  return merged;
 }
 
 /**

@@ -17,6 +17,11 @@
  *
  * Everything else renders from the trail JSON already in memory.
  *
+ * Where OSM maps the place twice (`Ampol` and `Ampol Foodary`), the second
+ * record is hidden everywhere (`@lib/poi-dedup` `markSelfDuplicatePois`) and
+ * surfaces here instead: its tags fill this screen's gaps (`mergedPoiTags`)
+ * and it keeps its own "Open in OpenStreetMap" button.
+ *
  * The POI is resolved from `useGuide().trail.pois` — the direction-applied
  * trail, so `distanceAlongTrail` is already mirrored for a reversed guide — by
  * the slash-free `type-id` route key (a `/` in an Expo Router param is a path
@@ -38,11 +43,13 @@ import { formatDistance } from '@lib/format-distance';
 import {
   OSM_ATTRIBUTION,
   findPoiByRouteKey,
+  mergedPoiTags,
   poiCategoryLabel,
   poiDisplayName,
   poiCommentId,
   poiNoteUrl,
   poiOsmUrl,
+  selfDuplicatesOf,
   summarisePoiTags,
   type PoiTagLine,
 } from '@lib/poi-display';
@@ -74,7 +81,14 @@ export default function PoiDetailScreen() {
 
   const poi = useMemo(() => findPoiByRouteKey(trail.pois, poiKey ?? ''), [trail.pois, poiKey]);
 
-  const lines = useMemo(() => summarisePoiTags(poi?.tags), [poi]);
+  const duplicates = useMemo(
+    () => (poi ? selfDuplicatesOf(trail.pois, poi) : []),
+    [trail.pois, poi],
+  );
+  const lines = useMemo(
+    () => summarisePoiTags(poi ? mergedPoiTags(poi, duplicates) : undefined),
+    [poi, duplicates],
+  );
 
   if (!poi) {
     return (
@@ -170,6 +184,16 @@ export default function PoiDetailScreen() {
         {/* Back to the guide's map, centred on the POI's own position. */}
         <ActionButton label="Show on map" onPress={() => showOnMap(mapPointOf(poi))} />
         <ActionButton label="Open in OpenStreetMap" onPress={openOsm} />
+        {/* The same place's other OSM records, hidden from the map. */}
+        {duplicates.map((duplicate) => (
+          <ActionButton
+            key={`${duplicate.type}-${duplicate.id}`}
+            label={`Also in OpenStreetMap as ${poiDisplayName(duplicate)}`}
+            onPress={() =>
+              void openUrlWithFallback((url) => Linking.openURL(url), poiOsmUrl(duplicate))
+            }
+          />
+        ))}
         <ActionButton label="Open in Maps" onPress={openMaps} />
         <ActionButton label="Report a problem on OpenStreetMap" onPress={reportOnOsm} />
       </View>

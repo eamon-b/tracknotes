@@ -15,7 +15,7 @@ import {
   DESCRIPTIONS_FILENAME,
   loadCuratedDescriptions,
 } from './lib/waypoint-descriptions.js';
-import { countDuplicatePois } from '../src/lib/poi-dedup.js';
+import { countDuplicatePois, countSelfDuplicatePois, markSelfDuplicatePois } from '../src/lib/poi-dedup.js';
 import { countNoiseByReason } from '../src/lib/poi-noise.js';
 import { findDenseStretches, thinUrbanPois } from '../src/lib/poi-urban.js';
 import { markTrailPOIsForBuild, readTrailPOIFile, staleRejectedKeys } from './lib/trail-pois-file.js';
@@ -763,7 +763,9 @@ async function main() {
         );
       }
       const cities = findDenseStretches(unthinned ?? []);
-      const pois = thinUrbanPois(unthinned, poiConfig);
+      // OSM's own repeats are flagged last, over what city thinning kept, so the
+      // record a duplicate points at is always one that ships.
+      const pois = markSelfDuplicatePois(thinUrbanPois(unthinned, poiConfig));
       if (pois) {
         processed.pois = pois;
       }
@@ -796,7 +798,10 @@ async function main() {
       );
       if (pois) {
         const duplicates = countDuplicatePois(pois);
-        const suffix = duplicates > 0 ? `, ${duplicates} hidden as duplicates of waypoints` : '';
+        const selfDuplicates = countSelfDuplicatePois(pois);
+        const suffix =
+          (duplicates > 0 ? `, ${duplicates} hidden as duplicates of waypoints` : '') +
+          (selfDuplicates > 0 ? `, ${selfDuplicates} as duplicates of other POIs` : '');
         console.log(`    POIs: ${pois.length} (OpenStreetMap)${suffix}`);
         const dropped = Object.entries(noise).filter(([, n]) => n > 0);
         if (dropped.length > 0) {

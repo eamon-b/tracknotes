@@ -3,9 +3,12 @@ import { describe, expect, it } from 'vitest';
 import {
   applyDuplicateOverrides,
   countDuplicatePois,
+  countSelfDuplicatePois,
   dedupCandidates,
   isCompatibleType,
+  isDuplicatePoi,
   markDuplicatePois,
+  markSelfDuplicatePois,
   nameScore,
   namesDistinguished,
   nameTokens,
@@ -525,5 +528,260 @@ describe('applyDuplicateOverrides', () => {
 
   it('throws on a waypoint id the trail does not have', () => {
     expect(() => applyDuplicateOverrides([], { 'node/9': 'w_missing' }, [hut])).toThrow(/w_missing/);
+  });
+});
+
+describe('markSelfDuplicatePois (OSM mapping one place twice)', () => {
+  /** A POI `metres` north of the base point, with an id of its own. */
+  function at(id: number, metres: number, over: Partial<TrailPOI> & { name: string | null }): TrailPOI {
+    return poi({ id, lat: latOffset(metres), ...over });
+  }
+
+  /** `<key> -> <survivor key>` for every flagged POI, for compact assertions. */
+  function flagged(pois: TrailPOI[] | undefined): Record<string, string> {
+    const out: Record<string, string> = {};
+    for (const p of pois ?? []) if (p.duplicateOfPoi) out[`${p.type}/${p.id}`] = p.duplicateOfPoi;
+    return out;
+  }
+
+  it("folds a fuel station's shop into the station: Hume and Hovell's Ampol, 29 m", () => {
+    const ampol = at(1912644301, 0, {
+      name: 'Ampol',
+      category: 'resupply',
+      tags: {
+        amenity: 'fuel',
+        brand: 'Ampol',
+        'brand:wikidata': 'Q4748528',
+        name: 'Ampol',
+        website: 'https://www.caltex.com.au/',
+      },
+    });
+    const foodary = at(3099741103, 29, {
+      name: 'Ampol Foodary',
+      category: 'resupply',
+      tags: { name: 'Ampol Foodary', shop: 'convenience' },
+    });
+    const out = markSelfDuplicatePois([ampol, foodary]);
+    // The station has more tags, so it is the record that stays.
+    expect(flagged(out)).toEqual({ 'node/3099741103': 'node/1912644301' });
+    expect(out?.[1].duplicateOfPoiDistanceM).toBe(29);
+    expect(out?.[0].duplicateOfPoi).toBeUndefined();
+  });
+
+  it('matches one name opening the other, in order: Mobil / Mobil Mart, BP / BP Shop', () => {
+    const out = markSelfDuplicatePois([
+      at(1, 0, {
+        name: 'Mobil Mart',
+        category: 'resupply',
+        tags: { shop: 'convenience', brand: 'Mobil Mart', website: 'x' },
+      }),
+      at(2, 16, { name: 'Mobil', category: 'resupply', tags: { amenity: 'fuel' } }),
+      at(3, 1000, { name: 'BP', category: 'resupply', tags: { amenity: 'fuel', brand: 'BP', website: 'x' } }),
+      at(4, 1021, { name: 'BP Shop', category: 'resupply', tags: { shop: 'convenience' } }),
+    ]);
+    expect(flagged(out)).toEqual({ 'node/2': 'node/1', 'node/4': 'node/3' });
+  });
+
+  it('folds a hut and the camp site mapped round it: Karta Burnu, 14 m', () => {
+    const out = markSelfDuplicatePois([
+      at(1, 0, { name: 'Karta Burnu Camp Site', tags: { tourism: 'camp_site', toilets: 'yes', water: 'yes' } }),
+      at(2, 14, { name: 'Karta Burnu', tags: { amenity: 'shelter' } }),
+    ]);
+    expect(flagged(out)).toEqual({ 'node/2': 'node/1' });
+  });
+
+  it('reads `Mt` as `Mount` and drops generic words and `The`, as against waypoints', () => {
+    const out = markSelfDuplicatePois([
+      at(1, 0, { name: 'The Kalamunda Hotel', category: 'restaurant', tags: { amenity: 'pub', a: '1' } }),
+      at(2, 6, { name: 'Kalamunda Hotel', category: 'restaurant', tags: { amenity: 'pub' } }),
+      at(3, 5000, { name: 'Mt Dale Hut', tags: { tourism: 'wilderness_hut', a: '1' } }),
+      at(4, 5016, { name: 'Mount Dale Campsite', tags: { tourism: 'camp_site' } }),
+    ]);
+    expect(flagged(out)).toEqual({ 'node/2': 'node/1', 'node/4': 'node/3' });
+  });
+
+  it('tolerates spelling drift in order within 50 m: Chopstix / Chopstick Noodle Bar', () => {
+    const out = markSelfDuplicatePois([
+      at(1, 0, {
+        name: 'Chopstix Noodle bar',
+        category: 'restaurant',
+        tags: { amenity: 'restaurant', cuisine: 'asian' },
+      }),
+      at(2, 7, { name: 'Chopstick Noodle Bar', category: 'restaurant', tags: { amenity: 'restaurant' } }),
+    ]);
+    expect(flagged(out)).toEqual({ 'node/2': 'node/1' });
+  });
+
+  it('lets two campgrounds of one name be further apart: Cosy Corner (East), 112 m', () => {
+    const out = markSelfDuplicatePois([
+      at(1367209477, 0, { name: 'Cosy Corner (East)', tags: { tourism: 'camp_site', tents: 'yes', caravans: 'no' } }),
+      at(1367209476, 112, {
+        name: 'Cosy Corner (East)',
+        tags: { tourism: 'caravan_site', tents: 'no', caravans: 'yes' },
+      }),
+    ]);
+    expect(Object.keys(flagged(out))).toHaveLength(1);
+  });
+
+  it("keeps two same-named shops apart beyond 50 m: the CDT's 7-Elevens 162 m apart", () => {
+    const out = markSelfDuplicatePois([
+      at(1, 0, { name: '7-Eleven', category: 'resupply', tags: { shop: 'convenience' } }),
+      at(2, 162, { name: '7-Eleven', category: 'resupply', tags: { shop: 'convenience' } }),
+    ]);
+    expect(flagged(out)).toEqual({});
+  });
+
+  it('allows a name opening the other only within 50 m: Coles / Coles Express, 123 m', () => {
+    const out = markSelfDuplicatePois([
+      at(1, 0, { name: 'Coles', category: 'resupply', tags: { shop: 'supermarket' } }),
+      at(2, 123, { name: 'Coles Express', category: 'resupply', tags: { shop: 'convenience' } }),
+      at(3, 5000, { name: 'Larapinta Group Camping', tags: { tourism: 'camp_site' } }),
+      at(4, 5190, { name: 'Larapinta Walkers Campsite', tags: { tourism: 'camp_site' } }),
+    ]);
+    expect(flagged(out)).toEqual({});
+  });
+
+  it('counts a store under resupply over its café record: Spalding General Store', () => {
+    const out = markSelfDuplicatePois([
+      // The café record has more tags, but a store is a resupply first.
+      at(1, 0, {
+        name: 'Spalding General Store',
+        category: 'restaurant',
+        tags: { amenity: 'cafe', a: '1', b: '2' },
+      }),
+      at(2, 4, { name: 'Spalding General Store', category: 'resupply', tags: { shop: 'general' } }),
+    ]);
+    expect(flagged(out)).toEqual({ 'node/1': 'node/2' });
+  });
+
+  it('never equates two bus stops whose names differ only in word order', () => {
+    // Excluded as transport, and the comparison is ordered anyway — so even
+    // filed under another category the two stops stay two.
+    const stops = (category: TrailPOICategory) => [
+      at(1, 0, { name: 'Canning Rd After Recreation Rd', category, tags: {} }),
+      at(2, 20, { name: 'Recreation Rd After Canning Rd', category, tags: {} }),
+    ];
+    expect(flagged(markSelfDuplicatePois(stops('transport')))).toEqual({});
+    expect(flagged(markSelfDuplicatePois(stops('resupply')))).toEqual({});
+  });
+
+  it('never flags transport, even under one name at one spot', () => {
+    const out = markSelfDuplicatePois([
+      at(1, 0, { name: 'Yass Bus Interchange', category: 'transport', tags: {} }),
+      at(2, 5, { name: 'Yass Bus Interchange', category: 'transport', tags: {} }),
+    ]);
+    expect(flagged(out)).toEqual({});
+  });
+
+  it("keeps the ` - Suffix` that tells two restaurants apart: Te Araroa's Paihia and Zane Grey's", () => {
+    const out = markSelfDuplicatePois([
+      at(1, 0, { name: "Green's Paihia - Indian Cuisine", category: 'restaurant', tags: {} }),
+      at(2, 20, { name: 'Greens Paihia - Thai', category: 'restaurant', tags: {} }),
+      at(3, 1000, { name: "Zane Grey's - The Dock", category: 'restaurant', tags: {} }),
+      at(4, 1026, { name: "Zane Grey's - The Aquarium", category: 'restaurant', tags: {} }),
+    ]);
+    expect(flagged(out)).toEqual({});
+  });
+
+  it('tells places apart by numbers, travel direction and `group`', () => {
+    const out = markSelfDuplicatePois([
+      at(1, 0, { name: 'Freedom Camping Site - Paraparaumu Site #3 (self-contained only)', tags: {} }),
+      at(2, 30, { name: 'Freedom Camping Site - Paraparaumu Site #2 (self-contained only)', tags: {} }),
+      at(3, 1000, { name: 'Divide Rest Area, I-15 Southbound', category: 'water', tags: {} }),
+      at(4, 1020, { name: 'Divide Rest Area, I-15 Northbound', category: 'water', tags: {} }),
+      at(5, 3000, { name: 'July Group Site', tags: { group_only: 'yes' } }),
+      at(6, 3010, { name: 'July', tags: {} }),
+    ]);
+    expect(flagged(out)).toEqual({});
+  });
+
+  it('keeps different shops at one address apart: Northcliffe Farm and Trade / Northcliffe LPO, 9 m', () => {
+    const out = markSelfDuplicatePois([
+      at(1, 0, { name: 'Northcliffe Farm and Trade', category: 'resupply', tags: { amenity: 'fuel' } }),
+      at(2, 9, { name: 'Northcliffe LPO', category: 'resupply', tags: { amenity: 'post_office' } }),
+      at(3, 1000, { name: 'Denmark Bakery', category: 'resupply', tags: { shop: 'bakery' } }),
+      at(4, 1012, { name: 'Bakery Cafe', category: 'restaurant', tags: { amenity: 'cafe' } }),
+    ]);
+    expect(flagged(out)).toEqual({});
+  });
+
+  it('requires compatible categories', () => {
+    const out = markSelfDuplicatePois([
+      at(1, 0, { name: 'Balingup', category: 'camping', tags: {} }),
+      at(2, 5, { name: 'Balingup', category: 'emergency', tags: {} }),
+      at(3, 1000, { name: 'Creek', category: 'water', tags: {} }),
+      at(4, 1005, { name: 'Creek', category: 'camping', tags: {} }),
+    ]);
+    expect(flagged(out)).toEqual({});
+  });
+
+  it('never flags unnamed POIs: two nameless taps are two taps', () => {
+    const out = markSelfDuplicatePois([
+      at(1, 0, { name: null, category: 'water', tags: { amenity: 'drinking_water' } }),
+      at(2, 10, { name: null, category: 'water', tags: { amenity: 'drinking_water' } }),
+      at(3, 1000, { name: 'Campsite', tags: {} }),
+      at(4, 1005, { name: 'Camp Site', tags: {} }),
+    ]);
+    expect(flagged(out)).toEqual({});
+  });
+
+  it('joins a record to one already standing for a waypoint, never re-pointing that one: Trezona', () => {
+    const out = markSelfDuplicatePois([
+      at(1, 0, { name: 'Trezona Campground', tags: { tourism: 'camp_site', a: '1', b: '2', c: '3' } }),
+      at(2, 187, { name: 'Trezona Campground', tags: { tourism: 'camp_site' }, duplicateOf: 'w_96dafb81' }),
+    ]);
+    // The flagged record wins despite fewer tags, so both describe the waypoint.
+    expect(flagged(out)).toEqual({ 'node/1': 'node/2' });
+    expect(out?.[1].duplicateOfPoi).toBeUndefined();
+  });
+
+  it('points every repeat at one shown record, never at another repeat', () => {
+    const out = markSelfDuplicatePois([
+      at(1, 0, { name: 'Onahu Creek', tags: { tourism: 'camp_site' } }),
+      at(2, 23, { name: 'Onahu Creek', tags: { tourism: 'camp_site' } }),
+      at(3, 29, { name: 'Onahu Creek', tags: { tourism: 'camp_site' } }),
+    ]);
+    expect(flagged(out)).toEqual({ 'node/2': 'node/1', 'node/3': 'node/1' });
+  });
+
+  it('decides the same whatever order the POIs arrive in', () => {
+    const pois = [
+      at(5, 0, { name: 'EG Australia', category: 'resupply', tags: { shop: 'convenience' } }),
+      at(3, 14, { name: 'EG Australia', category: 'resupply', tags: { amenity: 'fuel' } }),
+      at(9, 1000, { name: 'Iluka', category: 'restaurant', tags: {} }),
+      at(7, 1010, { name: 'Iluka', category: 'restaurant', tags: {} }),
+    ];
+    const forward = flagged(markSelfDuplicatePois(pois));
+    expect(flagged(markSelfDuplicatePois([...pois].reverse()))).toEqual(forward);
+    // Equal on everything else, the lower key stays.
+    expect(forward).toEqual({ 'node/5': 'node/3', 'node/9': 'node/7' });
+  });
+
+  it('clears stale flags, does not mutate its input, and adds no fields to a distinct POI', () => {
+    const input = [
+      at(1, 0, { name: 'Ball Creek', duplicateOfPoi: 'node/99', duplicateOfPoiDistanceM: 3 }),
+      at(2, 5000, { name: 'Buddong' }),
+    ];
+    const out = markSelfDuplicatePois(input);
+    expect(out?.[0]).not.toHaveProperty('duplicateOfPoi');
+    expect(out?.[0]).not.toHaveProperty('duplicateOfPoiDistanceM');
+    expect(Object.keys(out?.[1] ?? {})).toEqual(Object.keys(input[1]));
+    expect(input[0].duplicateOfPoi).toBe('node/99');
+  });
+
+  it('returns undefined for a trail that was never fetched', () => {
+    expect(markSelfDuplicatePois(undefined)).toBeUndefined();
+  });
+
+  it('hides and counts the flagged ones apart from waypoint duplicates', () => {
+    const pois = [
+      poi({ id: 1, name: 'a' }),
+      poi({ id: 2, name: 'b', duplicateOf: 'w_1' }),
+      poi({ id: 3, name: 'c', duplicateOfPoi: 'node/1' }),
+    ];
+    expect(nonDuplicatePois(pois).map(p => p.id)).toEqual([1]);
+    expect(countDuplicatePois(pois)).toBe(1);
+    expect(countSelfDuplicatePois(pois)).toBe(1);
+    expect(pois.map(isDuplicatePoi)).toEqual([false, true, true]);
   });
 });

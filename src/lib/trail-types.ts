@@ -377,6 +377,23 @@ export interface TrailPOI {
   duplicateOf?: string;
   /** Metres between this POI and the waypoint it duplicates. Review aid. */
   duplicateDistanceM?: number;
+  /**
+   * Set when OSM maps this place twice and this POI is the weaker record: the
+   * `<type>/<id>` key (`@lib/trail-pois` `poiKey`) of the POI kept for it.
+   * Derived at build/import time by `@lib/poi-dedup` `markSelfDuplicatePois`,
+   * never stored in `pois.json`.
+   *
+   * A separate field from `duplicateOf` because it names a POI, not a waypoint:
+   * `duplicateOf` is "a curated waypoint is this place" everywhere it is read
+   * (the waypoint's "From OpenStreetMap" section, the planner's services, the
+   * hand-edited overrides), and a POI key there would be a waypoint id nothing
+   * has. The UI hides these like `duplicateOf` ones and shows their tags on the
+   * POI they point at (or, when that POI is itself `duplicateOf` a waypoint,
+   * on the waypoint).
+   */
+  duplicateOfPoi?: string;
+  /** Metres between this POI and the one in `duplicateOfPoi`. Review aid. */
+  duplicateOfPoiDistanceM?: number;
 }
 
 export interface ProcessedTrail {

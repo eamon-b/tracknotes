@@ -47,6 +47,7 @@ import {
   poiDisplayName,
   poiKey,
   poiPopupHtml,
+  selfDuplicatesOf,
   poiRowHtml,
   savePoiFilterState,
   visiblePois,
@@ -303,7 +304,8 @@ function drawPoiMarkers(): void {
   poiMarkers = [];
   if (!map) return;
 
-  const pois = visiblePois(currentPois(), poiFilter);
+  const all = currentPois();
+  const pois = visiblePois(all, poiFilter);
   if (pois.length === 0) return;
 
   const layer = L.layerGroup();
@@ -312,7 +314,7 @@ function drawPoiMarkers(): void {
       icon: createPoiIcon(poi.category),
       zIndexOffset: -1000,
       title: poiDisplayName(poi),
-    }).bindPopup(poiPopupHtml(poi));
+    }).bindPopup(poiPopupHtml(poi, selfDuplicatesOf(all, poi)));
     marker.addTo(layer);
     poiMarkers.push({ poi, marker });
   }

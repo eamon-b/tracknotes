@@ -169,6 +169,18 @@ describe('finishTrailPois', () => {
     expect(pois[1].distanceAlongTrail).toBeCloseTo(22, 0);
   });
 
+  it('flags a place OSM maps twice, against the record with more tags', async () => {
+    const trail = makeTrail();
+    const plan = planTrailPoiSearch(trail);
+    const fetched = [
+      node(1, -33.8, 115.003, { amenity: 'fuel', brand: 'Ampol', name: 'Ampol' }),
+      node(2, -33.80015, 115.003, { shop: 'convenience', name: 'Ampol Foodary' }),
+    ];
+    const pois = await finishTrailPois(plan, fetched, trail);
+    expect(pois.find(p => p.id === 2)?.duplicateOfPoi).toBe('node/1');
+    expect(pois.find(p => p.id === 1)?.duplicateOfPoi).toBeUndefined();
+  });
+
   it('returns [] — searched, found nothing — rather than undefined', async () => {
     const trail = makeTrail();
     const plan = planTrailPoiSearch(trail);
