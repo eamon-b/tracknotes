@@ -413,7 +413,7 @@ It runs the same corridor queries as the trail build, tries a second and third
 public Overpass server for any query the first one refuses, and cleans the
 results the way the bundled trails are cleaned (noise such as ordinary bus
 stops dropped, places that duplicate one of your waypoints folded into it, city
-stretches thinned). **Cancel** leaves the guide unchanged; if some areas get no
+stretches thinned, and a place OpenStreetMap lists twice shown once). **Cancel** leaves the guide unchanged; if some areas get no
 answer the rest are saved and **Retry the missed areas** asks again for just
 those. The results are saved into the guide, so they work offline afterwards,
 and **Remove points of interest** on the same screen takes them out again.

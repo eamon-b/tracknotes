@@ -4,7 +4,8 @@ OSM POIs and curated GPX waypoints frequently describe the same physical place.
 Rather than dropping the duplicate POI, flag it and let the UI collapse it, so
 the OSM detail stays available and the decision stays reviewable.
 
-Status: implemented (PR #63) — `src/lib/poi-dedup.ts`, wired
+Status: phase 1 implemented (PR #63); phase 2 (OSM duplicating itself, below)
+implemented for issue #233. Phase 1: implemented (PR #63) — `src/lib/poi-dedup.ts`, wired
 into `scripts/build-trails.ts`, the web viewer, the imported-trail flow and the
 handoff validator. Written against the six trails fetched on 2026-09-08. Mobile
 (PR #67) inherits the flag through the bundled assets and the handoff, hides
@@ -172,19 +173,53 @@ generated JSON.
 - **Category toggles**: flagged POIs stay out of the visible counts, so
   "camping (13)" means 13 markers.
 
-## Phase 2 (optional): OSM duplicating itself
+## Phase 2: OSM duplicating itself
 
-Separately from waypoints, OSM maps one place twice: 46 pairs in Bibbulmun, 29 in
-Hume & Hovell — `Mount Clare hut` + `Mount Clare campsite`, `Ampol` + `Ampol
-Foodary`, `Browns Creek Campsite` twice.
+Status: implemented (issue #233) — `markSelfDuplicatePois` in
+`src/lib/poi-dedup.ts`; the rule and where it runs are in
+`docs/architecture/trail-data.md` (`pois.json`) and `core-library.md`
+(`poi-dedup.ts`, `poi-display.ts`).
 
-This axis needs an **order-sensitive** comparison, unlike the waypoint axis. Most
-candidate pairs are bus stops where word order carries the meaning: `Canning Rd
-After Recreation Rd` and `Recreation Rd After Canning Rd` are opposite sides of
-one intersection — two genuinely different stops that token-set matching wrongly
-equates. Either compare ordered, or exclude `transport` here too.
+Separately from waypoints, OSM maps one place twice. The original estimate (46
+pairs in Bibbulmun, 29 in Hume & Hovell) counted bus stops and pairs whose both
+halves phase 1 already hides (`Mount Clare hut` + `Mount Clare campsite` and
+`Browns Creek Campsite` twice are both flagged against their waypoint). What
+was left to do, measured on the 2026-11 build: 7 on the Bibbulmun (`The
+Kalamunda Hotel` + `Kalamunda Hotel`, `Karta Burnu` + `Karta Burnu Camp Site`),
+6 on Hume & Hovell (`Ampol` + `Ampol Foodary`, `Mobil` + `Mobil Mart`), about
+90 across all trails — most of them a fuel station and its shop, or a building
+outline and a node for the same pub.
 
-Lower value than phase 1 and independent of it. Recommend deferring.
+Decisions:
+
+- **A field of its own, `duplicateOfPoi`** (the kept POI's `<type>/<id>` key),
+  not `duplicateOf` with a discriminator. Every reader of `duplicateOf` means "a
+  waypoint is this place" — the waypoint's "From OpenStreetMap" section, the
+  planner's services, the hand-edited `duplicates` overrides — and would have to
+  learn to tell the two apart. Hiding goes through one helper,
+  `isDuplicatePoi`, so every surface that skipped `duplicateOf` skips both. An
+  app build from before this ignores the field and shows both records, which is
+  what it did already.
+- **Order-sensitive names**, as this section originally said: the same reduced
+  tokens in the same order, one name opening the other (`BP` / `BP Shop`), or
+  spelling drift in order. And `transport` is excluded as well, so bus stops
+  never reach the comparison.
+- **One level deep, deterministic.** Records are visited best first (one
+  already flagged against a waypoint; resupply over a café; more tags; longer
+  name; key) and each joins the nearest kept record it matches or is kept
+  itself, so a hidden POI never points at another hidden one. One that joins a
+  waypoint-flagged record shows on that waypoint.
+- **After city thinning**, so the kept record always ships.
+- **Merge on display, not in data**: the kept POI's popup (web) and detail
+  screen (phone) fill their tag gaps from the hidden records and link each one
+  out, as phase 1 does on the waypoint.
+
+False positives the rule was tuned against, all in `poi-dedup.test.ts`:
+`Green's Paihia - Indian Cuisine` / `Greens Paihia - Thai` (the ` - Suffix` is
+kept here, unlike against waypoints), `Divide Rest Area, I-15 Southbound` /
+`Northbound`, `July Group Site` / `July`, `7-Eleven`s 162 m apart, `Coles` /
+`Coles Express`, `Northcliffe Farm and Trade` / `Northcliffe LPO` (one address,
+two businesses), and the Paraparaumu freedom-camping sites `#2` / `#3`.
 
 ## Known limitation: many-to-many clusters
 
