@@ -1,7 +1,7 @@
 # Reading comments through the public API
 
 The comments API (`workers/comments-api/`, served at
-`https://api.contour-map-tiles.net`) is what Tracknotes and the website read
+`https://api.tracknotes.info`) is what Tracknotes and the website read
 hikers' comments, water reports and shared waypoints from. Those reads need no
 account and allow any origin, so anyone can use them. This page says what they
 return and asks a few things of anyone who keeps a copy.

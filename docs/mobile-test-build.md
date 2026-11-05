@@ -156,7 +156,7 @@ be rolled forward without a reinstall. The detailed rationale is under "Deploy" 
    A route that needs a token answers 401 once deployed, and 404 before:
 
    ```bash
-   curl -s -o /dev/null -w '%{http_code}\n' https://api.contour-map-tiles.net/v1/me/comments   # 401 (personal export)
+   curl -s -o /dev/null -w '%{http_code}\n' https://api.tracknotes.info/v1/me/comments   # 401 (personal export)
    ```
 
    Add a line here whenever a new migration adds routes. Deploy (from `main`) after every merge
