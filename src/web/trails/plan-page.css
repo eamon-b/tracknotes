@@ -1001,3 +1001,67 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
   height: 2px;
   background: var(--accent-color);
 }
+
+/* ---- Export menu (plan-export-ui.ts) ---- */
+.plan-export { position: relative; }
+.plan-export > summary { list-style: none; cursor: pointer; }
+.plan-export > summary::-webkit-details-marker { display: none; }
+.plan-export-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  /* Above Leaflet's panes and controls (up to 1000). */
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  min-width: 14rem;
+  padding: 0.25rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+}
+.plan-export-item {
+  padding: 0.45rem 0.6rem;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.875rem;
+  text-align: left;
+  cursor: pointer;
+}
+.plan-export-item:hover:not(:disabled) { background: var(--bg-secondary); }
+.plan-export-item:disabled { color: var(--text-secondary); cursor: default; }
+.plan-export-note { margin: 0 0.6rem 0.3rem; font-size: 0.75rem; color: var(--text-secondary); }
+
+/* ---- The printed plan (filled by plan-export-ui.ts) ---- */
+#plan-print { display: none; }
+
+/* Last in the file, so it wins over the small-screen rule that hides the shell
+   (a printed page is narrower than 900 CSS px). */
+@media print {
+  /* The page is a fixed-height app on screen; on paper it is a document. */
+  html, body { height: auto; overflow: visible; background: #fff; }
+  body > :not(#plan-shell) { display: none !important; }
+  /* The map, the panels, the header and the dialogs: none of it prints. */
+  #plan-shell { display: block !important; height: auto; min-width: 0; }
+  #plan-shell > :not(#plan-print) { display: none !important; }
+  #plan-print { display: block; color: #000; font-size: 10pt; line-height: 1.35; }
+  #plan-print h1 { font-size: 16pt; margin: 0 0 0.2rem; }
+  #plan-print h2 { font-size: 12pt; margin: 1rem 0 0.3rem; break-after: avoid; }
+  #plan-print .plan-print-meta { margin: 0 0 0.2rem; color: #333; }
+  #plan-print table { width: 100%; border-collapse: collapse; }
+  #plan-print th, #plan-print td {
+    padding: 0.2rem 0.35rem;
+    border-bottom: 1px solid #bbb;
+    text-align: left;
+    vertical-align: top;
+  }
+  #plan-print th { border-bottom: 1.5px solid #000; }
+  #plan-print .num { text-align: right; white-space: nowrap; }
+  #plan-print tr { break-inside: avoid; }
+  #plan-print tr.is-rest td, #plan-print tr.is-unplanned td { font-style: italic; color: #333; }
+  #plan-print .plan-print-footer { margin-top: 1rem; font-size: 8pt; color: #555; }
+}
