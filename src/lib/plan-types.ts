@@ -186,7 +186,10 @@ export const PLAN_LIMITS = {
   resupplyStopsMax: 500,
   /** Entries in `resupplyZeroDays`. */
   resupplyZeroDaysMax: 500,
-  /** The most zero days one resupply stop may hold (in half-day steps from 0). */
+  /**
+   * The most zero days one resupply stop, or the start of the walk
+   * (`startZeroDays`), may hold (in half-day steps from 0).
+   */
   zeroDaysMax: 14,
   /** Entries in `alternates`. */
   alternatesMax: 100,
@@ -205,8 +208,8 @@ export const PLAN_LIMITS = {
 export const PLAN_WAYPOINT_ID_PATTERN = /^[a-z0-9_-]{4,64}$/;
 
 /**
- * A zero-day count a plan may store for a resupply stop: a whole or half
- * number of days, more than 0 and at most `PLAN_LIMITS.zeroDaysMax`. (0 is
+ * A zero-day count a plan may store for a resupply stop or the start of the
+ * walk (`startZeroDays`): a whole or half number of days, more than 0 and at most `PLAN_LIMITS.zeroDaysMax`. (0 is
  * meaningful to an editor — it clears the entry — but is never stored.) The
  * one rule the editor, the clients' loaders and the server share.
  */
@@ -247,6 +250,17 @@ export interface PlanDocument {
    * to `computeResupplyLegs` as `zeroDays`.
    */
   resupplyZeroDays?: Record<string, number>;
+  /**
+   * Zero days the hiker takes before day 1, at the start of the walk (the
+   * trailhead town, a travel day, a permit office): a half-day step, more
+   * than 0 and at most `PLAN_LIMITS.zeroDaysMax` ({@link isStoredZeroDays}).
+   * Absent when none, so a plan without them is byte-identical to one saved
+   * before the field existed. Edited through `setStartZeroDays`. Every date
+   * `computePlanDays` gives moves on by its whole days (`startZeroDateOffset`:
+   * a half day is spent on day 1's own date, before setting off), and the
+   * resupply planner's total days count all of it.
+   */
+  startZeroDays?: number;
   /**
    * The alternates this plan takes instead of the main route, by name (sorted).
    * Absent = the main route all the way. See `plan-alternates.ts`.

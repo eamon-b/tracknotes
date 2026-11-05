@@ -1275,6 +1275,18 @@ describe('summariseResupplyPlan', () => {
       expect(totalWith([50], 100, { t50: 1.5 })).toBe(5.5);
     });
 
+    it('adds the zero days before day 1, once there is a leg', () => {
+      const legs = computeResupplyLegs(flatTrail(100), [{ km: 50, name: 'T50', optionIds: ['t50'] }], {
+        ...HIKER,
+        zeroDays: { t50: 1 },
+      });
+      const summary = summariseResupplyPlan(legs, HIKER.dailyHours, { startZeroDays: 1.5 });
+      expect(summary.totalDays).toBe(4 + 1 + 1.5);
+      expect(summary.zeroDays).toBe(2.5);
+      expect(summariseResupplyPlan(legs, HIKER.dailyHours, { startZeroDays: 0 }).totalDays).toBe(5);
+      expect(summariseResupplyPlan([], HIKER.dailyHours, { startZeroDays: 2 }).totalDays).toBe(0);
+    });
+
     it('does not round a whole number of days up over floating-point dust', () => {
       // 96 km is exactly 3 days; thirds of it do not add back up exactly.
       const third = 96 / 3;

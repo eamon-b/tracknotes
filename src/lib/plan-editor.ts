@@ -606,6 +606,46 @@ export function setResupplyZeroDays(
 }
 
 /**
+ * Set the zero days the hiker takes before day 1 (`PlanDocument.startZeroDays`):
+ * a whole or half number of days from 0 to `PLAN_LIMITS.zeroDaysMax`. 0 removes
+ * the field, so a plan with none stays byte-identical to one saved before it
+ * existed. Every date `computePlanDays` gives moves on by the whole days.
+ *
+ * The same object comes back when the value already reads the same (0 on an
+ * absent field included), so nothing is written or synced.
+ *
+ * @throws RangeError for a value that is not a half-day step in that range.
+ */
+export function setStartZeroDays(plan: PlanDocument, days: number, opts?: PlanEditOptions): PlanDocument {
+  if (days !== 0 && !isStoredZeroDays(days)) {
+    throw new RangeError(
+      `setStartZeroDays: ${String(days)} is not a half-day step from 0 to ${PLAN_LIMITS.zeroDaysMax}`
+    );
+  }
+  if (days === 0 ? plan.startZeroDays === undefined : plan.startZeroDays === days) return plan;
+  const updatedAt = stamp(opts, plan.updatedAt);
+  if (days === 0) return { ...omitKey(plan, 'startZeroDays'), updatedAt };
+  return { ...plan, startZeroDays: days, updatedAt };
+}
+
+/**
+ * The zero days before day 1 a plan holds: its `startZeroDays`, or 0 when it
+ * has none (or a value no loader should have let through).
+ */
+export function startZeroDaysOf(plan: Pick<PlanDocument, 'startZeroDays'>): number {
+  return isStoredZeroDays(plan.startZeroDays) ? plan.startZeroDays : 0;
+}
+
+/**
+ * How many calendar days the start zero days push day 1 back: the whole days
+ * only. A half day is spent on day 1's own date — the morning in town, the
+ * walk in the afternoon — so 0.5 moves no date and 1.5 moves them by one.
+ */
+export function startZeroDateOffset(plan: Pick<PlanDocument, 'startZeroDays'>): number {
+  return Math.floor(startZeroDaysOf(plan));
+}
+
+/**
  * Make one decision group's choice: exactly `optionId` in the group, or none
  * of it (`null`), leaving every other group's selection as it was. The group
  * is found by its `key` among `groups` (`listResupplyOptions`' output for the
@@ -865,7 +905,9 @@ function addDays(startDate: string, days: number): string {
  * days of every stop before it (`nights - 1` each). A rest day is never a day
  * card of its own — it is `restDays` on the day that ends at that stop, so a
  * card can read "2 nights at Salida". The final day's `restDays` is 0: the
- * trail end is not a stop you linger at.
+ * trail end is not a stop you linger at. Zero days before day 1
+ * (`PlanDocument.startZeroDays`) move every date on by their whole days
+ * ({@link startZeroDateOffset}).
  */
 export function computePlanDays(trail: PlanTrail, plan: PlanDocument, opts: ComputePlanDaysOptions): ComputedDay[] {
   const total = trail.track.totalDistance;
@@ -891,7 +933,9 @@ export function computePlanDays(trail: PlanTrail, plan: PlanDocument, opts: Comp
 
   const days = computeDays(trail, stopInputs, plan.startDate, opts.section, opts.baseKmh);
 
-  let restBefore = 0;
+  // Zero days before day 1 push every date along, as a stop's extra nights
+  // push the dates after it.
+  let restBefore = startZeroDateOffset(plan);
   return days.map((day, i) => {
     const endStop = boundaryStops[i];
     const restDays = endStop ? Math.max(0, endStop.nights - 1) : 0;
@@ -1295,6 +1339,11 @@ export function assertPlanDocumentWithinLimits(plan: PlanDocument): void {
       }
     }
   }
+  if (plan.startZeroDays !== undefined && !isStoredZeroDays(plan.startZeroDays)) {
+    throw new Error(
+      `plan-editor: ${String(plan.startZeroDays)} zero days at the start is not a half-day step in 0.5..${PLAN_LIMITS.zeroDaysMax}`
+    );
+  }
   if (plan.alternates !== undefined) {
     if (plan.alternates.length > PLAN_LIMITS.alternatesMax) {
       throw new Error(`plan-editor: ${plan.alternates.length} alternates exceeds ${PLAN_LIMITS.alternatesMax}`);
@@ -1387,6 +1436,7 @@ export function isPlanDocument(value: unknown): value is PlanDocument {
   ) {
     return false;
   }
+  if (value.startZeroDays !== undefined && !isStoredZeroDays(value.startZeroDays)) return false;
   if (typeof value.updatedAt !== 'string') return false;
   if (value.dataUpdatedAt !== undefined && typeof value.dataUpdatedAt !== 'string') return false;
   if (value.version !== 1) return false;

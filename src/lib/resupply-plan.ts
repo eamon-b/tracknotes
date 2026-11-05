@@ -331,9 +331,18 @@ export interface ResupplyPlanSummary {
   totalWalkingKm: number;
   /** ceil(all the walking hours / hours per day) plus zero days; see {@link summariseResupplyPlan}. */
   totalDays: number;
-  /** The zero days in that total. */
+  /** The zero days in that total: the stops' and the ones before day 1. */
   zeroDays: number;
   hasData: boolean;
+}
+
+/** Options for {@link summariseResupplyPlan}. */
+export interface SummariseResupplyPlanOptions {
+  /**
+   * The hiker's zero days before day 1 (`PlanDocument.startZeroDays`), counted
+   * in `totalDays` and `zeroDays` once there is a leg. Whole or half days ≥ 0.
+   */
+  startZeroDays?: number;
 }
 
 export interface ResupplySummary {
@@ -990,11 +999,23 @@ export function summariseResupplyLegs(legs: readonly ResupplyLeg[]): ResupplySum
  * though the walk does not. Food stays per leg for the same reason in reverse:
  * what is carried on a leg has to cover its last part-day.
  *
+ * The zero days before day 1 (`opts.startZeroDays`) count too: no leg
+ * arrives at the start of the walk, so they are passed in rather than read off
+ * a leg.
+ *
  * @param dailyHours the hiker's, as passed to `computeResupplyLegs`.
  * @throws RangeError if `dailyHours` is not a positive finite number.
  */
-export function summariseResupplyPlan(legs: readonly ResupplyLeg[], dailyHours: number): ResupplyPlanSummary {
+export function summariseResupplyPlan(
+  legs: readonly ResupplyLeg[],
+  dailyHours: number,
+  opts: SummariseResupplyPlanOptions = {}
+): ResupplyPlanSummary {
   const hoursPerDay = requirePositive(dailyHours, 'dailyHours', 'summariseResupplyPlan');
+  const startZeroDays =
+    opts.startZeroDays !== undefined && Number.isFinite(opts.startZeroDays) && opts.startZeroDays > 0
+      ? opts.startZeroDays
+      : 0;
   let longestLegKm = 0;
   let mostClimbM = 0;
   let longestCarryDays = 0;
@@ -1012,6 +1033,8 @@ export function summariseResupplyPlan(legs: readonly ResupplyLeg[], dailyHours: 
     walkingHours += leg.walkingHours;
     zeroDays += leg.zeroDays;
   }
+
+  if (legs.length > 0) zeroDays += startZeroDays;
 
   // At least a day once there is a leg, as for each leg's own days.
   const walkingDays = legs.length === 0 ? 0 : Math.max(1, Math.ceil(walkingHours / hoursPerDay - DAYS_EPSILON));
