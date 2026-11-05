@@ -51,6 +51,10 @@ export {
 export type { RouteBreakCrossing, SplittablePoint } from './route-breaks';
 export { routeBreakCrossings, routeBreakStarts, sliceAcrossRouteBreaks, splitAtRouteBreaks } from './route-breaks';
 
+// Route Ranges
+export type { KmRange, RangeLine } from './route-ranges';
+export { rangeLines, routeRunsBetweenKm } from './route-ranges';
+
 // Waypoint Dedupe
 export type { DedupableWaypoint, WaypointDedupeOptions, WaypointDedupeResult, WaypointMerge } from './waypoint-dedupe';
 export { dedupeNearDuplicateWaypoints, WAYPOINT_DEDUPE_DEFAULT_RADIUS_METERS } from './waypoint-dedupe';

@@ -57,7 +57,8 @@ import {
   type PlanAlternate,
   type PlannedRoute,
 } from '@lib/plan-alternates';
-import { routeBreakCrossings, routeBreakStarts, sliceAcrossRouteBreaks, splitAtRouteBreaks } from '@lib/route-breaks';
+import { routeBreakCrossings, routeBreakStarts, splitAtRouteBreaks } from '@lib/route-breaks';
+import { rangeLines, routeRunsBetweenKm } from '@lib/route-ranges';
 import type { RouteBreak, RouteVariant, TrailPOI } from '@lib/trail-types';
 import { OSM_ATTRIBUTION } from '@lib/poi-display';
 import {
@@ -269,6 +270,13 @@ let basePolyline: L.Polyline | null = null;
 /** The base line and its break crossings, replaced when the route changes. */
 let routeLineLayer: L.LayerGroup | null = null;
 let dayPolylines: L.Polyline[] = [];
+/**
+ * The Resupply tab's leg lines, by leg index — drawn in place of the day lines
+ * while that tab is showing, each in its own colour.
+ */
+let legPolylines: L.Polyline[] = [];
+/** The leg whose line and datasheet row are emphasised (hover on either), or null. */
+let highlightedLeg: number | null = null;
 /**
  * Each alternate's wide invisible click line, by name. A taken alternate's is
  * off the map: its day lines run along it and must keep their clicks.
@@ -1025,22 +1033,26 @@ function bindAlternateChoiceButtons(el: HTMLElement): void {
 function redrawMapLayers(): void {
   if (!map || !stopMarkers) return;
 
-  // Remove old day polylines
+  // Remove old day and leg polylines
   dayPolylines.forEach(p => p.remove());
   dayPolylines = [];
+  legPolylines.forEach(p => p.remove());
+  legPolylines = [];
 
-  const days = currentDays;
+  // The Resupply tab draws its legs instead: the carries are what it asks
+  // about, and the day lines over the same route would hide them.
+  if (activeTab === 'resupply') drawResupplyLegLines();
+
+  const days = activeTab === 'resupply' ? [] : currentDays;
   const colors = getDayColors(days.length);
 
   const { points, breaks } = activeTrail().track;
   const breakStarts = routeBreakStarts(breaks, 'points');
   days.forEach((day, i) => {
-    const startIdx = findNearestByDistance(points, day.startKm);
-    const endIdx = findNearestByDistance(points, day.endKm);
     // A day that spans a route break (the Cook Strait ferry, say) is two lines.
-    const latLngs = sliceAcrossRouteBreaks(points, startIdx, endIdx, breakStarts)
-      .filter(piece => piece.length >= 2)
-      .map(piece => piece.map(p => [p.lat, p.lon] as [number, number]));
+    const latLngs = routeRunsBetweenKm(points, breakStarts, day.startKm, day.endKm).map(piece =>
+      piece.map(p => [p.lat, p.lon] as [number, number])
+    );
     const isSelected = selectedDayIndex === i;
     const polyline = L.polyline(latLngs, {
       color: isSelected ? '#3b82f6' : colors[i],
@@ -1085,6 +1097,87 @@ function redrawMapLayers(): void {
 
   // Re-draw waypoint markers to update is-stop styling
   drawWaypointMarkers();
+}
+
+/** A resupply leg's line style: its own colour, emphasised while highlighted. */
+function legLineStyle(index: number, colors: readonly string[]): L.PolylineOptions {
+  const highlighted = highlightedLeg === index;
+  return {
+    color: colors[index],
+    weight: highlighted ? 7 : 4,
+    opacity: highlighted ? 0.95 : 0.75,
+  };
+}
+
+/**
+ * The Resupply tab's legs on the map, one line per carry in the day lines'
+ * palette, so neighbouring legs are told apart. Measured on the route as the
+ * plan walks it (alternates spliced in, direction applied — the trail
+ * `computeResupplyLegs` was given), and cut at route breaks by `rangeLines`.
+ * Hovering a line emphasises its datasheet row and the other way round; a click
+ * scrolls the row into view.
+ */
+function drawResupplyLegLines(): void {
+  if (!map) return;
+  const legs = resupplyLegs();
+  const colors = getDayColors(legs.length);
+  if (highlightedLeg !== null && highlightedLeg >= legs.length) highlightedLeg = null;
+  for (const leg of rangeLines(activeTrail().track, legs, 'points')) {
+    const latLngs = leg.runs.map(run => run.map(p => [p.lat, p.lon] as [number, number]));
+    const { fromName, toName } = legs[leg.index];
+    const polyline = L.polyline(latLngs, legLineStyle(leg.index, colors))
+      .bindTooltip(`Leg ${leg.index + 1}: ${escapeHtml(fromName)} \u2192 ${escapeHtml(toName)}`, { sticky: true })
+      .on('mouseover', () => highlightLeg(leg.index))
+      .on('mouseout', () => highlightLeg(null))
+      .on('click', () => {
+        highlightLeg(leg.index);
+        legRow(leg.index)?.scrollIntoView({ block: 'nearest' });
+      });
+    polyline.addTo(map);
+    legPolylines[leg.index] = polyline;
+  }
+  basePolyline?.bringToBack();
+}
+
+/** The datasheet row of a leg, while the Resupply tab's table is showing. */
+function legRow(index: number): HTMLElement | null {
+  return document.querySelector<HTMLElement>(`#datasheet-body tr.resupply-leg[data-leg="${index}"]`);
+}
+
+/**
+ * Emphasise one leg's line and row (null for none) without a re-render: hover
+ * fires on every move, and a re-render would replace the row under the pointer.
+ */
+function highlightLeg(index: number | null): void {
+  if (index === highlightedLeg) return;
+  highlightedLeg = index;
+  const colors = getDayColors(legPolylines.length);
+  legPolylines.forEach((line, i) => line?.setStyle(legLineStyle(i, colors)));
+  if (index !== null) legPolylines[index]?.bringToFront();
+  document
+    .querySelectorAll<HTMLElement>('#datasheet-body tr.resupply-leg')
+    .forEach(row => row.classList.toggle('is-highlighted', row.dataset.leg === String(index)));
+}
+
+/**
+ * The datasheet side of the leg highlight, bound once: the body's markup is
+ * replaced on every render, so the listeners sit on the body itself. A click
+ * on a row fits the map to its leg.
+ */
+function initLegRowHighlight(): void {
+  const body = document.getElementById('datasheet-body');
+  if (!body) return;
+  const legOf = (event: Event): number | null => {
+    const row = (event.target as Element | null)?.closest<HTMLElement>('tr.resupply-leg');
+    return row?.dataset.leg !== undefined ? Number(row.dataset.leg) : null;
+  };
+  body.addEventListener('mouseover', event => highlightLeg(legOf(event)));
+  body.addEventListener('mouseleave', () => highlightLeg(null));
+  body.addEventListener('click', event => {
+    const index = legOf(event);
+    const line = index !== null ? legPolylines[index] : undefined;
+    if (line && map) map.fitBounds(line.getBounds(), { padding: [30, 30] });
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -1965,13 +2058,15 @@ function renderResupplyDatasheet(): void {
     .map(label => `<th>${escapeHtml(label)}</th>`)
     .join('');
 
+  const legColors = getDayColors(legs.length);
   const rows = legs
     .map((leg, i) => {
       const arrive = leg.arrival
         ? `Day ${leg.arrival.day}${leg.arrival.date ? ` (${formatShortDate(leg.arrival.date)})` : ''}`
         : '—';
-      return `<tr class="resupply-leg${leg.isLong ? ' is-long' : ''}">
-      <td>${i + 1}</td>
+      // The swatch is the colour of the leg's line on the map.
+      return `<tr class="resupply-leg${leg.isLong ? ' is-long' : ''}${highlightedLeg === i ? ' is-highlighted' : ''}" data-leg="${i}">
+      <td><span class="leg-swatch" style="background:${legColors[i]}" aria-hidden="true"></span>${i + 1}</td>
       <td class="rs-route">${escapeHtml(leg.fromName)} → ${escapeHtml(leg.toName)}</td>
       <td class="rs-distance">${resupplyDistanceCell(leg)}</td>
       <td>+${leg.ascentM} m</td>
@@ -2861,11 +2956,9 @@ function drawSuggestionPreview(suggested: NextDaysPlan | null): void {
   const colors = getDayColors(suggested.days.length);
   const bounds: Array<[number, number]> = [];
   suggested.days.forEach((day, i) => {
-    const startIdx = findNearestByDistance(points, day.startKm);
-    const endIdx = findNearestByDistance(points, day.endKm);
-    const latLngs = sliceAcrossRouteBreaks(points, startIdx, endIdx, breakStarts)
-      .filter(piece => piece.length >= 2)
-      .map(piece => piece.map(p => [p.lat, p.lon] as [number, number]));
+    const latLngs = routeRunsBetweenKm(points, breakStarts, day.startKm, day.endKm).map(piece =>
+      piece.map(p => [p.lat, p.lon] as [number, number])
+    );
     latLngs.forEach(piece => bounds.push(...piece));
     L.polyline(latLngs, { color: colors[i], weight: 5, opacity: 0.9, dashArray: '8 6' }).addTo(previewLayer!);
     const end = day.end?.waypoint;
@@ -2972,6 +3065,8 @@ export async function initPlanViewer(
   resupplyFilter = '';
   stopsFilter = '';
   selectedDayIndex = null;
+  highlightedLeg = null;
+  legPolylines = [];
 
   refreshActiveStops();
   if (readOnly) applyReadOnlyChrome();
@@ -2980,6 +3075,7 @@ export async function initPlanViewer(
   initTabs();
   initStopsControls();
   initResupplyControls();
+  initLegRowHighlight();
   initCollapsibles();
   setupElevationHover();
   const nextDaysBody = document.getElementById('next-days-body');

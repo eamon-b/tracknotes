@@ -787,6 +787,18 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
 .resupply-table .rs-rides { font-size: 0.85em; color: var(--text-secondary); }
 .resupply-table tr:last-child td { border-bottom: none; }
 .resupply-table tr.is-long { background: var(--tint-warn); }
+/* A leg's row and its line on the map highlight together (hover on either). */
+.resupply-table tr.resupply-leg { cursor: pointer; }
+.resupply-table tr.is-highlighted td { background: var(--tint-accent-strong); }
+/* The colour of the leg's line on the map. */
+.leg-swatch {
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  margin-right: 0.3rem;
+  border-radius: 2px;
+  vertical-align: baseline;
+}
 
 /* ---- Waypoint map markers ---- */
 .waypoint-marker {
