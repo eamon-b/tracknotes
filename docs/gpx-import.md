@@ -15,7 +15,7 @@ so a file imports identically everywhere.
   at most 100,000 track points in total and at most 20,000 waypoints.
 - `.tracknotes.json` files exported from the web "Export for Tracknotes"
   button are also accepted on mobile; they skip the pipeline below and load
-  as already-built trails.
+  as already-built trails. See [The web-to-phone file](#the-web-to-phone-file).
 
 Nothing is uploaded to a server unless you choose to
 [share the route with the community](#sharing-with-the-community). The file is
@@ -347,9 +347,39 @@ built, so it keeps any line the trail has.
 
 - The trail id is `u_` followed by a hash of the file's contents, so
   importing the same file twice updates the existing guide instead of adding
-  a duplicate. Changing anything in the file makes a new guide.
+  a duplicate. Changing anything in the file makes a new guide (the plan a
+  web export carries does not count: see
+  [The web-to-phone file](#the-web-to-phone-file)).
 - Waypoint ids are minted locally (`uw_…`) and never sent to the comments
   service; imported trails have no shared comments.
+
+## The web-to-phone file
+
+**Export for Tracknotes** on an imported trail's page (and on a community
+route's page) downloads `<name>.tracknotes.json`: the trail exactly as the site
+shows it. Open it with the Tracknotes app (share it to the phone, or pick it
+from the import button) and the phone shows the same review screen a GPX gets.
+
+- **Include my plan.** When you have made a plan for the trail on this site,
+  a ticked **Include my plan** box appears beside the button, and the file then
+  carries the plan too: its stops, nights, notes, bookings, start date,
+  direction, alternates and resupply choices. Your pace, hours per day and
+  planning thresholds are not in it — they are kept per device, so the phone
+  uses its own. For a community route, the plan offered is the one made on the
+  copy **Save to my trails** keeps.
+- **On the phone**, the review screen shows the plan with an **Import this
+  plan** switch (on). Save stores the trail and then the plan. If the phone
+  already has a plan for that trail (you imported it before), Save asks first:
+  **Replace**, **Keep mine** (the trail is saved, its plan is not) or
+  **Cancel**.
+- A plan the app cannot read (a hand-edited or damaged file) is left out and
+  the review screen says so; the trail still imports.
+- A file with a plan needs an up-to-date app. An older one says the file was
+  "exported by a newer version of Tracknotes" rather than importing the trail
+  and quietly losing the plan; untick **Include my plan** to make a file any
+  version opens.
+- Exporting the same trail again — with or without the plan, or after editing
+  the plan — imports as the same guide, not a second one.
 
 ## Points of interest (optional)
 

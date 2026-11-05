@@ -10,22 +10,38 @@
  *
  * Nothing is written until Save: an unusable file, or a report the user doesn't
  * like the look of, leaves no registry row, no file on disk and no guide.
+ *
+ * A `.tracknotes.json` exported with "Include my plan" carries the hiker's web
+ * plan too. It is shown here with a switch (on by default) and saved after the
+ * trail; when the phone already has a plan for this trail, Save asks before
+ * replacing it, as saving a shared plan does — one plan per trail.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { formatDistance } from '@lib/format-distance';
 import { useTheme } from '../src/theme';
 import { KeyboardAwareScrollView } from '../src/navigation/KeyboardAwareScrollView';
 import { radii, spacing, typography } from '../src/tokens';
 import { useSettingsStore } from '../src/state/settings-store';
+import { usePlansStore } from '../src/state/plans-store';
 import {
   importGpxFromUri,
   saveImport,
   type ImportStage,
   type ImportedGpx,
 } from '../src/features/import/import-gpx';
+import { existingPlanFor, saveImportedPlan } from '../src/features/import/import-plan';
 import {
   backfillImportElevation,
   elevationRequestEstimate,
@@ -62,6 +78,8 @@ export default function ImportScreen() {
   const [state, setState] = useState<ScreenState>({ status: 'working', stage: 'reading' });
   const [name, setName] = useState('');
   const [backfill, setBackfill] = useState<BackfillState>({ status: 'idle' });
+  // Whether to bring the file's plan along; only read when the file has one.
+  const [includePlan, setIncludePlan] = useState(true);
   // The import runs once per URI. Without this guard a re-render from the
   // stage callback (or a fast-refresh remount) would re-parse the file.
   const startedFor = useRef<string | null>(null);
@@ -144,22 +162,61 @@ export default function ImportScreen() {
     }
   }, [state]);
 
+  const save = useCallback(
+    async (imported: ImportedGpx, withPlan: boolean) => {
+      setState({ status: 'saving' });
+      try {
+        const trailId = await saveImport(imported, name);
+        if (withPlan && imported.plan) {
+          const stored = await saveImportedPlan(imported.plan, trailId);
+          // The guide is saved either way; say so rather than dropping the
+          // plan without a word.
+          if (!stored) {
+            Alert.alert(
+              'The plan wasn’t imported',
+              `The guide was saved, but its plan could not be: ${
+                usePlansStore.getState().lastError[trailId] ?? 'please try again.'
+              }`,
+            );
+          }
+        }
+        // replace, not push: backing out of the new guide should land on My
+        // Guides, not on a review screen for a trail that already exists.
+        router.replace({ pathname: '/guide/[trailId]', params: { trailId } });
+      } catch (err: unknown) {
+        setState({
+          status: 'failed',
+          message: err instanceof Error ? err.message : 'Could not save this trail.',
+        });
+      }
+    },
+    [name, router],
+  );
+
   const onSave = useCallback(async () => {
     if (state.status !== 'ready') return;
     const imported = state.imported;
-    setState({ status: 'saving' });
-    try {
-      const trailId = await saveImport(imported, name);
-      // replace, not push: backing out of the new guide should land on My
-      // Guides, not on a review screen for a trail that already exists.
-      router.replace({ pathname: '/guide/[trailId]', params: { trailId } });
-    } catch (err: unknown) {
-      setState({
-        status: 'failed',
-        message: err instanceof Error ? err.message : 'Could not save this trail.',
-      });
+    if (!imported.plan || !includePlan) {
+      void save(imported, false);
+      return;
     }
-  }, [state, name, router]);
+    // Re-importing a trail the phone already has may meet a plan made here.
+    // One plan per trail is the model, so the file's plan REPLACES it — ask.
+    const existing = await existingPlanFor(imported.trail.config.id);
+    if (!existing) {
+      void save(imported, true);
+      return;
+    }
+    Alert.alert(
+      'Replace your plan?',
+      `You already have a plan for ${name.trim() || 'this guide'} on this phone. Importing the plan from this file replaces it.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Keep mine', onPress: () => void save(imported, false) },
+        { text: 'Replace', style: 'destructive', onPress: () => void save(imported, true) },
+      ],
+    );
+  }, [state, includePlan, name, save]);
 
   if (!uri) {
     return (
@@ -186,7 +243,7 @@ export default function ImportScreen() {
     );
   }
 
-  const { report, trail } = state.imported;
+  const { report, trail, plan } = state.imported;
   const fetching = backfill.status === 'running';
 
   return (
@@ -241,6 +298,32 @@ export default function ImportScreen() {
           </Text>
         )}
       </View>
+
+      {plan && (
+        <View
+          style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
+        >
+          <View style={styles.planRow}>
+            <View style={styles.planText}>
+              <Text style={[styles.warningTitle, { color: colors.textPrimary }]}>
+                Import this plan
+              </Text>
+              <Text style={[styles.warning, { color: colors.textSecondary }]}>
+                {planSummary(plan.name, plan.stops.length, plan.startDate)}
+              </Text>
+            </View>
+            <Switch
+              value={includePlan}
+              onValueChange={setIncludePlan}
+              accessibilityLabel="Import this plan"
+              accessibilityRole="switch"
+            />
+          </View>
+          <Text style={[styles.hint, { color: colors.textSecondary }]}>
+            The plan you made on the web. Pace and hours per day stay this phone’s own.
+          </Text>
+        </View>
+      )}
 
       {report.warnings.length > 0 && (
         <View
@@ -330,6 +413,16 @@ export default function ImportScreen() {
   );
 }
 
+/** One line describing a file's plan, for the review card. */
+export function planSummary(name: string, stopCount: number, startDate: string | null): string {
+  const parts = [
+    name.trim() ? `“${name.trim()}”` : 'Untitled plan',
+    stopCount === 1 ? '1 stop' : `${stopCount} stops`,
+  ];
+  if (startDate) parts.push(`starts ${startDate}`);
+  return parts.join(' · ');
+}
+
 /**
  * Thousands separators for the progress counter. Written by hand rather than
  * via `toLocaleString`, whose grouping depends on whether this Hermes build
@@ -400,6 +493,8 @@ const styles = StyleSheet.create({
   statLabel: { ...typography.bodySmall },
   statValue: { ...typography.dataSmall },
   hint: { ...typography.caption },
+  planRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  planText: { flex: 1, gap: spacing.xs },
   warningTitle: { ...typography.titleSmall },
   warning: { ...typography.bodySmall },
   button: {
