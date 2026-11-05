@@ -187,6 +187,43 @@ describe('ResupplyPlanner', () => {
     expect(p.onChoose).toHaveBeenCalledWith('w_pass', null);
   });
 
+  it('filters to the matching turn-offs, shown whole, without changing a choice', () => {
+    const p = props(['w_salida', 'w_creede'], {}, [leg(0, 100), leg(100, 250)]);
+    const tree = render(p);
+    const filter = () =>
+      tree.root.findAll(
+        (n) =>
+          n.props.accessibilityLabel === 'Filter resupply places by name' &&
+          typeof n.props.onChangeText === 'function',
+      )[0].props as { onChangeText: (t: string) => void };
+
+    act(() => {
+      filter().onChangeText('salída');
+      jest.runOnlyPendingTimers();
+    });
+    // The whole decision stays: Monarch Pass, Salida and "None".
+    expect(control(tree, 'Salida').accessibilityState).toEqual({ checked: true });
+    expect(control(tree, 'Monarch Pass').accessibilityState).toEqual({ checked: false });
+    const text = allText(tree);
+    expect(text).not.toContain('Creede');
+    expect(text).not.toContain('Trail start');
+    expect(text).toContain('legs are hidden while filtering');
+    expect(p.onChoose).not.toHaveBeenCalled();
+
+    act(() => {
+      filter().onChangeText('zzz');
+      jest.runOnlyPendingTimers();
+    });
+    expect(allText(tree)).toContain('No resupply places match.');
+
+    act(() => {
+      filter().onChangeText('');
+      jest.runOnlyPendingTimers();
+    });
+    expect(allText(tree)).toContain('Creede');
+    expect(allText(tree)).toContain('Trail start');
+  });
+
   it('draws a lone place as a switch', () => {
     const p = props(['w_salida']);
     const tree = render(p);
