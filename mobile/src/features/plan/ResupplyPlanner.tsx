@@ -13,6 +13,14 @@
  * comes from `@lib/resupply-plan` and every phrase about a place or a leg from
  * `@lib/resupply-display`; this only lays them out.
  *
+ * The filter box under the summary narrows the list to the decision groups
+ * whose turn-off or places match by name (`@lib/name-filter`, case- and
+ * accent-insensitive, as on the web). A matching group is shown whole — its
+ * radios are one decision, and trimming them would hide the place chosen — and
+ * the legs, start and end step aside while it is in use, since a leg between
+ * two filtered groups is not a leg of the plan. It never changes a choice; the
+ * summary above it stays the whole plan's.
+ *
  * Rows are memoised by value (`sameGroupRow`, `sameLegRow`): `plannerRows`
  * builds fresh row objects on every edit, so identity would re-render all of
  * the CDT's 70 groups and legs on each tap. The handlers they take are the
@@ -25,7 +33,7 @@
  * "None – carry through at Monarch Pass (US 50)").
  */
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { formatDistance, formatElevation } from '@lib/format-distance';
 import type { ResupplyLeg, ResupplyOption, ResupplyPlanSummary } from '@lib/resupply-plan';
@@ -38,11 +46,13 @@ import {
   ZERO_DAYS_AT_START_NOTE,
   type LegEndpointNames,
 } from '@lib/resupply-display';
+import { groupMatchesName, nameQuery } from '@lib/name-filter';
 import { useTheme } from '../../theme';
 import { radii, spacing, touchTarget, typography } from '../../tokens';
 import type { Units } from '../../state/settings-store';
 import { ScreenFlatList } from '../../navigation/ScreenScrollView';
 import { StepButton } from './PlanInputsCard';
+import { PlanFilterInput } from './PlanFilterInput';
 import { formatDays, formatFoodWeight } from './plan-format';
 import {
   formatZeroDays,
@@ -76,6 +86,14 @@ export interface ResupplyPlannerProps {
 
 export function ResupplyPlanner(props: ResupplyPlannerProps) {
   const { rows, units, onChoose, onZeroDays } = props;
+  const [filter, setFilter] = useState('');
+  const shownRows = useMemo(
+    () =>
+      nameQuery(filter) === ''
+        ? rows
+        : rows.filter((row) => row.kind === 'group' && groupMatchesName(row.group, filter)),
+    [rows, filter],
+  );
 
   const renderItem = useCallback(
     ({ item }: { item: PlannerRow }) => {
@@ -94,10 +112,11 @@ export function ResupplyPlanner(props: ResupplyPlannerProps) {
 
   return (
     <ScreenFlatList
-      data={rows}
+      data={shownRows}
       keyExtractor={(row) => row.key}
       renderItem={renderItem}
-      ListHeaderComponent={<PlannerHeader {...props} />}
+      ListHeaderComponent={<PlannerHeader {...props} filter={filter} onFilter={setFilter} />}
+      ListEmptyComponent={nameQuery(filter) !== '' ? <NoMatches /> : undefined}
       contentContainerStyle={styles.listContent}
     />
   );
@@ -113,7 +132,9 @@ function PlannerHeader({
   onEditInputs,
   planMade,
   onReset,
-}: ResupplyPlannerProps) {
+  filter,
+  onFilter,
+}: ResupplyPlannerProps & { filter: string; onFilter: (filter: string) => void }) {
   const { colors } = useTheme();
   const km = (value: number) => formatDistance(value, units);
   return (
@@ -195,7 +216,28 @@ function PlannerHeader({
         </Text>
         <Text style={[styles.link, { color: colors.accent }]}>Edit</Text>
       </Pressable>
+
+      {hasOptions && (
+        <PlanFilterInput
+          value={filter}
+          onChange={onFilter}
+          placeholder="Filter resupply…"
+          accessibilityLabel="Filter resupply places by name"
+        />
+      )}
+      {hasOptions && nameQuery(filter) !== '' && (
+        <Text style={[styles.caption, { color: colors.textSecondary }]}>
+          Showing the matching turn-offs only — legs are hidden while filtering.
+        </Text>
+      )}
     </View>
+  );
+}
+
+function NoMatches() {
+  const { colors } = useTheme();
+  return (
+    <Text style={[styles.caption, { color: colors.textSecondary }]}>No resupply places match.</Text>
   );
 }
 

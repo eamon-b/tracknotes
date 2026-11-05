@@ -21,6 +21,11 @@
  * places after the card, with their distances along it, and a second card
  * where it rejoins (`@lib/plan-alternates` `alternateMarkers`).
  *
+ * The filter box above the rows narrows them by name (`@lib/name-filter`,
+ * case- and accent-insensitive, as on the web). It is a view only: ticks stay
+ * as they are, and the branch/rejoin cards step aside while it is in use,
+ * since they are not places the hiker searched for.
+ *
  * Presentational: every edit goes back out through the callbacks, which the
  * screen turns into `plans-store.apply` calls.
  */
@@ -30,6 +35,7 @@ import { Pressable, StyleSheet, Switch, Text, View, type HostInstance } from 're
 import { formatDistance, formatElevation } from '@lib/format-distance';
 import { findStop, servicesAtStop, type StopServices } from '@lib/plan-editor';
 import { OSM_ATTRIBUTION } from '@lib/poi-display';
+import { filterByName, nameQuery } from '@lib/name-filter';
 import { KM_EPSILON } from '@lib/plan-direction';
 import type { AlternateMarker } from '@lib/plan-alternates';
 import type { PlanDocument, PlanStop } from '@lib/plan-types';
@@ -41,6 +47,7 @@ import { StopEditor } from './StopEditor';
 import { OffTrailBadge, offTrailA11y } from '../guide/OffTrailBadge';
 import type { MapPoint } from '../guide/GuideFocusContext';
 import { ShowOnMapIconButton } from '../guide/ShowOnMap';
+import { PlanFilterInput } from './PlanFilterInput';
 import { stopKeyOf, type StopCandidate, type StopLeg } from './plan-stops';
 
 /** Rows revealed at a time — a long trail's "All waypoints" list is thousands. */
@@ -122,18 +129,25 @@ export function alternateCardSlots(
 
 export function StopsSection(props: StopsSectionProps) {
   const { colors } = useTheme();
-  const { candidates, plan, pois, units, showAll } = props;
+  const { plan, pois, units, showAll } = props;
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [filter, setFilter] = useState('');
+  const filtering = nameQuery(filter) !== '';
+  const allCandidates = props.candidates;
+  const candidates = useMemo(
+    () => filterByName(allCandidates, filter, (c) => c.name),
+    [allCandidates, filter],
+  );
 
   // One pass over the POIs per candidate is O(rows × pois); memoised on the
   // list so a tap (which changes only the plan) never re-scans them.
   const services = useMemo(() => {
     const map = new Map<string, StopServices | undefined>();
-    for (const candidate of candidates) {
+    for (const candidate of allCandidates) {
       map.set(candidate.key, servicesAtStop({ km: candidate.activeKm }, pois));
     }
     return map;
-  }, [candidates, pois]);
+  }, [allCandidates, pois]);
 
   const currentKm = props.currentKm ?? null;
   const hereIndex = useMemo(() => {
@@ -149,8 +163,8 @@ export function StopsSection(props: StopsSectionProps) {
   const remaining = candidates.length - visible.length;
 
   const slots = useMemo(
-    () => alternateCardSlots(candidates, props.alternates ?? []),
-    [candidates, props.alternates],
+    () => alternateCardSlots(candidates, filtering ? [] : (props.alternates ?? [])),
+    [candidates, filtering, props.alternates],
   );
   const cardsAt = (index: number) =>
     (slots.get(index) ?? []).map((marker) => (
@@ -175,9 +189,20 @@ export function StopsSection(props: StopsSectionProps) {
         />
       </View>
 
+      {allCandidates.length > 0 && (
+        <PlanFilterInput
+          value={filter}
+          onChange={setFilter}
+          placeholder="Filter places…"
+          accessibilityLabel="Filter places by name"
+        />
+      )}
+
       {candidates.length === 0 ? (
         <Text style={[styles.empty, { color: colors.textSecondary }]}>
-          This trail has no places listed to stop at.
+          {allCandidates.length === 0
+            ? 'This trail has no places listed to stop at.'
+            : 'No places match.'}
         </Text>
       ) : (
         visible.map((candidate, i) => (

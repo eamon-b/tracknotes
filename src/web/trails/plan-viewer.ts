@@ -122,6 +122,7 @@ import {
 } from './plan-state';
 import { initPlanSync, type PlanSyncController, type PlanSyncHost } from './plan-sync';
 import { finalDayMaxHours } from '@lib/plan-suggest';
+import { filterByName, filterGroupsByName, nameQuery } from '@lib/name-filter';
 import { eleAxis, eleBounds } from '@lib/elevation-axis';
 import {
   hereLabel,
@@ -1557,8 +1558,7 @@ function renderStopList(): void {
   renderStopsFooter();
 
   const candidates = stopCandidates();
-  const needle = stopsFilter.trim().toLowerCase();
-  const waypoints = needle ? candidates.filter(wp => (wp.name ?? '').toLowerCase().includes(needle)) : candidates;
+  const waypoints = filterByName(candidates, stopsFilter, wp => wp.name);
 
   if (waypoints.length === 0) {
     container.innerHTML =
@@ -1756,23 +1756,13 @@ function stopKeyFromRow(el: HTMLElement): { key: StopKey; km: number; name: stri
 // Left panel — Resupply tab
 // ---------------------------------------------------------------------------
 
-/** The groups the filter box leaves on screen. Filtering never changes a tick. */
+/**
+ * The groups the filter box leaves on screen (`@lib/name-filter`: case- and
+ * accent-insensitive; a matching turn-off keeps everything reachable from it).
+ * Filtering never changes a tick.
+ */
 function filteredResupplyGroups(): ResupplyOptionGroup[] {
-  const needle = resupplyFilter.trim().toLowerCase();
-  if (!needle) return resupplyGroups();
-
-  const matches: ResupplyOptionGroup[] = [];
-  for (const group of resupplyGroups()) {
-    // A turn-off's name matching keeps everything reachable from it, which is
-    // the point of searching for "Monarch Pass".
-    if (group.label && group.label.toLowerCase().includes(needle)) {
-      matches.push(group);
-      continue;
-    }
-    const options = group.options.filter(option => option.name.toLowerCase().includes(needle));
-    if (options.length > 0) matches.push({ ...group, options });
-  }
-  return matches;
+  return filterGroupsByName(resupplyGroups(), resupplyFilter);
 }
 
 function renderResupplyList(): void {
@@ -1787,6 +1777,12 @@ function renderResupplyList(): void {
   // older build of it are never reported as ticked.
   const tickedCount = groups.reduce((n, group) => n + group.options.filter(option => picked.has(option.id)).length, 0);
   if (count) count.textContent = `${tickedCount} of ${total} selected`;
+  // While the filter narrows the list, All and None act on the rows it shows.
+  const filtering = nameQuery(resupplyFilter) !== '';
+  const allBtn = document.getElementById('resupply-all');
+  const noneBtn = document.getElementById('resupply-none');
+  if (allBtn) allBtn.textContent = filtering ? 'All shown' : 'All';
+  if (noneBtn) noneBtn.textContent = filtering ? 'None shown' : 'None';
 
   if (total === 0) {
     container.innerHTML = '<p class="days-empty">This trail has no resupply points.</p>';
@@ -2137,8 +2133,9 @@ function toggleResupply(id: string): void {
 }
 
 /**
- * All or None, for the options on the route as shown; the other routes' ticks
- * stay as they are.
+ * All or None, for the options on the route as shown — and, while the filter
+ * box narrows the list, only for the rows it leaves (the buttons then read
+ * "All shown" / "None shown"); every other tick stays as it is.
  *
  * Through the shared editor, like every other edit: a selection that did not
  * change comes back as the same document and `applyEdit` drops it, so pressing
@@ -2146,7 +2143,7 @@ function toggleResupply(id: string): void {
  */
 function setAllResupply(all: boolean): void {
   if (readOnly) return;
-  const shown = allResupplyOptionIds(resupplyGroups());
+  const shown = allResupplyOptionIds(filteredResupplyGroups());
   const every = everyRouteResupplyOptionIds(trail);
   applyEdit(doc => {
     const others = (doc.resupplyStops ?? every).filter(id => !shown.includes(id));

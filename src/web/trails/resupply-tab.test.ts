@@ -449,6 +449,41 @@ describe('the filter box', () => {
     filter.dispatchEvent(new Event('input'));
     expect(rowNames()).toEqual(['Bravo', 'Charlie']);
   });
+
+  it('ignores case and accents', async () => {
+    await boot();
+    const filter = $('resupply-filter') as HTMLInputElement;
+    filter.value = '  ÉCHO ';
+    filter.dispatchEvent(new Event('input'));
+    expect(rowNames()).toEqual(['Echo']);
+  });
+
+  it('turns All and None into All shown and None shown, acting on the rows left', async () => {
+    const stored = () => JSON.parse(localStorage.getItem(`trail-plan-doc-${TRAIL_ID}`) ?? 'null');
+    await boot();
+    expect($('resupply-all').textContent).toBe('All');
+    const filter = $('resupply-filter') as HTMLInputElement;
+    filter.value = 'mill road';
+    filter.dispatchEvent(new Event('input'));
+    expect($('resupply-all').textContent).toBe('All shown');
+    expect($('resupply-none').textContent).toBe('None shown');
+
+    $('resupply-none').click();
+    flushSave();
+    expect(stored().resupplyStops).toEqual(['w_001', 'w_004', 'w_005']);
+    expect(rowNames()).toEqual(['Bravo', 'Charlie']);
+
+    filter.value = 'bravo';
+    filter.dispatchEvent(new Event('input'));
+    $('resupply-all').click();
+    flushSave();
+    expect(stored().resupplyStops).toEqual(['w_002', 'w_001', 'w_004', 'w_005']);
+
+    filter.value = '';
+    filter.dispatchEvent(new Event('input'));
+    expect($('resupply-none').textContent).toBe('None');
+    expect(countText()).toBe('4 of 5 selected');
+  });
 });
 
 // ---------------------------------------------------------------------------

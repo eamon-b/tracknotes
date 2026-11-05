@@ -185,6 +185,28 @@ describe('StopsSection', () => {
     expect(hostByLabel(tree, 'More nights')).toHaveLength(1);
   });
 
+  it('filters the rows by name, ignoring case and accents, and keeps the ticks', () => {
+    const plan = toggleStop(emptyPlan(), { id: 'w_a', km: 10, name: 'Ellery Creek' });
+    const tree = render({ plan });
+    const filter = () =>
+      hostByLabel(tree, 'Filter places by name')[0].props as { onChangeText: (t: string) => void };
+
+    act(() => filter().onChangeText('  SERPENTINE  '));
+    expect(rows(tree)).toHaveLength(1);
+    expect(allText(tree)).toContain('Serpentine Chalet');
+    expect(allText(tree)).not.toContain('Ellery Creek');
+
+    act(() => filter().onChangeText('ÉLLERY'));
+    expect(rows(tree).map(checked)).toEqual([true]);
+
+    act(() => filter().onChangeText('nowhere'));
+    expect(rows(tree)).toHaveLength(0);
+    expect(allText(tree)).toContain('No places match.');
+
+    act(() => filter().onChangeText(''));
+    expect(rows(tree).map(checked)).toEqual([true, false]);
+  });
+
   it('reports a tap with the candidate that was tapped', () => {
     const onToggle = jest.fn();
     const tree = render({ onToggle });
