@@ -5,18 +5,14 @@ compatibility_date = "2025-04-01"
 # Public hostname: https://api.tracknotes.info (zone: tracknotes.info).
 # Deploy with: npm run deploy (requires `wrangler login`).
 #
-# Custom domains are the only hostnames: the workers.dev URL was retired
-# (issue #159). api.contour-map-tiles.net, the old infrastructure name, is kept
-# only until the maintainer's phone runs a build that calls api.tracknotes.info
-# (#260); then delete its route here and deploy.
+# The custom domain is the only hostname: the workers.dev URL was retired
+# (issue #159), and api.contour-map-tiles.net, the old infrastructure name, was
+# removed once the maintainer's phone ran a build calling api.tracknotes.info
+# (#269). Builds older than that can no longer reach the API.
 workers_dev = false
 
 [[routes]]
 pattern = "api.tracknotes.info"
-custom_domain = true
-
-[[routes]]
-pattern = "api.contour-map-tiles.net"
 custom_domain = true
 
 [[d1_databases]]
