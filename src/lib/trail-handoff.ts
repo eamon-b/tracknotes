@@ -13,6 +13,15 @@
  * *not* one of ours, or is one of ours from a future release, fails with a
  * sentence the user can act on rather than a `TypeError` three layers deep.
  *
+ * The envelope can also carry the hiker's {@link PlanDocument} for the trail
+ * (`plan`), so a trail planned in the browser arrives on the phone planned.
+ * Only the document travels — pace, hours per day and the planning thresholds
+ * are per-device inputs and are never written here. A file with a plan is
+ * envelope version 2; a file without one is still written as version 1, so a
+ * trail-only export opens on every app that ever read one. An app that reads
+ * only version 1 refuses a version-2 file with "exported by a newer version of
+ * Tracknotes" rather than importing the trail and silently dropping the plan.
+ *
  * Everything here is validation, not repair. A handoff file is untrusted input
  * that arrives from a share sheet or a file manager, so every field a consumer
  * later assumes is numeric is checked to actually be numeric here — silently
@@ -23,6 +32,8 @@
  */
 
 import { hashString, type ImportReport } from './gpx-import';
+import { assertPlanDocumentWithinLimits, isPlanDocument } from './plan-editor';
+import type { PlanDocument, PlanStop } from './plan-types';
 import { isAccessMode, isStoreKind, type WaypointAccess } from './types';
 import type {
   ClimateLocationConfig,
@@ -42,8 +53,27 @@ import type {
 /** Envelope discriminator. Present so a stray `.json` fails loudly. */
 export const HANDOFF_FORMAT = 'tracknotes-trail';
 
-/** Envelope version this build writes, and the highest it can read. */
-export const HANDOFF_VERSION = 1;
+/**
+ * The highest envelope version this build reads.
+ *
+ * - **1** — `{ format, version, trail }`. Still what a trail-only export
+ *   writes ({@link HANDOFF_TRAIL_VERSION}), so an older app opens it.
+ * - **2** — version 1 plus an optional `plan` ({@link HANDOFF_PLAN_VERSION}).
+ *   Written only when a plan is included. The bump is deliberate: a version-1
+ *   reader ignores unknown keys, so without it an older app would import the
+ *   trail and drop the plan without a word. With it, that app says "update the
+ *   app" instead, and the hiker can re-export without the plan.
+ */
+export const HANDOFF_VERSION = 2;
+
+/** Envelope version of a file that carries only a trail. */
+export const HANDOFF_TRAIL_VERSION = 1;
+
+/** Envelope version of a file that carries a trail and its plan. */
+export const HANDOFF_PLAN_VERSION = 2;
+
+/** Shown (as an import warning) when a file's plan is unusable; the trail still imports. */
+export const HANDOFF_PLAN_UNREADABLE = 'The plan in this file could not be read, so only the trail will be imported.';
 
 /** Double extension used for downloaded handoff files. */
 export const HANDOFF_EXTENSION = '.tracknotes.json';
@@ -65,16 +95,42 @@ export interface TrailHandoff {
   format: typeof HANDOFF_FORMAT;
   version: number;
   trail: ProcessedTrail;
+  /** The hiker's plan for this trail. Version 2 only; absent when none was included. */
+  plan?: PlanDocument;
 }
 
-/** Wrap a built trail in the handoff envelope. */
-export function wrapTrailForHandoff(trail: ProcessedTrail): TrailHandoff {
-  return { format: HANDOFF_FORMAT, version: HANDOFF_VERSION, trail };
+export interface HandoffOptions {
+  /**
+   * The plan to carry with the trail, or null/undefined for none. Its
+   * `trailId` need not match the trail's: the reading side re-keys it to the
+   * id it gives the imported trail.
+   */
+  plan?: PlanDocument | null;
+}
+
+/** Wrap a built trail (and, optionally, its plan) in the handoff envelope. */
+export function wrapTrailForHandoff(trail: ProcessedTrail, options: HandoffOptions = {}): TrailHandoff {
+  if (!options.plan) return { format: HANDOFF_FORMAT, version: HANDOFF_TRAIL_VERSION, trail };
+  return { format: HANDOFF_FORMAT, version: HANDOFF_PLAN_VERSION, trail, plan: planDocumentOnly(options.plan) };
 }
 
 /** The exact bytes a handoff download should contain. */
-export function serializeTrailHandoff(trail: ProcessedTrail): string {
-  return JSON.stringify(wrapTrailForHandoff(trail));
+export function serializeTrailHandoff(trail: ProcessedTrail, options: HandoffOptions = {}): string {
+  return JSON.stringify(wrapTrailForHandoff(trail, options));
+}
+
+/** What a handoff file holds once read: the trail, and its plan when it carried a usable one. */
+export interface ParsedHandoff {
+  trail: ProcessedTrail;
+  /**
+   * The file's plan, validated, re-keyed to `trail.config.id` and with its
+   * waypoint ids following any the trail's were re-minted to. Null when the
+   * file carried none, or carried one that could not be used (then `warnings`
+   * says so).
+   */
+  plan: PlanDocument | null;
+  /** Things the hiker should know that did not stop the import. */
+  warnings: string[];
 }
 
 /**
@@ -123,6 +179,24 @@ export function looksLikeHandoffJson(text: string): boolean {
  * @throws {Error} with a user-facing sentence for every rejection.
  */
 export function parseHandoffJson(text: string): ProcessedTrail {
+  return parseHandoff(text).trail;
+}
+
+/**
+ * Read a handoff file back into a trail and, for a version-2 file, its plan.
+ *
+ * The trail is read exactly as {@link parseHandoffJson} describes. The plan is
+ * untrusted input like the rest of the file and goes through the same checks a
+ * stored or shared plan does (`isPlanDocument`, then
+ * `assertPlanDocumentWithinLimits`); one that fails them is dropped with a
+ * warning rather than costing the hiker a perfectly good trail. A usable plan
+ * comes back re-keyed to the trail's id, and with every waypoint id that the
+ * trail's re-minting changed changed the same way, so its stops still name
+ * places on this trail.
+ *
+ * @throws {Error} with a user-facing sentence for every rejection of the trail.
+ */
+export function parseHandoff(text: string): ParsedHandoff {
   let parsed: unknown;
   try {
     parsed = JSON.parse(text) as unknown;
@@ -199,7 +273,13 @@ export function parseHandoffJson(text: string): ProcessedTrail {
   const pois = readPOIs(trail.pois);
   const name = readName(config.name) ?? readName(config.shortName) ?? GENERIC_NAME;
   const totalDistance = finiteOr(track.totalDistance, points[points.length - 1].dist);
-  const trailId = isImportedId(config.id) ? config.id : `u_${hashString(text)}`;
+  // The id a re-exported (non-`u_`) trail is given hashes the file — for a
+  // version-2 file, the file as a trail-only export of the same trail would
+  // have been. Hashing the plan in would give the same trail a new id each
+  // time its plan was edited and re-exported (a second guide on the phone, not
+  // an update), and a different one from its trail-only export.
+  const idSource = version >= HANDOFF_PLAN_VERSION ? trailOnlyText(trail) : text;
+  const trailId = isImportedId(config.id) ? config.id : `u_${hashString(idSource)}`;
 
   const resolvedConfig: TrailConfig = {
     ...(config as Partial<TrailConfig>),
@@ -217,9 +297,13 @@ export function parseHandoffJson(text: string): ProcessedTrail {
   // re-minted the same way everywhere it appears.
   const remintedIds = new Map<string, string>();
   const waypoints = trail.waypoints.map((w, i) => readWaypoint(w, i, trailId, remintedIds));
-  const ids: WaypointIdContext = { trailId, reminted: remintedIds };
+  // Every source id that came out as a different local id, from any list —
+  // what the plan's waypoint ids are translated through. Seeded with the main
+  // route's, which is where a stop or resupply option almost always is.
+  const planIds = new Map(remintedIds);
+  const ids: WaypointIdContext = { trailId, reminted: remintedIds, planIds };
 
-  return {
+  const resolvedTrail: ProcessedTrail = {
     config: resolvedConfig,
     track: {
       points,
@@ -245,6 +329,17 @@ export function parseHandoffJson(text: string): ProcessedTrail {
     direction: isRecord(trail.direction) ? (trail.direction as unknown as DirectionConfig) : null,
     ...(pois ? { pois } : {}),
   };
+
+  // A version-1 file never carried a plan; a `plan` key on one was not written
+  // by us and is not read.
+  const warnings: string[] = [];
+  let plan: PlanDocument | null = null;
+  if (version >= HANDOFF_PLAN_VERSION && parsed.plan !== undefined && parsed.plan !== null) {
+    plan = readPlan(parsed.plan, trailId, planIds);
+    if (!plan) warnings.push(HANDOFF_PLAN_UNREADABLE);
+  }
+
+  return { trail: resolvedTrail, plan, warnings };
 }
 
 /**
@@ -257,7 +352,7 @@ export function parseHandoffJson(text: string): ProcessedTrail {
  * here would invent numbers. `hasElevation` is the one thing still worth
  * checking, because it changes how the plan calculator's day estimates read.
  */
-export function handoffImportReport(trail: ProcessedTrail): ImportReport {
+export function handoffImportReport(trail: ProcessedTrail, warnings: readonly string[] = []): ImportReport {
   const pointCount = trail.track.points.length;
   return {
     trailId: trail.config.id,
@@ -284,7 +379,7 @@ export function handoffImportReport(trail: ProcessedTrail): ImportReport {
     // never appear.
     poiCount: trail.pois?.filter(poi => !poi.duplicateOf).length ?? 0,
     simplified: false,
-    warnings: [],
+    warnings: [...warnings],
   };
 }
 
@@ -294,6 +389,81 @@ export function handoffImportReport(trail: ProcessedTrail): ImportReport {
 
 function fail(message: string): never {
   throw new Error(message);
+}
+
+/**
+ * The bytes a trail-only export of `trail` would have been — the id-hash input
+ * for a version-2 file. Exact for anything this module wrote, since JSON
+ * re-serializes a parsed `JSON.stringify` output unchanged.
+ */
+function trailOnlyText(trail: unknown): string {
+  return JSON.stringify({ format: HANDOFF_FORMAT, version: HANDOFF_TRAIL_VERSION, trail });
+}
+
+/**
+ * A copy of a plan holding the `PlanDocument` fields and nothing else.
+ *
+ * `isPlanDocument` checks the fields it knows and lets others through, which
+ * is right for a stored document but not for one crossing devices: whatever
+ * else a `localStorage` record or a crafted file carries — a pace, an hours
+ * figure, a blob — must not ride along into the phone's plan store. The plan
+ * is the hiker's document; their inputs stay on the device they were set on.
+ */
+function planDocumentOnly(plan: PlanDocument): PlanDocument {
+  const doc: PlanDocument = {
+    id: plan.id,
+    trailId: plan.trailId,
+    name: plan.name,
+    direction: plan.direction,
+    startDate: plan.startDate,
+    stops: plan.stops.map(stopOnly),
+    updatedAt: plan.updatedAt,
+    version: 1,
+  };
+  if (plan.resupplyStops !== undefined) doc.resupplyStops = [...plan.resupplyStops];
+  if (plan.resupplyZeroDays !== undefined) doc.resupplyZeroDays = { ...plan.resupplyZeroDays };
+  if (plan.alternates !== undefined) doc.alternates = [...plan.alternates];
+  if (plan.dataUpdatedAt !== undefined) doc.dataUpdatedAt = plan.dataUpdatedAt;
+  return doc;
+}
+
+function stopOnly(stop: PlanStop): PlanStop {
+  const out: PlanStop = { km: stop.km, name: stop.name, nights: stop.nights };
+  if (stop.waypointId !== undefined) out.waypointId = stop.waypointId;
+  if (stop.note !== undefined) out.note = stop.note;
+  if (stop.booked !== undefined) out.booked = stop.booked;
+  if (stop.alternate !== undefined) out.alternate = stop.alternate;
+  return out;
+}
+
+/**
+ * Validate a file's plan and make it this trail's, or null when it is unusable.
+ *
+ * The checks are the shared ones, not a second copy: `isPlanDocument` for the
+ * shape, `assertPlanDocumentWithinLimits` for the limits the editor and the
+ * server enforce. They run on the translated document, so a translation that
+ * produced something the limits refuse (two stops on one id) is refused too.
+ */
+function readPlan(value: unknown, trailId: string, planIds: ReadonlyMap<string, string>): PlanDocument | null {
+  if (!isPlanDocument(value)) return null;
+  const local = (id: string): string => planIds.get(id) ?? id;
+  const doc = planDocumentOnly(value);
+  doc.trailId = trailId;
+  doc.stops = doc.stops.map(stop =>
+    stop.waypointId === undefined ? stop : { ...stop, waypointId: local(stop.waypointId) }
+  );
+  if (doc.resupplyStops !== undefined) doc.resupplyStops = doc.resupplyStops.map(local);
+  if (doc.resupplyZeroDays !== undefined) {
+    doc.resupplyZeroDays = Object.fromEntries(
+      Object.entries(doc.resupplyZeroDays).map(([id, days]) => [local(id), days])
+    );
+  }
+  try {
+    assertPlanDocumentWithinLimits(doc);
+  } catch {
+    return null;
+  }
+  return doc;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -574,6 +744,8 @@ interface WaypointIdContext {
   trailId: string;
   /** Source id → the id `readWaypoint` gave it on the main route. */
   reminted: Map<string, string>;
+  /** Source id → the first local id it was given anywhere; see `parseHandoff`. */
+  planIds: Map<string, string>;
 }
 
 /**
@@ -594,7 +766,9 @@ function localWaypointId(
     const known = ids.reminted.get(value.id);
     if (known) return known;
   }
-  return `uw_${hashString(`${ids.trailId}|${where}|${name}|${lat}|${lon}`)}`;
+  const id = `uw_${hashString(`${ids.trailId}|${where}|${name}|${lat}|${lon}`)}`;
+  if (typeof value.id === 'string' && !ids.planIds.has(value.id)) ids.planIds.set(value.id, id);
+  return id;
 }
 
 /**
