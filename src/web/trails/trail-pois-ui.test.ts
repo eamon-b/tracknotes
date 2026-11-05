@@ -64,6 +64,31 @@ describe('POI markup', () => {
     expect(html).toContain('&lt;img');
   });
 
+  it("fills the popup's gaps from the records folded into it, each linked and escaped", () => {
+    const station = poi({
+      id: 1,
+      category: 'resupply',
+      name: 'Ampol',
+      tags: { amenity: 'fuel', website: 'https://ampol.example/' },
+    });
+    const shop = poi({
+      id: 2,
+      type: 'way',
+      category: 'resupply',
+      name: 'Ampol <b>Foodary</b>',
+      tags: { shop: 'convenience', opening_hours: '<script>x</script>', website: 'javascript:alert(1)' },
+      duplicateOfPoi: 'node/1',
+    });
+    const html = poiPopupHtml(station, [shop]);
+    expect(html).toContain('&lt;script&gt;x&lt;/script&gt;');
+    expect(html).toContain('https://ampol.example/');
+    expect(html).not.toContain('javascript:');
+    expect(html).toContain('Also in OpenStreetMap as');
+    expect(html).toContain('https://www.openstreetmap.org/way/2');
+    expect(html).toContain('Ampol &lt;b&gt;Foodary&lt;/b&gt;');
+    expect(poiPopupHtml(station)).not.toContain('Also in OpenStreetMap');
+  });
+
   it('credits OpenStreetMap and links the element', () => {
     const html = poiPopupHtml(poi({ type: 'way', id: 42 }));
     expect(html).toContain('© OpenStreetMap contributors');

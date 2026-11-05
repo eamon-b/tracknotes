@@ -626,6 +626,20 @@ describe('parseHandoffJson: points of interest', () => {
       distanceFromTrail: 0,
     });
   });
+
+  it('carries the POI-duplicate flag, but drops one naming a POI the file lacks', () => {
+    const parsed = withPois([
+      poi,
+      { ...poi, id: 2, duplicateOfPoi: 'node/12345', duplicateOfPoiDistanceM: 12 },
+      { ...poi, id: 3, duplicateOfPoi: 'node/999', duplicateOfPoiDistanceM: 4 },
+      { ...poi, id: 4, duplicateOfPoi: 7 },
+    ]).pois!;
+    expect(parsed[1]).toMatchObject({ duplicateOfPoi: 'node/12345', duplicateOfPoiDistanceM: 12 });
+    // A dangling key would hide the place with nothing left to show it.
+    expect(parsed[2]).not.toHaveProperty('duplicateOfPoi');
+    expect(parsed[2]).not.toHaveProperty('duplicateOfPoiDistanceM');
+    expect(parsed[3]).not.toHaveProperty('duplicateOfPoi');
+  });
 });
 
 describe('handoffImportReport', () => {
@@ -679,6 +693,7 @@ describe('handoffImportReport', () => {
         { ...base, id: 1 },
         { ...base, id: 2, duplicateOf: 'w_hut' },
         { ...base, id: 3 },
+        { ...base, id: 4, duplicateOfPoi: 'node/3' },
       ],
     });
     expect(handoffImportReport(trail).poiCount).toBe(2);

@@ -180,8 +180,13 @@ export interface DedupWaypointLike {
  *
  * Exported for tests, which is the only way to pin the behaviour that the
  * generic-word list drives.
+ *
+ * `keepQualifier` keeps a ` - Suffix` tail. A curated waypoint's tail is a
+ * location note (` - Leeuwin-Naturaliste NP`), but two OSM records' tails can
+ * be all that tells them apart: `Zane Grey's - The Dock` and `Zane Grey's - The
+ * Aquarium` are two restaurants 26 m apart (`markSelfDuplicatePois`).
  */
-export function nameTokens(name: string | null | undefined, keepGeneric = false): string[] {
+export function nameTokens(name: string | null | undefined, keepGeneric = false, keepQualifier = false): string[] {
   if (!name) return [];
   // An apostrophe joins rather than splits, so `Devil's Kitchen` and `Devils
   // Kitchen` reduce to the same `devils`, not to `devil s` against `devils`.
@@ -189,14 +194,12 @@ export function nameTokens(name: string | null | undefined, keepGeneric = false)
   // `O' Keefes Hut` is OSM's `O'Keefes Hut`.
   // Diacritics go first: Te Araroa's `Pāhautea Hut` is OSM's `Pahautea Hut`,
   // and the a-z filter below would otherwise split it into `p hautea`.
-  const cleaned = (
-    name
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase()
-      .replace(CURATOR_PREFIX, '') as string
-  )
-    .replace(TRAILING_QUALIFIER, '')
+  const unprefixed = name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(CURATOR_PREFIX, '') as string;
+  const cleaned = (keepQualifier ? unprefixed : unprefixed.replace(TRAILING_QUALIFIER, ''))
     .replace(/\b([a-z])['‘’]\s*/g, '$1')
     .replace(/['‘’]/g, '')
     .replace(/[^a-z0-9 ]/g, ' ');
@@ -497,8 +500,17 @@ function isUnnamed(name: string | null | undefined): boolean {
  * `Trig Campground Places 12 To 25` is the Heysen's `Trig Campground`.
  */
 export function namesDistinguished(a: string | null | undefined, b: string | null | undefined): boolean {
-  const setA = new Set(nameTokens(a, true));
-  const setB = new Set(nameTokens(b, true));
+  return tokensDistinguished(nameTokens(a, true), nameTokens(b, true));
+}
+
+/** `namesDistinguished` over names already reduced to tokens. */
+function tokensDistinguished(a: readonly string[], b: readonly string[], extra?: ReadonlySet<string>): boolean {
+  const setA = new Set(a);
+  const setB = new Set(b);
+  if (extra) {
+    for (const token of setA) if (extra.has(token) && !setB.has(token)) return true;
+    for (const token of setB) if (extra.has(token) && !setA.has(token)) return true;
+  }
   for (const token of setA) if (DISTINGUISHING_WORDS.has(token) && !setB.has(token)) return true;
   for (const token of setB) if (DISTINGUISHING_WORDS.has(token) && !setA.has(token)) return true;
   const numbers = (set: Set<string>) =>
@@ -595,10 +607,256 @@ export function applyDuplicateOverrides(
   return { pois: out, unmatched: Object.keys(overrides).filter(key => !seen.has(key)), replaced };
 }
 
-/** POIs that are not flagged as duplicating a waypoint. */
+// === OSM duplicating itself (POI ↔ POI) ===
+//
+// Separately from the waypoints, OSM maps one place twice: a fuel station and
+// its shop (`Ampol` + `Ampol Foodary`, `Mobil` + `Mobil Mart`), a hut and the
+// camp site around it (`Karta Burnu` + `Karta Burnu Camp Site`), a building
+// outline and a node for the same pub (`The Kalamunda Hotel` + `Kalamunda
+// Hotel`). Left alone the map draws two markers a few metres apart and the
+// datasheet lists the place twice. See `plans/poi-waypoint-dedup.md`.
+
+/** Two POIs further apart than this are never one place — except campgrounds. */
+export const SELF_DUPLICATE_M = 50;
+
+/**
+ * Two `camping` POIs with the *same* name are one place this far apart.
+ *
+ * A campground is an area, and OSM often maps it as several: Albany's `Cosy
+ * Corner (East)` is a `camp_site` and a `caravan_site` 112 m apart, the
+ * Heysen's `Trezona Campground` a node 187 m from its outline. Shops are not:
+ * on the CDT, `7-Eleven`s 162-208 m apart are different stores.
+ */
+export const SELF_DUPLICATE_CAMPING_M = 200;
+
+/** `SELF_DUPLICATE_CAMPING_M` as degrees of latitude, a metre to spare. */
+const SELF_DUPLICATE_LAT_DEGREES = ((SELF_DUPLICATE_CAMPING_M + 1) / 6_371_000) * (180 / Math.PI);
+
+/** The ordered string similarity that counts as spelling drift (`Chopstix`/`Chopstick`). */
+export const MIN_SELF_NAME_RATIO = 0.9;
+
+/**
+ * Categories a POI may share a place with. Same category, plus a shop and a
+ * café counted under each other: a country general store is tagged
+ * `shop=general` on one record and `amenity=cafe` on the other (the Heysen's
+ * `Spalding General Store`). `transport` is absent on purpose (see
+ * `markSelfDuplicatePois`).
+ */
+const SELF_COMPATIBLE_CATEGORIES: Readonly<Partial<Record<TrailPOICategory, readonly TrailPOICategory[]>>> = {
+  camping: ['camping'],
+  water: ['water'],
+  resupply: ['resupply', 'restaurant'],
+  restaurant: ['restaurant', 'resupply'],
+  emergency: ['emergency'],
+};
+
+/**
+ * Words that make two otherwise same-named records two places, on top of
+ * `DISTINGUISHING_WORDS`: the CDT's `Divide Rest Area, I-15 Southbound` and
+ * `… Northbound` are the two sides of an interstate, and Rocky Mountain
+ * National Park's `July Group Site` (`group_only=yes`) is not the `July`
+ * backcountry site 191 m away. `group` is a generic word against a waypoint,
+ * where a group camp is still the camp; between two OSM records it is the
+ * mapper saying these are two sites.
+ */
+const SELF_DISTINGUISHING_WORDS = new Set([
+  'northbound',
+  'southbound',
+  'eastbound',
+  'westbound',
+  'inbound',
+  'outbound',
+  'group',
+]);
+
+/**
+ * Survivor preference between two categories: a store with a café counter is a
+ * resupply first, so it stays under the resupply toggle.
+ */
+const SELF_CATEGORY_RANK: Readonly<Partial<Record<TrailPOICategory, number>>> = { resupply: 1 };
+
+interface SelfDedupEntry {
+  poi: TrailPOI;
+  key: string;
+  /** Identity tokens, in order, with any ` - Suffix` kept. */
+  tokens: string[];
+  /** The same with the generic words, for `tokensDistinguished`. */
+  allTokens: string[];
+  joined: string;
+  /** `compareSelfSurvivor`'s inputs, worked out once rather than per comparison. */
+  flagged: number;
+  rank: number;
+  tagCount: number;
+  nameLength: number;
+}
+
+/**
+ * Which of two records of one place to keep, best first: one already standing
+ * for a curated waypoint (so the other joins it on that waypoint); a resupply
+ * over a café; more tags; a longer name (`Ampol Foodary` says more than
+ * `Ampol`); then the `<type>/<id>` key, so the choice never depends on input
+ * order.
+ */
+function compareSelfSurvivor(a: SelfDedupEntry, b: SelfDedupEntry): number {
+  if (a.flagged !== b.flagged) return b.flagged - a.flagged;
+  if (a.rank !== b.rank) return b.rank - a.rank;
+  if (a.tagCount !== b.tagCount) return b.tagCount - a.tagCount;
+  if (a.nameLength !== b.nameLength) return b.nameLength - a.nameLength;
+  return a.key < b.key ? -1 : a.key > b.key ? 1 : 0;
+}
+
+/**
+ * Whether two named records, `metres` apart, name one place. **Order-sensitive**
+ * throughout, unlike `nameScore`: the same tokens in the same order, one name
+ * the start of the other (`BP` / `BP Shop`, `Madison's Hut` / `Madison's Hut
+ * Refuge`), or the same order with spelling drift (`Pug Ryan's Steakhouse &
+ * Brewery` / `… and Brewery`). Bus stops are why: `Canning Rd After Recreation
+ * Rd` and `Recreation Rd After Canning Rd` are two stops, and a set of tokens
+ * cannot tell them apart. Transport never reaches here, but the comparison
+ * stays safe if it ever does.
+ */
+function selfNamesMatch(a: SelfDedupEntry, b: SelfDedupEntry, metres: number): boolean {
+  if (tokensDistinguished(a.allTokens, b.allTokens, SELF_DISTINGUISHING_WORDS)) return false;
+  if (a.joined === b.joined) {
+    const limit =
+      a.poi.category === 'camping' && b.poi.category === 'camping' ? SELF_DUPLICATE_CAMPING_M : SELF_DUPLICATE_M;
+    return metres <= limit;
+  }
+  if (metres > SELF_DUPLICATE_M) return false;
+  const [shorter, longer] = a.tokens.length <= b.tokens.length ? [a.tokens, b.tokens] : [b.tokens, a.tokens];
+  if (shorter.every((token, i) => longer[i] === token)) return true;
+  return sequenceRatio(a.joined, b.joined) >= MIN_SELF_NAME_RATIO;
+}
+
+/**
+ * Flag POIs that duplicate *another POI*: OSM mapping one place twice.
+ *
+ * Every pair of records within `SELF_DUPLICATE_M` (`SELF_DUPLICATE_CAMPING_M`
+ * for two campgrounds of exactly one name), with compatible categories and
+ * names that match in order (`selfNamesMatch`), is one place. The weaker record
+ * (`compareSelfSurvivor`) gets `duplicateOfPoi`, the stronger's `<type>/<id>`
+ * key; nothing is removed, so its tags still reach the survivor's popup.
+ *
+ * Deterministic and one level deep: records are visited best first, and each
+ * either joins the nearest survivor it matches or becomes one. So a hidden POI
+ * always points at a shown one — or at one flagged `duplicateOf` a waypoint,
+ * in which case both describe that waypoint. A POI already flagged
+ * `duplicateOf` is never re-pointed: it is hidden already.
+ *
+ * Never flagged: `transport` (bus-stop names carry direction in word order, and
+ * two stops either side of a road are two stops), unnamed POIs (two nameless
+ * taps 20 m apart are two taps), and names `nameTokens` cannot read.
+ *
+ * Run after `thinUrbanPois`, so a record city thinning drops can never be the
+ * survivor of one it keeps. Returns a new array; stale flags in the input are
+ * cleared, and a POI that matches nothing comes back without the fields.
+ */
+export function markSelfDuplicatePois(pois: readonly TrailPOI[] | undefined): TrailPOI[] | undefined {
+  if (!pois) return undefined;
+  const out = pois.map(poi => {
+    const next: TrailPOI = { ...poi };
+    // Only when there is a stale flag: `delete` slows every later read of the object.
+    if ('duplicateOfPoi' in next) delete next.duplicateOfPoi;
+    if ('duplicateOfPoiDistanceM' in next) delete next.duplicateOfPoiDistanceM;
+    return next;
+  });
+
+  const entries: SelfDedupEntry[] = [];
+  for (const poi of out) {
+    if (!SELF_COMPATIBLE_CATEGORIES[poi.category]) continue;
+    const tokens = nameTokens(poi.name, false, true);
+    if (tokens.length === 0) continue;
+    entries.push({
+      poi,
+      key: poiKey(poi),
+      tokens,
+      allTokens: nameTokens(poi.name, true, true),
+      joined: tokens.join(' '),
+      flagged: poi.duplicateOf ? 1 : 0,
+      rank: SELF_CATEGORY_RANK[poi.category] ?? 0,
+      tagCount: Object.keys(poi.tags ?? {}).length,
+      nameLength: (poi.name ?? '').trim().length,
+    });
+  }
+  entries.sort(compareSelfSurvivor);
+
+  // Kept records in a grid of cells at least as wide and tall as the furthest
+  // match, so each record looks at the 3 x 3 cells round it rather than every
+  // kept record: the comments API's Worker runs this on up to 12,000 POIs, and
+  // a city puts hundreds in one latitude band. A cell's longitude width is set
+  // at the input's highest latitude, where a degree of longitude is shortest.
+  const maxAbsLat = entries.reduce((max, entry) => Math.max(max, Math.abs(entry.poi.lat)), 0);
+  const lonCell = SELF_DUPLICATE_LAT_DEGREES / Math.max(Math.cos((Math.min(maxAbsLat, 89) * Math.PI) / 180), 0.01);
+  const grid = new Map<string, SelfDedupEntry[]>();
+  const cellOf = (poi: TrailPOI): [number, number] => [
+    Math.floor(poi.lat / SELF_DUPLICATE_LAT_DEGREES),
+    Math.floor(poi.lon / lonCell),
+  ];
+  const keep = (entry: SelfDedupEntry): void => {
+    const [row, col] = cellOf(entry.poi);
+    const key = `${row}:${col}`;
+    const list = grid.get(key);
+    if (list) list.push(entry);
+    else grid.set(key, [entry]);
+  };
+  for (const entry of entries) {
+    if (entry.poi.duplicateOf) {
+      keep(entry);
+      continue;
+    }
+    const compatible = SELF_COMPATIBLE_CATEGORIES[entry.poi.category] ?? [];
+    let best: { survivor: SelfDedupEntry; metres: number } | null = null;
+    const [row, col] = cellOf(entry.poi);
+    const nearby: SelfDedupEntry[] = [];
+    for (let dr = -1; dr <= 1; dr += 1) {
+      for (let dc = -1; dc <= 1; dc += 1) {
+        const list = grid.get(`${row + dr}:${col + dc}`);
+        if (list) nearby.push(...list);
+      }
+    }
+    for (const survivor of nearby) {
+      if (Math.abs(entry.poi.lat - survivor.poi.lat) > SELF_DUPLICATE_LAT_DEGREES) continue;
+      if (!compatible.includes(survivor.poi.category)) continue;
+      const metres = haversineDistance2D(entry.poi.lat, entry.poi.lon, survivor.poi.lat, survivor.poi.lon);
+      if (metres > SELF_DUPLICATE_CAMPING_M) continue;
+      if (!selfNamesMatch(entry, survivor, metres)) continue;
+      if (
+        !best ||
+        metres < best.metres ||
+        (metres === best.metres && compareSelfSurvivor(survivor, best.survivor) < 0)
+      ) {
+        best = { survivor, metres };
+      }
+    }
+    if (best) {
+      entry.poi.duplicateOfPoi = best.survivor.key;
+      entry.poi.duplicateOfPoiDistanceM = Math.round(best.metres);
+    } else {
+      keep(entry);
+    }
+  }
+  return out;
+}
+
+/**
+ * Whether a POI is hidden as a duplicate — of a curated waypoint
+ * (`duplicateOf`) or of another POI (`duplicateOfPoi`). Every surface that
+ * draws, lists or counts POIs skips these.
+ */
+export function isDuplicatePoi(poi: Pick<TrailPOI, 'duplicateOf' | 'duplicateOfPoi'>): boolean {
+  return Boolean(poi.duplicateOf || poi.duplicateOfPoi);
+}
+
+/** POIs that are not hidden as duplicates of a waypoint or of another POI. */
 export function nonDuplicatePois(pois: readonly TrailPOI[] | undefined): TrailPOI[] {
   if (!pois) return [];
-  return pois.filter(poi => !poi.duplicateOf);
+  return pois.filter(poi => !isDuplicatePoi(poi));
+}
+
+/** How many of these POIs were flagged as duplicating another POI. For build output. */
+export function countSelfDuplicatePois(pois: readonly TrailPOI[] | undefined): number {
+  if (!pois) return 0;
+  return pois.reduce((total, poi) => (poi.duplicateOfPoi ? total + 1 : total), 0);
 }
 
 /** How many of these POIs were flagged as duplicates. For build output. */

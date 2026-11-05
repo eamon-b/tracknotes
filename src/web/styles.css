@@ -1720,6 +1720,17 @@ a.poi-source-badge:hover {
   color: var(--link);
 }
 
+/* The other OSM records of this place, which the dedup pass folded into it. */
+.poi-also-mapped {
+  margin-top: 0.3rem;
+  font-size: 0.85em;
+  overflow-wrap: anywhere;
+}
+
+.poi-also-mapped a {
+  color: var(--link);
+}
+
 /* "From OpenStreetMap" in a waypoint popup: the tags of the OSM records the
    dedup pass hid behind this waypoint, collapsed under the curated detail. */
 .wp-osm-details {

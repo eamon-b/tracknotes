@@ -376,8 +376,8 @@ export function handoffImportReport(trail: ProcessedTrail, warnings: readonly st
     gapWarnings: [],
     // What the app will actually show: a POI flagged as duplicating a curated
     // waypoint is drawn nowhere, so counting it here would promise markers that
-    // never appear.
-    poiCount: trail.pois?.filter(poi => !poi.duplicateOf).length ?? 0,
+    // never appear — nor is a second OSM record of a place another one shows.
+    poiCount: trail.pois?.filter(poi => !poi.duplicateOf && !poi.duplicateOfPoi).length ?? 0,
     simplified: false,
     warnings: [...warnings],
   };
@@ -634,7 +634,23 @@ function readPOIs(value: unknown): TrailPOI[] | undefined {
       ...(typeof entry.duplicateDistanceM === 'number' && Number.isFinite(entry.duplicateDistanceM)
         ? { duplicateDistanceM: entry.duplicateDistanceM }
         : {}),
+      ...(typeof entry.duplicateOfPoi === 'string' && entry.duplicateOfPoi.length > 0
+        ? { duplicateOfPoi: entry.duplicateOfPoi }
+        : {}),
+      ...(typeof entry.duplicateOfPoiDistanceM === 'number' && Number.isFinite(entry.duplicateOfPoiDistanceM)
+        ? { duplicateOfPoiDistanceM: entry.duplicateOfPoiDistanceM }
+        : {}),
     });
+  }
+
+  // A `duplicateOfPoi` naming a POI this file does not carry would hide a place
+  // with nothing left to show it, so it is dropped: the POI shows on its own.
+  const keys = new Set(pois.map(poi => `${poi.type}/${poi.id}`));
+  for (const poi of pois) {
+    if (poi.duplicateOfPoi !== undefined && !keys.has(poi.duplicateOfPoi)) {
+      delete poi.duplicateOfPoi;
+      delete poi.duplicateOfPoiDistanceM;
+    }
   }
 
   return pois.length > 0 ? pois : undefined;

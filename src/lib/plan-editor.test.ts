@@ -790,6 +790,21 @@ describe('servicesAtStop', () => {
     expect(services?.pois.some(p => p.duplicateOf === 'w_b')).toBe(true);
   });
 
+  it('lists a second OSM record of one place once, but counts its tags towards the flags', () => {
+    const services = servicesAtStop({ km: 10 }, [
+      poi({ id: 1, category: 'resupply', distanceAlongTrail: 10, tags: { amenity: 'fuel' } }),
+      poi({
+        id: 2,
+        category: 'resupply',
+        distanceAlongTrail: 10,
+        tags: { shop: 'convenience', drinking_water: 'yes' },
+        duplicateOfPoi: 'node/1',
+      }),
+    ]);
+    expect(services?.pois.map(p => p.id)).toEqual([1]);
+    expect(services?.water).toBe(true);
+  });
+
   it('takes a wider radius when asked', () => {
     expect(servicesAtStop({ km: 50 }, pois, 3)?.water).toBe(true);
   });

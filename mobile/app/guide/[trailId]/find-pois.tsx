@@ -19,7 +19,7 @@ import React, { useCallback, useMemo } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { countPoisByCategory, POI_CATEGORIES, POI_CATEGORY_LABELS } from '@lib/poi-display';
-import { countDuplicatePois } from '@lib/poi-dedup';
+import { countDuplicatePois, countSelfDuplicatePois } from '@lib/poi-dedup';
 import {
   INTERACTIVE_OVERPASS_ENDPOINTS,
   POI_SEARCH_RADIUS_KM,
@@ -257,7 +257,8 @@ function StatePanel({ state }: { state: PoiSearchState }) {
   if (state.kind === 'done' && counts) {
     const { run } = state;
     const hidden = countDuplicatePois(run.pois);
-    const shown = run.pois.length - hidden;
+    const repeats = countSelfDuplicatePois(run.pois);
+    const shown = run.pois.length - hidden - repeats;
     return (
       <View
         style={[styles.panel, { backgroundColor: colors.surface, borderColor: colors.border }]}
@@ -275,6 +276,12 @@ function StatePanel({ state }: { state: PoiSearchState }) {
           <Text style={[styles.meta, { color: colors.textSecondary }]}>
             {hidden} more {hidden === 1 ? 'is' : 'are'} the same place as one of this guide’s own
             waypoints, and {hidden === 1 ? 'shows' : 'show'} on that waypoint instead.
+          </Text>
+        ) : null}
+        {repeats > 0 ? (
+          <Text style={[styles.meta, { color: colors.textSecondary }]}>
+            {repeats} more {repeats === 1 ? 'is a place' : 'are places'} OpenStreetMap lists twice,
+            shown once.
           </Text>
         ) : null}
         <Text style={[styles.meta, { color: colors.textSecondary }]}>

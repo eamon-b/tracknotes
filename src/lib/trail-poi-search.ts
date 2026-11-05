@@ -21,7 +21,7 @@
  * caller owns cancellation, retries of failed groups and progress.
  */
 
-import { dedupCandidates, markDuplicatePois, type DedupTrailLike } from './poi-dedup';
+import { dedupCandidates, markDuplicatePois, markSelfDuplicatePois, type DedupTrailLike } from './poi-dedup';
 import { slimPoi } from './poi-display';
 import { dropNoisePois } from './poi-noise';
 import { thinUrbanPois } from './poi-urban';
@@ -153,7 +153,7 @@ function abortError(): Error {
 /**
  * Turn fetched OSM elements into a trail's shipped `pois`: placed on the
  * trail's own km scale, then the build's passes in the build's order (noise →
- * duplicates → city thinning, see `scripts/build-trails.ts`), then slimmed.
+ * duplicates → city thinning → OSM's own repeats, see `scripts/build-trails.ts`), then slimmed.
  * Sorted by km. Never returns `undefined`: a search that found nothing is `[]`,
  * which is "searched, nothing here" — unlike an absent `pois`.
  */
@@ -185,5 +185,7 @@ export async function finishTrailPois(
   await step();
   const thinned = thinUrbanPois(marked, config) ?? [];
   await step();
-  return thinned.map(slimPoi);
+  const deduped = markSelfDuplicatePois(thinned) ?? [];
+  await step();
+  return deduped.map(slimPoi);
 }

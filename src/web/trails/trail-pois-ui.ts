@@ -23,6 +23,7 @@ import {
   duplicatePoisFor,
   formatOffTrail,
   isPoiCategory,
+  mergedPoiTags,
   normalisePoiFilterState,
   poiCategoryLabel,
   poiDisplayName,
@@ -48,6 +49,7 @@ export {
   formatOffTrail,
   interleavePoisByDistance,
   isPoiCategory,
+  mergedPoiTags,
   mirrorPoiDistances,
   normalisePoiFilterState,
   parsePoiRouteKey,
@@ -57,6 +59,7 @@ export {
   poiRouteKey,
   safeHttpUrl,
   safeTelUrl,
+  selfDuplicatesOf,
   slimPoi,
   summarisePoiTags,
   visiblePois,
@@ -117,8 +120,23 @@ function tagLinesHtml(lines: PoiTagLine[]): string {
   return `<dl class="poi-tags">${items}</dl>`;
 }
 
-/** The Leaflet popup body for one POI. */
-export function poiPopupHtml(poi: TrailPOI): string {
+/**
+ * The Leaflet popup body for one POI.
+ *
+ * `duplicates` are the records `@lib/poi-dedup` folded into this one (OSM
+ * mapping the place twice, `selfDuplicatesOf`): drawn nowhere else, so their
+ * tags fill this popup's gaps (`mergedPoiTags`) and each keeps a link out.
+ */
+export function poiPopupHtml(poi: TrailPOI, duplicates: readonly TrailPOI[] = []): string {
+  const alsoMapped =
+    duplicates.length === 0
+      ? ''
+      : `<div class="poi-also-mapped">Also in OpenStreetMap as ${duplicates
+          .map(
+            duplicate =>
+              `<a href="${escapeHtml(poiOsmUrl(duplicate))}" target="_blank" rel="noopener noreferrer">${escapeHtml(poiDisplayName(duplicate))}</a>`
+          )
+          .join(', ')}</div>`;
   return `
     <div class="poi-popup">
       <strong class="poi-popup-name">${escapeHtml(poiDisplayName(poi))}</strong>
@@ -127,8 +145,9 @@ export function poiPopupHtml(poi: TrailPOI): string {
         ${escapeHtml(poi.distanceAlongTrail.toFixed(1))} km along trail
         · ${escapeHtml(formatOffTrail(poi.distanceFromTrail))} off trail
       </div>
-      ${tagLinesHtml(summarisePoiTags(poi.tags))}
+      ${tagLinesHtml(summarisePoiTags(mergedPoiTags(poi, duplicates)))}
       <a class="poi-osm-link" href="${escapeHtml(poiOsmUrl(poi))}" target="_blank" rel="noopener noreferrer">View on OpenStreetMap</a>
+      ${alsoMapped}
       <div class="poi-attribution">${escapeHtml(OSM_ATTRIBUTION)}</div>
     </div>
   `;
