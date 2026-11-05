@@ -60,6 +60,16 @@
         <span class="direction-arrows" aria-hidden="true">⇄</span>
         <span id="direction-label">NOBO</span>
       </button>
+      <!-- The plan as files and on paper (plan-export-ui.ts). -->
+      <details id="plan-export" class="plan-export">
+        <summary class="plan-header-btn">Export</summary>
+        <div class="plan-export-menu" role="group" aria-label="Export this plan">
+          <button type="button" id="export-gpx" class="plan-export-item">GPX (route and stops)</button>
+          <button type="button" id="export-ics" class="plan-export-item">Calendar (.ics)</button>
+          <p id="export-ics-note" class="plan-export-note" hidden>Set a start date to export a calendar.</p>
+          <button type="button" id="export-print" class="plan-export-item">Print / Save as PDF</button>
+        </div>
+      </details>
       <span id="save-status">Saved</span>
       <span id="sync-status" hidden></span>
       <button type="button" id="sync-btn" class="plan-header-btn" hidden>Sync</button>
@@ -183,4 +193,7 @@
       </div>
 
     </div><!-- #plan-body -->
+
+    <!-- The printed plan, filled by plan-export-ui.ts just before printing; shown only in print. -->
+    <div id="plan-print"></div>
   </div><!-- #plan-shell -->

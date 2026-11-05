@@ -106,6 +106,8 @@ import { servicesStripHtml } from './stop-services';
 import { waypointOsmDetailsHtml } from './trail-pois-ui';
 import { stopWalk } from '@lib/day-calculator';
 import { PlanEditQueue, type PlanEdit } from './plan-edit-queue';
+import { initPlanExport, type PlanExportController } from './plan-export-ui';
+import type { PlanExportInput } from '@lib/plan-export';
 import {
   DAILY_HOURS_RANGE,
   loadOrMigratePlan,
@@ -635,6 +637,40 @@ function plannedBadge(names: readonly string[] = []): string {
   const title =
     names.length > 0 ? `Planned resupply: ${names.join(', ')}` : 'Planned resupply — ticked in the Resupply tab';
   return `<span class="planned-badge" title="${escapeHtml(title)}">Planned resupply</span>`;
+}
+
+/** The Export menu, bound once the page has booted. */
+let exportController: PlanExportController | null = null;
+
+/**
+ * What the Export menu writes: the plan as this page shows it — the route-km
+ * document, the active trail (alternates spliced in, direction applied), the
+ * day cards — and the resupply stops the hiker ticked. An absent selection
+ * (every option, nothing chosen yet) is no resupply plan, as it badges nothing
+ * on the page, so the files carry none. The legs here also take the hiker's
+ * zero days, which only the export reads.
+ */
+function planExportInput(): PlanExportInput {
+  const resupplyStops = plan.resupplyStops ? resolveResupplyStops(resupplyGroups(), plan.resupplyStops) : [];
+  const resupplyLegs =
+    resupplyStops.length === 0
+      ? []
+      : computeResupplyLegs(activeTrail(), resupplyStops, {
+          dailyHours: dailyHours(),
+          baseKmh: baseKmh(),
+          longThresholdDays: threshold('longCarryDays'),
+          gramsPerDay: threshold('foodGramsPerDay'),
+          days: currentDays,
+          zeroDays: plan.resupplyZeroDays,
+        });
+  return {
+    plan,
+    trail: activeTrail(),
+    days: currentDays,
+    unplanned: unplannedDay,
+    resupplyStops,
+    resupplyLegs,
+  };
 }
 
 function resupplyLegs(): ResupplyLeg[] {
@@ -2619,6 +2655,7 @@ function renderAll(): void {
 
   redrawMapLayers();
   drawElevationProfile();
+  exportController?.refresh({ plan, days: currentDays });
 }
 
 // ---------------------------------------------------------------------------
@@ -3089,6 +3126,15 @@ export async function initPlanViewer(
     resupplyPageLink.href = options.resupplyPageHref;
     resupplyPageLink.hidden = false;
   }
+
+  exportController = initPlanExport({
+    input: planExportInput,
+    printContext: () => ({
+      trailName: trail.config.name,
+      paceLabel: `${pace()} pace (${baseKmh()} km/h)`,
+      dailyHours: dailyHours(),
+    }),
+  });
 
   renderAll();
 
