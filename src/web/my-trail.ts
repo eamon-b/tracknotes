@@ -12,9 +12,9 @@ import { clearPlanStorage } from './trails/plan-state';
 import { dedupCandidates, markDuplicatePois } from '@lib/poi-dedup';
 import { dropNoisePois } from '@lib/poi-noise';
 import { thinUrbanPois } from '@lib/poi-urban';
-import { handoffFileName, serializeTrailHandoff } from '@lib/trail-handoff';
 import type { ProcessedTrail, TrailPOI } from '@lib/trail-types';
 import { deleteTrail, getTrail, isIndexedDbAvailable, putTrail, updateTrailPois } from './imported-trails-db';
+import { initTracknotesExport } from './tracknotes-export';
 import { escapeHtml, getQueryParam, overpassEndpointOverride } from './web-utils';
 
 function panel(id: string): HTMLElement | null {
@@ -51,37 +51,6 @@ function applyTrailIdentity(name: string, trailId: string): void {
   if (planLink) planLink.href = `./my-plan.html?id=${encodeURIComponent(trailId)}`;
   const resupplyLink = document.getElementById('resupply-link') as HTMLAnchorElement | null;
   if (resupplyLink) resupplyLink.href = `./my-resupply.html?id=${encodeURIComponent(trailId)}`;
-}
-
-/**
- * Wire the "Export for Tracknotes" button.
- *
- * An imported trail lives only in this browser's IndexedDB, so this download is
- * the entire bridge to the phone: the file it produces is what the mobile app's
- * share/open intent (or its document picker) reads back through
- * `parseHandoffJson`. The payload is the trail object verbatim — the phone does
- * no re-ingestion, so what you see here is exactly what you get there.
- */
-function initTracknotesExport(trail: ProcessedTrail): void {
-  const button = document.getElementById('export-tracknotes-btn') as HTMLButtonElement | null;
-  if (!button) return;
-
-  button.disabled = false;
-  button.addEventListener('click', () => {
-    // Built lazily: a full-resolution track serializes to megabytes, and most
-    // visitors never press this.
-    const blob = new Blob([serializeTrailHandoff(trail)], {
-      type: 'application/json;charset=utf-8;',
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = handoffFileName(trail);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  });
 }
 
 // === Waypoint category corrections ===
@@ -464,7 +433,10 @@ async function init(): Promise<void> {
   const storedId = record.id;
   const name = record.trail.config.name || record.name;
   applyTrailIdentity(name, record.id);
-  initTracknotesExport(record.trail);
+  // An imported trail lives only in this browser's IndexedDB, so this download
+  // is the entire bridge to the phone — trail verbatim, plus the plan made for
+  // it on `my-plan.html` when there is one (see `./tracknotes-export`).
+  initTracknotesExport({ trail: () => record.trail, planTrailId: record.trail.config.id });
   initPoiPanel(storedId, record.trail);
   initDeleteButton(record.id, name);
 

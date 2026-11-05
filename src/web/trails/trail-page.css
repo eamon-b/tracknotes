@@ -389,7 +389,20 @@ body.map-expanded {
 }
 .export-buttons {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
+}
+/* "Include my plan", beside Export for Tracknotes */
+.export-plan-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.export-plan-toggle[hidden] {
+  display: none;
 }
 /* Datasheet filter: All | Water | Food & resupply, plus the visible/total count */
 .waypoint-filter-bar {
