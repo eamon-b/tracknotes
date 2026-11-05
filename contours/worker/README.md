@@ -60,17 +60,22 @@ scrape the whole basemap at our cost, which is what this deployment exists to
 avoid. In the Cloudflare dashboard: the `tracknotes.info` zone → Security →
 Security rules (WAF) → Rate limiting rules → Create rule:
 
-- **If incoming requests match:** Hostname equals `tiles.tracknotes.info`.
+- **If incoming requests match:** URI Path starts with `/base/`. Every
+  basemap tile is `/base/{z}/{x}/{y}.pbf`, and nothing else on the zone serves
+  that prefix (the bucket at `data.tracknotes.info` keeps the archive under
+  `basemap/`).
 - **With the same characteristics:** IP.
 - **When rate exceeds:** 500 requests per 10 seconds.
 - **Then take action:** Block, for 10 seconds.
 
-The free plan allows one rate-limiting rule per zone, with a 10-second period
-and timeout. If that rule is already used on `tracknotes.info`, add
-`or http.host eq "tiles.tracknotes.info"` to its expression instead. The
-figures are the ones the app is built around: corridor builds are paced to
-30 requests/s (300 per 10 s), and a blocked request comes back 429, which the
-app waits out (11 s when no `Retry-After` is sent) before carrying on.
+The rule matches on the path because on the free plan a rate-limiting rule can
+match only the path (and verified bots), not the hostname; Pro adds Host. The
+free plan also allows only one such rule per zone, with a 10-second period and
+timeout: if that rule is already used on `tracknotes.info`, add
+`or starts_with(http.request.uri.path, "/base/")` to its expression instead.
+The figures are the ones the app is built around: corridor builds are paced
+to 30 requests/s (300 per 10 s), and a blocked request comes back 429, which
+the app waits out (11 s when no `Retry-After` is sent) before carrying on.
 
 No cache rule is needed: the Worker runs in front of the zone's cache and
 keeps tiles in `caches.default` itself (see [Staleness](#staleness-after-re-uploading-the-archive)).
