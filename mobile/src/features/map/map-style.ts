@@ -263,6 +263,26 @@ export function planStopRing(theme: MapTheme): string {
 }
 
 /**
+ * The resupply legs, when the hiker turns them on in the layers sheet: each
+ * carry between planned stops is a wide band under the main track, in these
+ * colours in turn, so where one leg ends and the next begins reads at a glance.
+ *
+ * A view the hiker asks for, so it may borrow hues the overlay budget gives
+ * elsewhere; it stays clear of the red track it sits under, the violet
+ * alternates and the GPS blue. Four, so a short leg between two long ones is
+ * never the colour of either neighbour. Lifted on dark as the tracks are.
+ */
+const RESUPPLY_LEG_COLORS = {
+  light: ['#EA580C', '#16A34A', '#DB2777', '#CA8A04'],
+  dark: ['#FB923C', '#4ADE80', '#F472B6', '#FACC15'],
+} as const;
+
+/** The resupply legs' colours for a map theme, taken in turn. */
+export function resupplyLegColors(theme: MapTheme): readonly string[] {
+  return RESUPPLY_LEG_COLORS[theme];
+}
+
+/**
  * Dash patterns, in multiples of each layer's own line width (MapLibre's unit).
  * Colour alone should never be the only signal, so the classes also differ in
  * stroke: the main track is solid, alternates are long-dashed, side trips are
@@ -324,6 +344,8 @@ export const TRACK_WIDTHS = {
   access: 4,
   /** Solid casing under the access dots, so they read over basemap clutter. */
   accessCasing: 6,
+  /** A resupply leg's band, wide enough to show either side of the main casing. */
+  resupplyLeg: 12,
 } as const;
 
 interface MapLogEvent {

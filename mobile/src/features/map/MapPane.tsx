@@ -48,6 +48,7 @@ import { useSettingsStore } from '../../state/settings-store';
 import { useGuide } from '../guide/GuideContext';
 import { planDirectionOf } from '../plan/plan-stops';
 import { usePlannedRouteMap } from '../plan/use-planned-route-map';
+import { useResupplyLegLines } from '../plan/use-resupply-leg-lines';
 import { useGuidePaneFocus, type MapPoint } from '../guide/GuideFocusContext';
 import { useGuidePositionContext } from '../guide/GuidePositionContext';
 import {
@@ -250,7 +251,13 @@ export function MapPane() {
   // gets the layers button even before it has any: the sheet then offers the
   // search (`app/guide/[trailId]/find-pois`).
   const poiSearchable = canSearchPois(trailId);
-  const showLayers = trailHasPois || poiSearchable;
+  const showPoiLayers = trailHasPois || poiSearchable;
+  // The resupply legs, when the hiker switches them on in the layers sheet:
+  // the resupply screen's carries, each a coloured band along the route.
+  const showResupplyLegs = useSettingsStore((s) => s.showResupplyLegs);
+  const setShowResupplyLegs = useSettingsStore((s) => s.setShowResupplyLegs);
+  const resupplyLegs = useResupplyLegLines(showResupplyLegs);
+  const showLayers = showPoiLayers || resupplyLegs.available;
   const displayPoints = trail.track.displayPoints;
   const routeBreaks = trail.track.breaks;
   const routeTrack = displayPoints as RouteTrackPoint[];
@@ -545,6 +552,7 @@ export function MapPane() {
           alternates={alternates}
           takenAlternateIds={takenAlternateIds}
           bypassedKm={plannedLines?.bypassedKm}
+          resupplyLegs={resupplyLegs.lines}
           sideTrips={sideTrips}
           termini={termini}
           waypoints={waypoints}
@@ -653,8 +661,9 @@ export function MapPane() {
       {/* FAB stack — hidden whenever something else owns the bottom-right. */}
       {!building && !selectedVariant && (
         <>
-          {/* Map layers: which OSM points of interest to draw. Only for trails
-              that actually carry some, or an import that can search for its own. */}
+          {/* Map layers: which OSM points of interest to draw, and the resupply
+              legs. Only for trails that actually carry some POIs, an import
+              that can search for its own, or one with resupply to plan. */}
           {showLayers && (
             <Pressable
               onPress={openLayers}
@@ -790,6 +799,12 @@ export function MapPane() {
           onClose={closeLayers}
           pois={trail.pois ?? []}
           onFindPois={poiSearchable ? openPoiSearch : undefined}
+          showPoiControls={showPoiLayers}
+          resupplyLegs={
+            resupplyLegs.available
+              ? { value: showResupplyLegs, onChange: setShowResupplyLegs }
+              : undefined
+          }
         />
       )}
     </View>
