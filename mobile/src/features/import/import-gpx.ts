@@ -18,6 +18,12 @@
  * synthesizes an {@link ImportReport} so `app/import.tsx` never has to know
  * which one it got.
  *
+ * A handoff file can also carry the plan the hiker made for the trail on the
+ * web (envelope version 2). It comes back as `plan`, already validated and
+ * re-keyed to the trail's id by `@lib/trail-handoff`; `./import-plan`
+ * stores it after the trail, and the review screen asks first when the phone
+ * already has a plan for that trail.
+ *
  * Two mobile-specific constraints shape the rest:
  *
  * 1. **Hermes has no DOMParser**, so `importGpx` must be handed the
@@ -34,8 +40,9 @@
 import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
 import { importGpx, type ImportGpxResult, type ImportReport } from '@lib/gpx-import';
-import { handoffImportReport, looksLikeHandoffJson, parseHandoffJson } from '@lib/trail-handoff';
+import { handoffImportReport, looksLikeHandoffJson, parseHandoff } from '@lib/trail-handoff';
 import { fxpXmlAdapter } from '@lib/xml-adapter-fxp';
+import type { PlanDocument } from '@lib/plan-types';
 import type { ProcessedTrail } from '@lib/trail-types';
 
 import { getDatabase } from '../../db/database';
@@ -87,7 +94,17 @@ export interface PickedGpxFile {
   fileName: string;
 }
 
-export interface ImportedGpx extends ImportGpxResult {
+/** What reading a file produces: a trail, and for a handoff that carried one, its plan. */
+export interface IngestedFile extends ImportGpxResult {
+  /**
+   * The plan a `.tracknotes.json` carried, validated and re-keyed to
+   * `trail.config.id`. Absent for a GPX file and for a handoff without a
+   * (usable) plan — an unusable one is named in `report.warnings` instead.
+   */
+  plan?: PlanDocument;
+}
+
+export interface ImportedGpx extends IngestedFile {
   /** Pre-filled name for the editable field: file name when the GPX names nothing. */
   suggestedName: string;
 }
@@ -182,12 +199,12 @@ export async function importGpxFromUri(
 }
 
 /** Format dispatch, split out so both branches are visible side by side. */
-function ingestText(text: string, format: ImportFormat): ImportGpxResult {
+function ingestText(text: string, format: ImportFormat): IngestedFile {
   if (format === 'handoff') {
     // Already ingested on the other device: no parsing, no simplification, no
     // elevation cleaning — just validation and a report describing what landed.
-    const trail = parseHandoffJson(text);
-    return { trail, report: handoffImportReport(trail) };
+    const { trail, plan, warnings } = parseHandoff(text);
+    return { trail, report: handoffImportReport(trail, warnings), ...(plan ? { plan } : {}) };
   }
   return importGpx(text, { adapter: fxpXmlAdapter, limits: MOBILE_PARSE_LIMITS });
 }
