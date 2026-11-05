@@ -54,6 +54,13 @@ describe('plans-repo', () => {
     expect(await plansRepo.getByTrail(d, TRAIL)).toEqual(withZeroDays);
   });
 
+  it('round-trips the zero days before day 1', async () => {
+    const d = await db();
+    const withStartZero = doc({ startZeroDays: 2.5 });
+    await plansRepo.upsertLocal(d, withStartZero);
+    expect(await plansRepo.getByTrail(d, TRAIL)).toEqual(withStartZero);
+  });
+
   it('replaces the stored document on a second local edit', async () => {
     const d = await db();
     await plansRepo.upsertLocal(d, doc());

@@ -22,11 +22,14 @@ import { radii, spacing, touchTarget, typography } from '../../tokens';
 import { KeyboardAvoidingModalContent } from '../../navigation/KeyboardAwareScrollView';
 import type { Pace } from './plan-adapters';
 import { PACE_LABELS } from './plan-format';
+import { formatZeroDays } from './resupply-planner';
 
 export interface PlanSettingsSummaryProps {
   /** The plan's name, else the trail's. */
   name: string;
   startDate: string | null;
+  /** Zero days before day 1; 0 or absent for none. */
+  startZeroDays?: number;
   pace: Pace;
   dailyHours: number;
   /** "Whole trail" or "Start → End". */
@@ -38,7 +41,9 @@ export interface PlanSettingsSummaryProps {
 /** One tappable row standing in for the settings at the top of the Plan screen. */
 export function PlanSettingsSummary(props: PlanSettingsSummaryProps) {
   const { colors } = useTheme();
-  const when = props.startDate ? `Starts ${props.startDate}` : 'No start date';
+  const starts = props.startDate ? `Starts ${props.startDate}` : 'No start date';
+  const zero = props.startZeroDays ?? 0;
+  const when = zero > 0 ? `${starts} · ${formatZeroDays(zero)} off first` : starts;
   return (
     <Pressable
       onPress={props.onPress}

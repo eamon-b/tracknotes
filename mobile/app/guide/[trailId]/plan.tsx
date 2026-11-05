@@ -64,6 +64,7 @@ import {
   setNights,
   setPlanName,
   setStartDate,
+  startZeroDaysOf,
   setStopBooked,
   setStopNote,
   splitUnplannedTail,
@@ -123,7 +124,11 @@ import { useShowOnMap } from '../../../src/features/guide/ShowOnMap';
 import { placeOffTrailMeters } from '../../../src/features/guide/waypoint-detail';
 import { StopsSection } from '../../../src/features/plan/StopsSection';
 import { ResupplyEntryRow } from '../../../src/features/plan/ResupplyEntryRow';
-import { resupplyEntryText, undecidedCount } from '../../../src/features/plan/resupply-planner';
+import {
+  resupplyEntryText,
+  startZeroDaysStepEditor,
+  undecidedCount,
+} from '../../../src/features/plan/resupply-planner';
 import { WaterCarryCard } from '../../../src/features/plan/WaterCarryCard';
 import { PlanThresholdsCard } from '../../../src/features/plan/PlanThresholdsCard';
 import { StopIssuesCard } from '../../../src/features/plan/StopIssuesCard';
@@ -345,6 +350,7 @@ export default function PlanScreen() {
         // days beside the resupply zero days would count the same days twice.
         resupplyStops,
         zeroDays: displayPlan.resupplyZeroDays,
+        startZeroDays: displayPlan.startZeroDays,
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
@@ -360,6 +366,7 @@ export default function PlanScreen() {
       prefs.longCarryDays,
       resupplyStops,
       displayPlan.resupplyZeroDays,
+      displayPlan.startZeroDays,
     ],
   );
 
@@ -381,6 +388,7 @@ export default function PlanScreen() {
               foodGramsPerDay: prefs.foodGramsPerDay,
               resupplyStops,
               zeroDays: displayPlan.resupplyZeroDays,
+              startZeroDays: displayPlan.startZeroDays,
             },
             extras.resupplyGroups,
           ).summary,
@@ -394,6 +402,7 @@ export default function PlanScreen() {
       prefs.foodGramsPerDay,
       resupplyStops,
       displayPlan.resupplyZeroDays,
+      displayPlan.startZeroDays,
     ],
   );
 
@@ -534,6 +543,7 @@ export default function PlanScreen() {
         <PlanSettingsSummary
           name={displayPlan.name || trail.config.name}
           startDate={displayPlan.startDate}
+          startZeroDays={startZeroDaysOf(displayPlan)}
           pace={prefs.pace}
           dailyHours={prefs.dailyHours}
           sectionLabel={sectionLabel}
@@ -590,6 +600,8 @@ export default function PlanScreen() {
             directionLabel={directionLabel}
             onName={(name) => edit((p) => setPlanName(p, name))}
             onStartDate={(iso) => edit((p) => setStartDate(p, iso))}
+            startZeroDays={startZeroDaysOf(displayPlan)}
+            onStartZeroDays={(direction) => edit(startZeroDaysStepEditor(direction))}
           />
           <PlanInputsCard
             options={options}
@@ -678,6 +690,7 @@ export default function PlanScreen() {
               <DaySplitList
                 days={plannedDays}
                 unplanned={unplanned}
+                startZeroDays={startZeroDaysOf(displayPlan)}
                 targetHours={prefs.dailyHours}
                 units={units}
                 // A trail never enriched with POIs says nothing, rather than

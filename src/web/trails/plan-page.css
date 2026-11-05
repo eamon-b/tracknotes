@@ -65,14 +65,16 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
   font-size: 0.875rem;
 }
 #plan-pace,
-#plan-daily-hours {
+#plan-daily-hours,
+#plan-start-zero-days {
   padding: 0.35rem 0.5rem;
   border: 1px solid var(--border-color);
   border-radius: 4px;
   font-size: 0.875rem;
 }
 /* Wide enough for two digits and the spinner, no wider. */
-#plan-daily-hours { width: 4.5rem; }
+#plan-daily-hours,
+#plan-start-zero-days { width: 4.5rem; }
 #plan-start-date {
   padding: 0.35rem 0.6rem;
   border: 1px solid var(--border-color);
@@ -250,7 +252,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
   font-weight: 600;
   color: var(--text-secondary);
 }
-.day-card-rest {
+.day-card-rest,
+.days-start-zero {
   margin-top: 0.3rem;
   font-size: 0.72rem;
   font-weight: 600;

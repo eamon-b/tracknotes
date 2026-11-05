@@ -34,7 +34,13 @@ import {
   storeLabel,
   type LegEndpointNames,
 } from '@lib/resupply-display';
-import { chooseResupplyOption, setResupplyStops, setResupplyZeroDays } from '@lib/plan-editor';
+import {
+  chooseResupplyOption,
+  setResupplyStops,
+  setResupplyZeroDays,
+  setStartZeroDays,
+  startZeroDaysOf,
+} from '@lib/plan-editor';
 import { PLAN_LIMITS, type Pace, type PlanDocument } from '@lib/plan-types';
 import type { Units } from '../../state/settings-store';
 import { formatFoodPerDay, PACE_LABELS } from './plan-format';
@@ -417,6 +423,15 @@ export function waypointResupplyEditor(
     }
     return plan;
   };
+}
+
+/**
+ * The edit for one press of the zero-days-before-day-1 stepper (the plan
+ * settings): like {@link zeroDaysStepEditor}, a step from whatever the
+ * document holds when it runs.
+ */
+export function startZeroDaysStepEditor(direction: 1 | -1): (plan: PlanDocument) => PlanDocument {
+  return (plan) => setStartZeroDays(plan, stepZeroDays(startZeroDaysOf(plan), direction));
 }
 
 /**

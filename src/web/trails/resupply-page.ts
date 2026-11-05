@@ -35,6 +35,7 @@ import {
   servicesAtStop,
   setDirection as editDirection,
   setResupplyZeroDays,
+  startZeroDaysOf,
   stampPlanData,
 } from '@lib/plan-editor';
 import {
@@ -283,7 +284,8 @@ function render(): void {
   if (summary) {
     const hadFocus = document.activeElement?.id === 'rs-clear';
     summary.innerHTML = renderResupplySummary(
-      summariseResupplyPlan(legs(), prefDailyHours(uiPrefs)),
+      // The zero days before day 1 count in the total too (the planner's header sets them).
+      summariseResupplyPlan(legs(), prefDailyHours(uiPrefs), { startZeroDays: startZeroDaysOf(storedPlan) }),
       view.undecidedCount,
       {
         canClear: storedPlan.resupplyStops !== undefined || storedPlan.resupplyZeroDays !== undefined,

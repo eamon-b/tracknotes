@@ -1,6 +1,6 @@
 /**
- * The plan's own details: what it is called, when it starts, and which way it
- * is walked.
+ * The plan's own details: what it is called, when it starts (and the zero days
+ * taken before day 1, which move every date on), and which way it is walked.
  *
  * Direction is shown, not set. It belongs to the guide (the map, the list and
  * the elevation profile are all already flipped by it), and a plan that could
@@ -24,6 +24,8 @@ import { PLAN_LIMITS } from '@lib/plan-types';
 import { useTheme } from '../../theme';
 import { radii, spacing, touchTarget, typography } from '../../tokens';
 import { useDraftField } from './use-draft-field';
+import { StepButton } from './PlanInputsCard';
+import { formatZeroDays, ZERO_DAYS_MAX } from './resupply-planner';
 
 /** `YYYY-MM-DD` — the field's `maxLength`, and where "half-typed" ends. */
 const ISO_DATE_LENGTH = 10;
@@ -38,6 +40,10 @@ export interface PlanHeaderCardProps {
   onName: (name: string) => void;
   /** Called only with a real `YYYY-MM-DD` date, or null to clear it. */
   onStartDate: (iso: string | null) => void;
+  /** Zero days before day 1 (`PlanDocument.startZeroDays`; 0 for none). */
+  startZeroDays: number;
+  /** One half-day step of the zero days before day 1, up or down. */
+  onStartZeroDays: (direction: 1 | -1) => void;
 }
 
 export function PlanHeaderCard(props: PlanHeaderCardProps) {
@@ -46,6 +52,36 @@ export function PlanHeaderCard(props: PlanHeaderCardProps) {
     <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       <NameField name={props.name} placeholder={props.namePlaceholder} onName={props.onName} />
       <StartDateField startDate={props.startDate} onStartDate={props.onStartDate} />
+      <View style={styles.zeroRow}>
+        <View style={styles.zeroText}>
+          <Text style={[styles.zeroLabel, { color: colors.textSecondary }]}>
+            Zero days before day 1
+          </Text>
+          <Text style={[styles.direction, { color: colors.textSecondary }]}>
+            Every date moves on by the whole days.
+          </Text>
+        </View>
+        <View style={styles.stepper}>
+          <StepButton
+            label="−"
+            accessibilityLabel="Fewer zero days before day 1"
+            disabled={props.startZeroDays <= 0}
+            onPress={() => props.onStartZeroDays(-1)}
+          />
+          <Text
+            style={[styles.zeroValue, { color: colors.textPrimary }]}
+            accessibilityLabel={`Zero days before day 1: ${formatZeroDays(props.startZeroDays)}`}
+          >
+            {formatZeroDays(props.startZeroDays)}
+          </Text>
+          <StepButton
+            label="+"
+            accessibilityLabel="More zero days before day 1"
+            disabled={props.startZeroDays >= ZERO_DAYS_MAX}
+            onPress={() => props.onStartZeroDays(1)}
+          />
+        </View>
+      </View>
       <Text style={[styles.direction, { color: colors.textSecondary }]}>
         {`Direction: ${props.directionLabel} — set in the guide`}
       </Text>
@@ -219,4 +255,19 @@ const styles = StyleSheet.create({
   },
   error: { ...typography.caption },
   direction: { ...typography.caption },
+  zeroRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  zeroText: { flex: 1, gap: spacing.xs },
+  zeroLabel: { ...typography.bodySmall },
+  stepper: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  zeroValue: {
+    ...typography.titleSmall,
+    minWidth: 72,
+    textAlign: 'center',
+    fontVariant: ['tabular-nums'],
+  },
 });

@@ -27,6 +27,8 @@ import {
   setPlanName as editPlanName,
   setResupplyStops as editResupplyStops,
   setStartDate as editStartDate,
+  setStartZeroDays as editStartZeroDays,
+  startZeroDaysOf,
   setStopBooked as editStopBooked,
   setStopNote as editStopNote,
   refreshStopKms,
@@ -1358,9 +1360,15 @@ function renderDayList(): void {
     return;
   }
 
+  // Zero days before day 1 are not a card, as a stop's rest days are not:
+  // they are why day 1's date is later than the start date.
+  const startZero = startZeroDaysText();
+  const startZeroLine = startZero ? `<div class="days-start-zero">${escapeHtml(startZero)}</div>` : '';
+
   container.innerHTML =
     issuesBlock +
     elevationNote +
+    startZeroLine +
     days
       .map((day, i) => {
         const dateStr = day.date ? `<span class="day-card-date">${formatDate(day.date)}</span>` : '';
@@ -2215,6 +2223,34 @@ function setStartDate(date: string): void {
   tryEdit(doc => editStartDate(doc, date || null));
 }
 
+/**
+ * The zero-days-before-day-1 box's change: whole or half days, blank is none.
+ * An entry the box cannot read keeps the stored figure; the rest is rounded to
+ * the half day and held inside the document's range, and the box then shows
+ * what is in force.
+ */
+function setStartZeroDays(input: HTMLInputElement): void {
+  const raw = input.value.trim();
+  const parsed = raw === '' ? 0 : Number(raw);
+  if (!input.validity?.badInput && Number.isFinite(parsed)) {
+    const days = Math.min(PLAN_LIMITS.zeroDaysMax, Math.max(0, Math.round(parsed * 2) / 2));
+    tryEdit(doc => editStartZeroDays(doc, days));
+  }
+  input.value = startZeroDaysInputValue();
+}
+
+/** The zero days before day 1 as the header box shows them: blank for none. */
+function startZeroDaysInputValue(): string {
+  const days = startZeroDaysOf(plan);
+  return days > 0 ? String(days) : '';
+}
+
+/** "1.5 zero days before day 1", or '' when the plan has none. */
+function startZeroDaysText(): string {
+  const days = startZeroDaysOf(plan);
+  return days > 0 ? `${days} zero day${days === 1 ? '' : 's'} before day 1` : '';
+}
+
 function setPlanName(name: string): void {
   // No re-render: the name appears nowhere but the input the user is typing in.
   applyEdit(doc => editPlanName(doc, name), { render: false });
@@ -2515,7 +2551,9 @@ function initHeader(): void {
     replaceWithStatic(nameInput, plan.name, 'plan-name-static');
     const dateGroup = document.getElementById('plan-date-group');
     if (dateGroup) {
-      dateGroup.textContent = plan.startDate ? `Start: ${formatDate(plan.startDate)}` : 'No start date';
+      const start = plan.startDate ? `Start: ${formatDate(plan.startDate)}` : 'No start date';
+      const zero = startZeroDaysText();
+      dateGroup.textContent = zero ? `${start} · ${zero}` : start;
       dateGroup.classList.add('is-static');
     }
     const saveStatus = document.getElementById('save-status');
@@ -2529,6 +2567,13 @@ function initHeader(): void {
     if (dateInput) {
       dateInput.value = plan.startDate ?? '';
       dateInput.addEventListener('change', () => setStartDate(dateInput.value));
+    }
+
+    const zeroInput = document.getElementById('plan-start-zero-days') as HTMLInputElement | null;
+    if (zeroInput) {
+      zeroInput.max = String(PLAN_LIMITS.zeroDaysMax);
+      zeroInput.value = startZeroDaysInputValue();
+      zeroInput.addEventListener('change', () => setStartZeroDays(zeroInput));
     }
   }
 
@@ -2593,6 +2638,8 @@ function refreshHeaderInputs(): void {
   if (nameInput) nameInput.value = plan.name;
   const dateInput = document.getElementById('plan-start-date') as HTMLInputElement | null;
   if (dateInput) dateInput.value = plan.startDate ?? '';
+  const zeroInput = document.getElementById('plan-start-zero-days') as HTMLInputElement | null;
+  if (zeroInput) zeroInput.value = startZeroDaysInputValue();
   updateDirectionButton();
 }
 
