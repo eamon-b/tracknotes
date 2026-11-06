@@ -2,7 +2,7 @@
  * Today's plan: which day of the plan is dated today, and the waypoints along it.
  */
 
-import { newPlan, setNights, setStartDate, toggleStop } from '@lib/plan-editor';
+import { newPlan, setNights, setStartDate, setStartZeroDays, toggleStop } from '@lib/plan-editor';
 import type { PlanDocument } from '@lib/plan-types';
 import type { TrailJson } from '../../../services/trail-assets';
 import { planGlance, type PlanGlanceOptions } from '../plan-glance';
@@ -112,6 +112,21 @@ describe('todayPlan', () => {
     expect(rest?.day.endName).toBe('Camp A');
     expect(emptyMessage(rest, '2026-10-12', true, true)).toBe('A rest day at Camp A (2 of 2).');
     expect(todayPlan(glance, '2026-10-13')?.day.startName).toBe('Camp A');
+  });
+
+  it('reads the zero days before day 1, from the start date up to day 1', () => {
+    const doc = setStartZeroDays(plan(t, ['c1', 'c2', 'c3'], '2026-10-10'), 2.5);
+    const glance = planGlance(t, doc, OPTS);
+    expect(glance.days[0].date).toBe('2026-10-12');
+    const zero = todayPlan(glance, '2026-10-11', doc.startDate);
+    expect(zero).toMatchObject({ kind: 'start-rest', restDay: 2, restDays: 2 });
+    expect(emptyMessage(zero, '2026-10-11', true, true)).toBe('A zero day before day 1 (2 of 2).');
+    expect(todayPlan(glance, '2026-10-10', doc.startDate)).toMatchObject({ restDay: 1 });
+    expect(todayPlan(glance, '2026-10-12', doc.startDate)?.kind).toBe('walk');
+    expect(todayPlan(glance, '2026-10-09', doc.startDate)).toBeNull();
+    // A half day moves no date, so there is no zero day of its own to show.
+    const half = setStartZeroDays(plan(t, ['c1', 'c2', 'c3'], '2026-10-10'), 0.5);
+    expect(todayPlan(planGlance(t, half, OPTS), '2026-10-10', half.startDate)?.kind).toBe('walk');
   });
 });
 

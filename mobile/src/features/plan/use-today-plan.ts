@@ -101,7 +101,7 @@ export function useDayEntries(
 export function useTodayPlan(): TodayPlanState {
   const glance = usePlanGlance();
   const date = useLocalDate();
-  const today = useMemo(() => todayPlan(glance, date), [glance, date]);
+  const today = useMemo(() => todayPlan(glance, date, glance.plan.startDate), [glance, date]);
   const walk = today?.kind === 'walk' ? today.day : null;
   const { rows, entries, pois } = useDayEntries(glance.trail, walk);
   return useMemo(() => {

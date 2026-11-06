@@ -14,7 +14,7 @@ Store listings (issue #31). Reviewed by the owner (2026-10-31); it has had no
 legal read.
 -->
 
-**Last updated: 2026-11-03**
+**Last updated: 2026-11-06**
 
 Tracknotes is a hiking guide app for long-distance trails, mostly in
 Australia, with built-in guides for New Zealand, the United States and Japan,
@@ -84,8 +84,8 @@ position that is sent only through apps *you* choose in the system share sheet.
 **Plans.** Once the app has a device identity (however it was created,
 including by filing a report), the day plans you make for the built-in trails
 are copied to our servers so they survive a reinstall and can
-be opened in a linked browser. A plan holds its name, direction, start date,
-the stops you chose with their nights, notes and "booked" ticks, the resupply
+be opened in a linked browser. A plan holds its name, direction, start date
+(and any zero days you plan before setting off), the stops you chose with their nights, notes and "booked" ticks, the resupply
 points you picked (and any zero days you plan at them), the alternate routes
 you picked, and when it was last changed. A stop
 carries the place's name and its distance along the trail, and that includes a
