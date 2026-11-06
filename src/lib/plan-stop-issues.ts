@@ -236,3 +236,32 @@ export function stopIssuesNotice(issues: readonly StopIssue[]): string | null {
   if (unplacedNights === 0) return `${head}.`;
   return `${head}. ${unplacedNights === 1 ? '1 night is' : `${unplacedNights} nights are`} left out of the dates until you move or remove ${issues.length === 1 ? 'it' : 'them'}.`;
 }
+
+/** How many stops an import warning names before it says "and N more". */
+const IMPORT_WARNING_NAMED_STOPS = 5;
+
+/**
+ * The import report's line for a plan that arrives with a trail (the
+ * `.tracknotes.json` handoff) whose stops that trail does not explain — a
+ * hand-edited file, or one exported from an older version of the trail: a km
+ * past an end, a place it no longer has (#285). Null when every stop fits.
+ *
+ * The stops are kept, as the planners keep any stop the data does not
+ * explain (the app informs, it does not decide): this says which, and that
+ * the planner lists them, where the hiker moves or removes them. The shared-
+ * plan views already run `planStopIssues` on the plan they show.
+ */
+export function importedPlanStopsWarning(plan: PlanDocument, trail: StopIssuesTrail): string | null {
+  const issues = planStopIssues(plan, trail);
+  if (issues.length === 0) return null;
+  const named = issues
+    .slice(0, IMPORT_WARNING_NAMED_STOPS)
+    .map(issue => `${issue.stop.name} (${stopIssueText(issue.reason).toLowerCase()})`);
+  const more = issues.length - named.length;
+  const list = named.join('; ') + (more > 0 ? `; and ${more} more` : '');
+  const head =
+    issues.length === 1
+      ? "1 of the plan's stops does not fit this trail"
+      : `${issues.length} of the plan's stops do not fit this trail`;
+  return `${head}: ${list}. ${issues.length === 1 ? 'It is' : 'They are'} kept, and the planner lists ${issues.length === 1 ? 'it' : 'them'} to move or remove.`;
+}

@@ -844,8 +844,36 @@ describe('the plan in the handoff', () => {
       dataUpdatedAt: '2026-02-01T00:00:00.000Z',
     });
     const { trail, plan, warnings } = parseHandoff(serializeTrailHandoff(plannedTrail(), { plan: full }));
-    expect(warnings).toEqual([]);
+    // The fixture trail has no "High route", so that stop is named (#285) —
+    // and kept: the plan still round-trips whole.
+    expect(warnings).toEqual([
+      "1 of the plan's stops does not fit this trail: Camp on the alternate (on an alternate that is no longer in the trail data). It is kept, and the planner lists it to move or remove.",
+    ]);
     expect(plan).toEqual({ ...full, trailId: trail.config.id });
+  });
+
+  it('names stops the trail does not explain, and keeps them (#285)', () => {
+    const total = plannedTrail().track.totalDistance;
+    const misfit = makePlan({
+      stops: [
+        { waypointId: 'uw_gone0001', km: 0.05, name: 'Old camp', nights: 1 },
+        { waypointId: 'uw_hut0001', km: 0.15, name: 'Hut', nights: 1 },
+        { km: total + 5, name: 'Past the end', nights: 2 },
+      ],
+    });
+    const { plan, warnings } = parseHandoff(serializeTrailHandoff(plannedTrail(), { plan: misfit }));
+    expect(plan?.stops.map(stop => stop.name)).toEqual(['Old camp', 'Hut', 'Past the end']);
+    expect(warnings).toEqual([
+      "2 of the plan's stops do not fit this trail: Old camp (this place is no longer in the trail data); " +
+        'Past the end (past the end of the updated trail). They are kept, and the planner lists them to move or remove.',
+    ]);
+  });
+
+  it('still refuses a plan with a negative km as unreadable, importing the trail alone', () => {
+    const negative = makePlan({ stops: [{ km: -3, name: 'Before the start', nights: 1 }] });
+    const { plan, warnings } = parseHandoff(serializeTrailHandoff(plannedTrail(), { plan: negative }));
+    expect(plan).toBeNull();
+    expect(warnings).toEqual([HANDOFF_PLAN_UNREADABLE]);
   });
 
   it('re-keys a plan saved under another id (a community route’s local copy) to the trail’s', () => {
