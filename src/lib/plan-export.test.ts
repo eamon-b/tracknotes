@@ -219,6 +219,18 @@ describe('planToIcs', () => {
     expect(covered.replace(/\r\n /g, '')).not.toContain('zero days planned');
   });
 
+  it('keeps a resupply stop at the trail end itself', () => {
+    // A town at the very end: no run in to the end follows it, so its leg is the last.
+    const ending = trail();
+    ending.waypoints = ending.waypoints.map(wp => (wp.id === 'w_end' ? { ...wp, name: 'Endtown', type: 'town' } : wp));
+    const doc = setStartDate(plan(), '2026-12-30', opts);
+    const data = input(doc, ending, { w_end: 2 });
+    expect(data.resupplyLegs!.at(-1)!.toName).toBe('Endtown');
+    const unfolded = planToIcs({ ...data, dtstamp: DTSTAMP })!.replace(/\r\n /g, '');
+    expect(unfolded).toContain('Resupply at Endtown.');
+    expect(unfolded).toContain('2 zero days planned at Endtown');
+  });
+
   it('rejects a bad dtstamp', () => {
     const doc = setStartDate(plan(), '2026-12-30', opts);
     expect(() => planToIcs({ ...input(doc), dtstamp: 'nope' })).toThrow(RangeError);

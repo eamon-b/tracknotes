@@ -204,4 +204,30 @@ describe('planPrintHtml', () => {
     expect(html).not.toContain('<h2>Resupply</h2>');
     expect(html).toContain('Fixture &lt;plan&gt;');
   });
+
+  it('lists a resupply stop at the trail end, and not the run in to the end', () => {
+    const leg = (toName: string, toKm: number) =>
+      ({ toName, toKm, walkedKm: 30, estimatedDays: 1, food: { weightKg: 0.7 }, zeroDays: 0 }) as never;
+    const html = planPrintHtml(
+      {
+        plan: storedPlan(null),
+        trail: { config: { name: 'T' }, track: { points: [], totalDistance: 60 } },
+        days: [],
+        resupplyLegs: [leg('Midtown', 30), leg('Endtown', 60)],
+      },
+      { trailName: 'T', paceLabel: 'average pace (4 km/h)', dailyHours: 8 }
+    );
+    expect(html).toContain('Endtown');
+    const withRunIn = planPrintHtml(
+      {
+        plan: storedPlan(null),
+        trail: { config: { name: 'T' }, track: { points: [], totalDistance: 60 } },
+        days: [],
+        resupplyLegs: [leg('Midtown', 30), leg('Trail End', 60)],
+      },
+      { trailName: 'T', paceLabel: 'average pace (4 km/h)', dailyHours: 8 }
+    );
+    expect(withRunIn).toContain('Midtown');
+    expect(withRunIn).not.toContain('Trail End');
+  });
 });

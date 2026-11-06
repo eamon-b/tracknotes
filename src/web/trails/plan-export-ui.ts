@@ -13,6 +13,7 @@
 import { escapeHtml } from '@lib/escape';
 import { canExportIcs, planExportFileName, planToGpx, planToIcs, type PlanExportInput } from '@lib/plan-export';
 import { KM_EPSILON, stopsToActive } from '@lib/plan-direction';
+import { legsArrivingAtStops } from '@lib/resupply-plan';
 
 export interface PlanExportHost {
   /** What the page shows now: the plan in route km, its active trail, days and resupply. */
@@ -127,7 +128,7 @@ export function planPrintHtml(input: PlanExportInput, ctx: PlanPrintContext): st
   const totalKm = days.reduce((sum, day) => sum + day.distanceKm, 0);
   const restTotal = days.reduce((sum, day) => sum + Number(day.restDays ?? 0), 0);
 
-  const legs = (input.resupplyLegs ?? []).slice(0, -1);
+  const legs = legsArrivingAtStops(input.resupplyLegs ?? []);
   const resupply =
     legs.length === 0
       ? ''
