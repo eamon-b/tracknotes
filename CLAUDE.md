@@ -23,7 +23,7 @@ Every other script (`fetch:*`, `build:tiles`, `upload:*`, `publish:trail-data`, 
 
 ## Where the detail lives
 
-Read the note for the area you are changing before changing it, and update that note (not this file) when behaviour changes:
+Read the note for the area you are changing before changing it, and update that note (not this file) when behaviour changes. The notes are written one sentence per line (a long list breaks at its top-level `;` or `,`), so parallel PRs merge sentence by sentence; keep new text that way:
 
 - `docs/architecture/core-library.md` — `src/lib/`: GPX parsing, `trail-ingest`, waypoint taxonomy, route breaks, plan editor, day/resupply/water calculators
 - `docs/architecture/build-scripts.md` — `scripts/`: trail builds, contours, POIs/access fetches, tile packs, publishing
