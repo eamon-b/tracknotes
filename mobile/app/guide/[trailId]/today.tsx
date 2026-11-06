@@ -33,7 +33,7 @@ export default function TodayScreen() {
 
   const openPlanner = () => router.push({ pathname: '/guide/[trailId]/plan', params: { trailId } });
 
-  if (!today || today.kind === 'rest') {
+  if (!today || today.kind !== 'walk') {
     return (
       <View style={[styles.empty, { backgroundColor: colors.background }]}>
         <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>

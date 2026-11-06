@@ -40,7 +40,13 @@ export type TodayPlan =
    * A rest day at the stop `day` ended at. `restDay` is which of its
    * `restDays` (1-based) today is.
    */
-  | { kind: 'rest'; day: ComputedDay; restDay: number; restDays: number };
+  | { kind: 'rest'; day: ComputedDay; restDay: number; restDays: number }
+  /**
+   * One of the zero days before day 1 (`PlanDocument.startZeroDays`): a date
+   * from the start date up to day 1's. `day` is day 1, the walk they come
+   * before; `restDay` is which of the `restDays` (1-based) today is.
+   */
+  | { kind: 'start-rest'; day: ComputedDay; restDay: number; restDays: number };
 
 /** The phone's local calendar date as `YYYY-MM-DD` — the plan's date format. */
 export function localIsoDate(now: Date): string {
@@ -65,9 +71,21 @@ function daysBetween(a: string, b: string): number {
 /**
  * The planned day dated `today`, or the rest day it falls on; null when the
  * plan has no start date, or today is before its first day or after its last
- * planned one.
+ * planned one. With the plan's `startDate`, a date from it up to day 1's is
+ * one of the zero days before day 1 (they push day 1's date back).
  */
-export function todayPlan(glance: PlanGlance, today: string): TodayPlan | null {
+export function todayPlan(
+  glance: PlanGlance,
+  today: string,
+  startDate?: string | null,
+): TodayPlan | null {
+  const first = glance.days[0];
+  if (startDate && first?.date) {
+    const restDays = daysBetween(startDate, first.date);
+    const into = daysBetween(startDate, today);
+    if (into >= 0 && into < restDays)
+      return { kind: 'start-rest', day: first, restDay: into + 1, restDays };
+  }
   for (const day of glance.days) {
     if (day.date === undefined) return null;
     if (day.date === today) return { kind: 'walk', day };
@@ -89,6 +107,10 @@ export function emptyMessage(
   hasStops: boolean,
   hasStartDate: boolean,
 ): string {
+  if (today?.kind === 'start-rest') {
+    const which = today.restDays > 1 ? ` (${today.restDay} of ${today.restDays})` : '';
+    return `A zero day before day 1${which}.`;
+  }
   if (today?.kind === 'rest') {
     const which = today.restDays > 1 ? ` (${today.restDay} of ${today.restDays})` : '';
     return `A rest day at ${today.day.endName}${which}.`;
