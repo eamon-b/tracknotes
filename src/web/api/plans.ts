@@ -11,7 +11,7 @@
  * token happens to be lying in `localStorage`.
  */
 
-import type { PlanDocument } from '@lib/plan-types';
+import { PLAN_SCHEMA, type PlanDocument } from '@lib/plan-types';
 import type {
   PlanSyncEntry,
   PlansSyncResponse,
@@ -99,6 +99,9 @@ export async function putPlan(
     startDate: document.startDate,
     stops: document.stops,
     version: document.version,
+    // The plan fields this build knows: the server keeps any newer field
+    // stored by a newer client instead of reading its absence as a clear.
+    planSchema: PLAN_SCHEMA,
     ...(document.resupplyStops === undefined ? {} : { resupplyStops: document.resupplyStops }),
     ...(document.resupplyZeroDays === undefined ? {} : { resupplyZeroDays: document.resupplyZeroDays }),
     ...(document.startZeroDays === undefined ? {} : { startZeroDays: document.startZeroDays }),

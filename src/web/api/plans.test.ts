@@ -10,6 +10,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { PlanDocument } from '@lib/plan-types';
+import { PLAN_SCHEMA } from '@lib/plan-types';
 import { fetchMyPlan, fetchSharedPlan, putPlan, sharePlan, unsharePlan } from './plans';
 import type { WebSession } from './session';
 
@@ -136,6 +137,8 @@ describe('putPlan', () => {
     const sent = JSON.parse(String(calls[0].init.body));
     expect(sent).not.toHaveProperty('updatedAt');
     expect(sent.stops).toHaveLength(1);
+    // The plan fields this build knows, so the server keeps any newer one (#283).
+    expect(sent.planSchema).toBe(PLAN_SCHEMA);
     expect(result.updatedAt).toBe('2026-05-05T05:05:05.000Z');
   });
 

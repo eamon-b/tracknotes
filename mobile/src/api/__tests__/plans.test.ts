@@ -8,7 +8,7 @@
  */
 
 import type { PlansSyncResponse } from '@lib/comments-api-types';
-import type { PlanDocument } from '@lib/plan-types';
+import { PLAN_SCHEMA, type PlanDocument } from '@lib/plan-types';
 import {
   deletePlan,
   fetchSharedPlan,
@@ -105,6 +105,8 @@ describe('putPlan', () => {
     const body = JSON.parse(calls(fetchImpl)[0][1].body as string);
     expect(body.updatedAt).toBeUndefined();
     expect(body).toMatchObject({ id: 'p1', trailId: 'heysen', version: 1 });
+    // The plan fields this build knows, so the server keeps any newer one (#283).
+    expect(body.planSchema).toBe(PLAN_SCHEMA);
     expect(entry.updatedAt).toBe('S1');
   });
 

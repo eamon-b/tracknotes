@@ -5,7 +5,7 @@
 
 import { HttpError } from './http';
 import type { ReportReason, WaterStatus } from '../../../src/lib/comments-api-types';
-import { PLAN_LIMITS, isStoredZeroDays } from '../../../src/lib/plan-types';
+import { PLAN_FIELD_SCHEMA, PLAN_LIMITS, isStoredZeroDays } from '../../../src/lib/plan-types';
 import type { PlanDocument, PlanStop } from '../../../src/lib/plan-types';
 import { KM_EPSILON } from '../../../src/lib/plan-direction';
 import { commentTargetFitsTrail, commentTargetKind } from '../../../src/lib/comment-targets';
@@ -554,6 +554,45 @@ export function validatePlanDocument(body: Record<string, unknown>, pathId: stri
   }
 
   return document;
+}
+
+/**
+ * The plan-field revision a `PUT /v1/plans/:id` body says its client knows
+ * (`planSchema`): 0 when absent — every client from before it existed — and a
+ * non-negative integer otherwise. A revision newer than this worker's is
+ * accepted (it only means the client knows every field the worker does).
+ */
+export function readPlanSchema(body: Record<string, unknown>): number {
+  const raw = body.planSchema;
+  if (raw === undefined || raw === null) return 0;
+  if (typeof raw !== 'number' || !Number.isInteger(raw) || raw < 0) {
+    throw planError('invalid_plan_schema', 'planSchema must be a non-negative integer');
+  }
+  return raw;
+}
+
+/**
+ * Keep the stored value of every field the sending client is too old to know
+ * (#283). A client saves the whole document it holds, so one built before a
+ * field existed leaves it out; read as "cleared", that would erase what a
+ * newer client set. A field newer than `planSchema` (`PLAN_FIELD_SCHEMA`)
+ * that the request leaves out is therefore copied over from `stored`; one the
+ * request carries is the request's. A client that knows the field clears it by
+ * leaving it out. `stored` is the live document under the same id and trail,
+ * or undefined (a new plan, an undelete, a trail change), when nothing is kept.
+ */
+export function keepFieldsNewerThanClient(
+  document: PlanDocument,
+  stored: PlanDocument | undefined,
+  planSchema: number
+): PlanDocument {
+  if (!stored) return document;
+  const kept: PlanDocument = { ...document };
+  for (const [field, since] of Object.entries(PLAN_FIELD_SCHEMA) as [keyof typeof PLAN_FIELD_SCHEMA, number][]) {
+    if (planSchema >= since || kept[field] !== undefined || stored[field] === undefined) continue;
+    (kept as unknown as Record<string, unknown>)[field] = stored[field];
+  }
+  return kept;
 }
 
 /** Serialise a validated document, rejecting anything over the 64 KB ceiling. */
