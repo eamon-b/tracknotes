@@ -410,30 +410,63 @@ function trailOnlyText(trail: unknown): string {
  * is the hiker's document; their inputs stay on the device they were set on.
  */
 function planDocumentOnly(plan: PlanDocument): PlanDocument {
-  const doc: PlanDocument = {
-    id: plan.id,
-    trailId: plan.trailId,
-    name: plan.name,
-    direction: plan.direction,
-    startDate: plan.startDate,
-    stops: plan.stops.map(stopOnly),
-    updatedAt: plan.updatedAt,
-    version: 1,
-  };
-  if (plan.resupplyStops !== undefined) doc.resupplyStops = [...plan.resupplyStops];
-  if (plan.resupplyZeroDays !== undefined) doc.resupplyZeroDays = { ...plan.resupplyZeroDays };
-  if (plan.alternates !== undefined) doc.alternates = [...plan.alternates];
-  if (plan.dataUpdatedAt !== undefined) doc.dataUpdatedAt = plan.dataUpdatedAt;
-  return doc;
+  const doc: Record<string, unknown> = {};
+  for (const key of PLAN_DOCUMENT_FIELDS) {
+    const value = plan[key];
+    if (value === undefined) continue;
+    doc[key] = key === 'stops' ? plan.stops.map(stopOnly) : shallowCopy(value);
+  }
+  doc.version = 1;
+  return doc as unknown as PlanDocument;
 }
 
 function stopOnly(stop: PlanStop): PlanStop {
-  const out: PlanStop = { km: stop.km, name: stop.name, nights: stop.nights };
-  if (stop.waypointId !== undefined) out.waypointId = stop.waypointId;
-  if (stop.note !== undefined) out.note = stop.note;
-  if (stop.booked !== undefined) out.booked = stop.booked;
-  if (stop.alternate !== undefined) out.alternate = stop.alternate;
-  return out;
+  const out: Record<string, unknown> = {};
+  for (const key of PLAN_STOP_FIELDS) {
+    if (stop[key] !== undefined) out[key] = stop[key];
+  }
+  return out as unknown as PlanStop;
+}
+
+/**
+ * Every `PlanDocument` and `PlanStop` field: what {@link planDocumentOnly}
+ * copies. Exhaustive records, so a field added to either type fails to compile
+ * here until it is listed. A hand-written copy would instead drop the new field
+ * from every handoff, on export and on import, without a word.
+ */
+const PLAN_DOCUMENT_FIELD_TABLE = {
+  id: true,
+  trailId: true,
+  name: true,
+  direction: true,
+  startDate: true,
+  stops: true,
+  resupplyStops: true,
+  resupplyZeroDays: true,
+  alternates: true,
+  updatedAt: true,
+  dataUpdatedAt: true,
+  version: true,
+} as const satisfies Record<keyof PlanDocument, true>;
+
+const PLAN_STOP_FIELD_TABLE = {
+  waypointId: true,
+  km: true,
+  name: true,
+  nights: true,
+  note: true,
+  booked: true,
+  alternate: true,
+} as const satisfies Record<keyof PlanStop, true>;
+
+const PLAN_DOCUMENT_FIELDS = Object.keys(PLAN_DOCUMENT_FIELD_TABLE) as (keyof PlanDocument)[];
+const PLAN_STOP_FIELDS = Object.keys(PLAN_STOP_FIELD_TABLE) as (keyof PlanStop)[];
+
+/** A copy of a validated plan field, so arrays and maps are not shared with the source. */
+function shallowCopy(value: unknown): unknown {
+  if (Array.isArray(value)) return [...(value as unknown[])];
+  if (isRecord(value)) return { ...value };
+  return value;
 }
 
 /**

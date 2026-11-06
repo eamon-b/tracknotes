@@ -805,6 +805,20 @@ describe('the plan in the handoff', () => {
     expect(plan).toEqual({ ...makePlan(), trailId: trail.config.id });
   });
 
+  it('round-trips every optional field a plan can hold', () => {
+    const full = makePlan({
+      stops: [
+        { waypointId: 'uw_hut0001', km: 0.15, name: 'Hut', nights: 2, note: 'Book ahead', booked: true },
+        { km: 0.4, name: 'Camp on the alternate', nights: 1, alternate: 'High route' },
+      ],
+      alternates: ['High route'],
+      dataUpdatedAt: '2026-02-01T00:00:00.000Z',
+    });
+    const { trail, plan, warnings } = parseHandoff(serializeTrailHandoff(plannedTrail(), { plan: full }));
+    expect(warnings).toEqual([]);
+    expect(plan).toEqual({ ...full, trailId: trail.config.id });
+  });
+
   it('re-keys a plan saved under another id (a community route’s local copy) to the trail’s', () => {
     const source = plannedTrail();
     source.config = { ...source.config, id: 'c_route42', source: 'community' };
