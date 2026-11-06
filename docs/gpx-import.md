@@ -373,7 +373,14 @@ from the import button) and the phone shows the same review screen a GPX gets.
   **Replace**, **Keep mine** (the trail is saved, its plan is not) or
   **Cancel**.
 - A plan the app cannot read (a hand-edited or damaged file) is left out and
+  the review screen says so; the trail still imports.- A plan the app cannot read (a hand-edited or damaged file) is left out and
   the review screen says so; the trail still imports.
+- A plan whose stops the trail does not explain — a km past the end of the
+  trail, a place the trail no longer has, an alternate it does not offer (a
+  hand-edited file, or one exported from an older version of the trail) — is
+  imported whole: the review screen names those stops, and the planner keeps
+  and lists them, so you move or remove them yourself. A stop with a negative
+  km makes the plan unreadable, as above.
 - A file with a plan needs an up-to-date app. An older one says the file was
   "exported by a newer version of Tracknotes" rather than importing the trail
   and quietly losing the plan; untick **Include my plan** to make a file any

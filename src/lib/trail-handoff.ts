@@ -33,6 +33,7 @@
 
 import { hashString, type ImportReport } from './gpx-import';
 import { assertPlanDocumentWithinLimits, isPlanDocument } from './plan-editor';
+import { importedPlanStopsWarning } from './plan-stop-issues';
 import type { PlanDocument, PlanStop } from './plan-types';
 import { isAccessMode, isStoreKind, type WaypointAccess } from './types';
 import type {
@@ -337,6 +338,13 @@ export function parseHandoff(text: string): ParsedHandoff {
   if (version >= HANDOFF_PLAN_VERSION && parsed.plan !== undefined && parsed.plan !== null) {
     plan = readPlan(parsed.plan, trailId, planIds);
     if (!plan) warnings.push(HANDOFF_PLAN_UNREADABLE);
+  }
+  // The plan's shape and limits are checked above; whether its stops fit the
+  // trail they arrive with is not, and a hand-edited or older file can carry
+  // a km past either end (#285). Kept and named, as the planner keeps them.
+  if (plan) {
+    const stopsWarning = importedPlanStopsWarning(plan, resolvedTrail);
+    if (stopsWarning) warnings.push(stopsWarning);
   }
 
   return { trail: resolvedTrail, plan, warnings };
