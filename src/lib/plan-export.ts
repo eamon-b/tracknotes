@@ -21,6 +21,7 @@
 
 import { hashString } from './gpx-import';
 import { KM_EPSILON, stopsToActive, type PlanDirection } from './plan-direction';
+import { startZeroDateOffset, startZeroDaysOf } from './plan-editor';
 import type { ComputedDay, PlanStop } from './plan-types';
 import { legsArrivingAtStops, type ResupplyLeg, type ResupplyStop } from './resupply-plan';
 import { routeBreakStarts, sliceAcrossRouteBreaks } from './route-breaks';
@@ -58,6 +59,8 @@ export interface PlanExportPlan {
   name: string;
   direction: PlanDirection;
   startDate: string | null;
+  /** Zero days before day 1 (`PlanDocument.startZeroDays`); absent is none. */
+  startZeroDays?: number;
   stops: readonly PlanStop[];
 }
 
@@ -162,6 +165,26 @@ function plural(n: number, word: string): string {
   return `${n} ${word}${n === 1 ? '' : 's'}`;
 }
 
+/**
+ * "1.5 zero days before day 1", or null when the plan has none. The planner's
+ * own wording, for the GPX description and the printed heading.
+ */
+export function startZeroDaysText(plan: Pick<PlanExportPlan, 'startZeroDays'>): string | null {
+  const n = startZeroDaysOf(plan);
+  return n > 0 ? `${plural(n, 'zero day')} before day 1` : null;
+}
+
+/**
+ * The dates of the whole zero days before day 1: the start date onwards, one
+ * per whole day (`startZeroDateOffset`; a half day is spent on day 1's own
+ * date). Empty without a start date.
+ */
+export function startZeroDayDates(plan: Pick<PlanExportPlan, 'startDate' | 'startZeroDays'>): string[] {
+  if (!plan.startDate) return [];
+  const whole = startZeroDateOffset(plan);
+  return Array.from({ length: whole }, (_, i) => addDays(plan.startDate as string, i));
+}
+
 /** The zero days of the leg arriving at a stop at `km`, 0 when none does. */
 function zeroDaysAt(legs: readonly ResupplyLeg[] | undefined, km: number): number {
   const leg = (legs ?? []).find(l => Math.abs(l.toKm - km) <= KM_EPSILON);
@@ -243,6 +266,7 @@ export function planToGpx(input: PlanExportInput): string {
     trail.config.name,
     input.plan.direction,
     input.plan.startDate ? `starting ${input.plan.startDate}` : null,
+    startZeroDaysText(input.plan),
     plural(days.length, 'day'),
     fmtKm(Math.max(0, endKm - startKm)),
   ]
@@ -402,12 +426,28 @@ export function planToIcs(input: PlanIcsInput): string | null {
   const uidBase = `plan-${hashString(`${input.plan.trailId}|${input.plan.id}`)}`;
   const events: IcsEvent[] = [];
 
+  // Zero days before day 1: one event per whole day from the start date. A
+  // half day falls on day 1's own date, so it is said on that day's event.
+  const startZero = startZeroDaysOf(input.plan);
+  const startZeroDates = startZeroDayDates(input.plan);
+  const firstDay = input.days.find(day => typeof day.date === 'string');
+  startZeroDates.forEach((date, i) => {
+    events.push({
+      uid: `${uidBase}-start-zero-${i + 1}@tracknotes.info`,
+      date,
+      summary: firstDay ? `Zero day before day 1 at ${firstDay.startName}` : 'Zero day before day 1',
+      description: `${startZeroDaysText(input.plan)}: this is day ${i + 1} of them.`,
+    });
+  });
+  const halfStartZero = startZero % 1 !== 0;
+
   for (const day of input.days) {
     if (!day.date) continue;
     const stop = stopEndingDay(stops, day);
     // The stops this day reaches: past its start, up to and including its end.
     const arriving = legs.filter(leg => leg.toKm > day.startKm + KM_EPSILON && leg.toKm <= day.endKm + KM_EPSILON);
     const desc: string[] = [];
+    if (halfStartZero && day === firstDay) desc.push('Half a zero day first, then the walk.');
     const climb = `↑${fmtEle(day.ascentM)} ↓${fmtEle(day.descentM)}`;
     desc.push(`${fmtKm(day.distanceKm)}, ${climb}, about ${day.estimatedHours.toFixed(1)} h walking.`);
     if (day.offTrailKm && day.offTrailKm > 0) desc.push(`Includes ${fmtKm(day.offTrailKm)} off the route.`);
