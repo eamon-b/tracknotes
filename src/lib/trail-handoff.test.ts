@@ -843,12 +843,31 @@ describe('the plan in the handoff', () => {
       startZeroDays: 1.5,
       dataUpdatedAt: '2026-02-01T00:00:00.000Z',
     });
-    const { trail, plan, warnings } = parseHandoff(serializeTrailHandoff(plannedTrail(), { plan: full }));
-    // The fixture trail has no "High route", so that stop is named (#285) —
-    // and kept: the plan still round-trips whole.
-    expect(warnings).toEqual([
-      "1 of the plan's stops does not fit this trail: Camp on the alternate (on an alternate that is no longer in the trail data). It is kept, and the planner lists it to move or remove.",
-    ]);
+    // A trail with the "High route" the plan takes, so the stop on it fits and
+    // the round trip stays clean (no warning of any kind).
+    const withAlternate = makeTrail({
+      waypoints: [hut, shop],
+      alternates: [
+        {
+          name: 'High route',
+          type: 'alternate',
+          points: [
+            { lat: -33.87, lon: 151.21, ele: 25 },
+            { lat: -33.871, lon: 151.211, ele: 30 },
+            { lat: -33.875, lon: 151.215, ele: 40 },
+          ],
+          distance: 0.7,
+          elevation: { ascent: 15, descent: 0 },
+          startDistance: 0.15,
+          endDistance: 0.85,
+          startTrackIndex: 1,
+          endTrackIndex: 2,
+          waypoints: [],
+        },
+      ] as unknown as ProcessedTrail['alternates'],
+    });
+    const { trail, plan, warnings } = parseHandoff(serializeTrailHandoff(withAlternate, { plan: full }));
+    expect(warnings).toEqual([]);
     expect(plan).toEqual({ ...full, trailId: trail.config.id });
   });
 

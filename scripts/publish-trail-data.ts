@@ -355,7 +355,7 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     console.error(`--hold names trails ${indexPath} does not list: ${unknownHolds.join(', ')}`);
     return 1;
   }
-  for (const id of options.hold) {
+  for (const id of new Set(options.hold)) {
     const isLive = local.trails.some(trail => trail.id === id);
     console.log(`Holding ${id}: ${isLive ? 'kept as it is live' : 'not live, left out of the catalog'}`);
   }

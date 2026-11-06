@@ -509,6 +509,50 @@ describe('PUT /v1/plans/:id', () => {
       expect(document.startZeroDays).toBe(2);
     });
 
+    describe('kept zero days follow the old client’s resupply selection', () => {
+      async function seededWithSelection(label: string): Promise<{ device: Device; id: string }> {
+        const device = await registerDevice(label);
+        const id = crypto.randomUUID();
+        const res = await putPlan(device, id, {
+          ...planBody(id, {
+            resupplyStops: ['w_town0001', 'w_town0002'],
+            resupplyZeroDays: { w_town0001: 2, w_town0002: 1 },
+          }),
+          planSchema: PLAN_SCHEMA,
+        });
+        expect(res.status).toBe(201);
+        return { device, id };
+      }
+
+      it('drops the days of a stop the old client deselected', async () => {
+        const { device, id } = await seededWithSelection('Old build deselects');
+        const res = await putPlan(device, id, planBody(id, { resupplyStops: ['w_town0002'] }));
+        expect(((await res.json()) as PlanSyncEntry).document.resupplyZeroDays).toEqual({ w_town0002: 1 });
+
+        const none = await putPlan(device, id, planBody(id, { resupplyStops: [] }));
+        expect(((await none.json()) as PlanSyncEntry).document).not.toHaveProperty('resupplyZeroDays');
+      });
+
+      it('drops them all when the old client reset the selection', async () => {
+        const { device, id } = await seededWithSelection('Old build resets');
+        const res = await putPlan(device, id, planBody(id));
+        const { document } = (await res.json()) as PlanSyncEntry;
+        expect(document).not.toHaveProperty('resupplyStops');
+        expect(document).not.toHaveProperty('resupplyZeroDays');
+      });
+
+      it('keeps them when neither copy had a selection', async () => {
+        const device = await registerDevice('All options');
+        const id = crypto.randomUUID();
+        await putPlan(device, id, {
+          ...planBody(id, { resupplyZeroDays: { w_town0001: 2 } }),
+          planSchema: PLAN_SCHEMA,
+        });
+        const res = await putPlan(device, id, planBody(id, { name: 'Renamed' }));
+        expect(((await res.json()) as PlanSyncEntry).document.resupplyZeroDays).toEqual({ w_town0001: 2 });
+      });
+    });
+
     it('lets a current client clear a field by leaving it out', async () => {
       const { device, id } = await seeded('Current build');
       const res = await putPlan(device, id, { ...planBody(id), planSchema: PLAN_SCHEMA });
