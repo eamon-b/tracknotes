@@ -280,7 +280,12 @@ export function planToGpx(input: PlanExportInput): string {
     if (!stop) continue;
     const pos = placePosition(input, stop.waypointId, stop.km);
     if (!pos) continue;
-    const parts = [`Night ${day.dayNumber}`, `km ${day.endKm.toFixed(1)}`];
+    // Named by the walking day it ends, not "Night N": once there are rest
+    // days the Nth night of the trip is not the night after day N (#284).
+    const parts = [
+      day.date ? `After day ${day.dayNumber} (night of ${day.date})` : `After day ${day.dayNumber}`,
+      `km ${day.endKm.toFixed(1)}`,
+    ];
     if (stop.nights > 1) parts.push(plural(stop.nights, 'night'));
     if (stop.booked) parts.push('booked');
     const desc = parts.join(' · ') + (stop.note ? `\n${stop.note}` : '');
@@ -400,6 +405,13 @@ interface IcsEvent {
 }
 
 /**
+ * Shown beside the calendar export on both platforms: what a re-export does
+ * and does not do to events already in the hiker's calendar.
+ */
+export const ICS_REEXPORT_NOTE =
+  "Importing a new export updates the plan's events. If the plan is now shorter, delete the old events first: the ones it no longer has stay in your calendar.";
+
+/**
  * The plan as an RFC 5545 calendar: one all-day event per walking day
  * ("Day 3: Hut A → Hut B, 21.4 km") and one per rest day ("Rest day at Hut
  * B"), dated as the planner dates them (`computePlanDays`: a stop's extra
@@ -413,7 +425,10 @@ interface IcsEvent {
  * in the calendar.
  *
  * UIDs are derived from the trail id, the plan id and the day, so importing a
- * re-export updates the same events instead of adding a second set.
+ * re-export updates the same events instead of adding a second set. A shorter
+ * re-export (fewer days, rest nights or start zero days) does not remove the
+ * events that dropped out — nothing records what was exported before — so the
+ * export UIs say so with {@link ICS_REEXPORT_NOTE} (#284).
  */
 export function planToIcs(input: PlanIcsInput): string | null {
   if (!canExportIcs(input)) return null;

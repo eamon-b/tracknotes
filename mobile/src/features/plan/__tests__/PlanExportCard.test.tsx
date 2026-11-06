@@ -6,6 +6,7 @@
 import React from 'react';
 import { Text } from 'react-native';
 import TestRenderer, { act, type ReactTestRenderer } from 'react-test-renderer';
+import { ICS_REEXPORT_NOTE } from '@lib/plan-export';
 import { ICS_NEEDS_START_DATE, PlanExportCard } from '../PlanExportCard';
 
 jest.mock('../../../theme', () => ({
@@ -55,6 +56,8 @@ describe('PlanExportCard', () => {
     await press(r, 'Share calendar (.ics)');
     expect(onExport.mock.calls).toEqual([['gpx'], ['ics']]);
     expect(text(r)).not.toContain(ICS_NEEDS_START_DATE);
+    // What a re-export leaves behind (#284).
+    expect(text(r)).toContain(ICS_REEXPORT_NOTE);
   });
 
   it('disables the calendar without a start date, and says why', () => {
@@ -62,6 +65,7 @@ describe('PlanExportCard', () => {
     expect(button(r, 'Share calendar (.ics)').props.disabled).toBe(true);
     expect(button(r, 'Share GPX').props.disabled).toBe(false);
     expect(text(r)).toContain(ICS_NEEDS_START_DATE);
+    expect(text(r)).not.toContain(ICS_REEXPORT_NOTE);
   });
 
   it('shows a failure inline', async () => {
