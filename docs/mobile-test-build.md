@@ -165,8 +165,21 @@ be rolled forward without a reinstall. The detailed rationale is under "Deploy" 
 2. **Site.** Vercel builds `main` on push. `VITE_API_BASE_URL=https://api.tracknotes.info`
    is set on the Vercel project (Production and Preview, added 2026-09-22, moved from
    `api.contour-map-tiles.net` 2026-10-31); without it the
-   planner is local-only. To confirm a deploy carries it, fetch `my-plan.html`, follow its
-   `plan-viewer-*.js` asset and grep for `api.tracknotes.info`.
+   planner is local-only. To confirm a deploy carries it, grep every script `my-plan.html`
+   loads (its entry and `modulepreload` chunks) for `api.tracknotes.info`. The URL sits in
+   whichever chunk Rollup puts the shared API client in — `assets/client-*.js` in the
+   6 Nov 2026 build, not `plan-viewer-*.js` — and that moves between builds, so don't
+   look in one named file:
+
+   ```bash
+   site=https://tracknotes.info
+   curl -s "$site/my-plan.html" | grep -oE 'assets/[^"'"'"']+\.js' | sort -u |
+     while read -r asset; do
+       curl -s "$site/$asset" | grep -q api.tracknotes.info && echo "carries the API base: $asset"
+     done
+   ```
+
+   No line printed means the deploy was built without `VITE_API_BASE_URL`.
 
 3. **App, store build.** Release checklist gate (the rest of the store checklist is issue
    #31): before building, the comments API's remote migrations are all applied
