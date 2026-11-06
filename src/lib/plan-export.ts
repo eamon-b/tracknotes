@@ -22,7 +22,7 @@
 import { hashString } from './gpx-import';
 import { KM_EPSILON, stopsToActive, type PlanDirection } from './plan-direction';
 import type { ComputedDay, PlanStop } from './plan-types';
-import type { ResupplyLeg, ResupplyStop } from './resupply-plan';
+import { legsArrivingAtStops, type ResupplyLeg, type ResupplyStop } from './resupply-plan';
 import { routeBreakStarts, sliceAcrossRouteBreaks } from './route-breaks';
 import type { RouteBreak } from './trail-types';
 import { findNearestByDistance } from './track-geometry';
@@ -397,8 +397,8 @@ export function planToIcs(input: PlanIcsInput): string | null {
   const fmtEle = input.formatElevation ?? defaultElevation;
   const stamp = icsStamp(input.dtstamp);
   const stops = activeStops(input);
-  // The last leg always runs in to the end of the range, which is no stop.
-  const legs = (input.resupplyLegs ?? []).slice(0, -1);
+  // Not the run in to the end of the range, which is no stop.
+  const legs = legsArrivingAtStops(input.resupplyLegs ?? []);
   const uidBase = `plan-${hashString(`${input.plan.trailId}|${input.plan.id}`)}`;
   const events: IcsEvent[] = [];
 

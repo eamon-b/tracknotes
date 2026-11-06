@@ -935,6 +935,15 @@ export function legArrivesAtStop(legs: readonly ResupplyLeg[], km: number): bool
   return legs.some(leg => leg.toName !== TRAIL_END_NAME && Math.abs(leg.toKm - km) <= KM_EPSILON);
 }
 
+/**
+ * The legs of these that arrive at a stop: all but the run to the trail end
+ * (or the section end). A stop at the range end itself has no such run, so its
+ * leg is the last one and is kept — dropping the last leg would lose it.
+ */
+export function legsArrivingAtStops(legs: readonly ResupplyLeg[]): ResupplyLeg[] {
+  return legs.filter(leg => leg.toName !== TRAIL_END_NAME);
+}
+
 function rideOf(access: StopAccess, end: LegRide['end']): LegRide {
   const ride: LegRide = { km: access.rideKm, end };
   if (access.rideMode) ride.mode = access.rideMode;
