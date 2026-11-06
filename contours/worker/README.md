@@ -54,8 +54,9 @@ planet basemap to anyone at our bandwidth cost, from the dataset's bucket
 it is `tracknotes.info`.
 
 The Worker itself has no rate limit and answers any origin (`ALLOWED_ORIGIN`
-is unset), so before the planet basemap is uploaded, give the
-`tracknotes.info` zone a rate-limiting rule for it. Without one, anyone can
+is unset), so the `tracknotes.info` zone needs a rate-limiting rule for it
+(in place since 2026-11-05, "tile scraping"; keep it whenever the zone's
+rules change). Without one, anyone can
 scrape the whole basemap at our cost, which is what this deployment exists to
 avoid. In the Cloudflare dashboard: the `tracknotes.info` zone → Security →
 Security rules (WAF) → Rate limiting rules → Create rule:
@@ -116,6 +117,16 @@ straight into R2, without a local copy:
 `rclone copyurl https://build.protomaps.com/<YYYYMMDD>.pmtiles r2:tracknotes-data/basemap/planet.pmtiles`
 (then check `sources.base` in `https://tiles.tracknotes.info/health` shows maxZoom 15 and world
 bounds; `node scripts/e2e-tile-check.mjs --base` from the repo root does).
+rclone's keys need Object Read & Write on `tracknotes-data`, and the copy goes
+through the machine running it (~140 GB down and up).
+
+The archive live now is the 2026-11-06 build (`20261106.pmtiles`, basemap
+4.15.2, 139,353,480,483 bytes), uploaded 2026-11-06 without rclone. A
+throwaway Worker bound to `tracknotes-data` fetched it in 520 parts of 256 MiB,
+using Range requests, and wrote them as an R2 multipart upload. Nothing went
+through a local machine. With parts of the same size, R2's etag
+(`a5649f5c…-520`) equals the one build.protomaps.com reports for the build,
+which confirms the copy matches byte for byte. The Worker was deleted afterwards.
 Replacing it is safe while phones download: the etag-mismatch retry below picks
 up the new archive, and a pack built across the switch mixes two builds of the
 same schema.

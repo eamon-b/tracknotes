@@ -64,8 +64,8 @@
  *   8. Basemap            — (--base, and every full run) the app's own tile
  *                           worker reports `sources.base.ok` with the planet's
  *                           maxZoom 15 and world bounds: corridor packs stop at
- *                           this health check without it. Only a warning until
- *                           the planet is uploaded (BASEMAP_UPLOADED below).
+ *                           this health check without it. A failure since the
+ *                           planet was uploaded (BASEMAP_UPLOADED below).
  *
  * No build state or external npm deps required — reads only the committed
  * trail index, hits public URLs, uses Node's built-in fetch + zlib. Exits
@@ -814,7 +814,7 @@ async function checkTieredPacks() {
  * once the upload is done, so that losing the basemap fails this check. An
  * archive that is there is held to the checks below either way.
  */
-const BASEMAP_UPLOADED = false;
+const BASEMAP_UPLOADED = true;
 const BASEMAP_SOURCE = 'base';
 /** A whole planet, not an extract: corridor packs are built anywhere on Earth. */
 const WORLD_MIN_LON_SPAN = 350;
