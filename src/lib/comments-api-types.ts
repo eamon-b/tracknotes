@@ -510,8 +510,13 @@ export interface PlansSyncResponse {
 /**
  * PUT /v1/plans/:id request body: the whole `PlanDocument` minus `updatedAt`,
  * which the server stamps. `id` must equal the `:id` path segment.
+ *
+ * `planSchema` is the plan-field revision the sending client knows
+ * (`PLAN_SCHEMA`). It is not stored: the server keeps the stored value of any
+ * field newer than it that the request leaves out (`PLAN_FIELD_SCHEMA`), so an
+ * older client cannot erase a field it has never heard of. Absent = 0.
  */
-export type PutPlanRequest = Omit<PlanDocument, 'updatedAt'>;
+export type PutPlanRequest = Omit<PlanDocument, 'updatedAt'> & { planSchema?: number };
 
 /** PUT /v1/plans/:id response (201 on create, 200 on replace/replay). */
 export type PutPlanResponse = PlanSyncEntry;

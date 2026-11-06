@@ -20,7 +20,7 @@ import type {
   SharePlanResponse,
   SharedPlanResponse,
 } from '../../../src/lib/comments-api-types';
-import { PLAN_LIMITS, type PlanDocument } from '../../../src/lib/plan-types';
+import { PLAN_LIMITS, PLAN_SCHEMA, type PlanDocument } from '../../../src/lib/plan-types';
 
 async function planRow(id: string): Promise<{
   user_id: string;
@@ -475,6 +475,82 @@ describe('PUT /v1/plans/:id', () => {
     const none = await putPlan(other, noneId, planBody(noneId, { startZeroDays: null as never }));
     expect(none.status).toBe(201);
     expect(((await none.json()) as PlanSyncEntry).document).not.toHaveProperty('startZeroDays');
+  });
+
+  describe('a client older than a field (#283)', () => {
+    const newer = { startZeroDays: 2, resupplyZeroDays: { w_abcd1234: 1 }, dataUpdatedAt: '2026-10-10T00:00:00.000Z' };
+
+    async function seeded(label: string): Promise<{ device: Device; id: string }> {
+      const device = await registerDevice(label);
+      const id = crypto.randomUUID();
+      const res = await putPlan(device, id, { ...planBody(id, newer), planSchema: PLAN_SCHEMA });
+      expect(res.status).toBe(201);
+      return { device, id };
+    }
+
+    it('keeps the fields a client without planSchema leaves out', async () => {
+      const { device, id } = await seeded('Old build');
+      const res = await putPlan(device, id, planBody(id, { name: 'Renamed on an old phone' }));
+      expect(res.status).toBe(200);
+      const { document } = (await res.json()) as PlanSyncEntry;
+      expect(document.name).toBe('Renamed on an old phone');
+      expect(document).toMatchObject(newer);
+
+      // And the sync feed carries the kept values to every other device.
+      const listed = (await (await listPlans(device)).json()) as PlansSyncResponse;
+      expect((listed.plans[0] as PlanSyncEntry).document).toMatchObject(newer);
+    });
+
+    it('takes what an old client does send over the stored value', async () => {
+      const { device, id } = await seeded('Old build editing');
+      const res = await putPlan(device, id, planBody(id, { resupplyZeroDays: { w_abcd1234: 3 } }));
+      const { document } = (await res.json()) as PlanSyncEntry;
+      expect(document.resupplyZeroDays).toEqual({ w_abcd1234: 3 });
+      expect(document.startZeroDays).toBe(2);
+    });
+
+    it('lets a current client clear a field by leaving it out', async () => {
+      const { device, id } = await seeded('Current build');
+      const res = await putPlan(device, id, { ...planBody(id), planSchema: PLAN_SCHEMA });
+      const { document } = (await res.json()) as PlanSyncEntry;
+      expect(document).not.toHaveProperty('startZeroDays');
+      expect(document).not.toHaveProperty('resupplyZeroDays');
+      expect(document).not.toHaveProperty('dataUpdatedAt');
+
+      // Explicit null clears it too.
+      const again = await seeded('Current build, null');
+      const cleared = await putPlan(again.device, again.id, {
+        ...planBody(again.id, newer),
+        startZeroDays: null,
+        planSchema: PLAN_SCHEMA,
+      });
+      expect(((await cleared.json()) as PlanSyncEntry).document).not.toHaveProperty('startZeroDays');
+    });
+
+    it('keeps nothing across an undelete', async () => {
+      const { device, id } = await seeded('Rebuilt');
+      expect((await deletePlan(device, id)).status).toBe(204);
+      const res = await putPlan(device, id, planBody(id));
+      expect(res.status).toBe(200);
+      expect(((await res.json()) as PlanSyncEntry).document).not.toHaveProperty('startZeroDays');
+    });
+
+    it('refuses a malformed planSchema', async () => {
+      const device = await registerDevice('Bad schema');
+      for (const bad of [-1, 1.5, '1', [1]]) {
+        const planId = crypto.randomUUID();
+        const res = await putPlan(device, planId, { ...planBody(planId), planSchema: bad });
+        expect(res.status, JSON.stringify(bad)).toBe(400);
+        expect(((await res.json()) as { error: { code: string } }).error.code).toBe('invalid_plan_schema');
+      }
+    });
+
+    it('never stores planSchema itself', async () => {
+      const device = await registerDevice('Schema not stored');
+      const id = crypto.randomUUID();
+      const res = await putPlan(device, id, { ...planBody(id), planSchema: PLAN_SCHEMA });
+      expect(((await res.json()) as PlanSyncEntry).document).not.toHaveProperty('planSchema');
+    });
   });
 
   it('refuses malformed zero days before day 1', async () => {

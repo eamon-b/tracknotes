@@ -17,7 +17,9 @@ import { RATE_BUCKETS, consumeRateLimit } from './rate-limit';
 import {
   PLAN_TRAIL_REFUSAL,
   assertClientPlanId,
+  keepFieldsNewerThanClient,
   parseLimit,
+  readPlanSchema,
   serialisePlanDocument,
   validatePlanDocument,
 } from './validation';
@@ -193,17 +195,28 @@ export async function putPlan(request: Request, env: Env, ctx: ExecutionContext,
   const body = await readJson(request);
   const nowMs = Date.now();
   const now = new Date(nowMs).toISOString();
-  const document = validatePlanDocument(body, id, now);
-  const documentJson = serialisePlanDocument(document);
+  const planSchema = readPlanSchema(body);
+  const sent = validatePlanDocument(body, id, now);
   // The form check above lets a `c_` id through; it must also be a route the
   // server has. Any status: a plan is private, and a hiker keeps planning on
   // a route that was taken down (`trails.ts`).
-  await resolveTrail(env, document.trailId, 'private-write', PLAN_TRAIL_REFUSAL);
+  await resolveTrail(env, sent.trailId, 'private-write', PLAN_TRAIL_REFUSAL);
 
   const existing = await env.DB.prepare(`SELECT * FROM plans WHERE id = ?`).bind(id).first<PlanRow>();
   if (existing && existing.user_id !== user.id) {
     throw new HttpError(409, 'id_conflict', 'This plan id belongs to another user');
   }
+
+  // A client older than a field leaves it out of the whole document it saves;
+  // keep what a newer client stored rather than erasing it (#283). Only from
+  // the live plan on the same trail: an undelete or a trail change is a plan
+  // rebuilt from scratch, which inherits nothing.
+  const stored =
+    existing && existing.deleted_at === null && existing.trail_id === sent.trailId
+      ? parseDocument(existing)
+      : undefined;
+  const document = keepFieldsNewerThanClient(sent, stored, planSchema);
+  const documentJson = serialisePlanDocument(document);
 
   // One live plan per trail per user: a different id already holding this
   // trail is a client that lost track of its document, not a second plan.

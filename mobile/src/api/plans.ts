@@ -28,7 +28,7 @@ import type {
   SharePlanResponse,
   SharedPlanResponse,
 } from '@lib/comments-api-types';
-import type { PlanDocument } from '@lib/plan-types';
+import { PLAN_SCHEMA, type PlanDocument } from '@lib/plan-types';
 import { ApiError, apiRequest, type FetchLike } from './client';
 
 /** Same context object the comments API takes (token required for plan routes). */
@@ -95,7 +95,9 @@ export async function listPlans(
  */
 export async function putPlan(ctx: ApiContext, doc: PlanDocument): Promise<PlanSyncEntry> {
   const { updatedAt: _updatedAt, ...body } = doc;
-  const payload: PutPlanRequest = body;
+  // `planSchema`: the plan fields this build knows, so the server keeps any
+  // newer field a newer client stored rather than reading its absence as a clear.
+  const payload: PutPlanRequest = { ...body, planSchema: PLAN_SCHEMA };
   return apiRequest<PlanSyncEntry>(`/v1/plans/${encodeURIComponent(doc.id)}`, {
     baseUrl: ctx.baseUrl,
     fetchImpl: ctx.fetchImpl,

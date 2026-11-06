@@ -224,6 +224,42 @@ export function isStoredZeroDays(value: unknown): value is number {
 }
 
 /**
+ * The plan-field revision this build's clients know, sent as `planSchema` on
+ * every `PUT /v1/plans/:id` ({@link PutPlanRequest} in `comments-api-types`).
+ *
+ * A client saves the whole document it holds, so a client built before a field
+ * existed would save the plan without it, and the server would store that —
+ * erasing a value a newer client set (#283). The server therefore reads a
+ * missing field as "cleared" only from a client whose `planSchema` is at least
+ * the field's revision in {@link PLAN_FIELD_SCHEMA}; from an older client it
+ * keeps the stored value. A request without `planSchema` is revision 0: the
+ * builds and web tabs from before this existed.
+ *
+ * Adding an optional field: give it the next revision in `PLAN_FIELD_SCHEMA`
+ * and raise this to match, in the same change that teaches the clients the field.
+ */
+export const PLAN_SCHEMA = 1;
+
+/**
+ * The `planSchema` revision each optional `PlanDocument` field is known from.
+ * A field missing here is one every client has always sent (`resupplyStops`,
+ * `alternates`, which predate the first app build), so its absence always
+ * means "none".
+ *
+ * Revision 1 takes in every field an app build installed before `planSchema`
+ * might not know: `dataUpdatedAt` (18 Oct 2026), `resupplyZeroDays` (25 Oct)
+ * and `startZeroDays` (5 Nov) — test builds from 17 Oct on predate some of
+ * them, and nothing in a revision-0 request says which. The price is that a
+ * revision-0 client which does know one of them cannot clear the last of it:
+ * until it is updated, clearing it takes a current client.
+ */
+export const PLAN_FIELD_SCHEMA = {
+  dataUpdatedAt: 1,
+  resupplyZeroDays: 1,
+  startZeroDays: 1,
+} as const satisfies Partial<Record<keyof PlanDocument, number>>;
+
+/**
  * The plan document: one per trail per user. It is the wire shape
  * (`PUT /v1/plans/:id`), the mobile `plans.document_json` column, the web
  * `localStorage` value and the shared-plan payload. Supersedes `PlanState`,
