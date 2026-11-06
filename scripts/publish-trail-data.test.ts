@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { describeDiff, gitHead, gitIsAncestor, localDataProblems, parseArgs, rollbacks } from './publish-trail-data.js';
+import {
+  describeDiff,
+  gitHead,
+  gitIsAncestor,
+  holdTrails,
+  localDataProblems,
+  parseArgs,
+  rollbacks,
+} from './publish-trail-data.js';
 import { buildCatalog, diffCatalogs, digestTrailFile, type MobileIndexEntry } from './lib/trail-data-catalog.js';
 
 function trailFile(id: string, extra: Record<string, unknown> = {}): Buffer {
@@ -22,13 +30,14 @@ function indexFor(files: Record<string, Buffer>): MobileIndexEntry[] {
 
 describe('parseArgs', () => {
   it('reads the flags and refuses anything else', () => {
-    expect(parseArgs([])).toEqual({ all: false, dryRun: false, check: false, force: false, remove: [] });
+    expect(parseArgs([])).toEqual({ all: false, dryRun: false, check: false, force: false, remove: [], hold: [] });
     expect(parseArgs(['--dry-run', '--all'])).toEqual({
       all: true,
       dryRun: true,
       check: false,
       force: false,
       remove: [],
+      hold: [],
     });
     expect(parseArgs(['--check']).check).toBe(true);
     expect(parseArgs(['--force']).force).toBe(true);
@@ -39,6 +48,36 @@ describe('parseArgs', () => {
     expect(parseArgs(['--remove', 'heysen', '--remove=aawt', '--dry-run']).remove).toEqual(['heysen', 'aawt']);
     expect(() => parseArgs(['--remove'])).toThrow(/requires a trail id/);
     expect(() => parseArgs(['--remove', '--force'])).toThrow(/requires a trail id/);
+  });
+
+  it('collects --hold ids, and requires one', () => {
+    expect(parseArgs(['--hold', 'three_passes', '--hold=heysen']).hold).toEqual(['three_passes', 'heysen']);
+    expect(() => parseArgs(['--hold'])).toThrow(/requires a trail id/);
+    expect(() => parseArgs(['--hold', '--dry-run'])).toThrow(/requires a trail id/);
+  });
+});
+
+describe('holdTrails', () => {
+  const files = { heysen: trailFile('heysen'), aawt: trailFile('aawt'), three_passes: trailFile('three_passes') };
+  const local = buildCatalog(indexFor(files), new Date('2026-11-06T00:00:00Z'), null);
+  const live = buildCatalog(
+    indexFor({ heysen: trailFile('heysen', { old: true }), aawt: trailFile('aawt') }),
+    new Date('2026-11-01T00:00:00Z'),
+    null
+  );
+
+  it('leaves a new trail out and a live one as it is live, publishing the rest', () => {
+    const { catalog, unknown } = holdTrails(local, live, ['three_passes', 'heysen']);
+    expect(unknown).toEqual([]);
+    expect(catalog.trails.map(trail => trail.id)).toEqual(['heysen', 'aawt']);
+    expect(catalog.trails[0]).toEqual(live.trails.find(trail => trail.id === 'heysen'));
+    // Nothing held means nothing differs from the live catalog.
+    expect(diffCatalogs(catalog, live)).toMatchObject({ added: [], removed: [], changed: [] });
+  });
+
+  it('is the local catalog untouched without --hold, and names held ids it does not have', () => {
+    expect(holdTrails(local, live, []).catalog).toBe(local);
+    expect(holdTrails(local, live, ['thre_passes']).unknown).toEqual(['thre_passes']);
   });
 });
 

@@ -162,6 +162,12 @@ Checking and options:
   comes from a checkout the live catalog does not descend from (see below).
 - `--remove <id>` (repeatable) allows this publish to drop that trail from the
   live catalog.
+- `--hold <id>` (repeatable) publishes everything else and leaves that trail
+  exactly as the live catalog has it: a live trail keeps its live entry and
+  file (even with `--all`), and a trail that is not live yet stays out of the
+  catalog. Use it for a new trail that should not reach every installed app
+  yet. Pass the same `--hold` to `--check` afterwards, or it lists the held
+  trail as a difference. A held id the local index does not list is refused.
 - `R2_BUCKET` overrides the bucket. `TRAIL_DATA_BASE_URL` overrides where the
   live catalog is read from.
 
