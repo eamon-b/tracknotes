@@ -443,6 +443,7 @@ const PLAN_DOCUMENT_FIELD_TABLE = {
   stops: true,
   resupplyStops: true,
   resupplyZeroDays: true,
+  startZeroDays: true,
   alternates: true,
   updatedAt: true,
   dataUpdatedAt: true,
