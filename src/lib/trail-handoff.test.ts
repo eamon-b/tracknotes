@@ -812,6 +812,7 @@ describe('the plan in the handoff', () => {
         { km: 0.4, name: 'Camp on the alternate', nights: 1, alternate: 'High route' },
       ],
       alternates: ['High route'],
+      startZeroDays: 1.5,
       dataUpdatedAt: '2026-02-01T00:00:00.000Z',
     });
     const { trail, plan, warnings } = parseHandoff(serializeTrailHandoff(plannedTrail(), { plan: full }));
