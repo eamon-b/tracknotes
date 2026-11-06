@@ -80,6 +80,10 @@ export default function ImportScreen() {
   const [backfill, setBackfill] = useState<BackfillState>({ status: 'idle' });
   // Whether to bring the file's plan along; only read when the file has one.
   const [includePlan, setIncludePlan] = useState(true);
+  // Set on the first Save tap. Save looks up the trail's existing plan before
+  // the screen leaves 'ready', and a second tap in that window would start a
+  // second save (or stack a second "Replace your plan?").
+  const saveStarted = useRef(false);
   // The import runs once per URI. Without this guard a re-render from the
   // stage callback (or a fast-refresh remount) would re-parse the file.
   const startedFor = useRef<string | null>(null);
@@ -194,7 +198,8 @@ export default function ImportScreen() {
   );
 
   const onSave = useCallback(async () => {
-    if (state.status !== 'ready') return;
+    if (state.status !== 'ready' || saveStarted.current) return;
+    saveStarted.current = true;
     const imported = state.imported;
     if (!imported.plan || !includePlan) {
       void save(imported, false);
@@ -202,7 +207,16 @@ export default function ImportScreen() {
     }
     // Re-importing a trail the phone already has may meet a plan made here.
     // One plan per trail is the model, so the file's plan REPLACES it — ask.
-    const existing = await existingPlanFor(imported.trail.config.id);
+    let existing;
+    try {
+      existing = await existingPlanFor(imported.trail.config.id);
+    } catch (err: unknown) {
+      setState({
+        status: 'failed',
+        message: err instanceof Error ? err.message : 'Could not save this trail.',
+      });
+      return;
+    }
     if (!existing) {
       void save(imported, true);
       return;
@@ -211,7 +225,13 @@ export default function ImportScreen() {
       'Replace your plan?',
       `You already have a plan for ${name.trim() || 'this guide'} on this phone. Importing the plan from this file replaces it.`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+          onPress: () => {
+            saveStarted.current = false;
+          },
+        },
         { text: 'Keep mine', onPress: () => void save(imported, false) },
         { text: 'Replace', style: 'destructive', onPress: () => void save(imported, true) },
       ],
