@@ -252,6 +252,13 @@ export const PLAN_SCHEMA = 1;
  * them, and nothing in a revision-0 request says which. The price is that a
  * revision-0 client which does know one of them cannot clear the last of it:
  * until it is updated, clearing it takes a current client.
+ *
+ * A kept field is not re-judged against what the old client did change, with
+ * one exception: kept `resupplyZeroDays` follow the request's `resupplyStops`
+ * (cut to the ticked stops; dropped when the request has no selection and the
+ * stored plan had one). A kept `startZeroDays` stays as it was when an old
+ * client moves `startDate`: the zero days are still before day 1, so day 1
+ * moves with the new date, which is what the hiker sees on a current client.
  */
 export const PLAN_FIELD_SCHEMA = {
   dataUpdatedAt: 1,

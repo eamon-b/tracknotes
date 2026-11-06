@@ -592,7 +592,29 @@ export function keepFieldsNewerThanClient(
     if (planSchema >= since || kept[field] !== undefined || stored[field] === undefined) continue;
     (kept as unknown as Record<string, unknown>)[field] = stored[field];
   }
+  // Zero days follow the resupply selection, as `setResupplyStops` keeps them:
+  // a kept map is cut to the request's ticked stops, and dropped when the
+  // request has no selection but the stored plan had one (the old client reset
+  // the plan, or chose All — reading it as a reset never counts days the hiker
+  // removed). Both without a selection: it did not change, the map stays.
+  if (kept.resupplyZeroDays !== undefined && kept.resupplyZeroDays === stored.resupplyZeroDays) {
+    const zeroDays = keptZeroDays(kept.resupplyZeroDays, kept.resupplyStops, stored.resupplyStops);
+    if (zeroDays === undefined) delete kept.resupplyZeroDays;
+    else kept.resupplyZeroDays = zeroDays;
+  }
   return kept;
+}
+
+/** A kept `resupplyZeroDays` map against the request's selection (see `keepFieldsNewerThanClient`). */
+function keptZeroDays(
+  zeroDays: Record<string, number>,
+  selection: readonly string[] | undefined,
+  storedSelection: readonly string[] | undefined
+): Record<string, number> | undefined {
+  if (selection === undefined) return storedSelection === undefined ? zeroDays : undefined;
+  const ticked = new Set(selection);
+  const entries = Object.entries(zeroDays).filter(([id]) => ticked.has(id));
+  return entries.length === 0 ? undefined : Object.fromEntries(entries);
 }
 
 /** Serialise a validated document, rejecting anything over the 64 KB ceiling. */
