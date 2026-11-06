@@ -12,6 +12,7 @@
 
 import { escapeHtml } from '@lib/escape';
 import {
+  ICS_REEXPORT_NOTE,
   canExportIcs,
   planExportFileName,
   planToGpx,
@@ -188,6 +189,8 @@ export function initPlanExport(host: PlanExportHost): PlanExportController {
   const gpxBtn = document.getElementById('export-gpx') as HTMLButtonElement | null;
   const icsBtn = document.getElementById('export-ics') as HTMLButtonElement | null;
   const icsNote = document.getElementById('export-ics-note');
+  const icsReexport = document.getElementById('export-ics-reexport');
+  if (icsReexport) icsReexport.textContent = ICS_REEXPORT_NOTE;
   const printBtn = document.getElementById('export-print') as HTMLButtonElement | null;
   const printBlock = document.getElementById('plan-print');
   const menu = document.getElementById('plan-export') as HTMLDetailsElement | null;
@@ -227,6 +230,7 @@ export function initPlanExport(host: PlanExportHost): PlanExportController {
     icsBtn.disabled = !ok;
     icsBtn.title = ok ? 'Download the days as calendar events' : ICS_NEEDS_START_DATE;
     if (icsNote) icsNote.hidden = ok;
+    if (icsReexport) icsReexport.hidden = !ok;
   };
 
   return { refresh };

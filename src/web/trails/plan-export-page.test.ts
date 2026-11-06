@@ -13,6 +13,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { BUNDLED_PLAN_FILLS, inlinePlanShell } from '../../../scripts/lib/plan-shell';
 import { parseGpx } from '@lib/gpx-parser';
 import type { PlanDocument } from '@lib/plan-types';
+import { ICS_REEXPORT_NOTE } from '@lib/plan-export';
 import { ICS_NEEDS_START_DATE, planPrintHtml } from './plan-export-ui';
 
 const ROOT = path.resolve(__dirname, '../../..');
@@ -156,12 +157,16 @@ describe('plan page export', () => {
     expect(button('export-ics').disabled).toBe(true);
     expect(button('export-ics').title).toBe(ICS_NEEDS_START_DATE);
     expect(document.getElementById('export-ics-note')?.hidden).toBe(false);
+    expect(document.getElementById('export-ics-reexport')?.hidden).toBe(true);
 
     const date = document.getElementById('plan-start-date') as HTMLInputElement;
     date.value = '2027-03-01';
     date.dispatchEvent(new Event('change'));
     expect(button('export-ics').disabled).toBe(false);
     expect(document.getElementById('export-ics-note')?.hidden).toBe(true);
+    // What a re-export leaves behind (#284).
+    expect(document.getElementById('export-ics-reexport')?.hidden).toBe(false);
+    expect(document.getElementById('export-ics-reexport')?.textContent).toBe(ICS_REEXPORT_NOTE);
 
     button('export-ics').click();
     expect(downloads[0].name).toBe('fixture-plan.ics');

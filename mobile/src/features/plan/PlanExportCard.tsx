@@ -11,6 +11,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { useTheme } from '../../theme';
 import { radii, spacing, touchTarget, typography } from '../../tokens';
 import type { PlanExportKind } from './plan-export-share';
+import { ICS_REEXPORT_NOTE } from '@lib/plan-export';
 
 export const ICS_NEEDS_START_DATE = 'Set a start date in the plan settings to export a calendar.';
 export const PLAN_EXPORT_FAILED = "Couldn't export the plan. Please try again.";
@@ -72,9 +73,9 @@ export function PlanExportCard({
         {action('gpx', 'Share GPX', false)}
         {action('ics', 'Share calendar (.ics)', !canExportCalendar)}
       </View>
-      {!canExportCalendar && (
-        <Text style={[styles.hint, { color: colors.textSecondary }]}>{ICS_NEEDS_START_DATE}</Text>
-      )}
+      <Text style={[styles.hint, { color: colors.textSecondary }]}>
+        {canExportCalendar ? ICS_REEXPORT_NOTE : ICS_NEEDS_START_DATE}
+      </Text>
       {error ? (
         <Text style={[styles.hint, { color: colors.danger }]} accessibilityRole="alert">
           {error}

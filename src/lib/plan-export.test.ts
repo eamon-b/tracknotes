@@ -99,6 +99,17 @@ describe('planToGpx', () => {
     expect(parsed.waypoints[2].desc).toContain('Resupply');
   });
 
+  it('names a night stop by the day it ends, with the date when the plan has one (#284)', () => {
+    const undated = parseGpx(planToGpx(input(plan())));
+    expect(undated.waypoints[0].desc).toMatch(/^After day 1 · km 20\.0/);
+    expect(undated.waypoints[1].desc).toMatch(/^After day 2 · km 40\.0/);
+    expect(undated.waypoints.map(wp => wp.desc ?? '').join()).not.toContain('Night ');
+
+    const dated = parseGpx(planToGpx(input({ ...plan(), startDate: '2027-03-01' })));
+    expect(dated.waypoints[0].desc).toMatch(/^After day 1 \(night of 2027-03-01\)/);
+    expect(dated.waypoints[1].desc).toMatch(/^After day 2 \(night of 2027-03-02\)/);
+  });
+
   it('escapes and strips what XML cannot carry', () => {
     expect(xmlText('a<b>&"\'\u0000\u0007c')).toBe('a&lt;b&gt;&amp;&quot;&apos;c');
     expect(xmlText('lone \uD800 surrogate 😀')).toBe('lone  surrogate 😀');
