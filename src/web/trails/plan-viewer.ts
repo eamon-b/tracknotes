@@ -1176,7 +1176,10 @@ function initLegRowHighlight(): void {
   body.addEventListener('click', event => {
     const index = legOf(event);
     const line = index !== null ? legPolylines[index] : undefined;
-    if (line && map) map.fitBounds(line.getBounds(), { padding: [30, 30] });
+    // A leg shorter than a track step has no runs, and Leaflet throws on the
+    // empty bounds of a line with no points.
+    const bounds = line?.getBounds();
+    if (bounds?.isValid() && map) map.fitBounds(bounds, { padding: [30, 30] });
   });
 }
 

@@ -31,7 +31,11 @@ interface StubLine {
 
 let lines: StubLine[] = [];
 let fitted = 0;
+/** The line whose bounds the map was last fitted to, if any. */
+let fittedTo: StubLine | null = null;
 let breaks: unknown[] | undefined;
+/** Waypoints added to the fixture's two towns, for one test. */
+let extraWaypoints: Array<[id: string, name: string, km: number]> = [];
 
 function installLeafletStub(): void {
   const layer = (): object => {
@@ -43,8 +47,10 @@ function installLeafletStub(): void {
     {
       get: (_, key) =>
         key === 'fitBounds'
-          ? () => {
+          ? (bounds?: { line?: StubLine; isValid?: () => boolean }) => {
               fitted += 1;
+              if (bounds?.isValid && !bounds.isValid()) throw new Error('Bounds are not valid.');
+              fittedTo = bounds?.line ?? null;
               return mapObj;
             }
           : () => mapObj,
@@ -89,7 +95,9 @@ function installLeafletStub(): void {
         },
         bringToBack: () => handle,
         bringToFront: () => handle,
-        getBounds: () => ({}),
+        // Leaflet's bounds of a line with no points are not valid, and
+        // fitBounds throws on them.
+        getBounds: () => ({ line, isValid: () => line.latLngs.some(run => run.length > 0) }),
         getLatLngs: () => [],
       };
       return handle;
@@ -130,7 +138,11 @@ function makeTrail() {
   return {
     config: { id: TRAIL_ID, name: 'Leg Fixture', shortName: 'Legs' },
     track: { points, totalDistance: 30, totalAscent: 0, totalDescent: 0, ...(breaks ? { breaks } : {}) },
-    waypoints: [wp('w_alpha', 'Alpha', 'town', 10), wp('w_bravo', 'Bravo', 'town', 20)],
+    waypoints: [
+      wp('w_alpha', 'Alpha', 'town', 10),
+      ...extraWaypoints.map(([id, name, km]) => wp(id, name, 'town', km)),
+      wp('w_bravo', 'Bravo', 'town', 20),
+    ],
   };
 }
 
@@ -149,7 +161,9 @@ beforeEach(() => {
   vi.useFakeTimers();
   lines = [];
   fitted = 0;
+  fittedTo = null;
   breaks = undefined;
+  extraWaypoints = [];
   installLeafletStub();
 });
 
@@ -231,7 +245,22 @@ describe('resupply legs on the map', () => {
     expect(legLines()[2].options.weight).toBeGreaterThan(legLines()[0].options.weight!);
     expect(legRows()[2].classList.contains('is-highlighted')).toBe(true);
 
+    const before = fitted;
     legRows()[2].click();
-    expect(fitted).toBeGreaterThan(0);
+    expect(fitted).toBe(before + 1);
+    expect(fittedTo).toBe(legLines()[2]);
+  });
+
+  it('leaves the map alone on a click on a leg too short to draw', async () => {
+    extraWaypoints = [['w_alpha_south', 'Alpha South', 10.4]];
+    await boot();
+    tabButton('resupply').click();
+    // Two stops between the same pair of track points: the leg between them
+    // has no run to draw, and fitting the map to its empty bounds would throw.
+    expect(legLines().map(l => l.tooltip)).toContain('Leg 2: Alpha → Alpha South');
+    const before = fitted;
+    expect(legLines()[1].latLngs.flat()).toHaveLength(0);
+    legRows()[1].click();
+    expect(fitted).toBe(before);
   });
 });
