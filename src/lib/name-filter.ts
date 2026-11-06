@@ -8,12 +8,45 @@
  * everything. Filtering is a view: nothing here reads or changes a selection.
  */
 
-/** Lower case with combining marks stripped (NFD), for comparing names. */
+/**
+ * Letters NFD leaves whole (they are letters of their own, not a base letter
+ * plus a mark), folded to what a hiker without the key types for them.
+ */
+const LETTER_FOLDS: Readonly<Record<string, string>> = {
+  ø: 'o',
+  ł: 'l',
+  đ: 'd',
+  ð: 'd',
+  ħ: 'h',
+  ı: 'i',
+  ß: 'ss',
+  æ: 'ae',
+  œ: 'oe',
+  þ: 'th',
+};
+
+/**
+ * Lower case, accents and macrons dropped, for comparing names: "Ōhau Café"
+ * → "ohau cafe". Combining Latin marks are stripped under NFD and the rest is
+ * recomposed (NFC), so a mark outside that block stays on its letter — "が"
+ * does not become "か". Letters NFD keeps whole (ø, ł, ß, æ …) fold by
+ * `LETTER_FOLDS`; curly quotes and dashes fold to the ASCII ones a keyboard
+ * types ("Heysen’s" ↔ "heysen's"); runs of whitespace (the ideographic space
+ * included) read as one space.
+ */
 export function foldForMatch(text: string): string {
   // `normalize` is in every engine we ship to (Hermes included); the guard
   // only keeps an odd runtime from throwing rather than matching less.
-  const decomposed = typeof text.normalize === 'function' ? text.normalize('NFD') : text;
-  return decomposed.replace(/[̀-ͯ]/g, '').toLowerCase();
+  const canNormalize = typeof text.normalize === 'function';
+  const decomposed = canNormalize ? text.normalize('NFD') : text;
+  const stripped = decomposed.replace(/[\u0300-\u036f]/g, '');
+  return (canNormalize ? stripped.normalize('NFC') : stripped)
+    .toLowerCase()
+    .replace(/[øłđðħıßæœþ]/g, letter => LETTER_FOLDS[letter] ?? letter)
+    .replace(/[\u2018\u2019\u201a\u201b\u2032\u02bc]/g, "'")
+    .replace(/[\u201c\u201d\u201e\u201f\u2033]/g, '"')
+    .replace(/[\u2010-\u2015\u2212]/g, '-')
+    .replace(/\s+/g, ' ');
 }
 
 /** The query as it is compared: folded and trimmed; '' means "no filter". */

@@ -17,6 +17,30 @@ describe('foldForMatch', () => {
   it('leaves scripts without combining marks alone', () => {
     expect(foldForMatch('霊山寺')).toBe('霊山寺');
   });
+
+  it('keeps a kana voicing mark on its letter, so き does not find ぎ', () => {
+    expect(foldForMatch('ガ')).toBe('ガ');
+    expect(nameMatches('ぎふ', 'き')).toBe(false);
+    expect(nameMatches('ぎふ', 'ぎ')).toBe(true);
+    // The decomposed form a pasted name might arrive in still matches.
+    expect(nameMatches('ぎふ', 'ぎ'.normalize('NFD'))).toBe(true);
+  });
+
+  it('folds letters NFD leaves whole', () => {
+    expect(nameMatches('Søndre Øyer', 'sondre oyer')).toBe(true);
+    expect(nameMatches('Łódź', 'lodz')).toBe(true);
+    expect(nameMatches('Straße', 'STRASSE')).toBe(true);
+    expect(nameMatches('Ærø', 'aero')).toBe(true);
+    expect(nameMatches('Đà Lạt', 'da lat')).toBe(true);
+  });
+
+  it('folds curly quotes, dashes and runs of whitespace to what a keyboard types', () => {
+    expect(nameMatches('Heysen’s Rest Bed & Breakfast', "heysen's")).toBe(true);
+    expect(nameMatches("Heysen's Rest", 'heysen’s')).toBe(true);
+    expect(nameMatches('Discovery Parks – Hahndorf', 'parks - hahn')).toBe(true);
+    expect(nameMatches('Kirihata　Hut', 'kirihata hut')).toBe(true);
+    expect(nameMatches('Lake  Hāwea', 'lake hawea')).toBe(true);
+  });
 });
 
 describe('nameQuery', () => {
