@@ -16,7 +16,10 @@
  *
  * Above the POIs, for a trail with resupply to plan, a "Resupply legs" switch
  * draws the resupply screen's carries on the map (`settings-store`
- * `showResupplyLegs`, passed in by the pane). A trail with no POIs to offer
+ * `showResupplyLegs`, passed in by the pane). The map numbers the legs over
+ * the whole trail: the Plan screen's section is that screen's own state and
+ * never reaches the map, so the note says so rather than promising the
+ * planner's numbers (#287). A trail with no POIs to offer
  * opens the sheet for that switch alone (`showPoiControls` false).
  *
  * The footer is not decoration: POIs are uncurated third-party data drawn
@@ -136,8 +139,8 @@ export function PoiLayersSheet({
                     Resupply legs
                   </Text>
                   <Text style={[styles.note, styles.legsNote, { color: colors.textSecondary }]}>
-                    Each carry between your resupply stops in its own colour, numbered as in the
-                    resupply planner.
+                    Each carry between your resupply stops in its own colour, numbered from the
+                    start of the trail. A planner opened for one section numbers from that section.
                   </Text>
                 </View>
                 <Switch
