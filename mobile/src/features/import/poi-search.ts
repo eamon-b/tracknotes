@@ -7,9 +7,10 @@
  * phone to run the same search: the same corridor queries
  * (`@lib/trail-poi-search` `planTrailPoiSearch`, over `@lib/poi-enrichment`),
  * the same 2 km radius, and the build's passes (`finishTrailPois`: noise,
- * duplicates of the guide's own waypoints, city thinning, `slimPoi`), so the
- * result reads exactly like a bundled trail's. It is saved into the import's
- * JSON (`saveImportedTrailPois`) and so works offline from then on.
+ * duplicates of the guide's own waypoints, city thinning, OSM's own repeats,
+ * `slimPoi`), so the result reads exactly like a bundled trail's. It is saved
+ * into the import's JSON (`saveImportedTrailPois`) and so works offline from
+ * then on.
  *
  * Never started by the app: the screen (`app/guide/[trailId]/find-pois.tsx`)
  * shows the request count and a data estimate first, and runs this only when

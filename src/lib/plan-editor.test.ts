@@ -805,6 +805,21 @@ describe('servicesAtStop', () => {
     expect(services?.water).toBe(true);
   });
 
+  it('lists a repeat whose kept record falls outside the window, so a flag never lacks its row', () => {
+    const services = servicesAtStop({ km: 10 }, [
+      poi({ id: 1, category: 'resupply', distanceAlongTrail: 11.02, tags: { amenity: 'fuel' } }),
+      poi({
+        id: 2,
+        category: 'resupply',
+        distanceAlongTrail: 10.99,
+        tags: { shop: 'convenience' },
+        duplicateOfPoi: 'node/1',
+      }),
+    ]);
+    expect(services?.shop).toBe(true);
+    expect(services?.pois.map(p => p.id)).toEqual([2]);
+  });
+
   it('takes a wider radius when asked', () => {
     expect(servicesAtStop({ km: 50 }, pois, 3)?.water).toBe(true);
   });

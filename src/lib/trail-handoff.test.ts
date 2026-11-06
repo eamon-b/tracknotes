@@ -640,6 +640,19 @@ describe('parseHandoffJson: points of interest', () => {
     expect(parsed[2]).not.toHaveProperty('duplicateOfPoiDistanceM');
     expect(parsed[3]).not.toHaveProperty('duplicateOfPoi');
   });
+
+  it('drops a POI-duplicate flag pointing at another hidden repeat, or at itself', () => {
+    const parsed = withPois([
+      poi,
+      { ...poi, id: 2, duplicateOfPoi: 'node/12345' },
+      { ...poi, id: 3, duplicateOfPoi: 'node/2' },
+      { ...poi, id: 4, duplicateOfPoi: 'node/4' },
+    ]).pois!;
+    expect(parsed[1]).toMatchObject({ duplicateOfPoi: 'node/12345' });
+    // Pointing at a record that is itself hidden would hide the place twice over.
+    expect(parsed[2]).not.toHaveProperty('duplicateOfPoi');
+    expect(parsed[3]).not.toHaveProperty('duplicateOfPoi');
+  });
 });
 
 describe('handoffImportReport', () => {

@@ -643,11 +643,13 @@ function readPOIs(value: unknown): TrailPOI[] | undefined {
     });
   }
 
-  // A `duplicateOfPoi` naming a POI this file does not carry would hide a place
-  // with nothing left to show it, so it is dropped: the POI shows on its own.
-  const keys = new Set(pois.map(poi => `${poi.type}/${poi.id}`));
+  // A `duplicateOfPoi` naming a POI this file does not carry, or one that is
+  // itself hidden as a repeat, would hide a place with nothing left to show
+  // it, so it is dropped: the POI shows on its own. (`markSelfDuplicatePois`
+  // never chains; a hand-edited or foreign file can.)
+  const shown = new Set(pois.filter(poi => poi.duplicateOfPoi === undefined).map(poi => `${poi.type}/${poi.id}`));
   for (const poi of pois) {
-    if (poi.duplicateOfPoi !== undefined && !keys.has(poi.duplicateOfPoi)) {
+    if (poi.duplicateOfPoi !== undefined && !shown.has(poi.duplicateOfPoi)) {
       delete poi.duplicateOfPoi;
       delete poi.duplicateOfPoiDistanceM;
     }

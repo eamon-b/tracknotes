@@ -715,6 +715,16 @@ describe('markSelfDuplicatePois (OSM mapping one place twice)', () => {
     expect(flagged(out)).toEqual({});
   });
 
+  it("keeps two emergency services of one name apart: Te Araroa's Gonville Health surgery and pharmacy", () => {
+    const out = markSelfDuplicatePois([
+      at(1, 0, { name: 'Gonville Health', category: 'emergency', tags: { amenity: 'doctors' } }),
+      at(2, 12, { name: 'Gonville Health Pharmacy', category: 'emergency', tags: { amenity: 'pharmacy', a: '1' } }),
+      at(3, 1000, { name: 'Riverton Pharmacy', category: 'emergency', tags: { amenity: 'pharmacy', a: '1' } }),
+      at(4, 1008, { name: 'Riverton Pharmacy', category: 'emergency', tags: { amenity: 'pharmacy' } }),
+    ]);
+    expect(flagged(out)).toEqual({ 'node/4': 'node/3' });
+  });
+
   it('never flags unnamed POIs: two nameless taps are two taps', () => {
     const out = markSelfDuplicatePois([
       at(1, 0, { name: null, category: 'water', tags: { amenity: 'drinking_water' } }),

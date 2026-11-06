@@ -675,6 +675,20 @@ const SELF_DISTINGUISHING_WORDS = new Set([
  */
 const SELF_CATEGORY_RANK: Readonly<Partial<Record<TrailPOICategory, number>>> = { resupply: 1 };
 
+/**
+ * `emergency` covers several services, and two of them sharing a name are two
+ * services, not one place mapped twice: Te Araroa's `Gonville Health` (a
+ * doctors' surgery) is not its `Gonville Health Pharmacy`, and hiding the
+ * surgery under the pharmacy would leave a hiker who needs a doctor looking at
+ * a chemist. So two emergency records must be the same kind of service
+ * (`amenity`, else `emergency=phone`).
+ */
+function sameEmergencyService(a: TrailPOI, b: TrailPOI): boolean {
+  if (a.category !== 'emergency' || b.category !== 'emergency') return true;
+  const kind = (poi: TrailPOI) => poi.tags?.amenity ?? poi.tags?.emergency;
+  return kind(a) === kind(b);
+}
+
 interface SelfDedupEntry {
   poi: TrailPOI;
   key: string;
@@ -817,6 +831,7 @@ export function markSelfDuplicatePois(pois: readonly TrailPOI[] | undefined): Tr
     for (const survivor of nearby) {
       if (Math.abs(entry.poi.lat - survivor.poi.lat) > SELF_DUPLICATE_LAT_DEGREES) continue;
       if (!compatible.includes(survivor.poi.category)) continue;
+      if (!sameEmergencyService(entry.poi, survivor.poi)) continue;
       const metres = haversineDistance2D(entry.poi.lat, entry.poi.lon, survivor.poi.lat, survivor.poi.lon);
       if (metres > SELF_DUPLICATE_CAMPING_M) continue;
       if (!selfNamesMatch(entry, survivor, metres)) continue;
