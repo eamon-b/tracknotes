@@ -1174,8 +1174,8 @@ function tagValue(value: string | undefined): string | undefined {
  * curated waypoint is the one marker for that place, but their OSM
  * `website`/`opening_hours` is exactly what a stop card wants to show, and
  * dropping them would make the hut you are standing at look service-less.
- * POIs flagged `duplicateOfPoi` are left out of `pois` — the record they
- * repeat is already there, and listing one café twice says nothing — but
+ * POIs flagged `duplicateOfPoi` are left out of `pois` when the record they
+ * repeat is in the window too — listing one café twice says nothing — but
  * still count towards the flags, which their tags may be the only source of.
  *
  * Route breaks are ignored: the window is along-trail km only, so a POI on the
@@ -1199,8 +1199,14 @@ export function servicesAtStop(
     food: false,
     water: false,
     transport: false,
-    pois: near.filter(poi => !poi.duplicateOfPoi),
+    pois: [],
   };
+  // A repeat is left out only when the record it repeats is in the window too:
+  // its km can fall just outside (or, projected onto a winding track, well
+  // outside), and then the repeat is the only row this place gets here while
+  // its tags still set the flags below.
+  const nearKeys = new Set(near.map(poi => `${poi.type}/${poi.id}`));
+  services.pois = near.filter(poi => !poi.duplicateOfPoi || !nearKeys.has(poi.duplicateOfPoi));
   for (const poi of near) {
     const tags = poi.tags ?? {};
     const amenity = tags.amenity;
