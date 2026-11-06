@@ -22,6 +22,7 @@
  *   npm run publish:trail-data -- --all       # re-upload every file and the catalog
  *   npm run publish:trail-data -- --check     # exit 1 if the live catalog differs
  *   npm run publish:trail-data -- --remove <id>  # allow dropping that trail from the catalog
+ *   npm run publish:trail-data -- --hold <id>    # leave that trail as it is live (or out, if new)
  *   npm run publish:trail-data -- --force     # publish past every guard below
  *
  * Guards, each refusing the publish unless `--force`:
@@ -34,6 +35,13 @@
  *   - a trail the live catalog has and this checkout does not, unless named
  *     with `--remove <id>` (`unapprovedRemovals`).
  * `--dry-run` reports the same refusals; `--check` only compares.
+ *
+ * `--hold <id>` (repeatable) publishes everything else and leaves that trail
+ * exactly as the live catalog has it: a trail already live keeps its live
+ * entry and file, and a trail not live yet stays out of the catalog — e.g. a
+ * new trail not ready to reach every installed app (#289). `--check` takes it
+ * too, so a publish that held a trail back still checks clean. A held id this
+ * checkout does not have is refused (a typo would otherwise hold nothing).
  *
  * Env: R2_BUCKET (default tracknotes-data), TRAIL_DATA_BASE_URL (default
  * https://data.tracknotes.info). Uploads run `wrangler`, a root
@@ -84,10 +92,12 @@ export interface PublishOptions {
   force: boolean;
   /** Trail ids `--remove` allows this publish to drop from the live catalog. */
   remove: string[];
+  /** Trail ids `--hold` leaves exactly as the live catalog has them (`holdTrails`). */
+  hold: string[];
 }
 
 export function parseArgs(argv: string[]): PublishOptions {
-  const options: PublishOptions = { all: false, dryRun: false, check: false, force: false, remove: [] };
+  const options: PublishOptions = { all: false, dryRun: false, check: false, force: false, remove: [], hold: [] };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === '--all') options.all = true;
@@ -98,9 +108,14 @@ export function parseArgs(argv: string[]): PublishOptions {
       const id = arg === '--remove' ? argv[++i] : arg.slice('--remove='.length);
       if (!id || id.startsWith('-')) throw new Error('--remove requires a trail id');
       options.remove.push(id);
+    } else if (arg === '--hold' || arg.startsWith('--hold=')) {
+      const id = arg === '--hold' ? argv[++i] : arg.slice('--hold='.length);
+      if (!id || id.startsWith('-')) throw new Error('--hold requires a trail id');
+      options.hold.push(id);
     } else {
       throw new Error(
-        `Unknown argument ${JSON.stringify(arg)} (expected --all, --dry-run, --check, --force or --remove <id>)`
+        `Unknown argument ${JSON.stringify(arg)} ` +
+          '(expected --all, --dry-run, --check, --force, --remove <id> or --hold <id>)'
       );
     }
   }
@@ -133,6 +148,29 @@ export function gitIsAncestor(ancestor: string, head: string): boolean | null {
   if (result.status === 0) return true;
   if (result.status === 1) return false;
   return null;
+}
+
+/**
+ * The local catalog with each held trail (`--hold`) put back as the live
+ * catalog has it: the live entry when the trail is live, nothing when it is
+ * not. `unknown` lists held ids the local catalog does not have.
+ */
+export function holdTrails(
+  local: TrailCatalog,
+  live: TrailCatalog | null,
+  hold: readonly string[]
+): { catalog: TrailCatalog; unknown: string[] } {
+  const held = new Set(hold);
+  const localIds = new Set(local.trails.map(trail => trail.id));
+  const unknown = [...held].filter(id => !localIds.has(id));
+  if (held.size === 0) return { catalog: local, unknown };
+  const liveById = new Map((live?.trails ?? []).map(trail => [trail.id, trail]));
+  const trails = local.trails.flatMap(trail => {
+    if (!held.has(trail.id)) return [trail];
+    const before = liveById.get(trail.id);
+    return before ? [before] : [];
+  });
+  return { catalog: { ...local, trails }, unknown };
 }
 
 /** A trail file's bytes, keyed by trail id. Injected so the checks are testable. */
@@ -302,8 +340,8 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
   warnAboutCommentsAllowlist(entries.map(entry => entry.id));
 
   const head = gitHead();
-  const local = buildCatalog(entries, new Date(), head);
-  console.log(`Local: ${local.trails.length} trails in ${indexPath}` + (head ? ` (HEAD ${head})` : ''));
+  const built = buildCatalog(entries, new Date(), head);
+  console.log(`Local: ${built.trails.length} trails in ${indexPath}` + (head ? ` (HEAD ${head})` : ''));
 
   const live = await fetchLiveCatalog(baseUrl);
   console.log(
@@ -311,6 +349,16 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
       ? `Live:  ${live.trails.length} trails in ${baseUrl}/${CATALOG_KEY} (generated ${live.generatedAt})`
       : `Live:  no catalog at ${baseUrl}/${CATALOG_KEY} yet`
   );
+
+  const { catalog: local, unknown: unknownHolds } = holdTrails(built, live, options.hold);
+  if (unknownHolds.length > 0) {
+    console.error(`--hold names trails ${indexPath} does not list: ${unknownHolds.join(', ')}`);
+    return 1;
+  }
+  for (const id of options.hold) {
+    const isLive = local.trails.some(trail => trail.id === id);
+    console.log(`Holding ${id}: ${isLive ? 'kept as it is live' : 'not live, left out of the catalog'}`);
+  }
 
   if (options.check) {
     const diff = diffCatalogs(local, live);
@@ -344,7 +392,11 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     return 1;
   }
 
-  const plan = planUpload(local, live, { all: options.all });
+  const planned = planUpload(local, live, { all: options.all });
+  // A held trail's catalog entry is the live one, so its file is already
+  // there; `--all` must not re-upload this checkout's bytes under that key.
+  const held = new Set(options.hold);
+  const plan = { ...planned, files: planned.files.filter(trail => !held.has(trail.id)) };
 
   const removals = unapprovedRemovals(plan.diff, new Set(options.remove));
   if (removals.length > 0 && !options.force) {
