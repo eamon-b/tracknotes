@@ -230,4 +230,17 @@ describe('planPrintHtml', () => {
     expect(withRunIn).toContain('Midtown');
     expect(withRunIn).not.toContain('Trail End');
   });
+
+  it('lists the zero days before day 1 in the heading and as dated rows', () => {
+    const html = planPrintHtml(
+      {
+        plan: { ...storedPlan('2026-12-30'), startZeroDays: 2.5 },
+        trail: { config: { name: 'T' }, track: { points: [], totalDistance: 60 } },
+        days: [],
+      },
+      { trailName: 'T', paceLabel: 'average pace (4 km/h)', dailyHours: 8 }
+    );
+    expect(html).toContain('2.5 zero days before day 1');
+    expect(html.match(/Zero day before day 1/g)).toHaveLength(2);
+  });
 });

@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { computePlanDays, newPlan, setNights, setStartDate, setStopNote, toggleStop } from './plan-editor';
+import {
+  computePlanDays,
+  newPlan,
+  setNights,
+  setStartDate,
+  setStartZeroDays,
+  setStopNote,
+  toggleStop,
+} from './plan-editor';
 import type { PlanTrail } from './day-calculator';
 import type { PlanDocument } from './plan-types';
 import { computeResupplyLegs, listResupplyOptions, resolveResupplyStops, resupplyCandidates } from './resupply-plan';
@@ -184,6 +192,26 @@ describe('planToIcs', () => {
     expect(unfolded).toContain('X-WR-CALNAME:My "walk"\\; with\\, commas');
     // The town at km 40 is on day 2.
     expect(unfolded).toMatch(/Resupply at Townsville/);
+  });
+
+  it('writes the zero days before day 1 from the start date, and a half day on day 1', () => {
+    const doc = setStartZeroDays(setStartDate(plan(), '2026-12-30', opts), 2.5, opts);
+    const unfolded = planToIcs({ ...input(doc), dtstamp: DTSTAMP })!.replace(/\r\n /g, '');
+    const lines = unfolded.split('\r\n');
+    expect(lines.filter(l => l.startsWith('SUMMARY:')).slice(0, 3)).toEqual([
+      'SUMMARY:Zero day before day 1 at Trailhead',
+      'SUMMARY:Zero day before day 1 at Trailhead',
+      'SUMMARY:Day 1: Trailhead → Hut <A>\\, 20.0 km',
+    ]);
+    expect(lines.filter(l => l.startsWith('DTSTART')).slice(0, 3)).toEqual([
+      'DTSTART;VALUE=DATE:20261230',
+      'DTSTART;VALUE=DATE:20261231',
+      'DTSTART;VALUE=DATE:20270101',
+    ]);
+    expect(unfolded).toContain('DESCRIPTION:2.5 zero days before day 1: this is day 1 of them.');
+    expect(unfolded).toContain('DESCRIPTION:Half a zero day first\\, then the walk.');
+    expect(new Set(lines.filter(l => l.startsWith('UID:'))).size).toBe(lines.filter(l => l.startsWith('UID:')).length);
+    expect(planToGpx(input(doc))).toContain('starting 2026-12-30, 2.5 zero days before day 1,');
   });
 
   it('keeps every line within 75 octets', () => {

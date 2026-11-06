@@ -11,7 +11,15 @@
  */
 
 import { escapeHtml } from '@lib/escape';
-import { canExportIcs, planExportFileName, planToGpx, planToIcs, type PlanExportInput } from '@lib/plan-export';
+import {
+  canExportIcs,
+  planExportFileName,
+  planToGpx,
+  planToIcs,
+  startZeroDayDates,
+  startZeroDaysText,
+  type PlanExportInput,
+} from '@lib/plan-export';
 import { KM_EPSILON, stopsToActive } from '@lib/plan-direction';
 import { legsArrivingAtStops } from '@lib/resupply-plan';
 
@@ -86,10 +94,19 @@ export function planPrintHtml(input: PlanExportInput, ctx: PlanPrintContext): st
     ctx.trailName,
     plan.direction,
     plan.startDate ? `starting ${formatDate(plan.startDate)}` : 'no start date',
+    ...(startZeroDaysText(plan) ? [startZeroDaysText(plan) as string] : []),
     `timed at ${ctx.paceLabel}, ${ctx.dailyHours} h a day`,
   ];
 
   const dayRows: string[] = [];
+  const firstStart = days[0]?.startName;
+  for (const date of startZeroDayDates(plan)) {
+    dayRows.push(`<tr class="is-rest">
+      <td></td>
+      <td>${escapeHtml(formatDate(date))}</td>
+      <td colspan="5">Zero day before day 1${firstStart ? ` at ${escapeHtml(firstStart)}` : ''}</td>
+    </tr>`);
+  }
   for (const day of days) {
     const stop = stops.find(s => Math.abs(s.km - day.endKm) <= KM_EPSILON);
     const notes: string[] = [];
