@@ -1,0 +1,97 @@
+name: Deploy comments API
+
+# Deploys workers/comments-api/ from main after every merge that can change it:
+# remote D1 migrations first, then `wrangler deploy`, then the route probes
+# (scripts/probe-comments-api.sh). Shipped app builds call this API, so a merge
+# that sat undeployed lost their writes to routes that 404 (#141).
+# Runbook and setup (the `production` environment and its token): docs/deploys.md.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - workers/comments-api/**
+      # The worker bundles @lib (validation, community checks, POIs)
+      - src/lib/**
+  workflow_dispatch:
+
+# One deploy at a time, in merge order. A newer queued run replaces an older
+# queued one, which is fine: the newer main includes it.
+concurrency:
+  group: deploy-comments-api
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  # A re-run of an old run, or one that waited behind a newer merge, must not
+  # put older worker code back: the newer commit's own run deploys instead.
+  head:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      current: ${{ steps.head.outputs.current }}
+    steps:
+      - id: head
+        env:
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          head=$(gh api "repos/$REPO/commits/main" --jq .sha)
+          if [ "$head" = "$GITHUB_SHA" ]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::main is at $head, past $GITHUB_SHA: that commit's run deploys. Nothing deployed here."
+            echo "current=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy:
+    needs: head
+    if: needs.head.outputs.current == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: production
+      url: https://api.tracknotes.info/health
+    defaults:
+      run:
+        shell: bash
+        working-directory: workers/comments-api
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: workers/comments-api/package-lock.json
+      # The token is passed only to the steps that call Cloudflare, not to npm ci or the tests
+      - run: npm ci
+      # The Tests workflow's checks, so a deploy neither waits on that run nor races it
+      - run: npm test
+      - run: npx tsc --noEmit
+      - name: Migrations to apply
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler d1 migrations list DB --remote
+      # Migrations first: new code may read the columns they add, and they are
+      # written to be additive, so the running worker keeps working on them
+      - name: Apply migrations
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npm run migrate:remote
+      - name: Deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npm run deploy
+      - name: Probe the routes
+        working-directory: .
+        run: |
+          echo '### Route probes' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          scripts/probe-comments-api.sh | tee -a "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"

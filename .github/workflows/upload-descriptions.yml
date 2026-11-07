@@ -1,0 +1,86 @@
+name: Upload waypoint descriptions
+
+# Pushes curated waypoint descriptions (data/trails/<trail>/descriptions.json)
+# to the comments API (`npm run upload:descriptions`), so installed apps get the
+# text over the sync channel, after a merge that changes one. The run sends only
+# the difference from the live set, and withdraws a description a file no longer
+# lists. Phones pick it up, so it waits for a reviewer: the `plan` job's dry run
+# is in its summary, and `upload` runs once someone approves `production-data`.
+# Setup: docs/deploys.md.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - data/trails/*/descriptions.json
+  workflow_dispatch:
+
+concurrency:
+  group: upload-descriptions
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  TRACKNOTES_API_BASE_URL: https://api.tracknotes.info
+
+jobs:
+  # The dry run reads the live set (public, no token) and prints exactly what
+  # would be sent and withdrawn
+  plan:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      upload: ${{ steps.plan.outputs.upload }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - id: plan
+        env:
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # An old or overtaken run must not put older text back: the newer commit's run uploads
+          head=$(gh api "repos/$REPO/commits/main" --jq .sha)
+          if [ "$head" != "$GITHUB_SHA" ]; then
+            echo "::notice::main is at $head, past $GITHUB_SHA: that commit's run uploads. Nothing uploaded here."
+            echo "upload=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          out="$RUNNER_TEMP/plan.txt"
+          npm run -s upload:descriptions -- --dry-run 2>&1 | tee "$out"
+          { echo '### Upload plan'; echo '```'; cat "$out"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          if grep -q 'would have 0 description(s) sent, 0 withdrawn' "$out"; then
+            echo "upload=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "upload=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  upload:
+    needs: plan
+    if: needs.plan.outputs.upload == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: production-data
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Re-reads the live set, so it sends the difference as it is now
+      - name: Upload
+        env:
+          TRACKNOTES_ADMIN_TOKEN: ${{ secrets.TRACKNOTES_ADMIN_TOKEN }}
+        run: npm run -s upload:descriptions

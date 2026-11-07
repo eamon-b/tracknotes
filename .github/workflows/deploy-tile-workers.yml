@@ -1,0 +1,94 @@
+name: Deploy tile workers
+
+# Deploys contours/worker/ from main after a merge that changes it, twice: the
+# public contour dataset's Worker (`wrangler deploy`, tiles.contour-map-tiles.net)
+# and the app's tile Worker (`wrangler deploy --env app`, tiles.tracknotes.info),
+# then checks each one's /health. Runbook and setup: docs/deploys.md.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - contours/worker/**
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-tile-workers
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  # As in Deploy comments API: an old or overtaken run never puts older code back
+  head:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      current: ${{ steps.head.outputs.current }}
+    steps:
+      - id: head
+        env:
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          head=$(gh api "repos/$REPO/commits/main" --jq .sha)
+          if [ "$head" = "$GITHUB_SHA" ]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::main is at $head, past $GITHUB_SHA: that commit's run deploys. Nothing deployed here."
+            echo "current=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy:
+    needs: head
+    if: needs.head.outputs.current == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: https://tiles.tracknotes.info/health
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            contours/worker/package-lock.json
+      # The worker's tests live in the root suite (src/lib/contour-worker-*.test.ts)
+      - run: npm ci
+      - run: npx vitest run --project unit src/lib/contour-worker
+      - run: npm ci
+        working-directory: contours/worker
+      - run: npx tsc --noEmit
+        working-directory: contours/worker
+      - name: Deploy the contour dataset's Worker
+        working-directory: contours/worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler deploy
+      - name: Deploy the app's tile Worker
+        working-directory: contours/worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler deploy --env app
+      # /health is 200 only when the deployment's default source is ok
+      - name: Check /health
+        run: |
+          for url in https://tiles.contour-map-tiles.net/health https://tiles.tracknotes.info/health; do
+            ok=
+            for i in 1 2 3 4 5 6; do
+              code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$url")
+              if [ "$code" = 200 ]; then ok=1; break; fi
+              sleep 10
+            done
+            if [ -n "$ok" ]; then echo "ok   200 $url"; else echo "::error::$url answered $code"; exit 1; fi
+          done

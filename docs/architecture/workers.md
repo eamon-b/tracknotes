@@ -3,6 +3,7 @@
 Moved out of `CLAUDE.md` (issue #160) so the per-module detail is read on demand rather than loaded into every session.
 `CLAUDE.md` keeps the commands, the rules and a pointer here;
 keep this file in step with the code it describes.
+Both workers deploy from GitHub Actions on a merge to `main` that changes them (`docs/deploys.md`).
 
 ## Comments API Worker: community routes (`workers/comments-api/`)
 
