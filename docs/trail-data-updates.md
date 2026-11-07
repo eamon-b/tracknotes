@@ -141,6 +141,9 @@ On the device the copies live in `{documentDir}/trail-data/` beside a small
    phones re-downloading content they already have. Publishing from a
    committed tree also means a later publish from another checkout cannot
    quietly undo this one.
+   Merging it runs the *Publish trail data* workflow (`docs/deploys.md`): its
+   `plan` job is step 4, and approving its `production-data` deployment is
+   step 5. Steps 4 and 5 below are the same by hand.
 4. Dry run, and check that only the trails you expected appear:
    ```bash
    npm run publish:trail-data -- --dry-run

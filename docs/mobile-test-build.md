@@ -44,11 +44,10 @@ npx eas-cli@latest build --non-interactive --profile preview --platform android
 - **Check the worker is current first.** A build that calls a route the deployed worker lacks
   gets 404s: shared-waypoint shares stay queued, but shared-waypoint deletes and reports are
   discarded as if they had succeeded (`mobile/src/sync/comment-sync.ts`), and deploying later
-  does not bring them back. Shared waypoints shipped this way (#141). Before any build, with the
-  setup from step 1 of "Full release" (`npm ci` in `workers/comments-api/` and the Cloudflare
-  credentials), check that `npx wrangler d1 migrations list DB --remote` lists
-  nothing to apply and that every probe in that step answers. If not, deploy `main` per that
-  step. Never deploy the worker from an unmerged branch for a test build: test builds use the
+  does not bring them back. Shared waypoints shipped this way (#141). The *Deploy comments API*
+  workflow deploys `main` after every merge that changes the worker (`docs/deploys.md`), so
+  before any build check that its latest run on `main` is green and run
+  `scripts/probe-comments-api.sh`. If either fails, deploy `main` per step 1 of "Full release". Never deploy the worker from an unmerged branch for a test build: test builds use the
   production API, so that would ship unreviewed worker code to every installed app.
 - The version is `expo.version` in `app.json` (`0.1.0`). The Android `versionCode` is kept by
   EAS, not `app.json` (`cli.appVersionSource: "remote"` in `eas.json`; the first build after the
@@ -135,33 +134,21 @@ The three pieces ship independently; the app is last because it is the only one 
 be rolled forward without a reinstall. The detailed rationale is under "Deploy" in
 `plans/day-planner.md`.
 
-1. **Comments/plans worker** (`workers/comments-api/`), migration first, with
-   `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` in the environment:
+1. **Comments/plans worker** (`workers/comments-api/`). The *Deploy comments API* workflow
+   does this after every merge that changes the worker (`docs/deploys.md`): check its latest
+   run on `main` is green. By hand (or *Run workflow* on it), migration first, from `main`,
+   with `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` in the environment:
 
    ```bash
    cd workers/comments-api && npm ci
    npx wrangler d1 migrations list DB --remote   # what would apply
    npm run migrate:remote && npm run deploy
-   curl https://api.tracknotes.info/health              # {"ok":true}
+   cd ../.. && scripts/probe-comments-api.sh
    ```
 
-   `/health` answers even while a new route 404s, so also probe a route from each migration
-   that added routes; each must answer 200, not 404:
-
-   ```bash
-   curl -sf -o /dev/null https://api.tracknotes.info/v1/community/routes          # 0005/0006
-   curl -sf -o /dev/null https://api.tracknotes.info/v1/trails/heysen/waypoints   # 0007
-   ```
-
-   A route that needs a token answers 401 once deployed, and 404 before:
-
-   ```bash
-   curl -s -o /dev/null -w '%{http_code}\n' https://api.tracknotes.info/v1/me/comments   # 401 (personal export)
-   curl -s -o /dev/null -w '%{http_code}\n' https://api.tracknotes.info/v1/admin/community/routes/c_AAAAAAAAAAAAAAAA/trail   # 401 (admin route map, #310)
-   ```
-
-   Add a line here whenever a new migration adds routes. Deploy (from `main`) after every merge
-   that changes `workers/comments-api/`, not only at release, then run these probes.
+   `/health` answers even while a new route 404s, so the probe script also checks a route from
+   each migration that added routes (200 once deployed, 404 before) and one that needs a token
+   (401 once deployed). Add a line to its `PROBES` whenever a new migration adds routes.
 
 2. **Site.** Vercel builds `main` on push. `VITE_API_BASE_URL=https://api.tracknotes.info`
    is set on the Vercel project (Production and Preview, added 2026-09-22, moved from
@@ -185,7 +172,8 @@ be rolled forward without a reinstall. The detailed rationale is under "Deploy" 
 3. **App, store build.** Release checklist gate (the rest of the store checklist is issue
    #31): before building, the comments API's remote migrations are all applied
    (`npx wrangler d1 migrations list DB --remote` lists nothing to apply) and
-   the worker is deployed from `main`, with every probe in step 1 answering 200. A build
+   the worker is deployed from `main` (the *Deploy comments API* run is green), with
+   `scripts/probe-comments-api.sh` passing. A build
    that ships ahead of its worker loses writes to routes that 404 (#141).
 
    Bump `expo.version` in `mobile/app.json`; the `versionCode` is bumped

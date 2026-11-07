@@ -138,5 +138,8 @@ keep this file in step with the code it describes.
   `--check` takes it too.
   `v1` is the trail JSON format: a breaking shape change publishes under `v2` and leaves v1 frozen for old app builds
 - `upload-descriptions.ts` - PUTs curated waypoint descriptions to the comments API (`npm run upload:descriptions`, admin token in `$TRACKNOTES_ADMIN_TOKEN`; `--dry-run` prints the requests)
+  The *Upload waypoint descriptions* workflow runs it after a merge that changes a `descriptions.json`, once approved (`docs/deploys.md`), as *Publish trail data* runs `publish-trail-data.ts`.
+- `probe-comments-api.sh` - `scripts/probe-comments-api.sh [base-url]`: checks the deployed comments API answers `/health` and one route from each migration that added routes with the status it gives once deployed, retrying for a minute; exits 1 on any miss.
+  Run by *Deploy comments API* after each deploy, and by hand before a build (`docs/mobile-test-build.md`).
 - `measure-community-poi-cpu.ts` - `npx tsx scripts/measure-community-poi-cpu.ts [trail-id...]` (after `build:trails`): times each CPU step of the comments API's community-route POI enrichment on bundled trails standing in for community routes, with their real POIs and a synthetic answer at the enrichment's cap — the numbers to weigh against the Workers plan's CPU limit (`workers.md`, "community route POIs").
   Makes no request

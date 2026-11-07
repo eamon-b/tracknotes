@@ -33,7 +33,7 @@ Read the note for the area you are changing before changing it, and update that 
 - `docs/architecture/workers.md` — `workers/comments-api/`, `contours/worker/`
 - `docs/architecture/mobile.md` — Tracknotes architecture and source layout
 
-Runbooks: `docs/` (`gpx-import.md`, `trail-data-updates.md`, `mobile-test-build.md`) and `contours/docs/world-contours-remote-build.md`. Plans: `plans/`. Read `docs/privacy-policy.md`, `docs/data-residency.md` and `docs/content-legal-posture.md` before changing what the comments API or community routes store.
+Runbooks: `docs/` (`deploys.md`, `gpx-import.md`, `trail-data-updates.md`, `mobile-test-build.md`) and `contours/docs/world-contours-remote-build.md`. Plans: `plans/`. Read `docs/privacy-policy.md`, `docs/data-residency.md` and `docs/content-legal-posture.md` before changing what the comments API or community routes store.
 
 ## Hard rules
 
@@ -51,7 +51,7 @@ Each is explained where it lives; they are listed here because breaking one is s
 - **Route breaks:** anything that draws or climbs the route must respect `track.breaks` (`@lib/route-breaks`, `routeBreakStarts`).
 - **Stored plan km are NOBO-absolute** (main-route km, or an alternate's own km); always pass the stored plan to `planFromRoute`.
 - **The app informs the hiker's decisions; it never makes them.** Pace, hours per day, and judgement thresholds ("long carry", "dry stretch", food grams/day — `PlanThresholds` in `plan-types.ts`) are hiker inputs, never constants in a UI module. A default is fine only as the visible, editable initial value of an input; shared calculators require the figure rather than substituting one. These inputs are kept per device (web `PlanUiPrefs`, mobile `plan-inputs-store`), not in the synced `PlanDocument`.
-- **Deploying the comments API:** a merged change to `workers/comments-api/` is not live until someone runs `npm run migrate:remote && npm run deploy` there, from `main`. Shipped app builds call it, so deploy right after the merge and run the route probes in `docs/mobile-test-build.md` ("Full release", step 1) — `/health` answers while a new route 404s.
+- **Deploys run from GitHub Actions on merge to `main`** (`docs/deploys.md`): the comments API (migrations, deploy, `scripts/probe-comments-api.sh`) and the tile workers without a reviewer, trail data and descriptions once approved. A merged worker change is not live until its *Deploy comments API* run is green; shipped app builds call it. A migration that adds routes adds a probe to that script — `/health` answers while a new route 404s.
 
 ## Testing
 
