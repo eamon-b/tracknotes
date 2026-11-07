@@ -84,6 +84,7 @@ The app's own hosts are on the same domain: the comments API at `api.tracknotes.
   Linked from the planner's Resupply tab (`PlanViewerOptions.resupplyPageHref`) and from the trail pages beside "Plan this trail"
 - `trails/plan-sync-markup.ts` / `trails/plan-sync.css` - The one copy of the sync arm's link dialog and share panel (filled into `plan-shell.html` at `{{PLAN_SYNC_DIALOGS}}` by `inlinePlanShell`, mounted at runtime by the resupply page) and their styles (imported by `plan-page.css` and `resupply-page.css`)
 - `trails/plan-edit-queue.ts` - Keeps the planner and the resupply page, open side by side, from overwriting each other: each page records its edits as functions of the document (`PlanEditQueue.record`), replays its unsaved ones on a copy the other tab saved (`rebase`, on the `storage` event) and, at save time, on whatever storage holds if it moved since (`resolveForSave`), so it never writes a stale whole document.
+  The edits stay pending until a write succeeds (`saved`), so a failed save (storage full, an over-size plan) still replays them on the other tab's next save.
   Saves are debounced 800 ms, so both pages run a pending one on `pagehide` (`commitSave`, synchronous; a link, Back or closing the tab would otherwise lose the edit).
   The sync arm's request may not outlive the page, but the local copy is then newer than the server's, so the next boot read pushes it (`reconcile`), and a page back from the back/forward cache still counts it as unsynced.
   Prefs are saved as a patch onto the stored ones (`updatePlanUiPrefs`).

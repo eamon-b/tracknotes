@@ -75,12 +75,13 @@ export class PlanEditQueue {
    * The document to write, given what this page holds (`ours`) and what
    * storage holds now (`stored`): `ours` while storage is still the copy the
    * edits were made against (or holds nothing), else the stored copy with the
-   * edits replayed. Clears the edits; call {@link saved} once it is written.
+   * edits replayed. The edits stay pending until {@link saved} says the write
+   * succeeded: a write that fails (storage full, the plan over its limit) must
+   * not drop them, or the next save another tab makes would be adopted without
+   * them while this page still shows them.
    */
   resolveForSave(ours: PlanDocument, stored: PlanDocument | null): PlanDocument {
-    const next = stored === null || this.isBase(stored) ? ours : replayPlanEdits(stored, this.edits);
-    this.edits = [];
-    return next;
+    return stored === null || this.isBase(stored) ? ours : replayPlanEdits(stored, this.edits);
   }
 
   /** `doc` is now what storage holds, and nothing is pending. */
