@@ -877,3 +877,103 @@ describe('POI enrichment: second review', () => {
     }
   });
 });
+
+describe('migration 0011: re-run POI enrichment for the self-dedup flags (#286)', () => {
+  async function runMigration(): Promise<void> {
+    const migration = env.TEST_MIGRATIONS.find((m) => m.name.startsWith('0011_requeue_community_route_pois'));
+    expect(migration).toBeDefined();
+    for (const query of migration!.queries) await env.DB.prepare(query).run();
+  }
+
+  it('requeues answered routes, and the next run flags OSM’s own repeats', async () => {
+    const owner = await registerDevice();
+    const start = freshStart();
+    const route = await submitAt(owner, start);
+    await onlyCandidate(route.id);
+    await run(overpass([elementsResponse(elementsAlong(start))]));
+    const enriched = await row(route.id);
+    expect(enriched.pois_status).toBe('done');
+    expect(enriched.pois_due_at).toBeNull();
+
+    // Every other state the migration must leave alone, or treat as `done`.
+    const hidden = await submitAt(owner, freshStart());
+    const removed = await submitAt(owner, freshStart());
+    const skipped = await submitAt(owner, freshStart());
+    const failed = await submitAt(owner, freshStart());
+    const failedDue = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+    await env.DB.batch([
+      env.DB.prepare(
+        `UPDATE community_routes SET status = 'hidden', pois_status = 'done', pois_due_at = NULL WHERE id = ?`
+      ).bind(hidden.id),
+      env.DB.prepare(
+        `UPDATE community_routes SET status = 'removed', pois_status = 'done', pois_due_at = NULL WHERE id = ?`
+      ).bind(removed.id),
+      env.DB.prepare(`UPDATE community_routes SET pois_status = 'skipped', pois_due_at = NULL WHERE id = ?`).bind(
+        skipped.id
+      ),
+      env.DB.prepare(`UPDATE community_routes SET pois_status = 'failed', pois_due_at = ? WHERE id = ?`).bind(
+        failedDue,
+        failed.id
+      ),
+    ]);
+
+    await runMigration();
+
+    const requeued = await row(route.id);
+    expect(requeued.pois_due_at).toBe('');
+    expect(requeued.pois_attempts).toBe(0);
+    // Still served with its POIs until a run claims it.
+    expect(requeued.pois_status).toBe('done');
+    expect(requeued.md5).toBe(enriched.md5);
+    expect(requeued.updated_at).toBe(enriched.updated_at);
+    expect((await row(hidden.id)).pois_due_at).toBe('');
+    expect((await row(removed.id)).pois_due_at).toBeNull();
+    expect((await row(skipped.id)).pois_due_at).toBeNull();
+    expect((await row(failed.id)).pois_due_at).toBe(failedDue);
+
+    // OSM now has the supermarket twice: the re-run keeps one record of it.
+    const elements = elementsAlong(start) as { type: string; id: number; center?: { lat: number; lon: number } }[];
+    const store = elements.find((e) => e.type === 'way' && e.id === 4)!;
+    const repeat = {
+      type: 'node',
+      id: 7,
+      lat: store.center!.lat + 0.0001,
+      lon: store.center!.lon,
+      tags: { shop: 'supermarket', name: 'Corner Store' },
+    };
+    await onlyCandidate(route.id);
+    const fetchImpl = overpass([elementsResponse([...elements, repeat])]);
+    await run(fetchImpl);
+    expect(fetchImpl.calls).toHaveLength(1);
+
+    const after = await row(route.id);
+    expect(after.pois_status).toBe('done');
+    expect(after.pois_due_at).toBeNull();
+    expect(after.md5).not.toBe(enriched.md5);
+    const pois = (await storedTrail(after.r2_key as string)).pois as TrailPOI[];
+    const stores = pois.filter((p) => p.name === 'Corner Store');
+    expect(stores).toHaveLength(2);
+    expect(stores.filter((p) => p.duplicateOfPoi)).toHaveLength(1);
+  });
+
+  it('marks a requeued route whose POIs come out the same done without a rewrite', async () => {
+    const owner = await registerDevice();
+    const start = freshStart();
+    const route = await submitAt(owner, start);
+    await onlyCandidate(route.id);
+    await run(overpass([elementsResponse(elementsAlong(start))]));
+    const enriched = await row(route.id);
+
+    await runMigration();
+    await onlyCandidate(route.id);
+    const fetchImpl = overpass([elementsResponse(elementsAlong(start))]);
+    await run(fetchImpl);
+
+    expect(fetchImpl.calls).toHaveLength(1);
+    const after = await row(route.id);
+    expect(after.pois_status).toBe('done');
+    expect(after.pois_due_at).toBeNull();
+    expect(after.md5).toBe(enriched.md5);
+    expect(after.updated_at).toBe(enriched.updated_at);
+  });
+});

@@ -6,7 +6,7 @@ keep this file in step with the code it describes.
 
 ## Comments API Worker: community routes (`workers/comments-api/`)
 
-`src/community.ts` / `src/community-review.ts` (migrations `0005`, `0006`; `0009` for POIs): D1 `community_routes` + `community_route_reports`.
+`src/community.ts` / `src/community-review.ts` (migrations `0005`, `0006`; `0009` and `0011` for POIs): D1 `community_routes` + `community_route_reports`.
 A submit re-runs `@lib/community-checks` (with the uploaded GPX as `gpxText`, for the `speed` check) and stores *its* rebuilt trail, never the client's JSON, with `config` rewritten server-side (id, name, `source: 'community'`, country/states, description, CC0 `dataSource`).
 The bucket has no private area (all of it is served at `PHOTOS_PUBLIC_BASE`), so private objects live at unguessable keys recorded in the row and never returned: the canonical trail JSON at `community/private/<id>/<32 random hex>.json` (`private_key`) and the optional raw GPX (≤ 5 MB) beside it as `.gpx` (`gpx_key`; a file whose head is not `<gpx` is dropped, not refused).
 While a route is live, a public copy of the same bytes sits at `community/v1/<id>.<md5[0..12]>.json` (`r2_key`; `max-age=300`, so an edge copy outlives a hide by minutes, not a year).
@@ -88,6 +88,11 @@ A route whose stored POIs come out unchanged is marked done without a rewrite.
 Because the POIs live in the canonical private JSON, every republish keeps them: an owner's edit and a de-attribution re-store from it, a restore republishes it.
 `content_hash` is never recomputed, so the duplicate check is unaffected.
 Backfill: migration `0009` makes every stored route due, so after it is switched on each live route is republished once with its POIs (a new md5 and `updated_at` each).
+Re-run: migration `0011` makes every `done` route that is not removed due again (`pois_due_at = ''`, attempts and failures 0), so the cron re-runs the current passes over routes enriched before the POI self-dedup pass (#282, #286) and they get `duplicateOfPoi`.
+It costs one Overpass round per route, 3 routes a run;
+a route whose POIs come out the same is marked done without a rewrite, one that changed is republished (a new md5 and `updated_at`).
+A hidden route is requeued too, and waits until a restore makes it a candidate.
+Apply it after the code it re-runs is deployed, and reuse the same pattern (a migration that sets `pois_due_at = ''` on `done` routes) whenever a change to `finishTrailPois` should reach stored routes.
 
 **Which routes, in what order.**
 `pois_due_at` alone decides (index `idx_community_routes_pois_due` on `(pois_due_at, created_at, id)` where it is set, which serves both the range and the order; the query keeps the planner off the status index with `+status`): `''` for a route never tried, an ISO time once an attempt has claimed it (an hour on; further after failures, see below), NULL once it has an answer or was skipped;
@@ -179,7 +184,7 @@ The admin page is `src/web/admin-moderation.html` (unlinked, noindex, client `sr
 
 ## Comments API Worker: comment and waypoint review (`workers/comments-api/`)
 
-`src/content-review.ts` (migration `0010_content_review`, which shares its number with `0010_observed_at_day` — wrangler records migrations by file name, so both apply and neither may be renamed; the next one is `0011`: `review_status`, `review_json`, `review_requested_at` on `comments` and `shared_waypoints`, plain added columns so neither table is rebuilt).
+`src/content-review.ts` (migration `0010_content_review`, which shares its number with `0010_observed_at_day` — wrangler records migrations by file name, so both apply and neither may be renamed; the one after them is `0011_requeue_community_route_pois`: `review_status`, `review_json`, `review_requested_at` on `comments` and `shared_waypoints`, plain added columns so neither table is rebuilt).
 Its job is to take clearly bad or malicious posts down after **one** report rather than three.
 Two triggers claim a review (`claimContentReview`, one `UPDATE … RETURNING`, so concurrent reports claim it once; the claim leaves `updated_at` alone, so phones do not re-sync):
 
