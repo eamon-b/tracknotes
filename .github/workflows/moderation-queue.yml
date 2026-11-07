@@ -1,0 +1,60 @@
+name: Moderation queue
+
+# Daily: are reported or flagged posts waiting for an admin? Keeps one issue
+# (label `moderation-queue`) open with the counts while any are, and closes it
+# once the queue is empty, so GitHub's issue notifications are the alert. The
+# decisions stay on the moderation page; the issue carries counts only
+# (scripts/moderation-queue.ts). Setup: docs/deploys.md.
+
+on:
+  schedule:
+    - cron: '13 22 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: moderation-queue
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # The admin token lives in `production` (main only, no reviewer)
+    environment:
+      name: production
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - id: queue
+        env:
+          TRACKNOTES_ADMIN_TOKEN: ${{ secrets.TRACKNOTES_ADMIN_TOKEN }}
+        run: npx tsx scripts/moderation-queue.ts | tee "$RUNNER_TEMP/queue.md" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Open, update or close the issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COUNT: ${{ steps.queue.outputs.count }}
+        run: |
+          label=moderation-queue
+          gh label create "$label" --color D93F0B --description 'Posts waiting on the moderation page' 2>/dev/null || true
+          open=$(gh issue list --label "$label" --state open --json number --jq '.[0].number // empty')
+          if [ "$COUNT" -gt 0 ]; then
+            if [ -n "$open" ]; then
+              gh issue edit "$open" --body-file "$RUNNER_TEMP/queue.md"
+            else
+              gh issue create --label "$label" --title 'Posts are waiting for moderation' --body-file "$RUNNER_TEMP/queue.md"
+            fi
+          elif [ -n "$open" ]; then
+            gh issue close "$open" --comment 'The moderation queue is empty.'
+          fi

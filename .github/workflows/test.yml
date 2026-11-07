@@ -42,6 +42,19 @@ jobs:
       - run: npm run sync:te-araroa
       - run: npm run build:trails
       - run: npm run build:mobile-trails
+      # `build` only fetches climate for a trail with no climate.json, so a location
+      # added or moved in trail.json would otherwise keep its old data, or none
+      - name: Check the climate data answers every configured location
+        run: npx tsx scripts/fetch-climate.ts --check
+      # The app bundles copies of the map styles (`npm run sync:style`)
+      - name: Check the app's map styles match scripts/
+        run: |
+          for style in topo-style topo-style-dark; do
+            if ! cmp -s "scripts/$style.json" "mobile/assets/$style.json"; then
+              echo "::error::mobile/assets/$style.json differs from scripts/$style.json. Run npm run sync:style and commit the result."
+              exit 1
+            fi
+          done
       - name: Check the committed trail data is up to date
         run: |
           if [ -n "$(git status --porcelain)" ]; then

@@ -15,7 +15,7 @@ Keep the path off the summit spot (a line ending on a dot reads as a pin) and th
 
 - **Map**: MapLibre React Native.
   Style objects are resolved before mount via `src/services/online-style-service.ts` (online) or `tileManager.getOfflineStyle()` (offline);
-  the bundled base style is `mobile/assets/topo-style.json`, synced from `scripts/topo-style.json` with root `npm run sync:style`.
+  the bundled base style is `mobile/assets/topo-style.json`, synced from `scripts/topo-style.json` with root `npm run sync:style` (CI's `trail-data` job fails when a copy differs).
   Contours come from `EXPO_PUBLIC_CONTOUR_TILE_URL`, always from the worker's `world` source (Copernicus GLO-30, Australia included; `CONTOUR_SOURCE` in `online-style-service.ts`), and offline packs are cut from the same DEM, so the credit line (`credits.CONTOURS_LINE`) names only Copernicus GLO-30 with its © DLR / Airbus / COPERNICUS notice.
   Builds before #228 asked for the `contours` (SRTM Australia) source for Australian trails;
   the worker keeps `contours` as an alias of `world` for them, since there are no OTA updates.

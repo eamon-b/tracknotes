@@ -103,7 +103,8 @@ Its route, waypoints and resupply points are built in [te-araroa-data](https://g
 this repo takes them as a devDependency pinned by `package-lock.json`.
 `npm run sync:te-araroa` copies the file `trail.json` names as `gpxFile` (`te-araroa-sobo.gpx`) out of `node_modules` into `data/trails/te_araroa/`, where it is gitignored — only `trail.json` and `climate.json` are committed.
 `npm run build` runs the sync first, so a fresh clone (or Vercel) builds without a manual step.
-`npm update te-araroa-data` takes a newer build (and updates the lockfile pin).
+`npm update te-araroa-data` takes a newer build (and updates the lockfile pin);
+the weekly *Te Araroa data* workflow does that, rebuilds, and opens a PR when upstream has moved (`docs/deploys.md`).
 The sync refuses, naming the fix, when the package is missing from this checkout's own `node_modules` (a parent checkout's copy no longer counts), or is installed at another git commit than `package-lock.json` pins (`npm ci`);
 so `npm install --no-save te-araroa-data@<ref>` to try another upstream build now fails unless it matches the pin — update the pin with `npm install te-araroa-data@<ref>` instead, or install a local checkout by path (`npm install --no-save ../te-araroa-data`), which is not compared.
 `build:trails` refuses a synced GPX that is missing or differs from the installed package's (`npm run sync:te-araroa`), since the gitignored copy survives `npm ci`.

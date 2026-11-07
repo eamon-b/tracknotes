@@ -16,6 +16,10 @@ Deployed on Cloudflare Pages (project `aus-contour-tiles`), served at
 npx wrangler pages deploy contours/site --project-name aus-contour-tiles
 ```
 
+The *Deploy contours site* workflow runs that (with `--branch main`, the
+project's production branch) after every merge that changes `contours/site/`
+(`docs/deploys.md`).
+
 The three public hostnames on the `contour-map-tiles.net` zone:
 
 | Hostname | Serves |

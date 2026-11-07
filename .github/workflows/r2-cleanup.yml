@@ -1,0 +1,94 @@
+name: R2 cleanup
+
+# Superseded objects in the tracknotes-data bucket: the offline pack files each
+# `upload:tiles` leaves behind, and the trail files each `publish:trail-data`
+# leaves behind (scripts/cleanup-superseded-tiles.ts, `--trail-data`). Weekly it
+# lists what would go, in the run summary, and deletes nothing. Deleting is a
+# manual run with `delete` ticked, which waits for approval of `production-data`.
+# Setup (the R2 access keys): docs/deploys.md.
+
+on:
+  schedule:
+    - cron: '7 3 * * 4'
+  workflow_dispatch:
+    inputs:
+      delete:
+        description: 'Delete what the dry run lists (asks for approval)'
+        type: boolean
+        default: false
+
+concurrency:
+  group: r2-cleanup
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+# rclone's `r2` remote, set in the steps that use it (keys never reach npm ci)
+env:
+  RCLONE_CONFIG_R2_TYPE: s3
+  RCLONE_CONFIG_R2_PROVIDER: Cloudflare
+
+jobs:
+  # Read-only key: lists the bucket and reads the manifests and catalog
+  plan:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq rclone
+      - name: Offline packs
+        env:
+          RCLONE_CONFIG_R2_ENDPOINT: https://${{ secrets.CLOUDFLARE_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          RCLONE_CONFIG_R2_ACCESS_KEY_ID: ${{ secrets.R2_READ_ACCESS_KEY_ID }}
+          RCLONE_CONFIG_R2_SECRET_ACCESS_KEY: ${{ secrets.R2_READ_SECRET_ACCESS_KEY }}
+        run: |
+          { echo '### Offline packs'; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          npm run -s cleanup:tiles | tee -a "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+      - name: Trail data
+        env:
+          RCLONE_CONFIG_R2_ENDPOINT: https://${{ secrets.CLOUDFLARE_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          RCLONE_CONFIG_R2_ACCESS_KEY_ID: ${{ secrets.R2_READ_ACCESS_KEY_ID }}
+          RCLONE_CONFIG_R2_SECRET_ACCESS_KEY: ${{ secrets.R2_READ_SECRET_ACCESS_KEY }}
+        run: |
+          { echo '### Trail data'; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          npm run -s cleanup:tiles -- --trail-data | tee -a "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+  # Re-plans against the bucket as it is when approved, then deletes
+  delete:
+    needs: plan
+    if: inputs.delete
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: production-data
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq rclone
+      - name: Delete
+        env:
+          RCLONE_CONFIG_R2_ENDPOINT: https://${{ secrets.CLOUDFLARE_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          RCLONE_CONFIG_R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          RCLONE_CONFIG_R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          npm run -s cleanup:tiles -- --delete
+          npm run -s cleanup:tiles -- --trail-data --delete

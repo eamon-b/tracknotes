@@ -1,0 +1,76 @@
+name: Deploy contours site
+
+# Deploys contours/site/ (the public contour dataset's docs and demo page) to
+# Cloudflare Pages, project `aus-contour-tiles` (contour-map-tiles.net), after a
+# merge that changes it. Runbook and setup: docs/deploys.md.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - contours/site/**
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-contours-site
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  # As in Deploy comments API: an old or overtaken run never puts an older page back
+  head:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      current: ${{ steps.head.outputs.current }}
+    steps:
+      - id: head
+        env:
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          head=$(gh api "repos/$REPO/commits/main" --jq .sha)
+          if [ "$head" = "$GITHUB_SHA" ]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::main is at $head, past $GITHUB_SHA: that commit's run deploys. Nothing deployed here."
+            echo "current=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy:
+    needs: head
+    if: needs.head.outputs.current == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: production
+      url: https://contour-map-tiles.net
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      # wrangler is a root devDependency
+      - run: npm ci
+      - name: Deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        # `main` is the project's production branch
+        run: npx wrangler pages deploy contours/site --project-name aus-contour-tiles --branch main --commit-hash "$GITHUB_SHA"
+      - name: Check the page answers
+        run: |
+          for i in 1 2 3 4 5 6; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 https://contour-map-tiles.net/)
+            if [ "$code" = 200 ]; then echo "ok   200 https://contour-map-tiles.net/"; exit 0; fi
+            sleep 10
+          done
+          echo "::error::https://contour-map-tiles.net/ answered $code"
+          exit 1

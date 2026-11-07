@@ -68,8 +68,10 @@ same way. To check by hand, add a query string: `curl
 its content. A new version is written to a new key and never overwrites the
 bytes an already-published catalog points at. A phone that read the old
 catalog a moment before a publish still downloads intact old files. Old
-objects are left in the bucket. Cleaning them up is manual: keep every key the
-live catalog lists, and delete the rest.
+objects are left in the bucket until `npm run cleanup:tiles -- --trail-data`
+deletes the files the live catalog no longer lists, a week after that catalog
+was published. The *R2 cleanup* workflow lists them weekly and deletes them on
+a manual run (`docs/deploys.md`).
 
 **The catalog goes last.** The publish uploads the new trail files first and
 the catalog after them, the same way `upload-tiles.sh` uploads its manifests

@@ -10,6 +10,7 @@
  */
 
 import type { AdminComment, AdminCommentReport, AdminSharedWaypoint, ContentReview } from '@lib/comments-api-types';
+import { needsAttention, type ModeratedRow } from '@lib/moderation-attention';
 import { safeHttpUrl } from '@lib/poi-display';
 import { ApiError, NetworkError, getApiBase } from './api/client';
 import {
@@ -24,6 +25,9 @@ import {
 import { clearSession, loadSession, type WebSession } from './api/session';
 import { renderLinkForm } from './link-browser';
 import { escapeHtml } from './web-utils';
+
+/** The rule lives in `@lib/moderation-attention`, shared with the daily moderation check. */
+export { needsAttention };
 
 function $(id: string): HTMLElement {
   const node = document.getElementById(id);
@@ -89,27 +93,7 @@ export function reviewHtml(review: ContentReview | null): string {
   }</span></dd>`;
 }
 
-interface Moderated {
-  deletedBy: DeletedBy;
-  restoredAt: string | null;
-  reportCount: number;
-  review: ContentReview | null;
-}
-
-/**
- * Hidden provisionally, or live with a review that wants a human (or would
- * remove it, below the hide threshold): the row needs an admin. A restore or
- * Keep (`restoredAt`) settles the review.
- */
-export function needsAttention(row: Moderated): boolean {
-  return (
-    row.deletedBy === 'reports' ||
-    (row.deletedBy === null &&
-      row.restoredAt === null &&
-      row.review?.verdict !== undefined &&
-      row.review.verdict !== 'keep')
-  );
-}
+type Moderated = ModeratedRow;
 
 /**
  * A live row an admin can Keep: the restore endpoint on a live post sets

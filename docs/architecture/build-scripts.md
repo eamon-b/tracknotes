@@ -53,6 +53,8 @@ keep this file in step with the code it describes.
   `lib/te-araroa-package.ts` holds the checks, and each failure names its fix: the package must be in this checkout's own `node_modules` at the commit `package-lock.json` pins (`npm ci`) — Node's resolution walks up, so a worktree under `.claude/worktrees/` without it used to copy the main checkout's copy, another commit, and exit 0 — and `build:trails` refuses a synced GPX that is missing or differs from the installed package's (`npm run sync:te-araroa`), since the gitignored copy outlives the install it came from
 - `build-region-shapes.ts` - `npm run build:region-shapes`: regenerates `src/lib/region-shapes.ts` (coarse Natural Earth outlines for `@lib/region-detect`) from the regions in `src/lib/trail-regions.ts`
 - `fetch-climate.ts` - Fetches historical climate data for trail locations
+  `--check` fetches nothing and exits 1 when a trail's `climate.json` is missing or does not answer every `climateLocations` entry (`staleClimateLocations`: one added, moved or re-elevated, or data for one no longer configured), which `build` does not catch since it only fills trails with no file;
+  CI's `trail-data` job runs it, and the fix is `npm run fetch:climate -- --changed`.
 - `fetch-elevation.ts` - Fetches elevation data
 - `fetch-pois.ts` - Fetches OSM POIs along each trail corridor (`npm run fetch:pois [trail-id]`) through `@lib/osm-poi`, `@lib/overpass-client` and `@lib/poi-enrichment` — the `src/lib` port of the `gpx-tools` search, which the phone runs too, held to that library byte for byte by `scripts/osm-poi-parity.test.ts`.
   Reads track geometry from `public/data/generated/{id}.json` (so `build:trails` must have run) and writes the results to `data/trails/<dir>/pois.json` — in the repo, where a rebuild cannot wipe them.
@@ -113,7 +115,9 @@ keep this file in step with the code it describes.
   The grace (`--grace-days`, 7) runs from when the object was superseded: a prefix whose manifest is younger than it is skipped, and an object younger than it (an upload in progress) is kept.
   Never touches a prefix whose manifest it cannot read, sub-directories, other files or other prefixes.
   Dry run by default, `--delete` deletes;
-  `--world-build` does the same over `contours/world-build/`, refusing unless `contours/world.pmtiles` is newer than everything under it
+  `--world-build` does the same over `contours/world-build/`, refusing unless `contours/world.pmtiles` is newer than everything under it;
+  `--trail-data` does it over `trails/v1/` (`planTrailDataCleanup`): the trail files the live `catalog.json` does not list by `key`, once the catalog is past the grace, refusing a catalog it cannot read or that lists no trails.
+  The *R2 cleanup* workflow dry-runs both weekly; deleting is a manual run (`docs/deploys.md`)
 - `download-dem.sh` - Downloads SRTM 1-arc-second DEM tiles for one trail from NASA EarthData (an EarthData account is required) into `data/dem/` (the SRTM cache `tile-pipeline.ts` reads as `DEM_CACHE_DIR`, and `contour-experiment.ts`'s default).
   Since #228 the online `world` archive and the offline packs' contours come from Copernicus GLO-30 instead
 - `tile-pipeline.ts` - Orchestrates the full tile generation pipeline
@@ -139,6 +143,10 @@ keep this file in step with the code it describes.
   `v1` is the trail JSON format: a breaking shape change publishes under `v2` and leaves v1 frozen for old app builds
 - `upload-descriptions.ts` - PUTs curated waypoint descriptions to the comments API (`npm run upload:descriptions`, admin token in `$TRACKNOTES_ADMIN_TOKEN`; `--dry-run` prints the requests)
   The *Upload waypoint descriptions* workflow runs it after a merge that changes a `descriptions.json`, once approved (`docs/deploys.md`), as *Publish trail data* runs `publish-trail-data.ts`.
+- `dependency-audit.ts` - `npm run audit:deps`: `npm audit` over the root, `mobile/`, `workers/comments-api` and `contours/worker` lockfiles as one report (`severeFindings`), failing only on a high or critical advisory `npm audit fix` can fix without a breaking change.
+  Run monthly by *Dependency audit* (`docs/deploys.md`)
+- `moderation-queue.ts` - Counts the reported or flagged comments and shared waypoints waiting for an admin (`needsAttention`, `@lib/moderation-attention`, the moderation page's own rule) from the admin listings, with `$TRACKNOTES_ADMIN_TOKEN`; prints counts only, never post content.
+  Run daily by *Moderation queue*, which keeps an issue open while any wait
 - `probe-comments-api.sh` - `scripts/probe-comments-api.sh [base-url]`: checks the deployed comments API answers `/health` and one route from each migration that added routes with the status it gives once deployed, retrying for a minute; exits 1 on any miss.
   Run by *Deploy comments API* after each deploy, and by hand before a build (`docs/mobile-test-build.md`).
 - `measure-community-poi-cpu.ts` - `npx tsx scripts/measure-community-poi-cpu.ts [trail-id...]` (after `build:trails`): times each CPU step of the comments API's community-route POI enrichment on bundled trails standing in for community routes, with their real POIs and a synthetic answer at the enrichment's cap — the numbers to weigh against the Workers plan's CPU limit (`workers.md`, "community route POIs").

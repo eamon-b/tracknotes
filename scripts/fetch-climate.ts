@@ -12,6 +12,10 @@
  *   - With --changed: re-fetches only the locations that are new or whose
  *     lat/lon/elevation changed in trail.json, reusing the rest. Open-Meteo's
  *     quota is tight enough that a whole-trail --force can run out mid-trail.
+ *   - With --check: fetches nothing, and exits 1 when a trail's climate.json
+ *     is missing or does not answer its configured locations (what --changed
+ *     would re-fetch or drop). CI runs it, since `build` only fills trails
+ *     that have no file at all.
  *   - With trail-id: processes only that trail
  *
  * A trail is only written when every configured location was fetched (or
@@ -229,6 +233,38 @@ export function storedElevation(
   return apiElevation;
 }
 
+/**
+ * What `--changed` would fix in a trail's stored climate: configured locations
+ * no stored entry answers (new, moved, renamed, or re-elevated), and stored
+ * entries no configured location uses any more. Empty when it is current.
+ */
+export function staleClimateLocations(
+  configured: readonly ClimateLocation[],
+  stored: readonly ClimateLocationData[]
+): { missing: string[]; unused: string[] } {
+  return {
+    missing: configured.filter(loc => !stored.some(s => isUnchanged(loc, s))).map(loc => loc.name),
+    unused: stored.filter(s => !configured.some(loc => isUnchanged(loc, s))).map(s => s.name),
+  };
+}
+
+/** `--check` for one trail: problems found, as lines to print (none when current). */
+function checkTrail(trailDir: string): string[] {
+  const configPath = path.join(trailDir, 'trail.json');
+  if (!fs.existsSync(configPath)) return [];
+  const config: TrailConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+  const configured = config.climateLocations ?? [];
+  if (configured.length === 0) return [];
+  const climatePath = path.join(trailDir, CLIMATE_FILENAME);
+  if (!fs.existsSync(climatePath)) return [`${config.id}: no ${CLIMATE_FILENAME}`];
+  const stored = (JSON.parse(fs.readFileSync(climatePath, 'utf-8')) as TrailClimate).locations ?? [];
+  const { missing, unused } = staleClimateLocations(configured, stored);
+  return [
+    ...missing.map(name => `${config.id}: "${name}" is configured but has no matching data`),
+    ...unused.map(name => `${config.id}: "${name}" has data but is no longer configured`),
+  ];
+}
+
 async function processTrail(trailDir: string, mode: FetchMode): Promise<boolean> {
   const trailName = path.basename(trailDir);
   const configPath = path.join(trailDir, 'trail.json');
@@ -359,7 +395,8 @@ async function main() {
   const force = args.includes('--force');
   const changed = args.includes('--changed');
   const mode: FetchMode = changed ? 'changed' : force ? 'force' : 'missing';
-  const trailArgs = args.filter(arg => arg !== '--force' && arg !== '--changed');
+  const check = args.includes('--check');
+  const trailArgs = args.filter(arg => arg !== '--force' && arg !== '--changed' && arg !== '--check');
   const specificTrail = trailArgs[0];
 
   if (force) {
@@ -407,6 +444,18 @@ async function main() {
 
   if (trailDirs.length === 0) {
     console.log('\nNo trail directories found to process.');
+    return;
+  }
+
+  if (check) {
+    const problems = trailDirs.flatMap(checkTrail);
+    for (const line of problems) console.log(`  ${line}`);
+    if (problems.length > 0) {
+      console.log(`\nClimate data is stale: run \`npm run fetch:climate -- --changed\` and commit the result.`);
+      process.exitCode = 1;
+    } else {
+      console.log(`\nClimate data answers every configured location (${trailDirs.length} trail directories).`);
+    }
     return;
   }
 

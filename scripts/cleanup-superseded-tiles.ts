@@ -6,6 +6,7 @@
  *   npm run cleanup:tiles -- --grace-days 14    # keep anything newer than 14 days (default 7)
  *   npm run cleanup:tiles -- --world-build      # dry run over contours/world-build/ instead
  *   npm run cleanup:tiles -- --world-build --delete
+ *   npm run cleanup:tiles -- --trail-data       # dry run over trails/v1/ instead
  *
  * `upload-tiles.sh` writes each pack file at a content-addressed key
  * (`base.<sha256[0..12]>.mbtiles`) and publishes the manifest last, so a
@@ -33,6 +34,13 @@
  * It refuses unless `contours/world.pmtiles` is newer than everything under
  * the prefix, and keeps what is younger than the grace.
  *
+ * `--trail-data` lists `trails/v1/`, where `publish-trail-data.ts` writes each
+ * trail file at a content-addressed key (`<id>.<md5[0..12]>.json`) and the
+ * catalog last, so every publish that changes a trail leaves its previous file
+ * behind. It deletes the trail files the live `catalog.json` does not list,
+ * once that catalog has been live for the grace, and never the catalog itself
+ * or anything not shaped like a trail file.
+ *
  * Dry run by default; `--delete` deletes. Needs rclone with an R2 remote
  * (`RCLONE_REMOTE`, default `r2`; Object Read & Write on the bucket) — the
  * same remote `upload-tiles.sh` uses for packs over wrangler's size limit.
@@ -42,6 +50,7 @@
 import * as path from 'path';
 import { spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
+import { CATALOG_KEY, TRAIL_DATA_PREFIX } from './lib/trail-data-catalog.js';
 
 const __filename = fileURLToPath(import.meta.url);
 
@@ -207,6 +216,68 @@ export function planWorldBuildCleanup(
   return plan;
 }
 
+export interface TrailDataPlan {
+  delete: BucketObject[];
+  /** Unlisted trail files inside the grace, kept. */
+  keptRecent: BucketObject[];
+  /** Why nothing may be deleted: the catalog cannot be trusted (an error). */
+  refused?: string;
+  /** Why nothing is deleted yet: the catalog is inside the grace (not an error). */
+  waiting?: string;
+}
+
+/** A trail file's key under the prefix: `<id>.<md5[0..12]>.json`. */
+const TRAIL_FILE = /^[A-Za-z0-9_-]{1,64}\.[0-9a-f]{12}\.json$/;
+
+/**
+ * Which of `trails/v1/` to delete: the trail files the live catalog does not
+ * list (its entries' `key`). As for packs, the grace runs from the publish that
+ * dropped them, so nothing goes while the catalog is younger than the grace (a
+ * phone that read the previous catalog may still be downloading), and nothing
+ * younger than the grace goes either (a publish still uploading, whose catalog
+ * comes last). A catalog that cannot be read, or lists no trails, refuses the
+ * run: every file would look unlisted.
+ */
+export function planTrailDataCleanup(
+  objects: BucketObject[],
+  catalog: unknown,
+  options: { now: number; graceDays: number }
+): TrailDataPlan {
+  const plan: TrailDataPlan = { delete: [], keptRecent: [] };
+  const prefix = `${TRAIL_DATA_PREFIX}/`;
+  if (catalog instanceof Error) return { ...plan, refused: `cannot read ${CATALOG_KEY}: ${catalog.message}` };
+  const trails = (catalog as { trails?: unknown })?.trails;
+  if (!Array.isArray(trails) || trails.length === 0) return { ...plan, refused: `${CATALOG_KEY} lists no trails` };
+  const listed = new Set<string>();
+  for (const trail of trails) {
+    const key = (trail as { key?: unknown })?.key;
+    if (typeof key !== 'string' || !TRAIL_FILE.test(key)) {
+      return { ...plan, refused: `${CATALOG_KEY} has an entry without a valid key: ${JSON.stringify(trail)}` };
+    }
+    listed.add(key);
+  }
+  const cutoff = options.now - options.graceDays * 86_400_000;
+  const catalogObject = objects.find(o => o.path === CATALOG_KEY);
+  const published = catalogObject ? Date.parse(catalogObject.modTime) : NaN;
+  if (!Number.isFinite(published) || published > cutoff) {
+    return {
+      ...plan,
+      waiting:
+        `${CATALOG_KEY} published ${catalogObject?.modTime.slice(0, 10) ?? 'at an unknown time'}, ` +
+        `inside the ${options.graceDays}-day grace`,
+    };
+  }
+  for (const o of objects) {
+    if (!o.path.startsWith(prefix)) continue;
+    const name = o.path.slice(prefix.length);
+    if (!TRAIL_FILE.test(name) || listed.has(name)) continue;
+    const modified = Date.parse(o.modTime);
+    if (!Number.isFinite(modified) || modified > cutoff) plan.keptRecent.push(o);
+    else plan.delete.push(o);
+  }
+  return plan;
+}
+
 function formatBytes(bytes: number): string {
   if (bytes >= 1e9) return `${(bytes / 1e9).toFixed(2)} GB`;
   if (bytes >= 1e6) return `${(bytes / 1e6).toFixed(1)} MB`;
@@ -228,6 +299,14 @@ function listObjects(prefix = '', { recursive = true } = {}): BucketObject[] {
     rclone(['lsjson', ...(recursive ? ['-R'] : []), '--files-only', `${RCLONE_REMOTE}:${BUCKET}/${prefix}`])
   ) as Array<{ Path: string; Size: number; ModTime: string }>;
   return entries.map(e => ({ path: prefix + e.Path, size: e.Size, modTime: e.ModTime }));
+}
+
+function readCatalog(): unknown {
+  try {
+    return JSON.parse(rclone(['cat', `${RCLONE_REMOTE}:${BUCKET}/${CATALOG_KEY}`]));
+  } catch (e) {
+    return e instanceof Error ? e : new Error(String(e));
+  }
 }
 
 function readManifest(prefix: string): unknown {
@@ -253,25 +332,28 @@ interface Args {
   delete: boolean;
   graceDays: number;
   worldBuild: boolean;
+  trailData: boolean;
 }
 
 function parseArgs(argv: string[]): Args {
-  const args: Args = { delete: false, graceDays: DEFAULT_GRACE_DAYS, worldBuild: false };
+  const args: Args = { delete: false, graceDays: DEFAULT_GRACE_DAYS, worldBuild: false, trailData: false };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === '--delete') args.delete = true;
     else if (arg === '--world-build') args.worldBuild = true;
+    else if (arg === '--trail-data') args.trailData = true;
     else if (arg === '--grace-days') {
       const days = Number(argv[++i]);
       if (!Number.isFinite(days) || days < 0) throw new Error('--grace-days takes a number of days ≥ 0');
       args.graceDays = days;
     } else if (arg === '--help' || arg === '-h') {
-      console.log('Usage: npm run cleanup:tiles -- [--delete] [--grace-days N] [--world-build]');
+      console.log('Usage: npm run cleanup:tiles -- [--delete] [--grace-days N] [--world-build | --trail-data]');
       process.exit(0);
     } else {
       throw new Error(`Unknown argument: ${arg}`);
     }
   }
+  if (args.worldBuild && args.trailData) throw new Error('--world-build and --trail-data are separate runs');
   return args;
 }
 
@@ -290,6 +372,30 @@ function main(): void {
     }
     const total = plan.delete.reduce((a, o) => a + o.size, 0);
     console.log(`${mode}: ${plan.delete.length} objects (${formatBytes(total)}) under ${BUCKET}/${WORLD_BUILD_PREFIX}`);
+    printObjects(plan.delete);
+    if (args.delete) deleteObjects(plan.delete);
+    return;
+  }
+
+  if (args.trailData) {
+    const prefix = `${TRAIL_DATA_PREFIX}/`;
+    const plan = planTrailDataCleanup(listObjects(prefix, { recursive: false }), readCatalog(), {
+      now: Date.now(),
+      graceDays: args.graceDays,
+    });
+    if (plan.refused) throw new Error(`not deleting under ${prefix}: ${plan.refused}`);
+    if (plan.waiting) {
+      console.log(`Nothing to delete under ${BUCKET}/${prefix} yet: ${plan.waiting}`);
+      return;
+    }
+    if (plan.keptRecent.length > 0) {
+      console.log(`Unlisted but newer than ${args.graceDays} days, kept (${plan.keptRecent.length}):`);
+      printObjects(plan.keptRecent);
+    }
+    const total = plan.delete.reduce((a, o) => a + o.size, 0);
+    console.log(
+      `${mode}: ${plan.delete.length} superseded trail files (${formatBytes(total)}) under ${BUCKET}/${prefix}`
+    );
     printObjects(plan.delete);
     if (args.delete) deleteObjects(plan.delete);
     return;

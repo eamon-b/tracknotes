@@ -1,6 +1,6 @@
-# Deploys from GitHub Actions
+# Deploys and scheduled jobs in GitHub Actions
 
-Four workflows deploy or publish from `main` after a merge, so none of these is a manual step any more.
+Five workflows deploy or publish from `main` after a merge, so none of these is a manual step any more.
 The site is not among them: Vercel builds `main` on push.
 
 | Workflow | Runs on a push to `main` that changes | Does | Environment |
@@ -9,6 +9,7 @@ The site is not among them: Vercel builds `main` on push.
 | `deploy-tile-workers.yml` | `contours/worker/**` | the worker's tests and `tsc`, `wrangler deploy` (tiles.contour-map-tiles.net) and `wrangler deploy --env app` (tiles.tracknotes.info), then both `/health` | `production` |
 | `publish-trail-data.yml` | `mobile/assets/trails/**` | a dry run of `publish:trail-data`, then, once approved, the publish and `--check` | `production-data` |
 | `upload-descriptions.yml` | `data/trails/*/descriptions.json` | a dry run of `upload:descriptions` against the live API, then, once approved, the upload | `production-data` |
+| `deploy-contours-site.yml` | `contours/site/**` | `wrangler pages deploy` to the `aus-contour-tiles` Pages project (contour-map-tiles.net), then checks the page answers | `production` |
 
 Each also has *Run workflow* (Actions → the workflow), for a re-deploy or a first run;
 it runs from `main` only.
@@ -50,21 +51,45 @@ What still needs a person:
 - Approving trail data and description runs.
 - A worker change and the description or trail data change that needs it, merged together: the workflows run side by side, so approve the data run only once *Deploy comments API*'s `deploy` job has succeeded.
 
+## Scheduled jobs
+
+These run on a schedule (UTC), and each has *Run workflow* too.
+A failed scheduled run emails whoever last changed its schedule, so a red run is the reminder.
+
+| Workflow | When | Does | Needs a person when |
+| --- | --- | --- | --- |
+| `moderation-queue.yml` | daily | counts the reported or flagged posts waiting for an admin (`scripts/moderation-queue.ts`, the rule the moderation page highlights with, `@lib/moderation-attention`), and keeps one issue labelled `moderation-queue` open with the counts while any wait, closing it when none do | the issue is open: decide them on the moderation page |
+| `te-araroa-data.yml` | weekly, Tuesday | when te-araroa-data's `main` has moved past the commit `package-lock.json` pins, runs `npm update te-araroa-data` and the trail rebuild, and opens or force-updates a PR from `automation/te-araroa-data` | the PR is open: review the rebuilt Te Araroa data and merge it (*Publish trail data* follows) |
+| `r2-cleanup.yml` | weekly, Thursday | dry runs of `cleanup:tiles` (superseded pack files) and `cleanup:tiles -- --trail-data` (superseded trail files), listed in the summary | to delete: *Run workflow* with `delete` ticked, then approve `production-data`; it re-plans against the bucket before deleting |
+| `dependency-audit.yml` | monthly, the 3rd | `npm run audit:deps` (`npm audit` over all four packages, failing only on a high or critical advisory with a non-breaking fix), and under `mobile/` `npx expo install --check` and `npx expo-doctor` | it is red: `npm audit fix`, or `npx expo install --fix` in `mobile/` then the device check in `mobile/CLAUDE.md` |
+
+Dependabot (`.github/dependabot.yml`) opens update PRs monthly: one grouped PR per package for minor and patch updates, one per major, and one for the Actions versions.
+It leaves the Expo SDK's packages to `npx expo install`, and te-araroa-data and gpx-tools to their own updates.
+Under `mobile/` the audit lists advisories whose only "fix" npm offers is an older Expo SDK (an advisory in `@expo/cli`) without failing: only the next SDK upgrade clears those.
+
 ## Setup
 
-Both environments are under Settings → Environments.
+Both environments are under Settings → Environments, and the repository secrets under Settings → Secrets and variables → Actions.
 Restrict each one's *Deployment branches and tags* to `main`, so no other branch's workflow can read its secrets.
 
-**`production`** (the workers), no required reviewers:
+**`production`** (the workers, the contours site and the moderation check), no required reviewers:
 
-- `CLOUDFLARE_API_TOKEN`: a token from Cloudflare's *Edit Cloudflare Workers* template, plus *Account → D1 → Edit* (migrations), limited to the account, with zone resources `tracknotes.info` and `contour-map-tiles.net` (the Workers' custom domains).
+- `CLOUDFLARE_API_TOKEN`: a token from Cloudflare's *Edit Cloudflare Workers* template, plus *Account → D1 → Edit* (migrations) and *Account → Cloudflare Pages → Edit* (the contours site), limited to the account, with zone resources `tracknotes.info` and `contour-map-tiles.net` (the Workers' custom domains).
 - `CLOUDFLARE_ACCOUNT_ID`.
+- `TRACKNOTES_ADMIN_TOKEN`: the comments API's admin bearer token, which the daily moderation check reads the queue with.
 
 **`production-data`** (trail data and descriptions), with yourself as a required reviewer:
 
 - `CLOUDFLARE_API_TOKEN`: a token with *Account → Workers R2 Storage → Edit*, limited to the account (`publish:trail-data` puts objects with `wrangler r2 object put`).
 - `CLOUDFLARE_ACCOUNT_ID`.
 - `TRACKNOTES_ADMIN_TOKEN`: the comments API's admin bearer token.
+- `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY`: an R2 API token's S3 keys with *Object Read & Write* on `tracknotes-data`, for *R2 cleanup*'s deletes.
+
+**Repository secrets** (no environment, so scheduled runs need no approval):
+
+- `CLOUDFLARE_ACCOUNT_ID`, for the R2 endpoint in *R2 cleanup*'s dry run.
+- `R2_READ_ACCESS_KEY_ID` and `R2_READ_SECRET_ACCESS_KEY`: an R2 API token's S3 keys with *Object Read only* on `tracknotes-data`, for that dry run.
+- `AUTOMATION_TOKEN` (optional): a fine-grained personal access token for this repository with *Contents* and *Pull requests* read and write. *Te Araroa data* pushes and opens its PR with it, so the PR runs CI. A PR opened with the workflow's own token runs no workflows, so without it the PR has no checks, and GitHub must be allowed to open it at all (Settings → Actions → General → *Allow GitHub Actions to create and approve pull requests*).
 
 Give each token an expiry you will notice, and replace it in the environment before then.
 A personal `wrangler login` still works for anything run by hand.
