@@ -1,0 +1,82 @@
+# Dependency update PRs, monthly, one grouped PR per package for minor and
+# patch updates (majors come one per dependency). The Dependency audit workflow
+# covers what this leaves out. Runbook: docs/deploys.md ("Scheduled jobs").
+#
+# Left alone here:
+# - te-araroa-data and gpx-tools, the repo's own GitHub dependencies: the
+#   Te Araroa data workflow bumps te-araroa-data with its rebuilt trail data, and
+#   a gpx-tools bump has to keep scripts/osm-poi-parity.test.ts passing.
+# - Under mobile/, everything the Expo SDK pins: it moves only with
+#   `npx expo install` (mobile/CLAUDE.md), never package by package.
+#
+# The repo merges by rebase only, which Dependabot's branches suit (no merge commits).
+
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: te-araroa-data
+      - dependency-name: gpx-tools
+    groups:
+      root-minor:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /workers/comments-api
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    groups:
+      comments-api-minor:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /contours/worker
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    groups:
+      contour-worker-minor:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /mobile
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    ignore:
+      - dependency-name: expo
+      - dependency-name: expo-*
+      - dependency-name: '@expo/*'
+      - dependency-name: jest-expo
+      - dependency-name: eslint-config-expo
+      - dependency-name: react
+      - dependency-name: react-dom
+      - dependency-name: react-test-renderer
+      - dependency-name: '@types/react'
+      - dependency-name: react-native
+      - dependency-name: react-native-*
+      - dependency-name: '@react-native/*'
+      - dependency-name: '@react-native-async-storage/*'
+      - dependency-name: '@react-navigation/*'
+      - dependency-name: '@maplibre/*'
+      - dependency-name: '@shopify/*'
+      - dependency-name: jest
+      - dependency-name: '@types/jest'
+      - dependency-name: typescript
+      - dependency-name: eslint
+    groups:
+      mobile-minor:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ['*']

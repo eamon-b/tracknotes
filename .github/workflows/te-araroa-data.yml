@@ -1,0 +1,101 @@
+name: Te Araroa data
+
+# Te Araroa is built upstream in eamon-b/te-araroa-data and pinned here by
+# package-lock.json, so a new upstream build reaches the site and the app only
+# when someone runs `npm update te-araroa-data` and rebuilds
+# (docs/architecture/trail-data.md). Weekly, this checks upstream and, when it
+# has moved, opens (or updates) a PR with the bump and the rebuilt trail data.
+# Merging that PR is the review; Publish trail data then publishes it as usual.
+# Setup (the AUTOMATION_TOKEN secret, so the PR runs CI): docs/deploys.md.
+
+on:
+  schedule:
+    - cron: '41 5 * * 2'
+  workflow_dispatch:
+
+concurrency:
+  group: te-araroa-data
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  BRANCH: automation/te-araroa-data
+
+jobs:
+  bump:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # A PR pushed with the default token runs no workflows, so no CI;
+          # a token of the repo owner's does (docs/deploys.md)
+          token: ${{ secrets.AUTOMATION_TOKEN || github.token }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - id: upstream
+        run: |
+          pinned=$(node -p "require('./package-lock.json').packages['node_modules/te-araroa-data'].resolved.split('#')[1]")
+          latest=$(git ls-remote https://github.com/eamon-b/te-araroa-data refs/heads/main | cut -f1)
+          echo "pinned=$pinned" >> "$GITHUB_OUTPUT"
+          echo "latest=$latest" >> "$GITHUB_OUTPUT"
+          if [ -z "$latest" ]; then echo "::error::could not read te-araroa-data's main"; exit 1; fi
+          if [ "$pinned" = "$latest" ]; then
+            echo "te-araroa-data is current ($pinned)." | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "moved=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "moved=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.upstream.outputs.moved == 'true'
+        run: npm ci
+      - name: Bump and rebuild
+        if: steps.upstream.outputs.moved == 'true'
+        run: |
+          npm update te-araroa-data
+          npm run sync:te-araroa
+          npm run build:trails
+          npm run build:mobile-trails
+          git status --short
+      - name: Open or update the PR
+        if: steps.upstream.outputs.moved == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.AUTOMATION_TOKEN || github.token }}
+          PINNED: ${{ steps.upstream.outputs.pinned }}
+          LATEST: ${{ steps.upstream.outputs.latest }}
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "Upstream moved but nothing here changed." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -C "$BRANCH"
+          git add -A
+          git commit -q -m "Te Araroa: take te-araroa-data ${LATEST:0:7}
+
+          Upstream: https://github.com/eamon-b/te-araroa-data/compare/$PINNED...$LATEST
+          Rebuilt with sync:te-araroa, build:trails and build:mobile-trails."
+          git push --force origin "$BRANCH"
+          body=$(printf '%s\n' \
+            "Weekly *Te Araroa data* run: te-araroa-data moved upstream, so this bumps it and commits the rebuilt trail data." \
+            "" \
+            "- Upstream changes: https://github.com/eamon-b/te-araroa-data/compare/$PINNED...$LATEST" \
+            "- Check the rebuilt \`mobile/assets/trails/te_araroa.json\` and the build's id-minting warnings in the run log: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            "- After the merge, *Publish trail data* asks for approval to publish it to installed apps." \
+            "" \
+            "A later run force-pushes this branch with a newer upstream build.")
+          if [ -n "$(gh pr list --head "$BRANCH" --state open --json number --jq '.[].number')" ]; then
+            gh pr edit "$BRANCH" --body "$body"
+          else
+            gh pr create --base main --head "$BRANCH" --title "Te Araroa: take the latest te-araroa-data build" --body "$body"
+          fi
+          git diff --stat HEAD~1 | tail -1 | tee -a "$GITHUB_STEP_SUMMARY"

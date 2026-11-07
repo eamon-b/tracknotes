@@ -21,6 +21,7 @@ Shared processing modules (used by both web and mobile):
 - `escape.ts` - `escapeHtml` (see the hard rule in `CLAUDE.md`)
 - `comments-api-types.ts` - Wire types for the comments API, imported by the app and the worker.
   Plain types only: no runtime imports, no DOM or Node globals
+- `moderation-attention.ts` - `needsAttention`: which reported or reviewed comments and shared waypoints still need an admin, shared by the moderation page and the daily moderation check (`scripts/moderation-queue.ts`)
 - `gpx-optimizer.ts` - Track simplification (Douglas-Peucker), elevation spike removal/smoothing, elevation stats
 - `track-simplify.ts` - Target-point-count simplification + coordinate truncation (the mobile point budget)
 - `track-classification.ts` - Classify main/alternate/side-trip/**terminus** tracks.

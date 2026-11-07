@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   packPrefixes,
   planCleanup,
+  planTrailDataCleanup,
   planWorldBuildCleanup,
   referencedNames,
   type BucketObject,
@@ -148,5 +149,48 @@ describe('planWorldBuildCleanup', () => {
     const plan = planWorldBuildCleanup(recent, obj('contours/world.pmtiles', '2026-10-31T00:00:00Z'), opts);
     expect(plan.keptRecent.map(o => o.path)).toEqual(['contours/world-build/shards/world_asia.mbtiles']);
     expect(plan.delete).toHaveLength(2);
+  });
+});
+
+describe('planTrailDataCleanup', () => {
+  const opts = { now: NOW, graceDays: 7 };
+  const catalog = {
+    format: 1,
+    trails: [
+      { id: 'heysen', key: 'heysen.aaaaaaaaaaaa.json' },
+      { id: 'overland', key: 'overland.bbbbbbbbbbbb.json' },
+    ],
+  };
+  const objects = [
+    obj('trails/v1/catalog.json', '2026-10-10T00:00:00Z'),
+    obj('trails/v1/heysen.aaaaaaaaaaaa.json'),
+    obj('trails/v1/overland.bbbbbbbbbbbb.json'),
+    obj('trails/v1/heysen.111111111111.json'),
+    obj('trails/v1/overland.222222222222.json', RECENT),
+    obj('trails/v1/notes.txt'),
+    obj('trails/v1/old/heysen.333333333333.json'),
+  ];
+
+  it('deletes unlisted trail files once the catalog is past the grace, keeping recent ones', () => {
+    const plan = planTrailDataCleanup(objects, catalog, opts);
+    expect(plan.refused).toBeUndefined();
+    expect(plan.waiting).toBeUndefined();
+    expect(plan.delete.map(o => o.path)).toEqual(['trails/v1/heysen.111111111111.json']);
+    expect(plan.keptRecent.map(o => o.path)).toEqual(['trails/v1/overland.222222222222.json']);
+  });
+
+  it('waits while the catalog is inside the grace', () => {
+    const young = objects.map(o => (o.path === 'trails/v1/catalog.json' ? { ...o, modTime: RECENT } : o));
+    const plan = planTrailDataCleanup(young, catalog, opts);
+    expect(plan.waiting).toMatch(/inside the 7-day grace/);
+    expect(plan.delete).toEqual([]);
+  });
+
+  it('refuses a catalog it cannot trust', () => {
+    expect(planTrailDataCleanup(objects, new Error('404'), opts).refused).toMatch(/cannot read/);
+    expect(planTrailDataCleanup(objects, { trails: [] }, opts).refused).toMatch(/lists no trails/);
+    expect(planTrailDataCleanup(objects, { trails: [{ id: 'x', key: '../x.json' }] }, opts).refused).toMatch(
+      /without a valid key/
+    );
   });
 });
