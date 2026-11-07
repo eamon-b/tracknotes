@@ -184,7 +184,8 @@ The admin page is `src/web/admin-moderation.html` (unlinked, noindex, client `sr
 
 ## Comments API Worker: comment and waypoint review (`workers/comments-api/`)
 
-`src/content-review.ts` (migration `0010_content_review`, which shares its number with `0010_observed_at_day` — wrangler records migrations by file name, so both apply and neither may be renamed; the one after them is `0011_requeue_community_route_pois`: `review_status`, `review_json`, `review_requested_at` on `comments` and `shared_waypoints`, plain added columns so neither table is rebuilt).
+`src/content-review.ts` (migration `0010_content_review`: `review_status`, `review_json`, `review_requested_at` on `comments` and `shared_waypoints`, plain added columns so neither table is rebuilt).
+`0010_content_review` shares its number with `0010_observed_at_day`: wrangler records migrations by file name, so both apply and neither may be renamed (the one after them is `0011_requeue_community_route_pois`).
 Its job is to take clearly bad or malicious posts down after **one** report rather than three.
 Two triggers claim a review (`claimContentReview`, one `UPDATE … RETURNING`, so concurrent reports claim it once; the claim leaves `updated_at` alone, so phones do not re-sync):
 
