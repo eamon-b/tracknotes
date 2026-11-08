@@ -146,7 +146,7 @@ keep this file in step with the code it describes.
 - `dependency-audit.ts` - `npm run audit:deps`: `npm audit` over the root, `mobile/`, `workers/comments-api` and `contours/worker` lockfiles as one report (`severeFindings`), failing only on a high or critical advisory `npm audit fix` can fix without a breaking change.
   Run monthly by *Dependency audit* (`docs/deploys.md`)
 - `moderation-queue.ts` - Counts the reported or flagged comments and shared waypoints waiting for an admin (`needsAttention`, `@lib/moderation-attention`, the moderation page's own rule) from the admin listings, with `$TRACKNOTES_ADMIN_TOKEN`; prints counts only, never post content.
-  Run daily by *Moderation queue*, which keeps an issue open while any wait
+  Run daily by *Moderation queue*, which fails while any wait (the failed-run email is the alert)
 - `probe-comments-api.sh` - `scripts/probe-comments-api.sh [base-url]`: checks the deployed comments API answers `/health` and one route from each migration that added routes with the status it gives once deployed, retrying for a minute; exits 1 on any miss.
   Run by *Deploy comments API* after each deploy, and by hand before a build (`docs/mobile-test-build.md`).
 - `measure-community-poi-cpu.ts` - `npx tsx scripts/measure-community-poi-cpu.ts [trail-id...]` (after `build:trails`): times each CPU step of the comments API's community-route POI enrichment on bundled trails standing in for community routes, with their real POIs and a synthetic answer at the enrichment's cap — the numbers to weigh against the Workers plan's CPU limit (`workers.md`, "community route POIs").

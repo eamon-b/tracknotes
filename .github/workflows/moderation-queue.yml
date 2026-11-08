@@ -1,10 +1,12 @@
 name: Moderation queue
 
-# Daily: are reported or flagged posts waiting for an admin? Keeps one issue
-# (label `moderation-queue`) open with the counts while any are, and closes it
-# once the queue is empty, so GitHub's issue notifications are the alert. The
-# decisions stay on the moderation page; the issue carries counts only
-# (scripts/moderation-queue.ts). Setup: docs/deploys.md.
+# Daily: are reported or flagged posts waiting for an admin? The run fails while
+# any are, and GitHub emails a failed scheduled run to whoever last changed its
+# schedule, so the alert reaches the maintainer privately. The repository is
+# public, and so are its issues; this posts nowhere. The run summary (public, but
+# nobody is notified of it) carries counts only, never post text or names
+# (scripts/moderation-queue.ts). The decisions stay on the moderation page.
+# Setup: docs/deploys.md.
 
 on:
   schedule:
@@ -17,7 +19,6 @@ concurrency:
 
 permissions:
   contents: read
-  issues: write
 
 jobs:
   check:
@@ -40,21 +41,12 @@ jobs:
       - id: queue
         env:
           TRACKNOTES_ADMIN_TOKEN: ${{ secrets.TRACKNOTES_ADMIN_TOKEN }}
-        run: npx tsx scripts/moderation-queue.ts | tee "$RUNNER_TEMP/queue.md" | tee -a "$GITHUB_STEP_SUMMARY"
-      - name: Open, update or close the issue
+        run: npx tsx scripts/moderation-queue.ts | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Fail while posts are waiting
         env:
-          GH_TOKEN: ${{ github.token }}
           COUNT: ${{ steps.queue.outputs.count }}
         run: |
-          label=moderation-queue
-          gh label create "$label" --color D93F0B --description 'Posts waiting on the moderation page' 2>/dev/null || true
-          open=$(gh issue list --label "$label" --state open --json number --jq '.[0].number // empty')
           if [ "$COUNT" -gt 0 ]; then
-            if [ -n "$open" ]; then
-              gh issue edit "$open" --body-file "$RUNNER_TEMP/queue.md"
-            else
-              gh issue create --label "$label" --title 'Posts are waiting for moderation' --body-file "$RUNNER_TEMP/queue.md"
-            fi
-          elif [ -n "$open" ]; then
-            gh issue close "$open" --comment 'The moderation queue is empty.'
+            echo "::error::$COUNT reported or flagged post(s) are waiting on https://tracknotes.info/admin-moderation.html"
+            exit 1
           fi
