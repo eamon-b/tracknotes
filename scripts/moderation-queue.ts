@@ -1,11 +1,11 @@
 /**
  * How many reported or flagged posts are waiting for an admin, for the daily
- * Moderation queue workflow, which keeps one GitHub issue open while the count
- * is above zero. It reads the moderation page's own listings
+ * Moderation queue workflow, which fails while the count is above zero (the
+ * failed-run email is the alert). It reads the moderation page's own listings
  * (`GET /v1/admin/comments?reported=1`, `GET /v1/admin/waypoints`) and counts
  * the rows that page highlights (`needsAttention`, `@lib/moderation-attention`).
  * The decisions stay on the page: this prints counts only, never post text or
- * user names, since the issue may be public.
+ * user names, since the run's summary is public.
  *
  * Usage: TRACKNOTES_ADMIN_TOKEN=... npx tsx scripts/moderation-queue.ts
  * Env: TRACKNOTES_API_BASE_URL (default https://api.tracknotes.info);
@@ -39,7 +39,7 @@ export function summarizeQueue(comments: readonly ModeratedRow[], waypoints: rea
   return { comments: c, waypoints: w, total: c.waiting + w.waiting };
 }
 
-/** The issue body / run summary for a queue. */
+/** The run summary for a queue. */
 export function queueMarkdown(summary: QueueSummary): string {
   const line = (label: string, n: { waiting: number; hidden: number }) =>
     `- ${label}: ${n.waiting} waiting${n.hidden > 0 ? ` (${n.hidden} hidden by reports until someone decides)` : ''}`;
