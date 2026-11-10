@@ -8,8 +8,10 @@
   },
   "scripts": {
     "dev": "vite",
-    "check": "npm run check:web && npm run check:mobile",
-    "check:web": "npm test && npm run lint",
+    "check": "npm run check:install && npm run check:web && npm run check:workers && npm run check:mobile",
+    "check:install": "node scripts/check-install.mjs",
+    "check:web": "tsc --noEmit && npm test && npm run lint && npm run format:check",
+    "check:workers": "npm --prefix workers/comments-api test && npm --prefix workers/comments-api run typecheck && npm --prefix contours/worker run typecheck",
     "check:mobile": "npm --prefix mobile test -- --runInBand && npm --prefix mobile run typecheck && npm --prefix mobile run lint",
     "phone": "npm --prefix mobile start",
     "phone:android:usb": "adb reverse tcp:8081 tcp:8081 && npm --prefix mobile start -- --localhost",
