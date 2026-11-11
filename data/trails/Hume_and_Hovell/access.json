@@ -80,6 +80,10 @@
       "name": "Restaurant area",
       "store": "meals"
     },
+    "w_abca0163": {
+      "name": "Wee Jasper",
+      "store": "meals"
+    },
     "w_fe7d1507": {
       "name": "Paddys river dam actual",
       "method": "osm",

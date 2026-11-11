@@ -49,6 +49,7 @@ Each trail has its own directory containing:
   A place with no walk to route (on the route, or given its distance by its source — every CDT turn-off and town) takes a **store-only** entry, `name` + `store` and no `method`;
   the build gives every row of the waypoint (main route, off-trail, alternate, side trip) its `store` through `buildTrail`'s `waypointStores` and nothing else, and `fetch-access` never routes one, keeps it through a re-fetch, and carries a re-fetched entry's `store` over.
   Te Araroa's `store` comes from upstream instead (`<tn:store>` in its GPX, beside `<tn:acceptsBoxes>`), so its file carries none.
+  A waypoint the GPX writes with `tn:` fields carries its `store` there too: the Hume and Hovell's road-crossing turn-offs (`town-access`/`resupply-access` at the crossing, the town itself off the route, both with `tn:offTrailKm`, `tn:accessMode` and a shared `tn:accessName` — the CDT's pattern, so several towns on one crossing are one decision), whose walk-ins and hitches are hand-measured estimates rather than `fetch-access` routes.
   No file means `fetch-access` found no candidate (Overland), not that it was never run: a run with nothing to route writes none (and removes an old one, unless it holds store-only entries), and a run whose every query failed writes none and exits 1.
   The CDT's file holds store-only entries alone, which says nothing about routing.
   `fetchedAt` is the oldest Overpass answer the entries rest on, cached or kept.

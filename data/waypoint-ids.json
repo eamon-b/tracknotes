@@ -12328,11 +12328,32 @@
       "lon": 148.68156
     },
     {
+      "id": "w_114b034f",
+      "name": "Burrinjuck Waters kiosk",
+      "type": "resupply",
+      "lat": -34.98076,
+      "lon": 148.62356
+    },
+    {
+      "id": "w_14e701a1",
+      "name": "Holbrook (access: Tunnel Road)",
+      "type": "town-access",
+      "lat": -35.90536,
+      "lon": 147.31809
+    },
+    {
       "id": "w_1e7ca666",
       "name": "Tumut Valley Holiday Park",
       "type": "caravan-park",
       "lat": -35.34205,
       "lon": 148.24542
+    },
+    {
+      "id": "w_296db165",
+      "name": "Tumbarumba (access: Tooma Road)",
+      "type": "town-access",
+      "lat": -35.82818,
+      "lon": 148.06102
     },
     {
       "id": "w_2b576c8d",
@@ -12347,6 +12368,13 @@
       "type": "caravan-park",
       "lat": -35.99059,
       "lon": 147.15283
+    },
+    {
+      "id": "w_31785308",
+      "name": "Talbingo (access: Boundary Road)",
+      "type": "town-access",
+      "lat": -35.58431,
+      "lon": 148.28045
     },
     {
       "id": "w_3251395d",
@@ -12426,11 +12454,32 @@
       "lon": 148.57478
     },
     {
+      "id": "w_5a101a99",
+      "name": "Holbrook",
+      "type": "town",
+      "lat": -35.728,
+      "lon": 147.315
+    },
+    {
+      "id": "w_5a68daef",
+      "name": "Tumut (access: Snowy Mountains Highway)",
+      "type": "town-access",
+      "lat": -35.36511,
+      "lon": 148.28422
+    },
+    {
       "id": "w_62879a43",
       "name": "Ben Smith Campsite",
       "type": "campsite",
       "lat": -35.58431,
       "lon": 148.28045
+    },
+    {
+      "id": "w_66c82bbb",
+      "name": "Tumut",
+      "type": "town",
+      "lat": -35.3005,
+      "lon": 148.2236
     },
     {
       "id": "w_66f41d32",
@@ -12469,6 +12518,13 @@
       "retired": true
     },
     {
+      "id": "w_80f5e28b",
+      "name": "Albury (access: Hovell Tree)",
+      "type": "town-access",
+      "lat": -36.08474,
+      "lon": 146.90821
+    },
+    {
       "id": "w_8a843bdc",
       "name": "Captain Campsite",
       "type": "campsite",
@@ -12481,6 +12537,20 @@
       "type": "campsite",
       "lat": -35.53922,
       "lon": 148.23189
+    },
+    {
+      "id": "w_9d44f84e",
+      "name": "Tumbarumba (access: Lake Mannus Road)",
+      "type": "town-access",
+      "lat": -35.77922,
+      "lon": 147.94454
+    },
+    {
+      "id": "w_a48b62a1",
+      "name": "Tumut (access: Thomas Boyd Trackhead)",
+      "type": "town-access",
+      "lat": -35.37303,
+      "lon": 148.41629
     },
     {
       "id": "w_a73a9b3d",
@@ -12517,6 +12587,27 @@
       "type": "campsite",
       "lat": -35.38557,
       "lon": 148.45647
+    },
+    {
+      "id": "w_bbd8fa10",
+      "name": "Yass",
+      "type": "town",
+      "lat": -34.841,
+      "lon": 148.9106
+    },
+    {
+      "id": "w_bce641d4",
+      "name": "Woomargama (access: Tunnel Road)",
+      "type": "resupply-access",
+      "lat": -35.90536,
+      "lon": 147.31809
+    },
+    {
+      "id": "w_be8e6774",
+      "name": "Lake Hume Holiday Park kiosk (access: Lake Hume turnoff)",
+      "type": "resupply-access",
+      "lat": -35.99059,
+      "lon": 147.15283
     },
     {
       "id": "w_c18b2dee",
@@ -12582,6 +12673,13 @@
       "lon": 148.23938
     },
     {
+      "id": "w_d82f4bda",
+      "name": "Woomargama",
+      "type": "resupply",
+      "lat": -35.835,
+      "lon": 147.248
+    },
+    {
       "id": "w_dc3338aa",
       "name": "Thomas Boyd Trackhead",
       "type": "trailhead",
@@ -12594,6 +12692,13 @@
       "type": "road-crossing",
       "lat": -35.77922,
       "lon": 147.94454
+    },
+    {
+      "id": "w_e39e175c",
+      "name": "Jingellic",
+      "type": "resupply",
+      "lat": -35.927,
+      "lon": 147.696
     },
     {
       "id": "w_e8b9bf53",
@@ -12610,6 +12715,13 @@
       "lon": 148.53599
     },
     {
+      "id": "w_edc73c5e",
+      "name": "Jingellic (access: Lankeys Creek)",
+      "type": "resupply-access",
+      "lat": -35.81178,
+      "lon": 147.64745
+    },
+    {
       "id": "w_f1d70ad9",
       "name": "Junction Campsite",
       "type": "campsite",
@@ -12622,6 +12734,13 @@
       "type": "campsite",
       "lat": -35.89899,
       "lon": 147.32892
+    },
+    {
+      "id": "w_fa1f27a9",
+      "name": "Albury",
+      "type": "town",
+      "lat": -36.081,
+      "lon": 146.916
     },
     {
       "id": "w_fadc709c",
