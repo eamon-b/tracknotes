@@ -24,7 +24,7 @@ Approve under the run's *Review deployments*, which the GitHub mobile app shows 
 
 A run deploys `main` as it is when the run starts, not the commit that triggered it.
 Its first job reads `main`'s head (the GitHub API) and checks that out: a run that queued behind another, or a re-run of an old one, deploys the newest code rather than putting older code back, and a merge after it that did not touch the trigger paths (so started no run of its own) cannot leave it undeployed.
-A run whose `main` has moved on says so in a notice.
+Its summary names the commit it deployed, and a run whose `main` has moved on says so there and in a notice.
 The data workflows pass the commit their `plan` job resolved to the `publish` or `upload` job, so what is approved is exactly what was planned.
 Runs of one workflow never overlap (`concurrency`, not cancelled in progress); a newer queued run replaces an older queued one, which is fine, since it deploys a `main` that includes it.
 `publish:trail-data` also re-checks its own guards against the live catalog at publish time (a rollback, a checkout that does not contain the live publish's commit, a dropped trail), so a late approval cannot publish over a newer publish.
