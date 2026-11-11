@@ -116,7 +116,8 @@ keep this file in step with the code it describes.
   Never touches a prefix whose manifest it cannot read, sub-directories, other files or other prefixes.
   Dry run by default, `--delete` deletes;
   `--world-build` does the same over `contours/world-build/`, refusing unless `contours/world.pmtiles` is newer than everything under it;
-  `--trail-data` does it over `trails/v1/` (`planTrailDataCleanup`): the trail files the live `catalog.json` does not list by `key`, once the catalog is past the grace, refusing a catalog it cannot read or that lists no trails.
+  `--trail-data` does it over `trails/v1/` (`planTrailDataCleanup`): the trail files the live `catalog.json` does not list by `key`, once the catalog is past the grace, refusing a catalog it cannot read or that lists no trails;
+  with `--delete` it re-reads the live catalog before each trail file (`listedTrailKeys`) and keeps one a publish has listed again meanwhile.
   The *R2 cleanup* workflow dry-runs both weekly; deleting is a manual run (`docs/deploys.md`)
 - `download-dem.sh` - Downloads SRTM 1-arc-second DEM tiles for one trail from NASA EarthData (an EarthData account is required) into `data/dem/` (the SRTM cache `tile-pipeline.ts` reads as `DEM_CACHE_DIR`, and `contour-experiment.ts`'s default).
   Since #228 the online `world` archive and the offline packs' contours come from Copernicus GLO-30 instead
@@ -146,6 +147,7 @@ keep this file in step with the code it describes.
 - `dependency-audit.ts` - `npm run audit:deps`: `npm audit` over the root, `mobile/`, `workers/comments-api` and `contours/worker` lockfiles as one report (`severeFindings`), failing only on a high or critical advisory `npm audit fix` can fix without a breaking change.
   Run monthly by *Dependency audit* (`docs/deploys.md`)
 - `moderation-queue.ts` - Counts the reported or flagged comments and shared waypoints waiting for an admin (`needsAttention`, `@lib/moderation-attention`, the moderation page's own rule) from the admin listings, with `$TRACKNOTES_ADMIN_TOKEN`; prints counts only, never post content.
+  Runs as `node scripts/moderation-queue.ts` with no `npm ci` (Node's type stripping, built-ins and `src/lib` by `.ts` path only), so no installed package runs beside the admin token.
   Run daily by *Moderation queue*, which fails while any wait (the failed-run email is the alert)
 - `probe-comments-api.sh` - `scripts/probe-comments-api.sh [base-url]`: checks the deployed comments API answers `/health` and one route from each migration that added routes with the status it gives once deployed, retrying for a minute; exits 1 on any miss.
   Run by *Deploy comments API* after each deploy, and by hand before a build (`docs/mobile-test-build.md`).

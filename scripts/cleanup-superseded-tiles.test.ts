@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   packPrefixes,
+  listedTrailKeys,
   planCleanup,
   planTrailDataCleanup,
   planWorldBuildCleanup,
@@ -192,5 +193,15 @@ describe('planTrailDataCleanup', () => {
     expect(planTrailDataCleanup(objects, { trails: [{ id: 'x', key: '../x.json' }] }, opts).refused).toMatch(
       /without a valid key/
     );
+  });
+});
+
+describe('listedTrailKeys', () => {
+  it('lists the catalog keys, or says why the catalog cannot be trusted', () => {
+    expect(listedTrailKeys({ trails: [{ key: 'heysen.aaaaaaaaaaaa.json' }] })).toEqual(
+      new Set(['heysen.aaaaaaaaaaaa.json'])
+    );
+    expect(listedTrailKeys(new Error('404'))).toMatch(/cannot read/);
+    expect(listedTrailKeys({ trails: [{ key: 'x' }] })).toMatch(/without a valid key/);
   });
 });

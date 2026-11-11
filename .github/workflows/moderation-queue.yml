@@ -25,23 +25,27 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # The admin token lives in `production` (main only, no reviewer)
+    # The admin token lives in its own environment, `moderation` (main only, no
+    # reviewer, nothing else in it), not in `production`, whose deploy jobs run on
+    # every merge. And no package is installed: the script runs on Node's type
+    # stripping with only built-ins and src/lib, so no dependency's code runs
+    # while the token is in the environment.
     environment:
-      name: production
+      name: moderation
     defaults:
       run:
         shell: bash
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: 22
-          cache: npm
-      - run: npm ci
       - id: queue
         env:
           TRACKNOTES_ADMIN_TOKEN: ${{ secrets.TRACKNOTES_ADMIN_TOKEN }}
-        run: npx tsx scripts/moderation-queue.ts | tee -a "$GITHUB_STEP_SUMMARY"
+        run: node scripts/moderation-queue.ts | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Fail while posts are waiting
         env:
           COUNT: ${{ steps.queue.outputs.count }}

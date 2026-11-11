@@ -7,7 +7,10 @@
  * The decisions stay on the page: this prints counts only, never post text or
  * user names, since the run's summary is public.
  *
- * Usage: TRACKNOTES_ADMIN_TOKEN=... npx tsx scripts/moderation-queue.ts
+ * Usage: TRACKNOTES_ADMIN_TOKEN=... node scripts/moderation-queue.ts
+ * Runs on Node's own type stripping (Node 22.18+), with no `npm ci`: it imports
+ * only Node built-ins and `src/lib` files (by their `.ts` paths), so no
+ * installed package runs while the admin token is in the environment.
  * Env: TRACKNOTES_API_BASE_URL (default https://api.tracknotes.info);
  * GITHUB_OUTPUT, when set, gets `count=<n>`.
  */
@@ -15,8 +18,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import type { AdminCommentsResponse, AdminSharedWaypointsResponse } from '../src/lib/comments-api-types.js';
-import { needsAttention, type ModeratedRow } from '../src/lib/moderation-attention.js';
+import type { AdminCommentsResponse, AdminSharedWaypointsResponse } from '../src/lib/comments-api-types.ts';
+import { needsAttention, type ModeratedRow } from '../src/lib/moderation-attention.ts';
 
 const DEFAULT_API_BASE = 'https://api.tracknotes.info';
 const MODERATION_PAGE = 'https://tracknotes.info/admin-moderation.html';

@@ -238,6 +238,25 @@ const TRAIL_FILE = /^[A-Za-z0-9_-]{1,64}\.[0-9a-f]{12}\.json$/;
  * comes last). A catalog that cannot be read, or lists no trails, refuses the
  * run: every file would look unlisted.
  */
+/**
+ * The trail-file keys a catalog lists, or why it cannot be trusted (unreadable,
+ * no trails, an entry without a valid key): then every file would look unlisted.
+ */
+export function listedTrailKeys(catalog: unknown): Set<string> | string {
+  if (catalog instanceof Error) return `cannot read ${CATALOG_KEY}: ${catalog.message}`;
+  const trails = (catalog as { trails?: unknown })?.trails;
+  if (!Array.isArray(trails) || trails.length === 0) return `${CATALOG_KEY} lists no trails`;
+  const listed = new Set<string>();
+  for (const trail of trails) {
+    const key = (trail as { key?: unknown })?.key;
+    if (typeof key !== 'string' || !TRAIL_FILE.test(key)) {
+      return `${CATALOG_KEY} has an entry without a valid key: ${JSON.stringify(trail)}`;
+    }
+    listed.add(key);
+  }
+  return listed;
+}
+
 export function planTrailDataCleanup(
   objects: BucketObject[],
   catalog: unknown,
@@ -245,17 +264,8 @@ export function planTrailDataCleanup(
 ): TrailDataPlan {
   const plan: TrailDataPlan = { delete: [], keptRecent: [] };
   const prefix = `${TRAIL_DATA_PREFIX}/`;
-  if (catalog instanceof Error) return { ...plan, refused: `cannot read ${CATALOG_KEY}: ${catalog.message}` };
-  const trails = (catalog as { trails?: unknown })?.trails;
-  if (!Array.isArray(trails) || trails.length === 0) return { ...plan, refused: `${CATALOG_KEY} lists no trails` };
-  const listed = new Set<string>();
-  for (const trail of trails) {
-    const key = (trail as { key?: unknown })?.key;
-    if (typeof key !== 'string' || !TRAIL_FILE.test(key)) {
-      return { ...plan, refused: `${CATALOG_KEY} has an entry without a valid key: ${JSON.stringify(trail)}` };
-    }
-    listed.add(key);
-  }
+  const listed = listedTrailKeys(catalog);
+  if (typeof listed === 'string') return { ...plan, refused: listed };
   const cutoff = options.now - options.graceDays * 86_400_000;
   const catalogObject = objects.find(o => o.path === CATALOG_KEY);
   const published = catalogObject ? Date.parse(catalogObject.modTime) : NaN;
@@ -321,6 +331,24 @@ function deleteObjects(objects: BucketObject[]): void {
   for (const o of objects) {
     rclone(['deletefile', `${RCLONE_REMOTE}:${BUCKET}/${o.path}`]);
     console.log(`  deleted ${o.path}`);
+  }
+}
+
+/**
+ * Delete trail files, re-reading the live catalog before each one: a publish
+ * running meanwhile may have put a dropped key back (it re-uploads any key the
+ * live catalog does not list), and that file must stay.
+ */
+function deleteTrailFiles(objects: BucketObject[]): void {
+  const prefix = `${TRAIL_DATA_PREFIX}/`;
+  for (const o of objects) {
+    const listed = listedTrailKeys(readCatalog());
+    if (typeof listed === 'string') throw new Error(`stopped deleting: ${listed}`);
+    if (listed.has(o.path.slice(prefix.length))) {
+      console.log(`  kept ${o.path}: the live catalog lists it again`);
+      continue;
+    }
+    deleteObjects([o]);
   }
 }
 
@@ -397,7 +425,7 @@ function main(): void {
       `${mode}: ${plan.delete.length} superseded trail files (${formatBytes(total)}) under ${BUCKET}/${prefix}`
     );
     printObjects(plan.delete);
-    if (args.delete) deleteObjects(plan.delete);
+    if (args.delete) deleteTrailFiles(plan.delete);
     return;
   }
 

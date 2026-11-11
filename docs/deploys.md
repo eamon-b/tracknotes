@@ -58,9 +58,9 @@ A failed scheduled run emails whoever last changed its schedule, so a red run is
 
 | Workflow | When | Does | Needs a person when |
 | --- | --- | --- | --- |
-| `moderation-queue.yml` | daily | counts the reported or flagged posts waiting for an admin (`scripts/moderation-queue.ts`, the rule the moderation page highlights with, `@lib/moderation-attention`), and fails while any wait, so the alert is GitHub's failed-run email (private: the repository and its issues are public, so it posts nowhere, and its summary has counts only) | it is red: decide them on the moderation page |
-| `te-araroa-data.yml` | weekly, Tuesday | when te-araroa-data's `main` has moved past the commit `package-lock.json` pins, runs `npm update te-araroa-data` and the trail rebuild, and opens or force-updates a PR from `automation/te-araroa-data` | the PR is open: review the rebuilt Te Araroa data and merge it (*Publish trail data* follows) |
-| `r2-cleanup.yml` | weekly, Thursday | dry runs of `cleanup:tiles` (superseded pack files) and `cleanup:tiles -- --trail-data` (superseded trail files), listed in the summary | to delete: *Run workflow* with `delete` ticked, then approve `production-data`; it re-plans against the bucket before deleting |
+| `moderation-queue.yml` | daily | counts the reported or flagged posts waiting for an admin (`scripts/moderation-queue.ts`, the rule the moderation page highlights with, `@lib/moderation-attention`), and fails while any wait, so the alert is GitHub's failed-run email (private: the repository and its issues are public, so it posts nowhere, and its summary has counts only). It installs nothing (`node scripts/moderation-queue.ts`, on Node's type stripping), and its admin token sits in its own `moderation` environment | it is red: decide them on the moderation page |
+| `te-araroa-data.yml` | weekly, Tuesday | when te-araroa-data's `main` has moved past the commit `package-lock.json` pins, runs `npm update te-araroa-data` and the trail rebuild, and opens or updates a PR from `automation/te-araroa-data`. It does nothing while that branch already takes the latest build, and fails rather than overwrite a commit someone else added to the branch. Its token is used for the push alone, never stored in the checkout | the PR is open: review the rebuilt Te Araroa data, add the `data/waypoint-ids.json` migration if upstream changed a waypoint's `type`, and merge it (*Publish trail data* follows) |
+| `r2-cleanup.yml` | weekly, Thursday | dry runs of `cleanup:tiles` (superseded pack files) and `cleanup:tiles -- --trail-data` (superseded trail files), listed in the summary | to delete: *Run workflow* with `delete` ticked, then approve `production-data`; it re-plans against the bucket before deleting, and re-reads the live catalog before each trail file, keeping one a publish has meanwhile listed again |
 | `dependency-audit.yml` | monthly, the 3rd | `npm run audit:deps` (`npm audit` over all four packages, failing only on a high or critical advisory with a non-breaking fix), and under `mobile/` `npx expo install --check` and `npx expo-doctor` | it is red: `npm audit fix`, or `npx expo install --fix` in `mobile/` then the device check in `mobile/CLAUDE.md` |
 
 Dependabot (`.github/dependabot.yml`) opens update PRs monthly: one grouped PR per package for minor and patch updates, one per major, and one for the Actions versions.
@@ -69,14 +69,13 @@ Under `mobile/` the audit lists advisories whose only "fix" npm offers is an old
 
 ## Setup
 
-Both environments are under Settings → Environments, and the repository secrets under Settings → Secrets and variables → Actions.
+The environments are under Settings → Environments, and the repository secrets under Settings → Secrets and variables → Actions.
 Restrict each one's *Deployment branches and tags* to `main`, so no other branch's workflow can read its secrets.
 
-**`production`** (the workers, the contours site and the moderation check), no required reviewers:
+**`production`** (the workers and the contours site), no required reviewers:
 
 - `CLOUDFLARE_API_TOKEN`: a token from Cloudflare's *Edit Cloudflare Workers* template, plus *Account → D1 → Edit* (migrations) and *Account → Cloudflare Pages → Edit* (the contours site), limited to the account, with zone resources `tracknotes.info` and `contour-map-tiles.net` (the Workers' custom domains).
 - `CLOUDFLARE_ACCOUNT_ID`.
-- `TRACKNOTES_ADMIN_TOKEN`: the comments API's admin bearer token, which the daily moderation check reads the queue with.
 
 **`production-data`** (trail data and descriptions), with yourself as a required reviewer:
 
@@ -84,6 +83,11 @@ Restrict each one's *Deployment branches and tags* to `main`, so no other branch
 - `CLOUDFLARE_ACCOUNT_ID`.
 - `TRACKNOTES_ADMIN_TOKEN`: the comments API's admin bearer token.
 - `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY`: an R2 API token's S3 keys with *Object Read & Write* on `tracknotes-data`, for *R2 cleanup*'s deletes.
+
+**`moderation`** (the daily moderation check only), no required reviewers, and nothing in it but:
+
+- `TRACKNOTES_ADMIN_TOKEN`: the comments API's admin bearer token, which the check reads the queue with.
+  It is kept out of `production`, whose deploy jobs run on every merge (Dependabot's included) after an `npm ci`, and the check itself installs no package.
 
 **Repository secrets** (no environment, so scheduled runs need no approval):
 
