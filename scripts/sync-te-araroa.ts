@@ -21,7 +21,12 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { createRequire } from 'module';
+import {
+  TE_ARAROA_ROUTE_FILE as ROUTE_FILE,
+  packageProblem,
+  packagedRoutePath,
+  teAraroaPackageDir,
+} from './lib/te-araroa-package.js';
 
 const SCRIPTS_DIR = path.dirname(
   process.platform === 'win32'
@@ -30,9 +35,6 @@ const SCRIPTS_DIR = path.dirname(
 );
 const PROJECT_ROOT = path.resolve(SCRIPTS_DIR, '..');
 const TRAIL_DIR = path.join(PROJECT_ROOT, 'data/trails/te_araroa');
-
-/** The one file we take. Its name is stable across upstream seasons. */
-const ROUTE_FILE = 'te-araroa-sobo.gpx';
 
 /** Read alongside the route, for the log line only — never copied. */
 const META_FILE = 'te-araroa.meta.json';
@@ -46,30 +48,18 @@ interface TeAraroaMeta {
   walkedStretches?: number;
 }
 
-/**
- * Locate the installed package. `require.resolve` on the package root fails —
- * te-araroa-data publishes no `main` — so resolve its `package.json` and walk up.
- */
-function findPackageDir(): string {
-  const require = createRequire(import.meta.url);
-  try {
-    return path.dirname(require.resolve('te-araroa-data/package.json'));
-  } catch {
-    throw new Error('te-araroa-data is not installed. Run `npm install` first.');
-  }
-}
-
 function main(): void {
-  const packageDir = findPackageDir();
-  const outDir = path.join(packageDir, 'out');
-  const source = path.join(outDir, ROUTE_FILE);
-
-  if (!fs.existsSync(source)) {
-    throw new Error(
-      `te-araroa-data is installed but has no out/${ROUTE_FILE}. ` +
-        'The package commits its build outputs; a checkout without them is broken.'
-    );
+  // This checkout's own install only, at the lockfile's commit: Node's
+  // `require.resolve` would walk up into a parent checkout's node_modules
+  // (a worktree under .claude/worktrees/ sits inside the main checkout) and
+  // copy another commit's route without a word. See lib/te-araroa-package.ts.
+  const problem = packageProblem(PROJECT_ROOT);
+  if (problem) {
+    console.error(`sync:te-araroa: ${problem}`);
+    process.exit(1);
   }
+  const outDir = path.join(teAraroaPackageDir(PROJECT_ROOT), 'out');
+  const source = packagedRoutePath(PROJECT_ROOT);
 
   fs.mkdirSync(TRAIL_DIR, { recursive: true });
   const destination = path.join(TRAIL_DIR, ROUTE_FILE);
