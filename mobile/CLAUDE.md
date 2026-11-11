@@ -37,16 +37,35 @@ EXPO_PUBLIC_TILE_BASE_URL=https://data.tracknotes.info       # unset: Offline Ma
 
 ## Android emulator (local sessions)
 
-When the user has the emulator (Pixel 7) and Metro running, drive it over ADB: make a change (Metro hot-reloads) → screenshot → Read the PNG → check logcat.
+Drive the emulator (AVD `Pixel_7`, `com.tracknotes.app`) over ADB: make a change (Metro hot-reloads) → screenshot → Read the PNG → check logcat.
+There are no UI-flow tests (the Maestro flows were removed on purpose; don't add a framework back).
+The `device:*` scripts (`scripts/device/`, run from `mobile/`) do the setup; each is idempotent, says what to do when it fails, and acts only on the checkout it is run from, so run them from your own worktree.
+Run them outside the Bash sandbox: a sandboxed shell gets its own adb server, which cannot see the emulator, and Gradle needs the network.
 
 ```bash
-adb exec-out screencap -p > /tmp/screenshot.png
-# Launch the dev build into the JS app (a plain `am start` lands on the Expo Dev Launcher)
-adb shell am start -a android.intent.action.VIEW -d "tracknotes://expo-development-client/?url=http%3A%2F%2F10.0.2.2%3A8081" com.tracknotes.app
+npm run device:emulator              # boot Pixel_7 unless a device is online; waits for boot, retries a qemu exit 139 once
+npm run device:check-sdk             # installed dev client's Expo SDK vs this tree's (a mismatch = the "MessageQueue doesn't exist" red box)
+npm run device:build [-- --clean]    # prebuild + gradlew :app:assembleDebug, detached (survives the Bash tool's 10-min cap); refuses while the emulator runs
+npm run device:wait [-- <secs>]      # block ≤540 s: exit 0 + APK path, 1 + log tail on failure, 2 = still building, run it again
+npm run device:install [-- <apk>]    # caches the installed APK in ~/.cache/tracknotes-apks/sdk<N>-<sha>.apk, then adb install -r
+npm run device:restore [-- <file>|--sdk 54|--list]   # reinstall a cached APK (default: the one last replaced)
+npm run device:metro [-- --port 8082 --watch --api --no-open]   # Metro detached, warm the bundle, adb reverse, open the dev-client deep link
+npm run device:shot -- <name>        # screencap; prints /tmp/tracknotes-shots/<name>.png to Read
+npm run device:stop [-- --build --emulator --all]   # stop this checkout's Metro + its adb reverses (and the build / emulator)
+```
+
+Typical session: `device:emulator` → `device:check-sdk` (on a mismatch, or after a native change: `device:stop -- --emulator`, `device:build`, `device:wait` until 0, `device:emulator`, `device:install`) → `device:metro` → drive and `device:shot` → `device:stop -- --all` before finishing.
+The user runs his own Metro on 8081; if it is up, pass `--port 8082` (another checkout's Metro on the port is refused, not reused).
+Metro runs with `CI=1` by default, which turns file watching off: an edit is not picked up until `device:stop` + `device:metro`; pass `--watch` to keep watching and Fast Refresh.
+The Bash tool moves a foreground call to the background after a few minutes; `device:wait`, `device:emulator` and a cold `device:metro` can take that long, so run them with `run_in_background` (or `device:wait -- 170`) and read the result when notified.
+`device:metro` re-run after an emulator restart re-does the adb reverses, which a restart drops; `--api` adds 8787 for a local `wrangler dev` (also set `EXPO_PUBLIC_API_BASE_URL=http://localhost:8787` in `.env.local`, then restart Metro).
+Logs and pids are in `mobile/.device/` (gitignored); the emulator's log is in `~/.local/state/tracknotes-device/`.
+
+```bash
+adb shell input tap 540 1200                          # also: swipe x1 y1 x2 y2 ms, keyevent KEYCODE_BACK, text "..."
 adb shell am force-stop com.tracknotes.app
 adb shell pm clear com.tracknotes.app                 # Fresh app state
-adb shell input tap 540 1200                          # also: swipe x1 y1 x2 y2 ms, keyevent KEYCODE_BACK, text "..."
 adb logcat -d -t 50 ReactNativeJS:* *:E | grep -v chatty
 ```
 
-**Device check after a native change** (SDK bump, native dependency): build in a checkout on disk, not under `/tmp` (RAM-backed tmpfs; a 6 GB build exhausts it), with the emulator closed while Gradle runs — `npx expo prebuild --platform android --clean --no-install && cd android && ./gradlew assembleDebug -PreactNativeArchitectures=x86_64 --max-workers=3` (~12 min) — then boot the emulator, `adb install -r android/app/build/outputs/apk/debug/app-debug.apk`, start Metro and drive the screens the change touches.
+**Device check after a native change** (SDK bump, native dependency): `device:build` from a checkout on disk, not under `/tmp` (RAM-backed tmpfs; a 6 GB build exhausts it), with the emulator closed (~12 min for a first build, x86_64 only, 3 Gradle workers; `TRACKNOTES_GRADLE_ARGS` overrides), then `device:install`, `device:metro`, and drive the screens the change touches.
