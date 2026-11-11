@@ -550,7 +550,7 @@ export const PART_SUFFIX = '.part';
  *
  * `skipped` covers the two cases where there is nothing to compare: a legacy
  * manifest with no `md5` field, and a platform that cannot produce a digest
- * (the property is null/absent). Both fall back to the size + structural
+ * (`File.digest` rejects or is missing). Both fall back to the size + structural
  * checks that gated downloads before content addressing.
  */
 type Md5Verdict = 'match' | 'mismatch' | 'skipped';
@@ -558,17 +558,23 @@ type Md5Verdict = 'match' | 'mismatch' | 'skipped';
 /**
  * Compare a file's MD5 against a manifest digest.
  *
- * The digest comes from `File.md5` (expo-file-system SDK 54), which hashes the
- * file natively — hashing 100MB of mbtiles in JS would be far too slow, which
- * is why the manifest carries an md5 for the device alongside the sha256 used
- * by the build tooling.
+ * The digest comes from `File.digest('MD5')` (expo-file-system), which hashes
+ * the file natively off the JS thread and resolves to lowercase hex — hashing
+ * 100MB of mbtiles in JS would be far too slow, which is why the manifest
+ * carries an md5 for the device alongside the sha256 used by the build tooling.
+ * It replaced the deprecated `File.md5` getter (#315), which returned the same
+ * hex digest but null on a read error where `digest` rejects; a rejection is
+ * treated as null here, so both still mean "skipped".
  */
-function checkMd5(file: File, expected?: string): { verdict: Md5Verdict; actual: string | null } {
+async function checkMd5(
+  file: File,
+  expected?: string,
+): Promise<{ verdict: Md5Verdict; actual: string | null }> {
   if (!expected) return { verdict: 'skipped', actual: null };
 
   let actual: string | null = null;
   try {
-    const value = (file as { md5?: string | null }).md5;
+    const value: unknown = await file.digest('MD5');
     actual = typeof value === 'string' && value.length > 0 ? value.toLowerCase() : null;
   } catch {
     actual = null;
@@ -744,7 +750,7 @@ export async function downloadTrailTiles(
     if (dest.exists) {
       const size = dest.size ?? 0;
       const sizeOk = expectedSize ? size === expectedSize : size > 1000;
-      const hashOk = checkMd5(dest, md5).verdict !== 'mismatch';
+      const hashOk = (await checkMd5(dest, md5)).verdict !== 'mismatch';
       if (sizeOk && hashOk && (await validateMbtilesCached(trailId, name)).ok) {
         bytesDownloaded += size;
         onProgress?.({ fileName: name, done: true, bytesDownloaded, bytesTotal });
@@ -777,7 +783,7 @@ export async function downloadTrailTiles(
       // truncated-but-plausible or man-in-the-middled file can still be a
       // structurally valid sqlite database. Same failure path as a size
       // mismatch — the .part is discarded and the old pack stays in place.
-      const { verdict, actual } = checkMd5(part, md5);
+      const { verdict, actual } = await checkMd5(part, md5);
       if (verdict === 'mismatch') {
         throw new Error(`Checksum mismatch for ${name}: expected MD5 ${md5}, got ${actual}`);
       }
