@@ -297,7 +297,7 @@ function validateTrailDirectory(trailDir: string): { errors: string[]; needsAuto
     if (trailId === TE_ARAROA_TRAIL_DIR) {
       // Its GPX is a gitignored copy out of node_modules: missing, or left over
       // from another install, it would build a route the lockfile does not pin.
-      const problem = syncedRouteProblem(PROJECT_ROOT);
+      const problem = syncedRouteProblem(PROJECT_ROOT, typeof config.gpxFile === 'string' ? config.gpxFile : undefined);
       if (problem) errors.push(`${trailId}: ${problem}`);
     } else if (!config.gpxFile) {
       // Try to find GPX file automatically

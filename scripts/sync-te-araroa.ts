@@ -13,20 +13,15 @@
  * The file it writes is gitignored. `npm run sync:te-araroa` is a build step,
  * not a commit; to take a newer build, `npm update te-araroa-data` and re-run.
  *
- * It copies the *stable* filename (`te-araroa-sobo.gpx`, not
- * `te-araroa-2026-27-sobo.gpx`) so a season rollover upstream needs no change
+ * It copies the file `trail.json` names as `gpxFile` — the *stable* filename
+ * (`te-araroa-sobo.gpx`, not `te-araroa-2026-27-sobo.gpx`) — so a season rollover upstream needs no change
  * here. SOBO is the direction `trail.json` declares as default; the trail page
  * reverses it for NOBO walkers.
  */
 
 import * as fs from 'fs';
 import * as path from 'path';
-import {
-  TE_ARAROA_ROUTE_FILE as ROUTE_FILE,
-  packageProblem,
-  packagedRoutePath,
-  teAraroaPackageDir,
-} from './lib/te-araroa-package.js';
+import { packageProblem, packagedRoutePath, teAraroaPackageDir, teAraroaRouteFile } from './lib/te-araroa-package.js';
 
 const SCRIPTS_DIR = path.dirname(
   process.platform === 'win32'
@@ -53,20 +48,21 @@ function main(): void {
   // `require.resolve` would walk up into a parent checkout's node_modules
   // (a worktree under .claude/worktrees/ sits inside the main checkout) and
   // copy another commit's route without a word. See lib/te-araroa-package.ts.
-  const problem = packageProblem(PROJECT_ROOT);
-  if (problem) {
+  const routeFile = teAraroaRouteFile(PROJECT_ROOT);
+  const problem = packageProblem(PROJECT_ROOT, routeFile);
+  if (problem || !routeFile) {
     console.error(`sync:te-araroa: ${problem}`);
     process.exit(1);
   }
   const outDir = path.join(teAraroaPackageDir(PROJECT_ROOT), 'out');
-  const source = packagedRoutePath(PROJECT_ROOT);
+  const source = packagedRoutePath(PROJECT_ROOT, routeFile);
 
   fs.mkdirSync(TRAIL_DIR, { recursive: true });
-  const destination = path.join(TRAIL_DIR, ROUTE_FILE);
+  const destination = path.join(TRAIL_DIR, routeFile);
   fs.copyFileSync(source, destination);
 
   const bytes = fs.statSync(destination).size;
-  console.log(`Synced ${ROUTE_FILE} → data/trails/te_araroa/ (${(bytes / 1024 / 1024).toFixed(1)} MB)`);
+  console.log(`Synced ${routeFile} → data/trails/te_araroa/ (${(bytes / 1024 / 1024).toFixed(1)} MB)`);
 
   // Say which build this is, so a stale node_modules is visible in the log
   // rather than only in the trail page's numbers.

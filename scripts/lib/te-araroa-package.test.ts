@@ -21,6 +21,7 @@ function lock(resolved: string): string {
 
 /** A checkout with the package installed at the locked commit and synced. */
 function healthyCheckout(): void {
+  write('data/trails/te_araroa/trail.json', JSON.stringify({ gpxFile: 'te-araroa-sobo.gpx' }));
   write('package-lock.json', lock(LOCKED));
   write('node_modules/.package-lock.json', lock(LOCKED));
   write('node_modules/te-araroa-data/package.json', '{}');
@@ -90,6 +91,24 @@ describe('syncedRouteProblem', () => {
     healthyCheckout();
     write('data/trails/te_araroa/te-araroa-sobo.gpx', '<gpx>v44</gpx>');
     expect(syncedRouteProblem(root)).toMatch(/differs from the installed te-araroa-data.*npm run sync:te-araroa/);
+  });
+
+  it('takes the route file trail.json names', () => {
+    healthyCheckout();
+    write('data/trails/te_araroa/trail.json', JSON.stringify({ gpxFile: 'te-araroa-nobo.gpx' }));
+    expect(syncedRouteProblem(root)).toMatch(/has no out\/te-araroa-nobo\.gpx/);
+    write('node_modules/te-araroa-data/out/te-araroa-nobo.gpx', '<gpx>nobo</gpx>');
+    write('data/trails/te_araroa/te-araroa-nobo.gpx', '<gpx>nobo</gpx>');
+    expect(syncedRouteProblem(root)).toBeNull();
+    // An explicit name (build-trails passes the config it already parsed) wins.
+    expect(syncedRouteProblem(root, 'te-araroa-sobo.gpx')).toBeNull();
+  });
+
+  it('flags a trail.json without a gpxFile', () => {
+    healthyCheckout();
+    write('data/trails/te_araroa/trail.json', '{}');
+    expect(syncedRouteProblem(root)).toBe('data/trails/te_araroa/trail.json names no gpxFile.');
+    expect(packageProblem(root)).toBe('data/trails/te_araroa/trail.json names no gpxFile.');
   });
 
   it('reports a package problem before a sync problem', () => {
