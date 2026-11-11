@@ -25,7 +25,12 @@ export interface AdminRouteShapes {
   breaks: { from: LatLng; to: LatLng; km: number }[];
   /** Alternates, side trips and termini. */
   variants: { name: string; type: string; line: LatLng[] }[];
-  waypoints: { name: string; type: string; at: LatLng }[];
+  /**
+   * Main-route and off-trail waypoints, then each alternate's and side trip's
+   * own (`variant` names the one it is on; one that shares an id with a
+   * main-route waypoint is drawn once, as that one).
+   */
+  waypoints: { name: string; type: string; at: LatLng; variant?: string }[];
   start: LatLng | null;
   end: LatLng | null;
 }
@@ -47,9 +52,17 @@ export function adminRouteShapes(trail: ProcessedTrail): AdminRouteShapes {
   const variants = [...(trail.alternates ?? []), ...(trail.sideTrips ?? [])]
     .map(v => ({ name: v.name, type: v.type, line: (v.points ?? []).filter(ok).map(ll) }))
     .filter(v => v.line.length >= 2);
-  const waypoints = [...(trail.waypoints ?? []), ...(trail.offTrailWaypoints ?? [])]
+  const mainWaypoints = [...(trail.waypoints ?? []), ...(trail.offTrailWaypoints ?? [])];
+  const mainIds = new Set(mainWaypoints.map(w => w.id).filter(Boolean));
+  const waypoints: AdminRouteShapes['waypoints'] = mainWaypoints
     .filter(ok)
     .map(w => ({ name: w.name, type: w.type, at: ll(w) }));
+  for (const v of [...(trail.alternates ?? []), ...(trail.sideTrips ?? [])]) {
+    for (const w of v.waypoints ?? []) {
+      if (!ok(w) || (w.id && mainIds.has(w.id))) continue;
+      waypoints.push({ name: w.name, type: w.type, at: ll(w), variant: v.name });
+    }
+  }
   const all = main.flat();
   return {
     main,
@@ -66,9 +79,10 @@ export function adminRouteBounds(shapes: AdminRouteShapes): LatLng[] {
   return [...shapes.main.flat(), ...shapes.variants.flatMap(v => v.line), ...shapes.waypoints.map(w => w.at)];
 }
 
-/** A tooltip's HTML: the user-supplied name and type, escaped. */
-export function waypointTooltipHtml(name: string, type: string): string {
-  return `${escapeHtml(name || '(no name)')} <span class="community-hint">${escapeHtml(type)}</span>`;
+/** A tooltip's HTML: the user-supplied name, type and (if any) variant name, escaped. */
+export function waypointTooltipHtml(name: string, type: string, variant?: string): string {
+  const on = variant === undefined ? '' : ` on ${escapeHtml(variant || '(unnamed variant)')}`;
+  return `${escapeHtml(name || '(no name)')} <span class="community-hint">${escapeHtml(type)}${on}</span>`;
 }
 
 /**
@@ -98,8 +112,9 @@ export function drawAdminRouteMap(L: typeof Leaflet, container: HTMLElement, tra
       .addTo(map);
   }
   for (const w of shapes.waypoints) {
-    L.circleMarker(w.at, { radius: 4, color: routeColor, weight: 2, fillColor: '#ffffff', fillOpacity: 1 })
-      .bindTooltip(waypointTooltipHtml(w.name, w.type), { direction: 'top', offset: [0, -4] })
+    const color = w.variant === undefined ? routeColor : variantColor;
+    L.circleMarker(w.at, { radius: 4, color, weight: 2, fillColor: '#ffffff', fillOpacity: 1 })
+      .bindTooltip(waypointTooltipHtml(w.name, w.type, w.variant), { direction: 'top', offset: [0, -4] })
       .addTo(map);
   }
   if (shapes.start) {
