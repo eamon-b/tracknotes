@@ -84,3 +84,87 @@ AI_GATEWAY_ID = ""
 #     routes stay Unverified until an admin looks, and comments and waypoints
 #     are neither screened nor reviewed (three reports still hide one).
 #   AI_GATEWAY_TOKEN — only if the gateway is an Authenticated Gateway.
+
+# ---------------------------------------------------------------------------
+# STAGING: a second copy of this Worker for testing a branch end to end
+# (`npm run migrate:staging && npm run deploy:staging`; the Staging comments
+# API workflow deploys same-repo PRs here). Its own D1 and R2, so nothing it
+# does reaches production data. It holds TEST DATA ONLY, it is shared by every
+# branch (last deploy wins), and anyone may wipe it.
+# docs/architecture/workers.md ("Staging").
+#
+# Wrangler environments do NOT inherit bindings or [vars], so every one is
+# redeclared below. They DO inherit `routes`, `workers_dev` and `triggers`,
+# which is why each is set here: without `routes = []` a staging deploy would
+# claim api.tracknotes.info, and without `crons = []` it would run the
+# production cron. Tests read only the top-level config above.
+# ---------------------------------------------------------------------------
+[env.staging]
+name = "tracknotes-comments-staging"
+# No custom domain: https://tracknotes-comments-staging.<account subdomain>.workers.dev
+workers_dev = true
+routes = []
+
+# No cron by default: the */15 maintenance re-runs AI reviews (our spend) and
+# sends live community routes' outlines to the Overpass operators (off anyway
+# while OVERPASS_ENDPOINTS is empty). To test `scheduled`, add a cron here on
+# your branch, deploy, and take it out again.
+[env.staging.triggers]
+crons = []
+
+# Created 2026-11-11 with `wrangler d1 create tracknotes-comments-staging
+# --location oc` (placed in OC).
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "tracknotes-comments-staging"
+database_id = "63ed471c-5233-4318-9ff5-f30acd38bd04"
+
+# `wrangler r2 bucket create tracknotes-data-staging --location oc`
+[[env.staging.r2_buckets]]
+binding = "PHOTOS"
+bucket_name = "tracknotes-data-staging"
+
+# Workers AI: Llama Guard runs only when ANTHROPIC_API_KEY is set (it screens
+# for the review that key pays for), so without that secret on staging this
+# binding is never called and costs nothing. With it, every new comment with
+# text and every waypoint create or edit is a billed Llama Guard request, and
+# each review a billed Anthropic call, as in production.
+[env.staging.ai]
+binding = "AI"
+remote = true
+
+[env.staging.vars]
+# The staging bucket's public read URL (photos and community-route JSON). A new
+# bucket has none: `wrangler r2 bucket dev-url enable tracknotes-data-staging`
+# (or dashboard: R2 → the bucket → Settings → Public Development URL), then put
+# the https://pub-<hash>.r2.dev it prints here. r2.dev is rate-limited and
+# uncached, which is fine for test traffic; it is on no zone of ours, so no zone
+# rule (CSAM scanning included) covers it — staging photos are test images only.
+# Give the bucket a CORS rule (GET/HEAD, any origin): the web fetches a
+# community route's JSON from here cross-origin.
+PHOTOS_PUBLIC_BASE = "https://REPLACE-AFTER-r2-dev-url-enable.invalid"
+
+# Shared-plan links are minted as SITE_BASE/shared-plan.html?s=<id>, and that
+# page reads the share from the API its own build was given. A link to
+# tracknotes.info would ask production for a staging share and show "not
+# found", so the origin must be a site built with VITE_API_BASE_URL = this
+# Worker: any Vercel Preview deployment (Preview's VITE_API_BASE_URL is this
+# Worker, so every preview reads every staging share). Previews have
+# per-deploy URLs, so the Staging workflow passes `--var SITE_BASE:<origin>`
+# when the repository variable STAGING_SITE_BASE is set (a branch alias, or a
+# domain assigned to Preview). Without it, links point at this never-resolving
+# placeholder, deliberately not at production: everything else works, and a
+# tester swaps the host for any preview's (<preview>/shared-plan.html?s=<id>).
+SITE_BASE = "https://set-STAGING_SITE_BASE-to-a-preview-origin.invalid"
+
+# OFF on staging: every instance listed receives each live route's outline
+# (third parties, named in the privacy policy), and there is no cron to run it.
+OVERPASS_ENDPOINTS = ""
+
+# OFF: staging model calls (only with ANTHROPIC_API_KEY set) go straight to the
+# provider, so they stay out of production's gateway logs and spend.
+AI_GATEWAY_ID = ""
+
+# Secrets are per environment too: `wrangler secret put <NAME> --env staging`.
+# None is required. ANTHROPIC_API_KEY only to test the AI reviews (it costs);
+# AI_GATEWAY_TOKEN only with an Authenticated Gateway in AI_GATEWAY_ID.

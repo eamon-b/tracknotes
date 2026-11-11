@@ -153,8 +153,9 @@ be rolled forward without a reinstall. The detailed rationale is under "Deploy" 
    (401 once deployed). Add a line to its `PROBES` whenever a new migration adds routes.
 
 2. **Site.** Vercel builds `main` on push. `VITE_API_BASE_URL=https://api.tracknotes.info`
-   is set on the Vercel project (Production and Preview, added 2026-09-22, moved from
-   `api.contour-map-tiles.net` 2026-10-31); without it the
+   is set on the Vercel project's Production environment (added 2026-09-22, moved from
+   `api.contour-map-tiles.net` 2026-10-31; Preview builds take the staging API instead,
+   `docs/architecture/workers.md` "staging"); without it the
    planner is local-only. To confirm a deploy carries it, grep every script `my-plan.html`
    loads (its entry and `modulepreload` chunks) for `api.tracknotes.info`. The URL sits in
    whichever chunk Rollup puts the shared API client in — `assets/client-*.js` in the
