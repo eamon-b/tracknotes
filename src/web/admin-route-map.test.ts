@@ -77,9 +77,42 @@ describe('adminRouteShapes', () => {
     );
     expect(shapes.variants.map(v => v.name)).toEqual(['Alt', 'Peak']);
     expect(shapes.waypoints.map(w => w.name)).toEqual(['Hut', 'Spring']);
+    expect(shapes.waypoints.every(w => w.variant === undefined)).toBe(true);
     const bounds = adminRouteBounds(shapes);
     expect(bounds).toContainEqual([-39, 147]);
     expect(bounds).toContainEqual([-36, 144]);
+  });
+
+  it('includes waypoints on alternates and side trips, tagged with the variant, once each', () => {
+    const shapes = adminRouteShapes(
+      trail({}, {
+        alternates: [
+          {
+            name: 'Alt',
+            type: 'alternate',
+            points: [pt(-36, 144), pt(-36.1, 144.1)],
+            waypoints: [
+              { id: 'w1', name: 'Shared Hut', type: 'hut', lat: -37.01, lon: 145.01 },
+              { id: 'w2', name: 'Alt Camp', type: 'campsite', lat: -36.05, lon: 144.05 },
+            ],
+          },
+        ],
+        sideTrips: [
+          {
+            name: 'Peak',
+            type: 'side-trip',
+            points: [pt(-38, 146), pt(-38.1, 146.1)],
+            waypoints: [{ name: 'Summit', type: 'peak', lat: -38.1, lon: 146.1 }],
+          },
+        ],
+        waypoints: [{ id: 'w1', name: 'Shared Hut', type: 'hut', lat: -37.01, lon: 145.01 }],
+      } as unknown as Partial<ProcessedTrail>)
+    );
+    expect(shapes.waypoints).toEqual([
+      { name: 'Shared Hut', type: 'hut', at: [-37.01, 145.01] },
+      { name: 'Alt Camp', type: 'campsite', at: [-36.05, 144.05], variant: 'Alt' },
+      { name: 'Summit', type: 'peak', at: [-38.1, 146.1], variant: 'Peak' },
+    ]);
   });
 });
 
@@ -88,6 +121,12 @@ describe('waypointTooltipHtml', () => {
     const html = waypointTooltipHtml(`Hut ${XSS}`, `type ${XSS}`);
     expect(html).not.toContain('<img');
     expect(html).toContain('&lt;img');
+  });
+
+  it('names and escapes the variant a waypoint is on', () => {
+    const html = waypointTooltipHtml('Camp', 'campsite', `Alt ${XSS}`);
+    expect(html).toContain('on Alt &lt;img');
+    expect(html).not.toContain('<img');
   });
 });
 
@@ -118,12 +157,20 @@ describe('drawAdminRouteMap', () => {
       fakeL,
       document.createElement('div'),
       trail({}, {
-        alternates: [{ name: `Alt ${XSS}`, type: 'alternate', points: [pt(-36, 144), pt(-36.1, 144.1)] }],
+        alternates: [
+          {
+            name: `Alt ${XSS}`,
+            type: 'alternate',
+            points: [pt(-36, 144), pt(-36.1, 144.1)],
+            waypoints: [{ name: `Camp ${XSS}`, type: `campsite ${XSS}`, lat: -36.05, lon: 144.05 }],
+          },
+        ],
         waypoints: [{ name: `Hut ${XSS}`, type: 'hut', lat: -37.01, lon: 145.01 }],
       } as unknown as Partial<ProcessedTrail>)
     );
     expect(tooltips.length).toBeGreaterThanOrEqual(2);
     for (const html of tooltips) expect(html).not.toContain('<img');
     expect(tooltips.join('\n')).toContain('Hut &lt;img');
+    expect(tooltips.join('\n')).toContain('Camp &lt;img');
   });
 });
