@@ -62,45 +62,48 @@ jest.mock('../../../theme', () => ({
   useReduceMotion: () => false,
 }));
 
-// --- Local gesture-handler mock (chainable proxy) -------------------------
-// `mockComposedGestures` records every gesture composition, so a test can assert
-// the composed gesture is built once and not rebuilt on window changes.
-// `mockTapHandlers` collects the tap gesture's onEnd callback, which is how a
-// test fires a tap at a pixel the component itself placed a marker on.
-const mockComposedGestures: unknown[] = [];
-const mockTapHandlers: ((e: { x: number; y: number }) => void)[] = [];
+// --- Local gesture-handler mock (v3 hook API) ------------------------------
+// `mockGestureConfigs` records every config object each gesture hook is called
+// with, by hook, so a test can assert a gesture's config is built once and not
+// rebuilt on window changes, and can fire a gesture's callbacks itself (a tap's
+// `onDeactivate` at a pixel the component placed a marker on).
+// The hooks return a tagged stand-in; the composition hooks nest them, so a
+// test can check the composition too.
+const mockGestureConfigs: Record<string, Record<string, unknown>[]> = {};
+/** The `gesture` prop of each GestureDetector render. */
+const mockDetectorGestures: unknown[] = [];
 jest.mock('react-native-gesture-handler', () => {
-  const chainable = (): unknown =>
-    new Proxy(function () {}, {
-      get: () => () => chainable(),
-      apply: () => chainable(),
-    });
-  const compose = () => {
-    const g = chainable();
-    mockComposedGestures.push(g);
-    return g;
+  const single = (kind: string) => (config: Record<string, unknown>) => {
+    (mockGestureConfigs[kind] ??= []).push(config);
+    return { kind, config };
   };
-  const tap = () => {
-    const g = {
-      maxDistance: () => g,
-      onEnd: (fn: (e: { x: number; y: number }) => void) => {
-        mockTapHandlers.push(fn);
-        return g;
-      },
-    };
-    return g;
-  };
+  const composed =
+    (kind: string) =>
+    (...gestures: unknown[]) => ({ kind, gestures });
   return {
-    GestureDetector: ({ children }: { children: unknown }) => children,
-    Gesture: {
-      Pan: chainable,
-      Pinch: chainable,
-      Tap: tap,
-      Simultaneous: compose,
-      Race: chainable,
+    GestureDetector: ({ children, gesture }: { children: unknown; gesture: unknown }) => {
+      mockDetectorGestures.push(gesture);
+      return children;
     },
+    usePanGesture: single('pan'),
+    usePinchGesture: single('pinch'),
+    useTapGesture: single('tap'),
+    useCompetingGestures: composed('competing'),
+    useSimultaneousGestures: composed('simultaneous'),
   };
 });
+
+/** The distinct config objects a gesture hook has been called with. */
+function distinctConfigs(kind: string): Record<string, unknown>[] {
+  return [...new Set(mockGestureConfigs[kind] ?? [])];
+}
+
+/** The tap gesture's end callback, as the component configured it. */
+function tapHandler(): (e: { x: number; y: number }) => void {
+  const configs = distinctConfigs('tap');
+  expect(configs).toHaveLength(1);
+  return configs[0].onDeactivate as (e: { x: number; y: number }) => void;
+}
 
 function makePoints(n: number): ProfilePoint[] {
   return Array.from({ length: n }, (_, i) => ({
@@ -123,8 +126,8 @@ function layoutAll(root: ReactTestRenderer) {
 
 describe('ElevationProfile', () => {
   beforeEach(() => {
-    mockComposedGestures.length = 0;
-    mockTapHandlers.length = 0;
+    for (const kind of Object.keys(mockGestureConfigs)) delete mockGestureConfigs[kind];
+    mockDetectorGestures.length = 0;
   });
 
   const baseProps = {
@@ -163,7 +166,7 @@ describe('ElevationProfile', () => {
       root = TestRenderer.create(<ElevationProfile {...baseProps} onWindowChange={jest.fn()} />);
     });
     layoutAll(root);
-    expect(mockComposedGestures).toHaveLength(1);
+    for (const kind of ['pan', 'pinch', 'tap']) expect(distinctConfigs(kind)).toHaveLength(1);
 
     for (const window of [
       { startKm: 10, endKm: 60 },
@@ -174,7 +177,48 @@ describe('ElevationProfile', () => {
         root.update(<ElevationProfile {...baseProps} window={window} onWindowChange={jest.fn()} />);
       });
     }
-    expect(mockComposedGestures).toHaveLength(1);
+    for (const kind of ['pan', 'pinch', 'tap']) expect(distinctConfigs(kind)).toHaveLength(1);
+    act(() => root.unmount());
+  });
+
+  it('configures the gestures as the builder API did', () => {
+    let root!: ReactTestRenderer;
+    act(() => {
+      root = TestRenderer.create(<ElevationProfile {...baseProps} onWindowChange={jest.fn()} />);
+    });
+    const [pan] = distinctConfigs('pan');
+    const [pinch] = distinctConfigs('pinch');
+    const [tap] = distinctConfigs('tap');
+    expect(pan).toMatchObject({ minDistance: 6, maxPointers: 1 });
+    expect(tap).toMatchObject({ maxDistance: 12 });
+    // onStart/onEnd became onActivate/onDeactivate in v3; nothing may still use
+    // the old names, which the hooks would ignore.
+    for (const config of [pan, pinch]) {
+      for (const name of ['onActivate', 'onUpdate', 'onDeactivate']) {
+        expect(typeof config[name]).toBe('function');
+      }
+    }
+    expect(typeof pinch.onTouchesDown).toBe('function');
+    expect(typeof tap.onDeactivate).toBe('function');
+    for (const config of [pan, pinch, tap]) {
+      expect(config).not.toHaveProperty('onStart');
+      expect(config).not.toHaveProperty('onEnd');
+    }
+    // Simultaneous(Race(pinch, pan), tap), as before.
+    layoutAll(root);
+    expect(mockDetectorGestures.at(-1)).toEqual({
+      kind: 'simultaneous',
+      gestures: [
+        {
+          kind: 'competing',
+          gestures: [
+            { kind: 'pinch', config: pinch },
+            { kind: 'pan', config: pan },
+          ],
+        },
+        { kind: 'tap', config: tap },
+      ],
+    });
     act(() => root.unmount());
   });
 
@@ -427,13 +471,13 @@ describe('ElevationProfile', () => {
       const ring = drawn.find((c) => c.style === 'stroke');
       const dot = drawn.find((c) => c.style !== 'stroke');
       if (!ring || !dot) throw new Error('expected both a POI ring and a waypoint dot');
-      expect(mockTapHandlers).toHaveLength(1);
+      const onTap = tapHandler();
 
       // Tap dead centre of each marker the component itself placed.
-      act(() => mockTapHandlers[0]({ x: ring.cx, y: ring.cy }));
+      act(() => onTap({ x: ring.cx, y: ring.cy }));
       expect(onWaypointTap).toHaveBeenLastCalledWith('node-9', 'poi');
 
-      act(() => mockTapHandlers[0]({ x: dot.cx, y: dot.cy }));
+      act(() => onTap({ x: dot.cx, y: dot.cy }));
       expect(onWaypointTap).toHaveBeenLastCalledWith('w1', 'waypoint');
       act(() => root.unmount());
     });
