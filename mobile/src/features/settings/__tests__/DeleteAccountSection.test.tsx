@@ -125,6 +125,7 @@ describe('DeleteAccountSection', () => {
     expect(text).toContain('Delete account');
     expect(text).toContain('can’t be undone');
     expect(text).toContain('stay on this device');
+    expect(text).toContain('synced plans');
   });
 
   it('does not delete anything until the confirmation is accepted', async () => {

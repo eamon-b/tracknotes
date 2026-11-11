@@ -78,6 +78,20 @@ describe('purgeLocalAccountData', () => {
     expect(await ids('outbox')).toEqual([]);
   });
 
+  it('finishes the purge when removing the plan export file fails', async () => {
+    mockDeletePlanExport.mockImplementation(() => {
+      throw new Error('EACCES');
+    });
+    await insertComment('c-mine', ME);
+    await insertOutboxItem('o-1');
+
+    await purgeLocalAccountData(db as unknown as SqlDatabase, ME);
+
+    expect(mockDeleteCommentExport).toHaveBeenCalledTimes(1);
+    expect(await ids('comments')).toEqual([]);
+    expect(await ids('outbox')).toEqual([]);
+  });
+
   it('deletes the user’s own comments, server-mirrored and optimistic alike', async () => {
     await insertComment('c-mine-server', ME);
     await insertComment('c-mine-local', ME, 'local');

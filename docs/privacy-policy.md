@@ -236,8 +236,10 @@ downloads every comment and water report you have posted, including ones you
 or a moderator have since deleted, as a JSON file you can save or send. It
 holds what we store for each: the trail and waypoint or place, the text, water
 status, times, photo links, and whether and by whom it was deleted. It does
-not include your display name. Export before you delete your account if you
-want a copy: once the account is deleted there is nothing left to export.
+not include your display name. If you want a copy, export it and save the file
+somewhere outside the app (Files, a cloud drive, an email to yourself) before
+you delete your account: deleting the account also removes the export file the
+app prepared, and once the account is deleted there is nothing left to export.
 
 ## Deleting your data
 
@@ -255,6 +257,12 @@ already deleted or hidden:
 - **Shared waypoints:** the name, note and position are erased, and the
   waypoint is unshared for good (moderation cannot restore it). On your phone
   they are kept as private waypoints.
+
+On the phone itself, deleting your account removes your own comments, your
+synced plans and any comment or plan export file the app prepared for sharing.
+A copy you already saved or sent elsewhere is outside the app, and yours to
+delete. Local data on your own device (favorites, routes, downloaded maps)
+stays on your device until you clear it or uninstall.
 
 What stays in our database for each is an empty record: its ID, the trail (and
 waypoint or place) it belonged to, a waypoint's type, and when it was created,
@@ -276,11 +284,7 @@ leaves the routes you shared public but removes your display name from them:
 the stored route is rewritten without it and the earlier copies that named you
 are deleted. The original GPX file, if you included one, is deleted too. The
 description and credit line you wrote stay published. Delete the routes first
-if you want them gone. On the phone, deleting your account also removes your
-own comments, your synced plans and any comment or plan export file the app
-prepared for sharing (a copy you already saved or sent elsewhere is yours to
-delete). Local data on your own device (favorites, routes, downloaded maps)
-stays on your device until you clear it or uninstall.
+if you want them gone.
 
 ## Children
 
