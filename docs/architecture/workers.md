@@ -93,6 +93,9 @@ Re-run: migration `0011` makes every `done` route that is not removed due again 
 It costs one Overpass round per route, 3 routes a run;
 a route whose POIs come out the same is marked done without a rewrite, one that changed is republished (a new md5 and `updated_at`).
 A hidden route is requeued too, and waits until a restore makes it a candidate.
+It needs nothing beyond the normal deploy (`npm run migrate:remote` applies it), and it is idempotent: a second application only requeues, and a re-run that finds the flags already stored rewrites nothing.
+Flagging lazily on read was not an option: phones and the web download the trail JSON straight from R2 (`trailUrl`, content-addressed and md5-checked), so no worker code sees a read, and a changed body needs a new md5 in the list anyway.
+The tests cover a route stored without the flags (as a pre-#282 worker left it) re-enriched from the same Overpass answer.
 Apply it after the code it re-runs is deployed, and reuse the same pattern (a migration that sets `pois_due_at = ''` on `done` routes) whenever a change to `finishTrailPois` should reach stored routes.
 
 **Which routes, in what order.**

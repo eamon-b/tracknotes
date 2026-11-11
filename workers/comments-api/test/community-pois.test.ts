@@ -26,6 +26,7 @@ import {
   readCapped,
   retryAfterMs,
 } from '../src/community-pois';
+import { encodeTrail } from '../src/community-storage';
 import type { Env } from '../src/http';
 import type { CommunityRouteDetail } from '../../../src/lib/community-types';
 import type { ProcessedTrail, TrailPOI } from '../../../src/lib/trail-types';
@@ -975,5 +976,68 @@ describe('migration 0011: re-run POI enrichment for the self-dedup flags (#286)'
     expect(after.pois_due_at).toBeNull();
     expect(after.md5).toBe(enriched.md5);
     expect(after.updated_at).toBe(enriched.updated_at);
+  });
+
+  it('flags a route enriched before the flag existed, from the same Overpass answer, once', async () => {
+    const owner = await registerDevice();
+    const start = freshStart();
+    const route = await submitAt(owner, start);
+    // OSM has had the supermarket twice all along.
+    const elements = elementsAlong(start) as { type: string; id: number; center?: { lat: number; lon: number } }[];
+    const store = elements.find((e) => e.type === 'way' && e.id === 4)!;
+    const answer = (): unknown[] => [
+      ...elements,
+      {
+        type: 'node',
+        id: 7,
+        lat: store.center!.lat + 0.0001,
+        lon: store.center!.lon,
+        tags: { shop: 'supermarket', name: 'Corner Store' },
+      },
+    ];
+    await onlyCandidate(route.id);
+    await run(overpass([elementsResponse(answer())]));
+
+    // What a pre-#282 worker stored: both records of the place, neither
+    // flagged. The private copy is the one the enrichment and every
+    // republish read.
+    const enriched = await row(route.id);
+    const stored = await storedTrail(enriched.private_key as string);
+    const unflagged = (stored.pois as TrailPOI[]).map(
+      ({ duplicateOfPoi: _d, duplicateOfPoiDistanceM: _m, ...poi }) => poi
+    );
+    expect((stored.pois as TrailPOI[]).some((p) => p.duplicateOfPoi)).toBe(true);
+    const encoded = await encodeTrail({ ...stored, pois: unflagged });
+    await env.PHOTOS.put(enriched.private_key as string, encoded.body);
+    await env.DB.prepare(`UPDATE community_routes SET md5 = ?, bytes = ? WHERE id = ?`)
+      .bind(encoded.md5, encoded.bytes, route.id)
+      .run();
+    const old = await row(route.id);
+    const before = await storedTrail(old.private_key as string);
+    expect((before.pois as TrailPOI[]).filter((p) => p.name === 'Corner Store' && !p.duplicateOfPoi)).toHaveLength(2);
+
+    await runMigration();
+    await onlyCandidate(route.id);
+    await run(overpass([elementsResponse(answer())]));
+
+    const after = await row(route.id);
+    expect(after.pois_status).toBe('done');
+    expect(after.pois_due_at).toBeNull();
+    expect(after.md5).not.toBe(old.md5);
+    expect(after.updated_at).not.toBe(old.updated_at);
+    for (const key of [after.private_key, after.r2_key] as string[]) {
+      const stores = ((await storedTrail(key)).pois as TrailPOI[]).filter((p) => p.name === 'Corner Store');
+      expect(stores).toHaveLength(2);
+      expect(stores.filter((p) => p.duplicateOfPoi)).toHaveLength(1);
+    }
+
+    // Applied again (or the cron re-running it), nothing more changes.
+    await runMigration();
+    await onlyCandidate(route.id);
+    await run(overpass([elementsResponse(answer())]));
+    const again = await row(route.id);
+    expect(again.pois_status).toBe('done');
+    expect(again.md5).toBe(after.md5);
+    expect(again.updated_at).toBe(after.updated_at);
   });
 });
