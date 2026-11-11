@@ -12,9 +12,14 @@ on:
   # suite against the deployed site.
   deployment_status:
 
+# Nothing here writes to the repo; the Preview job reads one commit's branches.
+permissions:
+  contents: read
+
 concurrency:
   group: e2e-${{ github.event_name }}-${{ github.event.deployment.id || github.ref }}
-  cancel-in-progress: true
+  # A newer push to a PR supersedes its run; every push to main keeps its own.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   # The local build: trail data and the pages built from this commit, served by
@@ -59,11 +64,24 @@ jobs:
       BASE_URL: ${{ github.event.deployment_status.target_url }}
       VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
     steps:
-      - name: Check for the bypass secret
+      # This job runs the deployed commit's code with the secret in its env, so
+      # it only runs a commit that is the head of a branch in this repo (pushed
+      # by a collaborator), never one from a fork's PR. It also relies on
+      # Vercel's Git fork protection staying on (docs/architecture/web-ui.md).
+      - name: Check for the bypass secret and the deployed commit
         id: secret
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.deployment.sha }}
         run: |
           if [ -z "$VERCEL_AUTOMATION_BYPASS_SECRET" ]; then
             echo "::notice::Skipping the Preview smoke tests: the VERCEL_AUTOMATION_BYPASS_SECRET repo secret is not set."
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          branches=$(gh api "repos/$GITHUB_REPOSITORY/commits/$SHA/branches-where-head" --jq 'length') || branches=0
+          if [ "$branches" = "0" ]; then
+            echo "::notice::Skipping the Preview smoke tests: $SHA is not the head of a branch in this repo (a fork's commit, or a superseded push)."
             echo "present=false" >> "$GITHUB_OUTPUT"
           else
             echo "present=true" >> "$GITHUB_OUTPUT"
