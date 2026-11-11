@@ -146,6 +146,9 @@ It has one test per page family: the landing page lists every trail in `index.js
 Keep it that size, with role/text selectors and no fixed waits; anything finer belongs in the jsdom suites.
 By default it tests the `npm run build:app` output (`dist-app/`, a production build without the `public/` tile packs; it needs `npm run sync:te-araroa && npm run build:trails` first), served by `vite preview` on port 4319.
 `BASE_URL=<url>` tests a deployed site instead, and `VERCEL_AUTOMATION_BYPASS_SECRET` adds Vercel's protection-bypass headers to requests to that site (Previews are behind Vercel Authentication).
-`e2e/fixtures.ts` makes the network deterministic: Leaflet's unpkg files come from `node_modules/leaflet` (pinned to the 1.9.4 the pages' SRI hashes name), map tiles get a blank PNG, and every other host is refused, except read-only calls to a deployed build's comments API.
+`e2e/fixtures.ts` makes the network deterministic: Leaflet's unpkg files come from `node_modules/leaflet` (pinned to the 1.9.4 the pages' SRI hashes name), map tiles get a blank PNG, and every other host is refused, except read-only (GET) calls to a deployed build's comments API origin (`https://api.tracknotes.info`, or `COMMENTS_API_ORIGIN` for a Preview built against another).
 A test fails on any uncaught page error or console error.
 CI runs it in `.github/workflows/e2e.yml`: against a local build on every PR and push to `main`, and against each successful Vercel Preview (`deployment_status`) when the `VERCEL_AUTOMATION_BYPASS_SECRET` repo secret is set (traces are off then, since they would record the header).
+The workflow's token is read-only (`contents: read`), and a push to `main` never cancels an earlier `main` run (only superseded PR runs are cancelled).
+The Preview job runs the deployed commit's code with the bypass secret in its environment, so it only runs a commit that is the head of a branch in this repo (`branches-where-head`), never a fork's.
+It also relies on Vercel's Git fork protection staying on (Project Settings, Git), so a fork's PR is never deployed, and so never reported as a deployment, without a maintainer's approval.

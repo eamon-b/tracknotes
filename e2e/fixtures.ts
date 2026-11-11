@@ -7,7 +7,8 @@
  *   from `node_modules/leaflet` (the same 1.9.4 bytes, so the hash still
  *   matches). Map tiles get a blank PNG. Anything else — Overpass, elevation,
  *   climate — is aborted, except, against a deployed site, read-only (GET)
- *   calls to its comments API (a Preview build may set `VITE_API_BASE_URL`).
+ *   calls to the comments API origin (`https://api.tracknotes.info`, or
+ *   `COMMENTS_API_ORIGIN`), which a build with `VITE_API_BASE_URL` calls.
  *   The suite never writes to an API.
  * - The test fails on any uncaught page error or console error, apart from the
  *   browser's own "Failed to load resource" line for a request to another host
@@ -32,6 +33,12 @@ const TILE_HOSTS = /(^|\.)(tile\.opentopomap\.org|tile\.openstreetmap\.org|openf
 
 const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
 const deployed = !!process.env.BASE_URL;
+/**
+ * The comments API a deployed build may call (`VITE_API_BASE_URL`): the
+ * production origin, or `COMMENTS_API_ORIGIN` for a Preview built against
+ * another. No other API host is let through.
+ */
+const COMMENTS_API_ORIGIN = new URL(process.env.COMMENTS_API_ORIGIN || 'https://api.tracknotes.info').origin;
 
 function leafletFile(url: URL): { body: Buffer; contentType: string } | null {
   const match = url.pathname.match(/^\/leaflet@1\.9\.4\/dist\/([\w./-]+)$/);
@@ -72,7 +79,7 @@ async function handleRequest(route: Route, request: Request, siteOrigin: string)
   if (TILE_HOSTS.test(url.hostname)) {
     return route.fulfill({ status: 200, body: BLANK_PNG, contentType: 'image/png' });
   }
-  if (deployed && request.method() === 'GET' && /(^|\.)api\.[\w.-]+$/.test(url.hostname)) {
+  if (deployed && request.method() === 'GET' && url.origin === COMMENTS_API_ORIGIN) {
     return route.continue();
   }
   return route.abort('blockedbyclient');

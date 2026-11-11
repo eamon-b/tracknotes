@@ -74,12 +74,21 @@ test('a trail page draws the route on the map and the elevation profile', async 
 
 test('the plan page suggests days and shows them as day cards', async ({ page }) => {
   await page.goto(`trails/${PLAN_TRAIL}/plan.html`);
+  // `#save-status` reads "Saved" in the markup, so the proof of a save is the
+  // stored document: no stops before, the plan's stops after.
+  const storedStops = () =>
+    page.evaluate(trailId => {
+      const raw = localStorage.getItem(`trail-plan-doc-${trailId}`);
+      return raw ? ((JSON.parse(raw) as { stops?: unknown[] }).stops?.length ?? 0) : 0;
+    }, PLAN_TRAIL);
+  expect(await storedStops()).toBe(0);
   await page.getByRole('button', { name: 'Suggest plans' }).click();
   await page.getByRole('button', { name: 'Use this plan' }).first().click();
 
   const firstDay = page.locator('#days-list .day-card[data-day-index="0"]');
   await expect(firstDay).toContainText('Day 1');
   await expect(firstDay).toContainText(/\d+(\.\d)? km/);
+  await expect.poll(storedStops).toBeGreaterThan(0);
   await expect(page.locator('#save-status')).toHaveText('Saved');
 });
 
