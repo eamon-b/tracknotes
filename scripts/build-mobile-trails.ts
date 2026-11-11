@@ -317,9 +317,51 @@ export function mobileTrailFile(id: string, trail: TrailJson): { optimized: Trai
   return { optimized, json: JSON.stringify(optimized) };
 }
 
+function fail(message: string): never {
+  console.error(`build:mobile-trails: ${message}`);
+  process.exit(1);
+}
+
+/**
+ * Why the generated web data cannot be turned into the app's, or `null`.
+ *
+ * Writing the app's index from incomplete input drops a trail from every phone
+ * without a word: a generated file missing, or a trail the app bundles absent
+ * from the generated index because `build:trails` failed it (it then writes the
+ * index without that trail). Both used to be a `SKIP` line and exit 0.
+ */
+export function missingInputProblem(
+  generatedIds: string[],
+  bundledIds: string[],
+  hasGeneratedFile: (id: string) => boolean
+): string | null {
+  const noFile = generatedIds.filter(id => !hasGeneratedFile(id));
+  if (noFile.length > 0) {
+    return (
+      `public/data/generated/index.json lists ${noFile.join(', ')} but there is no generated file for ` +
+      `${noFile.length === 1 ? 'it' : 'them'}. Run \`npm run sync:te-araroa && npm run build:trails\` and fix ` +
+      'any trail it reports.'
+    );
+  }
+  const generated = new Set(generatedIds);
+  const dropped = bundledIds.filter(id => !generated.has(id));
+  if (dropped.length > 0) {
+    return (
+      `the app bundles ${dropped.join(', ')} but public/data/generated/index.json does not list ` +
+      `${dropped.length === 1 ? 'it' : 'them'}, so the app index would drop ${dropped.length === 1 ? 'it' : 'them'}. ` +
+      'Run `npm run sync:te-araroa && npm run build:trails` and fix any trail it reports. To retire a trail on ' +
+      'purpose, delete its file and entry from mobile/assets/trails/ first.'
+    );
+  }
+  return null;
+}
+
 export function main() {
   // Read the index
   const indexPath = path.join(GENERATED_DIR, 'index.json');
+  if (!fs.existsSync(indexPath)) {
+    fail(`${path.relative(process.cwd(), indexPath)} is missing. Run \`npm run build:trails\` first.`);
+  }
   const index: TrailIndexBase[] = JSON.parse(fs.readFileSync(indexPath, 'utf-8'));
 
   // Ensure output directory exists
@@ -334,6 +376,12 @@ export function main() {
   const previousById = previousIndexById(
     fs.existsSync(mobileIndexPath) ? fs.readFileSync(mobileIndexPath, 'utf-8') : undefined
   );
+  const problem = missingInputProblem(
+    index.map(entry => entry.id),
+    [...previousById.keys()],
+    id => fs.existsSync(path.join(GENERATED_DIR, `${id}.json`))
+  );
+  if (problem) fail(problem);
   const now = new Date();
   // Each entry also carries the trail's `country`/`states` (after `lengthKm`,
   // via `mergeIndexEntry`) for the app's grouped My Guides list.
@@ -345,11 +393,6 @@ export function main() {
 
   for (const entry of index) {
     const inputPath = path.join(GENERATED_DIR, `${entry.id}.json`);
-    if (!fs.existsSync(inputPath)) {
-      console.warn(`  SKIP: ${entry.id}.json not found`);
-      continue;
-    }
-
     const rawJson = fs.readFileSync(inputPath, 'utf-8');
     const trail: TrailJson = JSON.parse(rawJson);
     const originalSize = rawJson.length;

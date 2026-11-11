@@ -301,6 +301,7 @@ A parity test (`src/lib/xml-adapter.test.ts`) asserts the fast-xml-parser and DO
 **Ingestion is shared, not forked:** `scripts/build-trails.ts` and `importGpx` both call `buildTrail`, so a GPX file produces the same trail in the build, on the web and on the phone.
 The build script keeps only what needs a file system: CalTopo GeoJSON, the CSV waypoint fallback, climate, curated descriptions, the `data/waypoint-ids.json` registry, and HTML generation — each passed in as a hook.
 Any change to `trail-ingest.ts` must leave `public/data/generated/*.json` byte-identical unless the change is intentional.
+`npm run check:data-unchanged` checks it: `-- --baseline` builds `origin/main` (or `--ref <ref>`, or `--current`) into a snapshot, then a plain run rebuilds this tree and lists every file, key and array that moved, and exits 1 if anything did (see `build-scripts.md`).
 
 **Shared calculators:** `track-geometry.ts`, `day-calculator.ts`, `resupply-calculator.ts`, `resupply-plan.ts`, `resupply-display.ts` and `water-carry-calculator.ts` are the single implementations used by both web and mobile.
 Mobile imports them via the `@lib` alias (Metro `watchFolders` + tsconfig paths + Jest `moduleNameMapper`).

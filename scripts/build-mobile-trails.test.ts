@@ -13,7 +13,7 @@
  */
 
 import { beforeAll, describe, it, expect } from 'vitest';
-import { processTrail, type TrailJson } from './build-mobile-trails.js';
+import { missingInputProblem, processTrail, type TrailJson } from './build-mobile-trails.js';
 import { calculateElevationBetween } from '../src/lib/track-geometry.js';
 import { routeBreakStarts } from '../src/lib/route-breaks.js';
 import { stopWalk } from '../src/lib/day-calculator.js';
@@ -552,5 +552,26 @@ describe('processTrail web-only fields', () => {
   it("drops the web build's data time, which would move the md5 on every build", () => {
     const out = processTrail({ ...trailJson(), dataUpdatedAt: '2026-10-17T00:01:47.265Z' });
     expect(out).not.toHaveProperty('dataUpdatedAt');
+  });
+});
+
+describe('missingInputProblem', () => {
+  const all = () => true;
+
+  it('passes complete input', () => {
+    expect(missingInputProblem(['a', 'b'], ['a', 'b'], all)).toBeNull();
+    expect(missingInputProblem(['a', 'b', 'new'], ['a', 'b'], all)).toBeNull();
+  });
+
+  it('fails when the generated index lists a trail with no generated file', () => {
+    expect(missingInputProblem(['a', 'b'], ['a', 'b'], id => id !== 'b')).toMatch(
+      /lists b but there is no generated file for it.*npm run sync:te-araroa && npm run build:trails/
+    );
+  });
+
+  it('fails when a bundled trail is missing from the generated index (build:trails failed it)', () => {
+    expect(missingInputProblem(['a'], ['a', 'te_araroa'], all)).toMatch(
+      /the app bundles te_araroa but public\/data\/generated\/index.json does not list it/
+    );
   });
 });

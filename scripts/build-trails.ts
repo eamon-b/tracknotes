@@ -30,6 +30,7 @@ import {
 import { BUNDLED_PLAN_FILLS, inlinePlanShell } from './lib/plan-shell.js';
 import { fillTemplate } from './lib/fill-template.js';
 import { readAppIndex, webDataTime } from './lib/web-data-time.js';
+import { syncedRouteProblem, TE_ARAROA_TRAIL_DIR } from './lib/te-araroa-package.js';
 
 /** Calculate haversine distance in km */
 function haversineDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -293,7 +294,12 @@ function validateTrailDirectory(trailDir: string): { errors: string[]; needsAuto
   try {
     const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
 
-    if (!config.gpxFile) {
+    if (trailId === TE_ARAROA_TRAIL_DIR) {
+      // Its GPX is a gitignored copy out of node_modules: missing, or left over
+      // from another install, it would build a route the lockfile does not pin.
+      const problem = syncedRouteProblem(PROJECT_ROOT);
+      if (problem) errors.push(`${trailId}: ${problem}`);
+    } else if (!config.gpxFile) {
       // Try to find GPX file automatically
       const gpxFile = findGpxFile(trailDir);
       if (!gpxFile) {

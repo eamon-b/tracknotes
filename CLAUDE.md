@@ -12,6 +12,7 @@ npm run format         # Prettier over code and JSON, whole repo (CI runs format
 npm run check          # Web tests + lint, then mobile tests + typecheck + lint
 npx tsc --noEmit       # Typecheck (CI runs it)
 npm run sync:te-araroa && npm run build:trails && npm run build:mobile-trails   # Rebuild trail data (CI checks it is committed)
+npm run check:data-unchanged -- --baseline   # then edit, then run it bare: rebuilds and diffs the trail data against origin/main
 ```
 
 Every other script (`fetch:*`, `build:tiles`, `upload:*`, `publish:trail-data`, …) is in `package.json` and documented in `docs/architecture/build-scripts.md`. Scripts that publish (`upload:*`, `publish:trail-data`) write to production R2 or the live API — don't run them unless asked.
