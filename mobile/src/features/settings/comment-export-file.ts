@@ -9,7 +9,8 @@
  *
  * The file lives in its own cache folder, emptied before each export, so old
  * copies do not pile up; the OS may clear it at any time, which is fine once
- * the sheet has handed it on.
+ * the sheet has handed it on. Delete account removes it too
+ * (`account-deletion.ts`): it is a full copy of the account's comments.
  */
 
 import { Directory, File, Paths } from 'expo-file-system';
@@ -34,4 +35,10 @@ export function writeCommentExportFile(contents: string, exportedAt: string): st
   // sheet must not open on a file that is still being written.
   file.writeSync(contents);
   return file.uri;
+}
+
+/** Remove the last export, if one is still in the cache. */
+export function deleteCommentExportFile(): void {
+  const dir = exportDir();
+  if (dir.exists) dir.delete();
 }

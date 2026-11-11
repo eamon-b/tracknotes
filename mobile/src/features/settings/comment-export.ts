@@ -32,8 +32,12 @@ export function composeCommentExport(comments: MyComment[], exportedAt: string):
   };
 }
 
-/** One line under the button once the sheet has been offered. */
+/**
+ * One line under the button once the sheet has been offered. It says only that
+ * the file was made: expo-sharing does not report whether the hiker saved or
+ * sent it, or dismissed the sheet.
+ */
 export function exportSummary(count: number): string {
   if (count === 0) return 'You haven’t posted any comments.';
-  return count === 1 ? 'Exported 1 comment.' : `Exported ${count} comments.`;
+  return count === 1 ? '1 comment ready to share.' : `${count} comments ready to share.`;
 }

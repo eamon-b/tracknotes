@@ -276,8 +276,11 @@ leaves the routes you shared public but removes your display name from them:
 the stored route is rewritten without it and the earlier copies that named you
 are deleted. The original GPX file, if you included one, is deleted too. The
 description and credit line you wrote stay published. Delete the routes first
-if you want them gone. Local data on your own device (favorites, routes,
-downloaded maps) stays on your device until you clear it or uninstall.
+if you want them gone. On the phone, deleting your account also removes your
+own comments, your synced plans and any comment or plan export file the app
+prepared for sharing (a copy you already saved or sent elsewhere is yours to
+delete). Local data on your own device (favorites, routes, downloaded maps)
+stays on your device until you clear it or uninstall.
 
 ## Children
 

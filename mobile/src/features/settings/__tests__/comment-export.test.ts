@@ -34,9 +34,13 @@ describe('composeCommentExport', () => {
 });
 
 describe('exportSummary', () => {
-  it('counts what was exported', () => {
+  it('counts what went into the file', () => {
     expect(exportSummary(0)).toBe('You haven’t posted any comments.');
-    expect(exportSummary(1)).toBe('Exported 1 comment.');
-    expect(exportSummary(12)).toBe('Exported 12 comments.');
+    expect(exportSummary(1)).toBe('1 comment ready to share.');
+    expect(exportSummary(12)).toBe('12 comments ready to share.');
+  });
+
+  it('never claims the file was saved or sent — the share sheet does not say', () => {
+    for (const count of [1, 12]) expect(exportSummary(count)).not.toMatch(/export|sav|sent/i);
   });
 });
