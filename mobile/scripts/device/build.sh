@@ -29,7 +29,8 @@ LOG="$STATE_DIR/build.log"
 if [ -f "$STATUS" ]; then
   prev_state="$(grep '^state=' "$STATUS" | cut -d= -f2)"
   prev_pid="$(grep '^pid=' "$STATUS" | cut -d= -f2)"
-  if [ "$prev_state" = running ] && pid_alive "$prev_pid"; then
+  prev_start="$(grep '^pid_start=' "$STATUS" | cut -d= -f2- || true)"
+  if [ "$prev_state" = running ] && pid_ours "$prev_pid" "$prev_start"; then
     ok "A build is already running (pid $prev_pid) — not starting another."
     info "Wait for it: npm run device:wait    Log: $LOG"
     exit 0
@@ -64,10 +65,12 @@ fi
 
 LABEL="$(git_label)"
 {
-  printf 'state=running\nexit_code=\npid=\nstarted=%s\nfinished=\ngit=%s\nsdk=%s\n' "$(date -Is)" "$LABEL" "$SDK"
+  printf 'state=running\nexit_code=\npid=\npid_start=\nstarted=%s\nfinished=\ngit=%s\nsdk=%s\n' "$(date -Is)" "$LABEL" "$SDK"
 } >"$STATUS"
 pid="$(detach "$LOG" bash "$DEVICE_SCRIPTS_DIR/build-runner.sh" "$STATUS" "$CLEAN" "$LABEL" "$SDK")"
-sed -i "s/^pid=$/pid=$pid/" "$STATUS" # unless the runner already wrote its own
+pid_started="$(pid_start "$pid")"
+# Unless the runner already wrote its own (same process, same values).
+sed -i "s/^pid=$/pid=$pid/; s/^pid_start=$/pid_start=$pid_started/" "$STATUS"
 
 ok "Build started (pid $pid, Expo SDK $SDK, git $LABEL$([ "$CLEAN" = 1 ] && echo ', prebuild --clean'))."
 info "A first build takes ~12-15 min. Poll with: npm run device:wait   (blocks up to 9 min per call)"

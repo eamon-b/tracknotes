@@ -14,6 +14,7 @@ write_status() { # state exit_code
     printf 'state=%s\n' "$1"
     printf 'exit_code=%s\n' "$2"
     printf 'pid=%s\n' "$$"
+    printf 'pid_start=%s\n' "$PID_START"
     printf 'started=%s\n' "$STARTED"
     printf 'finished=%s\n' "$(date -Is)"
     printf 'git=%s\n' "$LABEL"
@@ -21,6 +22,8 @@ write_status() { # state exit_code
   } >"$STATUS.tmp" && mv "$STATUS.tmp" "$STATUS"
 }
 STARTED="$(date -Is)"
+# Lets build/wait/stop/install tell this process from a reused pid (see lib.sh pid_start).
+PID_START="$(ps -o lstart= -p "$$" 2>/dev/null | sed 's/^ *//; s/ *$//')"
 write_status running ""
 
 finish() {

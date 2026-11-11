@@ -22,7 +22,7 @@ PORT="${TRACKNOTES_METRO_PORT:-8081}"; API=0; OPEN=1; SDK_CHECK=1; WATCH=0
 START_TIMEOUT="${TRACKNOTES_METRO_START_TIMEOUT:-300}"
 while [ $# -gt 0 ]; do
   case "$1" in
-    --port) PORT="${2:-}"; shift ;;
+    --port) [ $# -ge 2 ] || die "--port needs a value, e.g. --port 8082 (try --help)"; PORT="$2"; shift ;;
     --port=*) PORT="${1#--port=}" ;;
     --api) API=1 ;;
     --watch) WATCH=1 ;;
@@ -49,7 +49,7 @@ require_device
 metro_up() { curl -sf --max-time 15 "$BASE/status" 2>/dev/null | grep -q 'packager-status:running'; }
 port_owner() { ss -ltnpH "sport = :$1" 2>/dev/null | head -1; }
 
-old_pid="$(cat "$PIDF" 2>/dev/null || true)"
+old_pid="$(read_pidfile "$PIDF")" # empty if gone, or the pid was reused
 old_port="$(cat "$PORTF" 2>/dev/null || true)"
 if pid_alive "$old_pid" && [ "$old_port" != "$PORT" ]; then
   die "Metro from this checkout is already running on port $old_port (pid $old_pid).
@@ -74,7 +74,7 @@ Pick another port (npm run device:metro -- --port 8082), or stop that process."
   # (Expo rejects an empty CI, so --watch unsets it rather than blanking it.)
   ci_env=(CI=1); [ "$WATCH" = 1 ] && ci_env=(-u CI)
   pid="$(cd "$MOBILE_DIR" && detach "$LOG" env "${ci_env[@]}" npx expo start --dev-client --port "$PORT")"
-  echo "$pid" >"$PIDF"; echo "$PORT" >"$PORTF"
+  write_pidfile "$PIDF" "$pid"; echo "$PORT" >"$PORTF"
   deadline=$(( $(date +%s) + START_TIMEOUT ))
   until metro_up; do
     pid_alive "$pid" || { tail -n 30 "$LOG" >&2; rm -f "$PIDF"; die "Metro exited during startup (log tail above; full log $LOG)."; }
