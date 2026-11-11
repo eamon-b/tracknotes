@@ -501,13 +501,16 @@ function mapMainIndex(line: SplicedLine<RoutePoint>, index: number): number {
  *   alternate's (a junction waypoint both lines share is listed once), with
  *   their km, legs and climb recomputed along the new line.
  * - POIs, side trips and the alternates not taken move to route km; any the
- *   route no longer passes are left out. A POI found along a taken alternate
- *   (`poiVariantFinder`) is placed along it, as its waypoints are.
+ *   route no longer passes are left out. A POI found along a variant is
+ *   placed as `routePois` says.
  *
- * Returns `trail` itself when the route takes no alternate.
+ * Returns `trail` itself when the route takes no alternate and no POI moves.
  */
 export function plannedRouteTrail<T extends PlannableTrail>(trail: T, route: PlannedRoute): T {
-  if (route.alternates.length === 0) return trail;
+  if (route.alternates.length === 0) {
+    const pois = routePois(trail, route);
+    return pois === trail.pois ? trail : { ...trail, pois };
+  }
   const variants = trail.alternates ?? [];
   const track = trail.track;
 
@@ -632,23 +635,64 @@ export function plannedRouteTrail<T extends PlannableTrail>(trail: T, route: Pla
       return shifted ? [shifted] : [];
     });
   }
-  if (trail.pois) {
-    // A POI the fetch found along an alternate carries that alternate's own
-    // scale (branch km plus km along it), as its waypoints do: on a taken
-    // alternate it goes where the alternate's waypoints go. Read as main km it
-    // was dropped inside the bypassed stretch, or placed past the rejoin.
-    const variantOfPoi = poiVariantFinder([...variants, ...(trail.sideTrips ?? [])], track.totalDistance, track.points);
-    const takenAlternate = new Map(route.alternates.map(a => [variants[a.index], a]));
-    result.pois = trail.pois.flatMap(poi => {
-      const on = variantOfPoi(poi);
-      const alternate = on ? takenAlternate.get(on) : undefined;
-      const km = alternate
-        ? alternateKmToRoute(route, alternate.name, poi.distanceAlongTrail)
-        : mainKmToRoute(route, poi.distanceAlongTrail);
-      return km === null ? [] : [{ ...poi, distanceAlongTrail: km }];
-    });
-  }
+  if (trail.pois) result.pois = routePois(trail, route);
   return result as T;
+}
+
+/**
+ * The trail's POIs as the plan's lists read them: in route km, and only where
+ * the route passes or can be left for them.
+ *
+ * The POI fetch numbers a POI it found along a variant (`poiVariantFinder`) as
+ * that variant's waypoints are numbered — branch km plus km along it — so read
+ * as main km it lands in a stop's services or a day's "along the way" for a
+ * stretch it is nowhere near (issue #309):
+ *
+ * - on a taken alternate it is placed along it, as the alternate's waypoints are;
+ * - on another way between two points of the route (an alternate the plan does
+ *   not take) it is left out: the hiker chose not to walk past it, and pinned
+ *   to either junction it would read as a service there;
+ * - on a side trip, or a branch with one junction, it is pinned to the
+ *   junction, with the walk out to it (km along the branch plus its own
+ *   cross-track distance) as its `distanceFromTrail` — the off-trail distance
+ *   the lists show, and how the resupply planner counts a side-trip place;
+ * - on a variant off another variant (`parent`) it is left out, as the route
+ *   view leaves those variants out.
+ *
+ * Main-route POIs move to route km; any on a bypassed stretch are left out.
+ * Returns `trail.pois` itself when nothing moves.
+ */
+function routePois<T extends PlannableTrail>(trail: T, route: PlannedRoute): T['pois'] {
+  const pois = trail.pois;
+  if (!pois) return pois;
+  const alternates = trail.alternates ?? [];
+  const sideTrips = trail.sideTrips ?? [];
+  const variantOfPoi = poiVariantFinder([...alternates, ...sideTrips], trail.track.totalDistance, trail.track.points);
+  const takenAlternate = new Map(route.alternates.map(a => [alternates[a.index], a.name]));
+  const otherWays = new Set(alternates.filter(v => typeof v.endDistance === 'number'));
+  let changed = false;
+  const placed = pois.flatMap(poi => {
+    const on = variantOfPoi(poi);
+    const taken = on ? takenAlternate.get(on) : undefined;
+    let next: typeof poi | null;
+    if (!on) {
+      const km = mainKmToRoute(route, poi.distanceAlongTrail);
+      next = km === null ? null : km === poi.distanceAlongTrail ? poi : { ...poi, distanceAlongTrail: km };
+    } else if (taken !== undefined) {
+      const km = alternateKmToRoute(route, taken, poi.distanceAlongTrail);
+      next = km === null ? null : { ...poi, distanceAlongTrail: km };
+    } else if (on.parent || otherWays.has(on) || typeof on.startDistance !== 'number') {
+      next = null;
+    } else {
+      const km = mainKmToRoute(route, on.startDistance);
+      const walkOutKm = Math.max(0, poi.distanceAlongTrail - on.startDistance) + (poi.distanceFromTrail ?? 0);
+      next =
+        km === null ? null : { ...poi, distanceAlongTrail: km, distanceFromTrail: Math.round(walkOutKm * 100) / 100 };
+    }
+    if (next !== poi) changed = true;
+    return next ? [next] : [];
+  });
+  return changed ? (placed as T['pois']) : pois;
 }
 
 // ---------------------------------------------------------------------------

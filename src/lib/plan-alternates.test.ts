@@ -315,19 +315,74 @@ describe('plannedRouteTrail: POIs found along an alternate', () => {
     expect(kmOf(routed.pois, 2)).toBeCloseTo(45);
   });
 
-  // Unchanged by this rule, and not a placement to rely on: a POI on an
-  // alternate the plan does not take keeps its own-scale km read as main km,
-  // as on a plan that takes no alternate at all (follow-up to #205's review).
-  it('leaves them where they were when the plan takes another alternate', () => {
-    const trail = trailFixture({ alternates: [bowAlternate(), bowAlternate('Alt: Other', 60, 80)], pois: [apex] });
-    const route = buildPlannedRoute(trail, ['Alt: Other']);
-    expect(kmOf(plannedRouteTrail(trail, route).pois, 1)).toBe(mainKmToRoute(route, 35));
+  // Issue #309: read as main km they were listed for a stretch nowhere near
+  // them; the hiker chose not to walk past them, so the plan does not list them.
+  it('leaves them out when the plan takes another alternate', () => {
+    const trail = trailFixture({
+      alternates: [bowAlternate(), bowAlternate('Alt: Other', 60, 80)],
+      pois: [apex, nearRejoin, bypassed],
+    });
+    const routed = plannedRouteTrail(trail, buildPlannedRoute(trail, ['Alt: Other']));
+    expect(ids(routed.pois)).toEqual([3]);
+    expect(kmOf(routed.pois, 3)).toBe(30);
   });
 
+  it('leaves them out when the plan takes no alternate at all', () => {
+    const trail = trailFixture({ pois: [apex, bypassed, nearJunction] });
+    const routed = plannedRouteTrail(trail, buildPlannedRoute(trail, []));
+    expect(ids(routed.pois)).toEqual([3, 4]);
+    // The main-route ones are the same records, at the same km.
+    expect(routed.pois?.[0]).toBe(trail.pois?.[1]);
+    expect(routed.track).toBe(trail.track);
+  });
+
+  it('returns the trail itself when no POI is on a variant and no alternate is taken', () => {
+    const trail = trailFixture({ pois: [bypassed, nearJunction] });
+    expect(plannedRouteTrail(trail, buildPlannedRoute(trail, []))).toBe(trail);
+  });
   it('still drops a main-route POI on the bypassed stretch, and one the main line explains near the branch', () => {
     const trail = trailFixture({ pois: [apex, bypassed, nearJunction] });
     const routed = plannedRouteTrail(trail, buildPlannedRoute(trail, [ALT]));
     expect(ids(routed.pois)).toEqual([1]);
+  });
+});
+
+describe('plannedRouteTrail: POIs found along a side trip', () => {
+  // Near the top of the lookout side trip (1.1 km north from main km 60),
+  // numbered as the fetch numbers it: junction km 60 plus 1 km along, 0.2 km
+  // off the side trip's line.
+  const lookoutCafe = {
+    id: 9,
+    lat: 1.0 * DEG_PER_KM,
+    lon: 60.2 * DEG_PER_KM,
+    distanceAlongTrail: 61,
+    distanceFromTrail: 0.2,
+  };
+  const only = (pois: ReadonlyArray<{ distanceAlongTrail: number; distanceFromTrail?: number }> | undefined) => {
+    expect(pois).toHaveLength(1);
+    return pois![0];
+  };
+
+  it('pins one to the junction, the walk out to it as its off-trail distance', () => {
+    const trail = trailFixture({ pois: [lookoutCafe] });
+    const poi = only(plannedRouteTrail(trail, buildPlannedRoute(trail, [])).pois);
+    expect(poi.distanceAlongTrail).toBe(60);
+    expect(poi.distanceFromTrail).toBeCloseTo(1.2);
+  });
+
+  it('moves the junction to route km when the plan takes an alternate before it', () => {
+    const trail = trailFixture({ pois: [lookoutCafe] });
+    const poi = only(plannedRouteTrail(trail, buildPlannedRoute(trail, [ALT])).pois);
+    expect(poi.distanceAlongTrail).toBeCloseTo(70);
+    expect(poi.distanceFromTrail).toBeCloseTo(1.2);
+  });
+
+  it('stays at the junction reversed', () => {
+    const trail = trailFixture({ pois: [lookoutCafe] });
+    const reversed = createReversedTrail(
+      plannedRouteTrail(trail, buildPlannedRoute(trail, [ALT])) as unknown as Parameters<typeof createReversedTrail>[0]
+    );
+    expect(only(reversed.pois).distanceAlongTrail).toBeCloseTo(110 - 70);
   });
 });
 
