@@ -97,7 +97,13 @@ import * as net from 'net';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 
-import { POI_TYPES, buildCorridorChunks, packCorridorChunks, type POIType } from '../src/lib/osm-poi.js';
+import {
+  POI_TYPES,
+  buildCorridorChunks,
+  packCorridorChunks,
+  type OverpassArea,
+  type POIType,
+} from '../src/lib/osm-poi.js';
 import { DEFAULT_OVERPASS_ENDPOINT, createOverpassFetcher, type POIFetcher } from '../src/lib/overpass-client.js';
 import { enrichRoute, placePois, prepareCorridor, type ChunkFailure } from '../src/lib/poi-enrichment.js';
 import { POI_SEARCH_RADIUS_KM } from '../src/lib/trail-poi-search.js';
@@ -256,6 +262,85 @@ export async function processTrailData(
     queryChunks: result.stats.queryChunks,
     queryTimeMs: result.stats.queryTimeMs,
   };
+}
+
+/**
+ * Wrap a fetcher so that an empty answer for an area where the stored file has
+ * POIs counts as a failed chunk, not as "nothing is there".
+ *
+ * A mirror under load can answer HTTP 200 with `elements: []` and no error
+ * remark: on 2026-11-12 `overpass-api.de` did so for every Shikoku chunk (a
+ * 2 km corridor at Irita, Tokushima came back empty around 14 POIs still live
+ * in OSM). `overpassPayloadError` cannot tell that from a corridor
+ * that really is empty (much of the CDT is), so the run counted as a
+ * clean whole-trail fetch and replaced 1,206 POIs with none, exit 0. The
+ * stored file can tell: an area that held POIs at the last fetch and holds
+ * none now is a mirror fault far more often than every feature in it being
+ * deleted. Failing the chunk sends the run down the partial-fetch path (merge,
+ * exit 1), and a re-run on a healthy mirror sorts it out.
+ *
+ * Rejected keys don't count: a rejected element is the one most likely to
+ * have been retagged away upstream, and requiring it would make that chunk
+ * fail on every re-fetch. Only an empty answer is checked; a short one is
+ * normal churn. `--force-replace` still writes the partial result.
+ */
+export function guardEmptyAnswers(
+  fetchPOIs: POIFetcher,
+  stored: readonly TrailPOI[],
+  rejected: readonly string[] = []
+): POIFetcher {
+  const rejectedKeys = new Set(rejected);
+  const expected = stored.filter(poi => !rejectedKeys.has(poiKey(poi)));
+  if (expected.length === 0) return fetchPOIs;
+  return async (area, types, signal) => {
+    const pois = await fetchPOIs(area, types, signal);
+    if (pois.length > 0) return pois;
+    const inside = expected.filter(poi => areaContains(area, poi)).length;
+    if (inside > 0) {
+      throw new Error(
+        `Overpass returned no elements for an area where pois.json has ${inside} POI(s); ` +
+          'treating the answer as failed (a mirror fault, not an empty corridor)'
+      );
+    }
+    return pois;
+  };
+}
+
+const METERS_PER_DEGREE = (Math.PI / 180) * 6_371_000;
+
+/** Is a point inside the area one Overpass query asked for? */
+export function areaContains(area: OverpassArea, point: LatLon): boolean {
+  if ('bounds' in area) {
+    const { south, north, west, east } = area.bounds;
+    return point.lat >= south && point.lat <= north && point.lon >= west && point.lon <= east;
+  }
+  const lines = (Array.isArray(area.corridor[0]) ? area.corridor : [area.corridor]) as LatLon[][];
+  // Local equirectangular projection around the point: metres are exact
+  // enough at corridor scale (a few km), and Overpass' around: is a circle
+  // round every point of the line.
+  const kx = METERS_PER_DEGREE * Math.cos((point.lat * Math.PI) / 180);
+  const ky = METERS_PER_DEGREE;
+  const r2 = area.radiusMeters * area.radiusMeters;
+  for (const line of lines) {
+    for (let i = 0; i < line.length; i++) {
+      const ax = (line[i].lon - point.lon) * kx;
+      const ay = (line[i].lat - point.lat) * ky;
+      if (i === line.length - 1) {
+        if (ax * ax + ay * ay <= r2) return true;
+        continue;
+      }
+      const bx = (line[i + 1].lon - point.lon) * kx;
+      const by = (line[i + 1].lat - point.lat) * ky;
+      const dx = bx - ax;
+      const dy = by - ay;
+      const len2 = dx * dx + dy * dy;
+      const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, -(ax * dx + ay * dy) / len2));
+      const cx = ax + t * dx;
+      const cy = ay + t * dy;
+      if (cx * cx + cy * cy <= r2) return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -475,7 +560,12 @@ async function processTrail(
   console.log(`\nProcessing: ${trailId}`);
 
   const trail = readTrail(trailPath);
-  const result = await processTrailData(trail, fetchPOIs, maxVertices, kmRange);
+  // Read before fetching: the stored POIs vet empty answers (see
+  // guardEmptyAnswers), and `rejected` is hand-edited review work that must
+  // survive every refresh.
+  const existing = readTrailPOIFile(trailDir);
+  const guarded = existing ? guardEmptyAnswers(fetchPOIs, existing.pois, existing.rejected) : fetchPOIs;
+  const result = await processTrailData(trail, guarded, maxVertices, kmRange);
 
   if (result.queryChunks === 0) {
     console.log('  No track points found. Skipping.');
@@ -496,10 +586,6 @@ async function processTrail(
   for (const [category, count] of Object.entries(countByCategory(result.pois))) {
     console.log(`    - ${category}: ${count}`);
   }
-
-  // Read before writing: `rejected` is hand-edited review work and must survive
-  // every refresh.
-  const existing = readTrailPOIFile(trailDir);
 
   // A windowed fetch, or a whole-trail one that lost chunks, is a partial
   // result. Writing it as-is would delete every POI it did not reach; merge

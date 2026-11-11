@@ -5,6 +5,8 @@ import type { POIFetcher } from '../src/lib/overpass-client.js';
 import * as path from 'path';
 
 import {
+  areaContains,
+  guardEmptyAnswers,
   positionalArgs,
   processTrailData,
   repositionTrailPois,
@@ -18,7 +20,7 @@ import {
   trailDirsById,
   type TrailDirIO,
 } from './fetch-pois.js';
-import type { ProcessedTrail, RouteVariant, TrackPoint } from '../src/lib/trail-types.js';
+import type { ProcessedTrail, RouteVariant, TrackPoint, TrailPOI } from '../src/lib/trail-types.js';
 
 const START_LAT = -34;
 const LON = 115;
@@ -529,5 +531,111 @@ describe('placesOnWholeRoute', () => {
     expect(placesOnWholeRoute({ merged: true, windowed: true })).toBe(true);
     expect(placesOnWholeRoute({ merged: true, windowed: false })).toBe(true);
     expect(placesOnWholeRoute({ merged: false, windowed: false })).toBe(false);
+  });
+});
+
+describe('areaContains', () => {
+  // A 1 km radius round a ~11 km north-south segment along lon 115.
+  const segment: OverpassArea = {
+    corridor: [
+      { lat: -34, lon: LON },
+      { lat: -33.9, lon: LON },
+    ],
+    radiusMeters: 1000,
+  };
+  /** Degrees of longitude for `m` metres east at latitude -33.95. */
+  const east = (m: number): number => LON + m / (111_195 * Math.cos((33.95 * Math.PI) / 180));
+
+  it('measures to the segment, not just its vertices', () => {
+    // 5 km from either end, 0.9 km off the line: inside.
+    expect(areaContains(segment, { lat: -33.95, lon: east(900) })).toBe(true);
+    expect(areaContains(segment, { lat: -33.95, lon: east(1100) })).toBe(false);
+  });
+
+  it('rounds the ends: beyond the last vertex counts only within the radius', () => {
+    expect(areaContains(segment, { lat: -33.9 + 0.008, lon: LON })).toBe(true);
+    expect(areaContains(segment, { lat: -33.9 + 0.012, lon: LON })).toBe(false);
+  });
+
+  it('checks every polyline of a grouped corridor', () => {
+    const grouped: OverpassArea = {
+      corridor: [
+        [{ lat: -34, lon: LON }],
+        [
+          { lat: -30, lon: LON },
+          { lat: -30.1, lon: LON },
+        ],
+      ],
+      radiusMeters: 1000,
+    };
+    expect(areaContains(grouped, { lat: -30.05, lon: LON })).toBe(true);
+    expect(areaContains(grouped, { lat: -32, lon: LON })).toBe(false);
+  });
+
+  it('handles a single-point corridor and a bounds area', () => {
+    expect(areaContains({ corridor: [{ lat: -34, lon: LON }], radiusMeters: 1000 }, { lat: -34.005, lon: LON })).toBe(
+      true
+    );
+    const bounds: OverpassArea = { bounds: { south: -35, north: -34, west: 114, east: 116 } };
+    expect(areaContains(bounds, { lat: -34.5, lon: LON })).toBe(true);
+    expect(areaContains(bounds, { lat: -33.5, lon: LON })).toBe(false);
+  });
+});
+
+describe('guardEmptyAnswers', () => {
+  const shop = node(1, -33.95, LON + 0.001, { shop: 'convenience' });
+  const area: OverpassArea = {
+    corridor: [
+      { lat: -34, lon: LON },
+      { lat: -33.9, lon: LON },
+    ],
+    radiusMeters: 2500,
+  };
+
+  async function storedPois(): Promise<TrailPOI[]> {
+    return (await processTrailData(makeTrail(), fixedFetcher([shop]))).pois;
+  }
+
+  it('fails an empty answer for an area the stored file has POIs in', async () => {
+    const guarded = guardEmptyAnswers(fixedFetcher([]), await storedPois());
+    await expect(guarded(area, ['resupply'])).rejects.toThrow(/no elements for an area where pois\.json has 1 POI/);
+  });
+
+  it('passes an empty answer through when the stored POIs are elsewhere', async () => {
+    const elsewhere: OverpassArea = { corridor: [{ lat: -20, lon: 130 }], radiusMeters: 2500 };
+    const guarded = guardEmptyAnswers(fixedFetcher([]), await storedPois());
+    await expect(guarded(elsewhere, ['resupply'])).resolves.toEqual([]);
+  });
+
+  it('passes any non-empty answer through, however short', async () => {
+    const other = node(2, -33.95, LON, { amenity: 'drinking_water' });
+    const guarded = guardEmptyAnswers(fixedFetcher([other]), await storedPois());
+    await expect(guarded(area, ['water'])).resolves.toEqual([other]);
+  });
+
+  it('does not expect rejected POIs back, so a retagged rejection can drop out', async () => {
+    const guarded = guardEmptyAnswers(fixedFetcher([]), await storedPois(), ['node/1']);
+    await expect(guarded(area, ['resupply'])).resolves.toEqual([]);
+  });
+
+  it('fails the whole fetch, rather than emptying the trail, when every chunk comes back empty', async () => {
+    const guarded = guardEmptyAnswers(fixedFetcher([]), await storedPois());
+    await expect(processTrailData(makeTrail(), guarded)).rejects.toThrow(/Failed to fetch POIs for all/);
+  });
+
+  it('fails only the chunk that came back empty, so the run merges', async () => {
+    const tap = node(3, -33.995, LON, { amenity: 'drinking_water' });
+    // Empty wherever the stored shop is, a real answer everywhere else.
+    const mirror: POIFetcher = async area => (areaContains(area, shop) ? [] : [tap]);
+    // Zigzag ~1.8 km east and back each point, so the corridor keeps its
+    // vertices and two per query splits it into several chunks.
+    const zigzag = makeTrail();
+    const points = zigzag.track.points.map((p, i) => ({ ...p, lon: LON + (i % 2) * 0.02 }));
+    zigzag.track = { ...zigzag.track, points, displayPoints: points };
+    const result = await processTrailData(zigzag, guardEmptyAnswers(mirror, await storedPois()), 2);
+    expect(result.queryChunks).toBeGreaterThan(1);
+    expect(result.failedChunks.length).toBeGreaterThan(0);
+    expect(result.failedChunks.length).toBeLessThan(result.queryChunks);
+    expect(result.pois.map(poi => poi.id)).toEqual([3]);
   });
 });
