@@ -9,7 +9,9 @@
  * exactly as `GuideContext` does for the main route.
  *
  * With no alternate taken it is the guide trail itself, so nothing downstream
- * re-renders or recomputes for plans that never take one.
+ * re-renders or recomputes for plans that never take one — unless a POI was
+ * found along a variant, which the plan's lists place at its junction or leave
+ * out (`plannedRouteTrail`).
  */
 
 import { useMemo } from 'react';
@@ -58,7 +60,6 @@ export function planRouteOf(
   direction: Direction,
   route: PlannedRoute,
 ): TrailJson {
-  if (route.alternates.length === 0) return guideTrail;
   let byRoute = splicedCache.get(baseTrail);
   if (!byRoute) {
     byRoute = new WeakMap();
@@ -72,7 +73,8 @@ export function planRouteOf(
   let trail = byDirection.get(direction);
   if (!trail) {
     const spliced = plannedRouteTrail(plannableTrail(baseTrail), route) as unknown as TrailJson;
-    trail = resolveGuideTrail(spliced, direction);
+    // Nothing moved (no alternate taken, no POI on a variant): the guide's own.
+    trail = spliced === baseTrail ? guideTrail : resolveGuideTrail(spliced, direction);
     byDirection.set(direction, trail);
   }
   return trail;

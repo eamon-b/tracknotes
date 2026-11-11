@@ -211,8 +211,12 @@ Shared processing modules (used by both web and mobile):
   `stopsHiddenOnRoute` is the stored stops a route view leaves out.
   `setPlanAlternate` is the one edit that changes the route (drops overlapped alternates and the stops it bypasses, moves a stop whose waypoint id both lines share; a stop the route already left out — past a shortened alternate's end or the trail's, or on an alternate the data no longer has — stays as stored).
   `planFromRoute` folds a hidden stop into a stop just ticked with its waypoint id: the new stop takes its nights, note and booking, so ticking a stop's own place moves it and never leaves two stops with one id.
-  POIs move to route km too: one found along a taken alternate (`poiVariantFinder` in `poi-display.ts`, the same choice `mirrorPoiDistances` makes) is placed along it from its own km, as the alternate's waypoints are;
+  POIs move to route km too (`routePois`), whether or not the plan takes an alternate, since the fetch numbers a POI on a variant from its junction (`poiVariantFinder` in `poi-display.ts`, the same choice `mirrorPoiDistances` makes):
+  one on a taken alternate is placed along it from its own km, as the alternate's waypoints are;
+  one on an alternate the plan does not take, or on a variant with a `parent`, is left out (issue #309: the hiker chose not to pass it, and pinned to a junction it would read as a service there);
+  one on a side trip or one-junction branch is pinned to its junction, with the walk out (km along it plus its cross-track distance) as its `distanceFromTrail`;
   the rest are read as main-route km, and those on a bypassed stretch are dropped.
+  With no alternate taken and no POI moved, `plannedRouteTrail` returns the trail itself.
   `alternateMarkers` places the Stops list's branch/rejoin cards.
   `everyRouteResupplyOptionIds(trail)` is every resupply option on any route a plan could walk (the main route's, then each plannable alternate's), the list an absent selection stands for when an edit writes it out: the CDT, the Heysen and Three Passes have towns only an alternate reaches, and an explicit list without one reads as "not going there".
   Every resupply edit on both platforms starts from it.

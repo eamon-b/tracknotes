@@ -249,7 +249,9 @@ export function todayRows(trail: TrailJson, day: ComputedDay): TodayRow[] {
  * `trail` is the route the plan walks (as for `todayRows`): its POIs are in
  * route km, direction applied. A POI found along a taken alternate is placed
  * along it (`plannedRouteTrail`), so an alternate's stretch has the POIs its
- * own corridor turned up; an empty stretch means none were found there.
+ * own corridor turned up; an empty stretch means none were found there. One on
+ * an alternate the plan does not take is not listed, and one on a side trip is
+ * at its junction.
  */
 export function todayPois(trail: Pick<TrailJson, 'pois'>, day: ComputedDay): TrailPOI[] {
   return poisBetween(trail.pois, day.startKm, day.endKm);
