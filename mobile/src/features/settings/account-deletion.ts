@@ -13,6 +13,10 @@
  * and downloaded tiles are device-local content that was never on the server,
  * and the copy in Settings promises they stay.
  *
+ * The last comment export and plan export go too: each is a cache file holding
+ * a copy of the account's comments or of a plan, written for the share sheet
+ * and otherwise left until the next export or until the OS clears the cache.
+ *
  * Other users' cached comments are kept — they are public content, unrelated to
  * this identity, and re-fetching them offline is impossible.
  */
@@ -24,6 +28,8 @@ import * as plansRepo from '../../db/plans-repo';
 import * as userWaypointsRepo from '../../db/user-waypoints-repo';
 import { isServerKnown } from '../../services/server-trails';
 import { PLANS_SYNC_KEY } from '../../sync/comment-sync';
+import { deletePlanExportFile } from '../plan/plan-export-file';
+import { deleteCommentExportFile } from './comment-export-file';
 
 /**
  * Drop this device's authored comments, its day plans, and its entire outbox.
@@ -50,11 +56,26 @@ import { PLANS_SYNC_KEY } from '../../sync/comment-sync';
  * holds their ids for the deleted account, but each may be the only record of
  * a place the hiker marked. Returns the trails whose hiker waypoints changed,
  * for the caller to announce.
+ *
+ * The export files are removed first and best-effort: the server account is
+ * already gone, so a file-system error must not stop the rest of the purge.
  */
 export async function purgeLocalAccountData(db: SqlDatabase, userId: string): Promise<string[]> {
+  removeExportFiles();
   await db.runAsync('DELETE FROM comments WHERE author_id = ?', [userId]);
   await plansRepo.purgeSynced(db, isServerKnown);
   await db.runAsync('DELETE FROM sync_state WHERE trail_id = ?', [PLANS_SYNC_KEY]);
   await db.runAsync('DELETE FROM outbox');
   return userWaypointsRepo.rekeyOwnAsPrivate(db, () => userWaypointId(uuidv4()), isServerKnown);
+}
+
+/** Delete the cached comment and plan export files, each independently. */
+function removeExportFiles(): void {
+  for (const remove of [deleteCommentExportFile, deletePlanExportFile]) {
+    try {
+      remove();
+    } catch {
+      // Best-effort: the OS may still clear the cache folder later.
+    }
+  }
 }

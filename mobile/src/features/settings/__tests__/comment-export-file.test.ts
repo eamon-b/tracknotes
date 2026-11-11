@@ -4,7 +4,11 @@
  * keeps the SDK 58 shape: `write` finishes later, `writeSync` before it returns.
  */
 
-import { commentExportFileName, writeCommentExportFile } from '../comment-export-file';
+import {
+  commentExportFileName,
+  deleteCommentExportFile,
+  writeCommentExportFile,
+} from '../comment-export-file';
 
 const mockDisk = new Map<string, string>();
 
@@ -67,6 +71,22 @@ describe('writeCommentExportFile', () => {
 
     expect(mockDisk.has(earlier)).toBe(false);
     expect(mockDisk.get(later)).toBe('new');
+  });
+});
+
+describe('deleteCommentExportFile', () => {
+  it('removes the last export and nothing outside its folder', () => {
+    const uri = writeCommentExportFile('mine', '2026-10-31T00:00:00.000Z');
+    mockDisk.set('file:///cache/plan-export/plan.gpx', 'gpx');
+
+    deleteCommentExportFile();
+
+    expect(mockDisk.has(uri)).toBe(false);
+    expect(mockDisk.get('file:///cache/plan-export/plan.gpx')).toBe('gpx');
+  });
+
+  it('is a no-op when there is no export', () => {
+    expect(() => deleteCommentExportFile()).not.toThrow();
   });
 });
 

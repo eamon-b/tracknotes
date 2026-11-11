@@ -11,6 +11,14 @@ import { createMigratedTestDb } from '../../../db/__tests__/test-helpers';
 import type { TestDatabase } from '../../../db/__tests__/sqlite-test-adapter';
 import type { SqlDatabase } from '../../../db/sql-database';
 import { purgeLocalAccountData } from '../account-deletion';
+import { deleteCommentExportFile } from '../comment-export-file';
+import { deletePlanExportFile } from '../../plan/plan-export-file';
+
+jest.mock('../comment-export-file', () => ({ deleteCommentExportFile: jest.fn() }));
+jest.mock('../../plan/plan-export-file', () => ({ deletePlanExportFile: jest.fn() }));
+
+const mockDeleteCommentExport = deleteCommentExportFile as jest.Mock;
+const mockDeletePlanExport = deletePlanExportFile as jest.Mock;
 
 const ME = 'user-me';
 const OTHER = 'user-other';
@@ -40,6 +48,8 @@ async function ids(table: string): Promise<string[]> {
 
 beforeEach(async () => {
   db = await createMigratedTestDb();
+  mockDeleteCommentExport.mockReset();
+  mockDeletePlanExport.mockReset();
 });
 
 afterEach(async () => {
@@ -47,6 +57,27 @@ afterEach(async () => {
 });
 
 describe('purgeLocalAccountData', () => {
+  it('removes the cached comment and plan export files', async () => {
+    await purgeLocalAccountData(db as unknown as SqlDatabase, ME);
+
+    expect(mockDeleteCommentExport).toHaveBeenCalledTimes(1);
+    expect(mockDeletePlanExport).toHaveBeenCalledTimes(1);
+  });
+
+  it('finishes the purge when removing an export file fails', async () => {
+    mockDeleteCommentExport.mockImplementation(() => {
+      throw new Error('EACCES');
+    });
+    await insertComment('c-mine', ME);
+    await insertOutboxItem('o-1');
+
+    await purgeLocalAccountData(db as unknown as SqlDatabase, ME);
+
+    expect(mockDeletePlanExport).toHaveBeenCalledTimes(1);
+    expect(await ids('comments')).toEqual([]);
+    expect(await ids('outbox')).toEqual([]);
+  });
+
   it('deletes the user’s own comments, server-mirrored and optimistic alike', async () => {
     await insertComment('c-mine-server', ME);
     await insertComment('c-mine-local', ME, 'local');

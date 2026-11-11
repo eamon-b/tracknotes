@@ -9,7 +9,6 @@
  * print view covers that.
  */
 
-import { Directory, File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import {
   canExportIcs,
@@ -18,6 +17,7 @@ import {
   planToIcs,
   type PlanExportInput,
 } from '@lib/plan-export';
+import { writePlanExportFile } from './plan-export-file';
 
 export type PlanExportKind = 'gpx' | 'ics';
 
@@ -25,11 +25,6 @@ const SHARE_TYPES: Record<PlanExportKind, { mimeType: string; UTI: string; title
   gpx: { mimeType: 'application/gpx+xml', UTI: 'com.topografix.gpx', title: 'Share plan as GPX' },
   ics: { mimeType: 'text/calendar', UTI: 'public.calendar-event', title: 'Share plan as calendar' },
 };
-
-/** Cache folder holding the latest plan export (and nothing else). */
-function exportDir(): Directory {
-  return new Directory(Paths.cache, 'plan-export');
-}
 
 /** The file name and text of one export; null when it cannot be written (a calendar without a start date). */
 export function buildPlanExport(
@@ -43,17 +38,6 @@ export function buildPlanExport(
   if (!canExportIcs(input)) return null;
   const contents = planToIcs({ ...input, dtstamp: now });
   return contents === null ? null : { fileName: planExportFileName(name, 'ics'), contents };
-}
-
-/** Write `contents` as the export file, replacing any earlier one; returns its URI. */
-export function writePlanExportFile(fileName: string, contents: string): string {
-  const dir = exportDir();
-  if (dir.exists) dir.delete();
-  dir.create({ intermediates: true, idempotent: true });
-  const file = new File(dir, fileName);
-  // writeSync: the share sheet must not open on a file still being written.
-  file.writeSync(contents);
-  return file.uri;
 }
 
 /** Build, write and share one export. Throws when sharing is unavailable. */

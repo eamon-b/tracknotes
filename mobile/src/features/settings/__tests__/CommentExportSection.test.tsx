@@ -126,7 +126,7 @@ describe('CommentExportSection', () => {
     expect(mockShare).toHaveBeenCalledTimes(1);
     expect(mockShare.mock.calls[0][0]).toBe(FILE_URI);
     expect(mockShare.mock.calls[0][1]).toMatchObject({ mimeType: 'application/json' });
-    expect(renderedText(r)).toContain('Exported 1 comment.');
+    expect(renderedText(r)).toContain('1 comment ready to share.');
   });
 
   it('reports a device that cannot share inline, without writing a file', async () => {
