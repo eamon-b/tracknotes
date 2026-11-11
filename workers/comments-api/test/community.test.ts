@@ -12,6 +12,7 @@ import {
   submitRoute,
 } from './community-fixtures';
 import {
+  adminGetCommunityTrail,
   adminSetCommunityStatus,
   deattributeStatement,
   deattributeStoredRoutes,
@@ -1125,6 +1126,63 @@ describe('admin', () => {
       const route = await submitOk(owner);
       const res = await SELF.fetch(trailUrl(route.id), { method: 'POST', headers: authHeaders(admin) });
       expect(res.status).toBe(405);
+    });
+
+    async function readWhileHooked(admin: Device, id: string, hook: () => Promise<void>): Promise<Response> {
+      const ctx = createExecutionContext();
+      try {
+        return await adminGetCommunityTrail(
+          new Request(trailUrl(id), { headers: authHeaders(admin) }),
+          envWithHook('get', hook),
+          ctx,
+          id
+        );
+      } finally {
+        await waitOnExecutionContext(ctx);
+      }
+    }
+
+    it('500s trail_missing when the private copy is gone and the row is unchanged', async () => {
+      const owner = await registerDevice();
+      const admin = await registerDevice();
+      await makeAdmin(admin.userId);
+      const route = await submitOk(owner);
+      await setStatus(admin, route.id, { status: 'hidden' });
+      await env.PHOTOS.delete((await row(route.id)).private_key as string);
+      const res = await SELF.fetch(trailUrl(route.id), { headers: authHeaders(admin) });
+      expect(res.status).toBe(500);
+      expect(((await res.json()) as { error: { code: string } }).error.code).toBe('trail_missing');
+    });
+
+    it('404s a route the owner deletes between the row read and the object read', async () => {
+      const owner = await registerDevice();
+      const admin = await registerDevice();
+      await makeAdmin(admin.userId);
+      const route = await submitOk(owner);
+      const privateKey = (await row(route.id)).private_key as string;
+      await expect(
+        readWhileHooked(admin, route.id, async () => {
+          expect((await del(owner, route.id)).status).toBe(204);
+          // The delete's purge may still be pending; finish it so the read misses.
+          await env.PHOTOS.delete(privateKey);
+        })
+      ).rejects.toMatchObject({ status: 404 });
+    });
+
+    it('409s conflict when an edit replaces the private copy between the row read and the object read', async () => {
+      const owner = await registerDevice();
+      const admin = await registerDevice();
+      await makeAdmin(admin.userId);
+      const route = await submitOk(owner);
+      const privateKey = (await row(route.id)).private_key as string;
+      await expect(
+        readWhileHooked(admin, route.id, async () => {
+          expect((await patch(owner, route.id, { name: 'Renamed mid-read' })).status).toBe(200);
+          // The edit purges the old copy in the background; finish that now.
+          await env.PHOTOS.delete(privateKey);
+          expect((await row(route.id)).private_key).not.toBe(privateKey);
+        })
+      ).rejects.toMatchObject({ status: 409, code: 'conflict' });
     });
   });
 
