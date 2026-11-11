@@ -7,7 +7,8 @@ policy. Keep the two in sync: change one and change the other.
 
 The app links the same URL from Settings → About, and from the licence line
 under the comment composer, the waypoint form, the route-share forms and the
-web's route Edit form (`TERMS_URL` in `src/lib/contribution-licence.ts`). The
+web's route Edit form (`TERMS_URL` in `src/lib/contribution-licence.ts`),
+and the web landing page's footer links it too. The
 decisions it carries out are in `docs/content-legal-posture.md`. Reviewed by
 the owner (2026-10-31); it has had no legal read (issue #148). Still
 outstanding: link it from the App Store / Play Store listings (#31).

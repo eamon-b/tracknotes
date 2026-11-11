@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { readFileSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { resolve } from 'path';
 import type { CommunityRouteDetail, CommunityRouteSummary } from '@lib/community-types';
 import { ApiError } from './api/client';
@@ -623,6 +623,22 @@ describe('initLandingPage', () => {
     expect($('no-trails').hidden).toBe(false);
     expect($('trail-list').textContent!.trim()).toBe('');
     expect($('no-my-trails').hidden).toBe(false);
+  });
+});
+
+describe('landing footer', () => {
+  it('links the terms of service and the privacy policy published from public/', () => {
+    const html = readFileSync(resolve(__dirname, 'index.html'), 'utf-8');
+    document.body.innerHTML = html.slice(html.indexOf('<body>') + 6, html.indexOf('</body>'));
+    const links = [...document.querySelectorAll<HTMLAnchorElement>('footer a')].map(a => [
+      a.textContent,
+      a.getAttribute('href'),
+    ]);
+    expect(links).toContainEqual(['Terms of service', './terms.html']);
+    expect(links).toContainEqual(['Privacy policy', './privacy.html']);
+    for (const page of ['terms.html', 'privacy.html']) {
+      expect(existsSync(resolve(__dirname, '../../public', page))).toBe(true);
+    }
   });
 });
 
