@@ -6,11 +6,18 @@
  * says so. The server decides who is an admin — this page only renders what
  * `GET /v1/admin/community/routes` returns, and every action is re-checked
  * there.
+ *
+ * Each row's Map section draws the route from the worker's admin-only copy of
+ * its stored trail (`GET /v1/admin/community/routes/:id/trail`), so a route the
+ * AI review or reports hid can be judged with its line. Leaflet and the trail
+ * load only when an admin opens that section.
  */
 
+import type * as Leaflet from 'leaflet';
 import type { CommunityRouteDetail } from '@lib/community-types';
 import { ApiError, NetworkError, getApiBase } from './api/client';
 import {
+  adminFetchCommunityTrail,
   adminListCommunityRoutes,
   adminRerunReview,
   adminSetCommunityStatus,
@@ -18,7 +25,9 @@ import {
   deleteCommunityRoute,
 } from './api/community';
 import { clearSession, loadSession, type WebSession } from './api/session';
+import { drawAdminRouteMap } from './admin-route-map';
 import { checksListHtml, regionLabel, reviewHtml, statusBadgeHtml } from './community-ui';
+import { loadLeaflet } from './landing-map';
 import { renderLinkForm } from './link-browser';
 import { escapeHtml } from './web-utils';
 
@@ -75,6 +84,11 @@ function rowHtml(route: CommunityRouteDetail): string {
         <dt>Reports</dt><dd>${escapeHtml(route.reportCount ?? reports.length)}${reportList}</dd>
         ${route.statusNote ? `<dt>Last note</dt><dd>${escapeHtml(route.statusNote)}</dd>` : ''}
       </dl>
+      <details data-map-for="${id}">
+        <summary>Map${route.status === 'hidden' ? ' (hidden: drawn from the stored copy)' : ''}</summary>
+        <div class="admin-map" data-map="${id}"></div>
+        <p class="import-note" data-map-status="${id}" hidden></p>
+      </details>
       <details>
         <summary>Description</summary>
         <p class="community-description">${escapeHtml(route.description).replace(/\r?\n/g, '<br>')}</p>
@@ -126,10 +140,17 @@ function init(): void {
 
   let session: WebSession | null = null;
   let routes: CommunityRouteDetail[] = [];
+  /** The maps drawn in the current list, by route id; dropped on every re-render. */
+  const maps = new Map<string, Leaflet.Map>();
+  const clearMaps = (): void => {
+    for (const map of maps.values()) map.remove();
+    maps.clear();
+  };
 
   const askToLink = (): void => {
     status.hidden = true;
     toolbar.hidden = true;
+    clearMaps();
     list.innerHTML = '';
     linkBox.hidden = false;
     renderLinkForm(
@@ -181,6 +202,7 @@ function init(): void {
     $('admin-identity').textContent = `Linked as ${session.displayName || 'this account'} · ${routes.length} route${
       routes.length === 1 ? '' : 's'
     }`;
+    clearMaps();
     list.innerHTML =
       routes.length > 0 ? routes.map(rowHtml).join('') : '<p class="import-note">The queue is empty.</p>';
   };
@@ -231,6 +253,47 @@ function init(): void {
           b.disabled = false;
       });
   });
+
+  // `toggle` does not bubble: listen in the capture phase.
+  list.addEventListener(
+    'toggle',
+    event => {
+      const details = event.target as HTMLElement;
+      if (!(details instanceof HTMLDetailsElement) || !details.open || !session) return;
+      const id = details.dataset.mapFor;
+      if (!id) return;
+      const existing = maps.get(id);
+      if (existing) {
+        existing.invalidateSize();
+        return;
+      }
+      const container = details.querySelector<HTMLElement>('[data-map]');
+      const statusEl = details.querySelector<HTMLElement>('[data-map-status]');
+      if (!container || !statusEl || container.dataset.loading === '1') return;
+      container.dataset.loading = '1';
+      statusEl.textContent = 'Loading the route…';
+      statusEl.hidden = false;
+      const current = session;
+      void Promise.all([loadLeaflet(), adminFetchCommunityTrail(current, id)])
+        .then(([L, trail]) => {
+          // A reload re-rendered the list meanwhile: this container is gone.
+          if (!container.isConnected) return;
+          maps.set(id, drawAdminRouteMap(L, container, trail));
+          statusEl.hidden = true;
+        })
+        .catch((err: unknown) => {
+          statusEl.textContent =
+            err instanceof ApiError
+              ? `Could not load the route (${err.code}): ${err.message}`
+              : `Could not load the route: ${err instanceof Error ? err.message : String(err)}`;
+          statusEl.hidden = false;
+        })
+        .finally(() => {
+          delete container.dataset.loading;
+        });
+    },
+    true
+  );
 
   $('admin-reload').addEventListener('click', () => void load());
   void load();

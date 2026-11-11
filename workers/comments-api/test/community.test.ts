@@ -1045,6 +1045,89 @@ describe('admin', () => {
     await eventually(async () => (await publicKeys(route.id)).length === 0);
   });
 
+  describe('GET /v1/admin/community/routes/:id/trail', () => {
+    const trailUrl = (id: string): string => url(`/v1/admin/community/routes/${id}/trail`);
+
+    it('refuses a request without a token', async () => {
+      const owner = await registerDevice();
+      const route = await submitOk(owner);
+      const res = await SELF.fetch(trailUrl(route.id));
+      expect(res.status).toBe(401);
+      expect(res.headers.get('Content-Type')).toContain('application/json');
+      expect(JSON.stringify(await res.json())).not.toContain('"points"');
+    });
+
+    it('refuses a non-admin, the owner included, without saying whether the id exists', async () => {
+      const owner = await registerDevice();
+      const admin = await registerDevice();
+      await makeAdmin(admin.userId);
+      const route = await submitOk(owner);
+      await setStatus(admin, route.id, { status: 'hidden' });
+      const stranger = await registerDevice();
+      expect((await SELF.fetch(trailUrl(route.id), { headers: authHeaders(stranger) })).status).toBe(403);
+      expect((await SELF.fetch(trailUrl(route.id), { headers: authHeaders(owner) })).status).toBe(403);
+      expect((await SELF.fetch(trailUrl('c_AAAAAAAAAAAAAAAA'), { headers: authHeaders(stranger) })).status).toBe(403);
+    });
+
+    it('serves an admin the stored track of a hidden route, uncached', async () => {
+      const owner = await registerDevice();
+      const admin = await registerDevice();
+      await makeAdmin(admin.userId);
+      const route = await submitOk(owner, { name: 'Hidden Ridge' });
+      const published = await storedTrail(route.trailUrl!);
+      await setStatus(admin, route.id, { status: 'hidden' });
+      expect(await publicKeys(route.id)).toEqual([]);
+
+      const res = await SELF.fetch(trailUrl(route.id), { headers: authHeaders(admin) });
+      expect(res.status).toBe(200);
+      expect(res.headers.get('Content-Type')).toBe('application/json');
+      expect(res.headers.get('Cache-Control')).toBe('private, no-store');
+      const body = await res.text();
+      // The private key never appears in the response, only the object's bytes.
+      expect(body).not.toContain((await row(route.id)).private_key as string);
+      const trail = JSON.parse(body) as ProcessedTrail;
+      expect(trail.config.name).toBe('Hidden Ridge');
+      expect(trail.track.points).toEqual(published.track.points);
+      // Reading it leaves the route hidden and unpublished.
+      const r = await row(route.id);
+      expect(r.status).toBe('hidden');
+      expect(r.r2_key).toBeNull();
+      expect(await publicKeys(route.id)).toEqual([]);
+    });
+
+    it('never serves the raw GPX', async () => {
+      const owner = await registerDevice();
+      const admin = await registerDevice();
+      await makeAdmin(admin.userId);
+      const route = await submitOk(owner, { gpxBase64: base64(GPX_TEXT) });
+      expect((await row(route.id)).gpx_key).not.toBeNull();
+      const res = await SELF.fetch(trailUrl(route.id), { headers: authHeaders(admin) });
+      expect(res.status).toBe(200);
+      expect(await res.text()).not.toContain('<gpx');
+    });
+
+    it('404s an unknown, malformed or removed id', async () => {
+      const owner = await registerDevice();
+      const admin = await registerDevice();
+      await makeAdmin(admin.userId);
+      const headers = authHeaders(admin);
+      expect((await SELF.fetch(trailUrl('c_AAAAAAAAAAAAAAAA'), { headers })).status).toBe(404);
+      expect((await SELF.fetch(trailUrl('not-an-id'), { headers })).status).toBe(404);
+      const route = await submitOk(owner);
+      expect((await del(owner, route.id)).status).toBe(204);
+      expect((await SELF.fetch(trailUrl(route.id), { headers })).status).toBe(404);
+    });
+
+    it('allows only GET', async () => {
+      const owner = await registerDevice();
+      const admin = await registerDevice();
+      await makeAdmin(admin.userId);
+      const route = await submitOk(owner);
+      const res = await SELF.fetch(trailUrl(route.id), { method: 'POST', headers: authHeaders(admin) });
+      expect(res.status).toBe(405);
+    });
+  });
+
   it('re-runs the review (skipped without a key)', async () => {
     const owner = await registerDevice();
     const admin = await registerDevice();

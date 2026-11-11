@@ -8,11 +8,12 @@ keep this file in step with the code it describes.
 
 `src/community.ts` / `src/community-review.ts` (migrations `0005`, `0006`; `0009` and `0011` for POIs): D1 `community_routes` + `community_route_reports`.
 A submit re-runs `@lib/community-checks` (with the uploaded GPX as `gpxText`, for the `speed` check) and stores *its* rebuilt trail, never the client's JSON, with `config` rewritten server-side (id, name, `source: 'community'`, country/states, description, CC0 `dataSource`).
-The bucket has no private area (all of it is served at `PHOTOS_PUBLIC_BASE`), so private objects live at unguessable keys recorded in the row and never returned: the canonical trail JSON at `community/private/<id>/<32 random hex>.json` (`private_key`) and the optional raw GPX (≤ 5 MB) beside it as `.gpx` (`gpx_key`; a file whose head is not `<gpx` is dropped, not refused).
+The bucket has no private area (all of it is served at `PHOTOS_PUBLIC_BASE`), so private objects live at unguessable keys recorded in the row and never returned (the admin trail route below returns the canonical JSON's bytes, not its key): the canonical trail JSON at `community/private/<id>/<32 random hex>.json` (`private_key`) and the optional raw GPX (≤ 5 MB) beside it as `.gpx` (`gpx_key`; a file whose head is not `<gpx` is dropped, not refused).
 While a route is live, a public copy of the same bytes sits at `community/v1/<id>.<md5[0..12]>.json` (`r2_key`; `max-age=300`, so an edge copy outlives a hide by minutes, not a year).
 An owner's edit writes new objects, keeps the public version it replaced (cached lists still name it) and purges older ones;
 a de-attribution purges the old public versions at once, since they name the deleted account;
 hiding a route (AI review, reports or admin) deletes every object under `community/v1/<id>.` and NULLs `r2_key`, so owner/admin detail of a hidden route has `trailUrl: null`;
+an admin sees its line through `GET /v1/admin/community/routes/:id/trail` (`adminGetCommunityTrail`), which streams the private copy's bytes for any status but `removed` (`requireAdmin` before the row is read, so a non-admin gets 401/403 for any id; 404 for an unknown or removed id; 409 `conflict` when an edit replaced the copy mid-read; `Cache-Control: private, no-store`), and never the key or the raw GPX;
 an admin restore from hidden always republishes from the private copy (if it is gone: 404 when removed meanwhile, 409 `conflict` when the row changed, else 500 `trail_missing`), and a hide re-reads the row after its purge and republishes a route a restore made live meanwhile;
 removal purges both prefixes.
 Every row change sets `updated_at` strictly later than the value it read (`stampAfter`);

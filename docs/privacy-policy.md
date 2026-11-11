@@ -135,7 +135,8 @@ release: they are © OpenStreetMap contributors, under the Open Database
 Licence, and the published route credits them as such. The original GPX file is kept privately, for
 re-processing only, under an unguessable address that is never linked or
 shown publicly. If a route is hidden by moderation, its published copy is
-taken down until it is restored. Sharing is opt-in: an import
+taken down until it is restored; our admins can still see the stored route,
+its track included, to decide whether to restore it. Sharing is opt-in: an import
 you do not share never leaves your device. The published route carries no
 recording times: timestamps are dropped from the processed route before it is
 stored or published. A raw GPX file can still hold them, along with your name
