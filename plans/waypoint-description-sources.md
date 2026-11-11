@@ -2,7 +2,7 @@
 
 This note records where the facts in each trail's `data/trails/<dir>/descriptions.json` came from (issue #30). Every statement in those files should trace to a source listed here. Where sources disagreed, the note says which one was followed. Retrieved 2026-10-19 and re-checked the same day against the review on #192. When another trail gets a file, add a section for it, and when a trail's text changes, update its section.
 
-The trails authored before this note (Cape to Cape, AAWT, Bibbulmun, Hume & Hovell, Larapinta) have no source list.
+The trails authored before this note (Cape to Cape, AAWT, Bibbulmun, Hume & Hovell, Larapinta) have no source list, apart from the two Cape to Cape entries corrected on #311 (see that trail's section).
 
 ## Rules applied
 
@@ -472,6 +472,20 @@ All PWS pages below were read in full with curl on 2026-10-23.
 - **Mount Pelion East's height:** PWS's walk notes give 1433 m, while OSM, and the GPX's former text, give 1461 m. The description gives no height.
 - **Hartnett Falls:** the walk notes spell it both "Harnett" and "Hartnett"; the description uses Hartnett.
 - **Group platforms:** PWS says educational and community groups must use them, and guided walks may. It does not say outright that independent walkers may not, so the descriptions do not say so either.
+
+## Cape to Cape Track (`cape_to_cape`)
+
+The file predates this note and has no full source list. Two entries were corrected on #311 (2026-11-11), each against a source read in full that day:
+- **Point Rd Campsite** (`w_808bb2ce`): DBCA Explore Parks WA, [Point Road Campground](https://exploreparks.dbca.wa.gov.au/site/point-road-campground), read with curl. Gives:
+  - a small campground among peppermint trees on the fringes of Boranup Forest, "accessible only by 4WD via Point Road or on foot via the Cape to Cape Track"
+  - six campsites, each with a fire ring and a picnic table and bench, unpowered
+  - no-flush pit toilets
+  - bookings essential (through Park Stay), and a per-person camping fee ($15 adult in 2026; the description gives no figure)
+  - "Drinking water is not provided."
+  The old text ("small hikers' campsite", "untreated rainwater … unreliable") had no source; the rainwater claim was dropped because DBCA mentions no tank.
+- **Gracetown** (`w_1042b1df`): only the caravan park sentence changed; the general store and the nearest supermarket are unchanged and still unsourced.
+  - Gracetown Caravan Park's [own site](https://www.gracetowncaravanpark.com.au/): 744 Cowaramup Bay Road, "located 2km's from the Gracetown beach", and a convenience shop selling ice creams, milk and bread.
+  - OSM node [1826016762](https://www.openstreetmap.org/node/1826016762) (`tourism=caravan_site`, read through Nominatim) places it 2.3 km from the nearest point of the track and about 2.7 km from the Gracetown waypoint, hence "about 2.5 km inland", as the committed GPX's own `<desc>` already said.
 
 ## Heysen data changes on #217 (2026-10-23)
 

@@ -52,10 +52,10 @@
     "states": [
       "WA"
     ],
-    "dataVersion": "2026-10-25",
-    "updatedAt": "2026-10-25T01:13:57.095Z",
-    "md5": "baca29b21f4975d554cd337653b10c8f",
-    "bytes": 572198
+    "dataVersion": "2026-11-11",
+    "updatedAt": "2026-11-11T21:18:07.547Z",
+    "md5": "17de23f3ca397e579464d00cf279ab90",
+    "bytes": 572449
   },
   {
     "id": "cdt",
@@ -202,10 +202,10 @@
     "lengthKm": 154.1,
     "country": "JP",
     "states": [],
-    "dataVersion": "2026-10-20",
-    "updatedAt": "2026-10-20T00:52:37.639Z",
-    "md5": "c2dc66e0c8728e33116aa8e8b99224a9",
-    "bytes": 673089
+    "dataVersion": "2026-11-11",
+    "updatedAt": "2026-11-11T21:18:07.547Z",
+    "md5": "08b0e5faae8261a775745c7b0f6da5fc",
+    "bytes": 673125
   },
   {
     "id": "six_foot_track",

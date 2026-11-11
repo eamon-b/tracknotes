@@ -208,6 +208,8 @@ const CURATED_WAYPOINTS: GpxWaypoint[] = [
       'Rest hut on Tamagatoge pass (玉ヶ峠, about 450 m) between Temple 12 and Temple 13. Water tap (working Nov 2025); toilet closed. ' +
       'Signs on the hut forbid camping. https://www.henro.org/place/tamagatao-rest-stop-kamiyama-tokushima',
   },
+  // Distance re-checked on #311 (2026-11-11): access.json's OSM walk from the
+  // route is 2.83 km, the straight line 824 m (the house is in the valley below).
   {
     name: 'Moja House',
     lat: 33.989688,
@@ -215,7 +217,7 @@ const CURATED_WAYPOINTS: GpxWaypoint[] = [
     ele: 0,
     type: 'accommodation',
     desc:
-      'Guesthouse 神山くらしの宿 near the Ono bus stop on Prefectural Road 20, about 0.8 km off the path. Dorm ¥4,500; dinner ¥2,000, breakfast ¥1,000, cooked with the host (Oct 2026). ' +
+      'Guesthouse 神山くらしの宿 near the Ono bus stop on Prefectural Road 20, about 2.8 km off the path by road (0.8 km in a straight line). Dorm ¥4,500; dinner ¥2,000, breakfast ¥1,000, cooked with the host (Oct 2026). ' +
       'English-speaking host, cash only. Tel: 050-6873-7990 https://moja-house.com',
   },
   {
