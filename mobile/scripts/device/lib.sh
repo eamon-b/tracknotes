@@ -116,6 +116,24 @@ git_label() {
 
 pid_alive() { [ -n "${1:-}" ] && kill -0 "$1" 2>/dev/null; }
 
+# Start time of a running process (ps lstart); empty if it is not running.
+# Stored beside every pid we record, so a pid the kernel reused after a reboot
+# or a crash is never mistaken for (or killed as) one of ours.
+pid_start() {
+  [ -n "${1:-}" ] || return 0
+  { ps -o lstart= -p "$1" 2>/dev/null || true; } | sed 's/^ *//; s/ *$//'
+}
+# pid_ours PID START: PID is alive and is still the process that started at START.
+pid_ours() { pid_alive "${1:-}" && [ -n "${2:-}" ] && [ "$(pid_start "$1")" = "$2" ]; }
+# write_pidfile FILE PID: record PID with its start time.
+write_pidfile() { printf '%s\n%s\n' "$2" "$(pid_start "$2")" >"$1"; }
+# read_pidfile FILE: print the recorded pid if it is still ours, else nothing.
+read_pidfile() {
+  local pid="" start=""
+  { read -r pid; read -r start; } 2>/dev/null <"$1" || true
+  if pid_ours "$pid" "$start"; then printf '%s\n' "$pid"; fi
+}
+
 # Start a command fully detached: its own session (setsid), so the harness
 # reaping the caller's process group at the 10-minute cap cannot kill it;
 # stdin from /dev/null; output to LOG. Prints the pid (= the session's pgid).

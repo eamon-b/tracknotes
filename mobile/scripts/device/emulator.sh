@@ -69,7 +69,7 @@ for attempt in 1 2; do
   rm -f "$EXITF"
   info "Booting $AVD_NAME (attempt $attempt)…"
   pid="$(detach "$LOG" bash -c '"$@"; echo $? > "'"$EXITF"'"' _ "$EMULATOR" -avd "$AVD_NAME" "${ARGS[@]}")"
-  echo "$pid" >"$PIDF"
+  write_pidfile "$PIDF" "$pid"
   rc=0; wait_for_boot "$pid" || rc=$?
   if [ "$rc" = 0 ]; then
     ok "Booted: $BOOTED_SERIAL (emulator pid $pid)."

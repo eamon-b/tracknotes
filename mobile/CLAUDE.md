@@ -22,7 +22,8 @@ eas build --non-interactive --profile preview --platform android   # Test APK; r
 
 EAS profiles (`eas.json`): `base`, `development`, `development-device`, `preview` (sideloadable `.apk`), `production` (`.aab`).
 
-**Needs a human:** `npx expo start` (interactive; the user runs Metro in their own terminal), `eas login`, first-time iOS credential setup.
+**Needs a human:** `eas login`, first-time iOS credential setup.
+Don't run a bare `npx expo start` (it is interactive and dies with the Bash tool): `npm run device:metro` starts Metro detached (see Android emulator below).
 
 ## Environment variables
 
@@ -51,7 +52,7 @@ npm run device:install [-- <apk>]    # caches the installed APK in ~/.cache/trac
 npm run device:restore [-- <file>|--sdk 54|--list]   # reinstall a cached APK (default: the one last replaced)
 npm run device:metro [-- --port 8082 --watch --api --no-open]   # Metro detached, warm the bundle, adb reverse, open the dev-client deep link
 npm run device:shot -- <name>        # screencap; prints /tmp/tracknotes-shots/<name>.png to Read
-npm run device:stop [-- --build --emulator --all]   # stop this checkout's Metro + its adb reverses (and the build / emulator)
+npm run device:stop [-- --build --emulator --all]   # stop this checkout's Metro + its adb reverses but the shared tcp:8787 (and the build / emulator)
 ```
 
 Typical session: `device:emulator` → `device:check-sdk` (on a mismatch, or after a native change: `device:stop -- --emulator`, `device:build`, `device:wait` until 0, `device:emulator`, `device:install`) → `device:metro` → drive and `device:shot` → `device:stop -- --all` before finishing.
@@ -60,6 +61,8 @@ Metro runs with `CI=1` by default, which turns file watching off: an edit is not
 The Bash tool moves a foreground call to the background after a few minutes; `device:wait`, `device:emulator` and a cold `device:metro` can take that long, so run them with `run_in_background` (or `device:wait -- 170`) and read the result when notified.
 `device:metro` re-run after an emulator restart re-does the adb reverses, which a restart drops; `--api` adds 8787 for a local `wrangler dev` (also set `EXPO_PUBLIC_API_BASE_URL=http://localhost:8787` in `.env.local`, then restart Metro).
 Logs and pids are in `mobile/.device/` (gitignored); the emulator's log is in `~/.local/state/tracknotes-device/`.
+Each recorded pid is stored with its process start time, so a pid reused after a reboot is treated as gone, never killed.
+`device:install` refuses this checkout's `app-debug.apk` while `device:build` runs or after it failed.
 
 ```bash
 adb shell input tap 540 1200                          # also: swipe x1 y1 x2 y2 ms, keyevent KEYCODE_BACK, text "..."

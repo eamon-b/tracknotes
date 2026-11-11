@@ -17,7 +17,7 @@ STATUS="$STATE_DIR/build.status"
 LOG="$STATE_DIR/build.log"
 [ -f "$STATUS" ] || die "No build has been started in this checkout. Start one: npm run device:build"
 
-field() { grep "^$1=" "$STATUS" | cut -d= -f2-; }
+field() { grep "^$1=" "$STATUS" | cut -d= -f2- || true; }
 
 show_failure() {
   info "----- last 40 lines of $LOG -----"
@@ -43,7 +43,7 @@ while :; do
       info "Full log: $LOG"
       exit 1 ;;
     running)
-      if [ -n "$pid" ] && ! pid_alive "$pid"; then
+      if [ -n "$pid" ] && ! pid_ours "$pid" "$(field pid_start)"; then
         info "The build process (pid $pid) is gone without recording a result — killed (OOM? reboot?)."
         show_failure
         sed -i 's/^state=running/state=failed/' "$STATUS"

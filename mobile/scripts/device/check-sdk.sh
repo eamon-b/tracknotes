@@ -32,7 +32,9 @@ else
   status=1
 fi
 
-if ! adbs shell pm dump "$APP_ID" 2>/dev/null | grep -qi devlauncher; then
+# Capture first: `pm dump | grep -q` under pipefail fails when grep exits early (SIGPIPE).
+dump="$(adbs shell pm dump "$APP_ID" 2>/dev/null || true)"
+if [[ "${dump,,}" != *devlauncher* ]]; then
   warn "The installed build has no expo-dev-client launcher: the tracknotes://expo-development-client deep link is a silent no-op and the app loads from 10.0.2.2:8081. Rebuild from this tree."
   status=1
 fi
