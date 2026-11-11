@@ -7,6 +7,7 @@
 ```bash
 npm run dev            # Vite dev server (port 5173)
 npm test               # Vitest (web, scripts, src/lib)
+npm run build:app && npm run test:e2e   # Production build to dist-app/ (no tiles), then Playwright smoke tests in Chromium
 npm run lint           # ESLint (src/ and scripts/)
 npm run format         # Prettier over code and JSON, whole repo (CI runs format:check)
 npm run check          # Installs match the lockfiles, then web, workers and mobile suites (not CI's trail-data job: `npm run check:data-unchanged` is its local equivalent)

@@ -4,6 +4,10 @@ node_modules/
 /node_modules
 /mobile/node_modules
 dist/
+# `npm run build:app` output and the Playwright smoke suite's results
+dist-app/
+playwright-report/
+test-results/
 *.log
 .DS_Store
 

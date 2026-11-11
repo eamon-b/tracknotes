@@ -7,6 +7,9 @@ keep this file in step with the code it describes.
 
 - `build-trails.ts` - Generates static trail pages + `public/data/generated/*.json` from GPX/JSON data;
   the geometry work lives in `@lib/trail-ingest` (`buildTrail`) — this script only supplies the file-system pieces (config, CalTopo GeoJSON, CSV fallback, climate, curated descriptions, waypoint-id registry) and writes the output
+- `build-app.ts` - `npm run build:app`: a production Vite build of the web pages into `dist-app/` (gitignored) for the Playwright smoke suite (`web-ui.md`, "Testing").
+  Vite's `publicDir` copy is off; it copies `public/` itself minus `data/tiles/` (the local tile packs, tens of GB), and stops with the rebuild command when `public/data/generated/index.json` or a trail's generated page is missing.
+  `npm run build` (Vercel's) is unchanged.
 - `build-mobile-trails.ts` - Builds mobile-optimized trail JSON (reduced points, truncated precision).
   A trail with route breaks is simplified one stretch at a time, so Douglas-Peucker cannot drop a break's boundary points and cut the corner across the water;
   `index` is re-anchored to the result, `displayIndex` is re-anchored the same way, because `displayPoints` is thinned here too: the web copy is no longer a fixed ~3,000 points (see `trail-ingest.ts`'s tolerance ceiling), so the phone clamps it to the same `TARGET_POINTS` budget as `points` — a line no coarser than the array it already ships, and no finer.
