@@ -72,4 +72,31 @@ describe('collectOutputs', () => {
       'waypoint-ids.json',
     ]);
   });
+
+  it('after a build, skips gitignored leftovers it did not write, but not committed outputs', () => {
+    write('public/data/generated/demo.json', '{}');
+    write('public/data/generated/old-name.json', '{}');
+    write('src/web/trails/demo/index.html', '<html>');
+    write('src/web/trails/old-name/index.html', '<html>');
+    write('mobile/assets/trails/old-name.json', '{}');
+    write('data/waypoint-ids.json', '{}');
+    const lastWeek = new Date(Date.now() - 7 * 24 * 3600 * 1000);
+    for (const stale of [
+      'public/data/generated/old-name.json',
+      'src/web/trails/old-name/index.html',
+      'mobile/assets/trails/old-name.json',
+      'data/waypoint-ids.json',
+    ]) {
+      fs.utimesSync(path.join(root, stale), lastWeek, lastWeek);
+    }
+    const builtSince = Date.now();
+    expect([...collectOutputs(root, builtSince).keys()].sort()).toEqual([
+      'generated/demo.json',
+      'mobile/old-name.json',
+      'pages/demo/index.html',
+      'waypoint-ids.json',
+    ]);
+    // Without a build (--no-build) everything on disk is compared.
+    expect(collectOutputs(root).size).toBe(6);
+  });
 });

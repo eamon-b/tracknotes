@@ -7,7 +7,7 @@
  * move it. That directory is gitignored, so git never shows the drift; this
  * script builds both sides and compares them.
  *
- *   npm run check:data-unchanged -- --baseline               # build origin/main into a snapshot
+ *   npm run check:data-unchanged -- --baseline               # build origin/main (as last fetched) into a snapshot
  *   npm run check:data-unchanged -- --baseline --ref HEAD~1  # …or any other ref
  *   npm run check:data-unchanged -- --baseline --current     # …or this tree, before you edit it
  *   npm run check:data-unchanged                             # rebuild this tree, compare with the snapshot
@@ -20,8 +20,13 @@
  * `mobile/assets/trails/` and `data/waypoint-ids.json` exactly as a manual
  * rebuild would.
  *
+ * `--ref` is resolved locally: `origin/main` is wherever the last `git fetch`
+ * left it, so fetch first for today's main.
+ *
  * Compared: every file in `public/data/generated/`, `mobile/assets/trails/` and
  * the generated `src/web/trails/<id>/` pages, and `data/waypoint-ids.json`.
+ * After a build, gitignored files it did not write (left over from a renamed or
+ * removed trail) are skipped; `--no-build` compares everything on disk.
  * Ignored: only the clock fields listed in `lib/data-diff.ts`. Exit 0 when
  * nothing else differs, 1 when something does, 2 when a build or git fails.
  *
@@ -39,13 +44,23 @@ import { diffSnapshots, formatReport } from './lib/data-diff.js';
 
 const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-/** Where each part of a snapshot comes from, relative to a checkout. */
-const SOURCES: Array<{ prefix: string; dir: string; recurse: boolean }> = [
-  { prefix: 'generated', dir: 'public/data/generated', recurse: false },
-  { prefix: 'mobile', dir: 'mobile/assets/trails', recurse: false },
+/**
+ * Where each part of a snapshot comes from, relative to a checkout.
+ * `gitignored` outputs are never cleaned, so a checkout keeps files for
+ * trails that have since been renamed or removed; a fresh worktree has none.
+ */
+const SOURCES: Array<{ prefix: string; dir: string; recurse: boolean; gitignored: boolean }> = [
+  { prefix: 'generated', dir: 'public/data/generated', recurse: false, gitignored: true },
+  { prefix: 'mobile', dir: 'mobile/assets/trails', recurse: false, gitignored: false },
   // One directory per trail; the templates and modules beside them are source.
-  { prefix: 'pages', dir: 'src/web/trails', recurse: true },
+  { prefix: 'pages', dir: 'src/web/trails', recurse: true, gitignored: true },
 ];
+
+/**
+ * Slack under a build's start time when telling its outputs from leftovers,
+ * for file systems with coarse modification times.
+ */
+const MTIME_SLACK_MS = 2000;
 const REGISTRY = { name: 'waypoint-ids.json', file: 'data/waypoint-ids.json' };
 const META_FILE = '.snapshot.json';
 
@@ -68,7 +83,8 @@ interface SnapshotMeta {
 export class CheckError extends Error {}
 
 const USAGE =
-  'Usage: npm run check:data-unchanged -- [--baseline [--ref <ref> | --current]] [--no-build] [--snapshot <dir>]';
+  'Usage: npm run check:data-unchanged -- [--baseline [--ref <ref> | --current]] [--no-build] [--snapshot <dir>]\n' +
+  '  --baseline builds origin/main as last fetched (run `git fetch origin` first) unless --ref or --current.';
 
 /** Throws a `CheckError` naming the bad argument. */
 export function parseArgs(argv: string[], projectRoot = PROJECT_ROOT): Options {
@@ -129,17 +145,31 @@ function npm(args: string[], cwd: string, log: string): void {
   }
 }
 
-function buildTrailData(cwd: string, log: string): void {
+/** Build in `cwd`; returns the start time, for `collectOutputs`' `builtSince`. */
+function buildTrailData(cwd: string, log: string): number {
+  const startedAt = Date.now();
   for (const step of BUILD_STEPS) {
     console.log(`  npm run ${step}`);
     npm(['run', step], cwd, log);
   }
+  return startedAt;
 }
 
-/** Every compared output file under `root`, keyed by its snapshot path. */
-export function collectOutputs(root: string): Map<string, string> {
+/**
+ * Every compared output file under `root`, keyed by its snapshot path.
+ * With `builtSince` (a build's start, in ms), a gitignored output older than
+ * that build is a leftover it did not write, and is skipped: otherwise a
+ * renamed or removed trail's stale files would read as "added" against a
+ * baseline built in a fresh worktree.
+ */
+export function collectOutputs(root: string, builtSince?: number): Map<string, string> {
   const files = new Map<string, string>();
-  for (const { prefix, dir, recurse } of SOURCES) {
+  const cutoff = builtSince === undefined ? undefined : builtSince - MTIME_SLACK_MS;
+  const add = (key: string, file: string, gitignored: boolean) => {
+    if (gitignored && cutoff !== undefined && fs.statSync(file).mtimeMs < cutoff) return;
+    files.set(key, fs.readFileSync(file, 'utf-8'));
+  };
+  for (const { prefix, dir, recurse, gitignored } of SOURCES) {
     const base = path.join(root, dir);
     if (!fs.existsSync(base)) continue;
     for (const entry of fs.readdirSync(base, { withFileTypes: true })) {
@@ -147,14 +177,11 @@ export function collectOutputs(root: string): Map<string, string> {
         if (!entry.isDirectory()) continue;
         for (const page of fs.readdirSync(path.join(base, entry.name), { withFileTypes: true })) {
           if (page.isFile()) {
-            files.set(
-              `${prefix}/${entry.name}/${page.name}`,
-              fs.readFileSync(path.join(base, entry.name, page.name), 'utf-8')
-            );
+            add(`${prefix}/${entry.name}/${page.name}`, path.join(base, entry.name, page.name), gitignored);
           }
         }
       } else if (entry.isFile()) {
-        files.set(`${prefix}/${entry.name}`, fs.readFileSync(path.join(base, entry.name), 'utf-8'));
+        add(`${prefix}/${entry.name}`, path.join(base, entry.name), gitignored);
       }
     }
   }
@@ -202,13 +229,15 @@ function buildRef(ref: string, log: string): { files: Map<string, string>; commi
   const commit = git(['rev-parse', '--verify', `${ref}^{commit}`]);
   const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'tracknotes-data-ref-'));
   const tree = path.join(scratch, 'tree');
-  console.log(`Building ${ref} (${commit.slice(0, 12)}) in ${tree}`);
+  const fetched = ref.startsWith('origin/') ? ', as last fetched' : '';
+  console.log(`Building ${ref} (${commit.slice(0, 12)}${fetched}) in ${tree}`);
   git(['worktree', 'add', '--detach', tree, commit]);
   try {
     const lockHere = fs.readFileSync(path.join(PROJECT_ROOT, 'package-lock.json'), 'utf-8');
     const lockThere = fs.readFileSync(path.join(tree, 'package-lock.json'), 'utf-8');
     if (lockHere === lockThere && fs.existsSync(path.join(PROJECT_ROOT, 'node_modules'))) {
-      fs.symlinkSync(path.join(PROJECT_ROOT, 'node_modules'), path.join(tree, 'node_modules'), 'dir');
+      // 'junction' needs no admin rights on Windows, and is ignored elsewhere.
+      fs.symlinkSync(path.join(PROJECT_ROOT, 'node_modules'), path.join(tree, 'node_modules'), 'junction');
     } else {
       console.log(`  npm ci (${ref} pins other packages than this tree)`);
       npm(['ci', '--no-audit', '--no-fund'], tree, log);
@@ -239,8 +268,7 @@ function main(): void {
     let meta: SnapshotMeta;
     if (options.current) {
       console.log('Building this tree for the baseline');
-      buildTrailData(PROJECT_ROOT, log);
-      files = collectOutputs(PROJECT_ROOT);
+      files = collectOutputs(PROJECT_ROOT, buildTrailData(PROJECT_ROOT, log));
       meta = { source: 'this tree', commit: git(['rev-parse', 'HEAD']), builtAt: new Date().toISOString() };
     } else {
       const built = buildRef(options.ref, log);
@@ -254,11 +282,12 @@ function main(): void {
   }
 
   const baseline = readSnapshot(options.snapshotDir);
+  let builtSince: number | undefined;
   if (options.build) {
     console.log('Building this tree');
-    buildTrailData(PROJECT_ROOT, log);
+    builtSince = buildTrailData(PROJECT_ROOT, log);
   }
-  const diffs = diffSnapshots(baseline.files, collectOutputs(PROJECT_ROOT));
+  const diffs = diffSnapshots(baseline.files, collectOutputs(PROJECT_ROOT, builtSince));
   const against = `${baseline.meta.source}${baseline.meta.commit ? ` @ ${baseline.meta.commit.slice(0, 12)}` : ''}`;
   if (diffs.length === 0) {
     console.log(`\nTrail data unchanged against ${against} (built ${baseline.meta.builtAt}).`);
