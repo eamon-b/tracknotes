@@ -11,9 +11,11 @@
  *
  * A plan may also take alternates (`@lib/plan-alternates`). The map then draws
  * the taken alternate as the route, with its places and their stop rings, and
- * the main route it bypasses dashed (as the web plan page does); the profile
- * stays the main route's, so a stop on the alternate is ticked where the
- * hiker is along the stretch it replaces.
+ * the main route it bypasses dashed (as the web plan page does). The profile
+ * plots the route as planned (`use-plan-route`, as the web plan page plots
+ * it), so its stops are ticked at their route km, and the other panes' focus
+ * windows — main-route km — are carried across (`mainWindowToRoute`,
+ * `routeWindowToMain`).
  *
  * Pure and React-free, so the conversion is testable without a renderer, a
  * canvas, or a native map.
@@ -21,8 +23,9 @@
 
 import { findStopIndex } from '@lib/plan-editor';
 import {
-  alternateKmToRoute,
   mainKmToRoute,
+  routeKmToPlan,
+  stopRouteKm,
   type PlanAlternate,
   type PlannedRoute,
 } from '@lib/plan-alternates';
@@ -106,6 +109,11 @@ export function plannedStopFeatureIds(
  * Every stop ends a day, so the stop km are the boundaries; the trail's own
  * start and end are implicit and are not ticked (the profile already ends
  * there).
+ *
+ * With a `route` the km are route km and `totalKm` must be the route's length
+ * (`route.totalDistance`) — the profile plots the route as planned — so a stop
+ * on a taken alternate is ticked where it is along it. Without one they are
+ * main-route km: every main-route stop is ticked and no alternate stop is.
  */
 export function plannedStopKms(
   plan: PlanDocument | undefined,
@@ -117,42 +125,134 @@ export function plannedStopKms(
   // A stop past either end of the trail as it is now (a data update shortened
   // it) is listed by the Plan screen as needing checking, not ticked off the
   // end of the profile.
-  const mainKms = plan.stops
+  const noboKms = plan.stops
     .map((stop) => profileKmOfStop(stop, route))
     .filter((km): km is number => km !== null && km >= -KM_EPSILON && km <= totalKm + KM_EPSILON)
     .map((km) => ({ km }));
-  return stopsToActive(mainKms, direction, totalKm)
+  return stopsToActive(noboKms, direction, totalKm)
     .map((stop) => stop.km)
     .sort((a, b) => a - b);
 }
 
 /**
- * Where a stop falls on the main route's profile, NOBO km, or null when it is
- * not on the route the plan walks.
+ * Where a stop falls on the profile, NOBO km, or null when it is not on the
+ * route the plan walks.
  *
- * The profile is the main route's. A stop on an alternate the plan takes is
- * placed at the same fraction of the main stretch that alternate replaces —
- * 3 km into a 10 km alternate over 6 km of main route ticks 1.8 km past the
- * branch — so the ticks keep the plan's order and the day boundary sits
- * between the branch and the rejoin, where the hiker is. Without a `route`
- * every main-route stop is ticked and no alternate stop is.
+ * With a `route` this is the stop's route km (`@lib/plan-alternates`
+ * `stopRouteKm`): a stop on a taken alternate is placed along it, and one on a
+ * stretch a taken alternate bypasses, on an alternate the plan does not take,
+ * or past an end of a shortened alternate has none. Without a `route` every
+ * main-route stop is at its own km and no alternate stop is placed.
  */
 export function profileKmOfStop(
   stop: Pick<PlanStop, 'km' | 'alternate'>,
   route?: PlannedRoute,
 ): number | null {
-  if (stop.alternate === undefined) {
-    if (!route) return stop.km;
-    // On a stretch a taken alternate bypasses: not a day of this plan.
-    return mainKmToRoute(route, stop.km) === null ? null : stop.km;
+  if (!route) return stop.alternate === undefined ? stop.km : null;
+  return stopRouteKm(route, stop);
+}
+
+/** A km range, as the guide's focus windows and the profile's zoom are. */
+export interface KmRange {
+  startKm: number;
+  endKm: number;
+}
+
+/**
+ * Route km (NOBO) of a main-route km (NOBO), for a range rather than a place:
+ * a km on a stretch a taken alternate bypasses goes to the same fraction of the
+ * way along the alternate, so a range reaching into the bypassed stretch still
+ * covers the ground the hiker was looking at. Past either end: clamped.
+ */
+function mainKmToRouteSpan(route: PlannedRoute, km: number): number {
+  const onRoute = mainKmToRoute(route, km);
+  if (onRoute !== null) return onRoute;
+  for (const segment of route.segments) {
+    if (segment.kind !== 'alternate') continue;
+    const a = segment.alternate;
+    if (km < a.startKm || km > a.endKm) continue;
+    const along = a.mainDistanceKm > 0 ? (km - a.startKm) / a.mainDistanceKm : 0;
+    return segment.routeFromKm + along * a.distanceKm;
   }
-  const alternate = route?.alternates.find((a) => a.name === stop.alternate);
-  if (!alternate) return null;
-  // Past an end of the alternate as it is now: not ticked at the branch or the
-  // rejoin, where it is not (`alternateKmToRoute` is null for it too).
-  if (route && alternateKmToRoute(route, alternate.name, stop.km) === null) return null;
-  const along = Math.min(Math.max((stop.km - alternate.startKm) / alternate.distanceKm, 0), 1);
-  return alternate.startKm + along * alternate.mainDistanceKm;
+  return km <= 0 ? 0 : route.totalDistance;
+}
+
+/**
+ * The inverse of `mainKmToRouteSpan`: a km on a taken alternate goes to the
+ * same fraction of the main stretch it replaces.
+ */
+function routeKmToMainSpan(route: PlannedRoute, routeKm: number): number {
+  const position = routeKmToPlan(route, routeKm);
+  if (position.alternate === undefined) return position.km;
+  const a = route.alternates.find((alt) => alt.name === position.alternate);
+  if (!a) return position.km;
+  const along = a.distanceKm > 0 ? (position.km - a.startKm) / a.distanceKm : 0;
+  return a.startKm + along * a.mainDistanceKm;
+}
+
+/** Both ends of an active-direction range through a NOBO conversion, re-sorted. */
+function convertRange(
+  range: KmRange,
+  direction: PlanDirection,
+  fromTotal: number,
+  toTotal: number,
+  convert: (noboKm: number) => number,
+): KmRange {
+  const a = toActiveKm(convert(toNoboKm(range.startKm, direction, fromTotal)), direction, toTotal);
+  const b = toActiveKm(convert(toNoboKm(range.endKm, direction, fromTotal)), direction, toTotal);
+  return { startKm: Math.min(a, b), endKm: Math.max(a, b) };
+}
+
+/**
+ * A main-route focus window (the map's and the list's, active direction) as a
+ * window on the route as planned (the profile's, active direction). The
+ * identity when the plan takes no alternate.
+ */
+export function mainWindowToRoute(
+  window: KmRange,
+  route: PlannedRoute,
+  direction: PlanDirection,
+): KmRange {
+  if (route.alternates.length === 0) return window;
+  return convertRange(window, direction, route.mainTotalDistance, route.totalDistance, (km) =>
+    mainKmToRouteSpan(route, km),
+  );
+}
+
+/** The profile's window on the route as planned, as a main-route focus window. */
+export function routeWindowToMain(
+  window: KmRange,
+  route: PlannedRoute,
+  direction: PlanDirection,
+): KmRange {
+  if (route.alternates.length === 0) return window;
+  return convertRange(window, direction, route.totalDistance, route.mainTotalDistance, (km) =>
+    routeKmToMainSpan(route, km),
+  );
+}
+
+/**
+ * Main-route km ranges (NOBO) — a saved custom route's on-trail spans — as
+ * ranges on the route as planned (NOBO). The part of a range on a stretch a
+ * taken alternate bypasses is not on that route and is dropped, so a range
+ * across the alternate is split either side of it.
+ */
+export function mainRangesToRoute(ranges: readonly KmRange[], route: PlannedRoute): KmRange[] {
+  if (route.alternates.length === 0) return [...ranges];
+  const out: KmRange[] = [];
+  for (const range of ranges) {
+    for (const segment of route.segments) {
+      if (segment.kind !== 'main') continue;
+      const lo = Math.max(range.startKm, segment.fromKm);
+      const hi = Math.min(range.endKm, segment.toKm);
+      if (hi - lo <= KM_EPSILON) continue;
+      out.push({
+        startKm: segment.routeFromKm + (lo - segment.fromKm),
+        endKm: segment.routeFromKm + (hi - segment.fromKm),
+      });
+    }
+  }
+  return out;
 }
 
 /** What the map draws differently for a plan that takes alternates. */
