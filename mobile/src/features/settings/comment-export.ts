@@ -33,11 +33,12 @@ export function composeCommentExport(comments: MyComment[], exportedAt: string):
 }
 
 /**
- * One line under the button once the sheet has been offered. It says only that
- * the file was made: expo-sharing does not report whether the hiker saved or
- * sent it, or dismissed the sheet.
+ * One line under the button once the sheet has closed, in the past tense. It
+ * says only that the file was made: expo-sharing does not report whether the
+ * hiker saved or sent it, or dismissed the sheet, and the line must not read as
+ * if something is still waiting to be shared.
  */
 export function exportSummary(count: number): string {
   if (count === 0) return 'You haven’t posted any comments.';
-  return count === 1 ? '1 comment ready to share.' : `${count} comments ready to share.`;
+  return count === 1 ? 'Prepared a file of 1 comment.' : `Prepared a file of ${count} comments.`;
 }

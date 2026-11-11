@@ -4,7 +4,9 @@
  * A Tracknotes identity is created silently on first post (no signup screen), so
  * the only place a user can get rid of it is here. `DELETE /v1/me` soft-deletes
  * everything they posted, drops their photos and kills the token; the local half
- * (own comments + the outbox) is purged by `identity-store.deleteAccount`.
+ * is purged by `identity-store.deleteAccount` (`account-deletion.ts`): own
+ * comments, synced plans, the outbox, and the cached comment and plan export
+ * files, with the account's hiker waypoints kept as private ones.
  *
  * Only shown to a `registered` device: an anonymous install has nothing on the
  * server, and offering "delete account" to someone with no account is noise.
@@ -89,7 +91,9 @@ export function DeleteAccountSection() {
           including from other hikers’ apps. This can’t be undone.
         </Text>
         <Text style={[styles.hint, { color: colors.textSecondary }]}>
-          Your favourites, saved routes and downloaded maps stay on this device.
+          Your synced plans, and any comment or plan export file not saved elsewhere, are removed
+          from this device too. Your favourites, saved routes and downloaded maps stay on this
+          device.
         </Text>
 
         {/* While the confirmation is open the same message is repeated inside the
@@ -116,7 +120,8 @@ export function DeleteAccountSection() {
           <View style={[styles.modalCard, { backgroundColor: colors.surfaceElevated }]}>
             <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Delete account?</Text>
             <Text style={[styles.modalHint, { color: colors.textSecondary }]}>
-              Your comments and photos will be removed for everyone. This can’t be undone.
+              Your comments and photos will be removed for everyone, and your synced plans and
+              export files will be removed from this phone. This can’t be undone.
             </Text>
             {error ? (
               <Text style={[styles.error, { color: colors.danger }]} accessibilityRole="alert">
