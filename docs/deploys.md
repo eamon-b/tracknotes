@@ -11,11 +11,12 @@ The site is not among them: Vercel builds `main` on push.
 | `upload-descriptions.yml` | `data/trails/*/descriptions.json` | a dry run of `upload:descriptions` against the live API, then, once approved, the upload | `production-data` |
 | `deploy-contours-site.yml` | `contours/site/**` | `wrangler pages deploy` to the `aus-contour-tiles` Pages project (contour-map-tiles.net), then checks the page answers | `production` |
 
-A fifth, `staging-comments-api.yml`, deploys a same-repo PR that touches `workers/comments-api/**` to the **staging** comments API (its own Worker, D1 and R2; `docs/architecture/workers.md`, "staging") with the staging-only secrets below, never production's.
+Separately, `staging-comments-api.yml` deploys a same-repo PR that touches `workers/comments-api/**` to the **staging** comments API (its own Worker, D1 and R2; `docs/architecture/workers.md`, "staging") with the staging-only secrets below, never production's.
 
-Each also has *Run workflow* (Actions → the workflow), for a re-deploy or a first run;
+Each workflow in the table also has *Run workflow* (Actions → the workflow), for a re-deploy or a first run;
 it runs from `main` only.
-A change to a workflow file alone does not trigger it: use *Run workflow* to try one.
+The staging workflow's *Run workflow* takes any branch.
+A change to one of their workflow files alone does not trigger it: use *Run workflow* to try one.
 
 ## How they behave
 
@@ -30,6 +31,7 @@ Its first job reads `main`'s head (the GitHub API) and checks that out: a run th
 Its summary names the commit it deployed, and a run whose `main` has moved on says so there and in a notice.
 The data workflows pass the commit their `plan` job resolved to the `publish` or `upload` job, so what is approved is exactly what was planned.
 Runs of one workflow never overlap (`concurrency`, not cancelled in progress); a newer queued run replaces an older queued one, which is fine, since it deploys a `main` that includes it.
+A replaced staging run is different: it means another branch deployed after it, so re-run it to put your branch back on staging.
 `publish:trail-data` also re-checks its own guards against the live catalog at publish time (a rollback, a checkout that does not contain the live publish's commit, a dropped trail), so a late approval cannot publish over a newer publish.
 Its `plan` job first rebuilds the trail data (`sync:te-araroa`, `build:trails`, `build:mobile-trails`) and fails if that changes anything, since those guards compare against the live catalog, not against the sources.
 `--hold` is an input of *Run workflow*: to hold a trail back from a push's publish (a new trail not ready for every installed app, #289), reject that run's deployment, then *Run workflow* with `hold` set.
@@ -72,7 +74,8 @@ Under `mobile/` the audit lists advisories whose only "fix" npm offers is an old
 ## Setup
 
 The environments are under Settings → Environments, and the repository secrets under Settings → Secrets and variables → Actions.
-Restrict each one's *Deployment branches and tags* to `main`, so no other branch's workflow can read its secrets.
+Restrict the *Deployment branches and tags* of `production`, `production-data` and `moderation` to `main`, so no other branch's workflow can read their secrets;
+leave `staging` unrestricted, since PR branches deploy there.
 
 **`production`** (the workers and the contours site), no required reviewers:
 
@@ -99,12 +102,22 @@ Restrict each one's *Deployment branches and tags* to `main`, so no other branch
 - `R2_READ_ACCESS_KEY_ID` and `R2_READ_SECRET_ACCESS_KEY`: an R2 API token's S3 keys with *Object Read only* on `tracknotes-data`, for that dry run.
 - `AUTOMATION_TOKEN` (optional): a fine-grained personal access token for this repository with *Contents* and *Pull requests* read and write. *Te Araroa data* pushes and opens its PR with it, so the PR runs CI. A PR opened with the workflow's own token runs no workflows, so without it the PR has no checks, and GitHub must be allowed to open it at all (Settings → Actions → General → *Allow GitHub Actions to create and approve pull requests*).
 
-**`staging`** (the staging comments API, for PR branches, so not restricted to `main`; repository secrets of the same names work too), no required reviewers:
+**`staging`** (the staging comments API, for PR branches, so not restricted to `main`).
+Put its secrets and variables on the environment, not at repository level, so only jobs that name `staging` can read them:
 
-- `CLOUDFLARE_STAGING_API_TOKEN`: its own token, never the production one, with *Account → Workers Scripts → Edit* and *Account → D1 → Edit*, limited to the account, no zone resources (staging is on `workers.dev`; add *Account → Account Settings → Read* if `wrangler deploy` asks for it).
-  Cloudflare cannot limit a token to one Worker or database, so this token could still deploy over production's Worker: any collaborator who can push a branch can run a workflow with it, so give it a short expiry.
+- `CLOUDFLARE_STAGING_API_TOKEN`: its own token, never the production one, with *Account → Workers Scripts → Edit* and *Account → D1 → Edit*, no zone resources (staging is on `workers.dev`; add *Account → Account Settings → Read* if `wrangler deploy` asks for it).
 - `CLOUDFLARE_ACCOUNT_ID`.
-- Optional repository variables: `STAGING_SITE_BASE` (a preview origin for share links) and `STAGING_API_BASE_URL` (the staging URL, if reading it from the deploy output ever fails).
+- Variable `STAGING_API_BASE_URL` (required to deploy): `https://tracknotes-comments-staging.<account subdomain>.workers.dev`, which the workflow probes.
+- Optional variable `STAGING_SITE_BASE`: a preview origin for share links.
+
+The risk, and the owner's call: Cloudflare cannot limit a Workers or D1 token to one Worker or database, so in the production account this token can deploy over the production Worker and run SQL on the production D1.
+Any collaborator who can push a branch can start a run that holds it.
+The workflow guards against a branch's config (its guard step pins `[env.staging]` to `main`'s staging Worker, D1 and R2, and the token's job runs no npm scripts or tests and a pinned `wrangler`), but not against a PR that edits the workflow file itself, which runs as the PR has it.
+To close that, pick at least one:
+
+- a required reviewer on the `staging` environment, so every staging run waits for you (it costs an approval per PR push);
+- a separate Cloudflare account for staging, with the staging Worker, D1 and R2 there and the token limited to that account, so the token cannot touch production at all;
+- at the least, a short token expiry.
 
 Give each token an expiry you will notice, and replace it in the environment before then.
 A personal `wrangler login` still works for anything run by hand.
@@ -112,4 +125,4 @@ A personal `wrangler login` still works for anything run by hand.
 ## Running by hand
 
 The commands in the runbooks still work from a checkout (`docs/mobile-test-build.md` "Full release", `docs/trail-data-updates.md`, `docs/architecture/build-scripts.md`).
-Deploy only from `main`, as the workflows do.
+Deploy production only from `main`, as the workflows do (staging from any branch: `docs/architecture/workers.md`, "staging").

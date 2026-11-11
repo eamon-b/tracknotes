@@ -151,7 +151,7 @@ PHOTOS_PUBLIC_BASE = "https://REPLACE-AFTER-r2-dev-url-enable.invalid"
 # Worker: any Vercel Preview deployment (Preview's VITE_API_BASE_URL is this
 # Worker, so every preview reads every staging share). Previews have
 # per-deploy URLs, so the Staging workflow passes `--var SITE_BASE:<origin>`
-# when the repository variable STAGING_SITE_BASE is set (a branch alias, or a
+# when the staging environment variable STAGING_SITE_BASE is set (a branch alias, or a
 # domain assigned to Preview). Without it, links point at this never-resolving
 # placeholder, deliberately not at production: everything else works, and a
 # tester swaps the host for any preview's (<preview>/shared-plan.html?s=<id>).

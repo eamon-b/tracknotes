@@ -27,16 +27,18 @@ The bucket needs a CORS rule allowing `GET`/`HEAD` from any origin, as the produ
 **Share links from previews.**
 Vercel Preview builds take `VITE_API_BASE_URL` = the staging URL, so every preview deployment reads and writes staging (CORS is `*`, so any preview origin may call it).
 `shared-plan.html` reads the share from its own build's API, so a staging share opens on *any* preview and on no production page.
-The Worker mints links as `SITE_BASE/shared-plan.html?s=<id>`: set the repository variable `STAGING_SITE_BASE` to a stable preview origin (a branch alias, or a domain assigned to Preview) and the workflow deploys with `--var SITE_BASE:<it>`.
+The Worker mints links as `SITE_BASE/shared-plan.html?s=<id>`: set the variable `STAGING_SITE_BASE` on the `staging` environment to a stable preview origin (a branch alias, or a domain assigned to Preview) and the workflow deploys with `--var SITE_BASE:<it>`.
 Without it the link's host is the placeholder, deliberately not `tracknotes.info` (which would answer "not found"): swap in any preview's host.
 "Open in Tracknotes" (`tracknotes://plan/<id>`) opens whichever API the phone's build was given, so it finds a staging share only on a build pointed at staging.
 
 **Deploying.**
 Agents may deploy staging; production deploys only from `main` (`docs/deploys.md`).
-The *Staging comments API* workflow (`.github/workflows/staging-comments-api.yml`) runs on every same-repo PR that touches `workers/comments-api/**` (never a fork's), and from *Run workflow* on any branch: the worker's tests and `tsc`, `migrate:staging`, `deploy:staging`, then `scripts/probe-comments-api.sh` against the staging URL (in the run's summary).
+The *Staging comments API* workflow (`.github/workflows/staging-comments-api.yml`) runs on every same-repo PR that touches `workers/comments-api/**` (never a fork's), and from *Run workflow* on any branch: a guard, the staging migrations, a staging deploy, then `scripts/probe-comments-api.sh` against the staging URL (in the run's summary).
+It runs no tests (the *Tests* workflow does), because its job holds the staging token: it installs only the runtime dependencies with `--ignore-scripts`, calls a pinned `wrangler` installed outside the checkout instead of `npm run`, and first checks that the branch's `[env.staging]` names `main`'s staging Worker, D1 and R2 and nothing of production's, and has no `[build]` command (the guard step, `docs/deploys.md` for what it cannot stop).
+Runs never overlap, and GitHub keeps one pending run: a third run cancels the one waiting, so re-run a cancelled run to put that branch back on staging.
 A PR run deploys the PR merged into its base, as CI tests it.
-It uses only the staging secrets `CLOUDFLARE_STAGING_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` (GitHub environment `staging`, or repository secrets), never production's `CLOUDFLARE_API_TOKEN`, and without them it runs the tests and ends with a notice.
-The staging URL is read from the deploy's output, or from the repository variable `STAGING_API_BASE_URL` when set.
+It uses only the staging secrets `CLOUDFLARE_STAGING_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` and the variable `STAGING_API_BASE_URL` (the staging URL, which it probes), all on the GitHub environment `staging`, never production's `CLOUDFLARE_API_TOKEN`;
+without them it ends with a notice and deploys nothing.
 By hand, from `workers/comments-api/` with the staging token in `CLOUDFLARE_API_TOKEN`: `npm run migrate:staging && npm run deploy:staging`, `npm run tail:staging` for its logs, and `scripts/probe-comments-api.sh <staging URL>` (or `COMMENTS_API_BASE_URL=<staging URL>`).
 A change only to `src/lib/` (which the worker bundles) does not trigger it: use *Run workflow*.
 
@@ -48,7 +50,8 @@ Every PR's migrations stay applied to the one D1, including a migration later re
 **Data policy: test data only.**
 Post nothing real to staging, and anyone may wipe it at any time.
 Accounts there are separate from production's (another database): an admin is made the same way, by setting `users.is_admin` on the staging D1.
-Real users cannot reach it: shipped app builds and `tracknotes.info` call production only, and Vercel previews are behind Vercel's SSO deployment protection, so only team members open a preview that writes to staging.
+Real users cannot reach it while two things hold: shipped app builds and `tracknotes.info` call production only, and Vercel previews stay behind Vercel's deployment protection (Vercel Authentication), so only team members open a preview that writes to staging.
+That protection is an owner-managed Vercel project setting (Settings → Deployment Protection), not anything in this repository, and this privacy reasoning depends on it staying on for Preview.
 So `docs/privacy-policy.md` and `docs/data-residency.md` need no line for it (both describe where real users' data is stored); if previews were ever made public, or a build shipped pointed at staging, staging would hold real users' posts and would need both, with an OC placement check like production's.
 
 **Pointing a client at staging.**
