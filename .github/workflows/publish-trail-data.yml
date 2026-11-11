@@ -52,6 +52,9 @@ jobs:
           echo "sha=$head" >> "$GITHUB_OUTPUT"
           if [ "$head" != "$GITHUB_SHA" ]; then
             echo "::notice::main has moved on to $head since $GITHUB_SHA: planning $head."
+            echo "Planning \`${head:0:7}\`, main's head, not \`${GITHUB_SHA:0:7}\`, which started this run (main has moved on since)." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Planning \`${head:0:7}\`, main's head." >> "$GITHUB_STEP_SUMMARY"
           fi
       - uses: actions/checkout@v7
         with:

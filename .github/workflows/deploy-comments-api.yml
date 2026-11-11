@@ -45,6 +45,9 @@ jobs:
           echo "sha=$head" >> "$GITHUB_OUTPUT"
           if [ "$head" != "$GITHUB_SHA" ]; then
             echo "::notice::main has moved on to $head since $GITHUB_SHA: deploying $head."
+            echo "Deploying \`${head:0:7}\`, main's head, not \`${GITHUB_SHA:0:7}\`, which started this run (main has moved on since)." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Deploying \`${head:0:7}\`, main's head." >> "$GITHUB_STEP_SUMMARY"
           fi
 
   deploy:
