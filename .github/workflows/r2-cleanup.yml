@@ -65,10 +65,18 @@ jobs:
           npm run -s cleanup:tiles -- --trail-data | tee -a "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
 
-  # Re-plans against the bucket as it is when approved, then deletes
+  # Re-plans against the bucket as it is when approved, then deletes. It shares
+  # Publish trail data's concurrency group, so a publish cannot re-list a trail
+  # file between this plan and its delete; the --trail-data delete also re-reads
+  # the live catalog right before each file. GitHub keeps one pending run per
+  # group: start a delete only while no publish is waiting, or the newer of the
+  # two pending runs replaces the older.
   delete:
     needs: plan
     if: inputs.delete
+    concurrency:
+      group: publish-trail-data
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment:

@@ -6,6 +6,10 @@
  * the rows that page highlights (`needsAttention`, `@lib/moderation-attention`).
  * The decisions stay on the page: this prints counts only, never post text or
  * user names, since the run's summary is public.
+ * The API has no counts-only route, so the full listings (post text, display
+ * names, reports) reach the runner: they are counted in memory and never
+ * printed, written or kept, and an error names only the route and status.
+ * docs/privacy-policy.md names GitHub Actions for this.
  *
  * Usage: TRACKNOTES_ADMIN_TOKEN=... node scripts/moderation-queue.ts
  * Runs on Node's own type stripping (Node 22.18+), with no `npm ci`: it imports
