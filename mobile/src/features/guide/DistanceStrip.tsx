@@ -24,6 +24,14 @@
  * town a side trip leads to counts, and it says what lies beyond the turn-off:
  * "12.3 km + 2.0 km off trail", the walk in timed with the trail, or
  * "+ 35.0 km hitch", which is not.
+ *
+ * It measures along the route *as planned* (`use-plan-route`): when the plan
+ * takes an alternate, a town on it is a stop like any other, and the distance
+ * to the next stop runs along the alternate rather than the main stretch it
+ * bypasses. The fix is placed on that route (`guideKmOnRoute`); a hiker
+ * somewhere the plan does not go — on the main route a taken alternate
+ * bypasses — is told so rather than measured from a km the plan never passes.
+ * Water, camp and the next waypoint stay the guide trail's.
  */
 
 import React, { useMemo } from 'react';
@@ -44,7 +52,10 @@ import {
   type WaypointDistance,
 } from '../../services/distance-calculator';
 import { selectPaceBaseKmh, usePlanInputsStore } from '../plan/plan-inputs-store';
+import { planDirectionOf } from '../plan/plan-stops';
 import { usePlannedResupplyStops } from '../plan/use-planned-resupply';
+import { guideKmOnRoute, usePlanRoute } from '../plan/use-plan-route';
+import { selectPlan, usePlansStore } from '../../state/plans-store';
 import { ShareIconButton } from '../share/ShareIconButton';
 import { useCheckInShare } from '../share/use-check-in-share';
 import { useGuide } from './GuideContext';
@@ -54,13 +65,26 @@ import { formatShortDistance } from './waypoint-filters';
 
 export function DistanceStrip() {
   const { colors } = useTheme();
-  const { trailId, trail } = useGuide();
+  const { trailId, trail, direction } = useGuide();
   const baseKmh = usePlanInputsStore(selectPaceBaseKmh(trailId));
   const units = useSettingsStore((s) => s.units);
   const { status, currentKm, offTrailMeters, position, error, start, stop } =
     useGuidePositionContext();
+  // The route the plan walks: the guide trail itself unless it takes an alternate.
+  const plan = usePlansStore(selectPlan(trailId));
+  const { route, trail: routeTrail } = usePlanRoute(plan);
   // Null until a resupply plan exists — no chip at all until then.
-  const plannedStops = usePlannedResupplyStops(trailId, trail);
+  const plannedStops = usePlannedResupplyStops(trailId, routeTrail);
+  const routeKm = useMemo(
+    () =>
+      guideKmOnRoute(
+        { status, currentKm, position },
+        route,
+        routeTrail,
+        planDirectionOf(direction),
+      ),
+    [status, currentKm, position, route, routeTrail, direction],
+  );
   const shareCheckIn = useCheckInShare();
 
   const chips = useMemo(() => {
@@ -74,7 +98,6 @@ export function DistanceStrip() {
       baseKmh,
       routeBreakStarts(trail.track.breaks, 'points'),
     );
-    const breakStarts = routeBreakStarts(trail.track.breaks, 'points');
     const byType = getNextWaypointsByType(currentKm, waypoints, trackPoints, distances, baseKmh);
 
     const items: { key: string; label: string; value: string }[] = [];
@@ -89,9 +112,18 @@ export function DistanceStrip() {
     push('water', 'Next water', byType.water);
     push('camp', 'Next camp', byType.campsite);
     if (plannedStops) {
-      const stop = nextResupplyStop(plannedStops, currentKm);
-      if (stop) {
-        const trip = tripAlongTrail(currentKm, stop.km, trackPoints, baseKmh, breakStarts);
+      const stop = routeKm == null ? null : nextResupplyStop(plannedStops, routeKm);
+      if (routeKm == null) {
+        // On a stretch the plan bypasses: no planned stop is "ahead" of it.
+        items.push({ key: 'resupply', label: '', value: 'Not on your planned route' });
+      } else if (stop) {
+        const trip = tripAlongTrail(
+          routeKm,
+          stop.km,
+          routeTrail.track.points,
+          baseKmh,
+          routeBreakStarts(routeTrail.track.breaks, 'points'),
+        );
         const walk = stop.access;
         // The walk in is timed with the trail; a ride is named, never timed.
         const minutes =
@@ -117,7 +149,7 @@ export function DistanceStrip() {
     // "Next waypoint" is the closest upcoming point of any type.
     push('next', 'Next waypoint', distances[0]);
     return items;
-  }, [trail, currentKm, units, baseKmh, plannedStops]);
+  }, [trail, currentKm, units, baseKmh, plannedStops, routeKm, routeTrail]);
 
   // --- No fix yet: a single "Show my location" pill / locating hint --------
   if (status === 'no-permission') {

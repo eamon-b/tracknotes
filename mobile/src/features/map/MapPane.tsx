@@ -44,6 +44,8 @@ import {
 import { useDownloadsStore } from '../../state/downloads-store';
 import { useFavoritesStore } from '../../state/favorites-store';
 import { usePlannedResupplyIds } from '../plan/use-planned-resupply';
+import { usePlanRoute } from '../plan/use-plan-route';
+import { selectPlan, usePlansStore } from '../../state/plans-store';
 import { useSettingsStore } from '../../state/settings-store';
 import { useGuide } from '../guide/GuideContext';
 import { planDirectionOf } from '../plan/plan-stops';
@@ -190,7 +192,11 @@ export function MapPane() {
   // recent reports (see GuideMap's waypointCircleStyle).
   const waterStatusById = useWaterStatus(trailId);
   // Null until the hiker has made a resupply plan; the ring draws nothing then.
-  const plannedResupplyIds = usePlannedResupplyIds(trailId, trail);
+  // Read off the route as planned, so a chosen town on an alternate the plan
+  // takes is ringed (its marker is drawn by `usePlannedRouteMap`) and one on
+  // the main stretch it bypasses is not.
+  const { trail: plannedRouteTrail } = usePlanRoute(usePlansStore(selectPlan(trailId)));
+  const plannedResupplyIds = usePlannedResupplyIds(trailId, plannedRouteTrail);
 
   const { position, accuracy, status, start } = useGuidePositionContext();
 

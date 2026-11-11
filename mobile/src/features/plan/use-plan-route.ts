@@ -14,11 +14,13 @@
 
 import { useMemo } from 'react';
 import {
+  mainKmToRoute,
   plannedRouteFor,
   plannedRouteTrail,
   type PlannableTrail,
   type PlannedRoute,
 } from '@lib/plan-alternates';
+import { toActiveKm, toNoboKm, type PlanDirection } from '@lib/plan-direction';
 import type { PlanDocument } from '@lib/plan-types';
 import { routeBreakStarts } from '@lib/route-breaks';
 import type { GuidePosition } from '../../hooks/useGuidePosition';
@@ -101,6 +103,46 @@ export function routeKmOfFix(
     routeBreakStarts(breaks, 'points'),
   );
   return snap && !isOffTrail(snap.offTrailMeters) ? snap.currentKm : null;
+}
+
+/**
+ * Active-direction route km of an active-direction main-route km, or null when
+ * the route as planned does not pass it (a taken alternate bypasses it).
+ */
+export function mainActiveKmToRoute(
+  route: PlannedRoute,
+  km: number,
+  direction: PlanDirection,
+): number | null {
+  const routeKm = mainKmToRoute(route, toNoboKm(km, direction, route.mainTotalDistance));
+  return routeKm === null ? null : toActiveKm(routeKm, direction, route.totalDistance);
+}
+
+/**
+ * Where the guide's position is along the route as planned (active direction),
+ * for a surface that measures or draws along that route — the distance strip's
+ * "Next resupply", the elevation profile's position line.
+ *
+ * With no alternate taken the guide's own km is the answer, as it always was
+ * (an off-trail fix still has the km it snapped to). With one, the fix is
+ * snapped to the planned route (`routeKmOfFix`), so a hiker walking the
+ * alternate is placed on it; failing that, the guide's main-route km is carried
+ * over when the planned route passes it — a fix a little off a stretch the
+ * route shares with the main route. Null when the hiker is somewhere the plan
+ * does not go, such as the main route a taken alternate bypasses.
+ */
+export function guideKmOnRoute(
+  position: Pick<GuidePosition, 'status' | 'currentKm' | 'position'>,
+  route: PlannedRoute,
+  trail: TrailJson,
+  direction: PlanDirection,
+): number | null {
+  if (route.alternates.length === 0) return position.currentKm;
+  const snapped = routeKmOfFix(position, route, trail);
+  if (snapped !== null) return snapped;
+  return position.currentKm == null
+    ? null
+    : mainActiveKmToRoute(route, position.currentKm, direction);
 }
 
 export function usePlanRoute(plan: PlanDocument | undefined): PlanRoute {
