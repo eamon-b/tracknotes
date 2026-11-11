@@ -25,14 +25,16 @@ permissions:
   contents: read
 
 jobs:
-  # A re-run of an old run, or one that waited behind a newer merge, must not
-  # put older worker code back: the newer commit's own run deploys instead.
+  # Always deploy main as it is now, not the commit that started the run: a run
+  # that waited behind another, or a re-run of an old one, then deploys the newest
+  # code rather than putting older code back, and a newer commit that did not touch
+  # the trigger paths (so started no run) cannot leave this one undeployed.
   head:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      current: ${{ steps.head.outputs.current }}
+      sha: ${{ steps.head.outputs.sha }}
     steps:
       - id: head
         env:
@@ -40,16 +42,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           head=$(gh api "repos/$REPO/commits/main" --jq .sha)
-          if [ "$head" = "$GITHUB_SHA" ]; then
-            echo "current=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "::notice::main is at $head, past $GITHUB_SHA: that commit's run deploys. Nothing deployed here."
-            echo "current=false" >> "$GITHUB_OUTPUT"
+          echo "sha=$head" >> "$GITHUB_OUTPUT"
+          if [ "$head" != "$GITHUB_SHA" ]; then
+            echo "::notice::main has moved on to $head since $GITHUB_SHA: deploying $head."
           fi
 
   deploy:
     needs: head
-    if: needs.head.outputs.current == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment:
@@ -61,6 +60,8 @@ jobs:
         working-directory: workers/comments-api
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.head.outputs.sha }}
       - uses: actions/setup-node@v7
         with:
           node-version: 22
@@ -71,13 +72,25 @@ jobs:
       # The Tests workflow's checks, so a deploy neither waits on that run nor races it
       - run: npm test
       - run: npx tsc --noEmit
+      # Migrations apply before the deploy, while the old worker is still serving,
+      # so each must be additive (expand, then contract in a later release:
+      # docs/architecture/workers.md). One that drops or renames anything (a
+      # SQLite table rebuild does both) is refused here and applied by hand.
       - name: Migrations to apply
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: npx wrangler d1 migrations list DB --remote
-      # Migrations first: new code may read the columns they add, and they are
-      # written to be additive, so the running worker keeps working on them
+        run: |
+          list=$(npx wrangler d1 migrations list DB --remote 2>&1)
+          echo "$list"
+          destructive=()
+          for name in $(grep -oE '[0-9]{4}_[A-Za-z0-9_]+\.sql' <<<"$list" | sort -u); do
+            if sed 's/--.*$//' "migrations/$name" | grep -qiE '\b(drop|rename)\b'; then destructive+=("$name"); fi
+          done
+          if [ "${#destructive[@]}" -gt 0 ]; then
+            echo "::error::${destructive[*]} drops or renames something, which can break the worker still running until the deploy. Apply it by hand (docs/deploys.md), then re-run this workflow."
+            exit 1
+          fi
       - name: Apply migrations
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -91,7 +104,8 @@ jobs:
       - name: Probe the routes
         working-directory: .
         run: |
-          echo '### Route probes' >> "$GITHUB_STEP_SUMMARY"
+          { echo '### Route probes'; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          status=0
+          scripts/probe-comments-api.sh | tee -a "$GITHUB_STEP_SUMMARY" || status=$?
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-          scripts/probe-comments-api.sh | tee -a "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"

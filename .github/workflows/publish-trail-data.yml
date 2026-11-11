@@ -28,19 +28,34 @@ permissions:
 
 jobs:
   # The dry run, with no credentials: what would be uploaded, and every refusal
-  # (a rollback, a stale checkout, a dropped trail) before anyone is asked
+  # (a rollback, a stale checkout, a dropped trail) before anyone is asked. It
+  # plans main as it is now, not the commit that started the run, so a run that
+  # waited (behind an approval, say) cannot skip a merge or publish older data;
+  # `publish` then publishes exactly the commit planned here.
   plan:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     outputs:
       publish: ${{ steps.plan.outputs.publish }}
+      sha: ${{ steps.head.outputs.sha }}
     defaults:
       run:
         shell: bash
     steps:
+      - id: head
+        env:
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          head=$(gh api "repos/$REPO/commits/main" --jq .sha)
+          echo "sha=$head" >> "$GITHUB_OUTPUT"
+          if [ "$head" != "$GITHUB_SHA" ]; then
+            echo "::notice::main has moved on to $head since $GITHUB_SHA: planning $head."
+          fi
       - uses: actions/checkout@v7
         with:
+          ref: ${{ steps.head.outputs.sha }}
           # The stale-checkout guard needs the live catalog's sourceCommit in this history
           fetch-depth: 0
       - uses: actions/setup-node@v7
@@ -48,24 +63,29 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # The publish guards compare against the live catalog, not the sources, so
+      # check here that the committed data is what this commit's sources build
+      # (the Tests workflow's trail-data job, which this does not wait for)
+      - name: Check the committed trail data is built from these sources
+        run: |
+          npm run sync:te-araroa
+          npm run build:trails
+          npm run build:mobile-trails
+          if [ -n "$(git status --porcelain)" ]; then
+            git status --short
+            echo "::error::The committed trail data does not match what its sources build. Rebuild, commit and merge it before publishing."
+            exit 1
+          fi
       - id: plan
         env:
           HOLD: ${{ inputs.hold }}
-          REPO: ${{ github.repository }}
-          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.head.outputs.sha }}
         run: |
-          # An old or overtaken run is not published: the newer commit's run is
-          head=$(gh api "repos/$REPO/commits/main" --jq .sha)
-          if [ "$head" != "$GITHUB_SHA" ]; then
-            echo "::notice::main is at $head, past $GITHUB_SHA: that commit's run publishes. Nothing published here."
-            echo "publish=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
           args=()
           for id in $HOLD; do args+=(--hold "$id"); done
           out="$RUNNER_TEMP/plan.txt"
           npm run -s publish:trail-data -- --dry-run "${args[@]}" 2>&1 | tee "$out"
-          { echo '### Publish plan'; echo '```'; cat "$out"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          { echo "### Publish plan for ${SHA:0:7}"; echo '```'; cat "$out"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           if grep -q '^Nothing to publish' "$out"; then
             echo "publish=false" >> "$GITHUB_OUTPUT"
           else
@@ -86,6 +106,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: ${{ needs.plan.outputs.sha }}
           fetch-depth: 0
       - uses: actions/setup-node@v7
         with:
