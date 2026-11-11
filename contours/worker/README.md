@@ -78,6 +78,28 @@ The figures are the ones the app is built around: corridor builds are paced
 to 30 requests/s (300 per 10 s), and a blocked request comes back 429, which
 the app waits out (11 s when no `Retry-After` is sent) before carrying on.
 
+The bucket's public domain must not serve the archive either, or the rate
+limit above is moot: `data.tracknotes.info/basemap/planet.pmtiles` would hand
+out the whole 139 GB planet, range requests and all (issue #304). A
+rate-limiting rule cannot close that on the free plan (it cannot match the
+hostname), so it is a WAF custom rule: the `tracknotes.info` zone → Security →
+Security rules (WAF) → Custom rules → Create rule, "Block direct basemap
+downloads", Edit expression:
+
+```
+(http.host eq "data.tracknotes.info" and starts_with(url_decode(http.request.uri.path), "/basemap/"))
+```
+
+Action: Block. `url_decode` stops `/basemap%2Fplanet.pmtiles` slipping past.
+The Worker is unaffected: it reads the archive through its R2 binding, not
+the public domain. Check after any change to the zone's rules:
+
+```bash
+curl -sI https://data.tracknotes.info/basemap/planet.pmtiles      # 403
+curl -sI https://data.tracknotes.info/basemap%2Fplanet.pmtiles    # 403
+curl -s https://tiles.tracknotes.info/health                      # base ok
+```
+
 No cache rule is needed: the Worker runs in front of the zone's cache and
 keeps tiles in `caches.default` itself (see [Staleness](#staleness-after-re-uploading-the-archive)).
 
