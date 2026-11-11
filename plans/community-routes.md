@@ -206,6 +206,7 @@ All bodies JSON unless stated. Types in `src/lib/community-types.ts`.
 | GET | `/v1/admin/community/routes` | admin | Queue: everything not `removed`, with review, reports, checks. |
 | POST | `/v1/admin/community/routes/:id/status` | admin | `{ status: 'verified' \| 'unverified' \| 'hidden', note? }`. 409 `conflict` if the route changed meanwhile. 400 `invalid_note` for a note equal to an automatic hide's note. |
 | POST | `/v1/admin/community/routes/:id/review` | admin | Re-run the AI review. |
+| GET | `/v1/admin/community/routes/:id/trail` | admin | The stored trail JSON from the private copy (hidden routes too; never the raw GPX), `private, no-store`. 404 when unknown or removed. |
 
 Rate limits (`rate_events`): `communitySubmitAttempt` 30 submit requests per
 user per day, spent before the body is parsed, failed ones included;
@@ -234,7 +235,8 @@ Storage:
 - R2 (the PHOTOS bucket). The bucket has no private area — all of it is
   served at `PHOTOS_PUBLIC_BASE` — so private objects are protected by
   unguessable keys (128 random bits) that are recorded in the row and never
-  returned by the API; an R2 custom domain serves by exact key and does not
+  returned by the API (the admin trail route returns the canonical JSON's
+  bytes, never its key); an R2 custom domain serves by exact key and does not
   list.
   - `community/private/<id>/<32 random hex>.json` (`private_key`): the
     canonical `ProcessedTrail`, rewritten on every republish.

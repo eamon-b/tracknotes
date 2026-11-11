@@ -114,4 +114,93 @@ describe('admin-community.html', () => {
     }
     expect(document.getElementById('admin-identity')!.textContent).toContain('Admin');
   });
+
+  describe('the Map section', () => {
+    const storedTrail = {
+      config: { id: route.id, name: route.name },
+      track: {
+        points: [
+          { lat: -37, lon: 145, ele: 1, dist: 0 },
+          { lat: -37.1, lon: 145.1, ele: 1, dist: 12 },
+        ],
+        displayPoints: [],
+        totalDistance: 12,
+        totalAscent: 0,
+        totalDescent: 0,
+      },
+      waypoints: [],
+      offTrailWaypoints: [],
+      alternates: [],
+      sideTrips: [],
+    };
+
+    /** A Leaflet stand-in that records the containers it was asked to draw into. */
+    function fakeLeaflet(drawnInto: HTMLElement[]): unknown {
+      const layer = () => {
+        const self = { addTo: () => self, bindTooltip: () => self };
+        return self;
+      };
+      return {
+        map: (container: HTMLElement) => {
+          drawnInto.push(container);
+          container.appendChild(document.createElement('div'));
+          const map = { fitBounds: () => map, setView: () => map, remove: () => {}, invalidateSize: () => {} };
+          return map;
+        },
+        tileLayer: layer,
+        polyline: layer,
+        circleMarker: layer,
+        control: { scale: layer },
+        latLngBounds: (b: unknown) => b,
+      };
+    }
+
+    function stubFetch(trailResponse: { status: number; body: unknown }) {
+      const fetchMock = vi.fn(async (input: string, _init?: RequestInit) => {
+        const isTrail = input.endsWith('/trail');
+        const status = isTrail ? trailResponse.status : 200;
+        return {
+          ok: status >= 200 && status < 300,
+          status,
+          statusText: '',
+          text: async () => JSON.stringify(isTrail ? trailResponse.body : { routes: [route] }),
+        };
+      });
+      vi.stubGlobal('fetch', fetchMock);
+      return fetchMock;
+    }
+
+    async function openMap(): Promise<HTMLDetailsElement> {
+      await import('./admin-community');
+      const list = document.getElementById('admin-list')!;
+      await waitFor(() => list.querySelector('[data-map-for]') !== null);
+      const details = list.querySelector<HTMLDetailsElement>('[data-map-for]')!;
+      details.open = true; // jsdom fires `toggle` for this, as browsers do
+      return details;
+    }
+
+    it('fetches the stored trail from the admin endpoint with the token, and draws it', async () => {
+      const drawnInto: HTMLElement[] = [];
+      vi.stubGlobal('L', fakeLeaflet(drawnInto));
+      const fetchMock = stubFetch({ status: 200, body: storedTrail });
+      const details = await openMap();
+      await waitFor(() => drawnInto.length > 0);
+
+      const call = fetchMock.mock.calls.find(([u]) => String(u).endsWith('/trail'));
+      expect(call?.[0]).toBe(`https://api.example.test/v1/admin/community/routes/${route.id}/trail`);
+      expect((call?.[1] as RequestInit).headers).toMatchObject({ Authorization: 'Bearer tok' });
+      expect(drawnInto[0]).toBe(details.querySelector('[data-map]'));
+      expect(details.querySelector<HTMLElement>('[data-map-status]')!.hidden).toBe(true);
+    });
+
+    it('shows a refusal as text, not markup', async () => {
+      vi.stubGlobal('L', fakeLeaflet([]));
+      stubFetch({ status: 403, body: { error: { code: 'forbidden', message: `No ${XSS}` } } });
+      const details = await openMap();
+      const status = details.querySelector<HTMLElement>('[data-map-status]')!;
+      await waitFor(() => (status.textContent ?? '').includes('forbidden'));
+      expect(status.textContent).toContain(`No ${XSS}`);
+      expect(details.querySelector('img')).toBeNull();
+    });
+  });
 });

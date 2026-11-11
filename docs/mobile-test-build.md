@@ -157,6 +157,7 @@ be rolled forward without a reinstall. The detailed rationale is under "Deploy" 
 
    ```bash
    curl -s -o /dev/null -w '%{http_code}\n' https://api.tracknotes.info/v1/me/comments   # 401 (personal export)
+   curl -s -o /dev/null -w '%{http_code}\n' https://api.tracknotes.info/v1/admin/community/routes/c_AAAAAAAAAAAAAAAA/trail   # 401 (admin route map, #310)
    ```
 
    Add a line here whenever a new migration adds routes. Deploy (from `main`) after every merge

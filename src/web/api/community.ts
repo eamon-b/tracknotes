@@ -300,6 +300,27 @@ export async function adminRerunReview(session: WebSession, id: string, deps: Co
 }
 
 /**
+ * A route's stored trail, for the admin queue's map. Served by the worker
+ * from the route's private copy, so it works for a hidden route too (which
+ * has no `trailUrl`). 403 for a non-admin, 404 once the route is removed.
+ */
+export async function adminFetchCommunityTrail(
+  session: WebSession,
+  id: string,
+  deps: CommunityApiDeps = {}
+): Promise<ProcessedTrail> {
+  const trail = await apiRequest<unknown>(`/v1/admin/community/routes/${encodeURIComponent(id)}/trail`, {
+    token: session.token,
+    fetchImpl: deps.fetchImpl,
+    signal: deps.signal,
+  });
+  if (!isUsableCommunityTrail(trail)) {
+    throw new ApiError(200, 'invalid_response', 'The stored route is not a usable trail');
+  }
+  return trail;
+}
+
+/**
  * The server's checks from a failed submit (422 `checks_failed`), or null when
  * the error is anything else.
  */

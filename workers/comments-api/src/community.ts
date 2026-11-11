@@ -45,7 +45,7 @@
  * custom domain serves objects by exact key and does not list a bucket.
  */
 
-import { HttpError, json, noContent } from './http';
+import { CORS_HEADERS, HttpError, json, noContent } from './http';
 import type { Env } from './http';
 import { getUser, requireAdmin, requireUser, sha256Hex } from './auth';
 import type { AuthUser } from './auth';
@@ -1521,6 +1521,48 @@ export async function adminSetCommunityStatus(
   const updated = await loadRoute(env, id);
   if (!updated) throw notFound();
   return json(toDetail(env, updated, 'admin', updated.user_id === admin.id, await reportsFor(env, id)));
+}
+
+/**
+ * GET /v1/admin/community/routes/:id/trail — the route's canonical trail JSON,
+ * read from its private copy, so an admin can see the line of a route that has
+ * no public copy (hidden by the AI review, by reports or by an admin). Any
+ * status but `removed` (whose objects are purged) is served, live ones too.
+ *
+ * Admin auth comes first, so a non-admin learns nothing about which ids exist.
+ * The object's bytes are streamed as stored; the private key itself never
+ * leaves the worker, and the raw GPX (`gpx_key`) is never served — it is kept
+ * for re-processing only. `no-store`: the response holds a hidden route and
+ * must not sit in any cache, shared or not.
+ */
+export async function adminGetCommunityTrail(
+  request: Request,
+  env: Env,
+  ctx: ExecutionContext,
+  id: string
+): Promise<Response> {
+  await requireAdmin(request, env, ctx);
+  const row = await loadRoute(env, id);
+  if (!row || row.status === 'removed') throw notFound();
+  const object = await env.PHOTOS.get(row.private_key);
+  if (!object) {
+    // Replaced by an edit or purged by a delete since the row was read.
+    const current = await loadRoute(env, id);
+    if (!current || current.status === 'removed') throw notFound();
+    if (current.private_key !== row.private_key) {
+      throw conflict('The route changed while it was being read; reload and try again');
+    }
+    throw new HttpError(500, 'trail_missing', 'The stored route could not be read');
+  }
+  return new Response(object.body, {
+    status: 200,
+    headers: {
+      ...CORS_HEADERS,
+      'Content-Type': 'application/json',
+      'Cache-Control': 'private, no-store',
+      'X-Content-Type-Options': 'nosniff',
+    },
+  });
 }
 
 /** POST /v1/admin/community/routes/:id/review — re-run the AI review now. */

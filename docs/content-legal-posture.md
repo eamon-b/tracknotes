@@ -148,7 +148,10 @@ display name the hiker chooses. There is no email, password or sign-up.
    - *APP 11, security.* Sign-in and linked-browser tokens are stored only as
      one-way hashes. Admin actions need an account flagged admin in D1.
      Private objects in R2 (a community route's canonical JSON and raw GPX)
-     sit at unguessable keys that are never returned. Every write is rate
+     sit at unguessable keys that are never returned. Admins can read a
+     route's canonical JSON, hidden ones included, through an admin-only,
+     uncached route (`GET /v1/admin/community/routes/:id/trail`, #310) to
+     judge it with its map; the raw GPX is never served. Every write is rate
      limited per account, and account registration and link codes per network.
    - *APP 12/13, access, correction and deletion.* Access to comments is
      self-serve: Settings → Your comments → Export my comments

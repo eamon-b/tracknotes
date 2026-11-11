@@ -292,6 +292,18 @@ textarea.community-input {
   font-size: 0.875rem;
 }
 
+/* Empty until Leaflet draws into it, so only the loading line shows before. */
+.admin-map {
+  height: 320px;
+  margin: 0.5rem 0;
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.admin-map:empty {
+  display: none;
+}
+
 .admin-row-actions {
   display: flex;
   flex-wrap: wrap;

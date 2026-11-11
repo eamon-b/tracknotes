@@ -35,6 +35,7 @@ import {
 import { deletePlan, getSharedPlan, listPlans, putPlan, sharePlan, unsharePlan } from './plans';
 import { createLinkCode, linkDevice, listDevices, revokeDevice } from './link';
 import {
+  adminGetCommunityTrail,
   adminListCommunityRoutes,
   adminRerunCommunityReview,
   adminSetCommunityStatus,
@@ -163,8 +164,12 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
       return methodNotAllowed();
     }
 
-    // /v1/admin/community/routes/:id/status and /review
+    // /v1/admin/community/routes/:id/status, /review and /trail
     if (rest.length === 5 && rest[0] === 'admin' && rest[1] === 'community' && rest[2] === 'routes') {
+      if (rest[4] === 'trail') {
+        if (method === 'GET') return await adminGetCommunityTrail(request, env, ctx, rest[3]);
+        return methodNotAllowed();
+      }
       if (rest[4] === 'status') {
         if (method === 'POST') return await adminSetCommunityStatus(request, env, ctx, rest[3]);
         return methodNotAllowed();
