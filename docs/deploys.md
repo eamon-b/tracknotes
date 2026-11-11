@@ -22,20 +22,33 @@ Its `plan` job runs the dry run without credentials and puts it in the run's sum
 nothing to publish means no `publish` job and nothing to approve.
 Approve under the run's *Review deployments*, which the GitHub mobile app shows too.
 
-A run deploys only the commit at the head of `main`.
-Each starts with a check of `main`'s head (the GitHub API): a run for a commit `main` has moved past, a re-run of an old one, or one that queued behind a newer merge, ends with a notice and deploys nothing, since the newer commit's own run deploys.
-Runs of one workflow never overlap (`concurrency`, not cancelled in progress).
-`publish:trail-data` also re-checks its own guards against the live catalog at publish time (a rollback, a checkout that does not contain the live publish's commit, a dropped trail), so a late approval cannot publish over a newer publish;
-`--hold` is an input of *Run workflow*.
+A run deploys `main` as it is when the run starts, not the commit that triggered it.
+Its first job reads `main`'s head (the GitHub API) and checks that out: a run that queued behind another, or a re-run of an old one, deploys the newest code rather than putting older code back, and a merge after it that did not touch the trigger paths (so started no run of its own) cannot leave it undeployed.
+A run whose `main` has moved on says so in a notice.
+The data workflows pass the commit their `plan` job resolved to the `publish` or `upload` job, so what is approved is exactly what was planned.
+Runs of one workflow never overlap (`concurrency`, not cancelled in progress); a newer queued run replaces an older queued one, which is fine, since it deploys a `main` that includes it.
+`publish:trail-data` also re-checks its own guards against the live catalog at publish time (a rollback, a checkout that does not contain the live publish's commit, a dropped trail), so a late approval cannot publish over a newer publish.
+Its `plan` job first rebuilds the trail data (`sync:te-araroa`, `build:trails`, `build:mobile-trails`) and fails if that changes anything, since those guards compare against the live catalog, not against the sources.
+`--hold` is an input of *Run workflow*: to hold a trail back from a push's publish (a new trail not ready for every installed app, #289), reject that run's deployment, then *Run workflow* with `hold` set.
+
+Every merge that touches `src/lib/` redeploys the comments API (and runs `migrate:remote`, usually a no-op), since the worker bundles `@lib`; most of those deploys change nothing, and are not a fault.
+
+**Migrations are additive.**
+*Deploy comments API* applies pending migrations and then deploys, so between the two the running worker is the old code on the new schema.
+Every migration must keep the deployed worker working: add tables, columns and indexes (expand), and remove what the old code reads only in a later release, once no deployed worker reads it (contract).
+The deploy job refuses any pending migration that drops or renames anything (a SQLite table rebuild, as `0008` was, does both), and the run fails before applying it.
+Apply such a migration by hand, at a moment you choose: from `main`, `cd workers/comments-api && npm run migrate:remote && npm run deploy`, then `scripts/probe-comments-api.sh`, then re-run the workflow, which then finds nothing to apply.
 
 Credentials are passed only to the steps that call Cloudflare or the API, never to `npm ci` or the tests.
 
 What still needs a person:
 
 - A failed run. The *Deploy comments API* summary lists the probes; a probe that fails after a deploy means the deploy happened but a route is missing.
+  *Deploy tile workers* deploys the dataset's Worker and then the app's, with no rollback: if the second fails, the two run different code until a re-run succeeds.
+- A destructive migration (above), applied by hand.
 - When a migration adds routes, add a probe to `scripts/probe-comments-api.sh`.
 - Approving trail data and description runs.
-- A worker change and the description or trail data change that needs it, merged together: the workflows run side by side, so approve the data run only once *Deploy comments API* is green.
+- A worker change and the description or trail data change that needs it, merged together: the workflows run side by side, so approve the data run only once *Deploy comments API*'s `deploy` job has succeeded.
 
 ## Setup
 

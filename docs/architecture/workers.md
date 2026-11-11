@@ -4,6 +4,7 @@ Moved out of `CLAUDE.md` (issue #160) so the per-module detail is read on demand
 `CLAUDE.md` keeps the commands, the rules and a pointer here;
 keep this file in step with the code it describes.
 Both workers deploy from GitHub Actions on a merge to `main` that changes them (`docs/deploys.md`).
+Comments API migrations must be additive (expand, then contract in a later release): the deploy applies them while the previous worker is still serving, and refuses one that drops or renames anything, which is then applied by hand (`docs/deploys.md`, "Migrations are additive").
 
 ## Comments API Worker: community routes (`workers/comments-api/`)
 

@@ -27,18 +27,33 @@ env:
 
 jobs:
   # The dry run reads the live set (public, no token) and prints exactly what
-  # would be sent and withdrawn
+  # would be sent and withdrawn. It plans main as it is now, not the commit that
+  # started the run, so a run that waited cannot skip a merge or send older text;
+  # `upload` then sends exactly the commit planned here.
   plan:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
       upload: ${{ steps.plan.outputs.upload }}
+      sha: ${{ steps.head.outputs.sha }}
     defaults:
       run:
         shell: bash
     steps:
+      - id: head
+        env:
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          head=$(gh api "repos/$REPO/commits/main" --jq .sha)
+          echo "sha=$head" >> "$GITHUB_OUTPUT"
+          if [ "$head" != "$GITHUB_SHA" ]; then
+            echo "::notice::main has moved on to $head since $GITHUB_SHA: planning $head."
+          fi
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.head.outputs.sha }}
       - uses: actions/setup-node@v7
         with:
           node-version: 22
@@ -46,19 +61,11 @@ jobs:
       - run: npm ci
       - id: plan
         env:
-          REPO: ${{ github.repository }}
-          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.head.outputs.sha }}
         run: |
-          # An old or overtaken run must not put older text back: the newer commit's run uploads
-          head=$(gh api "repos/$REPO/commits/main" --jq .sha)
-          if [ "$head" != "$GITHUB_SHA" ]; then
-            echo "::notice::main is at $head, past $GITHUB_SHA: that commit's run uploads. Nothing uploaded here."
-            echo "upload=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
           out="$RUNNER_TEMP/plan.txt"
           npm run -s upload:descriptions -- --dry-run 2>&1 | tee "$out"
-          { echo '### Upload plan'; echo '```'; cat "$out"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          { echo "### Upload plan for ${SHA:0:7}"; echo '```'; cat "$out"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           if grep -q 'would have 0 description(s) sent, 0 withdrawn' "$out"; then
             echo "upload=false" >> "$GITHUB_OUTPUT"
           else
@@ -74,6 +81,8 @@ jobs:
       name: production-data
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
       - uses: actions/setup-node@v7
         with:
           node-version: 22

@@ -20,13 +20,14 @@ permissions:
   contents: read
 
 jobs:
-  # As in Deploy comments API: an old or overtaken run never puts older code back
+  # As in Deploy comments API: deploy main as it is now, not the commit that
+  # started the run, so no merge is left undeployed and no old code goes back
   head:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      current: ${{ steps.head.outputs.current }}
+      sha: ${{ steps.head.outputs.sha }}
     steps:
       - id: head
         env:
@@ -34,16 +35,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           head=$(gh api "repos/$REPO/commits/main" --jq .sha)
-          if [ "$head" = "$GITHUB_SHA" ]; then
-            echo "current=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "::notice::main is at $head, past $GITHUB_SHA: that commit's run deploys. Nothing deployed here."
-            echo "current=false" >> "$GITHUB_OUTPUT"
+          echo "sha=$head" >> "$GITHUB_OUTPUT"
+          if [ "$head" != "$GITHUB_SHA" ]; then
+            echo "::notice::main has moved on to $head since $GITHUB_SHA: deploying $head."
           fi
 
   deploy:
     needs: head
-    if: needs.head.outputs.current == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:
@@ -54,6 +52,8 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.head.outputs.sha }}
       - uses: actions/setup-node@v7
         with:
           node-version: 22
