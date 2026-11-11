@@ -23,8 +23,16 @@ jest.mock('expo-router', () => ({
   useRouter: () => ({ push: jest.fn() }),
 }));
 
+/** The trail the guide context serves (the pane's own, set by `render`). */
+let mockGuideTrail: unknown;
+
 jest.mock('../GuideContext', () => ({
-  useGuide: () => ({ trailId: 'heysen', direction: 'default' }),
+  useGuide: () => ({
+    trailId: 'heysen',
+    direction: 'default',
+    baseTrail: mockGuideTrail,
+    trail: mockGuideTrail,
+  }),
 }));
 
 jest.mock('../GuidePositionContext', () => ({
@@ -149,6 +157,7 @@ let mounted: ReactTestRenderer | null = null;
 function render(): ReactTestRenderer {
   let tree!: ReactTestRenderer;
   act(() => {
+    mockGuideTrail = trail;
     tree = TestRenderer.create(<WaypointListPane trail={trail} />);
   });
   act(() => {

@@ -42,6 +42,8 @@ import { glyphSizes, radii, spacing, typography } from '../../tokens';
 import { useSettingsStore } from '../../state/settings-store';
 import { useFavoritesStore } from '../../state/favorites-store';
 import { usePlannedResupplyIds } from '../plan/use-planned-resupply';
+import { usePlanRoute } from '../plan/use-plan-route';
+import { selectPlan, usePlansStore } from '../../state/plans-store';
 import type { TrailJson } from '../../services/trail-loader';
 import { useGuide } from './GuideContext';
 import { useGuidePaneFocus } from './GuideFocusContext';
@@ -95,7 +97,10 @@ export function WaypointListPane({ trail }: { trail: TrailJson }) {
   const hikerOffTrail = status === 'off-trail';
   const favoriteIds = useFavoritesStore((s) => s.byTrail[trailId]);
   // Null until the hiker has chosen resupply stops — no pill, no Planned chip.
-  const plannedIds = usePlannedResupplyIds(trailId, trail);
+  // Read off the route as planned, as the map, profile and strip read it, so a
+  // town a taken alternate bypasses is not "Planned" here and unringed there.
+  const { trail: plannedRouteTrail } = usePlanRoute(usePlansStore(selectPlan(trailId)));
+  const plannedIds = usePlannedResupplyIds(trailId, plannedRouteTrail);
   // Freshness-ranked water verdicts, keyed by the *bundled* waypoint id (the id
   // comments are filed against; legacy waypoints without one carry no reports).
   const waterByWaypoint = useWaterStatus(trailId);
