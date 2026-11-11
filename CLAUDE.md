@@ -9,7 +9,7 @@ npm run dev            # Vite dev server (port 5173)
 npm test               # Vitest (web, scripts, src/lib)
 npm run lint           # ESLint (src/ and scripts/)
 npm run format         # Prettier over code and JSON, whole repo (CI runs format:check)
-npm run check          # Everything CI runs: installs match the lockfiles, then web, workers and mobile
+npm run check          # Installs match the lockfiles, then web, workers and mobile suites (not the trail-data rebuild check below)
 npx tsc --noEmit       # Typecheck (CI runs it)
 npm run sync:te-araroa && npm run build:trails && npm run build:mobile-trails   # Rebuild trail data (CI checks it is committed)
 ```
