@@ -9,7 +9,10 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "migrate:local": "wrangler d1 migrations apply DB --local",
-    "migrate:remote": "wrangler d1 migrations apply DB --remote"
+    "migrate:remote": "wrangler d1 migrations apply DB --remote",
+    "deploy:staging": "wrangler deploy --env staging",
+    "migrate:staging": "wrangler d1 migrations apply DB --remote --env staging",
+    "tail:staging": "wrangler tail --env staging"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "^1.6.0",

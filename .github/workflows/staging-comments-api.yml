@@ -1,0 +1,119 @@
+name: Staging comments API
+
+# Deploys a PR's workers/comments-api/ to the STAGING Worker
+# (tracknotes-comments-staging on workers.dev, its own D1 and R2: `[env.staging]`
+# in wrangler.toml), so a branch can be tested end to end before it merges:
+# tests, staging migrations, deploy, then scripts/probe-comments-api.sh against
+# the staging URL. Production is deployed only by deploy-comments-api.yml.
+#
+# Staging is ONE shared Worker and database: the last deploy wins. Runs never
+# overlap (concurrency below), but a later PR's deploy replaces an earlier
+# one's code, and every PR's migrations stay applied to the one staging D1.
+# Data policy, reset and setup: docs/architecture/workers.md ("Staging").
+
+on:
+  pull_request:
+    paths:
+      - workers/comments-api/**
+      - scripts/probe-comments-api.sh
+      - .github/workflows/staging-comments-api.yml
+  # Any branch: Actions → Staging comments API → Run workflow
+  workflow_dispatch:
+
+concurrency:
+  group: staging-comments-api
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  staging:
+    # Same-repo PRs only: a fork's PR gets no secrets, and must never deploy
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Holds the staging-only secrets (repository secrets of the same names work too).
+    # Never the production token: CLOUDFLARE_API_TOKEN lives in `production`, main only.
+    environment:
+      name: staging
+    defaults:
+      run:
+        shell: bash
+        working-directory: workers/comments-api
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: workers/comments-api/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npx tsc --noEmit
+      - name: Staging credentials present?
+        id: creds
+        env:
+          CLOUDFLARE_STAGING_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CLOUDFLARE_STAGING_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::notice::CLOUDFLARE_STAGING_API_TOKEN or CLOUDFLARE_ACCOUNT_ID is not set: tests ran, nothing deployed to staging."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+          if grep -q 'REPLACE-AFTER-r2-dev-url-enable' wrangler.toml; then
+            echo "::warning::[env.staging] PHOTOS_PUBLIC_BASE is still the placeholder: staging photo and community-route URLs will not resolve."
+          fi
+      - name: Migrations to apply (staging)
+        if: steps.creds.outputs.ok == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler d1 migrations list DB --remote --env staging
+      - name: Apply migrations (staging)
+        if: steps.creds.outputs.ok == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npm run migrate:staging
+      - name: Deploy (staging)
+        id: deploy
+        if: steps.creds.outputs.ok == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # Optional repository variables (Settings → Secrets and variables → Variables)
+          STAGING_SITE_BASE: ${{ vars.STAGING_SITE_BASE }}
+          STAGING_API_BASE_URL: ${{ vars.STAGING_API_BASE_URL }}
+        run: |
+          args=()
+          # Share links go to a preview origin when one is configured (wrangler.toml, SITE_BASE)
+          if [ -n "$STAGING_SITE_BASE" ]; then args+=(--var "SITE_BASE:$STAGING_SITE_BASE"); fi
+          npm run deploy:staging -- "${args[@]}" 2>&1 | tee deploy.log
+          url="${STAGING_API_BASE_URL:-$(grep -oE 'https://tracknotes-comments-staging\.[a-z0-9.-]+\.workers\.dev' deploy.log | head -n 1)}"
+          if [ -z "$url" ]; then
+            echo "::error::Could not find the staging URL in the deploy output; set the STAGING_API_BASE_URL repository variable."
+            exit 1
+          fi
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+      - name: Probe the routes (staging)
+        if: steps.creds.outputs.ok == 'true'
+        working-directory: .
+        env:
+          COMMENTS_API_BASE_URL: ${{ steps.deploy.outputs.url }}
+          # A PR run checks out (and so deploys) the PR merged into its base, as CI tests it
+          WHAT: ${{ github.head_ref || github.ref_name }} (head ${{ github.event.pull_request.head.sha || github.sha }})
+        run: |
+          {
+            echo "### Staging route probes"
+            echo
+            echo "Deployed $WHAT to $COMMENTS_API_BASE_URL (shared: the last deploy wins)."
+            echo
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          status=0
+          scripts/probe-comments-api.sh | tee -a "$GITHUB_STEP_SUMMARY" || status=$?
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"

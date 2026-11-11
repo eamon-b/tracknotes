@@ -11,6 +11,8 @@ The site is not among them: Vercel builds `main` on push.
 | `upload-descriptions.yml` | `data/trails/*/descriptions.json` | a dry run of `upload:descriptions` against the live API, then, once approved, the upload | `production-data` |
 | `deploy-contours-site.yml` | `contours/site/**` | `wrangler pages deploy` to the `aus-contour-tiles` Pages project (contour-map-tiles.net), then checks the page answers | `production` |
 
+A fifth, `staging-comments-api.yml`, deploys a same-repo PR that touches `workers/comments-api/**` to the **staging** comments API (its own Worker, D1 and R2; `docs/architecture/workers.md`, "staging") with the staging-only secrets below, never production's.
+
 Each also has *Run workflow* (Actions → the workflow), for a re-deploy or a first run;
 it runs from `main` only.
 A change to a workflow file alone does not trigger it: use *Run workflow* to try one.
@@ -96,6 +98,13 @@ Restrict each one's *Deployment branches and tags* to `main`, so no other branch
 - `CLOUDFLARE_ACCOUNT_ID`, for the R2 endpoint in *R2 cleanup*'s dry run.
 - `R2_READ_ACCESS_KEY_ID` and `R2_READ_SECRET_ACCESS_KEY`: an R2 API token's S3 keys with *Object Read only* on `tracknotes-data`, for that dry run.
 - `AUTOMATION_TOKEN` (optional): a fine-grained personal access token for this repository with *Contents* and *Pull requests* read and write. *Te Araroa data* pushes and opens its PR with it, so the PR runs CI. A PR opened with the workflow's own token runs no workflows, so without it the PR has no checks, and GitHub must be allowed to open it at all (Settings → Actions → General → *Allow GitHub Actions to create and approve pull requests*).
+
+**`staging`** (the staging comments API, for PR branches, so not restricted to `main`; repository secrets of the same names work too), no required reviewers:
+
+- `CLOUDFLARE_STAGING_API_TOKEN`: its own token, never the production one, with *Account → Workers Scripts → Edit* and *Account → D1 → Edit*, limited to the account, no zone resources (staging is on `workers.dev`; add *Account → Account Settings → Read* if `wrangler deploy` asks for it).
+  Cloudflare cannot limit a token to one Worker or database, so this token could still deploy over production's Worker: any collaborator who can push a branch can run a workflow with it, so give it a short expiry.
+- `CLOUDFLARE_ACCOUNT_ID`.
+- Optional repository variables: `STAGING_SITE_BASE` (a preview origin for share links) and `STAGING_API_BASE_URL` (the staging URL, if reading it from the deploy output ever fails).
 
 Give each token an expiry you will notice, and replace it in the environment before then.
 A personal `wrangler login` still works for anything run by hand.

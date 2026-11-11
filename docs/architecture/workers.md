@@ -6,6 +6,61 @@ keep this file in step with the code it describes.
 Both workers deploy from GitHub Actions on a merge to `main` that changes them (`docs/deploys.md`).
 Comments API migrations must be additive (expand, then contract in a later release): the deploy applies them while the previous worker is still serving, and refuses one that drops or renames anything, which is then applied by hand (`docs/deploys.md`, "Migrations are additive").
 
+## Comments API Worker: staging (`workers/comments-api/`, `[env.staging]`)
+
+**What exists.**
+A second copy of the comments API, for testing a branch end to end without touching production: Worker `tracknotes-comments-staging` on its `workers.dev` URL (`https://tracknotes-comments-staging.<account subdomain>.workers.dev`, no custom domain), D1 `tracknotes-comments-staging` (created 2026-11-11 with `--location oc`) and R2 bucket `tracknotes-data-staging` for `PHOTOS`, read publicly through the bucket's `r2.dev` URL (`PHOTOS_PUBLIC_BASE`).
+It is `[env.staging]` in `wrangler.toml`.
+Wrangler environments inherit `routes`, `workers_dev` and `triggers` but no bindings or vars, so the section redeclares every binding and var, and sets `routes = []` (else a staging deploy would claim `api.tracknotes.info`) and `crons = []`.
+The tests read only the top-level (production) config, with their own overrides in `vitest.config.mts`.
+
+**How it differs from production.**
+No cron, so nothing runs `runCommunityMaintenance`: de-attribution retries, stale-review re-runs and POI enrichment do not happen (to test `scheduled`, add a cron to `[env.staging.triggers]` on the branch, deploy, and take it out again).
+`OVERPASS_ENDPOINTS` is empty: staging never sends a route outline to the Overpass operators.
+`AI_GATEWAY_ID` is empty.
+The `AI` binding is kept, but Llama Guard is only called when `ANTHROPIC_API_KEY` is set, and staging has no secrets by default, so nothing is screened or reviewed and it costs nothing;
+set the key (`wrangler secret put ANTHROPIC_API_KEY --env staging`) only to test the reviews, and every new comment with text, waypoint create or edit, and review is then billed as in production.
+`SITE_BASE` (share links) is a never-resolving `.invalid` placeholder unless the workflow is given a preview origin (next paragraph).
+No CSAM scanning: the `r2.dev` URL is on no zone of ours.
+The bucket needs a CORS rule allowing `GET`/`HEAD` from any origin, as the production bucket has: the web page of a community route downloads its trail JSON from `PHOTOS_PUBLIC_BASE` with `fetch` (`fetchCommunityTrail`), which a preview origin can only read with CORS.
+
+**Share links from previews.**
+Vercel Preview builds take `VITE_API_BASE_URL` = the staging URL, so every preview deployment reads and writes staging (CORS is `*`, so any preview origin may call it).
+`shared-plan.html` reads the share from its own build's API, so a staging share opens on *any* preview and on no production page.
+The Worker mints links as `SITE_BASE/shared-plan.html?s=<id>`: set the repository variable `STAGING_SITE_BASE` to a stable preview origin (a branch alias, or a domain assigned to Preview) and the workflow deploys with `--var SITE_BASE:<it>`.
+Without it the link's host is the placeholder, deliberately not `tracknotes.info` (which would answer "not found"): swap in any preview's host.
+"Open in Tracknotes" (`tracknotes://plan/<id>`) opens whichever API the phone's build was given, so it finds a staging share only on a build pointed at staging.
+
+**Deploying.**
+Agents may deploy staging; production deploys only from `main` (`docs/deploys.md`).
+The *Staging comments API* workflow (`.github/workflows/staging-comments-api.yml`) runs on every same-repo PR that touches `workers/comments-api/**` (never a fork's), and from *Run workflow* on any branch: the worker's tests and `tsc`, `migrate:staging`, `deploy:staging`, then `scripts/probe-comments-api.sh` against the staging URL (in the run's summary).
+A PR run deploys the PR merged into its base, as CI tests it.
+It uses only the staging secrets `CLOUDFLARE_STAGING_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` (GitHub environment `staging`, or repository secrets), never production's `CLOUDFLARE_API_TOKEN`, and without them it runs the tests and ends with a notice.
+The staging URL is read from the deploy's output, or from the repository variable `STAGING_API_BASE_URL` when set.
+By hand, from `workers/comments-api/` with the staging token in `CLOUDFLARE_API_TOKEN`: `npm run migrate:staging && npm run deploy:staging`, `npm run tail:staging` for its logs, and `scripts/probe-comments-api.sh <staging URL>` (or `COMMENTS_API_BASE_URL=<staging URL>`).
+A change only to `src/lib/` (which the worker bundles) does not trigger it: use *Run workflow*.
+
+**Shared, last deploy wins.**
+There is one staging Worker and one staging database.
+Runs never overlap (`concurrency: staging-comments-api`), but the latest deploy replaces the code of every earlier one, so check the run's summary for which branch is live before testing, and re-run your branch's workflow if another has deployed since.
+Every PR's migrations stay applied to the one D1, including a migration later renamed or dropped before it merged; reset staging when it drifts from `main`: delete and recreate the database (`wrangler d1 delete tracknotes-comments-staging`, then `wrangler d1 create tracknotes-comments-staging --location oc`, put the new id in `[env.staging]`, `npm run migrate:staging`), and empty the bucket if its objects matter.
+
+**Data policy: test data only.**
+Post nothing real to staging, and anyone may wipe it at any time.
+Accounts there are separate from production's (another database): an admin is made the same way, by setting `users.is_admin` on the staging D1.
+Real users cannot reach it: shipped app builds and `tracknotes.info` call production only, and Vercel previews are behind Vercel's SSO deployment protection, so only team members open a preview that writes to staging.
+So `docs/privacy-policy.md` and `docs/data-residency.md` need no line for it (both describe where real users' data is stored); if previews were ever made public, or a build shipped pointed at staging, staging would hold real users' posts and would need both, with an OC placement check like production's.
+
+**Pointing a client at staging.**
+- Phone (dev build, Metro): `EXPO_PUBLIC_API_BASE_URL=<staging URL>` in `mobile/.env.local`, then restart Metro (it inlines `EXPO_PUBLIC_*` at bundle time).
+  An EAS build takes its value from `eas.json` instead (`docs/mobile-test-build.md`).
+  The phone keeps one identity: its production token gets a 401 from staging and the app registers a new staging account, forgetting the production one, and switching back registers yet another production account (the old one's comments stop being "mine").
+  Use an emulator or an install whose production identity does not matter.
+- Web, local: `VITE_API_BASE_URL=<staging URL> npm run dev`.
+- Web, Vercel Preview: the project's `VITE_API_BASE_URL` for the **Preview** environment is the staging URL, Production keeps `https://api.tracknotes.info`;
+  a change takes effect on the next preview build (Vite inlines it).
+  It is the web's only API setting: nothing else in `src/web/` names the production API (the `tracknotes.info` strings in `src/lib/contribution-licence.ts`, `plan-export` UIDs and the GPX namespace are the site's own identity, not API calls), and browser sessions are per origin, so a preview never sees a production session.
+
 ## Comments API Worker: community routes (`workers/comments-api/`)
 
 `src/community.ts` / `src/community-review.ts` (migrations `0005`, `0006`; `0009` and `0011` for POIs): D1 `community_routes` + `community_route_reports`.

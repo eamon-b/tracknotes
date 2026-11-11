@@ -4,7 +4,10 @@
 # that never happened, or one from the wrong branch), so each route is checked
 # for the status it gives once deployed.
 #
-# Usage: scripts/probe-comments-api.sh [base-url]   (default https://api.tracknotes.info)
+# Usage: scripts/probe-comments-api.sh [base-url]
+#   The base URL is the argument, else $COMMENTS_API_BASE_URL, else production
+#   (https://api.tracknotes.info). Staging:
+#   scripts/probe-comments-api.sh https://tracknotes-comments-staging.<subdomain>.workers.dev
 #
 # Run by the Deploy comments API workflow after every deploy, and by hand as
 # step 1 of "Full release" in docs/mobile-test-build.md. When a migration adds
@@ -15,8 +18,9 @@
 
 set -uo pipefail
 
-BASE="${1:-https://api.tracknotes.info}"
+BASE="${1:-${COMMENTS_API_BASE_URL:-https://api.tracknotes.info}}"
 BASE="${BASE%/}"
+echo "Probing $BASE"
 
 # "<expected status> <path> <why>"
 PROBES=(
