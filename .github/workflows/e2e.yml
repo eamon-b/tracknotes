@@ -1,0 +1,95 @@
+name: Web smoke tests
+
+# The Playwright smoke suite (e2e/, `npm run test:e2e`) in a real Chromium.
+# Kept out of test.yml so the unit-test jobs stay quick and this can be
+# re-run on its own.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # Vercel reports each deployment to GitHub; a successful Preview runs the
+  # suite against the deployed site.
+  deployment_status:
+
+concurrency:
+  group: e2e-${{ github.event_name }}-${{ github.event.deployment.id || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # The local build: trail data and the pages built from this commit, served by
+  # `vite preview` (Playwright's webServer).
+  local:
+    if: github.event_name != 'deployment_status'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run sync:te-araroa
+      - run: npm run build:trails
+      - run: npm run build:app
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report-local
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+
+  # A Vercel Preview: same suite, BASE_URL set, nothing built here. Previews are
+  # behind Vercel Authentication, so it needs the project's Protection Bypass for
+  # Automation secret as the repo secret VERCEL_AUTOMATION_BYPASS_SECRET.
+  preview:
+    if: >-
+      github.event_name == 'deployment_status' &&
+      github.event.deployment_status.state == 'success' &&
+      github.event.deployment.environment == 'Preview' &&
+      github.event.deployment_status.creator.login == 'vercel[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BASE_URL: ${{ github.event.deployment_status.target_url }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+    steps:
+      - name: Check for the bypass secret
+        id: secret
+        run: |
+          if [ -z "$VERCEL_AUTOMATION_BYPASS_SECRET" ]; then
+            echo "::notice::Skipping the Preview smoke tests: the VERCEL_AUTOMATION_BYPASS_SECRET repo secret is not set."
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v7
+        if: steps.secret.outputs.present == 'true'
+        with:
+          # The commit Vercel deployed, not the default branch the event runs on.
+          ref: ${{ github.event.deployment.sha }}
+      - uses: actions/setup-node@v7
+        if: steps.secret.outputs.present == 'true'
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+        if: steps.secret.outputs.present == 'true'
+      - run: npx playwright install --with-deps chromium
+        if: steps.secret.outputs.present == 'true'
+      - name: Smoke-test ${{ env.BASE_URL }}
+        if: steps.secret.outputs.present == 'true'
+        run: npm run test:e2e
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report-preview
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14

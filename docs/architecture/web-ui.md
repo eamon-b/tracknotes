@@ -137,3 +137,15 @@ The app's own hosts are on the same domain: the comments API at `api.tracknotes.
 - `imported-trails-db.ts` - IndexedDB store (`tracknotes-imports`) for imported `ProcessedTrail`s;
   `index.html` lists them under "My trails"
 - `web-utils.ts` - `escapeHtml`, `getQueryParam` — every user-supplied string (trail names) must go through `escapeHtml`
+
+## Testing
+
+The page modules are tested in jsdom by the Vitest `pages` project (`src/web/**/*.test.ts`): they boot the real HTML and own the detail.
+A small Playwright smoke suite (`e2e/`, `npm run test:e2e`, Chromium only) covers what jsdom cannot: the production bundle, real Leaflet and canvas, IndexedDB and the links between pages.
+It has one test per page family: the landing page lists every trail in `index.json`, a trail page draws its route polyline and elevation profile, the plan page turns a suggested plan into day cards, and a fixture GPX imported on `upload.html` opens on `my-trail.html`.
+Keep it that size, with role/text selectors and no fixed waits; anything finer belongs in the jsdom suites.
+By default it tests the `npm run build:app` output (`dist-app/`, a production build without the `public/` tile packs; it needs `npm run sync:te-araroa && npm run build:trails` first), served by `vite preview` on port 4319.
+`BASE_URL=<url>` tests a deployed site instead, and `VERCEL_AUTOMATION_BYPASS_SECRET` adds Vercel's protection-bypass headers to requests to that site (Previews are behind Vercel Authentication).
+`e2e/fixtures.ts` makes the network deterministic: Leaflet's unpkg files come from `node_modules/leaflet` (pinned to the 1.9.4 the pages' SRI hashes name), map tiles get a blank PNG, and every other host is refused, except read-only calls to a deployed build's comments API.
+A test fails on any uncaught page error or console error.
+CI runs it in `.github/workflows/e2e.yml`: against a local build on every PR and push to `main`, and against each successful Vercel Preview (`deployment_status`) when the `VERCEL_AUTOMATION_BYPASS_SECRET` repo secret is set (traces are off then, since they would record the header).
