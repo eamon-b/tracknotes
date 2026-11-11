@@ -1,6 +1,6 @@
 import type { PlannedRoute } from '@lib/plan-alternates';
 import type { TrailJson } from '../../../services/trail-assets';
-import { routeKmOfFix } from '../use-plan-route';
+import { guideKmOnRoute, routeKmOfFix } from '../use-plan-route';
 
 /** Degrees of longitude per km on the equator. */
 const DEG_PER_KM = 1 / 111.19492664455873;
@@ -59,5 +59,33 @@ describe('routeKmOfFix', () => {
         routeTrail,
       ),
     ).toBeNull();
+  });
+});
+
+describe('guideKmOnRoute', () => {
+  it('keeps the guide km when the plan takes no alternate, on trail or off', () => {
+    const fix = { lat: 0, lon: 20 * DEG_PER_KM };
+    expect(
+      guideKmOnRoute(
+        { currentKm: 12, offTrailMeters: 300, position: fix },
+        mainOnly,
+        routeTrail,
+        'NOBO',
+      ),
+    ).toBe(12);
+  });
+
+  it('keeps the planned-route km of a fix off the route but nearer it than the main', () => {
+    // 200 m north of route km 20: past the off-trail threshold, yet 5 km nearer
+    // the planned route than the main route the guide snapped to.
+    const fix = { lat: 0.2 * DEG_PER_KM, lon: 20 * DEG_PER_KM };
+    expect(
+      guideKmOnRoute(
+        { currentKm: 40, offTrailMeters: 5000, position: fix },
+        withAlternate,
+        routeTrail,
+        'NOBO',
+      ),
+    ).toBeCloseTo(20);
   });
 });

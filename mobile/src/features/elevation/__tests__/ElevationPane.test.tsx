@@ -107,6 +107,7 @@ let mockBaseTrail: TrailJson | undefined;
 let mockPosition: {
   status: string;
   currentKm: number | null;
+  offTrailMeters?: number | null;
   position: { lat: number; lon: number } | null;
 } = { status: 'no-permission', currentKm: null, position: null };
 let mockActivePoints: { kind: 'snap'; lat: number; lon: number; km: number }[] | undefined;
@@ -330,6 +331,8 @@ function ridgePlan(direction: 'NOBO' | 'SOBO', alternates?: string[]): PlanDocum
 const atRidgeTop = {
   status: 'off-trail',
   currentKm: 35,
+  // The guide's snap is to the main route, the ridge's height away.
+  offTrailMeters: APEX_NORTH_KM * 1000,
   position: { lat: APEX_NORTH_KM * DEG_PER_KM, lon: 35 * DEG_PER_KM },
 };
 
@@ -426,9 +429,43 @@ describe('ElevationPane on a plan taking an alternate', () => {
 
   it('draws no position on the main stretch the alternate bypasses', () => {
     mockPlan = ridgePlan('NOBO', ['Ridge']);
-    mockPosition = { status: 'fix', currentKm: 35, position: { lat: 0, lon: 35 * DEG_PER_KM } };
+    mockPosition = {
+      status: 'fix',
+      currentKm: 35,
+      offTrailMeters: 0,
+      position: { lat: 0, lon: 35 * DEG_PER_KM },
+    };
     const tree = render();
     expect(lastProps().currentKm).toBeNull();
+    act(() => tree.unmount());
+  });
+
+  it('draws no position off the bypassed stretch when it is nearer than the alternate', () => {
+    mockPlan = ridgePlan('NOBO', ['Ridge']);
+    // 200 m south of the bypassed valley: off both lines, but nearer the main.
+    mockPosition = {
+      status: 'off-trail',
+      currentKm: 35,
+      offTrailMeters: 200,
+      position: { lat: -0.2 * DEG_PER_KM, lon: 35 * DEG_PER_KM },
+    };
+    const tree = render();
+    expect(lastProps().currentKm).toBeNull();
+    act(() => tree.unmount());
+  });
+
+  it('keeps a hiker who walks off the alternate at its km, as off the main route', () => {
+    mockPlan = ridgePlan('NOBO', ['Ridge']);
+    // 200 m beyond the ridge top, to a hut or a campsite off the line: further
+    // than the off-trail threshold from the alternate, much further from the main.
+    mockPosition = {
+      status: 'off-trail',
+      currentKm: 35,
+      offTrailMeters: (APEX_NORTH_KM + 0.2) * 1000,
+      position: { lat: (APEX_NORTH_KM + 0.2) * DEG_PER_KM, lon: 35 * DEG_PER_KM },
+    };
+    const tree = render();
+    expect(lastProps().currentKm).toBeCloseTo(40, 0);
     act(() => tree.unmount());
   });
 });

@@ -92,10 +92,11 @@ export function ElevationPane() {
   // alternate, then the main route with it spliced in, in route km.
   const plan = usePlansStore(selectPlan(trailId));
   const { route, trail } = usePlanRoute(plan);
-  const { status, currentKm: guideKm, position } = useGuidePositionContext();
+  const { currentKm: guideKm, offTrailMeters, position } = useGuidePositionContext();
   const currentKm = useMemo(
-    () => guideKmOnRoute({ status, currentKm: guideKm, position }, route, trail, planDirection),
-    [status, guideKm, position, route, trail, planDirection],
+    () =>
+      guideKmOnRoute({ currentKm: guideKm, offTrailMeters, position }, route, trail, planDirection),
+    [guideKm, offTrailMeters, position, route, trail, planDirection],
   );
   const units = useSettingsStore((s) => s.units);
   const favoriteIds = useFavoritesStore((s) => s.byTrail[trailId]);

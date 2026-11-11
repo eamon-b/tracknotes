@@ -27,8 +27,16 @@ jest.mock('expo-router', () => ({
   useRouter: () => ({ push: mockPush }),
 }));
 
+/** The trail the guide context serves (the pane's own, set by `render`). */
+let mockGuideTrail: unknown;
+
 jest.mock('../GuideContext', () => ({
-  useGuide: () => ({ trailId: 'heysen', direction: 'default' }),
+  useGuide: () => ({
+    trailId: 'heysen',
+    direction: 'default',
+    baseTrail: mockGuideTrail,
+    trail: mockGuideTrail,
+  }),
 }));
 
 jest.mock('../GuidePositionContext', () => ({
@@ -133,6 +141,7 @@ function press(node: TestInstance): void {
 function render(t: TrailJson = trail): ReactTestRenderer {
   let tree!: ReactTestRenderer;
   act(() => {
+    mockGuideTrail = t;
     tree = TestRenderer.create(<WaypointListPane trail={t} />);
   });
   // FlatList schedules its cell pass on a timer; flush it here so the rows are

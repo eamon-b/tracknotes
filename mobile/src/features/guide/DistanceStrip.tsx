@@ -78,12 +78,12 @@ export function DistanceStrip() {
   const routeKm = useMemo(
     () =>
       guideKmOnRoute(
-        { status, currentKm, position },
+        { currentKm, offTrailMeters, position },
         route,
         routeTrail,
         planDirectionOf(direction),
       ),
-    [status, currentKm, position, route, routeTrail, direction],
+    [currentKm, offTrailMeters, position, route, routeTrail, direction],
   );
   const shareCheckIn = useCheckInShare();
 
