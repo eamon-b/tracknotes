@@ -492,12 +492,15 @@ detail screen's "Stop here" edits in route km (no stop is offered on a bypassed 
 The phone's map draws the route as planned (`features/plan/plan-overlay.ts`): a taken alternate
 is drawn as the trail, solid, with its places as markers and their stop rings, and the main route
 it bypasses is dashed (the web plan page's base line and dashed main route); the other alternates
-stay dashed. The elevation profile stays the main route's: a stop on a taken alternate is ticked
-at the same fraction of the main stretch the alternate replaces, so the day boundary falls between
-the branch and the rejoin, and a stop on a bypassed stretch gets no tick.
+stay dashed. The elevation profile plots the route as planned, as the web plan page does
+(`use-plan-route`, over `@lib/plan-alternates` `plannedRouteTrail`): it climbs the taken
+alternate, shows its places and not the bypassed ones, ticks each stop at its route km
+(`stopRouteKm`), and draws the GPS position placed on that route; the map's and list's focus
+windows (main-route km) are carried across (#308). The hike strip's "Next resupply" is measured
+along the same route, so a chosen town on a taken alternate is the next stop, and the map rings
+it as planned (#308).
 
-Not yet: the phone's elevation profile along the route as planned (the web's plots it); nested
-alternates.
+Not yet: nested alternates.
 
 ## Out of scope (recorded so they are not lost)
 

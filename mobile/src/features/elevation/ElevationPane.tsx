@@ -4,7 +4,15 @@
  * Owns the visible km window and elevation window (the profile is
  * controlled), surfaces the scrub readout in a fixed chip, offers buttons to
  * stretch or flatten the elevation axis, and shows a reset-zoom affordance
- * whenever the user has zoomed either axis. Fed entirely from `useGuide()`.
+ * whenever the user has zoomed either axis. Fed from `useGuide()` and the plan.
+ *
+ * It plots the route *as planned* (`use-plan-route`, as the web plan page
+ * plots it): the guide trail itself, unless the plan takes an alternate — then
+ * the main route with that alternate spliced in, every km a route km, so the
+ * profile climbs what the hiker will climb, the alternate's places are its
+ * markers, and the stretch it bypasses is not drawn. The position line is the
+ * fix placed on that route (`guideKmOnRoute`), and the map's and list's focus
+ * windows, which are main-route km, are carried across (`plan-overlay`).
  *
  * The elevation axis is the hiker's, not fitted to the stretch on screen: it
  * opens on 0 m to just above the trail's high point and keeps that while the
@@ -47,15 +55,16 @@ import { isSameFocus } from '../guide/guide-focus';
 import { orderedWaypoints } from '../guide/guide-trail';
 import { useVisiblePois } from '../guide/use-visible-pois';
 import { planDirectionOf } from '../plan/plan-stops';
-import { plannedStopKms } from '../plan/plan-overlay';
-import { plannableTrail } from '../plan/use-plan-route';
-import { plannedRouteFor } from '@lib/plan-alternates';
-import { useRoutesStore } from '../routes/routes-store';
 import {
-  routeHighlightRanges,
-  routePointsToActive,
-  type RouteTrackPoint,
-} from '../routes/route-geometry';
+  mainRangesToRoute,
+  mainWindowToRoute,
+  plannedStopKms,
+  routeWindowToMain,
+} from '../plan/plan-overlay';
+import { guideKmOnRoute, usePlanRoute } from '../plan/use-plan-route';
+import { toActiveKm } from '@lib/plan-direction';
+import { useRoutesStore } from '../routes/routes-store';
+import { routeHighlightRanges, type RouteTrackPoint } from '../routes/route-geometry';
 import { ElevationProfile, type ProfileReadout, type ProfileWaypoint } from './ElevationProfile';
 import {
   clampWindow,
@@ -77,8 +86,17 @@ const ELE_SCALE_STEP = 1.5;
 
 export function ElevationPane() {
   const { colors } = useTheme();
-  const { trail, baseTrail, trailId, direction } = useGuide();
-  const { currentKm } = useGuidePositionContext();
+  const { baseTrail, trailId, direction } = useGuide();
+  const planDirection = planDirectionOf(direction);
+  // The route as planned: the guide trail itself unless the plan takes an
+  // alternate, then the main route with it spliced in, in route km.
+  const plan = usePlansStore(selectPlan(trailId));
+  const { route, trail } = usePlanRoute(plan);
+  const { status, currentKm: guideKm, position } = useGuidePositionContext();
+  const currentKm = useMemo(
+    () => guideKmOnRoute({ status, currentKm: guideKm, position }, route, trail, planDirection),
+    [status, guideKm, position, route, trail, planDirection],
+  );
   const units = useSettingsStore((s) => s.units);
   const favoriteIds = useFavoritesStore((s) => s.byTrail[trailId]);
   const favoriteSet = useMemo(() => new Set(favoriteIds ?? []), [favoriteIds]);
@@ -105,29 +123,32 @@ export function ElevationPane() {
   // not per frame — the sampling is a binary search per POI.
   const poiMarkers = useMemo(() => poiProfileMarkers(pois, points), [pois, points]);
 
-  // The plan's day boundaries as ticks. Stops are stored NOBO-absolute and this
-  // trail is direction-applied, so the conversion goes through the same
-  // `plan-overlay` module the map's stop rings use. A stop on an alternate the
-  // plan takes is ticked along the main stretch that alternate replaces.
-  const plan = usePlansStore(selectPlan(trailId));
-  const plannedRoute = plannedRouteFor(plannableTrail(baseTrail), plan);
+  // The plan's day boundaries as ticks. Stops are stored NOBO-absolute (main
+  // km, or an alternate's own) and this trail is the route as planned,
+  // direction-applied, so the conversion goes through the same `plan-overlay`
+  // module the map's stop rings use: a stop on a taken alternate is ticked at
+  // its true place along it.
   const stopKms = useMemo(
-    () => plannedStopKms(plan, planDirectionOf(direction), totalKm, plannedRoute),
-    [plan, direction, totalKm, plannedRoute],
+    () => plannedStopKms(plan, planDirection, totalKm, route),
+    [plan, planDirection, totalKm, route],
   );
 
   // Active custom route → shade its on-trail spans on the profile. Saved route
-  // km are NOBO-absolute (route-geometry), the profile's are direction-applied.
+  // km are NOBO-absolute main-route km (route-geometry), so the spans are taken
+  // on the main route as stored, carried onto the route as planned (dropping
+  // any part a taken alternate bypasses), then direction-applied.
   const activePoints = useRoutesStore((s) => s.activePointsByTrail[trailId]);
+  const basePoints = baseTrail.track.displayPoints as RouteTrackPoint[];
   const highlightRanges = useMemo(
     () =>
       activePoints && activePoints.length > 0
-        ? routeHighlightRanges(
-            routePointsToActive(activePoints, planDirectionOf(direction), totalKm),
-            points as RouteTrackPoint[],
-          )
+        ? mainRangesToRoute(routeHighlightRanges(activePoints, basePoints), route).map((range) => {
+            const a = toActiveKm(range.startKm, planDirection, totalKm);
+            const b = toActiveKm(range.endKm, planDirection, totalKm);
+            return { startKm: Math.min(a, b), endKm: Math.max(a, b) };
+          })
         : undefined,
-    [activePoints, points, direction, totalKm],
+    [activePoints, basePoints, route, planDirection, totalKm],
   );
 
   const [window, setWindow] = useState<KmWindow>({ startKm: 0, endKm: totalKm });
@@ -217,10 +238,13 @@ export function ElevationPane() {
   // effectively there already (which would fight a zoom the user just made).
   // `useGuidePaneFocus` re-reads these handlers on every render, so they can
   // close over `window` directly — no ref needed to keep them current.
+  // The other panes speak main-route km; this one plots the route as planned,
+  // so a window is carried across (the identity when no alternate is taken).
   useGuidePaneFocus('elevation', {
-    capture: () => window,
+    capture: () => routeWindowToMain(window, route, planDirection),
     apply: (focus) => {
-      const next = clampWindow(focus.startKm, focus.endKm, totalKm);
+      const onRoute = mainWindowToRoute(focus, route, planDirection);
+      const next = clampWindow(onRoute.startKm, onRoute.endKm, totalKm);
       if (isSameFocus(window, next)) return;
       setWindow(next);
     },

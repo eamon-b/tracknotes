@@ -10,11 +10,14 @@ import type { PlanDocument } from '@lib/plan-types';
 import type { PlannedRoute } from '@lib/plan-alternates';
 import {
   alternatePlaceNoboKm,
+  mainRangesToRoute,
+  mainWindowToRoute,
   plannedAlternateWaypoints,
   plannedRouteLines,
   plannedStopFeatureIds,
   plannedStopKms,
   profileKmOfStop,
+  routeWindowToMain,
 } from '../plan-overlay';
 
 const TOTAL = 100;
@@ -134,10 +137,18 @@ describe('alternates the plan takes', () => {
     mainTotalDistance: TOTAL,
   };
 
-  it('ticks a stop on a taken alternate along the main stretch it replaces', () => {
-    // 5 of 20 km along → a quarter of the way through main km 30-40.
-    expect(plannedStopKms(withAlternate, 'NOBO', TOTAL, route)).toEqual([20, 32.5]);
-    expect(plannedStopKms(withAlternate, 'SOBO', TOTAL, route)).toEqual([67.5, 80]);
+  it('ticks a stop on a taken alternate at its place along the route as planned', () => {
+    // 5 km along the alternate, which branches at route km 30; the route is
+    // 110 km, which is what the SOBO mirror is over.
+    expect(plannedStopKms(withAlternate, 'NOBO', route.totalDistance, route)).toEqual([20, 35]);
+    expect(plannedStopKms(withAlternate, 'SOBO', route.totalDistance, route)).toEqual([75, 90]);
+    // A main-route stop past the alternate moves on by the 10 km it adds.
+    const after = plan({
+      alternates: ['Alt: Ridge'],
+      stops: [{ waypointId: 'w_2', km: 50, name: 'Spring', nights: 1 }],
+    });
+    expect(plannedStopKms(after, 'NOBO', route.totalDistance, route)).toEqual([60]);
+    expect(plannedStopKms(after, 'SOBO', route.totalDistance, route)).toEqual([50]);
   });
 
   it('drops a main-route stop the taken alternate bypasses', () => {
@@ -145,7 +156,7 @@ describe('alternates the plan takes', () => {
       alternates: ['Alt: Ridge'],
       stops: [{ waypointId: 'w_x', km: 35, name: 'Valley Hut', nights: 1 }],
     });
-    expect(plannedStopKms(bypassed, 'NOBO', TOTAL, route)).toEqual([]);
+    expect(plannedStopKms(bypassed, 'NOBO', route.totalDistance, route)).toEqual([]);
   });
 
   it('ticks no stop past an end of a shortened alternate, nor past the end of the trail', () => {
@@ -158,8 +169,72 @@ describe('alternates the plan takes', () => {
       ],
     });
     expect(profileKmOfStop(shortened.stops[0], route)).toBeNull();
-    expect(plannedStopKms(shortened, 'NOBO', TOTAL, route)).toEqual([]);
+    expect(plannedStopKms(shortened, 'NOBO', route.totalDistance, route)).toEqual([]);
     expect(plannedStopKms(shortened, 'NOBO', TOTAL)).toEqual([]);
+  });
+
+  it('carries a main-route focus window onto the route as planned and back', () => {
+    // Before the branch: unchanged.
+    expect(mainWindowToRoute({ startKm: 5, endKm: 25 }, route, 'NOBO')).toEqual({
+      startKm: 5,
+      endKm: 25,
+    });
+    // Across the alternate: the far end moves on by the 10 km it adds.
+    expect(mainWindowToRoute({ startKm: 20, endKm: 50 }, route, 'NOBO')).toEqual({
+      startKm: 20,
+      endKm: 60,
+    });
+    // Into the bypassed stretch: the same fraction of the way along the
+    // alternate (main 35 is half way through 30-40, route 40 half way along).
+    expect(mainWindowToRoute({ startKm: 35, endKm: 60 }, route, 'NOBO')).toEqual({
+      startKm: 40,
+      endKm: 70,
+    });
+    expect(routeWindowToMain({ startKm: 40, endKm: 70 }, route, 'NOBO')).toEqual({
+      startKm: 35,
+      endKm: 60,
+    });
+    // SOBO: main active 40-65 is NOBO 35-60 → route NOBO 40-70 → active 40-70
+    // over the 110 km route.
+    expect(mainWindowToRoute({ startKm: 40, endKm: 65 }, route, 'SOBO')).toEqual({
+      startKm: 40,
+      endKm: 70,
+    });
+    expect(routeWindowToMain({ startKm: 40, endKm: 70 }, route, 'SOBO')).toEqual({
+      startKm: 40,
+      endKm: 65,
+    });
+  });
+
+  it('is the identity for a plan taking no alternate', () => {
+    const mainOnly: PlannedRoute = {
+      alternates: [],
+      segments: [{ kind: 'main', fromKm: 0, toKm: TOTAL, routeFromKm: 0 }],
+      totalDistance: TOTAL,
+      mainTotalDistance: TOTAL,
+    };
+    const window = { startKm: 12, endKm: 34 };
+    expect(mainWindowToRoute(window, mainOnly, 'SOBO')).toBe(window);
+    expect(routeWindowToMain(window, mainOnly, 'SOBO')).toBe(window);
+    expect(mainRangesToRoute([window], mainOnly)).toEqual([window]);
+  });
+
+  it('drops the part of a saved route the taken alternate bypasses', () => {
+    expect(
+      mainRangesToRoute(
+        [
+          { startKm: 10, endKm: 20 },
+          { startKm: 25, endKm: 50 },
+          { startKm: 32, endKm: 38 },
+        ],
+        route,
+      ),
+    ).toEqual([
+      { startKm: 10, endKm: 20 },
+      // Split either side of the alternate: main 25-30, then 40-50 at route 50-60.
+      { startKm: 25, endKm: 30 },
+      { startKm: 50, endKm: 60 },
+    ]);
   });
 
   it('rings a place on the alternate, never a main place at the same km', () => {
