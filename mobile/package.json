@@ -11,7 +11,16 @@
     "typecheck": "tsc --noEmit",
     "build:map-icons": "node scripts/build-map-icons.mjs",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "device:emulator": "bash scripts/device/emulator.sh",
+    "device:build": "bash scripts/device/build.sh",
+    "device:wait": "bash scripts/device/wait.sh",
+    "device:install": "bash scripts/device/install.sh",
+    "device:restore": "bash scripts/device/restore.sh",
+    "device:check-sdk": "bash scripts/device/check-sdk.sh",
+    "device:metro": "bash scripts/device/metro.sh",
+    "device:shot": "bash scripts/device/shot.sh",
+    "device:stop": "bash scripts/device/stop.sh"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
