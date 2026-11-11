@@ -33,11 +33,13 @@ jobs:
       run:
         shell: bash
     steps:
+      # No credentials stay in .git/config: npm ci, the te-araroa-data update and
+      # the builds run code from packages, and the token is only for the push
       - uses: actions/checkout@v7
         with:
-          # A PR pushed with the default token runs no workflows, so no CI;
-          # a token of the repo owner's does (docs/deploys.md)
-          token: ${{ secrets.AUTOMATION_TOKEN || github.token }}
+          persist-credentials: false
+          # The bot branch is compared against main's history below
+          fetch-depth: 0
       - uses: actions/setup-node@v7
         with:
           node-version: 22
@@ -52,9 +54,26 @@ jobs:
           if [ "$pinned" = "$latest" ]; then
             echo "te-araroa-data is current ($pinned)." | tee -a "$GITHUB_STEP_SUMMARY"
             echo "moved=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "moved=true" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+          # A bump branch from an earlier run (public repo: no credentials needed)
+          if git fetch -q origin "refs/heads/$BRANCH:refs/remotes/origin/$BRANCH" 2>/dev/null; then
+            branch_pin=$(git show "origin/$BRANCH:package-lock.json" | node -p "JSON.parse(require('fs').readFileSync(0)).packages['node_modules/te-araroa-data'].resolved.split('#')[1]")
+            if [ "$branch_pin" = "$latest" ]; then
+              echo "$BRANCH already takes $latest: its PR is waiting for review." | tee -a "$GITHUB_STEP_SUMMARY"
+              echo "moved=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            # Someone added to the branch (a data/waypoint-ids.json migration, say):
+            # never overwrite that with a fresh rebuild
+            others=$(git log --format='%h %ae' "origin/main..origin/$BRANCH" | grep -v ' 41898282+github-actions\[bot\]@users.noreply.github.com$' || true)
+            if [ -n "$others" ]; then
+              echo "$others"
+              echo "::error::$BRANCH has commits not made by this workflow, so it is not rebuilt for $latest. Merge or close its PR (or delete the branch) and re-run."
+              exit 1
+            fi
+          fi
+          echo "moved=true" >> "$GITHUB_OUTPUT"
       - if: steps.upstream.outputs.moved == 'true'
         run: npm ci
       - name: Bump and rebuild
@@ -84,15 +103,17 @@ jobs:
 
           Upstream: https://github.com/eamon-b/te-araroa-data/compare/$PINNED...$LATEST
           Rebuilt with sync:te-araroa, build:trails and build:mobile-trails."
-          git push --force origin "$BRANCH"
+          # The token is used here only, never stored in .git/config
+          git push --force "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:refs/heads/$BRANCH"
           body=$(printf '%s\n' \
             "Weekly *Te Araroa data* run: te-araroa-data moved upstream, so this bumps it and commits the rebuilt trail data." \
             "" \
             "- Upstream changes: https://github.com/eamon-b/te-araroa-data/compare/$PINNED...$LATEST" \
             "- Check the rebuilt \`mobile/assets/trails/te_araroa.json\` and the build's id-minting warnings in the run log: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            "- If upstream changed a waypoint's \`type\`, it is re-keyed: push the \`data/waypoint-ids.json\` migration onto this branch (CLAUDE.md, \"Waypoint ids are stable\"). The workflow never overwrites a commit someone else added; it stops and fails until this PR is merged or closed." \
             "- After the merge, *Publish trail data* asks for approval to publish it to installed apps." \
             "" \
-            "A later run force-pushes this branch with a newer upstream build.")
+            "Until then, a later run replaces this branch's commit only when upstream has moved again and nobody else has committed to it.")
           if [ -n "$(gh pr list --head "$BRANCH" --state open --json number --jq '.[].number')" ]; then
             gh pr edit "$BRANCH" --body "$body"
           else
