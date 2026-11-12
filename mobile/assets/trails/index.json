@@ -10,10 +10,10 @@
       "NSW",
       "ACT"
     ],
-    "dataVersion": "2026-11-05",
-    "updatedAt": "2026-11-05T21:14:21.656Z",
-    "md5": "39725b715325310169bafae619550fac",
-    "bytes": 1159697
+    "dataVersion": "2026-11-12",
+    "updatedAt": "2026-11-12T20:21:28.614Z",
+    "md5": "d0f5e3cea4d2b01641e2b844aaf57ff3",
+    "bytes": 1166789
   },
   {
     "id": "hume-and-hovell",
@@ -285,9 +285,9 @@
     "lengthKm": 215.4,
     "country": "NP",
     "states": [],
-    "dataVersion": "2026-10-31",
-    "updatedAt": "2026-10-31T21:36:01.467Z",
-    "md5": "fae2fc98c780df37122e784dcb9c9010",
-    "bytes": 886713
+    "dataVersion": "2026-11-12",
+    "updatedAt": "2026-11-12T20:21:28.614Z",
+    "md5": "7f2ccf2e84ba24d19fa4233e28a3367c",
+    "bytes": 974942
   }
 ]

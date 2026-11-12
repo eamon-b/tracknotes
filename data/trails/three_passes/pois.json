@@ -1,0 +1,6590 @@
+{
+  "source": "OpenStreetMap",
+  "attribution": "© OpenStreetMap contributors (ODbL)",
+  "fetchedAt": "2026-11-11T21:14:59.970Z",
+  "searchRadiusKm": 2,
+  "endpoint": "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+  "rejected": [],
+  "pois": [
+    {
+      "id": 6497127844,
+      "type": "node",
+      "category": "emergency",
+      "lat": 27.6365025,
+      "lon": 86.2288548,
+      "name": null,
+      "tags": {
+        "amenity": "police",
+        "contact:phone": "049-400100"
+      },
+      "distanceAlongTrail": 0.04738344621137368,
+      "distanceFromTrail": 0.18453405057318206
+    },
+    {
+      "id": 9796498295,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.6368152,
+      "lon": 86.2299142,
+      "name": "होटल हेमन्त",
+      "tags": {
+        "amenity": "restaurant",
+        "name": "होटल हेमन्त"
+      },
+      "distanceAlongTrail": 0.04738344621137368,
+      "distanceFromTrail": 0.07519406433791073
+    },
+    {
+      "id": 6509193388,
+      "type": "node",
+      "category": "emergency",
+      "lat": 27.6366399,
+      "lon": 86.2295122,
+      "name": null,
+      "tags": {
+        "amenity": "pharmacy",
+        "name:en": "Panchamukhi"
+      },
+      "distanceAlongTrail": 0.04754051165925585,
+      "distanceFromTrail": 0.11801757464380601
+    },
+    {
+      "id": 9796498294,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.6363788,
+      "lon": 86.2293425,
+      "name": "चेर्दुङ होटल एण्ड लज",
+      "tags": {
+        "amenity": "restaurant",
+        "name": "चेर्दुङ होटल एण्ड लज"
+      },
+      "distanceAlongTrail": 0.07125658416023069,
+      "distanceFromTrail": 0.1416802748342824
+    },
+    {
+      "id": 6494203386,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.6362312,
+      "lon": 86.2301601,
+      "name": null,
+      "tags": {
+        "amenity": "restaurant",
+        "internet_access": "wlan",
+        "name:en": "4 Season Restaurant",
+        "opening_hours": "7:00-22:00",
+        "operator": "Dipendra",
+        "phone": "049400381"
+      },
+      "distanceAlongTrail": 0.09343086181453397,
+      "distanceFromTrail": 0.06966467156953496
+    },
+    {
+      "id": 6636157385,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.6228654,
+      "lon": 86.2198267,
+      "name": null,
+      "tags": {
+        "amenity": "cafe",
+        "name:en": "Tea Shop"
+      },
+      "distanceAlongTrail": 0.09343086181453397,
+      "distanceFromTrail": 1.862953486913294
+    },
+    {
+      "id": 9796498286,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.6251296,
+      "lon": 86.2182948,
+      "name": "होटल जिरी टप भ्यू",
+      "tags": {
+        "amenity": "restaurant",
+        "name": "होटल जिरी टप भ्यू"
+      },
+      "distanceAlongTrail": 0.09343086181453397,
+      "distanceFromTrail": 1.7659057767617479
+    },
+    {
+      "id": 9796498290,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.6362553,
+      "lon": 86.2297643,
+      "name": "ग्याविला होटल",
+      "tags": {
+        "amenity": "restaurant",
+        "name": "ग्याविला होटल"
+      },
+      "distanceAlongTrail": 0.09343086181453397,
+      "distanceFromTrail": 0.1051165840398766
+    },
+    {
+      "id": 9796498291,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.6231809,
+      "lon": 86.21942,
+      "name": "गौतम बुद्ध होटल",
+      "tags": {
+        "amenity": "restaurant",
+        "name": "गौतम बुद्ध होटल"
+      },
+      "distanceAlongTrail": 0.09343086181453397,
+      "distanceFromTrail": 1.8583544109557684
+    },
+    {
+      "id": 9796498292,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.6231792,
+      "lon": 86.2202062,
+      "name": "होटल सेन्टर पोईन्ट",
+      "tags": {
+        "amenity": "restaurant",
+        "name": "होटल सेन्टर पोईन्ट"
+      },
+      "distanceAlongTrail": 0.09343086181453397,
+      "distanceFromTrail": 1.812873549305638
+    },
+    {
+      "id": 9796498293,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.6232546,
+      "lon": 86.2202136,
+      "name": "हङ्गरी हाई खाजा घर",
+      "tags": {
+        "amenity": "restaurant",
+        "name": "हङ्गरी हाई खाजा घर"
+      },
+      "distanceAlongTrail": 0.09343086181453397,
+      "distanceFromTrail": 1.8056003064399282
+    },
+    {
+      "id": 9796498296,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.6297137,
+      "lon": 86.2258275,
+      "name": "होटल ग्रीनल्याण्ड",
+      "tags": {
+        "amenity": "restaurant",
+        "name": "होटल ग्रीनल्याण्ड"
+      },
+      "distanceAlongTrail": 0.09343086181453397,
+      "distanceFromTrail": 0.9006192537960924
+    },
+    {
+      "id": 6509201486,
+      "type": "node",
+      "category": "emergency",
+      "lat": 27.6350711,
+      "lon": 86.2312204,
+      "name": "Dolakha District Hospital",
+      "tags": {
+        "amenity": "hospital",
+        "healthcare": "hospital",
+        "name": "Dolakha District Hospital",
+        "name:en": "Dolakha District Hospital"
+      },
+      "distanceAlongTrail": 0.13780655098861855,
+      "distanceFromTrail": 0.16013059562342608
+    },
+    {
+      "id": 6509198586,
+      "type": "node",
+      "category": "emergency",
+      "lat": 27.6358598,
+      "lon": 86.2316355,
+      "name": "Police Station",
+      "tags": {
+        "amenity": "police",
+        "name": "Police Station",
+        "name:en": "Sub Police Station"
+      },
+      "distanceAlongTrail": 0.1776130799574454,
+      "distanceFromTrail": 0.07193366329313577
+    },
+    {
+      "id": 13544446489,
+      "type": "node",
+      "category": "camping",
+      "lat": 27.6307985,
+      "lon": 86.2345031,
+      "name": "Roof  - no walls",
+      "tags": {
+        "amenity": "shelter",
+        "name": "Roof  - no walls",
+        "source": "survey"
+      },
+      "distanceAlongTrail": 0.19263645628360596,
+      "distanceFromTrail": 0.6882602952661642
+    },
+    {
+      "id": 9796498287,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.6360372,
+      "lon": 86.2321568,
+      "name": "सुसाना होटल",
+      "tags": {
+        "amenity": "restaurant",
+        "name": "सुसाना होटल"
+      },
+      "distanceAlongTrail": 0.19263645628360596,
+      "distanceFromTrail": 0.06294449360964004
+    },
+    {
+      "id": 9796498288,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.6361792,
+      "lon": 86.2321699,
+      "name": "मुना होटल",
+      "tags": {
+        "amenity": "restaurant",
+        "name": "मुना होटल"
+      },
+      "distanceAlongTrail": 0.19263645628360596,
+      "distanceFromTrail": 0.051592628382955835
+    },
+    {
+      "id": 9796498289,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.6362253,
+      "lon": 86.2321495,
+      "name": "रयल भोजनालय",
+      "tags": {
+        "amenity": "restaurant",
+        "name": "रयल भोजनालय"
+      },
+      "distanceAlongTrail": 0.19263645628360596,
+      "distanceFromTrail": 0.04661614926926874
+    },
+    {
+      "id": 10950750,
+      "type": "relation",
+      "category": "emergency",
+      "lat": 27.6329787,
+      "lon": 86.2322977,
+      "name": "Dolakha District Hospital",
+      "tags": {
+        "amenity": "hospital",
+        "name": "Dolakha District Hospital",
+        "phone": "049-400111",
+        "type": "multipolygon"
+      },
+      "distanceAlongTrail": 0.19263645628360596,
+      "distanceFromTrail": 0.3951968824816553
+    },
+    {
+      "id": 409224116,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.6361893,
+      "lon": 86.2318695,
+      "name": "Pasang Coffee Shop",
+      "tags": {
+        "addr:city": "Jiri",
+        "addr:housenumber": "9",
+        "addr:street": "Buspark",
+        "amenity": "cafe",
+        "building": "yes",
+        "cuisine": "coffee_shop",
+        "internet_access": "yes",
+        "internet_access:fee": "yes",
+        "name": "Pasang Coffee Shop",
+        "opening_hours": "04:00-21:00",
+        "outdoor_seating": "yes",
+        "smoking": "isolated"
+      },
+      "distanceAlongTrail": 0.19263645628360596,
+      "distanceFromTrail": 0.035823373608850115
+    },
+    {
+      "id": 14340051101,
+      "type": "node",
+      "category": "water",
+      "lat": 27.6284509,
+      "lon": 86.2379841,
+      "name": null,
+      "tags": {
+        "man_made": "water_tap"
+      },
+      "distanceAlongTrail": 0.584951810184131,
+      "distanceFromTrail": 1.072535102943249
+    },
+    {
+      "id": 6507401098,
+      "type": "node",
+      "category": "water",
+      "lat": 27.6517871,
+      "lon": 86.2300473,
+      "name": null,
+      "tags": {
+        "drinking_water": "yes"
+      },
+      "distanceAlongTrail": 0.7772909960452122,
+      "distanceFromTrail": 1.523241532870327
+    },
+    {
+      "id": 340903917,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.6396086,
+      "lon": 86.2456518,
+      "name": "Patase Khaja Ghar",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "name": "Patase Khaja Ghar"
+      },
+      "distanceAlongTrail": 1.9592065781435148,
+      "distanceFromTrail": 0.014369276367187803
+    },
+    {
+      "id": 9504111906,
+      "type": "node",
+      "category": "transport",
+      "lat": 27.6233675,
+      "lon": 86.2398206,
+      "name": null,
+      "tags": {
+        "highway": "bus_stop"
+      },
+      "distanceAlongTrail": 3.4351736489224876,
+      "distanceFromTrail": 1.2253381881511398
+    },
+    {
+      "id": 1476634514,
+      "type": "way",
+      "category": "camping",
+      "lat": 27.6183322,
+      "lon": 86.2527576,
+      "name": null,
+      "tags": {
+        "amenity": "shelter",
+        "source": "survey"
+      },
+      "distanceAlongTrail": 5.081637875545602,
+      "distanceFromTrail": 0.4721365248326487
+    },
+    {
+      "id": 13544446440,
+      "type": "node",
+      "category": "water",
+      "lat": 27.6172336,
+      "lon": 86.2566984,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 5.414992219117805,
+      "distanceFromTrail": 0.16583094693534448
+    },
+    {
+      "id": 1476634510,
+      "type": "way",
+      "category": "camping",
+      "lat": 27.6152011,
+      "lon": 86.2594233,
+      "name": null,
+      "tags": {
+        "amenity": "shelter",
+        "source": "survey"
+      },
+      "distanceAlongTrail": 5.746995646632948,
+      "distanceFromTrail": 0.013083774351660644
+    },
+    {
+      "id": 14340167101,
+      "type": "node",
+      "category": "camping",
+      "lat": 27.6123965,
+      "lon": 86.2790229,
+      "name": "Roof- no walls",
+      "tags": {
+        "amenity": "shelter",
+        "name": "Roof- no walls"
+      },
+      "distanceAlongTrail": 8.025136874192397,
+      "distanceFromTrail": 0.001136291577067322
+    },
+    {
+      "id": 9796498283,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.6163047,
+      "lon": 86.2906984,
+      "name": "स्यामा होटल",
+      "tags": {
+        "amenity": "restaurant",
+        "name": "स्यामा होटल"
+      },
+      "distanceAlongTrail": 9.047826050620335,
+      "distanceFromTrail": 0.6756576113792814
+    },
+    {
+      "id": 1476662116,
+      "type": "way",
+      "category": "emergency",
+      "lat": 27.608311,
+      "lon": 86.296171,
+      "name": null,
+      "tags": {
+        "amenity": "police",
+        "description": "Entry permit for the Gaurishankar Conservation Area",
+        "fee": "yes"
+      },
+      "distanceAlongTrail": 9.974695281270664,
+      "distanceFromTrail": 0.007241860225055818
+    },
+    {
+      "id": 13227052601,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.6054898,
+      "lon": 86.3044444,
+      "name": null,
+      "tags": {
+        "amenity": "restaurant",
+        "name:en": "Small shop and tea"
+      },
+      "distanceAlongTrail": 11.125886097505559,
+      "distanceFromTrail": 0.003681461691641497
+    },
+    {
+      "id": 3213602589,
+      "type": "node",
+      "category": "transport",
+      "lat": 27.6054771,
+      "lon": 86.3045446,
+      "name": null,
+      "tags": {
+        "highway": "bus_stop"
+      },
+      "distanceAlongTrail": 11.135159540501776,
+      "distanceFromTrail": 0.000009896923177445826
+    },
+    {
+      "id": 14340247901,
+      "type": "node",
+      "category": "water",
+      "lat": 27.6036566,
+      "lon": 86.3070678,
+      "name": null,
+      "tags": {
+        "man_made": "water_tap"
+      },
+      "distanceAlongTrail": 11.515938416524682,
+      "distanceFromTrail": 0.0016488486349116838
+    },
+    {
+      "id": 1476662109,
+      "type": "way",
+      "category": "camping",
+      "lat": 27.5911282,
+      "lon": 86.3262541,
+      "name": null,
+      "tags": {
+        "amenity": "shelter",
+        "source": "survey"
+      },
+      "distanceAlongTrail": 14.456318763459457,
+      "distanceFromTrail": 0.006650748456841198
+    },
+    {
+      "id": 14340431301,
+      "type": "node",
+      "category": "water",
+      "lat": 27.5878494,
+      "lon": 86.3289645,
+      "name": null,
+      "tags": {
+        "man_made": "water_tap"
+      },
+      "distanceAlongTrail": 14.98123439277672,
+      "distanceFromTrail": 0.0001337570313333122
+    },
+    {
+      "id": 1476662108,
+      "type": "way",
+      "category": "camping",
+      "lat": 27.5860761,
+      "lon": 86.3299289,
+      "name": null,
+      "tags": {
+        "amenity": "shelter",
+        "source": "survey"
+      },
+      "distanceAlongTrail": 15.301562181563662,
+      "distanceFromTrail": 0.010541735033742311
+    },
+    {
+      "id": 14340431302,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.582708,
+      "lon": 86.3302007,
+      "name": "Basics",
+      "tags": {
+        "name": "Basics",
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 15.744750963835406,
+      "distanceFromTrail": 0.006162655650009506
+    },
+    {
+      "id": 1479461428,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.5709976,
+      "lon": 86.3605086,
+      "name": null,
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes"
+      },
+      "distanceAlongTrail": 20.439212946718936,
+      "distanceFromTrail": 0.10898206441482937
+    },
+    {
+      "id": 10239512009,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.5552697,
+      "lon": 86.379436,
+      "name": null,
+      "tags": {
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 23.127929354269252,
+      "distanceFromTrail": 1.7467482190900792
+    },
+    {
+      "id": 1931048274,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.5774214,
+      "lon": 86.3851473,
+      "name": "Tea House",
+      "tags": {
+        "amenity": "fast_food",
+        "name": "Tea House"
+      },
+      "distanceAlongTrail": 24.44891247366027,
+      "distanceFromTrail": 0.41320596856274905
+    },
+    {
+      "id": 2299775260,
+      "type": "node",
+      "category": "emergency",
+      "lat": 27.5840669,
+      "lon": 86.4093379,
+      "name": null,
+      "tags": {
+        "amenity": "police"
+      },
+      "distanceAlongTrail": 27.171485146490088,
+      "distanceFromTrail": 0.003919366775189576
+    },
+    {
+      "id": 14344212501,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.5850058,
+      "lon": 86.4102546,
+      "name": "Cheap - well stocked",
+      "tags": {
+        "name": "Cheap - well stocked",
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 27.257927253525832,
+      "distanceFromTrail": 0.0713610550982873
+    },
+    {
+      "id": 14344212601,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.5848735,
+      "lon": 86.4104301,
+      "name": "Basics",
+      "tags": {
+        "name": "Basics",
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 27.38813150036366,
+      "distanceFromTrail": 0.0634713473543992
+    },
+    {
+      "id": 14344212701,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.585083,
+      "lon": 86.4105996,
+      "name": "Basics",
+      "tags": {
+        "name": "Basics",
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 27.431948118614066,
+      "distanceFromTrail": 0.08207573890393158
+    },
+    {
+      "id": 11099775043,
+      "type": "node",
+      "category": "transport",
+      "lat": 27.5850711,
+      "lon": 86.4115238,
+      "name": "Bus to Kathmandu",
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "name": "Bus to Kathmandu",
+        "public_transport": "platform"
+      },
+      "distanceAlongTrail": 27.460026885369384,
+      "distanceFromTrail": 0.08892285932952056
+    },
+    {
+      "id": 14344212801,
+      "type": "node",
+      "category": "water",
+      "lat": 27.5801365,
+      "lon": 86.4280437,
+      "name": null,
+      "tags": {
+        "man_made": "water_tap"
+      },
+      "distanceAlongTrail": 29.912003401462048,
+      "distanceFromTrail": 0.0014179255758455607
+    },
+    {
+      "id": 345086903,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.5742748,
+      "lon": 86.46845,
+      "name": "Cheese Shop",
+      "tags": {
+        "amenity": "cafe",
+        "building": "yes",
+        "name": "Cheese Shop"
+      },
+      "distanceAlongTrail": 34.71869888170554,
+      "distanceFromTrail": 0.00699664857059117
+    },
+    {
+      "id": 6402120186,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.578591,
+      "lon": 86.4977838,
+      "name": null,
+      "tags": {
+        "amenity": "restaurant",
+        "name:en": "Lamjura view pass restaurant"
+      },
+      "distanceAlongTrail": 38.298746737699965,
+      "distanceFromTrail": 0.028505971322337117
+    },
+    {
+      "id": 13577106782,
+      "type": "node",
+      "category": "water",
+      "lat": 27.5731601,
+      "lon": 86.5073763,
+      "name": null,
+      "tags": {
+        "amenity": "drinking_water"
+      },
+      "distanceAlongTrail": 39.8190190153259,
+      "distanceFromTrail": 0.43800221462898287
+    },
+    {
+      "id": 1480352424,
+      "type": "way",
+      "category": "emergency",
+      "lat": 27.5800155,
+      "lon": 86.5461686,
+      "name": null,
+      "tags": {
+        "amenity": "police",
+        "building": "yes"
+      },
+      "distanceAlongTrail": 44.80875055180823,
+      "distanceFromTrail": 0.015679871977862928
+    },
+    {
+      "id": 6078675089,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.5816187,
+      "lon": 86.547253,
+      "name": null,
+      "tags": {
+        "name:en": "Jumbesi Trekking Shop",
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 45.181654672135295,
+      "distanceFromTrail": 0.0061644565089680895
+    },
+    {
+      "id": 6495592487,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.5814181,
+      "lon": 86.5473347,
+      "name": null,
+      "tags": {
+        "amenity": "restaurant",
+        "cuisine": "deli;tea;chicken;noodles;curry;indian;local",
+        "name:en": "Fast Food"
+      },
+      "distanceAlongTrail": 45.20499073578374,
+      "distanceFromTrail": 0.0011006136969899452
+    },
+    {
+      "id": 6885404293,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.5529416,
+      "lon": 86.5891053,
+      "name": null,
+      "tags": {
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 49.33414339768039,
+      "distanceFromTrail": 1.7220509101290167
+    },
+    {
+      "id": 3209327451,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.557203,
+      "lon": 86.5929628,
+      "name": "Chai Shop",
+      "tags": {
+        "amenity": "fast_food",
+        "name": "Chai Shop"
+      },
+      "distanceAlongTrail": 50.43343016446399,
+      "distanceFromTrail": 1.610034153160249
+    },
+    {
+      "id": 6427746187,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.5599836,
+      "lon": 86.5935352,
+      "name": null,
+      "tags": {
+        "addr:housenumber": "2",
+        "amenity": "restaurant",
+        "name:en": "K.K. Sherpa Brothers Tea shop and restaurant"
+      },
+      "distanceAlongTrail": 50.43343016446399,
+      "distanceFromTrail": 1.429607143361307
+    },
+    {
+      "id": 14348440201,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.5923701,
+      "lon": 86.6175476,
+      "name": "Well stocked",
+      "tags": {
+        "name": "Well stocked",
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 56.809342395681945,
+      "distanceFromTrail": 0.009900717616094297
+    },
+    {
+      "id": 13788714501,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.6058557,
+      "lon": 86.6254297,
+      "name": null,
+      "tags": {
+        "amenity": "restaurant"
+      },
+      "distanceAlongTrail": 57.233890761125714,
+      "distanceFromTrail": 1.3283027985259728
+    },
+    {
+      "id": 13583615698,
+      "type": "node",
+      "category": "water",
+      "lat": 27.5891346,
+      "lon": 86.6226256,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 58.550442144599074,
+      "distanceFromTrail": 0.11568211151254414
+    },
+    {
+      "id": 342665261,
+      "type": "way",
+      "category": "resupply",
+      "lat": 27.5882807,
+      "lon": 86.6434039,
+      "name": null,
+      "tags": {
+        "building": "yes",
+        "shop": "kiosk"
+      },
+      "distanceAlongTrail": 61.47474236643936,
+      "distanceFromTrail": 0.0069751457824803196
+    },
+    {
+      "id": 13583603636,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.5894037,
+      "lon": 86.6470513,
+      "name": "Everest Shop",
+      "tags": {
+        "name": "Everest Shop",
+        "shop": "kiosk"
+      },
+      "distanceAlongTrail": 61.91614954709624,
+      "distanceFromTrail": 0.014958180693658847
+    },
+    {
+      "id": 13583603635,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.5894796,
+      "lon": 86.6471535,
+      "name": "Kirant Shopping Centre",
+      "tags": {
+        "name": "Kirant Shopping Centre",
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 61.929170434465085,
+      "distanceFromTrail": 0.013189412759328577
+    },
+    {
+      "id": 3190449989,
+      "type": "node",
+      "category": "camping",
+      "lat": 27.6034258,
+      "lon": 86.7006658,
+      "name": null,
+      "tags": {
+        "tourism": "camp_site"
+      },
+      "distanceAlongTrail": 69.13023608784613,
+      "distanceFromTrail": 0.01580065029645177
+    },
+    {
+      "id": 14349016401,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.6026839,
+      "lon": 86.7025142,
+      "name": "Basics - drinks rahmen Snacks",
+      "tags": {
+        "name": "Basics - drinks rahmen Snacks",
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 69.44972079909869,
+      "distanceFromTrail": 0.12258708624946246
+    },
+    {
+      "id": 314160681,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.6053195,
+      "lon": 86.7140677,
+      "name": "Sherpa Kitchen",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "name": "Sherpa Kitchen"
+      },
+      "distanceAlongTrail": 70.65737913026567,
+      "distanceFromTrail": 0.0055130585381197245
+    },
+    {
+      "id": 13588617252,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.6059531,
+      "lon": 86.7146024,
+      "name": "Experts Sherpa Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "name": "Experts Sherpa Restaurant"
+      },
+      "distanceAlongTrail": 70.747540649551,
+      "distanceFromTrail": 0.005602931073812373
+    },
+    {
+      "id": 343976866,
+      "type": "way",
+      "category": "resupply",
+      "lat": 27.6110384,
+      "lon": 86.7158635,
+      "name": null,
+      "tags": {
+        "building": "yes",
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 72.08724876967435,
+      "distanceFromTrail": 0.010837639728168312
+    },
+    {
+      "id": 343968592,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.6194674,
+      "lon": 86.7190844,
+      "name": null,
+      "tags": {
+        "amenity": "cafe",
+        "building": "yes"
+      },
+      "distanceAlongTrail": 73.50025273975179,
+      "distanceFromTrail": 0.05466645075927438
+    },
+    {
+      "id": 4898640324,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.636356,
+      "lon": 86.7140529,
+      "name": null,
+      "tags": {
+        "amenity": "restaurant"
+      },
+      "distanceAlongTrail": 77.01995272312867,
+      "distanceFromTrail": 0.3752556471991656
+    },
+    {
+      "id": 343979767,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.6330452,
+      "lon": 86.718869,
+      "name": null,
+      "tags": {
+        "amenity": "cafe",
+        "building": "yes",
+        "name:de": "Kari La Tea House",
+        "name:en": "Kari La Tea House"
+      },
+      "distanceAlongTrail": 77.94348190476974,
+      "distanceFromTrail": 0.012353141238574538
+    },
+    {
+      "id": 11287631740,
+      "type": "node",
+      "category": "water",
+      "lat": 27.6525993,
+      "lon": 86.7140733,
+      "name": null,
+      "tags": {
+        "amenity": "drinking_water"
+      },
+      "distanceAlongTrail": 83.01086463645441,
+      "distanceFromTrail": 0.003682167125409975
+    },
+    {
+      "id": 13588616837,
+      "type": "node",
+      "category": "water",
+      "lat": 27.6635915,
+      "lon": 86.7176869,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 84.88393104514526,
+      "distanceFromTrail": 0.012931066552750012
+    },
+    {
+      "id": 12791115701,
+      "type": "node",
+      "category": "water",
+      "lat": 27.6870526,
+      "lon": 86.7197271,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 88.36578234840465,
+      "distanceFromTrail": 0.0054081909495196255
+    },
+    {
+      "id": 2563158747,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.6864984,
+      "lon": 86.7301215,
+      "name": "Post Office",
+      "tags": {
+        "amenity": "post_office",
+        "name": "Post Office"
+      },
+      "distanceAlongTrail": 89.1612574573226,
+      "distanceFromTrail": 0.16182947806795442
+    },
+    {
+      "id": 9727645585,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.6877125,
+      "lon": 86.7295966,
+      "name": "Lukla postman office",
+      "tags": {
+        "amenity": "post_office",
+        "name": "Lukla postman office",
+        "note": "Office of Kathmandu postman, who arrives once per few days by airplane"
+      },
+      "distanceAlongTrail": 89.19196854384928,
+      "distanceFromTrail": 0.020572692455769464
+    },
+    {
+      "id": 20262604,
+      "type": "relation",
+      "category": "emergency",
+      "lat": 27.6849242,
+      "lon": 86.7324756,
+      "name": "लुक्ला अस्पताल",
+      "tags": {
+        "amenity": "hospital",
+        "email": "info@luklahospital.com",
+        "healthcare": "hospital",
+        "name": "लुक्ला अस्पताल",
+        "name:en": "Lukla Hospital",
+        "name:ja": "ルクラ病院",
+        "name:ne": "लुक्ला अस्पताल",
+        "name:tr": "Lukla Hastanesi",
+        "opening_hours": "Mo-Th 09:00-17:00; Fr 09:00-13:00; PH off",
+        "type": "multipolygon",
+        "website": "http://luklahospital.com/"
+      },
+      "distanceAlongTrail": 89.19312821997163,
+      "distanceFromTrail": 0.44024933238280634
+    },
+    {
+      "id": 249739311,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.6868501,
+      "lon": 86.7315795,
+      "name": "Everest Mountain Home Lukla Airport",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "name": "Everest Mountain Home Lukla Airport",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 89.19312821997163,
+      "distanceFromTrail": 0.23491384436716894
+    },
+    {
+      "id": 502494466,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.6868742,
+      "lon": 86.731423,
+      "name": "Everest Mountain Home & Kitchen Lukla",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "name": "Everest Mountain Home & Kitchen Lukla",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 89.19312821997163,
+      "distanceFromTrail": 0.22019295915992826
+    },
+    {
+      "id": 12791115801,
+      "type": "node",
+      "category": "water",
+      "lat": 27.6959707,
+      "lon": 86.717104,
+      "name": "77/114",
+      "tags": {
+        "name": "77/114",
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 89.51042672246491,
+      "distanceFromTrail": 0.004776336615119356
+    },
+    {
+      "id": 12791115901,
+      "type": "node",
+      "category": "water",
+      "lat": 27.6963888,
+      "lon": 86.7170162,
+      "name": null,
+      "tags": {
+        "man_made": "water_tap"
+      },
+      "distanceAlongTrail": 89.54178866131447,
+      "distanceFromTrail": 0.022807411603326628
+    },
+    {
+      "id": 12791116001,
+      "type": "node",
+      "category": "water",
+      "lat": 27.6974937,
+      "lon": 86.7169089,
+      "name": "67/114",
+      "tags": {
+        "man_made": "water_tap",
+        "name": "67/114"
+      },
+      "distanceAlongTrail": 89.96426595254331,
+      "distanceFromTrail": 0.03692205061024185
+    },
+    {
+      "id": 13843882603,
+      "type": "node",
+      "category": "water",
+      "lat": 27.7050707,
+      "lon": 86.7183298,
+      "name": "29/55",
+      "tags": {
+        "man_made": "water_tap",
+        "name": "29/55"
+      },
+      "distanceAlongTrail": 91.00399463748273,
+      "distanceFromTrail": 0.004087878143962507
+    },
+    {
+      "id": 319525008,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7057026,
+      "lon": 86.7173915,
+      "name": "Khumbu Friendship Lodge & Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Khumbu Friendship Lodge & Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 91.1174458968475,
+      "distanceFromTrail": 0.015330339189344335
+    },
+    {
+      "id": 319359800,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.706411,
+      "lon": 86.7164576,
+      "name": "Valley view Lodge & Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Valley view Lodge & Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 91.2435405660712,
+      "distanceFromTrail": 0.00794099968980684
+    },
+    {
+      "id": 319364833,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7085468,
+      "lon": 86.7156948,
+      "name": "Alpine Guesthouse",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Alpine Guesthouse",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 91.55169968718366,
+      "distanceFromTrail": 0.006333781448642035
+    },
+    {
+      "id": 11243120113,
+      "type": "node",
+      "category": "water",
+      "lat": 27.7091567,
+      "lon": 86.7151865,
+      "name": "4/55",
+      "tags": {
+        "amenity": "drinking_water",
+        "name": "4/55"
+      },
+      "distanceAlongTrail": 91.63519179637355,
+      "distanceFromTrail": 0.004285474378887372
+    },
+    {
+      "id": 12791116002,
+      "type": "node",
+      "category": "water",
+      "lat": 27.7095038,
+      "lon": 86.7147154,
+      "name": null,
+      "tags": {
+        "man_made": "water_tap"
+      },
+      "distanceAlongTrail": 91.6949729090272,
+      "distanceFromTrail": 0.003877199961153907
+    },
+    {
+      "id": 12791116301,
+      "type": "node",
+      "category": "water",
+      "lat": 27.7102967,
+      "lon": 86.7143618,
+      "name": null,
+      "tags": {
+        "man_made": "water_tap"
+      },
+      "distanceAlongTrail": 91.79478872722962,
+      "distanceFromTrail": 0.01623072403362973
+    },
+    {
+      "id": 319364661,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7105121,
+      "lon": 86.7144038,
+      "name": "Apple Garden lodge & restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Apple Garden lodge & restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 91.80824906312925,
+      "distanceFromTrail": 0.010690199367776999
+    },
+    {
+      "id": 346552249,
+      "type": "way",
+      "category": "resupply",
+      "lat": 27.7118525,
+      "lon": 86.7139115,
+      "name": "Shop",
+      "tags": {
+        "building": "yes",
+        "name": "Shop",
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 91.97939711160396,
+      "distanceFromTrail": 0.004272281902602755
+    },
+    {
+      "id": 346552300,
+      "type": "way",
+      "category": "resupply",
+      "lat": 27.7161995,
+      "lon": 86.7146167,
+      "name": null,
+      "tags": {
+        "building": "yes",
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 92.52002049537799,
+      "distanceFromTrail": 0.008960244541807888
+    },
+    {
+      "id": 13792854702,
+      "type": "node",
+      "category": "water",
+      "lat": 27.7162524,
+      "lon": 86.7144728,
+      "name": "53/74",
+      "tags": {
+        "man_made": "water_tap",
+        "name": "53/74"
+      },
+      "distanceAlongTrail": 92.52199055482814,
+      "distanceFromTrail": 0.006250522441312415
+    },
+    {
+      "id": 346552308,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7163589,
+      "lon": 86.7145424,
+      "name": "everest kitchen & restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "everest kitchen & restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 92.52935050466131,
+      "distanceFromTrail": 0.010103116288675286
+    },
+    {
+      "id": 346552258,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7172651,
+      "lon": 86.7152014,
+      "name": "mountain view restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "mountain view restaurant"
+      },
+      "distanceAlongTrail": 92.66414237804591,
+      "distanceFromTrail": 0.01376154384275134
+    },
+    {
+      "id": 343642684,
+      "type": "way",
+      "category": "resupply",
+      "lat": 27.7179656,
+      "lon": 86.7160315,
+      "name": "Shop & Go",
+      "tags": {
+        "building": "yes",
+        "name": "Shop & Go",
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 92.78037537128512,
+      "distanceFromTrail": 0.016727843928846648
+    },
+    {
+      "id": 343643274,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7186423,
+      "lon": 86.71515,
+      "name": "Mt. Kusum Garden Restaurant and Lodge",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Mt. Kusum Garden Restaurant and Lodge",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 92.91810755476386,
+      "distanceFromTrail": 0.004575536705628761
+    },
+    {
+      "id": 319504153,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7185773,
+      "lon": 86.7133891,
+      "name": "Windhorse Lodge Restaurant & Bakery",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "bakery;regional",
+        "name": "Windhorse Lodge Restaurant & Bakery",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 93.08678998944445,
+      "distanceFromTrail": 0.04206614650512141
+    },
+    {
+      "id": 5679349866,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.7205739,
+      "lon": 86.7144302,
+      "name": null,
+      "tags": {
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 93.32752747358832,
+      "distanceFromTrail": 0.008523850309948516
+    },
+    {
+      "id": 343915573,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7219392,
+      "lon": 86.7143337,
+      "name": "Urgen Friendship Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Urgen Friendship Restaurant"
+      },
+      "distanceAlongTrail": 93.4796290985665,
+      "distanceFromTrail": 0.004716732536358186
+    },
+    {
+      "id": 13792855202,
+      "type": "node",
+      "category": "water",
+      "lat": 27.7220679,
+      "lon": 86.7142429,
+      "name": null,
+      "tags": {
+        "man_made": "water_tap"
+      },
+      "distanceAlongTrail": 93.49419701418547,
+      "distanceFromTrail": 0.003795299110220904
+    },
+    {
+      "id": 319523491,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7228664,
+      "lon": 86.7141429,
+      "name": "Eco Lodge and Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Eco Lodge and Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 93.59697987194461,
+      "distanceFromTrail": 0.00983218484116241
+    },
+    {
+      "id": 343915569,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7230307,
+      "lon": 86.7141989,
+      "name": "Himalayan Sherpa Lodge and Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Himalayan Sherpa Lodge and Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 93.59855835823554,
+      "distanceFromTrail": 0.009185176857754928
+    },
+    {
+      "id": 13792854703,
+      "type": "node",
+      "category": "water",
+      "lat": 27.723342,
+      "lon": 86.7143134,
+      "name": "33/74",
+      "tags": {
+        "man_made": "water_tap",
+        "name": "33/74"
+      },
+      "distanceAlongTrail": 93.60078044560198,
+      "distanceFromTrail": 0.045520804157504674
+    },
+    {
+      "id": 319523535,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7238665,
+      "lon": 86.7144841,
+      "name": "Yak Guesthouse and Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Yak Guesthouse and Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 93.60655893319853,
+      "distanceFromTrail": 0.10593883695815497
+    },
+    {
+      "id": 319360379,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7246941,
+      "lon": 86.7147151,
+      "name": "Time for Tifeen Break",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Time for Tifeen Break"
+      },
+      "distanceAlongTrail": 93.61918835158922,
+      "distanceFromTrail": 0.1998859353740197
+    },
+    {
+      "id": 13843335401,
+      "type": "node",
+      "category": "water",
+      "lat": 27.7242104,
+      "lon": 86.7144872,
+      "name": "30/74",
+      "tags": {
+        "man_made": "water_tap",
+        "name": "30/74"
+      },
+      "distanceAlongTrail": 93.62031176381505,
+      "distanceFromTrail": 0.14162149480020372
+    },
+    {
+      "id": 346552311,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.72432,
+      "lon": 86.7144801,
+      "name": "Everest Lodge and Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Everest Lodge and Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 93.62543531723107,
+      "distanceFromTrail": 0.1527012419381554
+    },
+    {
+      "id": 319523875,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7246036,
+      "lon": 86.7145144,
+      "name": "Chhomolongma Garden Garden Lodge and Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Chhomolongma Garden Garden Lodge and Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 93.63387043100286,
+      "distanceFromTrail": 0.1832740870502999
+    },
+    {
+      "id": 319519006,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7255446,
+      "lon": 86.7146691,
+      "name": "Garden View Lodge Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Garden View Lodge Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 93.64222333930739,
+      "distanceFromTrail": 0.28663450800595747
+    },
+    {
+      "id": 319383397,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.726414,
+      "lon": 86.7144306,
+      "name": "Kongde View Lodge & Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Kongde View Lodge & Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 94.18690591968605,
+      "distanceFromTrail": 0.34171974011725775
+    },
+    {
+      "id": 319383481,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7264066,
+      "lon": 86.7142579,
+      "name": "Lama lodge Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Lama lodge Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 94.18690591968605,
+      "distanceFromTrail": 0.3247014447284402
+    },
+    {
+      "id": 5679349869,
+      "type": "node",
+      "category": "camping",
+      "lat": 27.7277336,
+      "lon": 86.7140701,
+      "name": null,
+      "tags": {
+        "amenity": "shelter",
+        "amenity_1": "waste_disposal"
+      },
+      "distanceAlongTrail": 94.20705992601755,
+      "distanceFromTrail": 0.3399573556227903
+    },
+    {
+      "id": 319518072,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7289237,
+      "lon": 86.7133578,
+      "name": "Mustang Lodge & Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Mustang Lodge & Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 94.52555963965328,
+      "distanceFromTrail": 0.3008532858652404
+    },
+    {
+      "id": 11243105500,
+      "type": "node",
+      "category": "water",
+      "lat": 27.7323265,
+      "lon": 86.7132457,
+      "name": null,
+      "tags": {
+        "drinking_water": "yes",
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 94.98671259904678,
+      "distanceFromTrail": 0.1548497436303231
+    },
+    {
+      "id": 10182160523,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.7392585,
+      "lon": 86.7122178,
+      "name": "Local restaurants",
+      "tags": {
+        "amenity": "restaurant",
+        "description": "One of the best place in phakding to eat freshly made local food with a low budget",
+        "name": "Local restaurants"
+      },
+      "distanceAlongTrail": 95.9315116532105,
+      "distanceFromTrail": 0.0051343240449547994
+    },
+    {
+      "id": 304427057,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.739439,
+      "lon": 86.7121813,
+      "name": "Tashi Ta Gey",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Tashi Ta Gey",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 95.9495428275679,
+      "distanceFromTrail": 0.01465339927483535
+    },
+    {
+      "id": 304427046,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7394128,
+      "lon": 86.7124338,
+      "name": "Four Season Lodge & Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "name": "Four Season Lodge & Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 95.95431556855013,
+      "distanceFromTrail": 0.00990731836781273
+    },
+    {
+      "id": 12677199790,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.7396592,
+      "lon": 86.7123096,
+      "name": "Tashi Inn Lodge, Restaurant and Bar",
+      "tags": {
+        "amenity": "restaurant",
+        "name": "Tashi Inn Lodge, Restaurant and Bar"
+      },
+      "distanceAlongTrail": 95.97670649260381,
+      "distanceFromTrail": 0.010060843542360682
+    },
+    {
+      "id": 319517887,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.739697,
+      "lon": 86.7125091,
+      "name": "Everest Guesthouse & Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Everest Guesthouse & Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 95.98667501003007,
+      "distanceFromTrail": 0.007368578301290731
+    },
+    {
+      "id": 304427041,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7398037,
+      "lon": 86.7123745,
+      "name": "Kalapatar Lodge & Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Kalapatar Lodge & Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 95.99395511070884,
+      "distanceFromTrail": 0.008856151344613036
+    },
+    {
+      "id": 4866137297,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.7401779,
+      "lon": 86.7127952,
+      "name": "Beer Garden",
+      "tags": {
+        "amenity": "restaurant",
+        "name": "Beer Garden"
+      },
+      "distanceAlongTrail": 96.05343255912767,
+      "distanceFromTrail": 0.005904515346518415
+    },
+    {
+      "id": 10851785306,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.7403942,
+      "lon": 86.7124804,
+      "name": null,
+      "tags": {
+        "amenity": "restaurant",
+        "name:en": "bakery"
+      },
+      "distanceAlongTrail": 96.09068931221687,
+      "distanceFromTrail": 0.008351491225566405
+    },
+    {
+      "id": 10711483405,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.7404286,
+      "lon": 86.712493,
+      "name": null,
+      "tags": {
+        "addr:street": "Rangding",
+        "amenity": "restaurant",
+        "internet_access": "wlan",
+        "name:en": "Everest Bakery Lunch Place",
+        "name:fr": "Everest Bakery Lunch Place"
+      },
+      "distanceAlongTrail": 96.09456006689516,
+      "distanceFromTrail": 0.007262288474711311
+    },
+    {
+      "id": 10748498810,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.7405546,
+      "lon": 86.7124779,
+      "name": null,
+      "tags": {
+        "amenity": "restaurant",
+        "name:en": "Iswork khaja ghar",
+        "name:fr": "Iswork khaja ghar"
+      },
+      "distanceAlongTrail": 96.10388693827296,
+      "distanceFromTrail": 0.013699464390388145
+    },
+    {
+      "id": 345405957,
+      "type": "way",
+      "category": "resupply",
+      "lat": 27.7416991,
+      "lon": 86.7128863,
+      "name": "General shop",
+      "tags": {
+        "building": "yes",
+        "name": "General shop",
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 96.24124378642703,
+      "distanceFromTrail": 0.004970093464776208
+    },
+    {
+      "id": 642225684,
+      "type": "way",
+      "category": "resupply",
+      "lat": 27.7443777,
+      "lon": 86.7123409,
+      "name": "Hermann Helmers Backerei und Konditorei",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "german",
+        "name": "Hermann Helmers Backerei und Konditorei",
+        "shop": "bakery"
+      },
+      "distanceAlongTrail": 96.70819148344623,
+      "distanceFromTrail": 0.014305631688733118
+    },
+    {
+      "id": 13266930903,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.7450594,
+      "lon": 86.7124499,
+      "name": null,
+      "tags": {
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 96.79571425072045,
+      "distanceFromTrail": 0.004334649624934765
+    },
+    {
+      "id": 12791262801,
+      "type": "node",
+      "category": "water",
+      "lat": 27.7451791,
+      "lon": 86.7126235,
+      "name": null,
+      "tags": {
+        "man_made": "water_tap"
+      },
+      "distanceAlongTrail": 96.8144820230137,
+      "distanceFromTrail": 0.006472439152216079
+    },
+    {
+      "id": 11243097665,
+      "type": "node",
+      "category": "water",
+      "lat": 27.7452819,
+      "lon": 86.7125135,
+      "name": null,
+      "tags": {
+        "amenity": "drinking_water"
+      },
+      "distanceAlongTrail": 96.8230730554737,
+      "distanceFromTrail": 0.006111412557326409
+    },
+    {
+      "id": 319369475,
+      "type": "way",
+      "category": "emergency",
+      "lat": 27.7500864,
+      "lon": 86.7122577,
+      "name": "Himalaya Sherpa Hospital",
+      "tags": {
+        "amenity": "hospital",
+        "building": "yes",
+        "name": "Himalaya Sherpa Hospital"
+      },
+      "distanceAlongTrail": 97.35781847373588,
+      "distanceFromTrail": 0.05002317639551542
+    },
+    {
+      "id": 4397665389,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.7509131,
+      "lon": 86.7112337,
+      "name": null,
+      "tags": {
+        "addr:postcode": "977",
+        "amenity": "restaurant",
+        "cuisine": "italian;breakfast;german;indian;pasta;japanese;french;tea;coffee_shop;curry;chinese;diner;asian;chicken;regional;american;local",
+        "diet:vegetarian": "yes",
+        "internet_access": "wlan",
+        "name:en": "Sherpa restaurant",
+        "phone": "+9779803556332"
+      },
+      "distanceAlongTrail": 97.50472526621417,
+      "distanceFromTrail": 0.015381975189019214
+    },
+    {
+      "id": 319369994,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7514332,
+      "lon": 86.7106236,
+      "name": "Riverview Lodge & Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Riverview Lodge & Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 97.58146888863182,
+      "distanceFromTrail": 0.009966692032991113
+    },
+    {
+      "id": 13842634504,
+      "type": "node",
+      "category": "water",
+      "lat": 27.7517152,
+      "lon": 86.7103646,
+      "name": null,
+      "tags": {
+        "man_made": "water_tap"
+      },
+      "distanceAlongTrail": 97.6306489957306,
+      "distanceFromTrail": 0.004253634380138231
+    },
+    {
+      "id": 319370055,
+      "type": "way",
+      "category": "resupply",
+      "lat": 27.7518555,
+      "lon": 86.7104826,
+      "name": "Shamuil Lodge & Restaurant",
+      "tags": {
+        "building": "yes",
+        "description": "General store",
+        "name": "Shamuil Lodge & Restaurant",
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 97.65830601508054,
+      "distanceFromTrail": 0.014054376245434588
+    },
+    {
+      "id": 13793242102,
+      "type": "node",
+      "category": "water",
+      "lat": 27.7523542,
+      "lon": 86.7097703,
+      "name": null,
+      "tags": {
+        "man_made": "water_tap"
+      },
+      "distanceAlongTrail": 97.74602689689219,
+      "distanceFromTrail": 0.0063300349808959105
+    },
+    {
+      "id": 319370476,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7527412,
+      "lon": 86.7105985,
+      "name": "Wilderness Lodge & Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Wilderness Lodge & Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 97.84329612896728,
+      "distanceFromTrail": 0.020154672524717917
+    },
+    {
+      "id": 319370377,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7529035,
+      "lon": 86.7104309,
+      "name": "Family Lodge and Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Family Lodge and Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 97.86415357270758,
+      "distanceFromTrail": 0.007400832610217658
+    },
+    {
+      "id": 319370496,
+      "type": "way",
+      "category": "resupply",
+      "lat": 27.7532885,
+      "lon": 86.7105945,
+      "name": null,
+      "tags": {
+        "building": "yes",
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 97.90926945676492,
+      "distanceFromTrail": 0.018431938923759467
+    },
+    {
+      "id": 319370616,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7544074,
+      "lon": 86.7103297,
+      "name": "Karma Friendship Lodge and Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Karma Friendship Lodge and Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 98.03964976740963,
+      "distanceFromTrail": 0.00798319824215841
+    },
+    {
+      "id": 319370673,
+      "type": "way",
+      "category": "resupply",
+      "lat": 27.7544489,
+      "lon": 86.7105268,
+      "name": null,
+      "tags": {
+        "building": "yes",
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 98.0408890553643,
+      "distanceFromTrail": 0.011914714894592355
+    },
+    {
+      "id": 319371366,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7614927,
+      "lon": 86.7161298,
+      "name": "Himalayan Guesthouse and Restaurant",
+      "tags": {
+        "addr:street": "Benkar village",
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "internet_access": "wlan",
+        "name": "Himalayan Guesthouse and Restaurant",
+        "opening_hours": "24/7",
+        "operator": "Lemi Sherpa",
+        "phone": "977-9818210323",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 99.4339909743371,
+      "distanceFromTrail": 0.010521096478172632
+    },
+    {
+      "id": 539969404,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.762049,
+      "lon": 86.7169863,
+      "name": "Sunshine Lodge & restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Sunshine Lodge & restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 99.54844702212075,
+      "distanceFromTrail": 0.009855215506659002
+    },
+    {
+      "id": 4863296421,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.7642644,
+      "lon": 86.7200429,
+      "name": "Riverside Lodge and Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "name": "Riverside Lodge and Restaurant",
+        "name:en": "Riverside Lodge and Restaurant"
+      },
+      "distanceAlongTrail": 99.96819628537784,
+      "distanceFromTrail": 0.010970551440887854
+    },
+    {
+      "id": 539969408,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7658136,
+      "lon": 86.7230178,
+      "name": "Chumoa Lodge and Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Chumoa Lodge and Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 100.38656251519014,
+      "distanceFromTrail": 0.00414049987802002
+    },
+    {
+      "id": 539969409,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.76601,
+      "lon": 86.7231744,
+      "name": "Momo Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional;momo",
+        "name": "Momo Restaurant"
+      },
+      "distanceAlongTrail": 100.41188270229608,
+      "distanceFromTrail": 0.0066316417921031086
+    },
+    {
+      "id": 642225690,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7661436,
+      "lon": 86.7235444,
+      "name": "Lopsang Friendship Lodge and Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Lopsang Friendship Lodge and Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 100.44756125643565,
+      "distanceFromTrail": 0.007509044600244704
+    },
+    {
+      "id": 539969424,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7671203,
+      "lon": 86.7232661,
+      "name": "Solokhumbu Lodge & Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Solokhumbu Lodge & Restaurant",
+        "name:ne": "कर्म मैत्री लज र रेस्टुरेन्ट",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 100.56256606533513,
+      "distanceFromTrail": 0.005982729814936979
+    },
+    {
+      "id": 539969421,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.767959,
+      "lon": 86.7229349,
+      "name": "Chumoa Guesthouse and Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Chumoa Guesthouse and Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 100.66011972371366,
+      "distanceFromTrail": 0.01879704034686597
+    },
+    {
+      "id": 539969419,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7689928,
+      "lon": 86.7235682,
+      "name": "Alpine Valley Lodge and Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Alpine Valley Lodge and Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 100.80268188050457,
+      "distanceFromTrail": 0.02472282028989028
+    },
+    {
+      "id": 539969435,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7709225,
+      "lon": 86.7232664,
+      "name": "Sherpa Lodge & Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Sherpa Lodge & Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 101.13771764311183,
+      "distanceFromTrail": 0.010457064106547556
+    },
+    {
+      "id": 539969445,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7719927,
+      "lon": 86.7231782,
+      "name": "Manju Budha Lodge & Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Manju Budha Lodge & Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 101.27379167099748,
+      "distanceFromTrail": 0.042259345354529784
+    },
+    {
+      "id": 5564179949,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.7720504,
+      "lon": 86.7228383,
+      "name": null,
+      "tags": {
+        "addr:street": "everest base camp trail",
+        "amenity": "restaurant",
+        "cuisine": "burger;sandwich;ramen;malaysian;coffee_shop;korean;pasta;noodles;pancake;pizza;diner;chicken;curry;indian;italian_pizza;mexican;breakfast;french;tea;italian;german",
+        "internet_access": "wlan",
+        "name:en": "Khumbila lunch place",
+        "opening_hours": "24/7",
+        "operator": "pasang tenji Sherpa",
+        "phone": "9803908020"
+      },
+      "distanceAlongTrail": 101.27788057686486,
+      "distanceFromTrail": 0.0084543361198895
+    },
+    {
+      "id": 6046665806,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.7730705,
+      "lon": 86.7228958,
+      "name": "Rhododendron Lodge & Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Rhododendron Lodge & Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 101.39210839658487,
+      "distanceFromTrail": 0.010053823249432565
+    },
+    {
+      "id": 11245084670,
+      "type": "node",
+      "category": "water",
+      "lat": 27.7735702,
+      "lon": 86.7223796,
+      "name": null,
+      "tags": {
+        "amenity": "drinking_water"
+      },
+      "distanceAlongTrail": 101.46547918160843,
+      "distanceFromTrail": 0.004256307348869504
+    },
+    {
+      "id": 539969454,
+      "type": "way",
+      "category": "emergency",
+      "lat": 27.7736706,
+      "lon": 86.7221469,
+      "name": "Sargamatha National Park Entry",
+      "tags": {
+        "amenity": "police",
+        "building": "yes",
+        "description": "Checkpost",
+        "information": "office",
+        "name": "Sargamatha National Park Entry",
+        "tourism": "information"
+      },
+      "distanceAlongTrail": 101.48806141403008,
+      "distanceFromTrail": 0.01603842563883581
+    },
+    {
+      "id": 13842134501,
+      "type": "node",
+      "category": "camping",
+      "lat": 27.7801185,
+      "lon": 86.7225312,
+      "name": null,
+      "tags": {
+        "tourism": "camp_site"
+      },
+      "distanceAlongTrail": 102.35498697552704,
+      "distanceFromTrail": 0.01801258315792107
+    },
+    {
+      "id": 12793952601,
+      "type": "node",
+      "category": "water",
+      "lat": 27.7934075,
+      "lon": 86.7159735,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 104.61930569478443,
+      "distanceFromTrail": 0.012358266232274276
+    },
+    {
+      "id": 11704147066,
+      "type": "node",
+      "category": "water",
+      "lat": 27.7952417,
+      "lon": 86.7153925,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 104.84183144636984,
+      "distanceFromTrail": 0.011787750624180764
+    },
+    {
+      "id": 344931638,
+      "type": "way",
+      "category": "emergency",
+      "lat": 27.7997054,
+      "lon": 86.7106915,
+      "name": "Sargamatha National Park Entry",
+      "tags": {
+        "amenity": "police",
+        "building": "yes",
+        "description": "Checkpost",
+        "name": "Sargamatha National Park Entry"
+      },
+      "distanceAlongTrail": 105.61893332730813,
+      "distanceFromTrail": 0.009889925553575077
+    },
+    {
+      "id": 11245070713,
+      "type": "node",
+      "category": "water",
+      "lat": 27.7999337,
+      "lon": 86.7109399,
+      "name": null,
+      "tags": {
+        "amenity": "drinking_water"
+      },
+      "distanceAlongTrail": 105.64801866669427,
+      "distanceFromTrail": 0.01059063672959022
+    },
+    {
+      "id": 13266930703,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8015459,
+      "lon": 86.7113192,
+      "name": "Ukali Café",
+      "tags": {
+        "amenity": "cafe",
+        "name": "Ukali Café"
+      },
+      "distanceAlongTrail": 105.83824022832503,
+      "distanceFromTrail": 0.010798057062619795
+    },
+    {
+      "id": 344881860,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8015993,
+      "lon": 86.7112964,
+      "name": "Syresh Cafe",
+      "tags": {
+        "amenity": "cafe",
+        "building": "yes",
+        "name": "Syresh Cafe"
+      },
+      "distanceAlongTrail": 105.84365083671496,
+      "distanceFromTrail": 0.014116509036731888
+    },
+    {
+      "id": 312775877,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8017838,
+      "lon": 86.7112431,
+      "name": "Hotel Tibetane Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Hotel Tibetane Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 105.87288740060231,
+      "distanceFromTrail": 0.012194142957324943
+    },
+    {
+      "id": 312775921,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8022081,
+      "lon": 86.7110807,
+      "name": "Solukhumbu Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Solukhumbu Restaurant"
+      },
+      "distanceAlongTrail": 105.92727731468044,
+      "distanceFromTrail": 0.012735000495842344
+    },
+    {
+      "id": 11245012978,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8024034,
+      "lon": 86.710856,
+      "name": null,
+      "tags": {
+        "amenity": "drinking_water"
+      },
+      "distanceAlongTrail": 105.96737312036294,
+      "distanceFromTrail": 0.009117977614454605
+    },
+    {
+      "id": 12801708793,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8034023,
+      "lon": 86.7096048,
+      "name": "Stupa cafe",
+      "tags": {
+        "amenity": "cafe",
+        "name": "Stupa cafe"
+      },
+      "distanceAlongTrail": 106.1124606054569,
+      "distanceFromTrail": 0.06611468119425185
+    },
+    {
+      "id": 12801774023,
+      "type": "node",
+      "category": "emergency",
+      "lat": 27.8041772,
+      "lon": 86.7116492,
+      "name": "Um Hong Gil Namche Community Hospital",
+      "tags": {
+        "amenity": "hospital",
+        "name": "Um Hong Gil Namche Community Hospital"
+      },
+      "distanceAlongTrail": 106.2170769766244,
+      "distanceFromTrail": 0.11422945457271101
+    },
+    {
+      "id": 9644504817,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8040562,
+      "lon": 86.7101048,
+      "name": null,
+      "tags": {
+        "amenity": "restaurant",
+        "internet_access": "wlan",
+        "name:en": "The Hungry Yak"
+      },
+      "distanceAlongTrail": 106.29676698882771,
+      "distanceFromTrail": 0.004619057276740561
+    },
+    {
+      "id": 13798478401,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.8041508,
+      "lon": 86.7101549,
+      "name": null,
+      "tags": {
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 106.3080377809855,
+      "distanceFromTrail": 0.0074300525542414725
+    },
+    {
+      "id": 5322573111,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8041816,
+      "lon": 86.7102196,
+      "name": "Pizza House & Cake Shop",
+      "tags": {
+        "amenity": "cafe",
+        "name": "Pizza House & Cake Shop"
+      },
+      "distanceAlongTrail": 106.31470927550197,
+      "distanceFromTrail": 0.004652059096719291
+    },
+    {
+      "id": 5322573112,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8042645,
+      "lon": 86.7104058,
+      "name": "Irish Pub",
+      "tags": {
+        "amenity": "pub",
+        "name": "Irish Pub"
+      },
+      "distanceAlongTrail": 106.33341392898257,
+      "distanceFromTrail": 0.0037452441545843193
+    },
+    {
+      "id": 4417284097,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.8044224,
+      "lon": 86.7104613,
+      "name": null,
+      "tags": {
+        "name:en": "Namche Bakery",
+        "shop": "bakery"
+      },
+      "distanceAlongTrail": 106.34588580418882,
+      "distanceFromTrail": 0.009399709448361764
+    },
+    {
+      "id": 4529329989,
+      "type": "node",
+      "category": "emergency",
+      "lat": 27.8045043,
+      "lon": 86.7105182,
+      "name": null,
+      "tags": {
+        "amenity": "clinic",
+        "emergency": "yes",
+        "healthcare": "clinic",
+        "internet_access": "wlan",
+        "name:en": "Mountain Medical Institute",
+        "opening_hours": "24/7",
+        "phone": "+9779851051988"
+      },
+      "distanceAlongTrail": 106.36673547792424,
+      "distanceFromTrail": 0.014246343569676113
+    },
+    {
+      "id": 4518666091,
+      "type": "node",
+      "category": "emergency",
+      "lat": 27.8045436,
+      "lon": 86.710437,
+      "name": "Lord Buddha Pharmacy",
+      "tags": {
+        "amenity": "pharmacy",
+        "name": "Lord Buddha Pharmacy",
+        "name:en": "Lord Buddha Pharmacy"
+      },
+      "distanceAlongTrail": 106.36826500252168,
+      "distanceFromTrail": 0.0052717949654575045
+    },
+    {
+      "id": 4518652593,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8045508,
+      "lon": 86.7105303,
+      "name": null,
+      "tags": {
+        "amenity": "restaurant",
+        "internet_access": "wlan",
+        "name:en": "Cafe de 8848"
+      },
+      "distanceAlongTrail": 106.37201166684586,
+      "distanceFromTrail": 0.013686965052876345
+    },
+    {
+      "id": 10206424517,
+      "type": "node",
+      "category": "emergency",
+      "lat": 27.8046231,
+      "lon": 86.7104411,
+      "name": null,
+      "tags": {
+        "amenity": "pharmacy",
+        "email": "Themountainmedical@gmail.com",
+        "name:en": "Pharmacy : Managed by the Mountain Medical Institute",
+        "opening_hours": "Mo-Su 7:00 -21:00",
+        "phone": "9862124807"
+      },
+      "distanceAlongTrail": 106.37675406510745,
+      "distanceFromTrail": 0.0027730046107453843
+    },
+    {
+      "id": 12801767287,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8046597,
+      "lon": 86.7104401,
+      "name": "Highcamp cafe",
+      "tags": {
+        "amenity": "restaurant",
+        "name": "Highcamp cafe"
+      },
+      "distanceAlongTrail": 106.38056970852666,
+      "distanceFromTrail": 0.0013541052592269997
+    },
+    {
+      "id": 13614736529,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8045153,
+      "lon": 86.7110331,
+      "name": null,
+      "tags": {
+        "amenity": "restaurant",
+        "cuisine": "regional",
+        "name:en": "Ama-Dablam restaraunt"
+      },
+      "distanceAlongTrail": 106.38439155633183,
+      "distanceFromTrail": 0.06172861968079688
+    },
+    {
+      "id": 312775943,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8046581,
+      "lon": 86.7108061,
+      "name": "Thamersku View Lodge and Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "building:levels": "3",
+        "cuisine": "regional",
+        "name": "Thamersku View Lodge and Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 106.3921297328257,
+      "distanceFromTrail": 0.035446527625294176
+    },
+    {
+      "id": 13272210101,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.8051186,
+      "lon": 86.7133351,
+      "name": null,
+      "tags": {
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 106.40107328249319,
+      "distanceFromTrail": 0.28107880598375
+    },
+    {
+      "id": 13614736531,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.8047771,
+      "lon": 86.712977,
+      "name": null,
+      "tags": {
+        "shop": "kiosk"
+      },
+      "distanceAlongTrail": 106.40107328249319,
+      "distanceFromTrail": 0.2442149667896847
+    },
+    {
+      "id": 6357815586,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8048689,
+      "lon": 86.7105902,
+      "name": "Sherpa Barista",
+      "tags": {
+        "amenity": "cafe",
+        "cuisine": "coffee_shop;local",
+        "email": "pasang21@gmail.com",
+        "internet_access": "wlan",
+        "name": "Sherpa Barista",
+        "name:en": "Sherpa Barista",
+        "operator": "Pasang Tsering Sherpa",
+        "phone": "+9779852850033",
+        "website": "http://www.sherpabarista.com"
+      },
+      "distanceAlongTrail": 106.40107328249319,
+      "distanceFromTrail": 0.009974038498532204
+    },
+    {
+      "id": 300645654,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8047507,
+      "lon": 86.7127679,
+      "name": "Yeti Mountain Home",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Yeti Mountain Home",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 106.40107328249319,
+      "distanceFromTrail": 0.22376541224051205
+    },
+    {
+      "id": 312775875,
+      "type": "way",
+      "category": "camping",
+      "lat": 27.8046065,
+      "lon": 86.7133436,
+      "name": null,
+      "tags": {
+        "tourism": "camp_site"
+      },
+      "distanceAlongTrail": 106.40107328249319,
+      "distanceFromTrail": 0.2813590582500317
+    },
+    {
+      "id": 312775888,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8057123,
+      "lon": 86.7114938,
+      "name": "home away from home",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "check_date": "2025-12",
+        "cuisine": "regional",
+        "name": "home away from home",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 106.40107328249319,
+      "distanceFromTrail": 0.13820975128373766
+    },
+    {
+      "id": 312775932,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8053114,
+      "lon": 86.7134804,
+      "name": "Mustang Guest House and Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Mustang Guest House and Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 106.40107328249319,
+      "distanceFromTrail": 0.2983133909518487
+    },
+    {
+      "id": 312775979,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8057985,
+      "lon": 86.7116458,
+      "name": "Moonlight Lodge and Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "building:levels": "4",
+        "check_date": "2025-12",
+        "cuisine": "regional",
+        "name": "Moonlight Lodge and Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 106.40107328249319,
+      "distanceFromTrail": 0.15562223008592582
+    },
+    {
+      "id": 4529329189,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8048307,
+      "lon": 86.7103168,
+      "name": null,
+      "tags": {
+        "amenity": "cafe",
+        "cuisine": "coffee_shop",
+        "internet_access": "wlan",
+        "name:en": "Himalayan Java Namche Bazar",
+        "opening_hours": "Mo-Su 06:00-20:00",
+        "phone": "+97738540054"
+      },
+      "distanceAlongTrail": 106.4161547642738,
+      "distanceFromTrail": 0.008967038790530507
+    },
+    {
+      "id": 12801783008,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8051428,
+      "lon": 86.7096425,
+      "name": "Yakbuck Coffee",
+      "tags": {
+        "amenity": "cafe",
+        "name": "Yakbuck Coffee"
+      },
+      "distanceAlongTrail": 106.48592992252915,
+      "distanceFromTrail": 0.007429926003468062
+    },
+    {
+      "id": 425189497,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.8048185,
+      "lon": 86.7096193,
+      "name": "Hermann Helmers Bäckerei und Konditorei",
+      "tags": {
+        "name": "Hermann Helmers Bäckerei und Konditorei",
+        "shop": "bakery"
+      },
+      "distanceAlongTrail": 106.48592992252915,
+      "distanceFromTrail": 0.03758064226639728
+    },
+    {
+      "id": 312775879,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8049676,
+      "lon": 86.7094951,
+      "name": null,
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 106.48592992252915,
+      "distanceFromTrail": 0.029491702917469845
+    },
+    {
+      "id": 13794064901,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.8052285,
+      "lon": 86.7097273,
+      "name": null,
+      "tags": {
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 106.49391921501933,
+      "distanceFromTrail": 0.00481819299529668
+    },
+    {
+      "id": 300645638,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8054016,
+      "lon": 86.7093485,
+      "name": "Alpine Lodge Cafe and Grill",
+      "tags": {
+        "amenity": "cafe",
+        "building": "yes",
+        "cuisine": "regional;grill",
+        "name": "Alpine Lodge Cafe and Grill",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 106.55551281522102,
+      "distanceFromTrail": 0.008036960264822483
+    },
+    {
+      "id": 6904613985,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.8052353,
+      "lon": 86.7093091,
+      "name": null,
+      "tags": {
+        "amenity": "post_office",
+        "name:en": "Namche Post Office"
+      },
+      "distanceAlongTrail": 106.56427976074158,
+      "distanceFromTrail": 0.008699276504938803
+    },
+    {
+      "id": 300645656,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8054054,
+      "lon": 86.7091719,
+      "name": "Zamling Guesthouse",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Zamling Guesthouse",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 106.57211020405808,
+      "distanceFromTrail": 0.013176134087107747
+    },
+    {
+      "id": 12794072101,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8041232,
+      "lon": 86.7086125,
+      "name": "Hotel Everest",
+      "tags": {
+        "amenity": "restaurant",
+        "name": "Hotel Everest"
+      },
+      "distanceAlongTrail": 106.7047285300839,
+      "distanceFromTrail": 0.0810997562443925
+    },
+    {
+      "id": 12818411101,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8129473,
+      "lon": 86.7111337,
+      "name": null,
+      "tags": {
+        "man_made": "water_tap"
+      },
+      "distanceAlongTrail": 108.187343628142,
+      "distanceFromTrail": 0.0063680778724054905
+    },
+    {
+      "id": 12778108365,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8106279,
+      "lon": 86.7151532,
+      "name": null,
+      "tags": {
+        "amenity": "cafe",
+        "ele": "3775",
+        "opening_hours": "07:00-16:00"
+      },
+      "distanceAlongTrail": 108.74664106361377,
+      "distanceFromTrail": 0.27318480893723834
+    },
+    {
+      "id": 13838834401,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8155641,
+      "lon": 86.6883087,
+      "name": null,
+      "tags": {
+        "man_made": "water_tap"
+      },
+      "distanceAlongTrail": 109.41338899080176,
+      "distanceFromTrail": 0.013308423037417546
+    },
+    {
+      "id": 11738199848,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8222447,
+      "lon": 86.7172861,
+      "name": "Khumjung snooker house",
+      "tags": {
+        "amenity": "pub",
+        "name": "Khumjung snooker house",
+        "sport": "snooker"
+      },
+      "distanceAlongTrail": 109.66846984353433,
+      "distanceFromTrail": 0.012994173624708142
+    },
+    {
+      "id": 11738190127,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.8225819,
+      "lon": 86.7192083,
+      "name": null,
+      "tags": {
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 109.8654947914962,
+      "distanceFromTrail": 0.00649065544862571
+    },
+    {
+      "id": 12816665202,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8250566,
+      "lon": 86.7177527,
+      "name": null,
+      "tags": {
+        "man_made": "water_tap"
+      },
+      "distanceAlongTrail": 109.95729208540003,
+      "distanceFromTrail": 0.19848038938066948
+    },
+    {
+      "id": 13798012901,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8236623,
+      "lon": 86.7152013,
+      "name": null,
+      "tags": {
+        "man_made": "water_tap"
+      },
+      "distanceAlongTrail": 110.17187629199057,
+      "distanceFromTrail": 0.07062984052505578
+    },
+    {
+      "id": 11738190126,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8234565,
+      "lon": 86.7224863,
+      "name": "Momo restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "name": "Momo restaurant"
+      },
+      "distanceAlongTrail": 110.21320009019287,
+      "distanceFromTrail": 0.005132657220968589
+    },
+    {
+      "id": 11247420047,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8250599,
+      "lon": 86.7159034,
+      "name": null,
+      "tags": {
+        "amenity": "drinking_water"
+      },
+      "distanceAlongTrail": 110.26951091947772,
+      "distanceFromTrail": 0.06480046531216989
+    },
+    {
+      "id": 11738181579,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8237861,
+      "lon": 86.7233053,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 110.30631681018397,
+      "distanceFromTrail": 0.00821093103066907
+    },
+    {
+      "id": 5197675428,
+      "type": "node",
+      "category": "camping",
+      "lat": 27.8113717,
+      "lon": 86.6809505,
+      "name": null,
+      "tags": {
+        "amenity": "shelter"
+      },
+      "distanceAlongTrail": 110.41438018960616,
+      "distanceFromTrail": 0.6380875335669757
+    },
+    {
+      "id": 14356287501,
+      "type": "node",
+      "category": "camping",
+      "lat": 27.8233336,
+      "lon": 86.6852707,
+      "name": "ESL Everest Summit Lodge Mende",
+      "tags": {
+        "check_date": "2026-11-07",
+        "name": "ESL Everest Summit Lodge Mende",
+        "name:en": "ESL Everest Summit Lodge Mende",
+        "tourism": "alpine_hut"
+      },
+      "distanceAlongTrail": 110.91337772838389,
+      "distanceFromTrail": 0.4491872146338746
+    },
+    {
+      "id": 13838629301,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8221593,
+      "lon": 86.6784938,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 111.31298427548325,
+      "distanceFromTrail": 0.003831711039254146
+    },
+    {
+      "id": 45019553,
+      "type": "way",
+      "category": "emergency",
+      "lat": 27.8237967,
+      "lon": 86.7047237,
+      "name": "Hillary Hospital",
+      "tags": {
+        "amenity": "hospital",
+        "building": "yes",
+        "healthcare": "hospital",
+        "name": "Hillary Hospital"
+      },
+      "distanceAlongTrail": 111.42236963581486,
+      "distanceFromTrail": 0.03802164384135722
+    },
+    {
+      "id": 11247374006,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8228249,
+      "lon": 86.7036674,
+      "name": null,
+      "tags": {
+        "amenity": "drinking_water"
+      },
+      "distanceAlongTrail": 111.45152813521516,
+      "distanceFromTrail": 0.12437069214990117
+    },
+    {
+      "id": 11247460228,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8200624,
+      "lon": 86.7014073,
+      "name": null,
+      "tags": {
+        "drinking_water": "yes",
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 111.46349297886377,
+      "distanceFromTrail": 0.4944870083075704
+    },
+    {
+      "id": 11247434190,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8229854,
+      "lon": 86.7057665,
+      "name": null,
+      "tags": {
+        "amenity": "drinking_water"
+      },
+      "distanceAlongTrail": 111.58120620102747,
+      "distanceFromTrail": 0.00035695676766201936
+    },
+    {
+      "id": 11738185463,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8217584,
+      "lon": 86.7163075,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 111.7425773308389,
+      "distanceFromTrail": 0.004116829686109365
+    },
+    {
+      "id": 620391629,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8393206,
+      "lon": 86.7356599,
+      "name": "Mountain View Lodge & Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "name": "Mountain View Lodge & Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 113.97906278193935,
+      "distanceFromTrail": 0.00868886446983143
+    },
+    {
+      "id": 620391623,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8396223,
+      "lon": 86.7357053,
+      "name": "Snow Land View Lodge & Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "name": "Snow Land View Lodge & Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 113.99480852498364,
+      "distanceFromTrail": 0.017711499579201602
+    },
+    {
+      "id": 620391630,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8394445,
+      "lon": 86.7360975,
+      "name": "Hill Top Lodge & Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "name": "Hill Top Lodge & Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 114.0226090190965,
+      "distanceFromTrail": 0.011365725642370657
+    },
+    {
+      "id": 620391631,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8394023,
+      "lon": 86.7363977,
+      "name": "Viewpoint Lodge",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Viewpoint Lodge",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 114.0226090190965,
+      "distanceFromTrail": 0.040724991928824165
+    },
+    {
+      "id": 7040373086,
+      "type": "node",
+      "category": "camping",
+      "lat": 27.8335918,
+      "lon": 86.6514309,
+      "name": null,
+      "tags": {
+        "amenity": "shelter"
+      },
+      "distanceAlongTrail": 114.72151204387959,
+      "distanceFromTrail": 0.21133695443508085
+    },
+    {
+      "id": 11287676461,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8316738,
+      "lon": 86.650626,
+      "name": null,
+      "tags": {
+        "amenity": "drinking_water"
+      },
+      "distanceAlongTrail": 114.79648717546863,
+      "distanceFromTrail": 0.000038867451154216564
+    },
+    {
+      "id": 13595803624,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.8321289,
+      "lon": 86.6499129,
+      "name": "Khaling Grocery Shop",
+      "tags": {
+        "name": "Khaling Grocery Shop",
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 114.92304518610602,
+      "distanceFromTrail": 0.015196306393137697
+    },
+    {
+      "id": 11287774492,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8299091,
+      "lon": 86.6431051,
+      "name": null,
+      "tags": {
+        "amenity": "drinking_water",
+        "fee": "no"
+      },
+      "distanceAlongTrail": 115.08217863768752,
+      "distanceFromTrail": 0.5983988415985558
+    },
+    {
+      "id": 620391593,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8473936,
+      "lon": 86.7425964,
+      "name": "Phortse Tenga Guest House",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "name": "Phortse Tenga Guest House",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 115.3431068776232,
+      "distanceFromTrail": 0.010708744529274056
+    },
+    {
+      "id": 11287799826,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8388334,
+      "lon": 86.6456717,
+      "name": null,
+      "tags": {
+        "amenity": "drinking_water"
+      },
+      "distanceAlongTrail": 115.9874487979359,
+      "distanceFromTrail": 0.004887890762544139
+    },
+    {
+      "id": 343884306,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8671648,
+      "lon": 86.7313287,
+      "name": "Alpine Cottage",
+      "tags": {
+        "addr:street": "Dole village",
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "internet_access": "wlan",
+        "name": "Alpine Cottage",
+        "name:en": "Alpine Cottage Dole",
+        "opening_hours": "24/7",
+        "operator": "Lhakpa Diki Sherpa",
+        "phone": "977-9807602841",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 118.99275583575309,
+      "distanceFromTrail": 0.0628029857456719
+    },
+    {
+      "id": 343884314,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8665855,
+      "lon": 86.7316053,
+      "name": "Norling Lodge & Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Norling Lodge & Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 118.99695807292389,
+      "distanceFromTrail": 0.006989190056336436
+    },
+    {
+      "id": 642521290,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8665048,
+      "lon": 86.731093,
+      "name": "Thamersku View Lodge & Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Thamersku View Lodge & Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 119.04616544985122,
+      "distanceFromTrail": 0.006858580761748862
+    },
+    {
+      "id": 642521292,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8666672,
+      "lon": 86.7309985,
+      "name": "Himalayan Lodge",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "ele": "4045",
+        "name": "Himalayan Lodge",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 119.05452726435155,
+      "distanceFromTrail": 0.01164726986068209
+    },
+    {
+      "id": 343884311,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8666879,
+      "lon": 86.7307937,
+      "name": "Namaste Lodge",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Namaste Lodge",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 119.08170456002864,
+      "distanceFromTrail": 0.010193532878543332
+    },
+    {
+      "id": 343884309,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8681046,
+      "lon": 86.7305105,
+      "name": "Dole Resort",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Dole Resort",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 119.29617587553032,
+      "distanceFromTrail": 0.012108771602750003
+    },
+    {
+      "id": 343884310,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8679083,
+      "lon": 86.7298516,
+      "name": "Yeti Inn",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "name": "Yeti Inn",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 119.32936257843505,
+      "distanceFromTrail": 0.037874539320583406
+    },
+    {
+      "id": 13838238914,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.8698104,
+      "lon": 86.6412068,
+      "name": null,
+      "tags": {
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 119.9304633715161,
+      "distanceFromTrail": 0.007348624553750663
+    },
+    {
+      "id": 13838238912,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8698406,
+      "lon": 86.641329,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 119.93122465564029,
+      "distanceFromTrail": 0.0051006593956851734
+    },
+    {
+      "id": 13838238910,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8834771,
+      "lon": 86.6378525,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 121.5908372341232,
+      "distanceFromTrail": 0.01702494437751495
+    },
+    {
+      "id": 13838238709,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8855165,
+      "lon": 86.6382994,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 121.82542561590202,
+      "distanceFromTrail": 0.008886887104318208
+    },
+    {
+      "id": 343884291,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8925031,
+      "lon": 86.718406,
+      "name": "Hhangtegeview Lodge & Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Hhangtegeview Lodge & Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 122.83715815563225,
+      "distanceFromTrail": 0.08817500054871678
+    },
+    {
+      "id": 11733965293,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8959746,
+      "lon": 86.7256965,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 123.04930565709635,
+      "distanceFromTrail": 0.6550702718935943
+    },
+    {
+      "id": 13838238908,
+      "type": "node",
+      "category": "camping",
+      "lat": 27.8989722,
+      "lon": 86.6365831,
+      "name": null,
+      "tags": {
+        "amenity": "shelter"
+      },
+      "distanceAlongTrail": 123.4052104814453,
+      "distanceFromTrail": 0.0001732580852124024
+    },
+    {
+      "id": 13838239103,
+      "type": "node",
+      "category": "water",
+      "lat": 27.9038622,
+      "lon": 86.6365525,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 123.99885054899407,
+      "distanceFromTrail": 0.004278691866156413
+    },
+    {
+      "id": 343881576,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.901661,
+      "lon": 86.716879,
+      "name": "Himalayan Lodge",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "diet:vegan": "yes",
+        "diet:vegetarian": "yes",
+        "internet_access": "wlan",
+        "name": "Himalayan Lodge",
+        "opening_hours": "24/7",
+        "operator": "Mingma Diki Sherpa",
+        "phone": "+977 981 3527087",
+        "tourism": "guest_house",
+        "wheelchair": "no"
+      },
+      "distanceAlongTrail": 124.00469050065577,
+      "distanceFromTrail": 0.06026817759139748
+    },
+    {
+      "id": 343881573,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.9018729,
+      "lon": 86.7159089,
+      "name": "Peaceful Lodge & Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Peaceful Lodge & Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 124.09397706206093,
+      "distanceFromTrail": 0.019389817605756744
+    },
+    {
+      "id": 343881569,
+      "type": "way",
+      "category": "emergency",
+      "lat": 27.9053086,
+      "lon": 86.7118731,
+      "name": "Machermo Rescue Post & Porter Shelter",
+      "tags": {
+        "addr:street": "Machermo",
+        "amenity": "clinic",
+        "building": "yes",
+        "ele": "4470",
+        "healthcare": "clinic",
+        "healthcare:speciality": "High_Altitude_related_sickness",
+        "name": "Machermo Rescue Post & Porter Shelter",
+        "operator": "IPPG"
+      },
+      "distanceAlongTrail": 124.20712550117207,
+      "distanceFromTrail": 0.4538806707393994
+    },
+    {
+      "id": 343647139,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.9031265,
+      "lon": 86.7156596,
+      "name": null,
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name:en": "Yeti Lodge",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 124.28504077442192,
+      "distanceFromTrail": 0.026484882217694076
+    },
+    {
+      "id": 6791631885,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.9035354,
+      "lon": 86.7152471,
+      "name": "Machermo Bakery",
+      "tags": {
+        "addr:city": "Khumjung 2, Machermo",
+        "addr:postcode": "56000",
+        "addr:street": "Gokyo Lake Marg",
+        "email": "namgyal.lodge@gmail.com",
+        "internet_access": "wlan",
+        "name": "Machermo Bakery",
+        "name:en": "Machermo Bakery",
+        "opening_hours": "Mo-Su 06:30-21:00",
+        "operator": "Jimmi Sherpa",
+        "payment:cash": "yes",
+        "payment:credit_cards": "yes",
+        "payment:mastercard": "yes",
+        "payment:visa": "yes",
+        "phone": "9810118840",
+        "shop": "bakery",
+        "website": "https://machermo.business.site/"
+      },
+      "distanceAlongTrail": 124.31699158648163,
+      "distanceFromTrail": 0.07767556515843867
+    },
+    {
+      "id": 3504551681,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.9038572,
+      "lon": 86.7153648,
+      "name": "Trekkers Lodge & Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "name": "Trekkers Lodge & Restaurant"
+      },
+      "distanceAlongTrail": 124.32020191813716,
+      "distanceFromTrail": 0.08524778347321332
+    },
+    {
+      "id": 343881563,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.9033927,
+      "lon": 86.7161725,
+      "name": null,
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name:en": "Dawa Friendship Lodge & Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 124.33203278842628,
+      "distanceFromTrail": 0.008706293140226706
+    },
+    {
+      "id": 13838238805,
+      "type": "node",
+      "category": "water",
+      "lat": 27.906991,
+      "lon": 86.6357539,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 124.36120628102235,
+      "distanceFromTrail": 0.0057887573122429575
+    },
+    {
+      "id": 4415941289,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.9152624,
+      "lon": 86.7129659,
+      "name": null,
+      "tags": {
+        "amenity": "restaurant",
+        "name:de": "Fanga View Point Lodge"
+      },
+      "distanceAlongTrail": 126.00140233584024,
+      "distanceFromTrail": 0.0033492778103740867
+    },
+    {
+      "id": 12813608502,
+      "type": "node",
+      "category": "water",
+      "lat": 27.916903,
+      "lon": 86.712419,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 126.1933487114289,
+      "distanceFromTrail": 0.006892627263746404
+    },
+    {
+      "id": 13838238708,
+      "type": "node",
+      "category": "camping",
+      "lat": 27.9251745,
+      "lon": 86.6439073,
+      "name": null,
+      "tags": {
+        "amenity": "shelter"
+      },
+      "distanceAlongTrail": 126.75326457994974,
+      "distanceFromTrail": 0.01191680181318965
+    },
+    {
+      "id": 12813609402,
+      "type": "node",
+      "category": "camping",
+      "lat": 27.9252821,
+      "lon": 86.7085355,
+      "name": null,
+      "tags": {
+        "amenity": "shelter"
+      },
+      "distanceAlongTrail": 127.28526088329855,
+      "distanceFromTrail": 0.0026638727365833397
+    },
+    {
+      "id": 11778622287,
+      "type": "node",
+      "category": "water",
+      "lat": 27.9297749,
+      "lon": 86.7077199,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 127.81664817649119,
+      "distanceFromTrail": 0.007423871766192706
+    },
+    {
+      "id": 11778622288,
+      "type": "node",
+      "category": "water",
+      "lat": 27.9298417,
+      "lon": 86.7077486,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 127.8245931205865,
+      "distanceFromTrail": 0.0074451992054598405
+    },
+    {
+      "id": 11778622289,
+      "type": "node",
+      "category": "water",
+      "lat": 27.9299076,
+      "lon": 86.7077752,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 127.8323708641779,
+      "distanceFromTrail": 0.007623444185986299
+    },
+    {
+      "id": 11778622290,
+      "type": "node",
+      "category": "water",
+      "lat": 27.9299659,
+      "lon": 86.7078029,
+      "name": null,
+      "tags": {
+        "amenity": "place_of_worship",
+        "natural": "spring",
+        "place_of_worship": "wayside_shrine"
+      },
+      "distanceAlongTrail": 127.83939796440895,
+      "distanceFromTrail": 0.007398730154906997
+    },
+    {
+      "id": 13838239005,
+      "type": "node",
+      "category": "water",
+      "lat": 27.938773,
+      "lon": 86.6455259,
+      "name": null,
+      "tags": {
+        "drinking_water": "yes",
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 128.6117802515393,
+      "distanceFromTrail": 0.02404789035033965
+    },
+    {
+      "id": 12813608302,
+      "type": "node",
+      "category": "water",
+      "lat": 27.9385542,
+      "lon": 86.7033509,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 128.97357263240553,
+      "distanceFromTrail": 0.012019197803135276
+    },
+    {
+      "id": 12813609401,
+      "type": "node",
+      "category": "camping",
+      "lat": 27.9404768,
+      "lon": 86.7015102,
+      "name": null,
+      "tags": {
+        "amenity": "shelter"
+      },
+      "distanceAlongTrail": 129.27404314066507,
+      "distanceFromTrail": 0.00278017313308176
+    },
+    {
+      "id": 11733866053,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.9534547,
+      "lon": 86.694026,
+      "name": "Nepali Kitchen",
+      "tags": {
+        "amenity": "restaurant",
+        "name": "Nepali Kitchen"
+      },
+      "distanceAlongTrail": 130.99125338217019,
+      "distanceFromTrail": 0.04961344226286575
+    },
+    {
+      "id": 13838238904,
+      "type": "node",
+      "category": "water",
+      "lat": 27.9469979,
+      "lon": 86.662574,
+      "name": null,
+      "tags": {
+        "drinking_water": "yes",
+        "elevation": "5263",
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 131.42219243045503,
+      "distanceFromTrail": 0.028043722170787808
+    },
+    {
+      "id": 13838238803,
+      "type": "node",
+      "category": "water",
+      "lat": 27.951251,
+      "lon": 86.6751915,
+      "name": null,
+      "tags": {
+        "drinking_water": "yes",
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 132.89638064545528,
+      "distanceFromTrail": 0.0064482226765737675
+    },
+    {
+      "id": 13596856120,
+      "type": "node",
+      "category": "camping",
+      "lat": 27.9512369,
+      "lon": 86.6773841,
+      "name": null,
+      "tags": {
+        "amenity": "shelter"
+      },
+      "distanceAlongTrail": 133.12605078728146,
+      "distanceFromTrail": 0.007565416471517514
+    },
+    {
+      "id": 11445668769,
+      "type": "node",
+      "category": "emergency",
+      "lat": 27.953892,
+      "lon": 86.694345,
+      "name": null,
+      "tags": {
+        "amenity": "clinic",
+        "email": "gokyoclinic2019@gmail.com",
+        "internet_access": "wlan",
+        "name:en": "Gokyo International Health Care Center",
+        "opening_hours": "24/7",
+        "phone": "+977 981-3999483;+977 18952830"
+      },
+      "distanceAlongTrail": 135.02905370664547,
+      "distanceFromTrail": 0.004984498926509238
+    },
+    {
+      "id": 13838239004,
+      "type": "node",
+      "category": "camping",
+      "lat": 27.9666266,
+      "lon": 86.6911874,
+      "name": null,
+      "tags": {
+        "tourism": "camp_site"
+      },
+      "distanceAlongTrail": 136.57429126236826,
+      "distanceFromTrail": 0.005870404460905412
+    },
+    {
+      "id": 13838239003,
+      "type": "node",
+      "category": "camping",
+      "lat": 27.9420969,
+      "lon": 86.7229508,
+      "name": null,
+      "tags": {
+        "tourism": "camp_site"
+      },
+      "distanceAlongTrail": 138.83193510449723,
+      "distanceFromTrail": 0.011292853699541798
+    },
+    {
+      "id": 13838238704,
+      "type": "node",
+      "category": "water",
+      "lat": 27.951655,
+      "lon": 86.7327773,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 140.3878558157905,
+      "distanceFromTrail": 0.009443565568486521
+    },
+    {
+      "id": 13323728823,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.9394687,
+      "lon": 86.7732793,
+      "name": "cafe de Zongla",
+      "tags": {
+        "amenity": "cafe",
+        "name": "cafe de Zongla"
+      },
+      "distanceAlongTrail": 147.13796688017985,
+      "distanceFromTrail": 0.026773324703393737
+    },
+    {
+      "id": 1482937723,
+      "type": "way",
+      "category": "camping",
+      "lat": 27.9429007,
+      "lon": 86.7914477,
+      "name": "Lobuche High Camp",
+      "tags": {
+        "name": "Lobuche High Camp",
+        "tourism": "camp_site"
+      },
+      "distanceAlongTrail": 148.32059597293585,
+      "distanceFromTrail": 1.0717157401573028
+    },
+    {
+      "id": 11287711463,
+      "type": "node",
+      "category": "water",
+      "lat": 27.9396418,
+      "lon": 86.7916241,
+      "name": null,
+      "tags": {
+        "drinking_water": "yes",
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 148.35411234817713,
+      "distanceFromTrail": 0.8734885735815534
+    },
+    {
+      "id": 11716207950,
+      "type": "node",
+      "category": "water",
+      "lat": 27.923847,
+      "lon": 86.8055362,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 150.55057182996012,
+      "distanceFromTrail": 0.642500976196632
+    },
+    {
+      "id": 11716250457,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.9238642,
+      "lon": 86.8053544,
+      "name": "Thukla Bakery Cafe",
+      "tags": {
+        "amenity": "cafe",
+        "name": "Thukla Bakery Cafe"
+      },
+      "distanceAlongTrail": 150.55057182996012,
+      "distanceFromTrail": 0.6253852877282848
+    },
+    {
+      "id": 12794895534,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.9237347,
+      "lon": 86.8056267,
+      "name": "Rest Point Bakery & Cafe",
+      "tags": {
+        "amenity": "cafe",
+        "name": "Rest Point Bakery & Cafe"
+      },
+      "distanceAlongTrail": 150.55057182996012,
+      "distanceFromTrail": 0.6556883000206842
+    },
+    {
+      "id": 12785681719,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.9479229,
+      "lon": 86.810197,
+      "name": null,
+      "tags": {
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 153.41355331465752,
+      "distanceFromTrail": 0.0001714016459146481
+    },
+    {
+      "id": 11268546032,
+      "type": "node",
+      "category": "water",
+      "lat": 27.9488727,
+      "lon": 86.810376,
+      "name": null,
+      "tags": {
+        "drinking_water": "yes",
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 153.5328870893231,
+      "distanceFromTrail": 0.040197285820315135
+    },
+    {
+      "id": 12813608201,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.9806664,
+      "lon": 86.829092,
+      "name": "Sagarmatha Trekkers Shop",
+      "tags": {
+        "name": "Sagarmatha Trekkers Shop",
+        "name:en": "Sagarmatha Trekkers Shop",
+        "name:ja": "サガルマータ・トレッカーズショップ",
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 157.92629325104272,
+      "distanceFromTrail": 0.0060365742188450795
+    },
+    {
+      "id": 12813608001,
+      "type": "node",
+      "category": "water",
+      "lat": 27.9814444,
+      "lon": 86.8282485,
+      "name": null,
+      "tags": {
+        "man_made": "water_tap"
+      },
+      "distanceAlongTrail": 157.955808513502,
+      "distanceFromTrail": 0.07494127736935427
+    },
+    {
+      "id": 12794884696,
+      "type": "node",
+      "category": "emergency",
+      "lat": 27.9811004,
+      "lon": 86.8294606,
+      "name": "Gorakshep High Altitude Clinic",
+      "tags": {
+        "amenity": "doctors",
+        "healthcare": "doctor",
+        "name": "Gorakshep High Altitude Clinic",
+        "name:en": "Gorakshep High Altitude Clinic",
+        "name:ja": "ゴラクシェップ高山病医院",
+        "opening_hours": "10:00-17:00"
+      },
+      "distanceAlongTrail": 158.0005332407417,
+      "distanceFromTrail": 0.04088296622396863
+    },
+    {
+      "id": 6135785848,
+      "type": "node",
+      "category": "water",
+      "lat": 27.982328,
+      "lon": 86.8287344,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 158.0454453267326,
+      "distanceFromTrail": 0.10642971354883335
+    },
+    {
+      "id": 13838238902,
+      "type": "node",
+      "category": "water",
+      "lat": 27.9758818,
+      "lon": 86.8250159,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 158.70186258419,
+      "distanceFromTrail": 0.021619855381881575
+    },
+    {
+      "id": 12771599701,
+      "type": "node",
+      "category": "camping",
+      "lat": 27.9983698,
+      "lon": 86.8488755,
+      "name": "Asian Trekking",
+      "tags": {
+        "name": "Asian Trekking",
+        "tourism": "camp_site"
+      },
+      "distanceAlongTrail": 161.17947864608684,
+      "distanceFromTrail": 0.013319611780031403
+    },
+    {
+      "id": 5225912921,
+      "type": "node",
+      "category": "camping",
+      "lat": 27.9996646,
+      "lon": 86.8487946,
+      "name": "Everest Base Camp",
+      "tags": {
+        "ele": "5364",
+        "name": "Everest Base Camp",
+        "name:de": "Basislager",
+        "name:en": "Everest Base Camp",
+        "name:fr": "Everest Camp de base",
+        "name:ja": "エベレスト ベースキャンプ",
+        "name:ka": "ევერესტის საბაზო ბანაკი",
+        "name:ko": "에베레스트 베이스 캠프",
+        "name:zh": "珠峰大本营",
+        "tourism": "camp_site",
+        "wikidata": "Q99671286"
+      },
+      "distanceAlongTrail": 161.31326438289926,
+      "distanceFromTrail": 0.0944795776648779
+    },
+    {
+      "id": 12785707767,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.9481871,
+      "lon": 86.8104085,
+      "name": "World's Highest Bakery Cafe",
+      "tags": {
+        "amenity": "cafe",
+        "ele": "4930",
+        "name": "World's Highest Bakery Cafe"
+      },
+      "distanceAlongTrail": 162.490616929786,
+      "distanceFromTrail": 0.015771887643963683
+    },
+    {
+      "id": 13316271870,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.9046019,
+      "lon": 86.8716937,
+      "name": "चुकुङ खाजा घर",
+      "tags": {
+        "amenity": "restaurant",
+        "name": "चुकुङ खाजा घर",
+        "name:en": "Chukhung Khaja Ghar"
+      },
+      "distanceAlongTrail": 172.1273870665796,
+      "distanceFromTrail": 0.02501784366232286
+    },
+    {
+      "id": 12496815727,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.9042953,
+      "lon": 86.8716448,
+      "name": "Cafe De Imja Tse & Bakery",
+      "tags": {
+        "amenity": "cafe",
+        "name": "Cafe De Imja Tse & Bakery",
+        "opening_hours": "Mo-Su 07:00-21:00",
+        "phone": "+9779824775300"
+      },
+      "distanceAlongTrail": 172.13746872712136,
+      "distanceFromTrail": 0.029130483451302314
+    },
+    {
+      "id": 316033105,
+      "type": "way",
+      "category": "camping",
+      "lat": 27.9045615,
+      "lon": 86.8722749,
+      "name": null,
+      "tags": {
+        "tourism": "camp_site"
+      },
+      "distanceAlongTrail": 172.1971565395711,
+      "distanceFromTrail": 0.06539213449574195
+    },
+    {
+      "id": 12667013160,
+      "type": "node",
+      "category": "camping",
+      "lat": 27.9011029,
+      "lon": 86.8618961,
+      "name": "Shepherd's hut",
+      "tags": {
+        "name": "Shepherd's hut",
+        "tourism": "wilderness_hut"
+      },
+      "distanceAlongTrail": 173.2126729898535,
+      "distanceFromTrail": 0.008433717037542537
+    },
+    {
+      "id": 11268560538,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8941013,
+      "lon": 86.8314978,
+      "name": null,
+      "tags": {
+        "drinking_water": "yes",
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 176.45202183973927,
+      "distanceFromTrail": 0.013934515463676961
+    },
+    {
+      "id": 6467317787,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8936268,
+      "lon": 86.8312258,
+      "name": null,
+      "tags": {
+        "amenity": "fast_food",
+        "name:en": "Himalayan Restaurant and Snooker House"
+      },
+      "distanceAlongTrail": 176.57438820166976,
+      "distanceFromTrail": 0.000669682719135026
+    },
+    {
+      "id": 4515143691,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8929171,
+      "lon": 86.8308192,
+      "name": null,
+      "tags": {
+        "amenity": "restaurant"
+      },
+      "distanceAlongTrail": 176.60977284136996,
+      "distanceFromTrail": 0.015177231165485035
+    },
+    {
+      "id": 4515143493,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8926795,
+      "lon": 86.830605,
+      "name": null,
+      "tags": {
+        "amenity": "restaurant",
+        "name:en": "Dingboche Gathering Restaurant"
+      },
+      "distanceAlongTrail": 176.64233693766843,
+      "distanceFromTrail": 0.01234834013077371
+    },
+    {
+      "id": 13286985503,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.8926615,
+      "lon": 86.8304135,
+      "name": null,
+      "tags": {
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 176.65418186765433,
+      "distanceFromTrail": 0.006228765535721015
+    },
+    {
+      "id": 13286996201,
+      "type": "node",
+      "category": "emergency",
+      "lat": 27.8922562,
+      "lon": 86.8296273,
+      "name": null,
+      "tags": {
+        "amenity": "clinic",
+        "name:en": "The Mountain Medical Institute"
+      },
+      "distanceAlongTrail": 176.74467238240533,
+      "distanceFromTrail": 0.008460414046260025
+    },
+    {
+      "id": 4507798791,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.8918375,
+      "lon": 86.8296092,
+      "name": null,
+      "tags": {
+        "addr:street": "Dingboche Village",
+        "name:en": "Dingboche Grocery Store",
+        "shop": "supermarket"
+      },
+      "distanceAlongTrail": 176.78710002066634,
+      "distanceFromTrail": 0.010394185230294629
+    },
+    {
+      "id": 4507799289,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8918345,
+      "lon": 86.8293658,
+      "name": null,
+      "tags": {
+        "addr:street": "Dingboche Village",
+        "amenity": "cafe",
+        "name:en": "Cafe Himalaya"
+      },
+      "distanceAlongTrail": 176.79941269594718,
+      "distanceFromTrail": 0.009433971187027835
+    },
+    {
+      "id": 251433677,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8906622,
+      "lon": 86.8280623,
+      "name": "Khumbu Resort",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "name": "Khumbu Resort",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 176.984972182626,
+      "distanceFromTrail": 0.018743099905056
+    },
+    {
+      "id": 316033160,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8903114,
+      "lon": 86.8280777,
+      "name": "Cafe 4410",
+      "tags": {
+        "amenity": "cafe",
+        "building": "yes",
+        "name": "Cafe 4410",
+        "opening_hours": "07:00-20:00"
+      },
+      "distanceAlongTrail": 177.01514580200913,
+      "distanceFromTrail": 0.006023897830425562
+    },
+    {
+      "id": 316033170,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8946615,
+      "lon": 86.8198595,
+      "name": "Mount Kailash Lodge",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "name": "Mount Kailash Lodge",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 177.05884500353088,
+      "distanceFromTrail": 0.9236400379497851
+    },
+    {
+      "id": 4507799489,
+      "type": "node",
+      "category": "camping",
+      "lat": 27.8901083,
+      "lon": 86.8265745,
+      "name": null,
+      "tags": {
+        "addr:street": "Dingboche Village",
+        "name:en": "Tent City",
+        "tourism": "camp_site"
+      },
+      "distanceAlongTrail": 177.11849842105224,
+      "distanceFromTrail": 0.09402529697772333
+    },
+    {
+      "id": 4515114492,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.889383,
+      "lon": 86.8267426,
+      "name": null,
+      "tags": {
+        "name:en": "French Bakery Cafe",
+        "shop": "bakery"
+      },
+      "distanceAlongTrail": 177.1810710005934,
+      "distanceFromTrail": 0.03055720387585639
+    },
+    {
+      "id": 4515146090,
+      "type": "node",
+      "category": "emergency",
+      "lat": 27.8894158,
+      "lon": 86.8266032,
+      "name": null,
+      "tags": {
+        "amenity": "pharmacy"
+      },
+      "distanceAlongTrail": 177.18726852312219,
+      "distanceFromTrail": 0.043308220989851966
+    },
+    {
+      "id": 4507798789,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8893644,
+      "lon": 86.8266026,
+      "name": null,
+      "tags": {
+        "addr:street": "Dingboche Village",
+        "amenity": "cafe",
+        "internet_access": "wlan",
+        "name:en": "French Bakery"
+      },
+      "distanceAlongTrail": 177.19163176232487,
+      "distanceFromTrail": 0.03961609749025185
+    },
+    {
+      "id": 11733948383,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8941006,
+      "lon": 86.8198439,
+      "name": "Pheriche Snooker House",
+      "tags": {
+        "amenity": "pub",
+        "name": "Pheriche Snooker House",
+        "sport": "snooker"
+      },
+      "distanceAlongTrail": 177.22738663351603,
+      "distanceFromTrail": 0.8865240474708641
+    },
+    {
+      "id": 13286996301,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.8924143,
+      "lon": 86.8199016,
+      "name": "Trekker's Shop",
+      "tags": {
+        "name": "Trekker's Shop",
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 177.26943892617618,
+      "distanceFromTrail": 0.7657090970175091
+    },
+    {
+      "id": 4513566594,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.8928293,
+      "lon": 86.8198907,
+      "name": null,
+      "tags": {
+        "addr:street": "Periche Village",
+        "name:en": "Pherriche Shopping Center",
+        "shop": "supermarket"
+      },
+      "distanceAlongTrail": 177.26943892617618,
+      "distanceFromTrail": 0.7930493697767087
+    },
+    {
+      "id": 620014650,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.867742,
+      "lon": 86.8059979,
+      "name": "Trekkers Loge & Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "name": "Trekkers Loge & Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 180.7446590983747,
+      "distanceFromTrail": 0.016272747283263125
+    },
+    {
+      "id": 4515359690,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8679948,
+      "lon": 86.8058621,
+      "name": null,
+      "tags": {
+        "amenity": "restaurant",
+        "name:en": "Panorama Lunch Place"
+      },
+      "distanceAlongTrail": 180.76338600442818,
+      "distanceFromTrail": 0.0095351579813177
+    },
+    {
+      "id": 10742900805,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8678566,
+      "lon": 86.8057807,
+      "name": null,
+      "tags": {
+        "amenity": "restaurant",
+        "name:en": "Sherpa Friendship",
+        "name:fr": "Sherpa Friendship"
+      },
+      "distanceAlongTrail": 180.7781661231072,
+      "distanceFromTrail": 0.005347932563589968
+    },
+    {
+      "id": 4515309692,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8678685,
+      "lon": 86.8055128,
+      "name": null,
+      "tags": {
+        "amenity": "restaurant",
+        "name:en": "Annapurna Kitchen"
+      },
+      "distanceAlongTrail": 180.8149322596298,
+      "distanceFromTrail": 0.010479920407104859
+    },
+    {
+      "id": 3221984110,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.8676976,
+      "lon": 86.8052402,
+      "name": null,
+      "tags": {
+        "shop": "bakery"
+      },
+      "distanceAlongTrail": 180.8382793099269,
+      "distanceFromTrail": 0.012630396443410106
+    },
+    {
+      "id": 13310624753,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8677769,
+      "lon": 86.8052469,
+      "name": "shomare rest stop",
+      "tags": {
+        "amenity": "restaurant",
+        "name": "shomare rest stop",
+        "name:en": "Shomare rest stop",
+        "name:ne": "shomare rest stop"
+      },
+      "distanceAlongTrail": 180.8390643246132,
+      "distanceFromTrail": 0.0038229924641083207
+    },
+    {
+      "id": 11268564458,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8675936,
+      "lon": 86.8051005,
+      "name": null,
+      "tags": {
+        "amenity": "drinking_water"
+      },
+      "distanceAlongTrail": 180.86746128212184,
+      "distanceFromTrail": 0.013199386673426705
+    },
+    {
+      "id": 6357602885,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8674857,
+      "lon": 86.8051253,
+      "name": null,
+      "tags": {
+        "amenity": "restaurant",
+        "name:en": "Basanta Lunch Spot & Tashi Lodge",
+        "phone": "9824741753"
+      },
+      "distanceAlongTrail": 180.87301990389844,
+      "distanceFromTrail": 0.024107871297549578
+    },
+    {
+      "id": 4515351498,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8676857,
+      "lon": 86.8048845,
+      "name": null,
+      "tags": {
+        "amenity": "restaurant",
+        "name:en": "Sonam Somare"
+      },
+      "distanceAlongTrail": 180.87770758848978,
+      "distanceFromTrail": 0.00803079772084483
+    },
+    {
+      "id": 4515357593,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8675163,
+      "lon": 86.8048395,
+      "name": "Everest kitchen",
+      "tags": {
+        "amenity": "restaurant",
+        "name": "Everest kitchen",
+        "name:en": "Lumbini Restaurant And Bar"
+      },
+      "distanceAlongTrail": 180.8853220049868,
+      "distanceFromTrail": 0.010196779702544083
+    },
+    {
+      "id": 11708159162,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8635566,
+      "lon": 86.7998563,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 181.5887378140062,
+      "distanceFromTrail": 0.004082214511172228
+    },
+    {
+      "id": 12794099140,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8561441,
+      "lon": 86.7927658,
+      "name": "Sherpa Cafe & Bakery",
+      "tags": {
+        "amenity": "cafe",
+        "name": "Sherpa Cafe & Bakery"
+      },
+      "distanceAlongTrail": 182.7947180826862,
+      "distanceFromTrail": 0.007633489970433523
+    },
+    {
+      "id": 12343732921,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8559368,
+      "lon": 86.7919978,
+      "name": "Everest Bakery & Cafe",
+      "tags": {
+        "amenity": "cafe",
+        "name": "Everest Bakery & Cafe",
+        "opening_hours": "Mo-Su 05:30-21:00",
+        "phone": "+9779808009621"
+      },
+      "distanceAlongTrail": 182.89393850720265,
+      "distanceFromTrail": 0.020126346932143106
+    },
+    {
+      "id": 4515357594,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.8554291,
+      "lon": 86.7918125,
+      "name": null,
+      "tags": {
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 182.95228905951467,
+      "distanceFromTrail": 0.04693539615348517
+    },
+    {
+      "id": 619993558,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8552467,
+      "lon": 86.7914177,
+      "name": "Mountain View Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "name": "Mountain View Restaurant"
+      },
+      "distanceAlongTrail": 182.95228905951467,
+      "distanceFromTrail": 0.05430936493737111
+    },
+    {
+      "id": 13286995901,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.8544642,
+      "lon": 86.7905233,
+      "name": "Kulung General Store & Suppliers",
+      "tags": {
+        "name": "Kulung General Store & Suppliers",
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 183.27032193583005,
+      "distanceFromTrail": 0.1410778624075521
+    },
+    {
+      "id": 619993575,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8542736,
+      "lon": 86.7904066,
+      "name": "Highland Sherpa Resort",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "name": "Highland Sherpa Resort",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 183.27032193583005,
+      "distanceFromTrail": 0.15782944563296825
+    },
+    {
+      "id": 619993433,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.856516,
+      "lon": 86.7872439,
+      "name": "Himalayan Lodge",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "name": "Himalayan Lodge",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 183.50163639086873,
+      "distanceFromTrail": 0.12337973641733847
+    },
+    {
+      "id": 4515351501,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.8557578,
+      "lon": 86.7918229,
+      "name": null,
+      "tags": {
+        "name:en": "Himalayan Shopping Center",
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 183.6086545229918,
+      "distanceFromTrail": 0.02682134738097385
+    },
+    {
+      "id": 12813570801,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8562549,
+      "lon": 86.7923019,
+      "name": null,
+      "tags": {
+        "man_made": "water_tap"
+      },
+      "distanceAlongTrail": 183.69858362552466,
+      "distanceFromTrail": 0.003072817470901822
+    },
+    {
+      "id": 619993523,
+      "type": "way",
+      "category": "resupply",
+      "lat": 27.855944,
+      "lon": 86.7932687,
+      "name": "Hermann Bakery",
+      "tags": {
+        "building": "yes",
+        "name": "Hermann Bakery",
+        "shop": "bakery"
+      },
+      "distanceAlongTrail": 183.78895594800304,
+      "distanceFromTrail": 0.012362824104533345
+    },
+    {
+      "id": 11256552591,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8567005,
+      "lon": 86.7933928,
+      "name": null,
+      "tags": {
+        "drinking_water": "yes",
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 183.88611184583934,
+      "distanceFromTrail": 0.008888996282480039
+    },
+    {
+      "id": 11256531490,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8594781,
+      "lon": 86.7967952,
+      "name": null,
+      "tags": {
+        "drinking_water": "yes",
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 184.43155450453042,
+      "distanceFromTrail": 0.0041120211346332034
+    },
+    {
+      "id": 11708157341,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8459228,
+      "lon": 86.7782006,
+      "name": "Tibetan Kitchen",
+      "tags": {
+        "amenity": "restaurant",
+        "name": "Tibetan Kitchen"
+      },
+      "distanceAlongTrail": 185.2779682363563,
+      "distanceFromTrail": 0.01328840896604685
+    },
+    {
+      "id": 4515357595,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8447376,
+      "lon": 86.7775996,
+      "name": null,
+      "tags": {
+        "amenity": "restaurant",
+        "name:en": "Sherpa Pension"
+      },
+      "distanceAlongTrail": 185.42239709090168,
+      "distanceFromTrail": 0.013069917269090328
+    },
+    {
+      "id": 13316274758,
+      "type": "node",
+      "category": "camping",
+      "lat": 27.8400906,
+      "lon": 86.7714294,
+      "name": "Bivouac Spot",
+      "tags": {
+        "name": "Bivouac Spot",
+        "tourism": "camp_site"
+      },
+      "distanceAlongTrail": 186.2550115102989,
+      "distanceFromTrail": 0.009529026761950717
+    },
+    {
+      "id": 11256526027,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8557521,
+      "lon": 86.8187608,
+      "name": null,
+      "tags": {
+        "drinking_water": "yes",
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 186.27609988740323,
+      "distanceFromTrail": 1.2273031641972714
+    },
+    {
+      "id": 11256579426,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8501421,
+      "lon": 86.8226461,
+      "name": null,
+      "tags": {
+        "drinking_water": "yes",
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 186.27609988740323,
+      "distanceFromTrail": 1.9502257594596906
+    },
+    {
+      "id": 11256570074,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8397532,
+      "lon": 86.7714324,
+      "name": null,
+      "tags": {
+        "drinking_water": "yes",
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 186.28390621759033,
+      "distanceFromTrail": 0.009486648408798894
+    },
+    {
+      "id": 11708137267,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8393917,
+      "lon": 86.7704631,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 186.39155440143549,
+      "distanceFromTrail": 0.004419837867003418
+    },
+    {
+      "id": 619979600,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8396074,
+      "lon": 86.7700208,
+      "name": "Rivendell Lodge",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "name": "Rivendell Lodge",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 186.4461624136519,
+      "distanceFromTrail": 0.013508953679335396
+    },
+    {
+      "id": 36479489,
+      "type": "way",
+      "category": "camping",
+      "lat": 27.8548203,
+      "lon": 86.8256301,
+      "name": "Base Camp Amadablam",
+      "tags": {
+        "ele": "4600",
+        "name": "Base Camp Amadablam",
+        "name:en": "Ama Dablam Base Camp",
+        "name:ja": "アマダブラムベースキャンプ",
+        "tourism": "camp_site"
+      },
+      "distanceAlongTrail": 187.0769711396295,
+      "distanceFromTrail": 1.6915573829773494
+    },
+    {
+      "id": 12797574903,
+      "type": "node",
+      "category": "water",
+      "lat": 27.836496,
+      "lon": 86.7649962,
+      "name": null,
+      "tags": {
+        "man_made": "water_tap"
+      },
+      "distanceAlongTrail": 187.1743964999315,
+      "distanceFromTrail": 0.048121831344041945
+    },
+    {
+      "id": 12797574902,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8350567,
+      "lon": 86.7627382,
+      "name": null,
+      "tags": {
+        "man_made": "water_tap"
+      },
+      "distanceAlongTrail": 187.55517039657155,
+      "distanceFromTrail": 0.0033408223970338396
+    },
+    {
+      "id": 11256587743,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8354508,
+      "lon": 86.7550434,
+      "name": null,
+      "tags": {
+        "amenity": "drinking_water"
+      },
+      "distanceAlongTrail": 188.34206475306289,
+      "distanceFromTrail": 0.002468135509640358
+    },
+    {
+      "id": 11256529649,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8355019,
+      "lon": 86.7545974,
+      "name": null,
+      "tags": {
+        "drinking_water": "yes",
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 188.38615171638358,
+      "distanceFromTrail": 0.005911419491165099
+    },
+    {
+      "id": 619955484,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8479305,
+      "lon": 86.7510549,
+      "name": "Peaceful Lodge",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "name": "Peaceful Lodge",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 188.63912903379745,
+      "distanceFromTrail": 0.19888741237252291
+    },
+    {
+      "id": 12797575501,
+      "type": "node",
+      "category": "camping",
+      "lat": 27.8321394,
+      "lon": 86.7466149,
+      "name": null,
+      "tags": {
+        "amenity": "shelter"
+      },
+      "distanceAlongTrail": 189.69027498083372,
+      "distanceFromTrail": 0.005910530908297083
+    },
+    {
+      "id": 4515326790,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8319348,
+      "lon": 86.7464703,
+      "name": "White Tara Lunch Place",
+      "tags": {
+        "amenity": "restaurant",
+        "name": "White Tara Lunch Place",
+        "name:en": "Riverside Restaurant and Lunch Place"
+      },
+      "distanceAlongTrail": 189.71994249209735,
+      "distanceFromTrail": 0.009980230265157163
+    },
+    {
+      "id": 4516428294,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8318521,
+      "lon": 86.7463687,
+      "name": "Mountain Sherpa Kitchen",
+      "tags": {
+        "amenity": "restaurant",
+        "name": "Mountain Sherpa Kitchen",
+        "name:en": "Sherpa Restaurant"
+      },
+      "distanceAlongTrail": 189.7333247842423,
+      "distanceFromTrail": 0.012279895334051516
+    },
+    {
+      "id": 4516428295,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8317604,
+      "lon": 86.7462283,
+      "name": "River Side Restaurant and Lunch Place",
+      "tags": {
+        "amenity": "restaurant",
+        "name": "River Side Restaurant and Lunch Place",
+        "name:en": "Sherpa Restaurant and Lunch Place"
+      },
+      "distanceAlongTrail": 189.75765023483726,
+      "distanceFromTrail": 0.006238452617321682
+    },
+    {
+      "id": 11708114411,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8315546,
+      "lon": 86.7461221,
+      "name": "Nepali Vansa Ghar",
+      "tags": {
+        "amenity": "restaurant",
+        "name": "Nepali Vansa Ghar"
+      },
+      "distanceAlongTrail": 189.76966085477903,
+      "distanceFromTrail": 0.01372991103831015
+    },
+    {
+      "id": 11708120545,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8314747,
+      "lon": 86.7460994,
+      "name": "Everest summit lunch place",
+      "tags": {
+        "amenity": "restaurant",
+        "name": "Everest summit lunch place"
+      },
+      "distanceAlongTrail": 189.76966085477903,
+      "distanceFromTrail": 0.0227682600439943
+    },
+    {
+      "id": 14351641701,
+      "type": "node",
+      "category": "camping",
+      "lat": 27.8316523,
+      "lon": 86.7414333,
+      "name": "ESL Everest Summit Lodge Tashinga",
+      "tags": {
+        "check_date": "2026-11-05",
+        "name": "ESL Everest Summit Lodge Tashinga",
+        "tourism": "alpine_hut"
+      },
+      "distanceAlongTrail": 190.5637719311293,
+      "distanceFromTrail": 0.17976979811645985
+    },
+    {
+      "id": 13286996303,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.8299536,
+      "lon": 86.739344,
+      "name": null,
+      "tags": {
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 190.8168173741664,
+      "distanceFromTrail": 0.009123784007931521
+    },
+    {
+      "id": 11708156561,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8299405,
+      "lon": 86.7392125,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 190.82446146452557,
+      "distanceFromTrail": 0.0036093423405503078
+    },
+    {
+      "id": 6446965785,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8289246,
+      "lon": 86.7387368,
+      "name": null,
+      "tags": {
+        "amenity": "cafe",
+        "name:en": "Laushasa Authentic Cafe"
+      },
+      "distanceAlongTrail": 190.9901405934897,
+      "distanceFromTrail": 0.008631710629727698
+    },
+    {
+      "id": 620391619,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8393912,
+      "lon": 86.735985,
+      "name": "Bouddha Lodge & Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "name": "Bouddha Lodge & Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 191.7918834568455,
+      "distanceFromTrail": 0.009274104034693547
+    },
+    {
+      "id": 11738150590,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8391481,
+      "lon": 86.7349037,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 191.91164283378012,
+      "distanceFromTrail": 0.003497951586164635
+    },
+    {
+      "id": 539960403,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.825579,
+      "lon": 86.7303333,
+      "name": "Sonam Friendship Lodge",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "name": "Sonam Friendship Lodge",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 192.1421190095233,
+      "distanceFromTrail": 0.012457932846910566
+    },
+    {
+      "id": 6048574144,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8254879,
+      "lon": 86.730342,
+      "name": "Sanasa Lodge & Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "name": "Sanasa Lodge & Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 192.14372563689105,
+      "distanceFromTrail": 0.0024197698216770025
+    },
+    {
+      "id": 12797575201,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8215613,
+      "lon": 86.7316202,
+      "name": null,
+      "tags": {
+        "man_made": "water_tap"
+      },
+      "distanceAlongTrail": 192.58372135235206,
+      "distanceFromTrail": 0.18409504892174133
+    },
+    {
+      "id": 2252555920,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.8231275,
+      "lon": 86.7311391,
+      "name": "High Mountain Bakery",
+      "tags": {
+        "ele": "3620",
+        "name": "High Mountain Bakery",
+        "shop": "bakery"
+      },
+      "distanceAlongTrail": 192.58372135235206,
+      "distanceFromTrail": 0.012204117583594205
+    },
+    {
+      "id": 6048574143,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.823042,
+      "lon": 86.7311723,
+      "name": "Ama Dablam View Lodge & Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "cuisine": "regional",
+        "name": "Ama Dablam View Lodge & Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 192.58372135235206,
+      "distanceFromTrail": 0.018186066555250464
+    },
+    {
+      "id": 620032233,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8213995,
+      "lon": 86.7314745,
+      "name": "Dream Garden Lodge",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Dream Garden Lodge",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 192.58372135235206,
+      "distanceFromTrail": 0.19744101725433097
+    },
+    {
+      "id": 620032235,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8219678,
+      "lon": 86.7311794,
+      "name": "Three Sisters Lodge",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Three Sisters Lodge",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 192.58372135235206,
+      "distanceFromTrail": 0.13001744429240206
+    },
+    {
+      "id": 11738142114,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.8234328,
+      "lon": 86.7224231,
+      "name": null,
+      "tags": {
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 193.57927584770928,
+      "distanceFromTrail": 0.005509861047248738
+    },
+    {
+      "id": 12816665101,
+      "type": "node",
+      "category": "camping",
+      "lat": 27.826525,
+      "lon": 86.7330183,
+      "name": null,
+      "tags": {
+        "amenity": "shelter"
+      },
+      "distanceAlongTrail": 193.5820865036494,
+      "distanceFromTrail": 0.005616395951162993
+    },
+    {
+      "id": 11247403607,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8234503,
+      "lon": 86.7204055,
+      "name": null,
+      "tags": {
+        "amenity": "drinking_water"
+      },
+      "distanceAlongTrail": 193.78845069272134,
+      "distanceFromTrail": 0.07490875897654102
+    },
+    {
+      "id": 13598857374,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8228958,
+      "lon": 86.7204959,
+      "name": null,
+      "tags": {
+        "amenity": "cafe"
+      },
+      "distanceAlongTrail": 193.79015026773135,
+      "distanceFromTrail": 0.012636776618967937
+    },
+    {
+      "id": 12816665301,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8244631,
+      "lon": 86.7200475,
+      "name": null,
+      "tags": {
+        "man_made": "water_tap"
+      },
+      "distanceAlongTrail": 193.80403907832874,
+      "distanceFromTrail": 0.19186718324235177
+    },
+    {
+      "id": 11738188226,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.8228239,
+      "lon": 86.7203214,
+      "name": null,
+      "tags": {
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 193.80841826303003,
+      "distanceFromTrail": 0.0076691030700618765
+    },
+    {
+      "id": 11738102125,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8225639,
+      "lon": 86.719306,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 193.9127377347974,
+      "distanceFromTrail": 0.007823885269989091
+    },
+    {
+      "id": 1482990666,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8226195,
+      "lon": 86.7187942,
+      "name": null,
+      "tags": {
+        "amenity": "cafe"
+      },
+      "distanceAlongTrail": 193.9611777882804,
+      "distanceFromTrail": 0.006532638288434995
+    },
+    {
+      "id": 10116311917,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8211947,
+      "lon": 86.7168285,
+      "name": null,
+      "tags": {
+        "amenity": "restaurant"
+      },
+      "distanceAlongTrail": 194.21490756856085,
+      "distanceFromTrail": 0.05922429899590262
+    },
+    {
+      "id": 13798088301,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8219258,
+      "lon": 86.7156678,
+      "name": null,
+      "tags": {
+        "man_made": "water_tap"
+      },
+      "distanceAlongTrail": 194.2807970588773,
+      "distanceFromTrail": 0.03956919330202637
+    },
+    {
+      "id": 13798088401,
+      "type": "node",
+      "category": "water",
+      "lat": 27.8202508,
+      "lon": 86.716138,
+      "name": null,
+      "tags": {
+        "man_made": "water_tap"
+      },
+      "distanceAlongTrail": 194.44503314459445,
+      "distanceFromTrail": 0.014261840764809729
+    },
+    {
+      "id": 11738195708,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8198459,
+      "lon": 86.7159615,
+      "name": null,
+      "tags": {
+        "amenity": "cafe"
+      },
+      "distanceAlongTrail": 194.48748826147525,
+      "distanceFromTrail": 0.008670678552356289
+    },
+    {
+      "id": 13269606701,
+      "type": "node",
+      "category": "camping",
+      "lat": 27.8071355,
+      "lon": 86.7137115,
+      "name": null,
+      "tags": {
+        "amenity": "shelter"
+      },
+      "distanceAlongTrail": 196.8441852318693,
+      "distanceFromTrail": 0.3236717104634025
+    },
+    {
+      "id": 312775933,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8056893,
+      "lon": 86.709503,
+      "name": "Mountain View Lodge",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Mountain View Lodge",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 197.08443350520918,
+      "distanceFromTrail": 0.027592223540082998
+    },
+    {
+      "id": 341314576,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.8052013,
+      "lon": 86.709189,
+      "name": "Sagarmatha Lodge",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Sagarmatha Lodge",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 197.20565356680936,
+      "distanceFromTrail": 0.009118364475028172
+    },
+    {
+      "id": 4518674989,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8051311,
+      "lon": 86.7101021,
+      "name": null,
+      "tags": {
+        "amenity": "bar",
+        "name:en": "Liquid Bar"
+      },
+      "distanceAlongTrail": 197.33181893335194,
+      "distanceFromTrail": 0.01056240826761344
+    },
+    {
+      "id": 14356276101,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.8050582,
+      "lon": 86.7101074,
+      "name": "Himali",
+      "tags": {
+        "check_date": "2026-11-06",
+        "name": "Himali",
+        "shop": "outdoor"
+      },
+      "distanceAlongTrail": 197.33609480662187,
+      "distanceFromTrail": 0.00365605481417684
+    },
+    {
+      "id": 4518669791,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8048679,
+      "lon": 86.7102775,
+      "name": null,
+      "tags": {
+        "amenity": "cafe",
+        "name:en": "Himalayan Java Roastery and Cafe"
+      },
+      "distanceAlongTrail": 197.36081674708294,
+      "distanceFromTrail": 0.007137222123631037
+    },
+    {
+      "id": 11704175884,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8047242,
+      "lon": 86.7103977,
+      "name": "Himalayan Yard café",
+      "tags": {
+        "amenity": "cafe",
+        "name": "Himalayan Yard café"
+      },
+      "distanceAlongTrail": 197.39633726740377,
+      "distanceFromTrail": 0.004925323364941339
+    },
+    {
+      "id": 11704195322,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8046295,
+      "lon": 86.7104542,
+      "name": "Highcamp cage",
+      "tags": {
+        "amenity": "cafe",
+        "name": "Highcamp cage"
+      },
+      "distanceAlongTrail": 197.4044823940248,
+      "distanceFromTrail": 0.003759325160001681
+    },
+    {
+      "id": 4518652592,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8045622,
+      "lon": 86.7103554,
+      "name": null,
+      "tags": {
+        "amenity": "cafe",
+        "name:en": "Trek Away Coffee"
+      },
+      "distanceAlongTrail": 197.4147234981488,
+      "distanceFromTrail": 0.0029900451288908045
+    },
+    {
+      "id": 4417284096,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.8044789,
+      "lon": 86.7103083,
+      "name": null,
+      "tags": {
+        "internet_access": "wlan",
+        "name:en": "Everest Bakery",
+        "shop": "bakery"
+      },
+      "distanceAlongTrail": 197.42498995988294,
+      "distanceFromTrail": 0.004352184396642627
+    },
+    {
+      "id": 6048574137,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.8038965,
+      "lon": 86.7104079,
+      "name": "Anju Japanese Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "cuisine": "japanese",
+        "name": "Anju Japanese Restaurant"
+      },
+      "distanceAlongTrail": 197.5993601217959,
+      "distanceFromTrail": 0.0006321492478454046
+    },
+    {
+      "id": 13794064801,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.8033933,
+      "lon": 86.7102626,
+      "name": null,
+      "tags": {
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 197.65707320870303,
+      "distanceFromTrail": 0.002684835370569541
+    },
+    {
+      "id": 13270171301,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.8033063,
+      "lon": 86.7103432,
+      "name": null,
+      "tags": {
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 197.66483781983888,
+      "distanceFromTrail": 0.007120462288182426
+    },
+    {
+      "id": 11245054274,
+      "type": "node",
+      "category": "water",
+      "lat": 27.7934611,
+      "lon": 86.7158366,
+      "name": null,
+      "tags": {
+        "amenity": "drinking_water"
+      },
+      "distanceAlongTrail": 199.1523037628947,
+      "distanceFromTrail": 0.0022608899936689478
+    },
+    {
+      "id": 12793952501,
+      "type": "node",
+      "category": "water",
+      "lat": 27.7915173,
+      "lon": 86.7167089,
+      "name": null,
+      "tags": {
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 199.51395312908303,
+      "distanceFromTrail": 0.0025847675143812615
+    },
+    {
+      "id": 620696732,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7788366,
+      "lon": 86.722383,
+      "name": "Buddha Lodge",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Buddha Lodge",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 201.56668739045094,
+      "distanceFromTrail": 0.008308906064727384
+    },
+    {
+      "id": 4866132117,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.7783999,
+      "lon": 86.7222151,
+      "name": "Bishal Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "name": "Bishal Restaurant"
+      },
+      "distanceAlongTrail": 201.61797842790224,
+      "distanceFromTrail": 0.0081285515256579
+    },
+    {
+      "id": 620696721,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7783571,
+      "lon": 86.722155,
+      "name": "Tibet Lodge and Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Tibet Lodge and Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 201.62437382597702,
+      "distanceFromTrail": 0.004041022173118158
+    },
+    {
+      "id": 620696724,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7781839,
+      "lon": 86.721937,
+      "name": "Everest Guest House Lodge & Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Everest Guest House Lodge & Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 201.65050692180887,
+      "distanceFromTrail": 0.009429004374836108
+    },
+    {
+      "id": 343921204,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7777901,
+      "lon": 86.7219307,
+      "name": null,
+      "tags": {
+        "amenity": "fast_food",
+        "building": "yes"
+      },
+      "distanceAlongTrail": 201.6905530601547,
+      "distanceFromTrail": 0.00829469277626441
+    },
+    {
+      "id": 319382480,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7761263,
+      "lon": 86.7217897,
+      "name": "Tawa Green Land Lodge & Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Tawa Green Land Lodge & Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 201.9920479403315,
+      "distanceFromTrail": 0.02686016494639313
+    },
+    {
+      "id": 539969450,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7735408,
+      "lon": 86.7225456,
+      "name": "Everest Pilgrim Lodge",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Everest Pilgrim Lodge",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 202.32918291138333,
+      "distanceFromTrail": 0.006938064356470722
+    },
+    {
+      "id": 539969440,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7715645,
+      "lon": 86.7230199,
+      "name": "Top Hill Lodge & Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Top Hill Lodge & Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 202.5695659025765,
+      "distanceFromTrail": 0.0046577799443255205
+    },
+    {
+      "id": 10750561406,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.7711493,
+      "lon": 86.7231753,
+      "name": null,
+      "tags": {
+        "amenity": "cafe",
+        "name:en": "Everest Java Coffee"
+      },
+      "distanceAlongTrail": 202.6179163319025,
+      "distanceFromTrail": 0.008531586045010265
+    },
+    {
+      "id": 13842633901,
+      "type": "node",
+      "category": "water",
+      "lat": 27.7668103,
+      "lon": 86.7233293,
+      "name": null,
+      "tags": {
+        "man_made": "water_tap"
+      },
+      "distanceAlongTrail": 203.25591909059338,
+      "distanceFromTrail": 0.003070178878038309
+    },
+    {
+      "id": 4863296422,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.7663158,
+      "lon": 86.7234261,
+      "name": "Everest Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "name": "Everest Restaurant",
+        "name:en": "Everest Restaurant"
+      },
+      "distanceAlongTrail": 203.32033717507903,
+      "distanceFromTrail": 0.004805113567553683
+    },
+    {
+      "id": 11704180235,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.7640709,
+      "lon": 86.7198101,
+      "name": "Thamsherku Tea Break",
+      "tags": {
+        "amenity": "cafe",
+        "name": "Thamsherku Tea Break"
+      },
+      "distanceAlongTrail": 203.83815803965288,
+      "distanceFromTrail": 0.010549287274308216
+    },
+    {
+      "id": 345801371,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7637221,
+      "lon": 86.7194076,
+      "name": "Mount Everest Restaurant and Lodge",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Mount Everest Restaurant and Lodge",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 203.91643041323996,
+      "distanceFromTrail": 0.01726890569474264
+    },
+    {
+      "id": 319371363,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7614036,
+      "lon": 86.7156535,
+      "name": "New Restaurant & Bar Banker Solokumbu",
+      "tags": {
+        "amenity": "bar",
+        "amenity_1": "restaurant",
+        "building": "yes",
+        "name": "New Restaurant & Bar Banker Solokumbu"
+      },
+      "distanceAlongTrail": 204.4109998064083,
+      "distanceFromTrail": 0.009089224229621436
+    },
+    {
+      "id": 319371264,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7613925,
+      "lon": 86.7154425,
+      "name": "Mera lodge & restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Mera lodge & restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 204.42930293671714,
+      "distanceFromTrail": 0.007151612188188787
+    },
+    {
+      "id": 319370698,
+      "type": "way",
+      "category": "resupply",
+      "lat": 27.7541216,
+      "lon": 86.7105561,
+      "name": null,
+      "tags": {
+        "building": "yes",
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 205.7787301482575,
+      "distanceFromTrail": 0.008548912679604396
+    },
+    {
+      "id": 13793242001,
+      "type": "node",
+      "category": "water",
+      "lat": 27.7458185,
+      "lon": 86.712226,
+      "name": null,
+      "tags": {
+        "man_made": "water_tap"
+      },
+      "distanceAlongTrail": 206.88322143434794,
+      "distanceFromTrail": 0.007150132898895129
+    },
+    {
+      "id": 13793241901,
+      "type": "node",
+      "category": "water",
+      "lat": 27.74557,
+      "lon": 86.7125218,
+      "name": "2024/25",
+      "tags": {
+        "man_made": "water_tap",
+        "name": "2024/25"
+      },
+      "distanceAlongTrail": 206.92319193157633,
+      "distanceFromTrail": 0.00350928751900648
+    },
+    {
+      "id": 319368942,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.743087,
+      "lon": 86.7140039,
+      "name": "River Side Lodge and Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "amenity_1": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "River Side Lodge and Restaurant"
+      },
+      "distanceAlongTrail": 207.35039424428896,
+      "distanceFromTrail": 0.01806332572870565
+    },
+    {
+      "id": 4397665789,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.7404552,
+      "lon": 86.7126718,
+      "name": null,
+      "tags": {
+        "addr:postcode": "977",
+        "addr:street": "Lukla to Namche kun",
+        "amenity": "bar",
+        "internet_access": "wlan",
+        "name:en": "Sherpa Liquid Bar",
+        "opening_hours": "24/7"
+      },
+      "distanceAlongTrail": 207.68173725847717,
+      "distanceFromTrail": 0.00587883398583658
+    },
+    {
+      "id": 345405877,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7401257,
+      "lon": 86.7126224,
+      "name": "Namaste Lodge Restaurant & Bar",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Namaste Lodge Restaurant & Bar",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 207.72049203959375,
+      "distanceFromTrail": 0.008898718257216836
+    },
+    {
+      "id": 1679203242,
+      "type": "node",
+      "category": "emergency",
+      "lat": 27.7393729,
+      "lon": 86.7122895,
+      "name": null,
+      "tags": {
+        "amenity": "fire_station"
+      },
+      "distanceAlongTrail": 207.8370962076359,
+      "distanceFromTrail": 0.0022753585020611287
+    },
+    {
+      "id": 13266931103,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.7385256,
+      "lon": 86.7118235,
+      "name": null,
+      "tags": {
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 207.94276395124066,
+      "distanceFromTrail": 0.001515938634116224
+    },
+    {
+      "id": 319504734,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7232096,
+      "lon": 86.7142115,
+      "name": "International Khumbu Cafe and Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "International Khumbu Cafe and Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 210.17821715157723,
+      "distanceFromTrail": 0.028144640655412598
+    },
+    {
+      "id": 13288949001,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.722227,
+      "lon": 86.7142593,
+      "name": null,
+      "tags": {
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 210.2710907533017,
+      "distanceFromTrail": 0.001660462037910198
+    },
+    {
+      "id": 346552267,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7215111,
+      "lon": 86.7143067,
+      "name": "Tea shop",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "tea",
+        "name": "Tea shop"
+      },
+      "distanceAlongTrail": 210.3505376449447,
+      "distanceFromTrail": 0.0049765811607595835
+    },
+    {
+      "id": 13792855302,
+      "type": "node",
+      "category": "water",
+      "lat": 27.7206904,
+      "lon": 86.7144465,
+      "name": "69/74",
+      "tags": {
+        "man_made": "water_tap",
+        "name": "69/74"
+      },
+      "distanceAlongTrail": 210.44282697995544,
+      "distanceFromTrail": 0.0050022824560394695
+    },
+    {
+      "id": 319504181,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7187931,
+      "lon": 86.7137073,
+      "name": "Everest Sumiter Lodge & restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Everest Sumiter Lodge & restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 210.68456847693568,
+      "distanceFromTrail": 0.0130621936313908
+    },
+    {
+      "id": 319504109,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7184095,
+      "lon": 86.7138719,
+      "name": "Sherpa's View Point Lodge & Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Sherpa's View Point Lodge & Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 210.71487931367196,
+      "distanceFromTrail": 0.014807401983411291
+    },
+    {
+      "id": 5679349865,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.7184819,
+      "lon": 86.7149061,
+      "name": "Sherpa Kitchen",
+      "tags": {
+        "amenity": "restaurant",
+        "cuisine": "regional",
+        "name": "Sherpa Kitchen"
+      },
+      "distanceAlongTrail": 210.83695951094495,
+      "distanceFromTrail": 0.006310933948267784
+    },
+    {
+      "id": 346552303,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7125564,
+      "lon": 86.7135683,
+      "name": "Green View Point Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Green View Point Restaurant"
+      },
+      "distanceAlongTrail": 211.71835151581465,
+      "distanceFromTrail": 0.007854093747039145
+    },
+    {
+      "id": 13792755201,
+      "type": "node",
+      "category": "water",
+      "lat": 27.7104015,
+      "lon": 86.7144243,
+      "name": "13/55",
+      "tags": {
+        "man_made": "water_tap",
+        "name": "13/55"
+      },
+      "distanceAlongTrail": 211.9814362132072,
+      "distanceFromTrail": 0.005410050251516395
+    },
+    {
+      "id": 352917786,
+      "type": "way",
+      "category": "resupply",
+      "lat": 27.7100265,
+      "lon": 86.7145809,
+      "name": null,
+      "tags": {
+        "building": "yes",
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 212.024767997184,
+      "distanceFromTrail": 0.011139986345342646
+    },
+    {
+      "id": 13792748801,
+      "type": "node",
+      "category": "water",
+      "lat": 27.7063521,
+      "lon": 86.7165468,
+      "name": "33/55",
+      "tags": {
+        "man_made": "water_tap",
+        "name": "33/55"
+      },
+      "distanceAlongTrail": 212.55020511710143,
+      "distanceFromTrail": 0.009641019294793425
+    },
+    {
+      "id": 13792748705,
+      "type": "node",
+      "category": "water",
+      "lat": 27.7054762,
+      "lon": 86.7176028,
+      "name": "27/55",
+      "tags": {
+        "man_made": "water_tap",
+        "name": "27/55"
+      },
+      "distanceAlongTrail": 212.69549594721224,
+      "distanceFromTrail": 0.0024704486080070684
+    },
+    {
+      "id": 319503974,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7045304,
+      "lon": 86.7188062,
+      "name": "Niru Hotel",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Niru Hotel",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 212.85689585539924,
+      "distanceFromTrail": 0.004675838793910619
+    },
+    {
+      "id": 343641575,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7040362,
+      "lon": 86.7181504,
+      "name": "Cheplung Guesthouse & Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Cheplung Guesthouse & Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 212.99061119268094,
+      "distanceFromTrail": 0.01155879534776855
+    },
+    {
+      "id": 319522811,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7038467,
+      "lon": 86.7176353,
+      "name": "Sherpa Home and Kitchen lodge and Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Sherpa Home and Kitchen lodge and Restaurant",
+        "name:en": "Sherpa Home & Kitchen Lodge & Restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 213.0416440971696,
+      "distanceFromTrail": 0.00871909173254135
+    },
+    {
+      "id": 319358883,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7036249,
+      "lon": 86.7176486,
+      "name": "Khumbila Guest House",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Khumbila Guest House",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 213.06015321809195,
+      "distanceFromTrail": 0.006302843782534219
+    },
+    {
+      "id": 319214644,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7033827,
+      "lon": 86.7173435,
+      "name": null,
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 213.09848884579654,
+      "distanceFromTrail": 0.0062619122041779616
+    },
+    {
+      "id": 12791116101,
+      "type": "node",
+      "category": "water",
+      "lat": 27.7034785,
+      "lon": 86.7169289,
+      "name": "43/55",
+      "tags": {
+        "man_made": "water_tap",
+        "name": "43/55"
+      },
+      "distanceAlongTrail": 213.10965265703945,
+      "distanceFromTrail": 0.046941622578171395
+    },
+    {
+      "id": 319503948,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7025655,
+      "lon": 86.7172721,
+      "name": "Everest trekkers lodge restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "Everest trekkers lodge restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 213.19067992528554,
+      "distanceFromTrail": 0.006611432360337552
+    },
+    {
+      "id": 5679349863,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.7023413,
+      "lon": 86.7171879,
+      "name": "Sherpa Coffee",
+      "tags": {
+        "amenity": "cafe",
+        "cuisine": "coffee_shop",
+        "name": "Sherpa Coffee"
+      },
+      "distanceAlongTrail": 213.21360269859167,
+      "distanceFromTrail": 0.006224487994989088
+    },
+    {
+      "id": 11243100298,
+      "type": "node",
+      "category": "water",
+      "lat": 27.7021643,
+      "lon": 86.717463,
+      "name": null,
+      "tags": {
+        "amenity": "drinking_water",
+        "man_made": "water_tap"
+      },
+      "distanceAlongTrail": 213.2465264646016,
+      "distanceFromTrail": 0.0019618159977582246
+    },
+    {
+      "id": 342224112,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7005805,
+      "lon": 86.7201391,
+      "name": "kakula sherpa guest house & restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "kakula sherpa guest house & restaurant",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 213.5809974820623,
+      "distanceFromTrail": 0.006070388878072113
+    },
+    {
+      "id": 342224110,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.7003706,
+      "lon": 86.7204269,
+      "name": "kirat tea shop",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "kirat tea shop",
+        "tourism": "guest_house"
+      },
+      "distanceAlongTrail": 213.6177014775234,
+      "distanceFromTrail": 0.005448708770561512
+    },
+    {
+      "id": 342224108,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.6994956,
+      "lon": 86.7212076,
+      "name": "sherpa restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional",
+        "name": "sherpa restaurant"
+      },
+      "distanceAlongTrail": 213.74296681418062,
+      "distanceFromTrail": 0.004814318007400392
+    },
+    {
+      "id": 11243110111,
+      "type": "node",
+      "category": "water",
+      "lat": 27.6923274,
+      "lon": 86.7280998,
+      "name": null,
+      "tags": {
+        "amenity": "drinking_water"
+      },
+      "distanceAlongTrail": 214.90809678267996,
+      "distanceFromTrail": 0.004796332734003451
+    },
+    {
+      "id": 620402120,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 27.6916805,
+      "lon": 86.7281355,
+      "name": "Chhiring Hotel and Restaurant",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "name": "Chhiring Hotel and Restaurant"
+      },
+      "distanceAlongTrail": 214.9888435165213,
+      "distanceFromTrail": 0.005230953247144726
+    },
+    {
+      "id": 13290100701,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.6898381,
+      "lon": 86.7292405,
+      "name": "The Waves Pub",
+      "tags": {
+        "amenity": "bar",
+        "name": "The Waves Pub"
+      },
+      "distanceAlongTrail": 215.24213330476294,
+      "distanceFromTrail": 0.00481953421358903
+    },
+    {
+      "id": 575674999,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.6891618,
+      "lon": 86.729851,
+      "name": "The Irish Pub",
+      "tags": {
+        "amenity": "bar",
+        "brewery": "various",
+        "description": "Former Starbucks. Same staff, but now they serve beer!",
+        "internet_access": "wlan",
+        "name": "The Irish Pub"
+      },
+      "distanceAlongTrail": 215.33617073343436,
+      "distanceFromTrail": 0.007148108291228453
+    },
+    {
+      "id": 10772759805,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.689048,
+      "lon": 86.7300472,
+      "name": null,
+      "tags": {
+        "amenity": "cafe",
+        "name:en": "Illy Cafe"
+      },
+      "distanceAlongTrail": 215.35916905010316,
+      "distanceFromTrail": 0.0092429427297095
+    },
+    {
+      "id": 4733518925,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.6887234,
+      "lon": 86.7307408,
+      "name": null,
+      "tags": {
+        "addr:street": "Lukla to Namche kun",
+        "amenity": "restaurant",
+        "cuisine": "noodles;asian;pizza",
+        "internet_access": "wlan",
+        "name:en": "Hot Mo:Mo and Restaurant",
+        "phone": "9849960804"
+      },
+      "distanceAlongTrail": 215.40754216650856,
+      "distanceFromTrail": 0.030247362994090372
+    },
+    {
+      "id": 5185340399,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.6885385,
+      "lon": 86.7317637,
+      "name": "The Nest",
+      "tags": {
+        "addr:city": "Lukla",
+        "addr:housenumber": "Lukla - Everest Base Camp Trekking Route, Chaurikharka 56000尼泊尔",
+        "addr:street": "Lukla to Namche kun",
+        "amenity": "restaurant",
+        "cuisine": "regional;italian;chinese;coffee_shop;sandwich;pizza;burger;indian",
+        "description": "+977 38-550123",
+        "ele": "2840",
+        "name": "The Nest",
+        "outdoor_seating": "yes"
+      },
+      "distanceAlongTrail": 215.40754216650856,
+      "distanceFromTrail": 0.12902191753909545
+    },
+    {
+      "id": 575255283,
+      "type": "node",
+      "category": "resupply",
+      "lat": 27.6871519,
+      "lon": 86.7321951,
+      "name": "German Baker",
+      "tags": {
+        "check_date": "2025-04-22",
+        "name": "German Baker",
+        "shop": "bakery"
+      },
+      "distanceAlongTrail": 215.40754216650856,
+      "distanceFromTrail": 0.2560535561462881
+    },
+    {
+      "id": 575673008,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 27.688615,
+      "lon": 86.7313415,
+      "name": "Sunny Garden (Everest Rock Bar)",
+      "tags": {
+        "amenity": "pub",
+        "name": "Sunny Garden (Everest Rock Bar)"
+      },
+      "distanceAlongTrail": 215.40754216650856,
+      "distanceFromTrail": 0.08712546379998669
+    }
+  ]
+}

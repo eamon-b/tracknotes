@@ -75,7 +75,6 @@ A repeat of a waypoint that is not listed still fails the build (the error names
 Three Passes lists eight: it walks back down through Namche and the Dudh Koshi villages to Lukla, and passes Lobuche either side of Gorak Shep.
 Its store-only `access.json` gives every teahouse village `meals`, Kharikhola and Jorsalle `limited`, and Jiri, Namche and Lukla `full`;
 its `maxJunctionDistanceMeters` of 150 keeps the Ama Dablam Base Camp side trip, whose far end is 175 m across the valley from the route, from being read as a connector.
-It has no `pois.json` yet (Overpass timed out).
 
 Te Araroa's file also carries waypoint types no other trail uses.
 `gap` is the "Trail ends"/"Trail resumes" pair at each route break.
