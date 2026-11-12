@@ -98,14 +98,21 @@
       "id": 8639242853,
       "type": "node",
       "category": "resupply",
-      "lat": -37.9418801,
-      "lon": 146.4510051,
-      "name": null,
+      "lat": -37.9419139,
+      "lon": 146.4510393,
+      "name": "Walhalla Post Office",
       "tags": {
-        "amenity": "post_office"
+        "amenity": "post_office",
+        "brand": "Australia Post",
+        "brand:wikidata": "Q1142936",
+        "check_date:website": "2026-10-04",
+        "name": "Walhalla Post Office",
+        "opening_hours": "Mo-Fr 09:00-16:00; Sa-Su 10:00-16:00",
+        "phone": "+61 491 806 153",
+        "website": "https://auspost.com.au/locate/post-office/vic/walhalla/3825/walhalla-post-office-362562"
       },
       "distanceAlongTrail": 0.12100203255687733,
-      "distanceFromTrail": 0.06801187863317264
+      "distanceFromTrail": 0.07202538389909303
     },
     {
       "id": 42745529,
@@ -283,9 +290,11 @@
       "name": "Rawson Caravan Park",
       "tags": {
         "caravans": "yes",
+        "fee": "no",
         "name": "Rawson Caravan Park",
+        "source": "survey",
         "tents": "yes",
-        "tourism": "camp_site"
+        "tourism": "caravan_site"
       },
       "distanceAlongTrail": 4.732514255413826,
       "distanceFromTrail": 1.7401654764593733
@@ -934,6 +943,19 @@
       },
       "distanceAlongTrail": 173.35841429580765,
       "distanceFromTrail": 0.8965892567789522
+    },
+    {
+      "id": 1865241079,
+      "type": "node",
+      "category": "camping",
+      "lat": -37.206867,
+      "lon": 146.6736744,
+      "name": null,
+      "tags": {
+        "tourism": "camp_site"
+      },
+      "distanceAlongTrail": 177.2623174830653,
+      "distanceFromTrail": 0.6197091489362274
     },
     {
       "id": 3930316389,
@@ -1724,9 +1746,16 @@
       "category": "resupply",
       "lat": -36.9920804,
       "lon": 147.148782,
-      "name": null,
+      "name": "Mt Hotham CPA",
       "tags": {
-        "amenity": "post_office"
+        "amenity": "post_office",
+        "brand": "Australia Post",
+        "brand:wikidata": "Q1142936",
+        "check_date:website": "2026-10-04",
+        "name": "Mt Hotham CPA",
+        "opening_hours": "Mo-Fr 09:00-17:00",
+        "phone": "+61 3 5759 3523",
+        "website": "https://auspost.com.au/locate/post-office/vic/hotham-heights/3741/hotham-heights-cpa-334924"
       },
       "distanceAlongTrail": 245.7994171328012,
       "distanceFromTrail": 0.02573043066297609
@@ -1823,6 +1852,66 @@
       },
       "distanceAlongTrail": 245.800250385502,
       "distanceFromTrail": 0.47850318573312056
+    },
+    {
+      "id": 8780289210,
+      "type": "node",
+      "category": "transport",
+      "lat": -36.9940091,
+      "lon": 147.1616747,
+      "name": null,
+      "tags": {
+        "bus": "yes",
+        "departures_board": "no",
+        "highway": "bus_stop",
+        "network": "Mount Hotham Alpine Resort",
+        "operator": "Alpine Spirit Coaches",
+        "public_transport": "platform",
+        "ref": "9",
+        "shelter": "no"
+      },
+      "distanceAlongTrail": 245.800250385502,
+      "distanceFromTrail": 1.1434586778331202
+    },
+    {
+      "id": 8780289211,
+      "type": "node",
+      "category": "transport",
+      "lat": -36.9945528,
+      "lon": 147.1679442,
+      "name": null,
+      "tags": {
+        "bus": "yes",
+        "departures_board": "no",
+        "highway": "bus_stop",
+        "network": "Mount Hotham Alpine Resort",
+        "operator": "Alpine Spirit Coaches",
+        "public_transport": "platform",
+        "ref": "10",
+        "shelter": "no"
+      },
+      "distanceAlongTrail": 245.800250385502,
+      "distanceFromTrail": 1.7020223701155344
+    },
+    {
+      "id": 8780289212,
+      "type": "node",
+      "category": "transport",
+      "lat": -36.9948505,
+      "lon": 147.1711835,
+      "name": null,
+      "tags": {
+        "bus": "yes",
+        "departures_board": "no",
+        "highway": "bus_stop",
+        "network": "Mount Hotham Alpine Resort",
+        "operator": "Alpine Spirit Coaches",
+        "public_transport": "platform",
+        "ref": "11",
+        "shelter": "no"
+      },
+      "distanceAlongTrail": 245.800250385502,
+      "distanceFromTrail": 1.99124235575499
     },
     {
       "id": 9967518139,
@@ -1971,6 +2060,91 @@
       "distanceFromTrail": 1.1968039981367553
     },
     {
+      "id": 10836738963,
+      "type": "node",
+      "category": "camping",
+      "lat": -36.901501,
+      "lon": 147.1225971,
+      "name": "Federation Hut",
+      "tags": {
+        "access": "yes",
+        "name": "Federation Hut",
+        "tourism": "wilderness_hut"
+      },
+      "distanceAlongTrail": 250.98207380915085,
+      "distanceFromTrail": 0.41818356646089916
+    },
+    {
+      "id": 2614543536,
+      "type": "node",
+      "category": "water",
+      "lat": -36.8974489,
+      "lon": 147.1139853,
+      "name": null,
+      "tags": {
+        "natural": "spring",
+        "source": "survey"
+      },
+      "distanceAlongTrail": 250.98207380915085,
+      "distanceFromTrail": 1.2225016877149726
+    },
+    {
+      "id": 2614544740,
+      "type": "node",
+      "category": "water",
+      "lat": -36.9014908,
+      "lon": 147.1225322,
+      "name": null,
+      "tags": {
+        "amenity": "drinking_water",
+        "man_made": "water_tap",
+        "operator": "Parks Victoria",
+        "treated": "no"
+      },
+      "distanceAlongTrail": 250.98207380915085,
+      "distanceFromTrail": 0.4235152309889208
+    },
+    {
+      "id": 8495289805,
+      "type": "node",
+      "category": "camping",
+      "lat": -36.9014556,
+      "lon": 147.1227582,
+      "name": "Federation Hut",
+      "tags": {
+        "backcountry": "yes",
+        "drinking_water": "yes",
+        "name": "Federation Hut",
+        "power_supply": "no",
+        "shower": "no",
+        "toilets": "yes",
+        "tourism": "camp_site"
+      },
+      "distanceAlongTrail": 250.98207380915085,
+      "distanceFromTrail": 0.4030652170288406
+    },
+    {
+      "id": 255766135,
+      "type": "way",
+      "category": "camping",
+      "lat": -36.9015084,
+      "lon": 147.1225952,
+      "name": "Federation Hut",
+      "tags": {
+        "amenity": "shelter",
+        "bench": "yes",
+        "bin": "no",
+        "building": "yes",
+        "check_date": "2024-04-28",
+        "name": "Federation Hut",
+        "operator": "Parks Victoria",
+        "shelter_type": "weather_shelter",
+        "tourism": "wilderness_hut"
+      },
+      "distanceAlongTrail": 250.98207380915085,
+      "distanceFromTrail": 0.41854744934035226
+    },
+    {
       "id": 251147370,
       "type": "node",
       "category": "camping",
@@ -1978,9 +2152,7 @@
       "lon": 147.1824914,
       "name": "Dibbins Hut",
       "tags": {
-        "amenity": "shelter",
         "name": "Dibbins Hut",
-        "shelter_type": "weather_shelter",
         "tourism": "wilderness_hut"
       },
       "distanceAlongTrail": 251.4507390409547,
@@ -2006,20 +2178,88 @@
       "id": 6355899166,
       "type": "node",
       "category": "camping",
-      "lat": -36.9472594,
-      "lon": 147.1854723,
-      "name": null,
+      "lat": -36.947261,
+      "lon": 147.1854703,
+      "name": "Dibbins Hut",
       "tags": {
         "capacity:persons": "15",
         "fee": "yes",
+        "name": "Dibbins Hut",
         "not:operator:wikidata": "Q3365478",
         "note": "Free camping is not permitted within 100m of this site",
         "operator": "Parks Victoria",
         "tourism": "camp_site",
         "url": "https://bookings.parks.vic.gov.au/falls-to-hotham-alpine-crossing"
       },
-      "distanceAlongTrail": 251.74179839588712,
-      "distanceFromTrail": 0.01958697636538566
+      "distanceAlongTrail": 251.74154691736013,
+      "distanceFromTrail": 0.01958697615959461
+    },
+    {
+      "id": 3065128331,
+      "type": "node",
+      "category": "water",
+      "lat": -36.895235,
+      "lon": 147.1333437,
+      "name": "NW Spur Spring",
+      "tags": {
+        "description": "Reliable spring at all times of year.",
+        "drinking_water": "yes",
+        "intermittent": "no",
+        "name": "NW Spur Spring",
+        "natural": "spring"
+      },
+      "distanceAlongTrail": 251.86299566851227,
+      "distanceFromTrail": 0.19984036584987647
+    },
+    {
+      "id": 8495271813,
+      "type": "node",
+      "category": "camping",
+      "lat": -36.885209,
+      "lon": 147.1267819,
+      "name": null,
+      "tags": {
+        "backcountry": "yes",
+        "tourism": "camp_site"
+      },
+      "distanceAlongTrail": 252.16490451807576,
+      "distanceFromTrail": 1.3540962718149128
+    },
+    {
+      "id": 8495271814,
+      "type": "node",
+      "category": "water",
+      "lat": -36.8850824,
+      "lon": 147.1269938,
+      "name": null,
+      "tags": {
+        "amenity": "drinking_water"
+      },
+      "distanceAlongTrail": 252.16490451807576,
+      "distanceFromTrail": 1.3530080022471738
+    },
+    {
+      "id": 914514607,
+      "type": "way",
+      "category": "camping",
+      "lat": -36.8850695,
+      "lon": 147.1269774,
+      "name": "MUMC Hut",
+      "tags": {
+        "alt_name": "Mount Feathertop Memorial Hut",
+        "amenity": "shelter",
+        "bench": "yes",
+        "bin": "no",
+        "building": "hut",
+        "name": "MUMC Hut",
+        "operator": "Melbourne University Mountaineering Club Inc.",
+        "shelter_type": "basic_hut",
+        "tourism": "wilderness_hut",
+        "website": "https://www.mumc.org.au/hut",
+        "wikidata": "Q140812096"
+      },
+      "distanceAlongTrail": 252.16490451807576,
+      "distanceFromTrail": 1.355040435753485
     },
     {
       "id": 10836721301,
@@ -2066,6 +2306,54 @@
       },
       "distanceAlongTrail": 253.9259143566285,
       "distanceFromTrail": 1.6011845596809802
+    },
+    {
+      "id": 5235767464,
+      "type": "node",
+      "category": "camping",
+      "lat": -36.9113198,
+      "lon": 147.1700635,
+      "name": "Diamantina Horse Yards",
+      "tags": {
+        "description": "Free campground and horse yards. Bookings required for horse use.",
+        "fee": "no",
+        "name": "Diamantina Horse Yards",
+        "operator": "Parks Victoria",
+        "tourism": "camp_site"
+      },
+      "distanceAlongTrail": 259.8348754532997,
+      "distanceFromTrail": 0.14651284431412523
+    },
+    {
+      "id": 12540374135,
+      "type": "node",
+      "category": "camping",
+      "lat": -36.9195788,
+      "lon": 147.1734185,
+      "name": null,
+      "tags": {
+        "backcountry": "yes",
+        "tourism": "camp_site"
+      },
+      "distanceAlongTrail": 260.86022907175976,
+      "distanceFromTrail": 0.014142103495776189
+    },
+    {
+      "id": 2335222326,
+      "type": "node",
+      "category": "camping",
+      "lat": -36.9197025,
+      "lon": 147.1733018,
+      "name": "Blairs hut",
+      "tags": {
+        "amenity": "shelter",
+        "name": "Blairs hut",
+        "note": "Long drop toilet",
+        "shelter_type": "weather_shelter",
+        "tourism": "wilderness_hut"
+      },
+      "distanceAlongTrail": 260.89233557223093,
+      "distanceFromTrail": 0.003362791057761492
     },
     {
       "id": 10836740340,
@@ -2413,6 +2701,39 @@
       "distanceFromTrail": 0.39133177954639276
     },
     {
+      "id": 669266376,
+      "type": "way",
+      "category": "camping",
+      "lat": -36.8761999,
+      "lon": 147.3652152,
+      "name": "Fitzgerald Hut",
+      "tags": {
+        "building": "yes",
+        "name": "Fitzgerald Hut",
+        "tourism": "wilderness_hut"
+      },
+      "distanceAlongTrail": 278.43440336694783,
+      "distanceFromTrail": 0.0019125417109279192
+    },
+    {
+      "id": 669266378,
+      "type": "way",
+      "category": "camping",
+      "lat": -36.8740023,
+      "lon": 147.3716852,
+      "name": "Kelly Hut",
+      "tags": {
+        "building": "yes",
+        "description": "Alpine National Park",
+        "ele": "1699.96",
+        "name": "Kelly Hut",
+        "source": "GPS",
+        "tourism": "wilderness_hut"
+      },
+      "distanceAlongTrail": 279.07765667281785,
+      "distanceFromTrail": 0.002750223566954157
+    },
+    {
       "id": 1021016487,
       "type": "way",
       "category": "camping",
@@ -2452,6 +2773,40 @@
       "distanceFromTrail": 0.00009808567548152882
     },
     {
+      "id": 1219501159,
+      "type": "way",
+      "category": "camping",
+      "lat": -36.7758004,
+      "lon": 147.303208,
+      "name": "Cairn Creek Hut",
+      "tags": {
+        "access": "yes",
+        "bin": "no",
+        "building": "yes",
+        "fee": "no",
+        "fireplace": "yes",
+        "name": "Cairn Creek Hut",
+        "operator": "Parks Victoria",
+        "tourism": "wilderness_hut"
+      },
+      "distanceAlongTrail": 288.4973092938257,
+      "distanceFromTrail": 1.5176008118159052
+    },
+    {
+      "id": 2912694517,
+      "type": "node",
+      "category": "camping",
+      "lat": -36.771031,
+      "lon": 147.2780374,
+      "name": "Bogong Creek Saddle Helipad",
+      "tags": {
+        "name": "Bogong Creek Saddle Helipad",
+        "tourism": "camp_site"
+      },
+      "distanceAlongTrail": 292.36371073824665,
+      "distanceFromTrail": 0.18975229970820265
+    },
+    {
       "id": 234747616,
       "type": "way",
       "category": "camping",
@@ -2471,6 +2826,40 @@
       },
       "distanceAlongTrail": 292.90890117243464,
       "distanceFromTrail": 0.002899584782825733
+    },
+    {
+      "id": 10836691061,
+      "type": "node",
+      "category": "camping",
+      "lat": -36.7197371,
+      "lon": 147.3128012,
+      "name": "Michell Hut",
+      "tags": {
+        "access": "yes",
+        "name": "Michell Hut",
+        "tourism": "wilderness_hut"
+      },
+      "distanceAlongTrail": 296.27791984833385,
+      "distanceFromTrail": 1.3428631578456445
+    },
+    {
+      "id": 234747744,
+      "type": "way",
+      "category": "camping",
+      "lat": -36.7197038,
+      "lon": 147.3128039,
+      "name": "Michell Hut",
+      "tags": {
+        "amenity": "shelter",
+        "bench": "yes",
+        "bin": "no",
+        "building": "yes",
+        "name": "Michell Hut",
+        "shelter_type": "basic_hut",
+        "tourism": "wilderness_hut"
+      },
+      "distanceAlongTrail": 296.27791984833385,
+      "distanceFromTrail": 1.3465725049154045
     },
     {
       "id": 744318836,
@@ -3027,13 +3416,13 @@
       "category": "camping",
       "lat": -36.4405363,
       "lon": 148.2629843,
-      "name": "WIlkinson's Creek Campsite",
+      "name": "Wilkinson's Creek Campsite",
       "tags": {
         "access": "yes",
         "camp_site": "basic",
         "caravans": "no",
         "informal": "yes",
-        "name": "WIlkinson's Creek Campsite",
+        "name": "Wilkinson's Creek Campsite",
         "static_caravans": "no",
         "tents": "yes",
         "tourism": "camp_site"
@@ -3419,6 +3808,53 @@
       "distanceFromTrail": 0.6720804940337218
     },
     {
+      "id": 583849734,
+      "type": "way",
+      "category": "camping",
+      "lat": -35.8116329,
+      "lon": 148.5833919,
+      "name": "Witzes Hut",
+      "tags": {
+        "alt_name": "Tantangara Hut",
+        "alt_name_1": "Whites Hut",
+        "building": "cabin",
+        "building:year_built": "1952",
+        "historic": "building",
+        "name": "Witzes Hut",
+        "tourism": "wilderness_hut",
+        "website": "https://www.khuts.org/index.php/the-huts/kosciuszko-national-park/213-witzes-hut"
+      },
+      "distanceAlongTrail": 592.3122167879351,
+      "distanceFromTrail": 0.008086681949408016
+    },
+    {
+      "id": 583849735,
+      "type": "way",
+      "category": "camping",
+      "lat": -35.8117355,
+      "lon": 148.5833558,
+      "name": null,
+      "tags": {
+        "tourism": "camp_site"
+      },
+      "distanceAlongTrail": 592.3152421282487,
+      "distanceFromTrail": 0.019558389402172152
+    },
+    {
+      "id": 1035586774,
+      "type": "way",
+      "category": "camping",
+      "lat": -35.7539598,
+      "lon": 148.5614981,
+      "name": "Tantangara Creek Camping Ground",
+      "tags": {
+        "name": "Tantangara Creek Camping Ground",
+        "tourism": "camp_site"
+      },
+      "distanceAlongTrail": 601.7259389991241,
+      "distanceFromTrail": 0.014917072989196534
+    },
+    {
       "id": 583849729,
       "type": "way",
       "category": "camping",
@@ -3641,6 +4077,87 @@
       "distanceFromTrail": 0.008732581241095872
     },
     {
+      "id": 583622827,
+      "type": "way",
+      "category": "camping",
+      "lat": -35.6774834,
+      "lon": 148.7550026,
+      "name": "Oldfields Hut",
+      "tags": {
+        "alt_name": "Murray Creek Hut",
+        "alt_name_1": "Oldfields No. 1",
+        "building": "cabin",
+        "building:year_built": "1925",
+        "historic": "building",
+        "name": "Oldfields Hut",
+        "tourism": "wilderness_hut",
+        "website": "https://www.khuts.org/index.php/the-huts/kosciuszko-national-park/693-oldfields-hut"
+      },
+      "distanceAlongTrail": 636.1476823988746,
+      "distanceFromTrail": 0.005209609058296067
+    },
+    {
+      "id": 5579683079,
+      "type": "node",
+      "category": "water",
+      "lat": -35.6774495,
+      "lon": 148.7549935,
+      "name": null,
+      "tags": {
+        "amenity": "drinking_water"
+      },
+      "distanceAlongTrail": 636.1489394083599,
+      "distanceFromTrail": 0.008857173422261638
+    },
+    {
+      "id": 583622828,
+      "type": "way",
+      "category": "camping",
+      "lat": -35.6774805,
+      "lon": 148.7551022,
+      "name": null,
+      "tags": {
+        "tourism": "camp_site"
+      },
+      "distanceAlongTrail": 636.153500355011,
+      "distanceFromTrail": 0.0034470999231723913
+    },
+    {
+      "id": 6248149727,
+      "type": "node",
+      "category": "camping",
+      "lat": -35.6490199,
+      "lon": 148.8323512,
+      "name": "Cotter Flat",
+      "tags": {
+        "name": "Cotter Flat",
+        "tourism": "camp_site"
+      },
+      "distanceAlongTrail": 647.5975410983978,
+      "distanceFromTrail": 0.024380972267888115
+    },
+    {
+      "id": 5579682948,
+      "type": "node",
+      "category": "camping",
+      "lat": -35.6254136,
+      "lon": 148.881222,
+      "name": "Pond Creek campsite",
+      "tags": {
+        "access": "permit",
+        "backcountry": "yes",
+        "caravans": "no",
+        "fee": "no",
+        "name": "Pond Creek campsite",
+        "operator": "Parks ACT",
+        "static_caravans": "no",
+        "tents": "yes",
+        "tourism": "camp_site"
+      },
+      "distanceAlongTrail": 653.4725742603581,
+      "distanceFromTrail": 0.020866089757973143
+    },
+    {
       "id": 2969739253,
       "type": "node",
       "category": "water",
@@ -3782,6 +4299,32 @@
       },
       "distanceAlongTrail": 687.971940789119,
       "distanceFromTrail": 0.07520995962289798
+    },
+    {
+      "id": 14269541325,
+      "type": "node",
+      "category": "camping",
+      "lat": -35.5305443,
+      "lon": 149.0657876,
+      "name": null,
+      "tags": {
+        "amenity": "shelter"
+      },
+      "distanceAlongTrail": 688.3114852426418,
+      "distanceFromTrail": 0.09215147150598821
+    },
+    {
+      "id": 3624418349,
+      "type": "node",
+      "category": "water",
+      "lat": -35.5309894,
+      "lon": 149.0655622,
+      "name": null,
+      "tags": {
+        "amenity": "drinking_water"
+      },
+      "distanceAlongTrail": 688.3114852426418,
+      "distanceFromTrail": 0.038836297494460784
     }
   ]
 }
