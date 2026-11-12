@@ -45,7 +45,17 @@ import {
   Skia,
   vec,
 } from '@shopify/react-native-skia';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import {
+  GestureDetector,
+  useCompetingGestures,
+  usePanGesture,
+  usePinchGesture,
+  useSimultaneousGestures,
+  useTapGesture,
+  type PanGestureConfig,
+  type PinchGestureConfig,
+  type TapGestureConfig,
+} from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
 import { type DistanceUnit } from '@lib/format-distance';
 import { useReduceMotion, useTheme } from '../../theme';
@@ -561,70 +571,87 @@ export function ElevationProfile({
     s.onScrub?.({ km: nearest.dist, ele: nearest.ele });
   }, []);
 
-  // The eight `react-hooks/refs` suppressions below are all the same false
-  // positive, and the only ones in the app. The compiler cannot see inside
-  // `Gesture.Pan().onStart(fn)`, so handing it a worklet that (via runOnJS)
-  // reaches a ref-backed callback looks like a ref escaping into render. These
-  // worklets only ever run from a touch, never during render — the values they
-  // read are written in the layout effect above, one commit earlier. Removing
-  // the suppressions means rebuilding the gesture whenever the window changes,
-  // which is what the ref plumbing exists to avoid (see the note above), and
-  // whether RNGH preserves an in-flight drag across that is a device question
-  // this cannot be settled without.
-  const gesture = useMemo(() => {
-    // One finger drags the trail: along the x-axis, and up/down once the
-    // elevation is zoomed in. `maxPointers(1)` keeps a second finger from
-    // stealing the pinch.
-    const pan = Gesture.Pan()
-      .minDistance(PAN_MIN_DISTANCE)
-      .maxPointers(1)
-      // eslint-disable-next-line react-hooks/refs -- worklet, runs on touch only
-      .onStart(() => {
+  // Gesture Handler 3's hook API (#315; the `Gesture.Pan()` builders are
+  // deprecated). Each config is memoised on the ref-backed, stable callbacks,
+  // so it is built once per mount: the hooks re-send a gesture's config to the
+  // native handler whenever the config object changes, and the old builder
+  // gesture was likewise built once so a window change could never touch a
+  // drag in flight (see the note above).
+  // The callbacks carry an explicit 'worklet' directive because the worklets
+  // Babel plugin only workletizes a config written inline in the hook call,
+  // and these are inside useMemo; they run on the UI thread and hop to JS with
+  // runOnJS, exactly as the builder callbacks did.
+  // Callback names follow the v3 rename: onStart → onActivate, onEnd →
+  // onDeactivate (both still fire only for a gesture that became active, and
+  // onDeactivate fires on cancel too, as onEnd did).
+  //
+  // One finger drags the trail: along the x-axis, and up/down once the
+  // elevation is zoomed in. `maxPointers: 1` keeps a second finger from
+  // stealing the pinch.
+  const panConfig = useMemo<PanGestureConfig>(
+    () => ({
+      minDistance: PAN_MIN_DISTANCE,
+      maxPointers: 1,
+      onActivate: () => {
+        'worklet';
         runOnJS(beginGesture)(0, 0);
-      })
-      // eslint-disable-next-line react-hooks/refs -- worklet, runs on touch only
-      .onUpdate((e) => {
+      },
+      onUpdate: (e) => {
+        'worklet';
         runOnJS(applyPan)(e.translationX, e.translationY, false);
-      })
-      // eslint-disable-next-line react-hooks/refs -- worklet, runs on touch only
-      .onEnd((e) => {
+      },
+      onDeactivate: (e) => {
+        'worklet';
         runOnJS(applyPan)(e.translationX, e.translationY, true);
-      });
+      },
+    }),
+    [beginGesture, applyPan],
+  );
 
-    // Pinch zooms distance, elevation or both, depending on how the two fingers
-    // were placed (`pinchAxes`): their positions are only in the touch events,
-    // so they are recorded as the second finger lands, before the pinch starts.
-    const pinch = Gesture.Pinch()
-      // eslint-disable-next-line react-hooks/refs -- worklet, runs on touch only
-      .onTouchesDown((e) => {
+  // Pinch zooms distance, elevation or both, depending on how the two fingers
+  // were placed (`pinchAxes`): their positions are only in the touch events,
+  // so they are recorded as the second finger lands, before the pinch starts.
+  const pinchConfig = useMemo<PinchGestureConfig>(
+    () => ({
+      onTouchesDown: (e) => {
+        'worklet';
         if (e.allTouches.length < 2) return;
         const [a, b] = e.allTouches;
         runOnJS(recordPinchFingers)(b.x - a.x, b.y - a.y);
-      })
-      // eslint-disable-next-line react-hooks/refs -- worklet, runs on touch only
-      .onStart((e) => {
+      },
+      onActivate: (e) => {
+        'worklet';
         runOnJS(beginGesture)(e.focalX, e.focalY);
-      })
-      // eslint-disable-next-line react-hooks/refs -- worklet, runs on touch only
-      .onUpdate((e) => {
+      },
+      onUpdate: (e) => {
+        'worklet';
         runOnJS(applyPinch)(e.scale, false);
-      })
-      // eslint-disable-next-line react-hooks/refs -- worklet, runs on touch only
-      .onEnd((e) => {
+      },
+      onDeactivate: (e) => {
+        'worklet';
         runOnJS(applyPinch)(e.scale, true);
-      });
+      },
+    }),
+    [beginGesture, recordPinchFingers, applyPinch],
+  );
 
-    const tap = Gesture.Tap()
-      .maxDistance(12)
-      // eslint-disable-next-line react-hooks/refs -- worklet, runs on touch only
-      .onEnd((e) => {
+  const tapConfig = useMemo<TapGestureConfig>(
+    () => ({
+      maxDistance: 12,
+      onDeactivate: (e) => {
+        'worklet';
         runOnJS(handleTap)(e.x, e.y);
-      });
+      },
+    }),
+    [handleTap],
+  );
 
-    return Gesture.Simultaneous(Gesture.Race(pinch, pan), tap);
-    // Handlers are ref-backed and stable, so this gesture is built once per
-    // mount — never rebuilt (and thus never cancelled) by a window change.
-  }, [beginGesture, recordPinchFingers, applyPan, applyPinch, handleTap]);
+  const pan = usePanGesture(panConfig);
+  const pinch = usePinchGesture(pinchConfig);
+  const tap = useTapGesture(tapConfig);
+  // Was `Gesture.Simultaneous(Gesture.Race(pinch, pan), tap)`: v3 calls Race
+  // "competing".
+  const gesture = useSimultaneousGestures(useCompetingGestures(pinch, pan), tap);
 
   if (points.length === 0 || !metrics) {
     return (

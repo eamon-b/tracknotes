@@ -15,6 +15,7 @@ import {
   getTrailTileStatus,
   deleteTrailTiles,
   downloadTrailTiles,
+  resetDigestWarningForTests,
   packFileNames,
   validateMbtiles,
   validateMbtilesCached,
@@ -28,6 +29,8 @@ import { openDatabaseAsync } from 'expo-sqlite';
 const mockFiles: Record<string, { exists: boolean; size: number; md5?: string | null }> = {};
 const mockDirs: Record<string, { exists: boolean; deleted: boolean }> = {};
 const mockFileContents: Record<string, string> = {};
+/** Every `File.digest` call, as `{ uri, algorithm }`, in call order. */
+const mockDigestCalls: { uri: string; algorithm: string }[] = [];
 
 // ---------------------------------------------------------------------------
 // Local mocks — the global jest.setup.js only provides readAsStringAsync /
@@ -57,11 +60,19 @@ jest.mock('expo-file-system', () => {
       get size() {
         return mockFiles[uri]?.size ?? 0;
       },
-      // expo-file-system SDK 54 exposes a natively computed MD5 (null when the
-      // file is missing or unreadable).
-      get md5() {
-        return mockFiles[uri]?.md5 ?? null;
-      },
+      // expo-file-system's natively computed digest: resolves to lowercase
+      // hex, rejects when the file is missing or cannot be read. A mock file
+      // with `md5: null` stands for a digest the platform cannot produce.
+      // There is deliberately no `md5` getter (deprecated in SDK 58, #315):
+      // code still reading it would see undefined and skip every check.
+      digest: jest.fn(async (algorithm: string) => {
+        mockDigestCalls.push({ uri, algorithm });
+        if (algorithm !== 'MD5') throw new Error(`digest: unexpected algorithm ${algorithm}`);
+        const entry = mockFiles[uri];
+        if (!entry?.exists) throw new Error('digest: file does not exist');
+        if (entry.md5 == null) throw new Error('digest: cannot read file');
+        return entry.md5;
+      }),
       textSync: jest.fn(() => mockFileContents[uri] ?? ''),
       delete: jest.fn(() => {
         mockFiles[uri] = { exists: false, size: 0 };
@@ -1135,7 +1146,13 @@ describe('downloadTrailTiles integrity verification', () => {
     serve(makeManifest());
     useDb(fakeDb());
     landDownloads((name) => MD5[name]);
+    mockDigestCalls.length = 0;
   });
+
+  /** The file names `File.digest` was asked to hash, with the algorithm. */
+  function digested(): string[] {
+    return mockDigestCalls.map(({ uri, algorithm }) => `${uri.split('/').pop()}:${algorithm}`);
+  }
 
   it('fetches the content-addressed key but stores the file under a local name', async () => {
     await downloadTrailTiles(TRAIL_ID, BASE_URL);
@@ -1154,6 +1171,16 @@ describe('downloadTrailTiles integrity verification', () => {
 
     expect(getTrailTileStatus(TRAIL_ID).state).toBe('complete');
     expect(getTrailTileStatus(TRAIL_ID).version).toBe('v2');
+    // Each staged file is hashed with File.digest('MD5') before promotion.
+    expect(digested()).toEqual(['base.mbtiles.part:MD5', 'contours.mbtiles.part:MD5']);
+  });
+
+  it('compares the digest case-insensitively', async () => {
+    landDownloads((name) => MD5[name].toUpperCase());
+
+    await expect(downloadTrailTiles(TRAIL_ID, BASE_URL)).resolves.toBeUndefined();
+
+    expect(getTrailTileStatus(TRAIL_ID).state).toBe('complete');
   });
 
   it('rejects a download whose MD5 does not match, leaving the old pack intact', async () => {
@@ -1179,8 +1206,13 @@ describe('downloadTrailTiles integrity verification', () => {
     landDownloads(() => 'deadbeefdeadbeefdeadbeefdeadbeef');
     const error = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    await expect(downloadTrailTiles(TRAIL_ID, BASE_URL)).rejects.toThrow(/Checksum mismatch/);
+    await expect(downloadTrailTiles(TRAIL_ID, BASE_URL)).rejects.toThrow(
+      'Checksum mismatch for base.mbtiles: expected MD5 58ce65fc42901111111111111111ffff, got deadbeefdeadbeefdeadbeefdeadbeef',
+    );
     error.mockRestore();
+    // The old file is hashed too (the skip check), then the corrupt .part,
+    // whose mismatch stops the run before contours is fetched.
+    expect(digested()).toEqual(['base.mbtiles:MD5', 'base.mbtiles.part:MD5']);
 
     // Old files, old manifest, no staging leftovers.
     expect(mockFiles[fileKey('base.mbtiles')]).toEqual({ exists: true, size: OLD.base });
@@ -1205,9 +1237,13 @@ describe('downloadTrailTiles integrity verification', () => {
 
     expect(requestedObjects()).toEqual(['base.mbtiles', 'contours.mbtiles']);
     expect(getTrailTileStatus(TRAIL_ID).state).toBe('complete');
+    // Nothing to compare against, so nothing is hashed.
+    expect(digested()).toEqual([]);
   });
 
   it('accepts the download when the platform cannot produce an MD5', async () => {
+    // The mock's digest rejects for these files, as the native one does for a
+    // file it cannot read; that is a skipped check, not a failed download.
     landDownloads(() => null);
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -1231,6 +1267,35 @@ describe('downloadTrailTiles integrity verification', () => {
     expect(requestedObjects()).toContain(KEYS['base.mbtiles']);
     const live = packFileNames(TRAIL_ID);
     expect(mockFiles[fileKey(live['base.mbtiles'])]?.md5).toBe(MD5['base.mbtiles']);
+    // The existing file was hashed and found wrong, then its replacement hashed.
+    expect(digested().slice(0, 2)).toEqual(['base.mbtiles:MD5', 'base.mbtiles.part:MD5']);
+  });
+
+  it('keeps an existing file whose digest cannot be read, on size and structure', async () => {
+    // An unreadable digest is "skipped", as the old null md5 was: a right-sized,
+    // valid file is kept rather than fetched again.
+    for (const name of NAMES) {
+      mockFiles[fileKey(name)] = { exists: true, size: SIZES[name], md5: null };
+    }
+
+    resetDigestWarningForTests();
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    await downloadTrailTiles(TRAIL_ID, BASE_URL);
+
+    expect(mockDownloadFileAsync).not.toHaveBeenCalled();
+    expect(digested()).toEqual(['base.mbtiles:MD5', 'contours.mbtiles:MD5']);
+    // Said once per session, not once per file, so a device that never
+    // verifies shows up in its logs without flooding them.
+    const skipped = warn.mock.calls.filter((c) =>
+      String(c[0]).includes('no MD5 available for the existing'),
+    );
+    expect(skipped).toHaveLength(1);
+    await downloadTrailTiles(TRAIL_ID, BASE_URL);
+    expect(
+      warn.mock.calls.filter((c) => String(c[0]).includes('no MD5 available for the existing')),
+    ).toHaveLength(skipped.length);
+    warn.mockRestore();
   });
 
   it('skips an existing file whose MD5 already matches the manifest', async () => {
