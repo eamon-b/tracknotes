@@ -15,6 +15,7 @@ import {
   getTrailTileStatus,
   deleteTrailTiles,
   downloadTrailTiles,
+  resetDigestWarningForTests,
   packFileNames,
   validateMbtiles,
   validateMbtilesCached,
@@ -1277,10 +1278,24 @@ describe('downloadTrailTiles integrity verification', () => {
       mockFiles[fileKey(name)] = { exists: true, size: SIZES[name], md5: null };
     }
 
+    resetDigestWarningForTests();
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     await downloadTrailTiles(TRAIL_ID, BASE_URL);
 
     expect(mockDownloadFileAsync).not.toHaveBeenCalled();
     expect(digested()).toEqual(['base.mbtiles:MD5', 'contours.mbtiles:MD5']);
+    // Said once per session, not once per file, so a device that never
+    // verifies shows up in its logs without flooding them.
+    const skipped = warn.mock.calls.filter((c) =>
+      String(c[0]).includes('no MD5 available for the existing'),
+    );
+    expect(skipped).toHaveLength(1);
+    await downloadTrailTiles(TRAIL_ID, BASE_URL);
+    expect(
+      warn.mock.calls.filter((c) => String(c[0]).includes('no MD5 available for the existing')),
+    ).toHaveLength(skipped.length);
+    warn.mockRestore();
   });
 
   it('skips an existing file whose MD5 already matches the manifest', async () => {

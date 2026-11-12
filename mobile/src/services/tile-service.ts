@@ -574,14 +574,22 @@ async function checkMd5(
 
   let actual: string | null = null;
   try {
-    const value: unknown = await file.digest('MD5');
-    actual = typeof value === 'string' && value.length > 0 ? value.toLowerCase() : null;
+    const value = await file.digest('MD5');
+    actual = value.length > 0 ? value.toLowerCase() : null;
   } catch {
     actual = null;
   }
 
   if (actual == null) return { verdict: 'skipped', actual: null };
   return { verdict: actual === expected.toLowerCase() ? 'match' : 'mismatch', actual };
+}
+
+/** Whether the existing-file path has already warned that no digest is available. */
+let warnedExistingDigestSkipped = false;
+
+/** Test seam: forget that the existing-file digest warning has been given. */
+export function resetDigestWarningForTests(): void {
+  warnedExistingDigestSkipped = false;
 }
 
 /** Best-effort removal of a staging file; never throws. */
@@ -750,7 +758,18 @@ export async function downloadTrailTiles(
     if (dest.exists) {
       const size = dest.size ?? 0;
       const sizeOk = expectedSize ? size === expectedSize : size > 1000;
-      const hashOk = (await checkMd5(dest, md5)).verdict !== 'mismatch';
+      const existing = await checkMd5(dest, md5);
+      const hashOk = existing.verdict !== 'mismatch';
+      if (existing.verdict === 'skipped' && md5 && !warnedExistingDigestSkipped) {
+        // Once per session: a device that can never hash keeps every existing
+        // pack on size and structure alone, which should show up in its logs
+        // without repeating for each file of each trail.
+        warnedExistingDigestSkipped = true;
+        console.warn(
+          `[tile-service] no MD5 available for the existing ${name} on this platform; ` +
+            'keeping existing packs on size and structure alone.',
+        );
+      }
       if (sizeOk && hashOk && (await validateMbtilesCached(trailId, name)).ok) {
         bytesDownloaded += size;
         onProgress?.({ fileName: name, done: true, bytesDownloaded, bytesTotal });
