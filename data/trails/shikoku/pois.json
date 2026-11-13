@@ -1,12 +1,10 @@
 {
   "source": "OpenStreetMap",
   "attribution": "© OpenStreetMap contributors (ODbL)",
-  "fetchedAt": "2026-10-06T10:29:59.782Z",
+  "fetchedAt": "2026-11-13T00:54:23.678Z",
   "searchRadiusKm": 2,
-  "endpoint": "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
-  "rejected": [
-    "node/270408582"
-  ],
+  "endpoint": "https://overpass-api.de/api/interpreter",
+  "rejected": [],
   "pois": [
     {
       "id": 11564088772,
@@ -4694,6 +4692,13 @@
       "lon": 134.3549724,
       "name": "吉野川市少年の森 野外活動センター",
       "tags": {
+        "addr:block_number": "1780",
+        "addr:city": "吉野川市",
+        "addr:country": "JP",
+        "addr:full": "徳島県吉野川市鴨島町飯尾1780",
+        "addr:neighbourhood": "鴨島町飯尾",
+        "addr:postcode": "776-0033",
+        "addr:province": "徳島県",
         "name": "吉野川市少年の森 野外活動センター",
         "name:en": "Free camp",
         "operator": "吉野川市役所",
@@ -4900,6 +4905,194 @@
       "distanceFromTrail": 0.15760825318932906
     },
     {
+      "id": 3669617870,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 33.9673449,
+      "lon": 134.3466538,
+      "name": "カフェ・オニヴァ",
+      "tags": {
+        "addr:city": "徳島県 名西郡神山町 神領 字西野間5-1",
+        "addr:postcode": "771-3311",
+        "amenity": "restaurant",
+        "name": "カフェ・オニヴァ"
+      },
+      "distanceAlongTrail": 55.334744915656216,
+      "distanceFromTrail": 0.008464365760068883
+    },
+    {
+      "id": 14287528325,
+      "type": "node",
+      "category": "camping",
+      "lat": 33.9672908,
+      "lon": 134.3504607,
+      "name": "オートキャンプみやま村",
+      "tags": {
+        "addr:block_number": "27",
+        "addr:city": "名西郡",
+        "addr:country": "JP",
+        "addr:full": "徳島県名西郡神山町下分字大石ノ本27",
+        "addr:neighbourhood": "下分字大石ノ本",
+        "addr:postcode": "771-3200",
+        "addr:province": "徳島県",
+        "addr:suburb": "神山町",
+        "name": "オートキャンプみやま村",
+        "phone": "088-677-0406",
+        "tourism": "camp_site"
+      },
+      "distanceAlongTrail": 55.692997067632035,
+      "distanceFromTrail": 0.029768186557219557
+    },
+    {
+      "id": 9405052694,
+      "type": "node",
+      "category": "transport",
+      "lat": 33.9694746,
+      "lon": 134.3620956,
+      "name": null,
+      "tags": {
+        "bus": "yes",
+        "highway": "bus_stop",
+        "public_transport": "platform"
+      },
+      "distanceAlongTrail": 56.95691100949701,
+      "distanceFromTrail": 0.015071724791877562
+    },
+    {
+      "id": 12836716567,
+      "type": "node",
+      "category": "camping",
+      "lat": 33.9728134,
+      "lon": 134.3606337,
+      "name": "ネイチャーヒーリング",
+      "tags": {
+        "addr:block_number": "大梵地355-1",
+        "addr:city": "神山町",
+        "addr:county": "名西郡",
+        "addr:postcode": "771-3310",
+        "addr:province": "徳島県",
+        "addr:quarter": "神領",
+        "camp_site": "standard",
+        "charge": "5,000 JPY",
+        "fee": "yes",
+        "name": "ネイチャーヒーリング",
+        "name:en": "nature healing",
+        "payment:cash": "yes",
+        "tents": "yes",
+        "toilets": "yes",
+        "tourism": "camp_site"
+      },
+      "distanceAlongTrail": 57.14256935455949,
+      "distanceFromTrail": 0.2572058197158908
+    },
+    {
+      "id": 13149377101,
+      "type": "node",
+      "category": "camping",
+      "lat": 33.9705397,
+      "lon": 134.3696948,
+      "name": null,
+      "tags": {
+        "amenity": "shelter"
+      },
+      "distanceAlongTrail": 57.711973419805574,
+      "distanceFromTrail": 0.40426424311571807
+    },
+    {
+      "id": 1160490245,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 33.9693851,
+      "lon": 134.3703379,
+      "name": "KAMIYAMA  BEER",
+      "tags": {
+        "amenity": "bar",
+        "building": "yes",
+        "name": "KAMIYAMA  BEER"
+      },
+      "distanceAlongTrail": 57.711973419805574,
+      "distanceFromTrail": 0.5446448977974935
+    },
+    {
+      "id": 312715883,
+      "type": "way",
+      "category": "camping",
+      "lat": 33.9688104,
+      "lon": 134.3692402,
+      "name": "コットンフィールドキャンプ場",
+      "tags": {
+        "addr:city": "神山町",
+        "addr:housenumber": "272",
+        "addr:postcode": "771-3310",
+        "addr:street": "神領字西上角",
+        "cabins": "yes",
+        "caravans": "yes",
+        "drinking_water": "yes",
+        "name": "コットンフィールドキャンプ場",
+        "phone": "+81 88 676 0803",
+        "shower": "no",
+        "tents": "yes",
+        "tourism": "camp_site",
+        "website": "https://www.cottonfield.jp/"
+      },
+      "distanceAlongTrail": 57.711973419805574,
+      "distanceFromTrail": 0.5606534935952342
+    },
+    {
+      "id": 1423660383,
+      "type": "node",
+      "category": "resupply",
+      "lat": 33.9730231,
+      "lon": 134.3682091,
+      "name": "神山郵便局",
+      "tags": {
+        "amenity": "post_office",
+        "name": "神山郵便局",
+        "note": "National-Land Numerical Information (Public Facility) 2006, MLIT Japan",
+        "note:ja": "国土数値情報（公共施設データ）平成19年　国土交通省",
+        "source": "KSJ2",
+        "source_ref": "http://nlftp.mlit.go.jp/ksj/jpgis/datalist/KsjTmplt-P02-v2_0.html"
+      },
+      "distanceAlongTrail": 57.72631218315676,
+      "distanceFromTrail": 0.10036063453619185
+    },
+    {
+      "id": 1370998810,
+      "type": "way",
+      "category": "camping",
+      "lat": 33.9720055,
+      "lon": 134.3692264,
+      "name": null,
+      "tags": {
+        "amenity": "shelter",
+        "building": "roof",
+        "building:levels": "0.6",
+        "roof:colour": "grey",
+        "roof:levels": "0.5",
+        "roof:shape": "pyramidal",
+        "source": "survey;aerial imagery"
+      },
+      "distanceAlongTrail": 57.72631218315676,
+      "distanceFromTrail": 0.24711573899444633
+    },
+    {
+      "id": 313680091,
+      "type": "way",
+      "category": "resupply",
+      "lat": 33.9735673,
+      "lon": 134.3677899,
+      "name": "道の駅 温泉の里神山",
+      "tags": {
+        "building": "yes",
+        "name": "道の駅 温泉の里神山",
+        "phone": "+81 88 636 7077",
+        "shop": "convenience",
+        "wikidata": "Q11641380"
+      },
+      "distanceAlongTrail": 57.72631218315676,
+      "distanceFromTrail": 0.033695935235598766
+    },
+    {
       "id": 1423661466,
       "type": "node",
       "category": "resupply",
@@ -4940,6 +5133,115 @@
       },
       "distanceAlongTrail": 58.032403534284796,
       "distanceFromTrail": 0.0054523118968345455
+    },
+    {
+      "id": 1299239455,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 33.9747748,
+      "lon": 134.3707427,
+      "name": "粟カフェ",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "regional;japanese",
+        "name": "粟カフェ"
+      },
+      "distanceAlongTrail": 58.0665353398184,
+      "distanceFromTrail": 0.035419617273249895
+    },
+    {
+      "id": 1299239456,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 33.978002,
+      "lon": 134.3734591,
+      "name": "茶房 松葉庵 麟角",
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "coffee_shop;regional;japanese",
+        "name": "茶房 松葉庵 麟角"
+      },
+      "distanceAlongTrail": 58.50081967237762,
+      "distanceFromTrail": 0.01416202960306152
+    },
+    {
+      "id": 12035615935,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 33.9798931,
+      "lon": 134.3768742,
+      "name": null,
+      "tags": {
+        "amenity": "restaurant",
+        "cuisine": "noodle;うどん"
+      },
+      "distanceAlongTrail": 58.84796995358867,
+      "distanceFromTrail": 0.05587240176290609
+    },
+    {
+      "id": 1423660238,
+      "type": "node",
+      "category": "emergency",
+      "lat": 33.988152,
+      "lon": 134.394194,
+      "name": "石井警察署神山町鬼籠野駐在所",
+      "tags": {
+        "KSJ2:ADS": "鬼籠野字中分24-4",
+        "KSJ2:AdminArea": "徳島県名西郡神山町",
+        "amenity": "police",
+        "name": "石井警察署神山町鬼籠野駐在所",
+        "note": "National-Land Numerical Information (Public Facility) 2006, MLIT Japan",
+        "note:ja": "国土数値情報（公共施設データ）平成19年　国土交通省",
+        "operator": "徳島県警察",
+        "source": "KSJ2",
+        "source_ref": "http://nlftp.mlit.go.jp/ksj/jpgis/datalist/KsjTmplt-P02-v2_0.html"
+      },
+      "distanceAlongTrail": 58.84796995358867,
+      "distanceFromTrail": 1.89754248276036
+    },
+    {
+      "id": 1423661560,
+      "type": "node",
+      "category": "resupply",
+      "lat": 33.988362,
+      "lon": 134.395267,
+      "name": "鬼籠野郵便局",
+      "tags": {
+        "KSJ2:ADS": "鬼籠野字東分7-12",
+        "KSJ2:AdminArea": "徳島県名西郡神山町",
+        "amenity": "post_office",
+        "name": "鬼籠野郵便局",
+        "note": "National-Land Numerical Information (Public Facility) 2006, MLIT Japan",
+        "note:ja": "国土数値情報（公共施設データ）平成19年　国土交通省",
+        "operator": "日本郵便",
+        "operator:en": "Japan Post",
+        "operator:ja": "日本郵便",
+        "operator:short": "郵便局",
+        "operator:short:en": "JP",
+        "operator:short:ja": "郵便局",
+        "operator:wikidata": "Q11509260",
+        "source": "KSJ2",
+        "source_ref": "http://nlftp.mlit.go.jp/ksj/jpgis/datalist/KsjTmplt-P02-v2_0.html"
+      },
+      "distanceAlongTrail": 58.84796995358867,
+      "distanceFromTrail": 1.9950488822962973
+    },
+    {
+      "id": 270431402,
+      "type": "node",
+      "category": "resupply",
+      "lat": 33.988253,
+      "lon": 134.3927138,
+      "name": "大西石油",
+      "tags": {
+        "amenity": "fuel",
+        "name": "大西石油",
+        "operator": "Eneos"
+      },
+      "distanceAlongTrail": 58.84796995358867,
+      "distanceFromTrail": 1.786830718164104
     },
     {
       "id": 1423660236,
@@ -5165,26 +5467,6 @@
       },
       "distanceAlongTrail": 68.4299708683651,
       "distanceFromTrail": 0.0007070449214657312
-    },
-    {
-      "id": 270408582,
-      "type": "node",
-      "category": "resupply",
-      "lat": 34.0374461,
-      "lon": 134.4555525,
-      "name": "ファミリーマート",
-      "tags": {
-        "brand": "FamilyMart",
-        "brand:en": "FamilyMart",
-        "brand:ja": "ファミリーマート",
-        "brand:wikidata": "Q11247682",
-        "name": "ファミリーマート",
-        "name:en": "FamilyMart",
-        "name:ja": "ファミリーマート",
-        "shop": "convenience"
-      },
-      "distanceAlongTrail": 69.59154712704857,
-      "distanceFromTrail": 0.022966936886508655
     },
     {
       "id": 7202841833,
@@ -6346,6 +6628,27 @@
       "distanceFromTrail": 1.2730819228052286
     },
     {
+      "id": 14285913282,
+      "type": "node",
+      "category": "camping",
+      "lat": 34.0650403,
+      "lon": 134.4938589,
+      "name": "RVパーク 鮎喰川オアシス",
+      "tags": {
+        "addr:block_number": "650-10",
+        "addr:city": "徳島市",
+        "addr:country": "JP",
+        "addr:full": "徳島県徳島市名東町2丁目650-10",
+        "addr:neighbourhood": "名東町2丁目",
+        "addr:postcode": "770-0047",
+        "addr:province": "徳島県",
+        "name": "RVパーク 鮎喰川オアシス",
+        "tourism": "camp_site"
+      },
+      "distanceAlongTrail": 80.7953761295363,
+      "distanceFromTrail": 0.9451431596193869
+    },
+    {
       "id": 5931175496,
       "type": "node",
       "category": "transport",
@@ -6946,6 +7249,33 @@
       },
       "distanceAlongTrail": 82.47108152311905,
       "distanceFromTrail": 0.7114600958685695
+    },
+    {
+      "id": 14286525202,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0732027,
+      "lon": 134.5158761,
+      "name": "Kanariya",
+      "tags": {
+        "amenity": "restaurant",
+        "check_date": "2026-10-15",
+        "check_date:opening_hours": "2026-10-15",
+        "contact:instagram": "kanariya_official",
+        "contact:twitter": "kanariya_oa",
+        "cuisine": "japanese;ramen",
+        "diet:vegan": "no",
+        "diet:vegetarian": "no",
+        "image:menu": "97738487-23cb-4909-9e2b-1860270a8f72",
+        "image:menu:0": "dfccb520-2f3f-45e5-95cb-0968cf583e75",
+        "name": "Kanariya",
+        "name:en": "Kanariya",
+        "opening_hours": "Mo-Su 11:00-19:45",
+        "toilets": "yes",
+        "website": "http://kanariya-online.com"
+      },
+      "distanceAlongTrail": 82.50598459912531,
+      "distanceFromTrail": 0.3740442174226201
     },
     {
       "id": 5942980761,
@@ -8041,6 +8371,21 @@
       "distanceFromTrail": 0.9127837984385918
     },
     {
+      "id": 357563574,
+      "type": "way",
+      "category": "resupply",
+      "lat": 34.0877004,
+      "lon": 134.531678,
+      "name": "ドラッグストアコスモス 城北高校前店",
+      "tags": {
+        "building": "yes",
+        "name": "ドラッグストアコスモス 城北高校前店",
+        "shop": "supermarket"
+      },
+      "distanceAlongTrail": 84.09395592340668,
+      "distanceFromTrail": 0.9809049729228148
+    },
+    {
       "id": 352958302,
       "type": "way",
       "category": "emergency",
@@ -8353,10 +8698,10 @@
       "category": "resupply",
       "lat": 34.0834987,
       "lon": 134.538123,
-      "name": "コスモス",
+      "name": "ドラッグストアコスモス 北佐古店",
       "tags": {
         "building": "yes",
-        "name": "コスモス",
+        "name": "ドラッグストアコスモス 北佐古店",
         "shop": "supermarket"
       },
       "distanceAlongTrail": 84.74533398569139,
@@ -8964,11 +9309,27 @@
       "distanceFromTrail": 1.2701351483499497
     },
     {
+      "id": 339726787,
+      "type": "way",
+      "category": "restaurant",
+      "lat": 34.0867996,
+      "lon": 134.5481054,
+      "name": "熱烈タンタン麺 一番亭 田宮店",
+      "tags": {
+        "amenity": "fast_food",
+        "building": "yes",
+        "cuisine": "ramen",
+        "name": "熱烈タンタン麺 一番亭 田宮店"
+      },
+      "distanceAlongTrail": 85.15493460786486,
+      "distanceFromTrail": 1.2138955376388154
+    },
+    {
       "id": 356452782,
       "type": "way",
       "category": "restaurant",
-      "lat": 34.0869638,
-      "lon": 134.5441367,
+      "lat": 34.0869655,
+      "lon": 134.5441632,
       "name": "スターバックスコーヒー徳島北田宮店",
       "tags": {
         "amenity": "cafe",
@@ -8976,14 +9337,14 @@
         "name": "スターバックスコーヒー徳島北田宮店"
       },
       "distanceAlongTrail": 85.15493460786486,
-      "distanceFromTrail": 1.0962013261000019
+      "distanceFromTrail": 1.0969273031884141
     },
     {
       "id": 356452795,
       "type": "way",
       "category": "resupply",
-      "lat": 34.0870357,
-      "lon": 134.5447058,
+      "lat": 34.087034,
+      "lon": 134.5447316,
       "name": "セブン-イレブン",
       "tags": {
         "brand": "7-ELEVEN",
@@ -8999,7 +9360,7 @@
         "shop": "convenience"
       },
       "distanceAlongTrail": 85.15493460786486,
-      "distanceFromTrail": 1.116667512626157
+      "distanceFromTrail": 1.1171144054627278
     },
     {
       "id": 783487899,
@@ -9025,6 +9386,21 @@
       },
       "distanceAlongTrail": 85.15493460786486,
       "distanceFromTrail": 1.1790207760979845
+    },
+    {
+      "id": 335856319,
+      "type": "way",
+      "category": "resupply",
+      "lat": 34.0818904,
+      "lon": 134.5528165,
+      "name": "ファミーユ マルイ",
+      "tags": {
+        "building": "yes",
+        "name": "ファミーユ マルイ",
+        "shop": "bakery"
+      },
+      "distanceAlongTrail": 85.16032581608353,
+      "distanceFromTrail": 1.1575052840166011
     },
     {
       "id": 1149068060,
@@ -10660,6 +11036,22 @@
       "distanceFromTrail": 0.6183413992145563
     },
     {
+      "id": 14259359796,
+      "type": "node",
+      "category": "transport",
+      "lat": 34.0716399,
+      "lon": 134.5455382,
+      "name": "西大工町二丁目",
+      "tags": {
+        "highway": "bus_stop",
+        "name": "西大工町二丁目",
+        "operator": "徳島市営バス",
+        "public_transport": "platform"
+      },
+      "distanceAlongTrail": 85.89401677072772,
+      "distanceFromTrail": 0.0034256167133960816
+    },
+    {
       "id": 6066213285,
       "type": "node",
       "category": "restaurant",
@@ -12176,6 +12568,29 @@
       "distanceFromTrail": 0.6549238766040982
     },
     {
+      "id": 14287476385,
+      "type": "node",
+      "category": "camping",
+      "lat": 34.075146,
+      "lon": 134.559801,
+      "name": "AWAODORI CAMP",
+      "tags": {
+        "addr:block_number": "2-104",
+        "addr:city": "徳島市",
+        "addr:country": "JP",
+        "addr:full": "徳島県徳島市中徳島町2-104",
+        "addr:neighbourhood": "中徳島町",
+        "addr:postcode": "770-0853",
+        "addr:province": "徳島県",
+        "name": "AWAODORI CAMP",
+        "phone": "090-4977-8914",
+        "tourism": "camp_site",
+        "website": "https://www.awaodori-camp.com/"
+      },
+      "distanceAlongTrail": 86.02332621606331,
+      "distanceFromTrail": 1.3581055318771096
+    },
+    {
       "id": 12011660401,
       "type": "node",
       "category": "transport",
@@ -12297,6 +12712,22 @@
       "distanceFromTrail": 0.15173003598260762
     },
     {
+      "id": 14259022833,
+      "type": "node",
+      "category": "emergency",
+      "lat": 34.0710567,
+      "lon": 134.548035,
+      "name": "朝日漢方薬局",
+      "tags": {
+        "amenity": "pharmacy",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "朝日漢方薬局"
+      },
+      "distanceAlongTrail": 86.04055402652249,
+      "distanceFromTrail": 0.18302229932491224
+    },
+    {
       "id": 2991945837,
       "type": "node",
       "category": "restaurant",
@@ -12327,6 +12758,23 @@
       },
       "distanceAlongTrail": 86.04328814993995,
       "distanceFromTrail": 0.06898002606766819
+    },
+    {
+      "id": 14259750701,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0710129,
+      "lon": 134.5479854,
+      "name": "Our麺",
+      "tags": {
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "cuisine": "ramen",
+        "level": "0",
+        "name": "Our麺"
+      },
+      "distanceAlongTrail": 86.04336642032017,
+      "distanceFromTrail": 0.17696576872215672
     },
     {
       "id": 295385510,
@@ -12394,23 +12842,6 @@
       },
       "distanceAlongTrail": 86.04898877706944,
       "distanceFromTrail": 0.711904651670629
-    },
-    {
-      "id": 2991733098,
-      "type": "node",
-      "category": "restaurant",
-      "lat": 34.0709668,
-      "lon": 134.5480237,
-      "name": "大孫",
-      "tags": {
-        "amenity": "fast_food",
-        "branch": "新町店",
-        "cuisine": "ramen",
-        "description": "徳島ラーメン",
-        "name": "大孫"
-      },
-      "distanceAlongTrail": 86.04943902489627,
-      "distanceFromTrail": 0.17832448753259536
     },
     {
       "id": 2991945597,
@@ -12558,6 +12989,24 @@
       },
       "distanceAlongTrail": 86.05519384105706,
       "distanceFromTrail": 0.6077169456464858
+    },
+    {
+      "id": 14259359799,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0709331,
+      "lon": 134.5482372,
+      "name": "テーマ、OKAZU。",
+      "tags": {
+        "amenity": "fast_food",
+        "check_date": "2026-06-19",
+        "cuisine": "japanese",
+        "level": "0",
+        "name": "テーマ、OKAZU。",
+        "takeaway": "only"
+      },
+      "distanceAlongTrail": 86.05519384105706,
+      "distanceFromTrail": 0.19523390890651304
     },
     {
       "id": 2991740559,
@@ -12952,6 +13401,22 @@
       "distanceFromTrail": 0.11297252846198491
     },
     {
+      "id": 14270753656,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.071423,
+      "lon": 134.5523165,
+      "name": "阿波串物語 鼓虎",
+      "tags": {
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "阿波串物語 鼓虎"
+      },
+      "distanceAlongTrail": 86.10623136582987,
+      "distanceFromTrail": 0.569698840730607
+    },
+    {
       "id": 14235411364,
       "type": "node",
       "category": "emergency",
@@ -13119,6 +13584,23 @@
       "distanceFromTrail": 1.1125380968450183
     },
     {
+      "id": 14270823948,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0709245,
+      "lon": 134.5520557,
+      "name": "大衆焼肉 おっくん",
+      "tags": {
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "cuisine": "barbecue",
+        "level": "0",
+        "name": "大衆焼肉 おっくん"
+      },
+      "distanceAlongTrail": 86.15187421850987,
+      "distanceFromTrail": 0.5301226520013845
+    },
+    {
       "id": 14203175448,
       "type": "node",
       "category": "restaurant",
@@ -13150,26 +13632,21 @@
       "distanceFromTrail": 0.3143635104847206
     },
     {
-      "id": 5978018797,
+      "id": 14270823949,
       "type": "node",
-      "category": "resupply",
-      "lat": 34.0709851,
-      "lon": 134.5524831,
-      "name": "ローソン",
+      "category": "restaurant",
+      "lat": 34.070874,
+      "lon": 134.5520315,
+      "name": "IL LUPO",
       "tags": {
-        "brand": "LAWSON",
-        "brand:en": "LAWSON",
-        "brand:ja": "ローソン",
-        "brand:wikidata": "Q1557223",
-        "brand:wikipedia": "ja:ローソン",
-        "name": "ローソン",
-        "name:en": "Lawson",
-        "name:ja": "ローソン",
-        "name:ko": "로손",
-        "shop": "convenience"
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "cuisine": "italian",
+        "level": "0",
+        "name": "IL LUPO"
       },
-      "distanceAlongTrail": 86.15728617671617,
-      "distanceFromTrail": 0.5696932676940424
+      "distanceAlongTrail": 86.15655949740007,
+      "distanceFromTrail": 0.5263084249052735
     },
     {
       "id": 370418723,
@@ -13226,6 +13703,23 @@
       "distanceFromTrail": 0.6606328014267409
     },
     {
+      "id": 14270823927,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0708096,
+      "lon": 134.5519973,
+      "name": "阿波ダイニング 光",
+      "tags": {
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "cuisine": "japanese;regional",
+        "level": "0",
+        "name": "阿波ダイニング 光"
+      },
+      "distanceAlongTrail": 86.16244189531321,
+      "distanceFromTrail": 0.5211510225970212
+    },
+    {
       "id": 13938908153,
       "type": "node",
       "category": "restaurant",
@@ -13241,6 +13735,31 @@
       "distanceFromTrail": 0.8354023422441051
     },
     {
+      "id": 5978018797,
+      "type": "node",
+      "category": "resupply",
+      "lat": 34.0709324,
+      "lon": 134.5525597,
+      "name": "ローソン",
+      "tags": {
+        "branch": "徳島両国本町店",
+        "brand": "LAWSON",
+        "brand:en": "LAWSON",
+        "brand:ja": "ローソン",
+        "brand:wikidata": "Q1557223",
+        "brand:wikipedia": "ja:ローソン",
+        "check_date": "2026-06-19",
+        "name": "ローソン",
+        "name:en": "Lawson",
+        "name:ja": "ローソン",
+        "name:ko": "로손",
+        "opening_hours": "24/7",
+        "shop": "convenience"
+      },
+      "distanceAlongTrail": 86.16499687809815,
+      "distanceFromTrail": 0.5746601948605699
+    },
+    {
       "id": 3757641388,
       "type": "node",
       "category": "restaurant",
@@ -13254,6 +13773,22 @@
       },
       "distanceAlongTrail": 86.16802767873766,
       "distanceFromTrail": 0.11002422468880321
+    },
+    {
+      "id": 14270823901,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0708454,
+      "lon": 134.5523635,
+      "name": "食堂はなたに 2号店",
+      "tags": {
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "cuisine": "japanese;regional",
+        "name": "食堂はなたに 2号店"
+      },
+      "distanceAlongTrail": 86.16878876890175,
+      "distanceFromTrail": 0.554516483656558
     },
     {
       "id": 317138831,
@@ -13304,6 +13839,22 @@
       "distanceFromTrail": 0.983047385240675
     },
     {
+      "id": 14270823989,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0705279,
+      "lon": 134.5518501,
+      "name": "SPOON",
+      "tags": {
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "SPOON"
+      },
+      "distanceAlongTrail": 86.18823920220595,
+      "distanceFromTrail": 0.4988019981538987
+    },
+    {
       "id": 317000531,
       "type": "way",
       "category": "restaurant",
@@ -13339,6 +13890,23 @@
       "distanceFromTrail": 1.041057678256138
     },
     {
+      "id": 14270823979,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0704196,
+      "lon": 134.5521133,
+      "name": "S.B.DINER TOKUSHIMA",
+      "tags": {
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "cuisine": "burger",
+        "level": "0",
+        "name": "S.B.DINER TOKUSHIMA"
+      },
+      "distanceAlongTrail": 86.20701509834421,
+      "distanceFromTrail": 0.5183017701310745
+    },
+    {
       "id": 295389977,
       "type": "way",
       "category": "resupply",
@@ -13361,6 +13929,23 @@
       },
       "distanceAlongTrail": 86.20723388348009,
       "distanceFromTrail": 0.7063156693767793
+    },
+    {
+      "id": 14270144355,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0702569,
+      "lon": 134.5516587,
+      "name": "Como Siempre",
+      "tags": {
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "cuisine": "italian",
+        "level": "0",
+        "name": "Como Siempre"
+      },
+      "distanceAlongTrail": 86.21167734897922,
+      "distanceFromTrail": 0.4729278504493085
     },
     {
       "id": 317000532,
@@ -13392,6 +13977,41 @@
       "distanceFromTrail": 0.050174797070009776
     },
     {
+      "id": 14270144353,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0701958,
+      "lon": 134.5516443,
+      "name": "KOPOLI",
+      "tags": {
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "cuisine": "curry",
+        "level": "0",
+        "name": "KOPOLI"
+      },
+      "distanceAlongTrail": 86.21775818940813,
+      "distanceFromTrail": 0.46962003766337834
+    },
+    {
+      "id": 14270823976,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0702063,
+      "lon": 134.5519886,
+      "name": "愛宝麻辣燙",
+      "tags": {
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "cuisine": "chinese",
+        "level": "0",
+        "name": "愛宝麻辣燙",
+        "name:ja-Hira": "あいほうまーらーたん"
+      },
+      "distanceAlongTrail": 86.22618168514057,
+      "distanceFromTrail": 0.5002160534071817
+    },
+    {
       "id": 370391950,
       "type": "way",
       "category": "resupply",
@@ -13417,36 +14037,38 @@
       "distanceFromTrail": 1.1285320990816186
     },
     {
-      "id": 316925401,
-      "type": "way",
+      "id": 14270144384,
+      "type": "node",
       "category": "emergency",
-      "lat": 34.0700543,
-      "lon": 134.5515457,
+      "lat": 34.0700512,
+      "lon": 134.5515667,
       "name": "ライオン薬局",
       "tags": {
         "amenity": "pharmacy",
-        "building": "yes",
         "name": "ライオン薬局",
         "wheelchair": "yes"
       },
-      "distanceAlongTrail": 86.2300331944558,
-      "distanceFromTrail": 0.4562275354477345
+      "distanceAlongTrail": 86.23094364929287,
+      "distanceFromTrail": 0.4579686309495064
     },
     {
       "id": 316925405,
       "type": "way",
       "category": "restaurant",
-      "lat": 34.0700227,
-      "lon": 134.5515276,
+      "lat": 34.0700239,
+      "lon": 134.5515146,
       "name": "プチレスト ウッドアイビス",
       "tags": {
         "amenity": "cafe",
         "building": "yes",
+        "building:levels": "4",
+        "ele": "1.5",
+        "height": "16.1",
         "name": "プチレスト ウッドアイビス",
         "wheelchair": "no"
       },
-      "distanceAlongTrail": 86.23288303399008,
-      "distanceFromTrail": 0.4535810041784524
+      "distanceAlongTrail": 86.23239567453646,
+      "distanceFromTrail": 0.4524791417007455
     },
     {
       "id": 351990832,
@@ -13528,31 +14150,34 @@
       "id": 316925396,
       "type": "way",
       "category": "restaurant",
-      "lat": 34.0698712,
-      "lon": 134.551385,
+      "lat": 34.069872,
+      "lon": 134.5513829,
       "name": "味の城",
       "tags": {
         "amenity": "pub",
         "building": "yes",
+        "ele": "1.5",
+        "height": "13.1",
         "name": "味の城"
       },
-      "distanceAlongTrail": 86.24499971650424,
-      "distanceFromTrail": 0.4359889193776445
+      "distanceAlongTrail": 86.24485670601129,
+      "distanceFromTrail": 0.43583119271496024
     },
     {
       "id": 3752499766,
       "type": "node",
       "category": "restaurant",
-      "lat": 34.0699394,
-      "lon": 134.5518333,
+      "lat": 34.0699311,
+      "lon": 134.5518065,
       "name": "石川商店",
       "tags": {
         "amenity": "restaurant",
+        "check_date": "2026-06-19",
         "cuisine": "chicken",
         "name": "石川商店"
       },
-      "distanceAlongTrail": 86.2501849366503,
-      "distanceFromTrail": 0.47765010739040653
+      "distanceAlongTrail": 86.25032280161703,
+      "distanceFromTrail": 0.4750183539629363
     },
     {
       "id": 3235595188,
@@ -13574,6 +14199,38 @@
       },
       "distanceAlongTrail": 86.2507078966364,
       "distanceFromTrail": 0.1235710071890843
+    },
+    {
+      "id": 14270144392,
+      "type": "node",
+      "category": "transport",
+      "lat": 34.069844,
+      "lon": 134.5516701,
+      "name": "両国本町商店街",
+      "tags": {
+        "covered": "yes",
+        "highway": "bus_stop",
+        "name": "両国本町商店街",
+        "public_transport": "platform"
+      },
+      "distanceAlongTrail": 86.25578156143082,
+      "distanceFromTrail": 0.4601241271095117
+    },
+    {
+      "id": 14270144393,
+      "type": "node",
+      "category": "transport",
+      "lat": 34.0697471,
+      "lon": 134.5514507,
+      "name": "両国本町商店街",
+      "tags": {
+        "covered": "yes",
+        "highway": "bus_stop",
+        "name": "両国本町商店街",
+        "public_transport": "platform"
+      },
+      "distanceAlongTrail": 86.25998049714792,
+      "distanceFromTrail": 0.4376110582219516
     },
     {
       "id": 12058733034,
@@ -13607,34 +14264,69 @@
       "distanceFromTrail": 0.2610524263185972
     },
     {
-      "id": 316904654,
-      "type": "way",
+      "id": 14268004689,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0696448,
+      "lon": 134.55131,
+      "name": "辻堂餃子店",
+      "tags": {
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "cuisine": "gyoza",
+        "level": "0",
+        "name": "辻堂餃子店"
+      },
+      "distanceAlongTrail": 86.26693207430847,
+      "distanceFromTrail": 0.4218308165736012
+    },
+    {
+      "id": 14268004690,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.069622,
+      "lon": 134.5512936,
+      "name": "酒朋すぎはら",
+      "tags": {
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "酒朋すぎはら"
+      },
+      "distanceAlongTrail": 86.26889574472996,
+      "distanceFromTrail": 0.41962782953729705
+    },
+    {
+      "id": 14268378682,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0694559,
+      "lon": 134.5509214,
+      "name": "UP-TOWN",
+      "tags": {
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "cuisine": "pasta",
+        "level": "1",
+        "name": "UP-TOWN"
+      },
+      "distanceAlongTrail": 86.27620071015964,
+      "distanceFromTrail": 0.38137813420417455
+    },
+    {
+      "id": 14270144329,
+      "type": "node",
       "category": "emergency",
-      "lat": 34.0697942,
-      "lon": 134.5521268,
+      "lat": 34.0697537,
+      "lon": 134.5520655,
       "name": "吉田医院",
       "tags": {
         "amenity": "doctors",
-        "building": "yes",
+        "check_date": "2026-06-19",
         "name": "吉田医院"
       },
-      "distanceAlongTrail": 86.27371349073574,
-      "distanceFromTrail": 0.49857795735375454
-    },
-    {
-      "id": 3755414050,
-      "type": "node",
-      "category": "restaurant",
-      "lat": 34.0694427,
-      "lon": 134.5509264,
-      "name": "笑家",
-      "tags": {
-        "amenity": "restaurant",
-        "cuisine": "steak",
-        "name": "笑家"
-      },
-      "distanceAlongTrail": 86.2777390742958,
-      "distanceFromTrail": 0.3813760096832542
+      "distanceAlongTrail": 86.27631054748394,
+      "distanceFromTrail": 0.49183895442878456
     },
     {
       "id": 300195130,
@@ -13649,6 +14341,56 @@
       },
       "distanceAlongTrail": 86.27858446810708,
       "distanceFromTrail": 0.926750503550714
+    },
+    {
+      "id": 14268004679,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0695042,
+      "lon": 134.5512041,
+      "name": "酒猫",
+      "tags": {
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "酒猫"
+      },
+      "distanceAlongTrail": 86.27890932683988,
+      "distanceFromTrail": 0.40782698278570273
+    },
+    {
+      "id": 2993380255,
+      "type": "node",
+      "category": "transport",
+      "lat": 34.0693063,
+      "lon": 134.5505381,
+      "name": "ひょうたん島周遊船のりば",
+      "tags": {
+        "amenity": "ferry_terminal",
+        "ferry": "yes",
+        "name": "ひょうたん島周遊船のりば",
+        "opening_hours": "Mo-Su 11:00-15:40",
+        "public_transport": "station",
+        "website": "http://www.city.tokushima.tokushima.jp/kankou/kankoushisetsu/hyoutanjima.html",
+        "wheelchair": "yes"
+      },
+      "distanceAlongTrail": 86.28144829217605,
+      "distanceFromTrail": 0.3427049136521903
+    },
+    {
+      "id": 14268378684,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0694234,
+      "lon": 134.5510663,
+      "name": "桜",
+      "tags": {
+        "amenity": "cafe",
+        "check_date": "2026-06-19",
+        "name": "桜"
+      },
+      "distanceAlongTrail": 86.28366110674243,
+      "distanceFromTrail": 0.3930202856378929
     },
     {
       "id": 317073185,
@@ -13696,23 +14438,19 @@
       "distanceFromTrail": 0.398724777838973
     },
     {
-      "id": 2993380255,
+      "id": 14268004699,
       "type": "node",
-      "category": "transport",
-      "lat": 34.0692488,
-      "lon": 134.5506021,
-      "name": "ひょうたん島周遊船のりば",
+      "category": "restaurant",
+      "lat": 34.0694823,
+      "lon": 134.5515524,
+      "name": "町家だいにんぐ 銀乃介",
       "tags": {
-        "amenity": "ferry_terminal",
-        "ferry": "yes",
-        "name": "ひょうたん島周遊船のりば",
-        "opening_hours": "Mo-Su 11:00-15:40",
-        "public_transport": "station",
-        "website": "http://www.city.tokushima.tokushima.jp/kankou/kankoushisetsu/hyoutanjima.html",
-        "wheelchair": "yes"
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "name": "町家だいにんぐ 銀乃介"
       },
-      "distanceAlongTrail": 86.28931898450624,
-      "distanceFromTrail": 0.3464044527602641
+      "distanceAlongTrail": 86.29087981123286,
+      "distanceFromTrail": 0.4376913163336548
     },
     {
       "id": 317065790,
@@ -13738,24 +14476,6 @@
       },
       "distanceAlongTrail": 86.29133647668158,
       "distanceFromTrail": 0.029108928290645875
-    },
-    {
-      "id": 316904646,
-      "type": "way",
-      "category": "restaurant",
-      "lat": 34.0694813,
-      "lon": 134.5515967,
-      "name": "銀乃助",
-      "tags": {
-        "addr:city": "徳島市",
-        "addr:housenumber": "2-13",
-        "addr:street": "両国本町",
-        "amenity": "pub",
-        "building": "yes",
-        "name": "銀乃助"
-      },
-      "distanceAlongTrail": 86.29221298081649,
-      "distanceFromTrail": 0.44154943465074764
     },
     {
       "id": 3761222563,
@@ -13785,6 +14505,24 @@
       },
       "distanceAlongTrail": 86.29887464021947,
       "distanceFromTrail": 0.06419735455589154
+    },
+    {
+      "id": 14268388324,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.069332,
+      "lon": 134.5515591,
+      "name": "焼肉 長尾",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "cuisine": "barbecue",
+        "level": "1",
+        "name": "焼肉 長尾"
+      },
+      "distanceAlongTrail": 86.30700480598544,
+      "distanceFromTrail": 0.43325457282098373
     },
     {
       "id": 316899095,
@@ -13848,20 +14586,6 @@
       "distanceFromTrail": 0.08959015935393955
     },
     {
-      "id": 3752499771,
-      "type": "node",
-      "category": "restaurant",
-      "lat": 34.0691503,
-      "lon": 134.5513354,
-      "name": "あらた喰楽部",
-      "tags": {
-        "amenity": "pub",
-        "name": "あらた喰楽部"
-      },
-      "distanceAlongTrail": 86.3200776048845,
-      "distanceFromTrail": 0.40752828130725954
-    },
-    {
       "id": 268191518,
       "type": "node",
       "category": "emergency",
@@ -13875,6 +14599,24 @@
       },
       "distanceAlongTrail": 86.3219528286786,
       "distanceFromTrail": 1.5912096956787882
+    },
+    {
+      "id": 14268388310,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0691365,
+      "lon": 134.5513563,
+      "name": "阿波食堂おにかい",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "cuisine": "japanese;regional",
+        "level": "1",
+        "name": "阿波食堂おにかい"
+      },
+      "distanceAlongTrail": 86.32212003803268,
+      "distanceFromTrail": 0.4089028469648859
     },
     {
       "id": 2990312392,
@@ -13891,20 +14633,71 @@
       "distanceFromTrail": 0.6404793359377726
     },
     {
+      "id": 4727896291,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.068585,
+      "lon": 134.5496227,
+      "name": "銀座一福",
+      "tags": {
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "cuisine": "ramen",
+        "name": "銀座一福",
+        "opening_hours": "Tu-Su 11:00-22:00"
+      },
+      "distanceAlongTrail": 86.3325847394168,
+      "distanceFromTrail": 0.23817268344636588
+    },
+    {
       "id": 316899424,
       "type": "way",
       "category": "restaurant",
-      "lat": 34.0691182,
-      "lon": 134.5516454,
+      "lat": 34.0691125,
+      "lon": 134.551643,
       "name": "中国菜館安福",
       "tags": {
         "amenity": "restaurant",
         "building": "yes",
         "cuisine": "chinese",
+        "ele": "1.3",
+        "height": "17.5",
         "name": "中国菜館安福"
       },
-      "distanceAlongTrail": 86.3320689502124,
-      "distanceFromTrail": 0.4336871946380124
+      "distanceAlongTrail": 86.33260695709167,
+      "distanceFromTrail": 0.4332857834481909
+    },
+    {
+      "id": 14265051794,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0685933,
+      "lon": 134.5496645,
+      "name": "green flag",
+      "tags": {
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "green flag"
+      },
+      "distanceAlongTrail": 86.3328624227048,
+      "distanceFromTrail": 0.24212219033194263
+    },
+    {
+      "id": 14265051795,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0685816,
+      "lon": 134.5496665,
+      "name": "楽がき",
+      "tags": {
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "楽がき"
+      },
+      "distanceAlongTrail": 86.33415859853437,
+      "distanceFromTrail": 0.24190666349473927
     },
     {
       "id": 316903123,
@@ -13923,37 +14716,39 @@
       "distanceFromTrail": 0.48344329088036164
     },
     {
-      "id": 4727896291,
+      "id": 14268388305,
       "type": "node",
       "category": "restaurant",
-      "lat": 34.0685883,
-      "lon": 134.5497176,
-      "name": "銀座一福",
+      "lat": 34.0690385,
+      "lon": 134.5514505,
+      "name": "3109",
       "tags": {
-        "amenity": "restaurant",
-        "cuisine": "ramen",
-        "name": "銀座一福",
-        "opening_hours": "Tu-Su 11:00-22:00"
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "name": "3109"
       },
-      "distanceAlongTrail": 86.33486357711227,
-      "distanceFromTrail": 0.24661964068557574
+      "distanceAlongTrail": 86.33512235353857,
+      "distanceFromTrail": 0.41390123854038235
     },
     {
       "id": 295599022,
       "type": "way",
       "category": "emergency",
-      "lat": 34.0689488,
-      "lon": 134.5511866,
-      "name": "両国橋交番",
+      "lat": 34.0689416,
+      "lon": 134.5511894,
+      "name": "徳島中央警察署 両国橋交番",
       "tags": {
         "amenity": "police",
-        "building": "yes",
-        "name": "両国橋交番",
+        "building": "public",
+        "building:levels": "2",
+        "ele": "2.3",
+        "height": "9.6",
+        "name": "徳島中央警察署 両国橋交番",
         "name:en": "Ryogoku Bridge Police Box",
         "source": "GSI/KIBAN 2500;NARO"
       },
-      "distanceAlongTrail": 86.33732490171724,
-      "distanceFromTrail": 0.38771951990942
+      "distanceAlongTrail": 86.3381660243161,
+      "distanceFromTrail": 0.38772475035966925
     },
     {
       "id": 3752502916,
@@ -13970,6 +14765,22 @@
       "distanceFromTrail": 0.2064379418058579
     },
     {
+      "id": 14268388306,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0689977,
+      "lon": 134.5514937,
+      "name": "オーバーオール",
+      "tags": {
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "オーバーオール"
+      },
+      "distanceAlongTrail": 86.34064586888103,
+      "distanceFromTrail": 0.41633201065157643
+    },
+    {
       "id": 317032362,
       "type": "way",
       "category": "restaurant",
@@ -13984,6 +14795,36 @@
       },
       "distanceAlongTrail": 86.34090610302482,
       "distanceFromTrail": 0.07695316509106924
+    },
+    {
+      "id": 3757622189,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0685555,
+      "lon": 134.5498817,
+      "name": "阿波饂飩 両国 福助",
+      "tags": {
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "cuisine": "japanese",
+        "name": "阿波饂飩 両国 福助"
+      },
+      "distanceAlongTrail": 86.34288768164188,
+      "distanceFromTrail": 0.25993847172322043
+    },
+    {
+      "id": 14268378696,
+      "type": "node",
+      "category": "water",
+      "lat": 34.0689141,
+      "lon": 134.5513086,
+      "name": null,
+      "tags": {
+        "amenity": "drinking_water",
+        "man_made": "water_tap"
+      },
+      "distanceAlongTrail": 86.34438430781088,
+      "distanceFromTrail": 0.3972765052168081
     },
     {
       "id": 316899427,
@@ -14014,6 +14855,23 @@
       },
       "distanceAlongTrail": 86.34807983112516,
       "distanceFromTrail": 1.3904887350550017
+    },
+    {
+      "id": 14265051783,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0684011,
+      "lon": 134.5497181,
+      "name": "OSTERIA CAFE BAR CITRON",
+      "tags": {
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "cuisine": "italian",
+        "level": "0",
+        "name": "OSTERIA CAFE BAR CITRON"
+      },
+      "distanceAlongTrail": 86.35472981525689,
+      "distanceFromTrail": 0.24040404987610722
     },
     {
       "id": 3755414046,
@@ -14050,6 +14908,38 @@
       },
       "distanceAlongTrail": 86.35745090269263,
       "distanceFromTrail": 0.9404729192245442
+    },
+    {
+      "id": 14265114001,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0683808,
+      "lon": 134.5497791,
+      "name": "GINZA PUB",
+      "tags": {
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "GINZA PUB"
+      },
+      "distanceAlongTrail": 86.35857236289907,
+      "distanceFromTrail": 0.24508390138107555
+    },
+    {
+      "id": 14265114014,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0683792,
+      "lon": 134.5497946,
+      "name": "寅家",
+      "tags": {
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "寅家"
+      },
+      "distanceAlongTrail": 86.35917140469917,
+      "distanceFromTrail": 0.24639202181459263
     },
     {
       "id": 299486906,
@@ -14096,21 +14986,6 @@
       "distanceFromTrail": 0.4936736662821765
     },
     {
-      "id": 3757622189,
-      "type": "node",
-      "category": "restaurant",
-      "lat": 34.0683494,
-      "lon": 134.549987,
-      "name": "阿波饂飩 両国 福助",
-      "tags": {
-        "amenity": "restaurant",
-        "cuisine": "japanese",
-        "name": "阿波饂飩 両国 福助"
-      },
-      "distanceAlongTrail": 86.36766131534229,
-      "distanceFromTrail": 0.26229725148235333
-    },
-    {
       "id": 268191555,
       "type": "node",
       "category": "emergency",
@@ -14154,19 +15029,20 @@
       "distanceFromTrail": 0.02969588401714133
     },
     {
-      "id": 3184534938,
+      "id": 14265261633,
       "type": "node",
       "category": "restaurant",
-      "lat": 34.0682335,
-      "lon": 134.5500168,
-      "name": "たち吉",
+      "lat": 34.0682303,
+      "lon": 134.5500308,
+      "name": "魚吟酒場",
       "tags": {
-        "amenity": "restaurant",
-        "cuisine": "sushi",
-        "name": "たち吉"
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "魚吟酒場"
       },
-      "distanceAlongTrail": 86.38077789973174,
-      "distanceFromTrail": 0.2610396785582541
+      "distanceAlongTrail": 86.38150507022463,
+      "distanceFromTrail": 0.26216253143898993
     },
     {
       "id": 226504226,
@@ -14191,34 +15067,53 @@
       "distanceFromTrail": 0.023272891987064972
     },
     {
+      "id": 14354208719,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0676387,
+      "lon": 134.5477876,
+      "name": "Red Boss",
+      "tags": {
+        "amenity": "restaurant",
+        "name": "Red Boss"
+      },
+      "distanceAlongTrail": 86.38210411361415,
+      "distanceFromTrail": 0.04532198656409568
+    },
+    {
+      "id": 14265261626,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0681806,
+      "lon": 134.5499944,
+      "name": "はづき",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "cuisine": "beef",
+        "level": "1",
+        "name": "はづき"
+      },
+      "distanceAlongTrail": 86.38576739670927,
+      "distanceFromTrail": 0.25730306927367125
+    },
+    {
       "id": 3184534931,
       "type": "node",
       "category": "restaurant",
-      "lat": 34.0681819,
-      "lon": 134.5500126,
+      "lat": 34.0681666,
+      "lon": 134.5500069,
       "name": "阿波屋",
       "tags": {
         "amenity": "restaurant",
-        "cuisine": "chinese",
+        "check_date": "2026-06-19",
+        "cuisine": "ramen",
+        "level": "0",
         "name": "阿波屋"
       },
-      "distanceAlongTrail": 86.38613369062485,
-      "distanceFromTrail": 0.258945347573981
-    },
-    {
-      "id": 3184534941,
-      "type": "node",
-      "category": "restaurant",
-      "lat": 34.0681467,
-      "lon": 134.5499881,
-      "name": "かんの",
-      "tags": {
-        "amenity": "restaurant",
-        "cuisine": "japanese",
-        "name": "かんの"
-      },
-      "distanceAlongTrail": 86.38918794473464,
-      "distanceFromTrail": 0.2556161020049616
+      "distanceAlongTrail": 86.38759834639816,
+      "distanceFromTrail": 0.25793302727751405
     },
     {
       "id": 1423657675,
@@ -14259,6 +15154,22 @@
       "distanceFromTrail": 0.049690273622662026
     },
     {
+      "id": 14265261623,
+      "type": "node",
+      "category": "resupply",
+      "lat": 34.0681225,
+      "lon": 134.5500088,
+      "name": "幸福",
+      "tags": {
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "幸福",
+        "shop": "greengrocer"
+      },
+      "distanceAlongTrail": 86.39232774332862,
+      "distanceFromTrail": 0.2566253399533822
+    },
+    {
       "id": 2981248041,
       "type": "node",
       "category": "transport",
@@ -14291,16 +15202,19 @@
       "id": 371860752,
       "type": "way",
       "category": "restaurant",
-      "lat": 34.0682852,
-      "lon": 134.5507864,
+      "lat": 34.0682693,
+      "lon": 134.5507736,
       "name": "月の花",
       "tags": {
         "amenity": "pub",
         "building": "yes",
+        "building:levels": "2",
+        "ele": "1.6",
+        "height": "7.8",
         "name": "月の花"
       },
-      "distanceAlongTrail": 86.39661378185902,
-      "distanceFromTrail": 0.33037512205735065
+      "distanceAlongTrail": 86.39794539895132,
+      "distanceFromTrail": 0.3287190417646249
     },
     {
       "id": 11261984037,
@@ -14322,17 +15236,19 @@
       "id": 317026681,
       "type": "way",
       "category": "restaurant",
-      "lat": 34.0679104,
-      "lon": 134.5495917,
+      "lat": 34.0679064,
+      "lon": 134.5495959,
       "name": "濱伊",
       "tags": {
         "amenity": "restaurant",
         "building": "yes",
         "cuisine": "japanese",
+        "ele": "1.8",
+        "height": "22.8",
         "name": "濱伊"
       },
-      "distanceAlongTrail": 86.40326659982476,
-      "distanceFromTrail": 0.21289226043231205
+      "distanceAlongTrail": 86.4038071395668,
+      "distanceFromTrail": 0.21312746510332795
     },
     {
       "id": 3757622191,
@@ -14400,6 +15316,370 @@
       },
       "distanceAlongTrail": 86.40497043587224,
       "distanceFromTrail": 1.5568648130922653
+    },
+    {
+      "id": 14265387988,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0673929,
+      "lon": 134.5501533,
+      "name": "鳥貴族",
+      "tags": {
+        "amenity": "pub",
+        "brand": "鳥貴族",
+        "brand:en": "Torikizoku",
+        "brand:ja": "鳥貴族",
+        "brand:wikidata": "Q11675129",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "鳥貴族",
+        "name:en": "Torikizoku",
+        "name:ja": "鳥貴族"
+      },
+      "distanceAlongTrail": 86.40497043587224,
+      "distanceFromTrail": 0.254384755466258
+    },
+    {
+      "id": 14265388000,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0677434,
+      "lon": 134.550211,
+      "name": "コーヒーレスト蘭",
+      "tags": {
+        "amenity": "cafe",
+        "level": "1",
+        "name": "コーヒーレスト蘭"
+      },
+      "distanceAlongTrail": 86.40497043587224,
+      "distanceFromTrail": 0.2638043953355243
+    },
+    {
+      "id": 14273226348,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0673265,
+      "lon": 134.5500936,
+      "name": "CRAFT BEER STATION 郷里",
+      "tags": {
+        "amenity": "bar",
+        "level": "0",
+        "name": "CRAFT BEER STATION 郷里"
+      },
+      "distanceAlongTrail": 86.40497043587224,
+      "distanceFromTrail": 0.24875775398354552
+    },
+    {
+      "id": 14273226349,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0673135,
+      "lon": 134.550103,
+      "name": "Japanese Dining 郷里",
+      "tags": {
+        "amenity": "pub",
+        "level": "1",
+        "name": "Japanese Dining 郷里"
+      },
+      "distanceAlongTrail": 86.40497043587224,
+      "distanceFromTrail": 0.24962363808900923
+    },
+    {
+      "id": 14273226383,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0674301,
+      "lon": 134.5497264,
+      "name": "DAIYA MONDO",
+      "tags": {
+        "addr:floor": "6",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "5",
+        "name": "DAIYA MONDO"
+      },
+      "distanceAlongTrail": 86.40497043587224,
+      "distanceFromTrail": 0.21528143083862578
+    },
+    {
+      "id": 14273226384,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0674275,
+      "lon": 134.5497382,
+      "name": "あおい薔薇",
+      "tags": {
+        "addr:floor": "5",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "4",
+        "name": "あおい薔薇"
+      },
+      "distanceAlongTrail": 86.40497043587224,
+      "distanceFromTrail": 0.21635043758042025
+    },
+    {
+      "id": 14273226385,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0674249,
+      "lon": 134.54975,
+      "name": "CLATHAS",
+      "tags": {
+        "addr:floor": "4",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "3",
+        "name": "CLATHAS"
+      },
+      "distanceAlongTrail": 86.40497043587224,
+      "distanceFromTrail": 0.21742000647077506
+    },
+    {
+      "id": 14273226386,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0674222,
+      "lon": 134.5497618,
+      "name": "Sincere",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "2",
+        "name": "Sincere"
+      },
+      "distanceAlongTrail": 86.40497043587224,
+      "distanceFromTrail": 0.21848955088604374
+    },
+    {
+      "id": 14273226387,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0674196,
+      "lon": 134.5497736,
+      "name": "MEATDAY MEETNIGHT",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "cuisine": "beef",
+        "level": "1",
+        "name": "MEATDAY MEETNIGHT"
+      },
+      "distanceAlongTrail": 86.40497043587224,
+      "distanceFromTrail": 0.21956023693868135
+    },
+    {
+      "id": 14273226388,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.067417,
+      "lon": 134.5497854,
+      "name": "わかたけ",
+      "tags": {
+        "addr:floor": "1",
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "わかたけ"
+      },
+      "distanceAlongTrail": 86.40497043587224,
+      "distanceFromTrail": 0.22063146067423725
+    },
+    {
+      "id": 14273226389,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.067489,
+      "lon": 134.5495357,
+      "name": "すし たけがみ",
+      "tags": {
+        "amenity": "restaurant",
+        "cuisine": "sushi",
+        "name": "すし たけがみ"
+      },
+      "distanceAlongTrail": 86.40497043587224,
+      "distanceFromTrail": 0.19825984058829765
+    },
+    {
+      "id": 14273226393,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0676473,
+      "lon": 134.5494204,
+      "name": "よのぜん",
+      "tags": {
+        "amenity": "restaurant",
+        "cuisine": "japanese",
+        "name": "よのぜん"
+      },
+      "distanceAlongTrail": 86.40497043587224,
+      "distanceFromTrail": 0.19025972463762728
+    },
+    {
+      "id": 14273226399,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0674843,
+      "lon": 134.5496038,
+      "name": "河久",
+      "tags": {
+        "amenity": "restaurant",
+        "cuisine": "friture",
+        "name": "河久"
+      },
+      "distanceAlongTrail": 86.40497043587224,
+      "distanceFromTrail": 0.20445790500687233
+    },
+    {
+      "id": 14273226400,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0674776,
+      "lon": 134.5496538,
+      "name": "河見",
+      "tags": {
+        "amenity": "restaurant",
+        "cuisine": "beef",
+        "name": "河見"
+      },
+      "distanceAlongTrail": 86.40497043587224,
+      "distanceFromTrail": 0.2089816858013607
+    },
+    {
+      "id": 14273251511,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0677995,
+      "lon": 134.5498911,
+      "name": "うどん居酒屋 雷神",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "うどん居酒屋 雷神"
+      },
+      "distanceAlongTrail": 86.40497043587224,
+      "distanceFromTrail": 0.23619930052448665
+    },
+    {
+      "id": 14273251512,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0677862,
+      "lon": 134.5499039,
+      "name": "みよべー",
+      "tags": {
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "みよべー"
+      },
+      "distanceAlongTrail": 86.40497043587224,
+      "distanceFromTrail": 0.23702023807077197
+    },
+    {
+      "id": 14273251515,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0676895,
+      "lon": 134.549863,
+      "name": "徳島居酒屋 まんまる。",
+      "tags": {
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "徳島居酒屋 まんまる。"
+      },
+      "distanceAlongTrail": 86.40497043587224,
+      "distanceFromTrail": 0.2311948953623925
+    },
+    {
+      "id": 14273251519,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.067599,
+      "lon": 134.5501406,
+      "name": "や台ずし",
+      "tags": {
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "cuisine": "sushi",
+        "level": "0",
+        "name": "や台ずし"
+      },
+      "distanceAlongTrail": 86.40497043587224,
+      "distanceFromTrail": 0.25497948366376233
+    },
+    {
+      "id": 14273251521,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.067644,
+      "lon": 134.5501687,
+      "name": "WACKDAVINCI",
+      "tags": {
+        "amenity": "bar",
+        "name": "WACKDAVINCI"
+      },
+      "distanceAlongTrail": 86.40497043587224,
+      "distanceFromTrail": 0.25819916309844504
+    },
+    {
+      "id": 14273251523,
+      "type": "node",
+      "category": "transport",
+      "lat": 34.0676773,
+      "lon": 134.5500963,
+      "name": "両国橋",
+      "tags": {
+        "bus": "yes",
+        "departures_board": "timetable",
+        "highway": "bus_stop",
+        "name": "両国橋",
+        "operator": "徳島バス",
+        "public_transport": "platform"
+      },
+      "distanceAlongTrail": 86.40497043587224,
+      "distanceFromTrail": 0.2521540148761819
+    },
+    {
+      "id": 14273251525,
+      "type": "node",
+      "category": "transport",
+      "lat": 34.0677641,
+      "lon": 134.5499708,
+      "name": "両国橋",
+      "tags": {
+        "bench": "yes",
+        "bus": "yes",
+        "departures_board": "timetable",
+        "highway": "bus_stop",
+        "name": "両国橋",
+        "operator": "徳島バス",
+        "public_transport": "platform"
+      },
+      "distanceAlongTrail": 86.40497043587224,
+      "distanceFromTrail": 0.2425248067152008
+    },
+    {
+      "id": 14273251531,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0678004,
+      "lon": 134.5502207,
+      "name": "AMERICAN BAR 3rd Place",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "AMERICAN BAR 3rd Place"
+      },
+      "distanceAlongTrail": 86.40497043587224,
+      "distanceFromTrail": 0.26588394570993534
     },
     {
       "id": 268191366,
@@ -14796,29 +16076,31 @@
       "id": 3754115478,
       "type": "node",
       "category": "restaurant",
-      "lat": 34.0680887,
-      "lon": 134.5504336,
+      "lat": 34.0680965,
+      "lon": 134.5504363,
       "name": "たこ焼き いまちゃん",
       "tags": {
         "amenity": "restaurant",
+        "check_date": "2026-06-19",
         "name": "たこ焼き いまちゃん"
       },
       "distanceAlongTrail": 86.40497043587224,
-      "distanceFromTrail": 0.2928249876080562
+      "distanceFromTrail": 0.29331697836296333
     },
     {
       "id": 3754115479,
       "type": "node",
       "category": "restaurant",
-      "lat": 34.0680327,
-      "lon": 134.5505291,
+      "lat": 34.0680849,
+      "lon": 134.5504627,
       "name": "中華家庭料理 福林",
       "tags": {
         "amenity": "restaurant",
+        "check_date": "2026-06-19",
         "name": "中華家庭料理 福林"
       },
       "distanceAlongTrail": 86.40497043587224,
-      "distanceFromTrail": 0.299542310241721
+      "distanceFromTrail": 0.2952677336750471
     },
     {
       "id": 3757622190,
@@ -15124,8 +16406,8 @@
       "id": 316631957,
       "type": "way",
       "category": "restaurant",
-      "lat": 34.0674572,
-      "lon": 134.5504942,
+      "lat": 34.0674426,
+      "lon": 134.5504489,
       "name": "阿波の味処 藍蔵",
       "tags": {
         "addr:city": "徳島市",
@@ -15133,11 +16415,13 @@
         "addr:street": "富田浜",
         "amenity": "pub",
         "building": "yes",
+        "ele": "1.5",
+        "height": "10.5",
         "name": "阿波の味処 藍蔵",
         "opening_hours": "17:00-23:00"
       },
       "distanceAlongTrail": 86.40497043587224,
-      "distanceFromTrail": 0.28606328211064913
+      "distanceFromTrail": 0.2818135087471986
     },
     {
       "id": 316891318,
@@ -15341,6 +16625,56 @@
       "distanceFromTrail": 0.48989683410457807
     },
     {
+      "id": 14274277637,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0671541,
+      "lon": 134.5500038,
+      "name": "徳島ラーメン 麺八",
+      "tags": {
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "cuisine": "ramen",
+        "level": "0",
+        "name": "徳島ラーメン 麺八"
+      },
+      "distanceAlongTrail": 86.4189460587725,
+      "distanceFromTrail": 0.24078681619915088
+    },
+    {
+      "id": 14274277636,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0671371,
+      "lon": 134.5500084,
+      "name": "やまなみ珈琲",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "cafe",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "やまなみ珈琲"
+      },
+      "distanceAlongTrail": 86.4208281714237,
+      "distanceFromTrail": 0.2412456295278531
+    },
+    {
+      "id": 14274277633,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0671252,
+      "lon": 134.5500058,
+      "name": "ナイトカフェやまなみ",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "cafe",
+        "level": "2",
+        "name": "ナイトカフェやまなみ"
+      },
+      "distanceAlongTrail": 86.42215561131546,
+      "distanceFromTrail": 0.24103080048225112
+    },
+    {
       "id": 300189585,
       "type": "node",
       "category": "transport",
@@ -15353,6 +16687,142 @@
       },
       "distanceAlongTrail": 86.42587930877336,
       "distanceFromTrail": 1.656436528984575
+    },
+    {
+      "id": 14274277632,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0670888,
+      "lon": 134.5499719,
+      "name": "CASUAL BAR GOLAZO",
+      "tags": {
+        "addr:floor": "B1",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "-1",
+        "name": "CASUAL BAR GOLAZO"
+      },
+      "distanceAlongTrail": 86.42626042462908,
+      "distanceFromTrail": 0.23798405564558955
+    },
+    {
+      "id": 14274277629,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0670845,
+      "lon": 134.549992,
+      "name": "Jack",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "Jack"
+      },
+      "distanceAlongTrail": 86.42670407825834,
+      "distanceFromTrail": 0.23984408163488924
+    },
+    {
+      "id": 14274277628,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0670802,
+      "lon": 134.550012,
+      "name": "il Mare",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "2",
+        "name": "il Mare"
+      },
+      "distanceAlongTrail": 86.42714790303266,
+      "distanceFromTrail": 0.24169489821256468
+    },
+    {
+      "id": 14274277627,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0670759,
+      "lon": 134.5500321,
+      "name": "Club Face",
+      "tags": {
+        "addr:floor": "4",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "3",
+        "name": "Club Face"
+      },
+      "distanceAlongTrail": 86.4275915566479,
+      "distanceFromTrail": 0.2435549245788413
+    },
+    {
+      "id": 14274277625,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0670716,
+      "lon": 134.5500521,
+      "name": "PLUME LOUNGE",
+      "tags": {
+        "addr:floor": "5",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "4",
+        "name": "PLUME LOUNGE"
+      },
+      "distanceAlongTrail": 86.42803538140829,
+      "distanceFromTrail": 0.24540574152994163
+    },
+    {
+      "id": 14274277626,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0670673,
+      "lon": 134.5500722,
+      "name": "& Girls bar",
+      "tags": {
+        "addr:floor": "5",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "4",
+        "name": "& Girls bar"
+      },
+      "distanceAlongTrail": 86.42847903500952,
+      "distanceFromTrail": 0.24726576827319502
+    },
+    {
+      "id": 14274277624,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.067063,
+      "lon": 134.5500922,
+      "name": "Canterano",
+      "tags": {
+        "addr:floor": "7",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "6",
+        "name": "Canterano"
+      },
+      "distanceAlongTrail": 86.42892285975589,
+      "distanceFromTrail": 0.2491165856029552
+    },
+    {
+      "id": 14274277630,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0670451,
+      "lon": 134.5500761,
+      "name": "阿波旬彩 たいのたい",
+      "tags": {
+        "addr:floor": "1",
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "阿波旬彩 たいのたい"
+      },
+      "distanceAlongTrail": 86.43094045889642,
+      "distanceFromTrail": 0.24767087506515106
     },
     {
       "id": 2982748637,
@@ -15432,6 +16902,23 @@
       "distanceFromTrail": 0.364882283356074
     },
     {
+      "id": 14274275517,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0668408,
+      "lon": 134.5499173,
+      "name": "阿波流たこ焼き まる真",
+      "tags": {
+        "amenity": "fast_food",
+        "check_date": "2026-06-19",
+        "cuisine": "takoyaki",
+        "level": "0",
+        "name": "阿波流たこ焼き まる真"
+      },
+      "distanceAlongTrail": 86.45392542959351,
+      "distanceFromTrail": 0.23346868996889605
+    },
+    {
       "id": 2982746814,
       "type": "node",
       "category": "resupply",
@@ -15459,22 +16946,95 @@
       "id": 13052308147,
       "type": "node",
       "category": "restaurant",
-      "lat": 34.0668292,
-      "lon": 134.5499769,
+      "lat": 34.0668245,
+      "lon": 134.549995,
       "name": "目利きの銀次",
       "tags": {
+        "addr:floor": "1",
         "amenity": "pub",
         "brand": "目利きの銀次",
         "brand:en": "Mekiki-no-Ginji",
         "brand:ja": "目利きの銀次",
         "brand:wikidata": "Q109653557",
-        "check_date": "2025-08-06",
+        "check_date": "2026-06-19",
+        "level": "0",
         "name": "目利きの銀次",
         "name:en": "Mekiki-no-Ginji",
         "name:ja": "目利きの銀次"
       },
-      "distanceAlongTrail": 86.45511305963662,
-      "distanceFromTrail": 0.23898162713899385
+      "distanceAlongTrail": 86.45560460636452,
+      "distanceFromTrail": 0.2406582938816583
+    },
+    {
+      "id": 14274275525,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0668177,
+      "lon": 134.550035,
+      "name": "我愛羅",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "pub",
+        "branch": "本店",
+        "check_date": "2026-06-19",
+        "cuisine": "asian",
+        "level": "1",
+        "name": "我愛羅"
+      },
+      "distanceAlongTrail": 86.4562921393583,
+      "distanceFromTrail": 0.24435621448066142
+    },
+    {
+      "id": 14274275521,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0668161,
+      "lon": 134.5498962,
+      "name": "麺屋軌跡",
+      "tags": {
+        "amenity": "restaurant",
+        "branch": "徳島中央店",
+        "check_date": "2026-06-19",
+        "cuisine": "ramen",
+        "level": "0",
+        "name": "麺屋軌跡"
+      },
+      "distanceAlongTrail": 86.45670758093493,
+      "distanceFromTrail": 0.23157655899441534
+    },
+    {
+      "id": 14274275518,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0668147,
+      "lon": 134.5499059,
+      "name": "ひなた",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "ひなた"
+      },
+      "distanceAlongTrail": 86.45684662495903,
+      "distanceFromTrail": 0.2324727894528913
+    },
+    {
+      "id": 14274275523,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0667957,
+      "lon": 134.5500298,
+      "name": "Amusement BAR Fly",
+      "tags": {
+        "addr:floor": "4",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "3",
+        "name": "Amusement BAR Fly"
+      },
+      "distanceAlongTrail": 86.45874690304959,
+      "distanceFromTrail": 0.24392283140688004
     },
     {
       "id": 2982748633,
@@ -15521,6 +17081,119 @@
       },
       "distanceAlongTrail": 86.46039046372711,
       "distanceFromTrail": 0.36493618071662637
+    },
+    {
+      "id": 14276077625,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.066788,
+      "lon": 134.549472,
+      "name": ":DL & 4 cafe",
+      "tags": {
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": ":DL & 4 cafe"
+      },
+      "distanceAlongTrail": 86.46055764828104,
+      "distanceFromTrail": 0.19256743171519325
+    },
+    {
+      "id": 14274275522,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0667686,
+      "lon": 134.5498844,
+      "name": "呑み食い処 茶ん",
+      "tags": {
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "呑み食い処 茶ん"
+      },
+      "distanceAlongTrail": 86.46200861942296,
+      "distanceFromTrail": 0.2305880919885501
+    },
+    {
+      "id": 14276077618,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0667672,
+      "lon": 134.5498925,
+      "name": "Lina",
+      "tags": {
+        "amenity": "bar",
+        "level": "1",
+        "name": "Lina"
+      },
+      "distanceAlongTrail": 86.4621504018834,
+      "distanceFromTrail": 0.23133696877541757
+    },
+    {
+      "id": 14274275515,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0667183,
+      "lon": 134.5499024,
+      "name": "Lounge Selene",
+      "tags": {
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "Lounge Selene"
+      },
+      "distanceAlongTrail": 86.46756994596022,
+      "distanceFromTrail": 0.2323498893504892
+    },
+    {
+      "id": 14274275516,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0667164,
+      "lon": 134.549918,
+      "name": "焼肉dining京や",
+      "tags": {
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "cuisine": "barbecue",
+        "level": "0",
+        "name": "焼肉dining京や"
+      },
+      "distanceAlongTrail": 86.4677544797005,
+      "distanceFromTrail": 0.23379052407030362
+    },
+    {
+      "id": 13052310427,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0666958,
+      "lon": 134.5495838,
+      "name": "一鴻",
+      "tags": {
+        "amenity": "pub",
+        "branch": "秋田町本店",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "一鴻"
+      },
+      "distanceAlongTrail": 86.47061669310865,
+      "distanceFromTrail": 0.20305451697734686
+    },
+    {
+      "id": 14276077624,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0666958,
+      "lon": 134.5495673,
+      "name": "FREEDOM FIELD BAR FEELD",
+      "tags": {
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "FREEDOM FIELD BAR FEELD"
+      },
+      "distanceAlongTrail": 86.47064493345924,
+      "distanceFromTrail": 0.20153492593966696
     },
     {
       "id": 13601966652,
@@ -15572,19 +17245,37 @@
       "distanceFromTrail": 1.8197595226087868
     },
     {
-      "id": 13052310427,
+      "id": 14274275514,
       "type": "node",
       "category": "restaurant",
-      "lat": 34.0666675,
-      "lon": 134.5495758,
-      "name": "一鴻 秋田町本店",
+      "lat": 34.0666847,
+      "lon": 134.5498844,
+      "name": "阿波酔処 しずく",
       "tags": {
         "amenity": "pub",
-        "check_date": "2025-08-06",
-        "name": "一鴻 秋田町本店"
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "阿波酔処 しずく"
       },
-      "distanceAlongTrail": 86.47377665607044,
-      "distanceFromTrail": 0.20237628403621963
+      "distanceAlongTrail": 86.47133625475499,
+      "distanceFromTrail": 0.23076166684934912
+    },
+    {
+      "id": 14274275513,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0666833,
+      "lon": 134.5499039,
+      "name": "Bar 林吾",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "Bar 林吾"
+      },
+      "distanceAlongTrail": 86.47145852566703,
+      "distanceFromTrail": 0.23256044379890242
     },
     {
       "id": 316627402,
@@ -15600,6 +17291,126 @@
       },
       "distanceAlongTrail": 86.47513975861526,
       "distanceFromTrail": 0.5664837950401368
+    },
+    {
+      "id": 14274275512,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0666478,
+      "lon": 134.5498787,
+      "name": "3代目かよちゃん",
+      "tags": {
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "cuisine": "barbecue",
+        "name": "3代目かよちゃん"
+      },
+      "distanceAlongTrail": 86.47544839125605,
+      "distanceFromTrail": 0.23031305686618192
+    },
+    {
+      "id": 14276077623,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.066633,
+      "lon": 134.5495579,
+      "name": "呑みBASE しーも",
+      "tags": {
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "呑みBASE しーも"
+      },
+      "distanceAlongTrail": 86.47764285226717,
+      "distanceFromTrail": 0.20079911998207312
+    },
+    {
+      "id": 14277282424,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0665777,
+      "lon": 134.5494671,
+      "name": "妃織",
+      "tags": {
+        "addr:floor": "5",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "4",
+        "name": "妃織"
+      },
+      "distanceAlongTrail": 86.48394627324495,
+      "distanceFromTrail": 0.19255113981762745
+    },
+    {
+      "id": 14277282422,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0665675,
+      "lon": 134.5495425,
+      "name": "花めぐ美",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "花めぐ美"
+      },
+      "distanceAlongTrail": 86.48495121460228,
+      "distanceFromTrail": 0.19951631841617598
+    },
+    {
+      "id": 14277282421,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0665564,
+      "lon": 134.5494628,
+      "name": "bar lounge Flos",
+      "tags": {
+        "addr:floor": "5",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "4",
+        "name": "bar lounge Flos",
+        "name:ja": "フロース"
+      },
+      "distanceAlongTrail": 86.48632167414118,
+      "distanceFromTrail": 0.19219918112472834
+    },
+    {
+      "id": 14277282427,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0665528,
+      "lon": 134.5494895,
+      "name": "SNACK 春",
+      "tags": {
+        "addr:floor": "4",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "3",
+        "name": "SNACK 春"
+      },
+      "distanceAlongTrail": 86.4866762082929,
+      "distanceFromTrail": 0.19466560603415137
+    },
+    {
+      "id": 14277282428,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0665495,
+      "lon": 134.5495139,
+      "name": "Girl's Bar Luana",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "bar",
+        "bar:type": "girls_bar",
+        "check_date": "2026-06-19",
+        "level": "2",
+        "name": "Girl's Bar Luana",
+        "name:ja": "ガールズバー・ルアナ"
+      },
+      "distanceAlongTrail": 86.48700132628971,
+      "distanceFromTrail": 0.1969195884741022
     },
     {
       "id": 295593117,
@@ -15618,18 +17429,741 @@
       "distanceFromTrail": 0.7335383140901341
     },
     {
+      "id": 14274275502,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0665388,
+      "lon": 134.5498705,
+      "name": "路地庵",
+      "tags": {
+        "addr:floor": "1",
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "路地庵"
+      },
+      "distanceAlongTrail": 86.48758056954307,
+      "distanceFromTrail": 0.22978336730302623
+    },
+    {
+      "id": 14274275504,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0665366,
+      "lon": 134.5498858,
+      "name": "Lily",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "Lily"
+      },
+      "distanceAlongTrail": 86.48779896932331,
+      "distanceFromTrail": 0.23119699669029722
+    },
+    {
+      "id": 14277282426,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0665332,
+      "lon": 134.5494857,
+      "name": "Anything",
+      "tags": {
+        "addr:floor": "4",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "3",
+        "name": "Anything",
+        "name:ja": "エニシング"
+      },
+      "distanceAlongTrail": 86.48886175480382,
+      "distanceFromTrail": 0.19435617978046718
+    },
+    {
+      "id": 14274275503,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0665256,
+      "lon": 134.5498678,
+      "name": "小島",
+      "tags": {
+        "addr:floor": "1",
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "小島"
+      },
+      "distanceAlongTrail": 86.48905270902453,
+      "distanceFromTrail": 0.22956201493628736
+    },
+    {
+      "id": 14274275505,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0665234,
+      "lon": 134.5498831,
+      "name": "洋風酒場 NIKINCHI",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "洋風酒場 NIKINCHI"
+      },
+      "distanceAlongTrail": 86.4892711087968,
+      "distanceFromTrail": 0.23097564453795577
+    },
+    {
+      "id": 14277282429,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0665266,
+      "lon": 134.5495344,
+      "name": "New Club Uru",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "New Club Uru"
+      },
+      "distanceAlongTrail": 86.48951216190815,
+      "distanceFromTrail": 0.198854936193695
+    },
+    {
+      "id": 14277282430,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0665236,
+      "lon": 134.5495561,
+      "name": "CLUB VACATION",
+      "tags": {
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "name": "CLUB VACATION",
+        "name:ja": "クラブ・ヴァケーション"
+      },
+      "distanceAlongTrail": 86.48980854834852,
+      "distanceFromTrail": 0.20085963808961485
+    },
+    {
+      "id": 14276077685,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0664764,
+      "lon": 134.549837,
+      "name": "徳島おでん愛物語",
+      "tags": {
+        "amenity": "pub",
+        "level": "0",
+        "name": "徳島おでん愛物語"
+      },
+      "distanceAlongTrail": 86.49457526561274,
+      "distanceFromTrail": 0.22682722375857495
+    },
+    {
+      "id": 14280531756,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.066481,
+      "lon": 134.5494569,
+      "name": "Eclatante Grand",
+      "tags": {
+        "addr:floor": "4",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "3",
+        "name": "Eclatante Grand"
+      },
+      "distanceAlongTrail": 86.49471441599208,
+      "distanceFromTrail": 0.19181176685870016
+    },
+    {
+      "id": 14276077684,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0664738,
+      "lon": 134.5498544,
+      "name": "RIDE-MAN",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "level": "1",
+        "name": "RIDE-MAN"
+      },
+      "distanceAlongTrail": 86.49483454136463,
+      "distanceFromTrail": 0.22843508463427742
+    },
+    {
+      "id": 14276077683,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0664687,
+      "lon": 134.5498893,
+      "name": "Sonia",
+      "tags": {
+        "addr:floor": "4",
+        "amenity": "bar",
+        "level": "3",
+        "name": "Sonia"
+      },
+      "distanceAlongTrail": 86.49534180413897,
+      "distanceFromTrail": 0.2316598094661826
+    },
+    {
+      "id": 14280531774,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0664745,
+      "lon": 134.5495058,
+      "name": "Lounge Dec.",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "Lounge Dec."
+      },
+      "distanceAlongTrail": 86.49535336312796,
+      "distanceFromTrail": 0.19632873833354
+    },
+    {
+      "id": 14280531758,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0664608,
+      "lon": 134.549453,
+      "name": "LOUNGE LIAN",
+      "tags": {
+        "addr:floor": "4",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "3",
+        "name": "LOUNGE LIAN",
+        "name:ja": "ラウンジ・リアン"
+      },
+      "distanceAlongTrail": 86.4969668390806,
+      "distanceFromTrail": 0.19149437103995293
+    },
+    {
+      "id": 14280531771,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0664577,
+      "lon": 134.5494768,
+      "name": "Cafe Bar Ray Charles",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "2",
+        "name": "Cafe Bar Ray Charles"
+      },
+      "distanceAlongTrail": 86.49727074879006,
+      "distanceFromTrail": 0.1936926841121341
+    },
+    {
+      "id": 14280531775,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0664543,
+      "lon": 134.5495018,
+      "name": "COCO",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "COCO"
+      },
+      "distanceAlongTrail": 86.49760595733198,
+      "distanceFromTrail": 0.19600213389855
+    },
+    {
+      "id": 14280531767,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0664509,
+      "lon": 134.5495272,
+      "name": "旬処 耕",
+      "tags": {
+        "addr:floor": "1",
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "旬処 耕"
+      },
+      "distanceAlongTrail": 86.49794048124771,
+      "distanceFromTrail": 0.19834842254773352
+    },
+    {
+      "id": 14280531757,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0664392,
+      "lon": 134.5494488,
+      "name": "BAR Lounge Luculia",
+      "tags": {
+        "addr:floor": "4",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "3",
+        "name": "BAR Lounge Luculia"
+      },
+      "distanceAlongTrail": 86.4993754215445,
+      "distanceFromTrail": 0.19115224177706713
+    },
+    {
+      "id": 14276077680,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0664311,
+      "lon": 134.5498481,
+      "name": "Angela Darling",
+      "tags": {
+        "addr:floor": "1",
+        "amenity": "bar",
+        "level": "0",
+        "name": "Angela Darling"
+      },
+      "distanceAlongTrail": 86.4995925235295,
+      "distanceFromTrail": 0.22794321356640893
+    },
+    {
+      "id": 14280531772,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.066436,
+      "lon": 134.5494729,
+      "name": "パブ☆スポット 夢奈",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "bar",
+        "bar:type": "snack",
+        "check_date": "2026-06-19",
+        "level": "2",
+        "name": "パブ☆スポット 夢奈",
+        "opening_hours": "19:00-02:30",
+        "phone": "+81-88-626-3772"
+      },
+      "distanceAlongTrail": 86.49968993533344,
+      "distanceFromTrail": 0.19337839125025874
+    },
+    {
+      "id": 14276077679,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.066428,
+      "lon": 134.5498682,
+      "name": "咲く",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "level": "1",
+        "name": "咲く"
+      },
+      "distanceAlongTrail": 86.4999027658855,
+      "distanceFromTrail": 0.22980077088616496
+    },
+    {
+      "id": 14280531776,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0664327,
+      "lon": 134.5494976,
+      "name": "SNACK Cheri",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "bar:type": "snack",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "SNACK Cheri",
+        "name:ja": "スナック・チェリ"
+      },
+      "distanceAlongTrail": 86.50001453975338,
+      "distanceFromTrail": 0.19566000575812104
+    },
+    {
+      "id": 14276077678,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.066425,
+      "lon": 134.5498884,
+      "name": "Cotani",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "bar",
+        "level": "2",
+        "name": "Cotani"
+      },
+      "distanceAlongTrail": 86.50020171951869,
+      "distanceFromTrail": 0.23166733112840662
+    },
+    {
+      "id": 14280531768,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0664293,
+      "lon": 134.549523,
+      "name": "Diorama.",
+      "tags": {
+        "addr:floor": "1",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "Diorama.",
+        "name:ja": "ジオラマ"
+      },
+      "distanceAlongTrail": 86.50034906364739,
+      "distanceFromTrail": 0.19800629499148265
+    },
+    {
+      "id": 14276077677,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0664219,
+      "lon": 134.5499086,
+      "name": "Lounge Galle",
+      "tags": {
+        "addr:floor": "4",
+        "amenity": "bar",
+        "level": "3",
+        "name": "Lounge Galle"
+      },
+      "distanceAlongTrail": 86.50051179070987,
+      "distanceFromTrail": 0.23353409839253578
+    },
+    {
+      "id": 14276077676,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0664189,
+      "lon": 134.5499287,
+      "name": "NIGHT LOUNGE 恋蝶",
+      "tags": {
+        "addr:floor": "5",
+        "amenity": "bar",
+        "level": "4",
+        "name": "NIGHT LOUNGE 恋蝶"
+      },
+      "distanceAlongTrail": 86.5008109154879,
+      "distanceFromTrail": 0.23539144922904004
+    },
+    {
+      "id": 14276077675,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0664159,
+      "lon": 134.5499489,
+      "name": "Lounge M",
+      "tags": {
+        "addr:floor": "6",
+        "amenity": "bar",
+        "level": "5",
+        "name": "Lounge M"
+      },
+      "distanceAlongTrail": 86.50110986910629,
+      "distanceFromTrail": 0.23725800986954435
+    },
+    {
+      "id": 14276077674,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0664128,
+      "lon": 134.549969,
+      "name": "メモリアル",
+      "tags": {
+        "addr:floor": "7",
+        "amenity": "bar",
+        "level": "6",
+        "name": "メモリアル"
+      },
+      "distanceAlongTrail": 86.50142011143724,
+      "distanceFromTrail": 0.23911556786307403
+    },
+    {
+      "id": 14280531770,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0664198,
+      "lon": 134.549445,
+      "name": "BAR LOUNGE tsuki",
+      "tags": {
+        "addr:floor": "4",
+        "amenity": "bar",
+        "bar:type": "lounge",
+        "check_date": "2026-06-19",
+        "contact:instagram": "https://www.instagram.com/tsuki_tokushima/",
+        "level": "3",
+        "min_age": "18",
+        "name": "BAR LOUNGE tsuki",
+        "name:ja": "バーラウンジツキ",
+        "opening_hours": "20:00-01:00"
+      },
+      "distanceAlongTrail": 86.50153873297218,
+      "distanceFromTrail": 0.19084240062245839
+    },
+    {
+      "id": 14280531773,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0664166,
+      "lon": 134.5494688,
+      "name": "Bloody Mary",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "bar",
+        "bar:type": "snack",
+        "check_date": "2026-06-19",
+        "level": "2",
+        "name": "Bloody Mary",
+        "name:ja": "ブラディーマリー",
+        "phone": "+81-88-623-0801"
+      },
+      "distanceAlongTrail": 86.50185376020772,
+      "distanceFromTrail": 0.19304092157350894
+    },
+    {
+      "id": 14280531777,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0664133,
+      "lon": 134.5494939,
+      "name": "Jimmy's Diamond",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "bar:type": "snack",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "Jimmy's Diamond",
+        "name:ja": "ジミーズダイアモンド",
+        "opening_hours": "21:00-03:00; Th off"
+      },
+      "distanceAlongTrail": 86.50217767998882,
+      "distanceFromTrail": 0.19535937528426936
+    },
+    {
       "id": 310487268,
       "type": "way",
       "category": "resupply",
       "lat": 34.0663109,
       "lon": 134.5546648,
-      "name": null,
+      "name": "Apollo Station",
       "tags": {
         "amenity": "fuel",
-        "brand": "Shell"
+        "brand": "Idemitsu",
+        "name": "Apollo Station"
       },
       "distanceAlongTrail": 86.50471180206631,
       "distanceFromTrail": 0.6717947566997593
+    },
+    {
+      "id": 14276511500,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.06638,
+      "lon": 134.5498494,
+      "name": "Grang Bar 111",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "Grang Bar 111"
+      },
+      "distanceAlongTrail": 86.50527137323863,
+      "distanceFromTrail": 0.228168655378616
+    },
+    {
+      "id": 14280531765,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0663849,
+      "lon": 134.5494118,
+      "name": "逢",
+      "tags": {
+        "addr:floor": "7",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "6",
+        "name": "逢"
+      },
+      "distanceAlongTrail": 86.50547558647246,
+      "distanceFromTrail": 0.18785697411087898
+    },
+    {
+      "id": 14276511499,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0663767,
+      "lon": 134.5498698,
+      "name": "Lounge Roar",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "2",
+        "name": "Lounge Roar"
+      },
+      "distanceAlongTrail": 86.50560333721408,
+      "distanceFromTrail": 0.23005425662565662
+    },
+    {
+      "id": 14280531764,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0663819,
+      "lon": 134.549431,
+      "name": "Girls Bar ALICE",
+      "tags": {
+        "addr:floor": "6",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "5",
+        "name": "Girls Bar ALICE"
+      },
+      "distanceAlongTrail": 86.50577625167463,
+      "distanceFromTrail": 0.18963143705025803
+    },
+    {
+      "id": 14276511498,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0663733,
+      "lon": 134.5498901,
+      "name": "LOUNGE REVIA",
+      "tags": {
+        "addr:floor": "4",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "3",
+        "name": "LOUNGE REVIA"
+      },
+      "distanceAlongTrail": 86.50594658990127,
+      "distanceFromTrail": 0.23193085522511295
+    },
+    {
+      "id": 14280531763,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0663789,
+      "lon": 134.5494501,
+      "name": "Vintage Bar eVe",
+      "tags": {
+        "addr:floor": "5",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "4",
+        "name": "Vintage Bar eVe"
+      },
+      "distanceAlongTrail": 86.50607708802782,
+      "distanceFromTrail": 0.19139669043871332
+    },
+    {
+      "id": 14276511497,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.06637,
+      "lon": 134.5499105,
+      "name": "Lounge iku",
+      "tags": {
+        "addr:floor": "5",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "4",
+        "name": "Lounge iku"
+      },
+      "distanceAlongTrail": 86.50627855386576,
+      "distanceFromTrail": 0.23381645676767013
+    },
+    {
+      "id": 14280531762,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.066376,
+      "lon": 134.5494692,
+      "name": "Barri",
+      "tags": {
+        "addr:floor": "4",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "3",
+        "name": "Barri"
+      },
+      "distanceAlongTrail": 86.50636680681087,
+      "distanceFromTrail": 0.19316173711248413
+    },
+    {
+      "id": 14276511496,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0663667,
+      "lon": 134.5499308,
+      "name": "空中庭園 にわ",
+      "tags": {
+        "addr:floor": "6",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "5",
+        "name": "空中庭園 にわ"
+      },
+      "distanceAlongTrail": 86.50661068897898,
+      "distanceFromTrail": 0.2356928487765451
+    },
+    {
+      "id": 14280531761,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.066373,
+      "lon": 134.5494883,
+      "name": "バラード",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "2",
+        "name": "バラード",
+        "name:en": "Ballade"
+      },
+      "distanceAlongTrail": 86.50666764315407,
+      "distanceFromTrail": 0.19492699074874523
+    },
+    {
+      "id": 14280531760,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0663701,
+      "lon": 134.5495074,
+      "name": "non",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "non"
+      },
+      "distanceAlongTrail": 86.50695736192806,
+      "distanceFromTrail": 0.19669203766615725
+    },
+    {
+      "id": 14280531759,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0663671,
+      "lon": 134.5495265,
+      "name": "こまり",
+      "tags": {
+        "addr:floor": "1",
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "こまり"
+      },
+      "distanceAlongTrail": 86.50725819826205,
+      "distanceFromTrail": 0.1984572915502389
     },
     {
       "id": 311099622,
@@ -15654,6 +18188,452 @@
       "distanceFromTrail": 0.4193920596219598
     },
     {
+      "id": 14280531753,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0663434,
+      "lon": 134.5494104,
+      "name": "遊部",
+      "tags": {
+        "addr:floor": "9",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "8",
+        "name": "遊部"
+      },
+      "distanceAlongTrail": 86.51009177204104,
+      "distanceFromTrail": 0.18781387445639514
+    },
+    {
+      "id": 14280531745,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.066342,
+      "lon": 134.5494211,
+      "name": "SHOT BAR Nova",
+      "tags": {
+        "addr:floor": "8",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "7",
+        "name": "SHOT BAR Nova"
+      },
+      "distanceAlongTrail": 86.51022910435633,
+      "distanceFromTrail": 0.1888022060009116
+    },
+    {
+      "id": 14280531744,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0663407,
+      "lon": 134.5494319,
+      "name": "FIRST CLASS",
+      "tags": {
+        "addr:floor": "7",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "6",
+        "name": "FIRST CLASS"
+      },
+      "distanceAlongTrail": 86.51035514795043,
+      "distanceFromTrail": 0.18979954042565664
+    },
+    {
+      "id": 14276511493,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0663345,
+      "lon": 134.549817,
+      "name": "魚匠 居酒屋 赤おに",
+      "tags": {
+        "addr:floor": "1",
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "魚匠 居酒屋 赤おに",
+        "name:en": "Akaoni"
+      },
+      "distanceAlongTrail": 86.51038531867599,
+      "distanceFromTrail": 0.22527884930258352
+    },
+    {
+      "id": 14280531754,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0663393,
+      "lon": 134.5494427,
+      "name": "CLUB ZERO",
+      "tags": {
+        "addr:floor": "6",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "5",
+        "name": "CLUB ZERO"
+      },
+      "distanceAlongTrail": 86.51049230910748,
+      "distanceFromTrail": 0.19079708171528548
+    },
+    {
+      "id": 14280531752,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0663379,
+      "lon": 134.5494534,
+      "name": "LOUNGE FLOURISH",
+      "tags": {
+        "addr:floor": "5",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "4",
+        "name": "LOUNGE FLOURISH"
+      },
+      "distanceAlongTrail": 86.51062964141911,
+      "distanceFromTrail": 0.1917854133594984
+    },
+    {
+      "id": 14280531746,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0663366,
+      "lon": 134.5494642,
+      "name": "BAR return",
+      "tags": {
+        "addr:floor": "4",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "3",
+        "name": "BAR return"
+      },
+      "distanceAlongTrail": 86.51075568500978,
+      "distanceFromTrail": 0.19278274787562075
+    },
+    {
+      "id": 14280531747,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0663352,
+      "lon": 134.5494749,
+      "name": "とも",
+      "tags": {
+        "addr:floor": "4",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "3",
+        "name": "とも"
+      },
+      "distanceAlongTrail": 86.51089301731903,
+      "distanceFromTrail": 0.19377107958411235
+    },
+    {
+      "id": 14280531748,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0663338,
+      "lon": 134.5494857,
+      "name": "TEACH",
+      "tags": {
+        "addr:floor": "4",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "3",
+        "name": "TEACH",
+        "name:ja": "ティーチ"
+      },
+      "distanceAlongTrail": 86.51103017847123,
+      "distanceFromTrail": 0.19476862100406572
+    },
+    {
+      "id": 14280531751,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0663325,
+      "lon": 134.5494964,
+      "name": "Lounge テラ",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "2",
+        "name": "Lounge テラ"
+      },
+      "distanceAlongTrail": 86.51115639321345,
+      "distanceFromTrail": 0.19575674593521328
+    },
+    {
+      "id": 14280531749,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0663311,
+      "lon": 134.5495072,
+      "name": "Lounge Ran",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "Lounge Ran"
+      },
+      "distanceAlongTrail": 86.51129355436404,
+      "distanceFromTrail": 0.19675428741975345
+    },
+    {
+      "id": 14276511492,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0663117,
+      "lon": 134.5498192,
+      "name": "Lounge HARRY MONTAGNE",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "Lounge HARRY MONTAGNE"
+      },
+      "distanceAlongTrail": 86.51291635766476,
+      "distanceFromTrail": 0.22552863046899577
+    },
+    {
+      "id": 14276511491,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0663083,
+      "lon": 134.5498433,
+      "name": "鈴",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "鈴",
+        "name:en": "Suzu"
+      },
+      "distanceAlongTrail": 86.51325310640743,
+      "distanceFromTrail": 0.22775519834713823
+    },
+    {
+      "id": 14276511490,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0663048,
+      "lon": 134.5498673,
+      "name": "BAR Lounge Ran",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "BAR Lounge Ran"
+      },
+      "distanceAlongTrail": 86.51360114386256,
+      "distanceFromTrail": 0.22997276360255944
+    },
+    {
+      "id": 14276511489,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0663013,
+      "lon": 134.5498915,
+      "name": "Bar Core",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "Bar Core"
+      },
+      "distanceAlongTrail": 86.51394883899958,
+      "distanceFromTrail": 0.23220874841367184
+    },
+    {
+      "id": 14276511488,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0662966,
+      "lon": 134.549816,
+      "name": "BAR 樹楽",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "2",
+        "name": "BAR 樹楽"
+      },
+      "distanceAlongTrail": 86.51460058666943,
+      "distanceFromTrail": 0.22526515909319955
+    },
+    {
+      "id": 14276511487,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0662932,
+      "lon": 134.5498401,
+      "name": "TAMMY",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "2",
+        "name": "TAMMY",
+        "name:ja": "タミィ"
+      },
+      "distanceAlongTrail": 86.5149373353985,
+      "distanceFromTrail": 0.22749172736005255
+    },
+    {
+      "id": 14276511486,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0662897,
+      "lon": 134.5498642,
+      "name": "LOUNGE LILY",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "2",
+        "name": "LOUNGE LILY"
+      },
+      "distanceAlongTrail": 86.51528520168327,
+      "distanceFromTrail": 0.22971850268586005
+    },
+    {
+      "id": 14280531741,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0662648,
+      "lon": 134.5494651,
+      "name": "BAR Cloud",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "2",
+        "name": "BAR Cloud"
+      },
+      "distanceAlongTrail": 86.5187365559871,
+      "distanceFromTrail": 0.19301414580341839
+    },
+    {
+      "id": 14280531740,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0662621,
+      "lon": 134.5494818,
+      "name": "Bar Liz Felice",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "Bar Liz Felice"
+      },
+      "distanceAlongTrail": 86.51900814727992,
+      "distanceFromTrail": 0.19455774867007888
+    },
+    {
+      "id": 14280531739,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0662594,
+      "lon": 134.5494985,
+      "name": "すなっく てんとうむし",
+      "tags": {
+        "addr:floor": "1",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "すなっく てんとうむし"
+      },
+      "distanceAlongTrail": 86.51927973856986,
+      "distanceFromTrail": 0.1961013516350926
+    },
+    {
+      "id": 14280531742,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0662517,
+      "lon": 134.549462,
+      "name": ":re cafe",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "cafe",
+        "check_date": "2026-06-19",
+        "level": "2",
+        "name": ":re cafe"
+      },
+      "distanceAlongTrail": 86.52019826276498,
+      "distanceFromTrail": 0.19275574139363344
+    },
+    {
+      "id": 14280531743,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.066249,
+      "lon": 134.5494787,
+      "name": "アンカー&ベイ",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "アンカー&ベイ"
+      },
+      "distanceAlongTrail": 86.52046985405002,
+      "distanceFromTrail": 0.19429934449063727
+    },
+    {
+      "id": 14276675204,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0662462,
+      "lon": 134.5494954,
+      "name": "串かつ くるま",
+      "tags": {
+        "addr:floor": "1",
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "串かつ くるま"
+      },
+      "distanceAlongTrail": 86.52075256289521,
+      "distanceFromTrail": 0.19584315452906817
+    },
+    {
+      "id": 14276511485,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0662314,
+      "lon": 134.54978,
+      "name": "道っちゃん",
+      "tags": {
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "cuisine": "chinese",
+        "level": "0",
+        "name": "道っちゃん"
+      },
+      "distanceAlongTrail": 86.52191085383728,
+      "distanceFromTrail": 0.22208455392829723
+    },
+    {
+      "id": 14276511483,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0662223,
+      "lon": 134.5498056,
+      "name": "salon de GRECO",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "salon de GRECO"
+      },
+      "distanceAlongTrail": 86.52287873627627,
+      "distanceFromTrail": 0.2244610611659536
+    },
+    {
       "id": 316656951,
       "type": "way",
       "category": "emergency",
@@ -15667,6 +18647,69 @@
       },
       "distanceAlongTrail": 86.52340145502365,
       "distanceFromTrail": 0.45306085725922385
+    },
+    {
+      "id": 14276511482,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0662164,
+      "lon": 134.5498368,
+      "name": "lounge bar moegi",
+      "tags": {
+        "addr:floor": "4",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "3",
+        "name": "lounge bar moegi"
+      },
+      "distanceAlongTrail": 86.5234812719649,
+      "distanceFromTrail": 0.2273466916662996
+    },
+    {
+      "id": 14276511478,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0661861,
+      "lon": 134.5498071,
+      "name": "Bar KING or CLOWN",
+      "tags": {
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "name": "Bar KING or CLOWN"
+      },
+      "distanceAlongTrail": 86.52690072681662,
+      "distanceFromTrail": 0.22467409611376873
+    },
+    {
+      "id": 14276511479,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0661832,
+      "lon": 134.5497767,
+      "name": "花暦",
+      "tags": {
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "花暦"
+      },
+      "distanceAlongTrail": 86.5272751674855,
+      "distanceFromTrail": 0.22188034725304834
+    },
+    {
+      "id": 14276511476,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.066172,
+      "lon": 134.549803,
+      "name": "かま田",
+      "tags": {
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "name": "かま田"
+      },
+      "distanceAlongTrail": 86.5284753206116,
+      "distanceFromTrail": 0.22432566812877494
     },
     {
       "id": 3608748824,
@@ -15696,6 +18739,21 @@
       },
       "distanceAlongTrail": 86.5302925926557,
       "distanceFromTrail": 0.7524979508439269
+    },
+    {
+      "id": 14276511477,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0661348,
+      "lon": 134.5497745,
+      "name": "めし処 源",
+      "tags": {
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "name": "めし処 源"
+      },
+      "distanceAlongTrail": 86.53265983355345,
+      "distanceFromTrail": 0.2217778608345428
     },
     {
       "id": 2982746832,
@@ -15736,6 +18794,21 @@
       "distanceFromTrail": 1.304889706672412
     },
     {
+      "id": 14277154881,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0659717,
+      "lon": 134.5497623,
+      "name": "妃",
+      "tags": {
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "name": "妃"
+      },
+      "distanceAlongTrail": 86.550813460384,
+      "distanceFromTrail": 0.22099168692048923
+    },
+    {
       "id": 3212570277,
       "type": "node",
       "category": "restaurant",
@@ -15754,6 +18827,288 @@
       "distanceFromTrail": 1.0789739708237098
     },
     {
+      "id": 14277154880,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0659688,
+      "lon": 134.5497817,
+      "name": "Lounge ShuShu",
+      "tags": {
+        "amenity": "bar",
+        "bar:type": "lounge",
+        "check_date": "2026-06-19",
+        "name": "Lounge ShuShu"
+      },
+      "distanceAlongTrail": 86.55110266534452,
+      "distanceFromTrail": 0.22278437225191675
+    },
+    {
+      "id": 14277154879,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0659659,
+      "lon": 134.5498011,
+      "name": "楽樹",
+      "tags": {
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "name": "楽樹"
+      },
+      "distanceAlongTrail": 86.5513918703005,
+      "distanceFromTrail": 0.22457705770339184
+    },
+    {
+      "id": 14277154878,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.065963,
+      "lon": 134.5498205,
+      "name": "LOUNGE LULU",
+      "tags": {
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "name": "LOUNGE LULU"
+      },
+      "distanceAlongTrail": 86.55168107525189,
+      "distanceFromTrail": 0.22636974328014958
+    },
+    {
+      "id": 14277154858,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0659295,
+      "lon": 134.549774,
+      "name": "優雅",
+      "tags": {
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "name": "優雅"
+      },
+      "distanceAlongTrail": 86.55548504676777,
+      "distanceFromTrail": 0.22215652548849635
+    },
+    {
+      "id": 14277154857,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0659219,
+      "lon": 134.549822,
+      "name": "Lounge Alma",
+      "tags": {
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "name": "Lounge Alma"
+      },
+      "distanceAlongTrail": 86.55624782632937,
+      "distanceFromTrail": 0.22659291682114888
+    },
+    {
+      "id": 14277154864,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0659184,
+      "lon": 134.5497215,
+      "name": "marjoram",
+      "tags": {
+        "addr:floor": "1",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "marjoram"
+      },
+      "distanceAlongTrail": 86.55680895360032,
+      "distanceFromTrail": 0.2173443818642974
+    },
+    {
+      "id": 14277154863,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0659106,
+      "lon": 134.5497697,
+      "name": "Lounge emu",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "2",
+        "name": "Lounge emu"
+      },
+      "distanceAlongTrail": 86.55759362596875,
+      "distanceFromTrail": 0.22179960655292957
+    },
+    {
+      "id": 14277154862,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0659068,
+      "lon": 134.5497938,
+      "name": "LOUNGE 葵",
+      "tags": {
+        "addr:floor": "4",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "3",
+        "name": "LOUNGE 葵"
+      },
+      "distanceAlongTrail": 86.55797484457864,
+      "distanceFromTrail": 0.22402701232624359
+    },
+    {
+      "id": 14283590866,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0659109,
+      "lon": 134.5493822,
+      "name": "珈琲院トランプ堂",
+      "tags": {
+        "amenity": "cafe",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "珈琲院トランプ堂"
+      },
+      "distanceAlongTrail": 86.5582235059176,
+      "distanceFromTrail": 0.18611129015246877
+    },
+    {
+      "id": 14277154861,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0659029,
+      "lon": 134.5498178,
+      "name": "NIGHT LOUNGE LUNA CLUB",
+      "tags": {
+        "addr:floor": "5",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "4",
+        "name": "NIGHT LOUNGE LUNA CLUB"
+      },
+      "distanceAlongTrail": 86.55836735190115,
+      "distanceFromTrail": 0.2262454154508187
+    },
+    {
+      "id": 14277154859,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0659032,
+      "lon": 134.5497433,
+      "name": "京都 嵯峨野",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "cuisine": "japanese",
+        "level": "1",
+        "name": "京都 嵯峨野"
+      },
+      "distanceAlongTrail": 86.55846151105804,
+      "distanceFromTrail": 0.21938354687031555
+    },
+    {
+      "id": 14277154860,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.065899,
+      "lon": 134.5498419,
+      "name": "Lounge MA CHERIE",
+      "tags": {
+        "addr:floor": "6",
+        "amenity": "bar",
+        "bar:type": "lounge",
+        "check_date": "2026-06-19",
+        "level": "5",
+        "name": "Lounge MA CHERIE",
+        "name:ja": "マシェリ"
+      },
+      "distanceAlongTrail": 86.55875968805844,
+      "distanceFromTrail": 0.22847302850820483
+    },
+    {
+      "id": 14277154865,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0658968,
+      "lon": 134.5497165,
+      "name": "NEAT BAR",
+      "tags": {
+        "addr:floor": "1",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "NEAT BAR"
+      },
+      "distanceAlongTrail": 86.55921890515575,
+      "distanceFromTrail": 0.21692857916142463
+    },
+    {
+      "id": 14277154869,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0658891,
+      "lon": 134.5497646,
+      "name": "あらい",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "2",
+        "name": "あらい",
+        "name:en": "Arai"
+      },
+      "distanceAlongTrail": 86.55999263107685,
+      "distanceFromTrail": 0.22137438834321846
+    },
+    {
+      "id": 14277154868,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0658813,
+      "lon": 134.5498128,
+      "name": "たまり場845",
+      "tags": {
+        "addr:floor": "5",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "4",
+        "name": "たまり場845"
+      },
+      "distanceAlongTrail": 86.56077730337427,
+      "distanceFromTrail": 0.22582961494269582
+    },
+    {
+      "id": 14277154867,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0658774,
+      "lon": 134.5498368,
+      "name": "LOUNGE Femme Fatale",
+      "tags": {
+        "addr:floor": "6",
+        "amenity": "bar",
+        "bar:type": "lounge",
+        "check_date": "2026-06-19",
+        "level": "5",
+        "name": "LOUNGE Femme Fatale"
+      },
+      "distanceAlongTrail": 86.56116981066889,
+      "distanceFromTrail": 0.22804801881757525
+    },
+    {
+      "id": 14283590868,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0658598,
+      "lon": 134.5493674,
+      "name": "土竜",
+      "tags": {
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "name": "土竜"
+      },
+      "distanceAlongTrail": 86.56392991279236,
+      "distanceFromTrail": 0.18485394103261876
+    },
+    {
       "id": 311684384,
       "type": "way",
       "category": "emergency",
@@ -15768,6 +19123,37 @@
       },
       "distanceAlongTrail": 86.56443679643586,
       "distanceFromTrail": 1.4812993221355961
+    },
+    {
+      "id": 14277154819,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0658401,
+      "lon": 134.5499283,
+      "name": "スナック 元禄",
+      "tags": {
+        "amenity": "bar",
+        "bar:type": "snack",
+        "check_date": "2026-06-19",
+        "name": "スナック 元禄"
+      },
+      "distanceAlongTrail": 86.56516005292671,
+      "distanceFromTrail": 0.2365520939392875
+    },
+    {
+      "id": 14277154818,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0658206,
+      "lon": 134.5500896,
+      "name": "鶏とロマン",
+      "tags": {
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "name": "鶏とロマン"
+      },
+      "distanceAlongTrail": 86.56705190111721,
+      "distanceFromTrail": 0.25144774490704497
     },
     {
       "id": 1423658157,
@@ -15806,6 +19192,410 @@
       "distanceFromTrail": 1.1108381460688324
     },
     {
+      "id": 14283590858,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0658183,
+      "lon": 134.5493533,
+      "name": "lounge SUN",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "bar",
+        "bar:type": "lounge",
+        "check_date": "2026-06-19",
+        "level": "2",
+        "name": "lounge SUN"
+      },
+      "distanceAlongTrail": 86.56856783538788,
+      "distanceFromTrail": 0.18364120291344543
+    },
+    {
+      "id": 14283590857,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0658173,
+      "lon": 134.5493765,
+      "name": "Healing Koto",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "Healing Koto"
+      },
+      "distanceAlongTrail": 86.56863930256955,
+      "distanceFromTrail": 0.1857799304516623
+    },
+    {
+      "id": 14283590856,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0658163,
+      "lon": 134.5494028,
+      "name": "文",
+      "tags": {
+        "addr:floor": "1",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "文"
+      },
+      "distanceAlongTrail": 86.56870546387636,
+      "distanceFromTrail": 0.1882041599265516
+    },
+    {
+      "id": 14283590863,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0657998,
+      "lon": 134.5493034,
+      "name": "牧野タイル",
+      "tags": {
+        "addr:floor": "5",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "4",
+        "name": "牧野タイル",
+        "office": "company"
+      },
+      "distanceAlongTrail": 86.57070999237499,
+      "distanceFromTrail": 0.1790838061586119
+    },
+    {
+      "id": 14283590862,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0657988,
+      "lon": 134.549328,
+      "name": "舞華",
+      "tags": {
+        "addr:floor": "4",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "3",
+        "name": "舞華"
+      },
+      "distanceAlongTrail": 86.57077906333961,
+      "distanceFromTrail": 0.1813514704717515
+    },
+    {
+      "id": 14283590861,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0657978,
+      "lon": 134.5493521,
+      "name": "haku 博",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "2",
+        "name": "haku 博"
+      },
+      "distanceAlongTrail": 86.57084899008937,
+      "distanceFromTrail": 0.18357308613737464
+    },
+    {
+      "id": 14283590860,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0657969,
+      "lon": 134.5493752,
+      "name": "BLACK",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "BLACK"
+      },
+      "distanceAlongTrail": 86.57090951084412,
+      "distanceFromTrail": 0.18570239762001076
+    },
+    {
+      "id": 14283590859,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0657958,
+      "lon": 134.5494015,
+      "name": "Lounge Spica",
+      "tags": {
+        "addr:floor": "1",
+        "amenity": "bar",
+        "bar:type": "lounge",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "Lounge Spica"
+      },
+      "distanceAlongTrail": 86.57098678969494,
+      "distanceFromTrail": 0.18812683451252912
+    },
+    {
+      "id": 14277154853,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0657648,
+      "lon": 134.5496826,
+      "name": "たこやき たこ助",
+      "tags": {
+        "amenity": "fast_food",
+        "check_date": "2026-06-19",
+        "cuisine": "takoyaki",
+        "level": "0",
+        "name": "たこやき たこ助"
+      },
+      "distanceAlongTrail": 86.573952111316,
+      "distanceFromTrail": 0.21407954328357193
+    },
+    {
+      "id": 14277154852,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0657601,
+      "lon": 134.5497362,
+      "name": "からあげ専門店 から家",
+      "tags": {
+        "amenity": "fast_food",
+        "check_date": "2026-06-19",
+        "cuisine": "friture",
+        "level": "0",
+        "name": "からあげ専門店 から家"
+      },
+      "distanceAlongTrail": 86.57438289642897,
+      "distanceFromTrail": 0.21902568893522986
+    },
+    {
+      "id": 14277154834,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.065754,
+      "lon": 134.5497795,
+      "name": "土竜のしっぽ",
+      "tags": {
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "土竜のしっぽ"
+      },
+      "distanceAlongTrail": 86.57498695662296,
+      "distanceFromTrail": 0.22302612768494745
+    },
+    {
+      "id": 14283590851,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0657379,
+      "lon": 134.5493363,
+      "name": "Lounge Rassure",
+      "tags": {
+        "amenity": "bar",
+        "bar:type": "lounge",
+        "check_date": "2026-06-19",
+        "name": "Lounge Rassure"
+      },
+      "distanceAlongTrail": 86.57753545437818,
+      "distanceFromTrail": 0.18224183723905304
+    },
+    {
+      "id": 14283590850,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0657366,
+      "lon": 134.5493788,
+      "name": "Bar RANTAN",
+      "tags": {
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "name": "Bar RANTAN"
+      },
+      "distanceAlongTrail": 86.57760724077998,
+      "distanceFromTrail": 0.18615866843147946
+    },
+    {
+      "id": 14283590855,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.065732,
+      "lon": 134.549181,
+      "name": "鳥いろ",
+      "tags": {
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "name": "鳥いろ"
+      },
+      "distanceAlongTrail": 86.57845719836172,
+      "distanceFromTrail": 0.16795130242909434
+    },
+    {
+      "id": 14283590854,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0657026,
+      "lon": 134.549175,
+      "name": "ひらき",
+      "tags": {
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "name": "ひらき"
+      },
+      "distanceAlongTrail": 86.58173603211496,
+      "distanceFromTrail": 0.16745951997919817
+    },
+    {
+      "id": 14283590849,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0656882,
+      "lon": 134.5493822,
+      "name": "ぶっとび酒場",
+      "tags": {
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "ぶっとび酒場"
+      },
+      "distanceAlongTrail": 86.58298232279532,
+      "distanceFromTrail": 0.18657190719116878
+    },
+    {
+      "id": 14283590853,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0656787,
+      "lon": 134.5491924,
+      "name": "ARCHE",
+      "tags": {
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "name": "ARCHE"
+      },
+      "distanceAlongTrail": 86.58436334885685,
+      "distanceFromTrail": 0.16911144486027563
+    },
+    {
+      "id": 14277154823,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0656504,
+      "lon": 134.5496799,
+      "name": "や台ずし",
+      "tags": {
+        "amenity": "pub",
+        "branch": "秋田町",
+        "check_date": "2026-06-19",
+        "cuisine": "sushi",
+        "level": "0",
+        "name": "や台ずし"
+      },
+      "distanceAlongTrail": 86.58667522533682,
+      "distanceFromTrail": 0.21406753464030412
+    },
+    {
+      "id": 14277154822,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0656493,
+      "lon": 134.5497,
+      "name": "海賊バー カリビヤン・ナイト・3",
+      "tags": {
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "海賊バー カリビヤン・ナイト・3"
+      },
+      "distanceAlongTrail": 86.58676311580594,
+      "distanceFromTrail": 0.21592097119635276
+    },
+    {
+      "id": 14283590843,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0656434,
+      "lon": 134.5493002,
+      "name": "Lounge Mai",
+      "tags": {
+        "addr:floor": "6",
+        "amenity": "bar",
+        "bar:type": "lounge",
+        "check_date": "2026-06-19",
+        "level": "5",
+        "name": "Lounge Mai"
+      },
+      "distanceAlongTrail": 86.5881033412982,
+      "distanceFromTrail": 0.17911256791190527
+    },
+    {
+      "id": 14283590844,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0656428,
+      "lon": 134.5493206,
+      "name": "Bar lounge GRACE",
+      "tags": {
+        "addr:floor": "5",
+        "amenity": "bar",
+        "bar:type": "lounge",
+        "check_date": "2026-06-19",
+        "level": "4",
+        "name": "Bar lounge GRACE"
+      },
+      "distanceAlongTrail": 86.58813513047893,
+      "distanceFromTrail": 0.18099259930188177
+    },
+    {
+      "id": 14283590845,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0656421,
+      "lon": 134.5493411,
+      "name": "LOUNGE PEARL 珠",
+      "tags": {
+        "addr:floor": "4",
+        "amenity": "bar",
+        "bar:type": "lounge",
+        "check_date": "2026-06-19",
+        "level": "3",
+        "name": "LOUNGE PEARL 珠"
+      },
+      "distanceAlongTrail": 86.58817786606583,
+      "distanceFromTrail": 0.18288204730696103
+    },
+    {
+      "id": 14283590846,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0656415,
+      "lon": 134.5493616,
+      "name": "shot Bar Lush",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "2",
+        "name": "shot Bar Lush"
+      },
+      "distanceAlongTrail": 86.58820948408658,
+      "distanceFromTrail": 0.18477128851173663
+    },
+    {
+      "id": 14283590847,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0656408,
+      "lon": 134.549382,
+      "name": "Lounge LUCHIA",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "bar:type": "lounge",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "Lounge LUCHIA"
+      },
+      "distanceAlongTrail": 86.58825239082913,
+      "distanceFromTrail": 0.18665152682025668
+    },
+    {
       "id": 2982748635,
       "type": "node",
       "category": "transport",
@@ -15821,6 +19611,386 @@
       },
       "distanceAlongTrail": 86.58876366335535,
       "distanceFromTrail": 0.9388896603887841
+    },
+    {
+      "id": 14283590848,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0656285,
+      "lon": 134.5494005,
+      "name": "卯月",
+      "tags": {
+        "addr:floor": "1",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "卯月"
+      },
+      "distanceAlongTrail": 86.58958818707832,
+      "distanceFromTrail": 0.188380772716446
+    },
+    {
+      "id": 14283590828,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0656059,
+      "lon": 134.5492461,
+      "name": "縁",
+      "tags": {
+        "addr:floor": "5",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "4",
+        "name": "縁"
+      },
+      "distanceAlongTrail": 86.59236502472218,
+      "distanceFromTrail": 0.17420764651171214
+    },
+    {
+      "id": 14283590832,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0656054,
+      "lon": 134.5492684,
+      "name": "Lounge JULY",
+      "tags": {
+        "addr:floor": "4",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "3",
+        "name": "Lounge JULY"
+      },
+      "distanceAlongTrail": 86.59238244430507,
+      "distanceFromTrail": 0.1762624573389959
+    },
+    {
+      "id": 14283590833,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0656049,
+      "lon": 134.5492898,
+      "name": "LOUNGE Pia.Class",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "2",
+        "name": "LOUNGE Pia.Class"
+      },
+      "distanceAlongTrail": 86.59240140431022,
+      "distanceFromTrail": 0.17823438034213374
+    },
+    {
+      "id": 14283590827,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0655885,
+      "lon": 134.5492248,
+      "name": "REGULUS",
+      "tags": {
+        "addr:floor": "6",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "5",
+        "name": "REGULUS"
+      },
+      "distanceAlongTrail": 86.5943359377703,
+      "distanceFromTrail": 0.17228195353383072
+    },
+    {
+      "id": 14283590829,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.065588,
+      "lon": 134.5492455,
+      "name": "ゆきの舞",
+      "tags": {
+        "addr:floor": "5",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "4",
+        "name": "ゆきの舞"
+      },
+      "distanceAlongTrail": 86.59435609586768,
+      "distanceFromTrail": 0.17418940856665793
+    },
+    {
+      "id": 14283590835,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.065587,
+      "lon": 134.5492892,
+      "name": "Lounge Masquerade",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "bar",
+        "bar:type": "lounge",
+        "check_date": "2026-06-19",
+        "level": "2",
+        "name": "Lounge Masquerade",
+        "name:ja": "ラウンジ・マスカレード"
+      },
+      "distanceAlongTrail": 86.59439247542332,
+      "distanceFromTrail": 0.17821614324718837
+    },
+    {
+      "id": 14283590837,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0655866,
+      "lon": 134.5493098,
+      "name": "ビギナー",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "ビギナー"
+      },
+      "distanceAlongTrail": 86.5944016871111,
+      "distanceFromTrail": 0.1801141817573648
+    },
+    {
+      "id": 14283590839,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0655861,
+      "lon": 134.5493309,
+      "name": "ラウンジEMMA",
+      "tags": {
+        "addr:floor": "1",
+        "amenity": "bar",
+        "bar:type": "lounge",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "ラウンジEMMA"
+      },
+      "distanceAlongTrail": 86.59442116057352,
+      "distanceFromTrail": 0.18205847592990382
+    },
+    {
+      "id": 14283590830,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0655698,
+      "lon": 134.549245,
+      "name": "Lounge 澪",
+      "tags": {
+        "addr:floor": "5",
+        "amenity": "bar",
+        "bar:type": "lounge",
+        "check_date": "2026-06-19",
+        "level": "4",
+        "name": "Lounge 澪"
+      },
+      "distanceAlongTrail": 86.59638034855092,
+      "distanceFromTrail": 0.1741810008358474
+    },
+    {
+      "id": 14283590831,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0655693,
+      "lon": 134.5492673,
+      "name": "COPAIN",
+      "tags": {
+        "addr:floor": "4",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "3",
+        "name": "COPAIN"
+      },
+      "distanceAlongTrail": 86.59639776810128,
+      "distanceFromTrail": 0.1762358125380886
+    },
+    {
+      "id": 14283590834,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0655688,
+      "lon": 134.5492886,
+      "name": "Bar Second",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "2",
+        "name": "Bar Second"
+      },
+      "distanceAlongTrail": 86.59641689923261,
+      "distanceFromTrail": 0.17819852661630337
+    },
+    {
+      "id": 14283590836,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0655684,
+      "lon": 134.5493092,
+      "name": "BAR HOLiC",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "BAR HOLiC"
+      },
+      "distanceAlongTrail": 86.59642611090602,
+      "distanceFromTrail": 0.18009656553394382
+    },
+    {
+      "id": 14283590838,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0655679,
+      "lon": 134.5493303,
+      "name": "スナック 華日和",
+      "tags": {
+        "addr:floor": "1",
+        "amenity": "bar",
+        "bar:type": "snack",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "スナック 華日和"
+      },
+      "distanceAlongTrail": 86.59644558435215,
+      "distanceFromTrail": 0.18204086012382817
+    },
+    {
+      "id": 14283590823,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0655413,
+      "lon": 134.5492434,
+      "name": "KARAOKE BAR DICE",
+      "tags": {
+        "addr:floor": "5",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "4",
+        "name": "KARAOKE BAR DICE"
+      },
+      "distanceAlongTrail": 86.5995515932057,
+      "distanceFromTrail": 0.17409258803296646
+    },
+    {
+      "id": 14287123449,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0655344,
+      "lon": 134.5496788,
+      "name": "86noodle",
+      "tags": {
+        "addr:floor": "1",
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "cuisine": "ramen",
+        "level": "0",
+        "name": "86noodle"
+      },
+      "distanceAlongTrail": 86.5995734818443,
+      "distanceFromTrail": 0.21420619212737826
+    },
+    {
+      "id": 14287123448,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0655329,
+      "lon": 134.5497206,
+      "name": "ティンカーベル",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "ティンカーベル"
+      },
+      "distanceAlongTrail": 86.59966870111305,
+      "distanceFromTrail": 0.2180589785711843
+    },
+    {
+      "id": 14283590824,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0655386,
+      "lon": 134.5493083,
+      "name": "グラシューズ",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "グラシューズ"
+      },
+      "distanceAlongTrail": 86.59974068572492,
+      "distanceFromTrail": 0.18007531183852774
+    },
+    {
+      "id": 14287123446,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0655316,
+      "lon": 134.549758,
+      "name": "遊館倶楽部 夕凪",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "2",
+        "name": "遊館倶楽部 夕凪"
+      },
+      "distanceAlongTrail": 86.59974921621779,
+      "distanceFromTrail": 0.2215061215579165
+    },
+    {
+      "id": 14287123444,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0655303,
+      "lon": 134.5497929,
+      "name": "AURORA",
+      "tags": {
+        "addr:floor": "4",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "3",
+        "name": "AURORA"
+      },
+      "distanceAlongTrail": 86.59983401027725,
+      "distanceFromTrail": 0.22472302041859285
+    },
+    {
+      "id": 14283590825,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.065536,
+      "lon": 134.5493719,
+      "name": "新和食屋 もも",
+      "tags": {
+        "addr:floor": "1",
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "新和食屋 もも"
+      },
+      "distanceAlongTrail": 86.59992088572247,
+      "distanceFromTrail": 0.18593810219839668
+    },
+    {
+      "id": 14283590822,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0655208,
+      "lon": 134.5492426,
+      "name": "山桃",
+      "tags": {
+        "addr:floor": "5",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "4",
+        "name": "山桃"
+      },
+      "distanceAlongTrail": 86.60183206336772,
+      "distanceFromTrail": 0.1740613078087469
     },
     {
       "id": 3212069774,
@@ -15840,6 +20010,75 @@
       "distanceFromTrail": 1.270681271724798
     },
     {
+      "id": 14287123447,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0655054,
+      "lon": 134.5497192,
+      "name": "アナリスト",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "アナリスト"
+      },
+      "distanceAlongTrail": 86.60272842727011,
+      "distanceFromTrail": 0.21798693131807942
+    },
+    {
+      "id": 14287123445,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0655041,
+      "lon": 134.5497566,
+      "name": "Mari",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "2",
+        "name": "Mari",
+        "name:ja": "マリ"
+      },
+      "distanceAlongTrail": 86.60280894233331,
+      "distanceFromTrail": 0.2214340754220518
+    },
+    {
+      "id": 14287123443,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0655029,
+      "lon": 134.5497915,
+      "name": "SNACK MIKO",
+      "tags": {
+        "addr:floor": "4",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "3",
+        "name": "SNACK MIKO"
+      },
+      "distanceAlongTrail": 86.60288261879077,
+      "distanceFromTrail": 0.22465076844637608
+    },
+    {
+      "id": 14287123442,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0655016,
+      "lon": 134.5498266,
+      "name": "ロー2",
+      "tags": {
+        "addr:floor": "5",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "4",
+        "name": "ロー2"
+      },
+      "distanceAlongTrail": 86.60296707049106,
+      "distanceFromTrail": 0.22788608798820173
+    },
+    {
       "id": 3212069775,
       "type": "node",
       "category": "restaurant",
@@ -15854,6 +20093,74 @@
       },
       "distanceAlongTrail": 86.60699944235228,
       "distanceFromTrail": 1.2574287338715326
+    },
+    {
+      "id": 14287123440,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.065459,
+      "lon": 134.5497232,
+      "name": "Salon de ふじの",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "Salon de ふじの"
+      },
+      "distanceAlongTrail": 86.60788013034818,
+      "distanceFromTrail": 0.21845131060648537
+    },
+    {
+      "id": 14287123439,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.065458,
+      "lon": 134.5497583,
+      "name": "Bar W still",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "2",
+        "name": "Bar W still"
+      },
+      "distanceAlongTrail": 86.60793122929954,
+      "distanceFromTrail": 0.22168601110490968
+    },
+    {
+      "id": 14287123438,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0654571,
+      "lon": 134.5497952,
+      "name": "CLUB 華",
+      "tags": {
+        "addr:floor": "4",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "3",
+        "name": "CLUB 華"
+      },
+      "distanceAlongTrail": 86.60796812982929,
+      "distanceFromTrail": 0.22508628078880907
+    },
+    {
+      "id": 14287123437,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0654562,
+      "lon": 134.5498298,
+      "name": "パレット",
+      "tags": {
+        "addr:floor": "5",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "4",
+        "name": "パレット"
+      },
+      "distanceAlongTrail": 86.60800896700601,
+      "distanceFromTrail": 0.2282747256654601
     },
     {
       "id": 309694692,
@@ -15872,6 +20179,108 @@
       "distanceFromTrail": 0.8977330817707039
     },
     {
+      "id": 14283590820,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0654437,
+      "lon": 134.5493641,
+      "name": "酒と肴DINING 諒",
+      "tags": {
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "酒と肴DINING 諒"
+      },
+      "distanceAlongTrail": 86.61019574842587,
+      "distanceFromTrail": 0.18541064665392776
+    },
+    {
+      "id": 14287123432,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0654315,
+      "lon": 134.5496882,
+      "name": "瀬川商店",
+      "tags": {
+        "addr:floor": "1",
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "瀬川商店"
+      },
+      "distanceAlongTrail": 86.61099736584067,
+      "distanceFromTrail": 0.21528477732811618
+    },
+    {
+      "id": 14287123433,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0654306,
+      "lon": 134.5497222,
+      "name": "Ruun",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "Ruun"
+      },
+      "distanceAlongTrail": 86.61103922993796,
+      "distanceFromTrail": 0.21841796438354347
+    },
+    {
+      "id": 14287123434,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0654297,
+      "lon": 134.5497572,
+      "name": "MARIANNU",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "2",
+        "name": "MARIANNU",
+        "name:ja": "マリアンヌ"
+      },
+      "distanceAlongTrail": 86.61107938244446,
+      "distanceFromTrail": 0.22164324930750903
+    },
+    {
+      "id": 14287123435,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0654287,
+      "lon": 134.5497941,
+      "name": "長崎物語",
+      "tags": {
+        "addr:floor": "4",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "3",
+        "name": "長崎物語"
+      },
+      "distanceAlongTrail": 86.611127400496,
+      "distanceFromTrail": 0.22504372700835212
+    },
+    {
+      "id": 14287123436,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0654278,
+      "lon": 134.5498287,
+      "name": "GOTO'S BAR",
+      "tags": {
+        "addr:floor": "5",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "4",
+        "name": "GOTO'S BAR"
+      },
+      "distanceAlongTrail": 86.61116823763224,
+      "distanceFromTrail": 0.2282321729528049
+    },
+    {
       "id": 3212069773,
       "type": "node",
       "category": "restaurant",
@@ -15887,6 +20296,23 @@
       },
       "distanceAlongTrail": 86.61143069978606,
       "distanceFromTrail": 1.284690038955092
+    },
+    {
+      "id": 14283590818,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0654143,
+      "lon": 134.5493614,
+      "name": "Lounge Bar B",
+      "tags": {
+        "amenity": "bar",
+        "bar:type": "lounge",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "Lounge Bar B"
+      },
+      "distanceAlongTrail": 86.61346893377606,
+      "distanceFromTrail": 0.18522279139174405
     },
     {
       "id": 375840685,
@@ -15918,6 +20344,40 @@
       "distanceFromTrail": 1.0922993583677227
     },
     {
+      "id": 14287123416,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0653724,
+      "lon": 134.5491589,
+      "name": "焼鳥 さんじ",
+      "tags": {
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "cuisine": "japanese",
+        "level": "0",
+        "name": "焼鳥 さんじ"
+      },
+      "distanceAlongTrail": 86.61847379038811,
+      "distanceFromTrail": 0.16665963672770695
+    },
+    {
+      "id": 14287123417,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0653712,
+      "lon": 134.5491931,
+      "name": "割烹 ひがしおか",
+      "tags": {
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "cuisine": "japanese",
+        "level": "0",
+        "name": "割烹 ひがしおか"
+      },
+      "distanceAlongTrail": 86.6185486648016,
+      "distanceFromTrail": 0.16981186546691757
+    },
+    {
       "id": 310615003,
       "type": "way",
       "category": "restaurant",
@@ -15931,6 +20391,72 @@
       },
       "distanceAlongTrail": 86.6195499837723,
       "distanceFromTrail": 0.9399623800524113
+    },
+    {
+      "id": 14283590808,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0653604,
+      "lon": 134.5493037,
+      "name": "Muse Carry",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "Muse Carry",
+        "name:ja": "ミューズ キャリー"
+      },
+      "distanceAlongTrail": 86.61956005998655,
+      "distanceFromTrail": 0.1800202266941319
+    },
+    {
+      "id": 14283590815,
+      "type": "node",
+      "category": "emergency",
+      "lat": 34.0653465,
+      "lon": 134.5496772,
+      "name": "タキヤ薬局",
+      "tags": {
+        "amenity": "pharmacy",
+        "check_date": "2026-06-19",
+        "name": "タキヤ薬局"
+      },
+      "distanceAlongTrail": 86.62046612233344,
+      "distanceFromTrail": 0.21444753849827403
+    },
+    {
+      "id": 14283590809,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.065339,
+      "lon": 134.549302,
+      "name": "千夏",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "千夏"
+      },
+      "distanceAlongTrail": 86.62194212861584,
+      "distanceFromTrail": 0.17990792116473076
+    },
+    {
+      "id": 14283590810,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0653379,
+      "lon": 134.5493396,
+      "name": "わがまま屋 別邸",
+      "tags": {
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "わがまま屋 別邸"
+      },
+      "distanceAlongTrail": 86.62200006600091,
+      "distanceFromTrail": 0.1833730773698438
     },
     {
       "id": 3215384648,
@@ -15961,6 +20487,23 @@
       "distanceFromTrail": 1.3953048940688233
     },
     {
+      "id": 14283590807,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0653179,
+      "lon": 134.5493007,
+      "name": "Cafe&Bar MAO",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "Cafe&Bar MAO"
+      },
+      "distanceAlongTrail": 86.62429015991565,
+      "distanceFromTrail": 0.17983183426661317
+    },
+    {
       "id": 2982748634,
       "type": "node",
       "category": "transport",
@@ -15976,6 +20519,159 @@
       },
       "distanceAlongTrail": 86.6246732907442,
       "distanceFromTrail": 1.004788683829476
+    },
+    {
+      "id": 14287123427,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0652994,
+      "lon": 134.5497303,
+      "name": "ShiYu",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "2",
+        "name": "ShiYu"
+      },
+      "distanceAlongTrail": 86.62561160918906,
+      "distanceFromTrail": 0.2194353738369736
+    },
+    {
+      "id": 14287123429,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0653002,
+      "lon": 134.5496744,
+      "name": "万歳",
+      "tags": {
+        "addr:floor": "1",
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "万歳"
+      },
+      "distanceAlongTrail": 86.62561834671752,
+      "distanceFromTrail": 0.21428544383935413
+    },
+    {
+      "id": 14287123424,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0652913,
+      "lon": 134.5497635,
+      "name": "焼肉居酒屋 ばんばん",
+      "tags": {
+        "addr:floor": "4",
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "3",
+        "name": "焼肉居酒屋 ばんばん"
+      },
+      "distanceAlongTrail": 86.62645530692767,
+      "distanceFromTrail": 0.22250978259929194
+    },
+    {
+      "id": 14287123426,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0652823,
+      "lon": 134.5497297,
+      "name": "do etta",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "2",
+        "name": "do etta"
+      },
+      "distanceAlongTrail": 86.6275137394751,
+      "distanceFromTrail": 0.2194154903901847
+    },
+    {
+      "id": 14287123428,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0652825,
+      "lon": 134.5497,
+      "name": "肉バル GYUUU",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "肉バル GYUUU"
+      },
+      "distanceAlongTrail": 86.62754233867443,
+      "distanceFromTrail": 0.21667976716686757
+    },
+    {
+      "id": 14287123423,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0652738,
+      "lon": 134.5497625,
+      "name": "えんまん家",
+      "tags": {
+        "addr:floor": "4",
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "3",
+        "name": "えんまん家"
+      },
+      "distanceAlongTrail": 86.6284025920808,
+      "distanceFromTrail": 0.22245388808930078
+    },
+    {
+      "id": 14287123411,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.065279,
+      "lon": 134.5492682,
+      "name": "BAR HIGUCHI",
+      "tags": {
+        "addr:floor": "1",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "BAR HIGUCHI"
+      },
+      "distanceAlongTrail": 86.62867051952,
+      "distanceFromTrail": 0.17691910590412313
+    },
+    {
+      "id": 14287123425,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0652653,
+      "lon": 134.5497292,
+      "name": "翠神",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "2",
+        "name": "翠神"
+      },
+      "distanceAlongTrail": 86.62940458103859,
+      "distanceFromTrail": 0.21940460985960517
+    },
+    {
+      "id": 14287123410,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0652718,
+      "lon": 134.5492675,
+      "name": "GRASS HOPPER",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "GRASS HOPPER"
+      },
+      "distanceAlongTrail": 86.6294721823297,
+      "distanceFromTrail": 0.17686952858993066
     },
     {
       "id": 316790757,
@@ -15996,6 +20692,137 @@
       "distanceFromTrail": 0.5232356745634243
     },
     {
+      "id": 14284008702,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0652143,
+      "lon": 134.5496953,
+      "name": "あかのれん",
+      "tags": {
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "あかのれん"
+      },
+      "distanceAlongTrail": 86.6351325614479,
+      "distanceFromTrail": 0.21638799186497848
+    },
+    {
+      "id": 14284008706,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0652171,
+      "lon": 134.5492963,
+      "name": "uca half",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "2",
+        "name": "uca half"
+      },
+      "distanceAlongTrail": 86.63550419652218,
+      "distanceFromTrail": 0.17963508424675712
+    },
+    {
+      "id": 14284008710,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.065216,
+      "lon": 134.5493305,
+      "name": "iodetos Aphrodite",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "iodetos Aphrodite",
+        "name:ja": "アフロディテ"
+      },
+      "distanceAlongTrail": 86.63556795314909,
+      "distanceFromTrail": 0.18278711211469495
+    },
+    {
+      "id": 14284008709,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0652154,
+      "lon": 134.5493694,
+      "name": "個室居酒屋 わか",
+      "tags": {
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "name": "個室居酒屋 わか",
+        "name:en": "waka"
+      },
+      "distanceAlongTrail": 86.63556807744706,
+      "distanceFromTrail": 0.18637096666023964
+    },
+    {
+      "id": 14284008703,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0652068,
+      "lon": 134.5496521,
+      "name": "大衆酒場 いごごち",
+      "tags": {
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "大衆酒場 いごごち"
+      },
+      "distanceAlongTrail": 86.63604031967785,
+      "distanceFromTrail": 0.2124248715857812
+    },
+    {
+      "id": 14361993457,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0650017,
+      "lon": 134.5587342,
+      "name": "Bar",
+      "tags": {
+        "amenity": "cafe",
+        "name": "Bar"
+      },
+      "distanceAlongTrail": 86.64329747654948,
+      "distanceFromTrail": 1.0492948263283288
+    },
+    {
+      "id": 14287123408,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0651213,
+      "lon": 134.5496571,
+      "name": "TOMATO'S BAR",
+      "tags": {
+        "addr:floor": "1",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "TOMATO'S BAR"
+      },
+      "distanceAlongTrail": 86.6455372785774,
+      "distanceFromTrail": 0.21306223218453202
+    },
+    {
+      "id": 14287497238,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0651205,
+      "lon": 134.5496809,
+      "name": "FOOD LABO mammy",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "FOOD LABO mammy"
+      },
+      "distanceAlongTrail": 86.64558548300597,
+      "distanceFromTrail": 0.21525582280361286
+    },
+    {
       "id": 309005505,
       "type": "way",
       "category": "emergency",
@@ -16009,6 +20836,91 @@
       },
       "distanceAlongTrail": 86.6487777603809,
       "distanceFromTrail": 0.99557475778698
+    },
+    {
+      "id": 14290342411,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0650918,
+      "lon": 134.5489952,
+      "name": "ふーが",
+      "tags": {
+        "addr:floor": "4",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "3",
+        "name": "ふーが"
+      },
+      "distanceAlongTrail": 86.64994986865771,
+      "distanceFromTrail": 0.1521634794070015
+    },
+    {
+      "id": 14290342412,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0650914,
+      "lon": 134.5490141,
+      "name": "音姫",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "2",
+        "name": "音姫"
+      },
+      "distanceAlongTrail": 86.64996198965997,
+      "distanceFromTrail": 0.15390496199277312
+    },
+    {
+      "id": 14290342413,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.065091,
+      "lon": 134.549033,
+      "name": "ひらき",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "ひらき"
+      },
+      "distanceAlongTrail": 86.64997411066156,
+      "distanceFromTrail": 0.155646444597598
+    },
+    {
+      "id": 14290342414,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0650903,
+      "lon": 134.5490525,
+      "name": "Cheerz",
+      "tags": {
+        "addr:floor": "1",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "Cheerz"
+      },
+      "distanceAlongTrail": 86.65001855740036,
+      "distanceFromTrail": 0.15744380651981868
+    },
+    {
+      "id": 14287123405,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0650807,
+      "lon": 134.5493369,
+      "name": "やわらぎ",
+      "tags": {
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "cuisine": "japanese",
+        "level": "0",
+        "name": "やわらぎ"
+      },
+      "distanceAlongTrail": 86.65059906423693,
+      "distanceFromTrail": 0.18365638218229854
     },
     {
       "id": 176081902,
@@ -16049,6 +20961,260 @@
       "distanceFromTrail": 1.36843325583256
     },
     {
+      "id": 14290342416,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0650529,
+      "lon": 134.5490307,
+      "name": "Reposer",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "Reposer",
+        "name:ja": "ルポゼ"
+      },
+      "distanceAlongTrail": 86.65421384003594,
+      "distanceFromTrail": 0.1555134089688551
+    },
+    {
+      "id": 14290342415,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0650523,
+      "lon": 134.5490502,
+      "name": "葵い鳥",
+      "tags": {
+        "addr:floor": "1",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "葵い鳥"
+      },
+      "distanceAlongTrail": 86.65424716917853,
+      "distanceFromTrail": 0.1573105648999115
+    },
+    {
+      "id": 14287497226,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0650451,
+      "lon": 134.5492055,
+      "name": "BAR GROW",
+      "tags": {
+        "addr:floor": "4",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "3",
+        "name": "BAR GROW"
+      },
+      "distanceAlongTrail": 86.6547818219772,
+      "distanceFromTrail": 0.17162830812405833
+    },
+    {
+      "id": 14287497225,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0650441,
+      "lon": 134.5492343,
+      "name": "一華",
+      "tags": {
+        "addr:floor": "4",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "3",
+        "name": "一華"
+      },
+      "distanceAlongTrail": 86.6548437034616,
+      "distanceFromTrail": 0.17428280506895813
+    },
+    {
+      "id": 14287497224,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0650431,
+      "lon": 134.5492621,
+      "name": "はなあかり",
+      "tags": {
+        "addr:floor": "4",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "3",
+        "name": "はなあかり"
+      },
+      "distanceAlongTrail": 86.6549072965476,
+      "distanceFromTrail": 0.17684520385444208
+    },
+    {
+      "id": 14287497223,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0650421,
+      "lon": 134.5492893,
+      "name": "RANGER",
+      "tags": {
+        "addr:floor": "4",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "3",
+        "name": "RANGER",
+        "name:ja": "ランジェ"
+      },
+      "distanceAlongTrail": 86.65497191659247,
+      "distanceFromTrail": 0.179352343767004
+    },
+    {
+      "id": 14287497242,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0650271,
+      "lon": 134.5493373,
+      "name": "潮来亭",
+      "tags": {
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "cuisine": "japanese",
+        "level": "0",
+        "name": "潮来亭"
+      },
+      "distanceAlongTrail": 86.65655739437037,
+      "distanceFromTrail": 0.18380408326201048
+    },
+    {
+      "id": 14287497222,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.065023,
+      "lon": 134.5492044,
+      "name": "m",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "2",
+        "name": "m"
+      },
+      "distanceAlongTrail": 86.65724068669641,
+      "distanceFromTrail": 0.17157270672501992
+    },
+    {
+      "id": 14287497221,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.065022,
+      "lon": 134.5492332,
+      "name": "LOUNGE Vis",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "2",
+        "name": "LOUNGE Vis"
+      },
+      "distanceAlongTrail": 86.65730256815512,
+      "distanceFromTrail": 0.17422720436133501
+    },
+    {
+      "id": 14287497220,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.065021,
+      "lon": 134.5492609,
+      "name": "Club PERRIER",
+      "tags": {
+        "addr:floor": "3",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "2",
+        "name": "Club PERRIER",
+        "name:ja": "ペリエ"
+      },
+      "distanceAlongTrail": 86.65736633237593,
+      "distanceFromTrail": 0.17678039399012413
+    },
+    {
+      "id": 14290342418,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0649976,
+      "lon": 134.5489264,
+      "name": "酒呑み処 橋",
+      "tags": {
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "酒呑み処 橋"
+      },
+      "distanceAlongTrail": 86.66054037449422,
+      "distanceFromTrail": 0.14602191882878485
+    },
+    {
+      "id": 14287497230,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0649922,
+      "lon": 134.5491509,
+      "name": "GRAIL",
+      "tags": {
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "GRAIL"
+      },
+      "distanceAlongTrail": 86.66075646771912,
+      "distanceFromTrail": 0.1667091486675041
+    },
+    {
+      "id": 14287497227,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0649911,
+      "lon": 134.5491914,
+      "name": "舞鼓のだいどころ",
+      "tags": {
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "舞鼓のだいどころ"
+      },
+      "distanceAlongTrail": 86.66080944092836,
+      "distanceFromTrail": 0.17044140388920515
+    },
+    {
+      "id": 14287497229,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0649903,
+      "lon": 134.5492232,
+      "name": "餃子と牛丼 たけちゃん",
+      "tags": {
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "cuisine": "gyoza;beef_bowl",
+        "level": "0",
+        "name": "餃子と牛丼 たけちゃん"
+      },
+      "distanceAlongTrail": 86.66084395240446,
+      "distanceFromTrail": 0.17337178371079928
+    },
+    {
+      "id": 14287497228,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0649897,
+      "lon": 134.549243,
+      "name": "Rest Bar GLENK",
+      "tags": {
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "Rest Bar GLENK"
+      },
+      "distanceAlongTrail": 86.66087676801148,
+      "distanceFromTrail": 0.17519657057791674
+    },
+    {
       "id": 309005508,
       "type": "way",
       "category": "restaurant",
@@ -16062,6 +21228,253 @@
       },
       "distanceAlongTrail": 86.67288166629005,
       "distanceFromTrail": 1.0031469581839187
+    },
+    {
+      "id": 14290342448,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0648809,
+      "lon": 134.5491265,
+      "name": null,
+      "tags": {
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "0"
+      },
+      "distanceAlongTrail": 86.67317208151776,
+      "distanceFromTrail": 0.16469212955293808
+    },
+    {
+      "id": 14290342449,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.064877,
+      "lon": 134.5492022,
+      "name": "幸ノ鳥",
+      "tags": {
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "幸ノ鳥"
+      },
+      "distanceAlongTrail": 86.67347609771366,
+      "distanceFromTrail": 0.17167204421903853
+    },
+    {
+      "id": 14290342450,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0648749,
+      "lon": 134.549244,
+      "name": "Casual Bar &MARSHALL",
+      "tags": {
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "Casual Bar &MARSHALL"
+      },
+      "distanceAlongTrail": 86.67363802129185,
+      "distanceFromTrail": 0.17552610072526453
+    },
+    {
+      "id": 14290342454,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0648741,
+      "lon": 134.5492604,
+      "name": "きょん",
+      "tags": {
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "きょん"
+      },
+      "distanceAlongTrail": 86.67369889141034,
+      "distanceFromTrail": 0.17703816916389334
+    },
+    {
+      "id": 14290342410,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0648797,
+      "lon": 134.5488411,
+      "name": "しま音",
+      "tags": {
+        "addr:floor": "1",
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "しま音"
+      },
+      "distanceAlongTrail": 86.67379398572676,
+      "distanceFromTrail": 0.13840972795861456
+    },
+    {
+      "id": 14290342453,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0648728,
+      "lon": 134.5492855,
+      "name": "スナック フレンド",
+      "tags": {
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "スナック フレンド"
+      },
+      "distanceAlongTrail": 86.67380045834516,
+      "distanceFromTrail": 0.17935252790187847
+    },
+    {
+      "id": 14290342409,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0648791,
+      "lon": 134.5488664,
+      "name": "絆",
+      "tags": {
+        "addr:floor": "1",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "絆"
+      },
+      "distanceAlongTrail": 86.67381738740073,
+      "distanceFromTrail": 0.14074105816314367
+    },
+    {
+      "id": 14290342408,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0648785,
+      "lon": 134.5488938,
+      "name": "のゝ花",
+      "tags": {
+        "addr:floor": "1",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "のゝ花"
+      },
+      "distanceAlongTrail": 86.67383719469292,
+      "distanceFromTrail": 0.14326579504204023
+    },
+    {
+      "id": 14290342407,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.064878,
+      "lon": 134.5489194,
+      "name": "酒肴結 さかぐち",
+      "tags": {
+        "addr:floor": "1",
+        "amenity": "pub",
+        "check_date": "2026-06-19",
+        "level": "0",
+        "name": "酒肴結 さかぐち"
+      },
+      "distanceAlongTrail": 86.6738489653148,
+      "distanceFromTrail": 0.14562454804565647
+    },
+    {
+      "id": 14290342417,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0648622,
+      "lon": 134.5490248,
+      "name": "BAR REST LEMON MYRTLE",
+      "tags": {
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "name": "BAR REST LEMON MYRTLE"
+      },
+      "distanceAlongTrail": 86.67542513708527,
+      "distanceFromTrail": 0.15536439377436148
+    },
+    {
+      "id": 14290342401,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0648556,
+      "lon": 134.5493533,
+      "name": "幸之助",
+      "tags": {
+        "amenity": "restaurant",
+        "check_date": "2026-06-19",
+        "cuisine": "barbecue",
+        "level": "0",
+        "name": "幸之助"
+      },
+      "distanceAlongTrail": 86.67559663232767,
+      "distanceFromTrail": 0.18563237543471542
+    },
+    {
+      "id": 14290342406,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0648597,
+      "lon": 134.5488405,
+      "name": "ぶら坊",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "ぶら坊"
+      },
+      "distanceAlongTrail": 86.67601852606245,
+      "distanceFromTrail": 0.1383958246491509
+    },
+    {
+      "id": 14290342405,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0648591,
+      "lon": 134.5488658,
+      "name": "Shot Bar BOX",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "Shot Bar BOX"
+      },
+      "distanceAlongTrail": 86.67604192771603,
+      "distanceFromTrail": 0.14072715540102151
+    },
+    {
+      "id": 14290342404,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0648585,
+      "lon": 134.5488931,
+      "name": "CHAINON",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "CHAINON"
+      },
+      "distanceAlongTrail": 86.67606190614713,
+      "distanceFromTrail": 0.14324268303377047
+    },
+    {
+      "id": 14290342403,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.064858,
+      "lon": 134.5489187,
+      "name": "來叶",
+      "tags": {
+        "addr:floor": "2",
+        "amenity": "bar",
+        "check_date": "2026-06-19",
+        "level": "1",
+        "name": "來叶"
+      },
+      "distanceAlongTrail": 86.67607367674829,
+      "distanceFromTrail": 0.14560143659639577
     },
     {
       "id": 308890148,
@@ -16305,6 +21718,20 @@
       "distanceFromTrail": 1.2472078794157035
     },
     {
+      "id": 14321074055,
+      "type": "node",
+      "category": "restaurant",
+      "lat": 34.0640525,
+      "lon": 134.5490926,
+      "name": null,
+      "tags": {
+        "amenity": "restaurant",
+        "cuisine": "noodle"
+      },
+      "distanceAlongTrail": 86.76532801983069,
+      "distanceFromTrail": 0.16328319133060867
+    },
+    {
       "id": 312611352,
       "type": "way",
       "category": "resupply",
@@ -16400,6 +21827,21 @@
       "distanceFromTrail": 1.2200847254464566
     },
     {
+      "id": 319207469,
+      "type": "way",
+      "category": "emergency",
+      "lat": 34.0637209,
+      "lon": 134.5448657,
+      "name": "クローバー調剤薬局",
+      "tags": {
+        "amenity": "pharmacy",
+        "building": "yes",
+        "name": "クローバー調剤薬局"
+      },
+      "distanceAlongTrail": 86.80942886856621,
+      "distanceFromTrail": 0.2253270719088991
+    },
+    {
       "id": 1423657862,
       "type": "node",
       "category": "resupply",
@@ -16441,20 +21883,16 @@
       "id": 1423658224,
       "type": "node",
       "category": "emergency",
-      "lat": 34.0634408,
-      "lon": 134.5441419,
-      "name": "徳島逓信病院",
+      "lat": 34.0635163,
+      "lon": 134.5441017,
+      "name": "徳島平成病院",
       "tags": {
         "amenity": "hospital",
-        "name": "徳島逓信病院",
-        "note": "National-Land Numerical Information (Public Facility) 2006, MLIT Japan",
-        "note:ja": "国土数値情報（公共施設データ）平成19年　国土交通省",
-        "source": "KSJ2",
-        "source_ref": "http://nlftp.mlit.go.jp/ksj/jpgis/datalist/KsjTmplt-P02-v2_0.html",
-        "wikidata": "Q11490229"
+        "name": "徳島平成病院",
+        "operator": "医療法人平成博愛会"
       },
-      "distanceAlongTrail": 86.84180812280927,
-      "distanceFromTrail": 0.2914110302596842
+      "distanceAlongTrail": 86.83348315462713,
+      "distanceFromTrail": 0.2952691830630896
     },
     {
       "id": 3212570278,
@@ -16474,8 +21912,8 @@
       "id": 313059996,
       "type": "way",
       "category": "resupply",
-      "lat": 34.0632213,
-      "lon": 134.5497297,
+      "lat": 34.0632665,
+      "lon": 134.5497318,
       "name": "キョーエイ",
       "tags": {
         "branch": "中央店",
@@ -16490,8 +21928,8 @@
         "name:ja": "キョーエイ",
         "shop": "supermarket"
       },
-      "distanceAlongTrail": 86.85664671593236,
-      "distanceFromTrail": 0.22367925149068338
+      "distanceAlongTrail": 86.85161798295572,
+      "distanceFromTrail": 0.2237791506151747
     },
     {
       "id": 310067772,
@@ -20870,9 +26308,18 @@
       "lon": 134.5227908,
       "name": "RVパークライト ひなの里 かつうら",
       "tags": {
+        "addr:block_number": "4-1",
+        "addr:city": "勝浦郡",
+        "addr:country": "JP",
+        "addr:full": "徳島県勝浦郡勝浦町大字生名字月ノ瀬4-1",
+        "addr:neighbourhood": "大字生名字月ノ瀬",
+        "addr:postcode": "771-4303",
+        "addr:province": "徳島県",
+        "addr:suburb": "勝浦町",
         "branch": "ひなの里かつうら",
         "name": "RVパークライト ひなの里 かつうら",
-        "tourism": "caravan_site"
+        "tourism": "caravan_site",
+        "website": "https://www.hinanosato.com"
       },
       "distanceAlongTrail": 111.44609742006038,
       "distanceFromTrail": 0.10902718364303168
@@ -21114,6 +26561,14 @@
       "lon": 134.4960507,
       "name": "前川キャンプ場",
       "tags": {
+        "addr:block_number": "14-1",
+        "addr:city": "勝浦郡",
+        "addr:country": "JP",
+        "addr:full": "徳島県勝浦郡勝浦町三溪平山14-1",
+        "addr:neighbourhood": "三溪平山",
+        "addr:postcode": "771-4307",
+        "addr:province": "徳島県",
+        "addr:suburb": "勝浦町",
         "name": "前川キャンプ場",
         "tourism": "camp_site"
       },
@@ -21749,6 +27204,14 @@
       "lon": 134.5557096,
       "name": "恵比須浜キャンプ村",
       "tags": {
+        "addr:block_number": "96-1",
+        "addr:city": "海部郡",
+        "addr:country": "JP",
+        "addr:full": "徳島県海部郡美波町恵比須浜字田井96-1",
+        "addr:neighbourhood": "恵比須浜字田井",
+        "addr:postcode": "779-2303",
+        "addr:province": "徳島県",
+        "addr:suburb": "美波町",
         "name": "恵比須浜キャンプ村",
         "name:en": "Ebisuhama Camp Village",
         "phone": "+81884771016",
