@@ -25,7 +25,12 @@ export function getDatabase(): Promise<SQLiteDatabase> {
       const db = await openDatabaseAsync(DB_NAME);
       await migrateDatabase(db);
       return db;
-    })();
+    })().catch((e: unknown) => {
+      // Do not cache a failed open: the next call tries again rather than
+      // failing every repo call until the app restarts.
+      dbPromise = null;
+      throw e;
+    });
   }
   return dbPromise;
 }

@@ -509,6 +509,9 @@ export async function pullTrail(trailId: string, deps: SyncDeps = {}): Promise<P
   for (const entry of result.entries) {
     if (isSyncTombstone(entry)) {
       await commentsRepo.applyTombstone(db, entry.id);
+      // Its queued photos can never attach now; left behind they are re-gated
+      // on every drain, never sent and never failed.
+      await outboxRepo.removePhotosFor(db, entry.id);
     } else {
       await commentsRepo.upsertServerComment(db, {
         id: entry.id,
@@ -873,6 +876,10 @@ async function drainOutboxNow(deps: SyncDeps = {}): Promise<DrainResult> {
   ): Promise<DrainResult | null> => {
     for (const item of list) {
       if (!deps.force && !isDrainable(item, nowMs)) continue;
+      // A failed row (a 4xx, or something that cannot be sent from here) is not
+      // sent again unless the hiker retries it: the backoff is measured from
+      // `createdAt`, so without this every drain re-sent it once it was an hour old.
+      if (!deps.force && item.status === 'failed') continue;
 
       try {
         // A photo can only be attached once its comment exists server-side. Gate

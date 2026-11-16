@@ -247,7 +247,7 @@ export const usePlansStore = create<PlansState>((set, get) => {
 
     clearAll: () =>
       set((s) => {
-        if (Object.keys(s.byTrail).length === 0) return s;
+        if (Object.keys(s.byTrail).length === 0 && Object.keys(s.lastError).length === 0) return s;
         for (const trailId of Object.keys(s.byTrail)) bumpGeneration(trailId);
         return { byTrail: {}, lastError: {} };
       }),
