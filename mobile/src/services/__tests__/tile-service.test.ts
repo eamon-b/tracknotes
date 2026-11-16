@@ -1210,9 +1210,10 @@ describe('downloadTrailTiles integrity verification', () => {
       'Checksum mismatch for base.mbtiles: expected MD5 58ce65fc42901111111111111111ffff, got deadbeefdeadbeefdeadbeefdeadbeef',
     );
     error.mockRestore();
-    // The old file is hashed too (the skip check), then the corrupt .part,
-    // whose mismatch stops the run before contours is fetched.
-    expect(digested()).toEqual(['base.mbtiles:MD5', 'base.mbtiles.part:MD5']);
+    // The old file is the wrong size for v2, so it is replaced without being
+    // hashed; the corrupt .part is hashed, and its mismatch stops the run
+    // before contours is fetched.
+    expect(digested()).toEqual(['base.mbtiles.part:MD5']);
 
     // Old files, old manifest, no staging leftovers.
     expect(mockFiles[fileKey('base.mbtiles')]).toEqual({ exists: true, size: OLD.base });
@@ -1288,12 +1289,12 @@ describe('downloadTrailTiles integrity verification', () => {
     // Said once per session, not once per file, so a device that never
     // verifies shows up in its logs without flooding them.
     const skipped = warn.mock.calls.filter((c) =>
-      String(c[0]).includes('no MD5 available for the existing'),
+      String(c[0]).includes('no MD5 could be read for the existing'),
     );
     expect(skipped).toHaveLength(1);
     await downloadTrailTiles(TRAIL_ID, BASE_URL);
     expect(
-      warn.mock.calls.filter((c) => String(c[0]).includes('no MD5 available for the existing')),
+      warn.mock.calls.filter((c) => String(c[0]).includes('no MD5 could be read for the existing')),
     ).toHaveLength(skipped.length);
     warn.mockRestore();
   });

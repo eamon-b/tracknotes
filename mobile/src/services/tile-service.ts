@@ -758,22 +758,25 @@ export async function downloadTrailTiles(
     if (dest.exists) {
       const size = dest.size ?? 0;
       const sizeOk = expectedSize ? size === expectedSize : size > 1000;
-      const existing = await checkMd5(dest, md5);
-      const hashOk = existing.verdict !== 'mismatch';
-      if (existing.verdict === 'skipped' && md5 && !warnedExistingDigestSkipped) {
-        // Once per session: a device that can never hash keeps every existing
-        // pack on size and structure alone, which should show up in its logs
-        // without repeating for each file of each trail.
-        warnedExistingDigestSkipped = true;
-        console.warn(
-          `[tile-service] no MD5 available for the existing ${name} on this platform; ` +
-            'keeping existing packs on size and structure alone.',
-        );
-      }
-      if (sizeOk && hashOk && (await validateMbtilesCached(trailId, name)).ok) {
-        bytesDownloaded += size;
-        onProgress?.({ fileName: name, done: true, bytesDownloaded, bytesTotal });
-        continue;
+      // A wrong-sized file is fetched again whatever its digest, so it is not
+      // hashed (up to ~100 MB of native work for nothing).
+      if (sizeOk) {
+        const existing = await checkMd5(dest, md5);
+        if (existing.verdict !== 'mismatch' && (await validateMbtilesCached(trailId, name)).ok) {
+          if (existing.verdict === 'skipped' && md5 && !warnedExistingDigestSkipped) {
+            // Said where the pack really is kept unverified, and once per
+            // session: a device that never hashes should show up in its logs
+            // without a line for each file of each trail.
+            warnedExistingDigestSkipped = true;
+            console.warn(
+              `[tile-service] no MD5 could be read for the existing ${name}; ` +
+                'kept on size and structure alone (said once per session).',
+            );
+          }
+          bytesDownloaded += size;
+          onProgress?.({ fileName: name, done: true, bytesDownloaded, bytesTotal });
+          continue;
+        }
       }
     }
 
