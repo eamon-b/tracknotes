@@ -33,7 +33,7 @@ Read the note for the area you are changing before changing it, and update that 
 - `docs/architecture/workers.md` — `workers/comments-api/`, `contours/worker/`
 - `docs/architecture/mobile.md` — Tracknotes architecture and source layout
 
-Runbooks: `docs/` (`deploys.md`, `gpx-import.md`, `trail-data-updates.md`, `mobile-test-build.md`) and `contours/docs/world-contours-remote-build.md`. Plans: `plans/`. Read `docs/privacy-policy.md`, `docs/data-residency.md` and `docs/content-legal-posture.md` before changing what the comments API or community routes store.
+Runbooks: `docs/` (`deploys.md`, `gpx-import.md`, `trail-data-updates.md`, `mobile-test-build.md`, `waypoint-editor.md`) and `contours/docs/world-contours-remote-build.md`. Plans: `plans/`. Read `docs/privacy-policy.md`, `docs/data-residency.md` and `docs/content-legal-posture.md` before changing what the comments API or community routes store.
 
 ## Hard rules
 

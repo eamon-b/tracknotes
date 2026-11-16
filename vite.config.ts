@@ -3,6 +3,7 @@ import { resolve } from 'path';
 import { readdirSync, existsSync, statSync, readFileSync } from 'fs';
 import { Marked, type Tokens } from 'marked';
 import { IMPORTED_PLAN_FILLS, SHARED_PLAN_FILLS, inlinePlanShell } from './scripts/lib/plan-shell';
+import { waypointEditorPlugin } from './scripts/lib/waypoint-editor/vite-plugin';
 
 // Dynamically find all trail page directories (index.html and climate.html)
 function getTrailInputs(): Record<string, string> {
@@ -112,7 +113,10 @@ export default defineConfig({
       allow: ['../..'],
     },
   },
-  plugins: [gpxImportDocPlugin(), planShellPlugin()],
+  // waypointEditorPlugin is dev-only (`apply: 'serve'`): the local waypoint
+  // editor's API at /__waypoint-editor, which writes data/trails. Its page,
+  // admin-waypoints.html, is deliberately not a build input below.
+  plugins: [gpxImportDocPlugin(), planShellPlugin(), waypointEditorPlugin(__dirname)],
   build: {
     outDir: '../../dist',
     emptyOutDir: true,

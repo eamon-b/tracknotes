@@ -59,6 +59,8 @@ Each trail has its own directory containing:
   `upload-descriptions.ts` pushes the same file to the comments API, where mobile syncs it as an override (`synced ?? bundled`).
   The prose is factual and non-prescriptive — it describes the place and its water, never instructs the walker or addresses them as "you".
   See `scripts/lib/waypoint-descriptions.ts`.
+  The local waypoint editor (`docs/waypoint-editor.md`) edits these entries, and waypoint names and positions, from a map;
+  a move there carries the waypoint's registry entry with it, so the id survives a move of any distance.
 
 A trail may also carry `Terminus: <name>` tracks — alternative starts/finishes, declared with `trackClassification.terminusPatterns` and drawn junction-first, with a `<wpt>` of `<type>endpoint</type>` at the free end.
 `buildTrail` attaches the one junction at whichever end is actually nearer the route (turning the line round if the generator drew it backwards), attaches the nearby waypoints including that endpoint to the variant, and keeps the endpoint out of `offTrailWaypoints` so a place the route reaches is never also listed as a place it misses.
