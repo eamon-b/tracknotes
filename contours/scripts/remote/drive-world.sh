@@ -68,7 +68,7 @@ cell_lane() {
     local ok=0
     for i in 1 2 3; do
       ev "CELLS-START $s attempt $i"
-      if BUILD_EXTRA_ARGS=--cells-only ./scripts/remote/run-shard.sh "$s" "$CELL_PARALLEL" --fg --no-fetch --no-purge-dem \
+      if BUILD_EXTRA_ARGS=--cells-only ./contours/scripts/remote/run-shard.sh "$s" "$CELL_PARALLEL" --fg --no-fetch --no-purge-dem \
           >> "$LOGS/cells-$s.log" 2>&1; then ok=1; break; fi
       ev "CELLS-RETRY $s (tail: $(tail -1 "$LOGS/cells-$s.log" | cut -c1-150))"; sleep 30
     done
@@ -84,7 +84,7 @@ merge_one() {
     ev "MERGE-START $s attempt $i"
     # --merge-only reuses any batch whose .done marker matches, so a retry
     # only re-tiles the batch that died.
-    if ./scripts/remote/run-shard.sh "$s" 8 --merge-only --no-purge-dem --fg >> "$LOGS/merge-$s.log" 2>&1; then ok=1; break; fi
+    if ./contours/scripts/remote/run-shard.sh "$s" 8 --merge-only --no-purge-dem --fg >> "$LOGS/merge-$s.log" 2>&1; then ok=1; break; fi
     ev "MERGE-RETRY $s (tail: $(tail -1 "$LOGS/merge-$s.log" | cut -c1-150))"; sleep 30
   done
   if [ $ok = 1 ]; then touch "$MARK/merge-$s.ok"; ev "MERGE-OK $s $(du -h "public/data/tiles/world_$s.mbtiles" | cut -f1)"

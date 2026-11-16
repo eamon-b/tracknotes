@@ -15,11 +15,11 @@
 # after a partial failure (or after the box reboots) is safe and cheap.
 #
 # Usage:
-#   ./scripts/remote/bootstrap.sh
-#   REPO_REF=<branch-or-tag> ./scripts/remote/bootstrap.sh
-#   REPO_URL=https://github.com/eamon-b/tracknotes.git ./scripts/remote/bootstrap.sh
-#   CHECKOUT_DIR=/mnt/nvme/tracknotes ./scripts/remote/bootstrap.sh
-#   ./scripts/remote/bootstrap.sh --skip-clone     # tools only
+#   ./contours/scripts/remote/bootstrap.sh
+#   REPO_REF=<branch-or-tag> ./contours/scripts/remote/bootstrap.sh
+#   REPO_URL=https://github.com/eamon-b/tracknotes.git ./contours/scripts/remote/bootstrap.sh
+#   CHECKOUT_DIR=/mnt/nvme/tracknotes ./contours/scripts/remote/bootstrap.sh
+#   ./contours/scripts/remote/bootstrap.sh --skip-clone     # tools only
 #
 # Environment overrides:
 #   REPO_URL      git remote to clone   (default git@github.com:eamon-b/tracknotes.git)
@@ -272,6 +272,6 @@ Bootstrap complete.
 
 Next steps (see contours/docs/world-contours-remote-build.md):
   cd $CHECKOUT_DIR
-  ./scripts/remote/run-shard.sh oceania          # first shard — quality gate
-  ./scripts/remote/status.sh                     # progress
+  ./contours/scripts/remote/run-shard.sh oceania          # first shard — quality gate
+  ./contours/scripts/remote/status.sh                     # progress
 EOF

@@ -312,7 +312,7 @@ the review tests inject a fake client and a fake `AI`.
    The gateway logs request bodies by default, which hold the reported text: set a short log retention, or turn off body logging, to keep it no longer than D1 does.
    A gateway URL that cannot be resolved falls back to the direct API.
 2. **CSAM Scanning Tool** (photos are not reviewed by any model).
-   Cloudflare dashboard → Caching → Configuration → CSAM Scanning Tool, for the zone serving `PHOTOS_PUBLIC_BASE` (`data.contour-map-tiles.net`);
+   Cloudflare dashboard → Caching → Configuration → CSAM Scanning Tool, for the zone serving `PHOTOS_PUBLIC_BASE` (`data.tracknotes.info`), and for `contour-map-tiles.net` while `data.contour-map-tiles.net` still serves older photo URLs;
    it needs a verified notification email.
    It scans images served through Cloudflare's cache, so check in the dashboard that it covers the R2 custom domain.
 3. **Workers AI** needs no setup on Workers Paid;

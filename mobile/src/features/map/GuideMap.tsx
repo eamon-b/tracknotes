@@ -807,7 +807,8 @@ export const GuideMap = memo(
           if (!currentPosition) return;
           cameraRef.current?.easeTo({
             center: [currentPosition.lon, currentPosition.lat],
-            zoom: 14,
+            // In, never out: a hiker already closer than 14 stays there.
+            zoom: Math.max(zoomRef.current ?? 0, 14),
             duration: 500,
           });
         },

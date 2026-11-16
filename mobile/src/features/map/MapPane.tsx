@@ -106,7 +106,7 @@ const TILE_BASE_URL = process.env.EXPO_PUBLIC_TILE_BASE_URL ?? '';
 
 export function MapPane() {
   const { colors } = useTheme();
-  const { trail, trailId, direction } = useGuide();
+  const { trail, baseTrail, trailId, direction } = useGuide();
   // An imported guide has no server-built pack; it borrows a bundled one when
   // its track sits inside that trail's coverage, and otherwise has a corridor
   // pack of its own built on the phone, under its own id (see
@@ -160,7 +160,7 @@ export function MapPane() {
       if (!record) return;
       setDismissed(null);
       setResolution(null);
-      void startCorridorDownload(packTrailId, trail, {
+      void startCorridorDownload(packTrailId, baseTrail, {
         bufferKm: record.bufferKm,
         ...CORRIDOR_TILE_URLS,
         name: typeof trail.name === 'string' ? trail.name : undefined,
@@ -170,7 +170,7 @@ export function MapPane() {
     setDismissed(null);
     setResolution(null);
     void startDownload(packTrailId, TILE_BASE_URL);
-  }, [startDownload, startCorridorDownload, packTrailId, pack.kind, trail]);
+  }, [startDownload, startCorridorDownload, packTrailId, pack.kind, trail, baseTrail]);
 
   // Whether the banner can offer a re-download that will actually run: a
   // corridor pack is rebuilt from the tile workers, and only at a width already

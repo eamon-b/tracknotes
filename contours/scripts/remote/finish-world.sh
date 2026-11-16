@@ -53,6 +53,8 @@ while true; do
   done_n=0
   for s in "${SHARDS[@]}"; do
     if [ -f "$MARK/merge-$s.failed" ]; then ev "FINAL-ABORT merge of $s failed"; exit 1; fi
+    # drive-world never merges a shard whose cells failed, so no merge marker will ever appear for it.
+    if [ -f "$MARK/cells-$s.failed" ] && [ ! -f "$MARK/cells-$s.ok" ]; then ev "FINAL-ABORT cells of $s failed"; exit 1; fi
     if [ -f "$MARK/merge-$s.ok" ]; then
       done_n=$((done_n + 1))
       if [ ! -f "$MARK/convert-$s.started" ]; then touch "$MARK/convert-$s.started"; convert_shard "$s" & fi
@@ -95,7 +97,7 @@ ev "VALIDATE-OK Mt Sonder z9 $nfeat features"
 rm -f "$T"/world_*.mbtiles "$T/world.mbtiles"
 
 ev "UPLOAD-WORLD-START"
-if ./scripts/remote/upload-world.sh > logs/upload-world.log 2>&1; then
+if ./contours/scripts/remote/upload-world.sh > logs/upload-world.log 2>&1; then
   ev "UPLOAD-WORLD-OK"
 else
   ev "UPLOAD-WORLD-FAILED (tail: $(tail -1 logs/upload-world.log | cut -c1-150))"

@@ -13,12 +13,12 @@
 # and a tail command and exits immediately.
 #
 # Usage:
-#   ./scripts/remote/run-shard.sh oceania              # detached, parallel = nproc-4
-#   ./scripts/remote/run-shard.sh europe 24            # detached, parallel = 24
-#   ./scripts/remote/run-shard.sh oceania --fg         # run attached (small shards, debugging)
-#   ./scripts/remote/run-shard.sh oceania --no-fetch   # DEM already on disk
-#   ./scripts/remote/run-shard.sh oceania --merge-only # redo just the tippecanoe merge
-#   ./scripts/remote/run-shard.sh oceania --no-purge-dem
+#   ./contours/scripts/remote/run-shard.sh oceania              # detached, parallel = nproc-4
+#   ./contours/scripts/remote/run-shard.sh europe 24            # detached, parallel = 24
+#   ./contours/scripts/remote/run-shard.sh oceania --fg         # run attached (small shards, debugging)
+#   ./contours/scripts/remote/run-shard.sh oceania --no-fetch   # DEM already on disk
+#   ./contours/scripts/remote/run-shard.sh oceania --merge-only # redo just the tippecanoe merge
+#   ./contours/scripts/remote/run-shard.sh oceania --no-purge-dem
 #
 # Environment overrides:
 #   MIN_FREE_DISK_GB   refuse to start below this much free space (default 500)
@@ -106,7 +106,7 @@ require_command gdalinfo "Run contours/scripts/remote/bootstrap.sh first (needs 
 require_command tippecanoe "Run contours/scripts/remote/bootstrap.sh first."
 require_command setsid "Install util-linux (setsid), or use --fg."
 
-BUILD_SCRIPT="$PROJECT_ROOT/scripts/build-contours-world.ts"
+BUILD_SCRIPT="$PROJECT_ROOT/contours/scripts/build-contours-world.ts"
 FETCH_SCRIPT="$PROJECT_ROOT/scripts/fetch-dem-copernicus.ts"
 if [ ! -f "$BUILD_SCRIPT" ]; then
   echo "Error: $BUILD_SCRIPT not found — wrong checkout or wrong branch?" >&2
@@ -254,7 +254,7 @@ Started detached: PID $build_pid (session leader, survives logout)
 
   Runner:  $RUNNER
   Follow:  tail -f $LOG_FILE
-  Status:  ./scripts/remote/status.sh
+  Status:  ./contours/scripts/remote/status.sh
   Stop:    kill $build_pid          # then re-run this command to resume
                                     # (cells with .done markers are skipped)
 

@@ -184,13 +184,13 @@ fallocate -l 64G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon 
 # Put the checkout on the big NVMe volume, not a small root disk
 export CHECKOUT_DIR=/mnt/nvme/tracknotes
 
-curl -fsSL https://raw.githubusercontent.com/eamon-b/tracknotes/main/scripts/remote/bootstrap.sh -o bootstrap.sh
+curl -fsSL https://raw.githubusercontent.com/eamon-b/tracknotes/main/contours/scripts/remote/bootstrap.sh -o bootstrap.sh
 REPO_URL=https://github.com/eamon-b/tracknotes.git \
 REPO_REF=main \
 bash bootstrap.sh
 ```
 
-(Or clone the repo by hand and run `./scripts/remote/bootstrap.sh` from it —
+(Or clone the repo by hand and run `./contours/scripts/remote/bootstrap.sh` from it —
 the script updates an existing checkout in place.)
 
 `bootstrap.sh` installs build essentials, GDAL ≥ 3.6 (it hard-fails on older),
@@ -213,9 +213,9 @@ runs them (an agent's shell blocks `mkfs`).
 
 ```bash
 ssh -i <key>.pem ec2-user@<box>
-curl -fsSL https://raw.githubusercontent.com/eamon-b/tracknotes/main/scripts/remote/bootstrap-al2023.sh -o bootstrap-al2023.sh
+curl -fsSL https://raw.githubusercontent.com/eamon-b/tracknotes/main/contours/scripts/remote/bootstrap-al2023.sh -o bootstrap-al2023.sh
 bash bootstrap-al2023.sh                     # ~10 min
-/mnt/nvme/tracknotes/scripts/remote/rclone-from-token.sh   # [r2] remote from ~/token
+/mnt/nvme/tracknotes/contours/scripts/remote/rclone-from-token.sh   # [r2] remote from ~/token
 ```
 
 It writes `/etc/profile.d/geo.sh`, which only login shells read: **every**
@@ -266,7 +266,7 @@ the live world archive on trails you know.
 
 ```bash
 cd /mnt/nvme/tracknotes
-./scripts/remote/run-shard.sh oceania
+./contours/scripts/remote/run-shard.sh oceania
 ```
 
 This fetches the shard's GLO-30 tiles, then builds and merges the cells —
@@ -277,7 +277,7 @@ It prints the PID and exits; the build survives your ssh session dropping.
 Watch it:
 
 ```bash
-./scripts/remote/status.sh          # cells done/total per shard, artifacts, procs, disk, log tail
+./contours/scripts/remote/status.sh          # cells done/total per shard, artifacts, procs, disk, log tail
 tail -f logs/world-oceania-*.log
 ```
 
@@ -312,15 +312,15 @@ The shard names come from `WORLD_SHARDS` in `scripts/lib/world-grid.ts`
 (`worldShardNames()` prints the authoritative list):
 
 ```bash
-./scripts/remote/run-shard.sh europe
-./scripts/remote/run-shard.sh asia-west
-./scripts/remote/run-shard.sh asia-east
-./scripts/remote/run-shard.sh africa
-./scripts/remote/run-shard.sh north-america
-./scripts/remote/run-shard.sh central-america
-./scripts/remote/run-shard.sh south-america
-./scripts/remote/run-shard.sh iceland
-./scripts/remote/run-shard.sh rest       # catch-all: oceanic islands etc.
+./contours/scripts/remote/run-shard.sh europe
+./contours/scripts/remote/run-shard.sh asia-west
+./contours/scripts/remote/run-shard.sh asia-east
+./contours/scripts/remote/run-shard.sh africa
+./contours/scripts/remote/run-shard.sh north-america
+./contours/scripts/remote/run-shard.sh central-america
+./contours/scripts/remote/run-shard.sh south-america
+./contours/scripts/remote/run-shard.sh iceland
+./contours/scripts/remote/run-shard.sh rest       # catch-all: oceanic islands etc.
 # antarctica / greenland are opt-out: huge, near-useless ice-sheet contours.
 # Build them last, or not at all.
 ```
@@ -339,7 +339,7 @@ Two or three shards can run concurrently on a 32-thread/128 GB box **if their
 cell phases overlap with another shard's merge phase** — do not run two
 tippecanoe merges at once unless you have watched the RSS and know they fit.
 Pass a smaller parallelism when sharing the box:
-`./scripts/remote/run-shard.sh africa 12`.
+`./contours/scripts/remote/run-shard.sh africa 12`.
 
 `--purge-dem` (on by default in the driver) deletes each cell's DEM tiles once
 no pending cell needs them, which is what keeps peak DEM at shard scale instead
@@ -393,7 +393,7 @@ Then upload:
 
 ```bash
 rclone config          # one-time: see the setup block in upload-world.sh
-./scripts/remote/upload-world.sh
+./contours/scripts/remote/upload-world.sh
 ```
 
 `upload-world.sh` checks the PMTiles magic bytes, refuses a headerless
@@ -440,8 +440,8 @@ Then on a box with ≥ 3 TB of NVMe (core count barely matters — tile-join and
 `pmtiles convert` are single-threaded), after `bootstrap.sh` and `rclone config`:
 
 ```bash
-./scripts/remote/join-on-nvme.sh --pull-only   # start early; overlaps the build box
-./scripts/remote/join-on-nvme.sh               # pull the rest, --join-batches per shard,
+./contours/scripts/remote/join-on-nvme.sh --pull-only   # start early; overlaps the build box
+./contours/scripts/remote/join-on-nvme.sh               # pull the rest, --join-batches per shard,
                                                # --join, validate, upload-world.sh
 ```
 
@@ -702,8 +702,8 @@ Everything is resumable; nothing needs to start over.
 
 | Situation | Do this |
 | --- | --- |
-| Build died during the cell phase (OOM, disk, reboot) | Re-run the exact same `./scripts/remote/run-shard.sh <shard>`. Cells with a `.done` marker in `data/tiles/contours-world/{shard}/` are skipped; only pending cells rebuild. |
-| Build died during the tippecanoe merge | `./scripts/remote/run-shard.sh <shard> --merge-only` — redoes only the merge from the staged `*_z*.fgb` tiers (no GDAL work). |
+| Build died during the cell phase (OOM, disk, reboot) | Re-run the exact same `./contours/scripts/remote/run-shard.sh <shard>`. Cells with a `.done` marker in `data/tiles/contours-world/{shard}/` are skipped; only pending cells rebuild. |
+| Build died during the tippecanoe merge | `./contours/scripts/remote/run-shard.sh <shard> --merge-only` — redoes only the merge from the staged `*_z*.fgb` tiers (no GDAL work). |
 | A cell looks wrong / settings changed | Delete that cell's `.done` marker and `{cellId}_z*.fgb`, then re-run the shard. Or `--force` to rebuild everything. |
 | Batched merge died during tippecanoe | Re-run the same `--merge-only` (or `--batches-only`) command: a batch is reused only when its `.done` marker records the same cell list, the same tippecanoe release *and* the same settings hash (`contourSettingsHash`); the one that died re-tiles. A batch tiled with other settings or by another release — any batch from before the 2026-10 tier fix — is re-tiled, and `--join-batches` refuses it. This is crash recovery, not a way to re-tune: changing the settings re-tiles every batch from the tiers. |
 | Batched merge died during tile-join | `--join-batches` re-joins the kept batches; on a spinning disk consider section 6a instead. |
