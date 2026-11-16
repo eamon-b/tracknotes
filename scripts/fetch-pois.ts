@@ -268,21 +268,32 @@ export async function processTrailData(
  * Wrap a fetcher so that an empty answer for an area where the stored file has
  * POIs counts as a failed chunk, not as "nothing is there".
  *
- * A mirror under load can answer HTTP 200 with `elements: []` and no error
- * remark: on 2026-11-12 `overpass-api.de` did so for every Shikoku chunk (a
- * 2 km corridor at Irita, Tokushima came back empty around 14 POIs still live
- * in OSM). `overpassPayloadError` cannot tell that from a corridor
- * that really is empty (much of the CDT is), so the run counted as a
- * clean whole-trail fetch and replaced 1,206 POIs with none, exit 0. The
- * stored file can tell: an area that held POIs at the last fetch and holds
- * none now is a mirror fault far more often than every feature in it being
- * deleted. Failing the chunk sends the run down the partial-fetch path (merge,
- * exit 1), and a re-run on a healthy mirror sorts it out.
+ * A mirror can answer HTTP 200 with `elements: []` and no error remark: on
+ * 2026-11-11 `overpass-api.de` did so for the whole Shikoku corridor sent as
+ * one query (and for a 2 km corridor at Irita, Tokushima, replayed by hand,
+ * which came back empty around 14 POIs still live in OSM).
+ * `overpassPayloadError` cannot tell that from a corridor that really is empty
+ * (much of the CDT is), so the run counted as a clean whole-trail fetch and
+ * replaced 1,206 POIs with none, exit 0. The stored file can tell: an area
+ * that held POIs at the last fetch and holds none now is a mirror fault far
+ * more often than every feature in it being deleted. Failing the chunk sends
+ * the run down the partial-fetch path (merge, exit 1).
+ *
+ * The empty answers tracked query size and server state, not load alone: two
+ * days later the same server still answered the one-query corridor empty and
+ * returned it complete in 8 chunks (`--max-vertices 10`). So the re-run that
+ * sorts it out is one with smaller chunks, not the same query again.
  *
  * Rejected keys don't count: a rejected element is the one most likely to
  * have been retagged away upstream, and requiring it would make that chunk
- * fail on every re-fetch. Only an empty answer is checked; a short one is
- * normal churn. `--force-replace` still writes the partial result.
+ * fail on every re-fetch. Only an empty answer is checked; a short one passes
+ * (usually normal churn, though a mirror can also drop part of an answer).
+ *
+ * The cost: a chunk whose stored POIs really were all deleted or retagged
+ * fails on every run. `--force-replace` writes the fetch without them once it
+ * is the only chunk still failing; when it is the trail's only chunk the fetch
+ * throws before any write, and those entries have to come out of `pois.json`
+ * by hand.
  */
 export function guardEmptyAnswers(
   fetchPOIs: POIFetcher,
@@ -299,7 +310,8 @@ export function guardEmptyAnswers(
     if (inside > 0) {
       throw new Error(
         `Overpass returned no elements for an area where pois.json has ${inside} POI(s); ` +
-          'treating the answer as failed (a mirror fault, not an empty corridor)'
+          'treating the answer as failed (a mirror fault, not an empty corridor). ' +
+          'Re-run with a smaller --max-vertices; if those POIs really are gone from OSM, see guardEmptyAnswers'
       );
     }
     return pois;
