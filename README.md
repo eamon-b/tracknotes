@@ -119,7 +119,7 @@ The app on the Shikoku Henro, in dark mode:
 
 ## Getting started
 
-Requires Node 22+.
+Requires Node 22.22.2 or later.
 
 ```bash
 npm install
