@@ -8,6 +8,11 @@
 #   a gpx-tools bump has to keep scripts/osm-poi-parity.test.ts passing.
 # - Under mobile/, everything the Expo SDK pins: it moves only with
 #   `npx expo install` (mobile/CLAUDE.md), never package by package.
+# - TypeScript majors, in every package: the root cannot take one until
+#   typescript-eslint's peer range allows it, and the comments API type-checks
+#   src/lib too, so the packages move together in one hand-made PR.
+# - @types/node majors at the root: the types follow the Node that runs the code
+#   (engines.node, node-version in the workflows), so they move with it.
 #
 # The repo merges by rebase only, which Dependabot's branches suit (no merge commits).
 
@@ -21,6 +26,10 @@ updates:
     ignore:
       - dependency-name: te-araroa-data
       - dependency-name: gpx-tools
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
     groups:
       root-minor:
         update-types: [minor, patch]
@@ -30,6 +39,9 @@ updates:
     schedule:
       interval: monthly
     open-pull-requests-limit: 3
+    ignore:
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
     groups:
       comments-api-minor:
         update-types: [minor, patch]
@@ -39,6 +51,9 @@ updates:
     schedule:
       interval: monthly
     open-pull-requests-limit: 3
+    ignore:
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
     groups:
       contour-worker-minor:
         update-types: [minor, patch]

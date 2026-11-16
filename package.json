@@ -4,7 +4,7 @@
   "description": "Tracknotes: maps, waypoints and trip planning for long-distance hiking trails",
   "type": "module",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.22.2"
   },
   "scripts": {
     "dev": "vite",
