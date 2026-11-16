@@ -141,6 +141,11 @@ Raising the floor is a deliberate change to that list, not a side effect of a Vi
   `admin-route-map.ts` draws it: the main line cut at `track.breaks` with each break as a dashed link, variants dashed, waypoints as dots (an alternate's or side trip's own in the variant colour, its name in the tooltip), and every name in a tooltip escaped
 - `admin-moderation.html` / `.ts` - Unlinked, noindex moderation page for admins: reported or screen-flagged comments and shared hiker waypoints (hidden first, then those the automated review would remove or wants a human for, then by reports), each with its reports' reasons and details and the automated review's verdict, confidence, categories and summary ("Hidden by the automated review" when the review hid it; `docs/architecture/workers.md`, "comment and waypoint review"): Restore (or Keep, on a live row with reports or a flagging review: the same endpoint, which settles its reports and review) / Delete / Ban author / Ban and remove all their posts / Unban
   Which rows are highlighted as needing an admin is `needsAttention` in `@lib/moderation-attention`, which the daily *Moderation queue* workflow counts with too (`docs/deploys.md`)
+- `admin-waypoints.html` / `.ts` / `.css` (+ `admin-waypoints-view.ts`) - The local waypoint editor (runbook: `docs/waypoint-editor.md`): review and correct a bundled trail's waypoint descriptions, names and positions against a map (topo, satellite, OSM, the trail's OSM POIs), writing the trail's source files through the dev server's `/__waypoint-editor` API (`scripts/lib/waypoint-editor/`).
+  Served only by `npm run dev`: the page is not a build input and the API plugin is `apply: 'serve'`.
+  Unsaved edits are kept per waypoint while browsing;
+  review marks are per browser (`tracknotes-waypoint-review-<trailId>`) and lapse when the waypoint's content changes.
+  `admin-waypoints-view.ts` is pure (filters, pasted positions, voice hints, review fingerprints, escaped list markup) and tested in `admin-waypoints-view.test.ts`
 - `imported-trails-db.ts` - IndexedDB store (`tracknotes-imports`) for imported `ProcessedTrail`s;
   `index.html` lists them under "My trails"
 - `web-utils.ts` - `escapeHtml`, `getQueryParam` — every user-supplied string (trail names) must go through `escapeHtml`

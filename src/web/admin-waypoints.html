@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <title>Waypoint editor - Tracknotes</title>
+  <!-- Local admin tool: served only by `npm run dev` (not a build input), never indexed. -->
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./admin-waypoints.css">
+  <!-- Applies the saved theme before first paint so the page never flashes. See theme.ts. -->
+  <script>
+    (function () {
+      var root = document.documentElement;
+      root.classList.add('js');
+      var pref = 'system';
+      try { pref = localStorage.getItem('tracknotes-theme') || 'system'; } catch (e) { /* storage disabled */ }
+      if (pref !== 'light' && pref !== 'dark') pref = 'system';
+      root.dataset.themePref = pref;
+      root.dataset.theme = pref === 'system'
+        ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+        : pref;
+    })();
+  </script>
+  <script type="module" src="./theme.ts"></script>
+</head>
+<body class="wpe-body">
+  <header class="wpe-header">
+    <h1 class="wpe-title">Waypoint editor</h1>
+    <label class="wpe-trail-pick">
+      <span class="visually-hidden">Trail</span>
+      <select id="wpe-trail"></select>
+    </label>
+    <div class="wpe-progress" id="wpe-progress" aria-live="polite"></div>
+    <div class="wpe-header-spacer"></div>
+    <button type="button" class="wpe-btn" id="wpe-changes-btn" aria-expanded="false" aria-controls="wpe-changes">
+      Changed files <span class="wpe-count" id="wpe-changes-count">0</span>
+    </button>
+    <button type="button" class="wpe-btn wpe-btn-primary" id="wpe-rebuild">Rebuild trail data</button>
+    <button type="button" class="wpe-btn" id="wpe-help-btn" aria-expanded="false" aria-controls="wpe-help">Keys</button>
+    <span data-theme-toggle></span>
+  </header>
+
+  <p class="wpe-banner" id="wpe-banner" role="alert" hidden></p>
+
+  <section class="wpe-drawer" id="wpe-changes" hidden>
+    <h2>Changed trail data</h2>
+    <p class="wpe-muted">
+      Saves write the source files below. Rebuild, review the diff, then commit the sources with the rebuilt
+      <code>mobile/assets/trails</code> files and the registry (CI fails on uncommitted rebuilt data).
+    </p>
+    <ul id="wpe-changes-list" class="wpe-changes-list"></ul>
+    <div id="wpe-rebuild-status"></div>
+  </section>
+
+  <section class="wpe-drawer" id="wpe-help" hidden>
+    <h2>Keyboard</h2>
+    <dl class="wpe-keys">
+      <dt><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>S</kbd></dt><dd>Save</dd>
+      <dt><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd></dt><dd>Save, mark reviewed and go to the next</dd>
+      <dt><kbd>Alt</kbd> + <kbd>↓</kbd> / <kbd>↑</kbd></dt><dd>Next / previous waypoint in the list</dd>
+      <dt><kbd>Alt</kbd> + <kbd>R</kbd></dt><dd>Mark reviewed (or not)</dd>
+      <dt><kbd>Alt</kbd> + <kbd>P</kbd></dt><dd>Place mode: the next map click moves the waypoint</dd>
+      <dt><kbd>Esc</kbd></dt><dd>Leave place mode, or discard this waypoint's unsaved changes</dd>
+      <dt><kbd>/</kbd></dt><dd>Search the list</dd>
+    </dl>
+    <p class="wpe-muted">Drag the selected marker to move it; unsaved edits are kept per waypoint while you browse.</p>
+  </section>
+
+  <main class="wpe-main">
+    <aside class="wpe-list-pane" aria-label="Waypoints">
+      <div class="wpe-filters">
+        <input type="search" id="wpe-search" placeholder="Search names or id ( / )" autocomplete="off">
+        <div class="wpe-filter-row">
+          <select id="wpe-type" aria-label="Type"></select>
+          <select id="wpe-status" aria-label="Status"></select>
+        </div>
+        <p class="wpe-muted" id="wpe-list-count"></p>
+      </div>
+      <ul class="wpe-list" id="wpe-list" role="listbox" aria-label="Waypoints"></ul>
+    </aside>
+
+    <section class="wpe-map-pane">
+      <div id="wpe-map" class="wpe-map"></div>
+      <div class="wpe-map-bar">
+        <button type="button" class="wpe-btn" id="wpe-place" aria-pressed="false" title="Alt+P">Click map to place</button>
+        <button type="button" class="wpe-btn" id="wpe-snap">Snap to route</button>
+        <button type="button" class="wpe-btn" id="wpe-reset-pos">Undo move</button>
+        <span class="wpe-readout" id="wpe-readout" aria-live="polite"></span>
+      </div>
+    </section>
+
+    <aside class="wpe-edit-pane" aria-label="Edit waypoint">
+      <p class="wpe-muted" id="wpe-empty">Pick a waypoint from the list or the map.</p>
+      <form id="wpe-form" hidden novalidate>
+        <div class="wpe-locked" id="wpe-locked" hidden></div>
+
+        <label class="wpe-field">
+          <span>Name</span>
+          <input type="text" id="wpe-name" autocomplete="off" spellcheck="true">
+        </label>
+
+        <div class="wpe-meta" id="wpe-meta"></div>
+
+        <fieldset class="wpe-field wpe-position">
+          <legend>Position</legend>
+          <div class="wpe-latlon">
+            <label><span>Lat</span><input type="text" id="wpe-lat" inputmode="decimal" autocomplete="off"></label>
+            <label><span>Lon</span><input type="text" id="wpe-lon" inputmode="decimal" autocomplete="off"></label>
+          </div>
+          <label class="wpe-paste">
+            <span>Paste a position or a map link</span>
+            <input type="text" id="wpe-paste" placeholder="-36.1234, 148.5678 or a Google/OSM link" autocomplete="off">
+          </label>
+          <div class="wpe-links" id="wpe-links"></div>
+        </fieldset>
+
+        <div class="wpe-field">
+          <div class="wpe-desc-head">
+            <label for="wpe-desc">Description</label>
+            <span class="wpe-muted" id="wpe-desc-count"></span>
+          </div>
+          <textarea id="wpe-desc" rows="7" spellcheck="true"></textarea>
+          <ul class="wpe-hints" id="wpe-hints"></ul>
+          <details class="wpe-source" id="wpe-source" hidden>
+            <summary>Source text (GPX / CalTopo)</summary>
+            <p id="wpe-source-text"></p>
+            <button type="button" class="wpe-btn wpe-btn-small" id="wpe-use-source">Start from this</button>
+          </details>
+        </div>
+
+        <details class="wpe-field wpe-nearby" id="wpe-nearby" open>
+          <summary>OpenStreetMap nearby</summary>
+          <ul id="wpe-nearby-list"></ul>
+        </details>
+
+        <div class="wpe-actions">
+          <label class="wpe-check"><input type="checkbox" id="wpe-reviewed"> Reviewed</label>
+          <span class="wpe-header-spacer"></span>
+          <button type="button" class="wpe-btn" id="wpe-revert">Discard</button>
+          <button type="submit" class="wpe-btn wpe-btn-primary" id="wpe-save">Save</button>
+          <button type="button" class="wpe-btn wpe-btn-primary" id="wpe-save-next" title="Ctrl+Enter">Save &amp; next</button>
+        </div>
+        <ul class="wpe-notes" id="wpe-notes" aria-live="polite"></ul>
+      </form>
+    </aside>
+  </main>
+
+  <script type="module" src="./admin-waypoints.ts"></script>
+</body>
+</html>
