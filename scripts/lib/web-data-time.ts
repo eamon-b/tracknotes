@@ -50,6 +50,6 @@ export function webDataTime(processed: ProcessedTrail, app: AppIndexEntry | unde
   if (!app) return buildTime;
   // The app build reads this JSON back from disk, so it is hashed the same way.
   const asWritten = JSON.parse(JSON.stringify(processed)) as MobileTrailJson;
-  const { md5 } = digestTrailFile(mobileTrailFile(processed.config.id, asWritten).json);
+  const { md5 } = digestTrailFile(mobileTrailFile(asWritten).json);
   return md5 === app.md5 ? app.updatedAt : buildTime;
 }

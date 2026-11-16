@@ -50,12 +50,6 @@ const TARGET_POINTS = 5000;
 // coarser than the `points` array it already ships, which is this budget.
 const DISPLAY_TARGET_POINTS = TARGET_POINTS;
 
-// Name corrections for index.json
-const NAME_FIXES: Record<string, { name: string; shortName: string }> = {
-  bibbulmun: { name: 'Bibbulmun Track', shortName: 'Bibb' },
-  larapinta: { name: 'Larapinta Trail', shortName: 'Larapinta' },
-};
-
 /**
  * Config fields that only group trails on a list (`@lib/trail-regions`). They
  * ride in `index.json`, never in the per-trail file: a list-only change (a
@@ -305,14 +299,8 @@ export function processTrail(trail: TrailJson): TrailJson {
  * The app's file for a trail, from the web build's JSON for it: the exact
  * bytes `main` writes (and `index.json` hashes). `build-trails.ts` uses it to
  * tell whether the committed app data is the data it has just built.
- * Applies the name fixes to `trail` in place.
  */
-export function mobileTrailFile(id: string, trail: TrailJson): { optimized: TrailJson; json: string } {
-  const nameFix = NAME_FIXES[id];
-  if (nameFix) {
-    (trail.config as Record<string, unknown>).name = nameFix.name;
-    (trail.config as Record<string, unknown>).shortName = nameFix.shortName;
-  }
+export function mobileTrailFile(trail: TrailJson): { optimized: TrailJson; json: string } {
   const optimized = processTrail(trail);
   return { optimized, json: JSON.stringify(optimized) };
 }
@@ -396,10 +384,9 @@ export function main() {
     const rawJson = fs.readFileSync(inputPath, 'utf-8');
     const trail: TrailJson = JSON.parse(rawJson);
     const originalSize = rawJson.length;
-    const nameFix = NAME_FIXES[entry.id];
 
     const originalPointCount = trail.track.points.length;
-    const { optimized, json: optimizedJson } = mobileTrailFile(entry.id, trail);
+    const { optimized, json: optimizedJson } = mobileTrailFile(trail);
     const optimizedSize = optimizedJson.length;
 
     const outputPath = path.join(MOBILE_TRAILS_DIR, `${entry.id}.json`);
@@ -424,8 +411,8 @@ export function main() {
     const indexEntry = mergeIndexEntry(
       {
         id: entry.id,
-        name: nameFix?.name ?? entry.name,
-        shortName: nameFix?.shortName ?? entry.shortName,
+        name: entry.name,
+        shortName: entry.shortName,
         lengthKm: entry.lengthKm,
         country: entry.country,
         states: entry.states,

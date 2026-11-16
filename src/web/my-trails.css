@@ -40,7 +40,7 @@
   list-style: disc;
   margin-left: 1.25rem;
   font-size: 0.875rem;
-  color: #78350f;
+  color: var(--tint-warn-text-strong);
 }
 
 .import-warning-list li {
@@ -48,7 +48,7 @@
 }
 
 .import-error {
-  color: #b91c1c;
+  color: var(--danger);
   font-size: 0.875rem;
   margin-top: 0.75rem;
 }

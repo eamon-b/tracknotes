@@ -13,7 +13,7 @@ The app informs the hiker's decisions and never makes them. Pace, hours per day 
 
 ## Trails
 
-20 curated trails in four countries, from day walks to thru-hikes:
+21 curated trails in five countries, from day walks to thru-hikes:
 
 | Country | Trails |
 | --- | --- |
@@ -114,7 +114,8 @@ The app on the Shikoku Henro, in dark mode:
 | `mobile/` | Tracknotes (Expo SDK 58, React Native, MapLibre, Skia, SQLite) |
 | `data/trails/` | Source data for each trail: GPX, `trail.json`, climate, POIs, walk-in routes, curated descriptions |
 | `scripts/` | Build pipeline: trail JSON, mobile assets, climate/POI/elevation fetchers, map tile and contour builds |
-| `workers/` | Cloudflare Workers: the comments/plans/community API (D1 + R2) and the contour tile server |
+| `workers/` | Cloudflare Worker: the comments/plans/community API (D1 + R2) |
+| `contours/` | The public world-contours dataset: build scripts, the tile Worker (also the app's basemap host) and its docs site |
 | `docs/`, `plans/` | Runbooks, the GPX import spec and design specs |
 
 ## Getting started

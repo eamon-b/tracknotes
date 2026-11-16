@@ -86,7 +86,7 @@ export function buildGpx(trail: GpxExportTrail): string {
 
   const lines: string[] = [];
   lines.push('<?xml version="1.0" encoding="UTF-8"?>');
-  lines.push('<gpx version="1.1" creator="GPX Tools" xmlns="http://www.topografix.com/GPX/1/1">');
+  lines.push('<gpx version="1.1" creator="Tracknotes" xmlns="http://www.topografix.com/GPX/1/1">');
   lines.push(`  <metadata>`);
   lines.push(`    <name>${escapeXml(config.name)}</name>`);
   lines.push(`    <desc>${escapeXml(config.region)} - ${track.totalDistance.toFixed(1)} km</desc>`);

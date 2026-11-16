@@ -25,5 +25,13 @@
       "@lib/*": ["src/lib/*"]
     }
   },
-  "include": ["src/**/*.ts", "scripts/**/*.ts", "contours/scripts/**/*.ts", "e2e/**/*.ts", "playwright.config.ts"]
+  "include": [
+    "src/**/*.ts",
+    "scripts/**/*.ts",
+    "contours/scripts/**/*.ts",
+    "e2e/**/*.ts",
+    "playwright.config.ts",
+    "vite.config.ts",
+    "vitest.config.ts"
+  ]
 }

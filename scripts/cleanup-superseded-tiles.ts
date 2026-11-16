@@ -54,7 +54,9 @@ import { CATALOG_KEY, TRAIL_DATA_PREFIX } from './lib/trail-data-catalog.js';
 
 const __filename = fileURLToPath(import.meta.url);
 
-const BUCKET = process.env.R2_BUCKET || 'tracknotes-data';
+// The world contour archive and its build prefix are in the contour dataset's
+// bucket (contours/scripts/remote/upload-world.sh), everything else in the app's.
+const BUCKET = process.env.R2_BUCKET || (process.argv.includes('--world-build') ? 'aus-map-data' : 'tracknotes-data');
 const RCLONE_REMOTE = process.env.RCLONE_REMOTE || 'r2';
 const DEFAULT_GRACE_DAYS = 7;
 const WORLD_BUILD_PREFIX = 'contours/world-build/';
