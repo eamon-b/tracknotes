@@ -242,18 +242,40 @@ export async function putPlan(request: Request, env: Env, ctx: ExecutionContext,
     ctx
   );
 
+  // A unique-index violation with a live sibling plan for the trail is the
+  // situation the pre-check catches, lost to a race: answer it the same way.
+  const planExistsOrRethrow = async (err: unknown): Promise<Response> => {
+    if (!isUniqueConstraintError(err)) throw err;
+    const winner = await env.DB.prepare(
+      `SELECT id FROM plans
+        WHERE user_id = ? AND trail_id = ? AND deleted_at IS NULL AND id != ?`
+    )
+      .bind(user.id, document.trailId, id)
+      .first<{ id: string }>();
+    // No live sibling means some other uniqueness was violated (the id
+    // itself, say): not ours to relabel.
+    if (!winner) throw err;
+    return planExistsResponse(winner.id);
+  };
+
   let row: PlanRow | null;
   if (existing) {
     // Full replace — including an undelete, so a plan the user removed on one
     // device and rebuilt on another lands on the same id.
-    row = await env.DB.prepare(
-      `UPDATE plans
-          SET trail_id = ?, document_json = ?, updated_at = ?, deleted_at = NULL
-        WHERE id = ?
-      RETURNING *`
-    )
-      .bind(document.trailId, documentJson, now, id)
-      .first<PlanRow>();
+    // Reviving a deleted plan, or moving one to another trail, can meet a plan
+    // that went live for that trail since the check above: same answer as below.
+    try {
+      row = await env.DB.prepare(
+        `UPDATE plans
+            SET trail_id = ?, document_json = ?, updated_at = ?, deleted_at = NULL
+          WHERE id = ?
+        RETURNING *`
+      )
+        .bind(document.trailId, documentJson, now, id)
+        .first<PlanRow>();
+    } catch (err) {
+      return await planExistsOrRethrow(err);
+    }
   } else {
     // The check above is a read, so two PUTs of different ids for one trail can
     // both pass it; the partial unique index is what actually holds the line.
@@ -268,17 +290,7 @@ export async function putPlan(request: Request, env: Env, ctx: ExecutionContext,
         .bind(id, user.id, document.trailId, documentJson, now, now)
         .first<PlanRow>();
     } catch (err) {
-      if (!isUniqueConstraintError(err)) throw err;
-      const winner = await env.DB.prepare(
-        `SELECT id FROM plans
-          WHERE user_id = ? AND trail_id = ? AND deleted_at IS NULL AND id != ?`
-      )
-        .bind(user.id, document.trailId, id)
-        .first<{ id: string }>();
-      // No live sibling means some other uniqueness was violated (the id
-      // itself, say): not ours to relabel.
-      if (!winner) throw err;
-      return planExistsResponse(winner.id);
+      return await planExistsOrRethrow(err);
     }
   }
 
@@ -374,19 +386,32 @@ export async function sharePlan(request: Request, env: Env, ctx: ExecutionContex
 
 export async function unsharePlan(request: Request, env: Env, ctx: ExecutionContext, id: string): Promise<Response> {
   const user = await requireUser(request, env, ctx);
-  const row = await requireOwnPlan(env, id, user.id);
 
-  // Idempotent: nothing shared → 204.
-  if (row.share_id === null) {
-    return noContent();
+  // Compare-and-swap, as in `sharePlan`: the stamped document is built from
+  // this round's read, so the UPDATE only lands while the row is unchanged
+  // since then. A blind UPDATE overwrote a PUT that committed in between with
+  // the older copy, losing that edit on every device.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const row = await requireOwnPlan(env, id, user.id);
+
+    // Idempotent: nothing shared → 204.
+    if (row.share_id === null) {
+      return noContent();
+    }
+
+    const now = new Date().toISOString();
+    const cleared = await env.DB.prepare(
+      `UPDATE plans SET share_id = NULL, document_json = ?, updated_at = ?
+        WHERE id = ? AND share_id IS NOT NULL AND updated_at = ?`
+    )
+      .bind(stampDocument(row, now), now, id, row.updated_at)
+      .run();
+    if ((cleared.meta.changes ?? 0) === 1) {
+      return noContent();
+    }
   }
 
-  const now = new Date().toISOString();
-  await env.DB.prepare(`UPDATE plans SET share_id = NULL, document_json = ?, updated_at = ? WHERE id = ?`)
-    .bind(stampDocument(row, now), now, id)
-    .run();
-
-  return noContent();
+  throw new HttpError(409, 'share_conflict', 'The plan changed while unsharing; try again');
 }
 
 // ---------------------------------------------------------------------------

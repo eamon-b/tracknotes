@@ -12,9 +12,9 @@
 # Safe to run at any time; read-only.
 #
 # Usage:
-#   ./scripts/remote/status.sh
-#   ./scripts/remote/status.sh --tail 60     # more log lines
-#   ./scripts/remote/status.sh --no-log      # skip the log tail
+#   ./contours/scripts/remote/status.sh
+#   ./contours/scripts/remote/status.sh --tail 60     # more log lines
+#   ./contours/scripts/remote/status.sh --no-log      # skip the log tail
 
 set -euo pipefail
 

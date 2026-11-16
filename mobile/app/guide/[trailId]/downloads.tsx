@@ -77,7 +77,10 @@ function formatBytes(bytes: number): string {
 export default function DownloadsScreen() {
   const { colors } = useTheme();
   const { trailId } = useLocalSearchParams<{ trailId: string }>();
-  const { trail } = useGuide();
+  // The corridor is planned and fingerprinted from the stored (NOBO) trail: the
+  // direction-applied one reverses its points, so flipping direction read as
+  // "route changed" and threw away an interrupted download.
+  const { trail, baseTrail } = useGuide();
   const title = useTrailTitle(trailId, trailId);
 
   // Which pack this guide maps to (its own, a borrowed bundled one, or none).
@@ -139,8 +142,8 @@ export default function DownloadsScreen() {
   const [pickedKm, setPickedKm] = useState<number | null>(null);
   const bufferKm = pickedKm ?? progress?.bufferKm ?? record?.bufferKm ?? INITIAL_CORRIDOR_KM;
   const corridor = useMemo(
-    () => (plan.corridor ? planCorridor(trail, bufferKm) : null),
-    [plan.corridor, trail, bufferKm],
+    () => (plan.corridor ? planCorridor(baseTrail, bufferKm) : null),
+    [plan.corridor, baseTrail, bufferKm],
   );
   // Only the same width over the same route picks up the interrupted tiles.
   const resume = corridor
@@ -161,7 +164,7 @@ export default function DownloadsScreen() {
   const onDownload = () => {
     if (!packTrailId) return;
     if (plan.corridor) {
-      void startCorridorDownload(packTrailId, trail, {
+      void startCorridorDownload(packTrailId, baseTrail, {
         bufferKm,
         ...CORRIDOR_TILE_URLS,
         name: title,

@@ -11,10 +11,10 @@
 # removed in #228.)
 #
 # Usage:
-#   ./scripts/remote/upload-world.sh                 # validate + upload + verify
-#   ./scripts/remote/upload-world.sh --verify-only   # just check what is in R2
-#   ./scripts/remote/upload-world.sh --dry-run       # rclone --dry-run
-#   RCLONE_REMOTE=r2prod ./scripts/remote/upload-world.sh
+#   ./contours/scripts/remote/upload-world.sh                 # validate + upload + verify
+#   ./contours/scripts/remote/upload-world.sh --verify-only   # just check what is in R2
+#   ./contours/scripts/remote/upload-world.sh --dry-run       # rclone --dry-run
+#   RCLONE_REMOTE=r2prod ./contours/scripts/remote/upload-world.sh
 #
 # Environment overrides:
 #   RCLONE_REMOTE  rclone remote name        (default r2)

@@ -28,6 +28,7 @@ PROBES=(
   "200 /v1/community/routes community routes, migrations 0005/0006"
   "200 /v1/trails/heysen/waypoints shared waypoints, migration 0007"
   "401 /v1/me/comments personal export, needs a token"
+  "401 /v1/plans plans, migration 0004, needs a token"
   "401 /v1/admin/community/routes/c_AAAAAAAAAAAAAAAA/trail admin route map #310, needs a token"
 )
 

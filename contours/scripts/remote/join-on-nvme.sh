@@ -17,9 +17,9 @@
 # and a shard that already has world_<shard>.mbtiles is not re-joined.
 #
 # Usage (from the repo root, ideally under `setsid nohup ... &`):
-#   ./scripts/remote/join-on-nvme.sh              # pull + join + convert + validate + upload
-#   ./scripts/remote/join-on-nvme.sh --pull-only  # just sync from R2 (run it early, overlaps the build box)
-#   ./scripts/remote/join-on-nvme.sh --no-upload  # stop after validation
+#   ./contours/scripts/remote/join-on-nvme.sh              # pull + join + convert + validate + upload
+#   ./contours/scripts/remote/join-on-nvme.sh --pull-only  # just sync from R2 (run it early, overlaps the build box)
+#   ./contours/scripts/remote/join-on-nvme.sh --no-upload  # stop after validation
 #
 # Env:
 #   RCLONE_REMOTE  rclone remote name  (default r2)

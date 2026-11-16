@@ -77,6 +77,7 @@ import {
 } from '../../../../src/features/guide/waypoint-detail';
 import { TripCard } from '../../../../src/features/guide/TripCard';
 import { mapPointOf } from '../../../../src/features/guide/map-target';
+import { openUrlWithFallback } from '../../../../src/features/guide/poi-detail';
 import { useShowOnMap } from '../../../../src/features/guide/ShowOnMap';
 import { offTrailDistance } from '../../../../src/features/guide/OffTrailBadge';
 import {
@@ -822,7 +823,7 @@ function OsmLink({
   const { colors } = useTheme();
   return (
     <Pressable
-      onPress={() => void Linking.openURL(url)}
+      onPress={() => void openUrlWithFallback((u) => Linking.openURL(u), url)}
       accessibilityRole="link"
       accessibilityLabel={label}
       hitSlop={spacing.xs}
