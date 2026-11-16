@@ -37,8 +37,7 @@ function trail(campKm: number): ProcessedTrail {
 }
 
 /** The md5 `build-mobile-trails.ts` would record for this trail. */
-const appMd5 = (t: ProcessedTrail): string =>
-  digestTrailFile(mobileTrailFile('fixture', JSON.parse(JSON.stringify(t))).json).md5;
+const appMd5 = (t: ProcessedTrail): string => digestTrailFile(mobileTrailFile(JSON.parse(JSON.stringify(t))).json).md5;
 
 describe('webDataTime', () => {
   it("takes the app copy's time when the app copy is this build's data", () => {

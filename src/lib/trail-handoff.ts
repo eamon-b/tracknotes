@@ -734,6 +734,7 @@ function readWaypoint(value: unknown, index: number, trailId: string, reminted: 
     totalDescent: finiteOr(value.totalDescent, 0),
     trackIndex: Number.isInteger(value.trackIndex) ? (value.trackIndex as number) : 0,
   };
+  dropNonStringDescription(waypoint);
   applyAccessFields(waypoint, value);
   return waypoint;
 }
@@ -849,8 +850,18 @@ function readOffTrailWaypoint(value: unknown, where: string, ids: WaypointIdCont
     type: typeof value.type === 'string' ? value.type : 'other',
     distanceFromTrail: finiteOr(value.distanceFromTrail, 0),
   };
+  dropNonStringDescription(waypoint);
   applyAccessFields(waypoint, value);
   return waypoint;
+}
+
+/**
+ * The readers spread the file's own object, so a field they do not re-check
+ * arrives as written. `description` is read as text by the water calculator and
+ * the link splitter, which throw on anything else.
+ */
+function dropNonStringDescription(waypoint: { description?: unknown }): void {
+  if (waypoint.description !== undefined && typeof waypoint.description !== 'string') delete waypoint.description;
 }
 
 /** Validate one waypoint on an alternate, side trip or terminus. */
@@ -874,6 +885,7 @@ function readVariantWaypoint(value: unknown, where: string, ids: WaypointIdConte
     totalDescent: finiteOr(value.totalDescent, 0),
     variantTrackIndex: Number.isInteger(value.variantTrackIndex) ? (value.variantTrackIndex as number) : 0,
   };
+  dropNonStringDescription(waypoint);
   applyAccessFields(waypoint, value);
   return waypoint;
 }

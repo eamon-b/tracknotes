@@ -112,7 +112,7 @@ a retired entry is reclaimed only by a waypoint of the same type, within range, 
 **Te Araroa is not curated here.**
 Its route, waypoints and resupply points are built in [te-araroa-data](https://github.com/eamon-b/te-araroa-data), which commits its outputs;
 this repo takes them as a devDependency pinned by `package-lock.json`.
-`npm run sync:te-araroa` copies the file `trail.json` names as `gpxFile` (`te-araroa-sobo.gpx`) out of `node_modules` into `data/trails/te_araroa/`, where it is gitignored — only `trail.json` and `climate.json` are committed.
+`npm run sync:te-araroa` copies the file `trail.json` names as `gpxFile` (`te-araroa-sobo.gpx`) out of `node_modules` into `data/trails/te_araroa/`, where it is gitignored — only `trail.json`, `climate.json` and this repo's own fetched `pois.json` and `access.json` are committed.
 `npm run build` runs the sync first, so a fresh clone (or Vercel) builds without a manual step.
 `npm update te-araroa-data` takes a newer build (and updates the lockfile pin);
 the weekly *Te Araroa data* workflow does that, rebuilds, and opens a PR when upstream has moved (`docs/deploys.md`).

@@ -26,6 +26,8 @@ on:
   pull_request:
     paths:
       - workers/comments-api/**
+      # The worker bundles @lib (as the production deploy's filter knows).
+      - src/lib/**
       - scripts/probe-comments-api.sh
       - .github/workflows/staging-comments-api.yml
   # Any branch: Actions → Staging comments API → Run workflow

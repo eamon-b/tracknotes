@@ -18,6 +18,7 @@ import {
   removeElevationSpikes,
   smoothElevation,
   cumulativeElevationChange,
+  GPX_OPTIMIZER_DEFAULTS,
 } from './gpx-optimizer';
 import { classifyTracks, combineTracksGeographically, concatenateStretches } from './track-classification';
 import { classifyWaypoint, inferWaypointTypeFromKeywords } from './waypoint-classifier';
@@ -2233,10 +2234,10 @@ function cleanElevation(points: GpxPoint[], options?: ElevationCleaningOptions):
   if (!options) return points;
   let cleaned = points;
   if (options.removeSpikes) {
-    cleaned = removeElevationSpikes(cleaned, options.spikeThreshold ?? 50);
+    cleaned = removeElevationSpikes(cleaned, options.spikeThreshold ?? GPX_OPTIMIZER_DEFAULTS.spikeThreshold);
   }
   if (options.smooth) {
-    cleaned = smoothElevation(cleaned, options.smoothingWindow ?? 7);
+    cleaned = smoothElevation(cleaned, options.smoothingWindow ?? GPX_OPTIMIZER_DEFAULTS.elevationSmoothingWindow);
   }
   return cleaned;
 }

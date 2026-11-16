@@ -396,6 +396,12 @@ function refreshPois(): void {
   drawPoiMarkers();
   const trail = trailState.currentTrail;
   if (trail) {
+    // As in setWaypointFilter: the re-render drops any open detail row, so the
+    // "what is expanded" state goes with it (else the next click "collapses" it).
+    expandedWaypointIndex = null;
+    expandedVariantKey = null;
+    expandedVariantWaypointIndex = null;
+    expandedOffTrailIndex = null;
     renderWaypoints(trail.waypoints, trail.alternates, trail.sideTrips, trail.offTrailWaypoints);
   }
 }
