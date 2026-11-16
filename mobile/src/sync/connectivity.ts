@@ -109,7 +109,7 @@ export function useCommentSync(trailId: string | null): void {
     let cancelled = false;
 
     const trigger = () => {
-      if (!cancelled) void runSync(trailId);
+      if (!cancelled) void runSync(trailId).catch(() => undefined);
     };
 
     // Initial catch-up when the guide opens.

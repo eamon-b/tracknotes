@@ -80,6 +80,9 @@ export default function SharedPlanScreen() {
   const [shared, setShared] = useState<Shared | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // Apart from `error` (a load failure, which replaces the whole body): a failed
+  // save keeps the plan and the button on screen so the hiker can try again.
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Read once per render rather than inside the effect: an unconfigured build
   // is a render-time fact ("this app cannot open shared plans"), not an error
@@ -232,6 +235,7 @@ export default function SharedPlanScreen() {
   const save = useCallback(
     async (doc: PlanDocument, trailId: string) => {
       setSaving(true);
+      setSaveError(null);
       try {
         // A NEW id: this is a copy under this account, not a second device on
         // someone else's document. `apply` persists it and the store's sync
@@ -244,7 +248,7 @@ export default function SharedPlanScreen() {
         };
         const stored = await applyEdit(trailId, () => copy, { name: doc.name });
         if (!stored) {
-          setError(SAVE_FAILED_MESSAGE);
+          setSaveError(SAVE_FAILED_MESSAGE);
           return;
         }
         router.replace({ pathname: '/guide/[trailId]/plan', params: { trailId } });
@@ -355,6 +359,11 @@ export default function SharedPlanScreen() {
             <Text style={[styles.actionLabel, { color: colors.accentText }]}>Save as my plan</Text>
           )}
         </Pressable>
+        {saveError ? (
+          <Text style={[styles.message, { color: colors.danger }]} accessibilityRole="alert">
+            {saveError}
+          </Text>
+        ) : null}
         <Text style={[styles.footnote, { color: colors.textSecondary }]}>
           Saving makes your own copy. Their plan is not changed by anything you do here.
         </Text>
