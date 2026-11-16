@@ -95,6 +95,17 @@ function fixtureTiles(): Tile[] {
 
 const hex = (bytes: Uint8Array) => `x'${Buffer.from(bytes).toString('hex')}'`;
 
+// The fixtures are built with the sqlite3 CLI, which is not on every machine. As in
+// tile-pipeline.test.ts, the tests that need it are skipped without it — locally only:
+// in CI a missing sqlite3 fails them, so a runner image change cannot quietly skip them.
+let hasSqlite3 = true;
+try {
+  execFileSync('sqlite3', ['-version'], { stdio: 'ignore' });
+} catch {
+  hasSqlite3 = false;
+}
+const itWithSqlite3 = it.skipIf(!hasSqlite3 && !process.env.CI);
+
 /** Run SQL through the sqlite3 CLI (stdin: the inserts run to megabytes). */
 function sqlite(file: string, pageSize: number, statements: string[]): void {
   const sql = [`PRAGMA page_size = ${pageSize};`, 'BEGIN;', ...statements, 'COMMIT;'].join('\n');
@@ -158,7 +169,7 @@ function sortTiles<T extends { x: number; y: number }>(list: T[]): T[] {
 
 describe('readZoomTiles', () => {
   for (const pageSize of [512, 4096]) {
-    it(`reads one zoom from a plain tiles table (page size ${pageSize})`, async () => {
+    itWithSqlite3(`reads one zoom from a plain tiles table (page size ${pageSize})`, async () => {
       const file = path.join(dir, `plain-${pageSize}.mbtiles`);
       writePlain(file, tiles, pageSize);
       const { read, reads, size } = readerFor(file);
@@ -174,7 +185,7 @@ describe('readZoomTiles', () => {
       expect(reads.length).toBeLessThan(z9.length * 6);
     });
 
-    it(`reads one zoom from tippecanoe's map/images layout (page size ${pageSize})`, async () => {
+    itWithSqlite3(`reads one zoom from tippecanoe's map/images layout (page size ${pageSize})`, async () => {
       const file = path.join(dir, `dedup-${pageSize}.mbtiles`);
       writeDeduplicated(file, tiles, pageSize);
       const { read } = readerFor(file);
@@ -186,7 +197,7 @@ describe('readZoomTiles', () => {
       expect(await readZoomTiles(read, 8)).toEqual([]);
     });
 
-    it(`reads one zoom from tile-join's zoom-keyed map/images layout (page size ${pageSize})`, async () => {
+    itWithSqlite3(`reads one zoom from tile-join's zoom-keyed map/images layout (page size ${pageSize})`, async () => {
       const file = path.join(dir, `dedup-zoom-${pageSize}.mbtiles`);
       writeDeduplicated(file, tiles, pageSize, true);
       const { read } = readerFor(file);
