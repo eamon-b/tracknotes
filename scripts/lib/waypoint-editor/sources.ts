@@ -277,6 +277,41 @@ function whitespaceStart(text: string, offset: number): number {
   return at;
 }
 
+/**
+ * The GPX with one waypoint's `<desc>` replaced, added, or (for '') removed.
+ * A new `<desc>` goes after the `<name>` (after a `<cmt>`, when it has one:
+ * the GPX schema's order), spaced like the `<name>` is; a removed one takes the
+ * spacing before it along, so adding then removing gives the file back.
+ */
+export function setGpxWaypointDesc(gpx: string, span: GpxWaypointSpan, desc: string): string {
+  const element = gpx.slice(span.start, span.end);
+  const masked = maskNested(element);
+  const existing = /(<desc\b[^>]*>)([\s\S]*?)<\/desc>/.exec(masked);
+  let next: string;
+  if (existing && !desc) {
+    next =
+      element.slice(0, whitespaceStart(element, existing.index)) + element.slice(existing.index + existing[0].length);
+  } else if (existing) {
+    const at = existing.index + existing[1].length;
+    next = element.slice(0, at) + encodeXmlText(desc, gpx) + element.slice(at + existing[2].length);
+  } else if (!desc) {
+    return gpx;
+  } else {
+    const child = `<desc>${encodeXmlText(desc, gpx)}</desc>`;
+    const name = /<name\b[^>]*>[\s\S]*?<\/name>/.exec(masked);
+    if (!name) {
+      next = appendWptChild(element, child);
+    } else {
+      const cmt = /<cmt\b[^>]*>[\s\S]*?<\/cmt>/.exec(masked);
+      const anchor = cmt && cmt.index > name.index ? cmt : name;
+      const at = anchor.index + anchor[0].length;
+      const lead = element.slice(whitespaceStart(element, name.index), name.index);
+      next = element.slice(0, at) + lead + child + element.slice(at);
+    }
+  }
+  return gpx.slice(0, span.start) + next + gpx.slice(span.end);
+}
+
 /** A new waypoint as the editor writes it. */
 export interface NewGpxWaypoint {
   lat: number;

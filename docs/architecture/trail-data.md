@@ -94,6 +94,7 @@ Changing a bundled waypoint's `type` re-keys it in `data/waypoint-ids.json`, whi
 Migrate the registry entries in the same commit.
 The waypoint editor does this for a type changed there: it rewrites the entry's `type` in the same save, and refuses a change the build's id matching says would cost any waypoint its id.
 A waypoint it adds gets no entry (the next build mints one), and one it deletes keeps its entry for the build to retire.
+Edits to an added waypoint before that build stay in its `<wpt>`: there is no entry to migrate, and its description is its `<desc>` until it has an id.
 A waypoint whose exact name is on a nearby entry claims it before any proximity match (nearest pair first across the trail), so a newcomer of the same type within 100 m of an existing waypoint mints its own id instead of taking that one's;
 when it does, the build warns, naming the waypoints beside it (one place entered under two names looks the same), and repeats the warning at the end.
 It warns only on the build that mints: from then on the newcomer claims its own entry by name, so check the warning before committing the registry.

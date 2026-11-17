@@ -14,10 +14,11 @@ An urgent description fix on the deployed site goes through the live editor inst
 4. Rebuild (the header button runs `build:trails` then `build:mobile-trails`), check its report, review `git diff`, and commit the sources with the rebuilt `mobile/assets/trails/` files and `data/waypoint-ids.json`.
 
 The page remembers the trail, and `?trail=<dir>&id=<waypoint id>` links straight to one waypoint.
+A waypoint added since the last build has only a temporary key there (`id=new:…`), which changes when it is renamed or moved and goes when a rebuild gives it its id.
 
 ### The screen
 
-- **List** (left): every waypoint with an id, in km order (off-route ones by the km of the nearest route point), with its type glyph and badges: `unsaved` (edits held in the page), `saved` (written since the last build), `pending rebuild` (added since the last build), `deleted` (its `<wpt>` is gone since the last build), `no text` (no curated description) and ✓ (reviewed).
+- **List** (left): every waypoint with an id, in km order (off-route ones by the km of the nearest route point), with its type glyph and badges: `unsaved` (edits held in the page), `saved` (written since the last build), `pending rebuild` (added since the last build: no id yet, so it is edited in the GPX alone), `deleted` (its `<wpt>` is gone since the last build), `no text` (no curated description) and ✓ (reviewed).
   Search matches names accent-insensitively, or an exact id;
   the filters narrow by type and by status (no curated text, not reviewed, changed since build, added and pending a rebuild, off the route, has comments).
   A row with hikers' comments carries a count badge.
@@ -53,6 +54,9 @@ The voice hints flag what the house voice avoids (`scripts/lib/waypoint-descript
 They are hints only.
 Every fact still needs its source in `plans/waypoint-description-sources.md`.
 
+A waypoint added since the last build has no id to key an entry by, so its box edits the `<desc>` of its `<wpt>` instead ("Editing a waypoint before its rebuild" below);
+the form labels the box `Description: GPX <desc>` and says so under the label.
+
 ### Changing a type
 
 Pick the type from the select (every type in `WAYPOINT_TYPES`) and save.
@@ -79,13 +83,39 @@ The save's notes say when the waypoint starts or stops counting as water or as a
 "Add waypoint" inserts a `<wpt>` after the last one in the GPX, written like its neighbours (the same indentation, one line or one child per line, `<ele>`, `<name>`, `<desc>` and `<type>` in the order the file uses).
 It gets an `<ele>` when the file's `<wpt>`s carry one ("Elevation" below).
 Nothing goes in `data/waypoint-ids.json` or `descriptions.json`: the waypoint has no id until the next build mints one, so the description goes in its `<desc>`, where the build reads it as source text.
-Until a rebuild it is listed as `pending rebuild` under a temporary key (`new:` and a hash of its `<wpt>`; a colon is never in an id, so it cannot be mistaken for one) and can only be deleted;
+Until a rebuild it is listed as `pending rebuild` under a temporary key (`new:` and a hash of its `<wpt>`'s name and position; a colon is never in an id, so it cannot be mistaken for one);
 the save's notes name the id the next build will mint.
 
 On a CalTopo-typed trail no marker is added: the build types a `<wpt>` from a marker only when one has its name, and otherwise from its `<type>`, so the `<type>` is enough.
 A marker that does have its name would win however far away it is, so the add is refused when one would type it differently.
 It is also refused for a name that starts with a type prefix (the build strips it), a position more than 50 km from the route, a position another `<wpt>` already has (the editor tells waypoints apart by their coordinates), and anything that would stop the build or change another waypoint's id.
 When the new waypoint stands where a retired waypoint of the same type and name stood, the next build hands it that id back (with its comments and description), and the notes say so.
+They also say so when it stands within 100 m of a waypoint of its type that was deleted since the last build: that entry is not retired yet, so the build reads the new `<wpt>` as the old one moved or renamed and gives it the old id.
+Rebuild between the delete and the add when the two are different places.
+
+### Editing a waypoint before its rebuild
+
+A pending waypoint (one added here, or a `<wpt>` added to the GPX by hand) is edited like any other: name, position, type and description, with the same form and the same marker on the map.
+It has no id, so a save writes its `<wpt>` and nothing that keys by id: no registry entry, no `descriptions.json` entry.
+
+- **Name, position, type:** the `<name>` (keeping a type prefix a hand-written one has), `lat`/`lon` and `<type>` of its `<wpt>`.
+  A move looks its `<ele>` up again for the new position, as for any waypoint ("Elevation" below).
+- **Description:** its `<desc>`, added after the `<name>`, replaced, or removed when the box is emptied, with the same length limit as curated text.
+  It is GPX source text, which the app shows as it stands;
+  once a rebuild has given the waypoint an id, text saved in the box is curated text in `descriptions.json`, which outranks the `<desc>` ("Start from this" copies it over).
+- **Its key:** the temporary key is a hash of the name and position, so a rename or a move changes it.
+  The save answers with the waypoint under its new key and the page follows it: the list row, the map marker, the selection, the address (`?id=`) and any unsaved edits.
+  Nothing is kept under the old key, and a pending waypoint takes no review mark.
+
+A save is held to what an add is held to, and refused (writing nothing) for a name that starts with a type prefix, a position more than 50 km from the route or one another `<wpt>` already has, a name a CalTopo marker would type differently, and anything that would stop the build or change another waypoint's id.
+The same stale-content check applies: the save is refused if the `<wpt>` changed on disk since the page read it.
+After a move, rename or retype the notes name the id the next build will mint for it (or hand back to it) as it now stands: the id is minted from the type and position, so it changes with either.
+
+A hand-added `<wpt>` whose name a CalTopo marker has is typed by that marker.
+When the marker types only that `<wpt>`, a save treats it as for any waypoint: it moves with the `<wpt>`, is retitled with it, and changes folder for a new type.
+When the marker also types another `<wpt>` (the build takes the nearest marker with the name, however far), a move, rename or retype is refused: delete the waypoint and add it again under a name of its own.
+When the marker has a description, the build shows that in place of the `<desc>`, so the description box is locked until a rebuild.
+In every case a move, rename or retype checks the type the build will give the edited `<wpt>` and is refused unless that is the type the editor shows.
 
 ### Elevation
 
@@ -94,7 +124,7 @@ The editor keeps the `<ele>` anyway, so that the source GPX stays complete and c
 
 - **A new waypoint** gets an `<ele>` when at least half of the file's `<wpt>`s have one, and none otherwise.
   It goes where the last `<wpt>` has its own (first, where GPX 1.1 puts it, when that one has none), with the number of decimals most of the file's `<ele>`s use (`745.0`).
-- **A moved waypoint** whose `<wpt>` has an `<ele>` has it rewritten in place, with the decimals it had.
+- **A moved waypoint** (one still pending a rebuild included) whose `<wpt>` has an `<ele>` has it rewritten in place, with the decimals it had.
   One with no `<ele>` is not given one.
 
 The elevation is looked up for the position as it is written (six decimals):
@@ -119,7 +149,7 @@ Its registry entry stays: the next build marks it `retired`, and a retired id is
 Until the rebuild the waypoint stays in the list as `deleted`, locked.
 A revisited place's later pass (`<id>_2`) cannot be deleted on its own, since it is built from the first pass's `<wpt>`: deleting the first pass deletes every pass and their descriptions.
 An `access.json` entry for the place is left for `npm run fetch:access` (the notes say so).
-Deleting a pending waypoint just takes its `<wpt>` out again.
+Deleting a pending waypoint just takes its `<wpt>` out again (a CalTopo marker with its name stays).
 
 ### Hikers' comments
 
@@ -143,6 +173,7 @@ The editor never writes to the comments API: moderation stays on `admin-moderati
 
 "Reviewed" (`Alt+R`) is a per-browser mark held in `localStorage`, shown as ✓ and counted in the header's progress bar.
 A mark lapses when the waypoint's name, position or description changes, so a correction pulled from git puts the waypoint back in the unreviewed pile.
+A pending waypoint cannot be marked: a mark is kept under the waypoint's id, and it has none yet.
 `Ctrl+Enter` saves, marks the waypoint reviewed and moves to the next one in the filtered list (on an unchanged waypoint it just marks and moves on), which is the fast way through a trail.
 
 Edits are kept per waypoint while browsing, so you can compare neighbours before saving;
@@ -174,6 +205,9 @@ All the writes of one save are computed before any is made, so a refusal leaves 
 - **Type:** the CalTopo marker's `folderId` (and a new folder feature, first in `features`), or the `<wpt>`'s `<type>` (added when it has none, with any name prefix dropped);
   and the registry entry's `type`.
 - **New waypoint:** one `<wpt>` in the GPX (with an `<ele>` when the file's `<wpt>`s carry one), and nothing else.
+- **Pending waypoint** (added since the last build): its `<wpt>` alone, whatever is edited: `lat`/`lon` (and its `<ele>`, as for any move), `<name>`, `<type>` and `<desc>`;
+  and the CalTopo marker with its name, when that marker types no other waypoint.
+  Never the registry or `descriptions.json`: it has no id.
 - **Delete:** the `<wpt>` (with the spacing before it), the CalTopo marker feature (with the comma that joined it) and the `descriptions.json` entries of every pass.
 
 A save is refused, writing nothing, if the waypoint changed on disk since the page read it (reload the trail).
@@ -191,7 +225,7 @@ A save is refused, writing nothing, if the waypoint changed on disk since the pa
 
 After a rebuild the Changed files drawer lists the ids the build **minted** or **retired**.
 A move, rename or type change made here should produce neither;
-a waypoint added here should mint exactly the id its save named, and one deleted here should retire exactly its own.
+a waypoint added here should mint exactly the id its last save named (a move, rename or retype of a pending waypoint names it afresh), and one deleted here should retire exactly its own.
 Anything else means a waypoint lost its id (and the comments keyed to it), for example because a rename changed its type through a name prefix: fix the source and rebuild before committing.
 The drawer also shows the build's warning lines, open, and its output.
 The warning lines are every line the build printed on stderr, which is where it puts all of its warnings and failures (`console.warn` and `console.error`; a clean build prints nothing there), plus any stdout line that opens with `Warning:`, `⚠`, `!` or `✗`.
@@ -216,7 +250,8 @@ If only the dev server is killed, the step that is running finishes (a half-writ
 
 - **Te Araroa** is read-only: its waypoints come from `te-araroa-data` (`npm run sync:te-araroa`) and are fixed upstream.
 - A waypoint whose `<wpt>` cannot be found (deleted here, or the GPX was edited by hand since the build) is locked until a rebuild.
-- A pending waypoint (added since the build) can only be deleted until a rebuild gives it an id.
+- A pending waypoint (added since the build) through a CalTopo marker that also types another waypoint: it can be described and deleted, not moved, renamed or retyped.
+- The description of a pending waypoint whose CalTopo marker has one, until a rebuild gives it an id.
 - A `<wpt>` the build merged into a near-duplicate (`dedupeWaypoints`) is not listed: it has an id, but no row of its own.
 - A type no CalTopo folder title means, on a waypoint a CalTopo marker types (see "Changing a type").
 

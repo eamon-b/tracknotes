@@ -428,6 +428,15 @@ kbd {
   color: var(--danger);
 }
 
+/* Where the description is saved, when that is not descriptions.json (a pending waypoint's <desc>). */
+.wpe-desc-where {
+  margin: 0.25rem 0 0.4rem;
+  padding: 0.35rem 0.5rem;
+  border-left: 3px solid var(--select);
+  background: var(--bg-subtle);
+  font-size: 0.8rem;
+}
+
 .wpe-hints {
   list-style: none;
   margin: 0.25rem 0 0;
