@@ -32,8 +32,8 @@ display name the hiker chooses. There is no email, password or sign-up.
 - **Shared waypoints** (`hw_`): position, name, type and note.
 - **Community routes**: the processed route, its text and region, and
   optionally the original GPX, kept privately.
-- **Plans** synced for the built-in trails. Private to the account unless the
-  hiker makes a share link; not a public contribution.
+- **Plans** synced for the built-in trails and community routes. Private to
+  the account unless the hiker makes a share link; not a public contribution.
 
 ## Decisions
 
@@ -151,8 +151,10 @@ display name the hiker chooses. There is no email, password or sign-up.
      sit at unguessable keys that are never returned. Admins can read a
      route's canonical JSON, hidden ones included, through an admin-only,
      uncached route (`GET /v1/admin/community/routes/:id/trail`, #310) to
-     judge it with its map; the raw GPX is never served. Every write is rate
-     limited per account, and account registration and link codes per network.
+     judge it with its map; the raw GPX is never served. Posting comments,
+     photos and reports, saving plans, and sharing or editing shared waypoints
+     and community routes are rate limited per account, and account
+     registration and link-code attempts per network.
    - *APP 12/13, access, correction and deletion.* Access to comments is
      self-serve: Settings → Your comments → Export my comments
      (`GET /v1/me/comments`) gives the hiker every comment the account posted,
