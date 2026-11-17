@@ -75,6 +75,8 @@ A route that passes the same place twice matches its waypoint twice, and the bui
 An out-and-back goes in `extractSpurs` as above.
 A route that genuinely comes back the way it went, days later, lists those waypoints by name in `"revisitedWaypoints"`: every pass of a listed waypoint is kept, the later ones as `<id>_2`, `<id>_3`, as imported trails do, so each pass takes its own comments, and the build logs each one.
 A repeat of a waypoint that is not listed still fails the build (the error names the entry to add), and a listed name the route no longer repeats is warned about.
+The list is by name, so a listed waypoint renamed in the GPX must be renamed in it too, or the build fails on the repeat: the waypoint editor does both in one save.
+A curated description is applied to the source waypoint before its later passes are made, so it belongs to the place and shows on every pass: `descriptions.json` keys it by the first pass's id, and an entry under `<id>_2` matches no waypoint.
 Three Passes lists eight: it walks back down through Namche and the Dudh Koshi villages to Lukla, and passes Lobuche either side of Gorak Shep.
 Its store-only `access.json` gives every teahouse village `meals`, Kharikhola and Jorsalle `limited`, and Jiri, Namche and Lukla `full`;
 its `maxJunctionDistanceMeters` of 150 keeps the Ama Dablam Base Camp side trip, whose far end is 175 m across the valley from the route, from being read as a connector.
@@ -92,8 +94,10 @@ Two rules follow, both in `waypoint-taxonomy.ts`:
 
 Changing a bundled waypoint's `type` re-keys it in `data/waypoint-ids.json`, which matches on type + 100 m proximity: the ids churn silently and any server-side comment keyed to them is orphaned.
 Migrate the registry entries in the same commit.
-The waypoint editor does this for a type changed there: it rewrites the entry's `type` in the same save, and refuses a change the build's id matching says would cost any waypoint its id.
+The waypoint editor does this for a type changed there: it rewrites the entry's `type` in the same save.
+It refuses any move, rename or type change after which the build would type the waypoint otherwise than meant (a rename to a known town, say), or the build's id matching would cost any waypoint its id.
 A waypoint it adds gets no entry (the next build mints one), and one it deletes keeps its entry for the build to retire.
+Until that build the entry is live, and the matching would hand its id to any waypoint of its type added within 100 m: the editor refuses such an add until a rebuild, unless it is the deleted waypoint put back under its name.
 Edits to an added waypoint before that build stay in its `<wpt>`: there is no entry to migrate, and its description is its `<desc>` until it has an id.
 A `<wpt>` the build merges into a near-duplicate (`dedupeWaypoints`) still gets an id and a live entry, since ids are minted before the merge, but no row: the survivor lists it in `mergedIds`, the survivor's description gains its description as a further paragraph, and nothing in the app shows the comments keyed to its id.
 The editor lists it so it can be deleted (its entry is then retired like any other) or renamed apart.

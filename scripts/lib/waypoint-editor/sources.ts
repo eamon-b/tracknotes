@@ -13,6 +13,7 @@
 
 import { classifyWaypoint, FOLDER_TYPE_MAP } from '../../../src/lib/waypoint-classifier';
 import { haversineDistance } from '../../../src/lib/distance';
+import { parseCoordinate } from '../../../src/lib/parse-coordinate';
 
 // ---------------------------------------------------------------------------
 // XML text
@@ -20,15 +21,22 @@ import { haversineDistance } from '../../../src/lib/distance';
 
 const NAMED_ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
 
-/** The text of an element's content: CDATA unwrapped, entities decoded. */
+/**
+ * The text of an element's content as an XML parser gives it (`textContent`):
+ * CDATA sections unwrapped, comments dropped, entities decoded, and the
+ * whitespace around it kept.
+ */
 export function decodeXmlText(raw: string): string {
-  const cdata = /^\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*$/.exec(raw);
-  if (cdata) return cdata[1];
-  return raw.replace(/&(#x[0-9a-fA-F]+|#[0-9]+|[a-z]+);/g, (whole, ref: string) => {
-    if (ref.startsWith('#x')) return String.fromCodePoint(parseInt(ref.slice(2), 16));
-    if (ref.startsWith('#')) return String.fromCodePoint(parseInt(ref.slice(1), 10));
-    return NAMED_ENTITIES[ref] ?? whole;
-  });
+  return raw.replace(
+    /<!\[CDATA\[([\s\S]*?)\]\]>|<!--[\s\S]*?-->|&(#x[0-9a-fA-F]+|#[0-9]+|[a-z]+);/g,
+    (whole, cdata: string | undefined, ref: string | undefined) => {
+      if (cdata !== undefined) return cdata;
+      if (ref === undefined) return '';
+      if (ref.startsWith('#x')) return String.fromCodePoint(parseInt(ref.slice(2), 16));
+      if (ref.startsWith('#')) return String.fromCodePoint(parseInt(ref.slice(1), 10));
+      return NAMED_ENTITIES[ref] ?? whole;
+    }
+  );
 }
 
 /**
@@ -55,11 +63,17 @@ export interface GpxWaypointSpan {
   end: number;
   lat: number;
   lon: number;
-  /** Decoded `<name>`, '' when there is none. */
+  /** `lat` and `lon` as the file writes them (`-33.855100`). */
+  latText: string;
+  lonText: string;
+  /**
+   * Decoded `<name>` as the build reads it: untrimmed, '' when there is none.
+   * {@link gpxWaypointBuildName} gives the name the build shows for it.
+   */
   name: string;
   /** Decoded `<desc>`, when present. */
   desc?: string;
-  /** Decoded `<type>`, when present. */
+  /** Decoded `<type>` as the build reads it (untrimmed); absent when there is none or it is empty. */
   type?: string;
   /** Its `<ele>` as written (`745.0`), when present: metres, and the decimals the file keeps. */
   ele?: string;
@@ -72,41 +86,90 @@ function attribute(attrs: string, name: string): string | null {
   return m ? (m[2] ?? m[3]) : null;
 }
 
-function childText(body: string, tag: string): string | undefined {
-  const m = new RegExp(`<${tag}\\b[^>]*>([\\s\\S]*?)</${tag}>`).exec(body);
-  return m ? decodeXmlText(m[1]) : undefined;
+/** Stands in for text that is not markup: not whitespace, and never part of a tag. */
+const MASK = '\u0000';
+
+/**
+ * `xml` with what an XML parser does not read as elements blanked (same
+ * length, so offsets still hold): comments whole, and the `<` and `>` inside a
+ * CDATA section. The build parses the file, so a `<wpt>` in a comment is not a
+ * waypoint, and a `</wpt>` quoted in a CDATA description ends nothing. The
+ * masked text is only for finding elements: their content is read from, and
+ * every edit is made to, the file as it is.
+ */
+function maskMarkup(xml: string): string {
+  return xml.replace(/<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>/g, m =>
+    m.startsWith('<!--') ? MASK.repeat(m.length) : `<![CDATA[${m.slice(9, -3).replace(/[<>]/g, MASK)}]]>`
+  );
 }
 
 /**
- * `xml` with every `<link>` and `<extensions>` block blanked to spaces (same
- * length, so offsets still hold): a `<link>` carries a `<type>` of its own (a
- * MIME type), and the GPX parser reads only the `<wpt>`'s direct child.
+ * {@link maskMarkup}, and every `<link>` and `<extensions>` block blanked too:
+ * a `<link>` carries a `<type>` of its own (a MIME type), and the GPX parser
+ * reads only the `<wpt>`'s direct child.
  */
 function maskNested(xml: string): string {
-  return xml.replace(/<(link|extensions)\b[^>]*?(?:\/>|>[\s\S]*?<\/\1>)/g, m => ' '.repeat(m.length));
+  return maskMarkup(xml).replace(/<(link|extensions)\b[^>]*?(?:\/>|>[\s\S]*?<\/\1>)/g, m => MASK.repeat(m.length));
 }
 
-/** Every `<wpt>` in a GPX file, in file order. */
+/** Offsets of the first `<tag>` element in `masked`, and of its content. */
+interface ChildSpan {
+  /** Offset of `<tag`. */
+  open: number;
+  /** Offsets of the content. */
+  start: number;
+  end: number;
+  /** Offset just past `</tag>`. */
+  close: number;
+}
+
+function findChild(masked: string, tag: string): ChildSpan | null {
+  const m = new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)</${tag}\\s*>`).exec(masked);
+  if (!m) return null;
+  const start = m.index + m[0].indexOf('>') + 1;
+  return { open: m.index, start, end: start + m[1].length, close: m.index + m[0].length };
+}
+
+/** The decoded text of `element`'s `<tag>` child (`masked` is {@link maskNested} of `element`), when it has one. */
+function childText(element: string, masked: string, tag: string): string | undefined {
+  const child = findChild(masked, tag);
+  return child ? decodeXmlText(element.slice(child.start, child.end)) : undefined;
+}
+
+/**
+ * Every `<wpt>` in a GPX file, in file order, read as the build's parser reads
+ * it (`parseGpx`): one in a comment is skipped, the `<name>` and `<type>` are
+ * taken as written, and a `<wpt>` without a usable `lat` or `lon` throws, as
+ * it stops the build.
+ */
 export function listGpxWaypoints(gpx: string): GpxWaypointSpan[] {
   const spans: GpxWaypointSpan[] = [];
-  for (const m of gpx.matchAll(WPT_PATTERN)) {
-    const lat = Number(attribute(m[1], 'lat'));
-    const lon = Number(attribute(m[1], 'lon'));
-    if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
-    const body = m[3] ?? '';
-    const span: GpxWaypointSpan = {
-      start: m.index,
-      end: m.index + m[0].length,
-      lat,
-      lon,
-      name: (childText(body, 'name') ?? '').trim(),
-    };
-    const desc = childText(body, 'desc');
+  for (const m of maskMarkup(gpx).matchAll(WPT_PATTERN)) {
+    const start = m.index;
+    const end = start + m[0].length;
+    const element = gpx.slice(start, end);
+    const masked = maskNested(element);
+    const name = childText(element, masked, 'name') ?? '';
+    const latText = attribute(m[1], 'lat');
+    const lonText = attribute(m[1], 'lon');
+    let lat: number;
+    let lon: number;
+    try {
+      lat = parseCoordinate(latText, 'lat', 'wpt');
+      lon = parseCoordinate(lonText, 'lon', 'wpt');
+    } catch (error) {
+      const which = name.trim() ? `“${name.trim()}”` : `number ${spans.length + 1}`;
+      throw new Error(
+        `${error instanceof Error ? error.message : String(error)} (<wpt> ${which}): the build stops on this too, so fix the GPX by hand first`,
+        { cause: error }
+      );
+    }
+    const span: GpxWaypointSpan = { start, end, lat, lon, latText: latText ?? '', lonText: lonText ?? '', name };
+    const desc = childText(element, masked, 'desc');
     if (desc !== undefined) span.desc = desc;
-    const masked = maskNested(body);
-    const type = childText(masked, 'type');
-    if (type !== undefined) span.type = type.trim();
-    const ele = childText(masked, 'ele');
+    const type = childText(element, masked, 'type');
+    if (type) span.type = type;
+    const ele = childText(element, masked, 'ele');
     if (ele !== undefined) span.ele = ele.trim();
     spans.push(span);
   }
@@ -118,46 +181,68 @@ export function cleanedWaypointName(rawName: string): string {
   return classifyWaypoint(rawName).cleanedName;
 }
 
-/** How a source name relates to the name the build shows. */
-function nameScore(raw: string, built: string): number {
-  if (raw === built) return 3;
-  if (cleanedWaypointName(raw) === built) return 2;
-  if (raw.endsWith(built)) return 1;
-  return 0;
+/**
+ * The name the build gives a `<wpt>` whose `<name>` reads `rawName`, exactly
+ * as `flattenGpx` does: `Unnamed` when it has none, and the classifier's
+ * cleaned name otherwise ('' for one that is only whitespace).
+ */
+export function gpxWaypointBuildName(rawName: string): string {
+  return classifyWaypoint(rawName || 'Unnamed').cleanedName;
 }
 
 /**
- * The `<wpt>` a built waypoint came from: the build copies a waypoint's
- * coordinates from its `<wpt>` unchanged, so the match is on the exact
- * coordinates, with the name to choose between waypoints that share them (the
- * CDT's towns hitched from one pass). Null when nothing, or more than one
- * equally good candidate, matches.
+ * The one `<wpt>` that stands at exactly these coordinates under the name the
+ * build shows as `name` ({@link gpxWaypointBuildName}); null when there is
+ * none, or more than one. The build copies a waypoint's coordinates from its
+ * `<wpt>` unchanged, so the coordinates are exact; the name is required even
+ * of the only `<wpt>` on the spot, because two waypoints can share
+ * coordinates (the CDT's towns hitched from one pass), and when one is gone
+ * the other's `<wpt>` is not its. The editor's join of built ids to `<wpt>`s
+ * (`claimSpans` in `trail-state.ts`) applies the same rule, with the type too.
  */
 export function findGpxWaypoint(
   spans: readonly GpxWaypointSpan[],
   target: { lat: number; lon: number; name: string }
 ): GpxWaypointSpan | null {
-  const here = spans.filter(s => s.lat === target.lat && s.lon === target.lon);
-  if (here.length === 0) return null;
-  if (here.length === 1) return here[0];
-  const best = Math.max(...here.map(s => nameScore(s.name, target.name)));
-  const winners = here.filter(s => nameScore(s.name, target.name) === best);
-  return best > 0 && winners.length === 1 ? winners[0] : null;
+  const here = spans.filter(
+    s => s.lat === target.lat && s.lon === target.lon && gpxWaypointBuildName(s.name) === target.name
+  );
+  return here.length === 1 ? here[0] : null;
 }
 
-/** Coordinates as the editor writes them: six decimals is about 0.1 m. */
-export function formatCoordinate(value: number): string {
-  return Number(value.toFixed(6)).toString();
+/**
+ * Coordinates as the editor writes them: six decimals is about 0.1 m.
+ * `padded` keeps the trailing zeros (`151.213190`), for a file that writes
+ * every coordinate that way ({@link gpxCoordinatesPadded}).
+ */
+export function formatCoordinate(value: number, padded = false): string {
+  const text = value.toFixed(6);
+  if (!padded) return Number(text).toString();
+  return Number(text) === 0 ? text.replace(/^-/, '') : text;
 }
 
-/** The GPX with one waypoint's `lat`/`lon` attributes replaced; nothing else changes. */
+/**
+ * Whether a file's `<wpt>`s write their coordinates padded to six decimals
+ * (the open-data files do: `lon="151.213190"`): every `lat` and `lon` has
+ * exactly six. One written shorter and the file is taken to strip zeros.
+ */
+export function gpxCoordinatesPadded(spans: readonly GpxWaypointSpan[]): boolean {
+  const six = /\.\d{6}$/;
+  return spans.length > 0 && spans.every(s => six.test(s.latText.trim()) && six.test(s.lonText.trim()));
+}
+
+/**
+ * The GPX with one waypoint's `lat`/`lon` attributes replaced, written as the
+ * file's `<wpt>`s write theirs ({@link gpxCoordinatesPadded}); nothing else changes.
+ */
 export function setGpxWaypointPosition(gpx: string, span: GpxWaypointSpan, lat: number, lon: number): string {
+  const padded = gpxCoordinatesPadded(listGpxWaypoints(gpx));
   const element = gpx.slice(span.start, span.end);
   const tagEnd = element.indexOf('>');
   const startTag = element.slice(0, tagEnd);
   const replaced = startTag
-    .replace(/(\blat\s*=\s*)("[^"]*"|'[^']*')/, (_m, lead: string) => `${lead}"${formatCoordinate(lat)}"`)
-    .replace(/(\blon\s*=\s*)("[^"]*"|'[^']*')/, (_m, lead: string) => `${lead}"${formatCoordinate(lon)}"`);
+    .replace(/(\blat\s*=\s*)("[^"]*"|'[^']*')/, (_m, lead: string) => `${lead}"${formatCoordinate(lat, padded)}"`)
+    .replace(/(\blon\s*=\s*)("[^"]*"|'[^']*')/, (_m, lead: string) => `${lead}"${formatCoordinate(lon, padded)}"`);
   return gpx.slice(0, span.start) + replaced + element.slice(tagEnd) + gpx.slice(span.end);
 }
 
@@ -209,25 +294,36 @@ export function setGpxWaypointElevation(gpx: string, span: GpxWaypointSpan, text
 }
 
 /**
- * `raw` renamed so the build shows `newName`, keeping whatever prefix it had
- * (`C Old Hut` → `C New Hut`): the GPX and the CalTopo export carry the type
- * prefix in the name, and a renamed waypoint keeps it in both files.
+ * `raw` (a `<name>` or a CalTopo title as written) renamed so the build shows
+ * `newName`, changing the name part alone: the type prefix the classifier
+ * strips (`C `, `WT: `, `C:`) stays, with the spacing after it, and so does
+ * any whitespace before or after the whole (`"W Old Creek "` → `"W New Ck "`).
+ * The GPX and the CalTopo export carry the prefix in the name, and a renamed
+ * waypoint keeps it in both files.
  */
-export function renameKeepingPrefix(raw: string, oldName: string, newName: string): string {
-  if (oldName && raw.endsWith(oldName)) return raw.slice(0, raw.length - oldName.length) + newName;
-  const prefix = raw.slice(0, raw.length - cleanedWaypointName(raw).length);
-  return prefix + newName;
+export function renameKeepingPrefix(raw: string, newName: string): string {
+  const lead = /^\s*/.exec(raw)![0];
+  const core = raw.slice(lead.length).trimEnd();
+  const trail = raw.slice(lead.length + core.length);
+  // What the classifier leaves is the name; whatever came before it is the prefix.
+  const cleaned = cleanedWaypointName(core);
+  const prefix = cleaned && core.endsWith(cleaned) ? core.slice(0, core.length - cleaned.length) : '';
+  return lead + prefix + newName + trail;
 }
 
-/** The GPX with one waypoint's `<name>` replaced (or added, if it had none). */
+/**
+ * The GPX with the text of one waypoint's `<name>` replaced by `rawName` (or a
+ * `<name>` added, if it had none). `rawName` is the whole text: take it from
+ * the span's own `name` ({@link renameKeepingPrefix}) to keep the whitespace
+ * the file has around it.
+ */
 export function setGpxWaypointName(gpx: string, span: GpxWaypointSpan, rawName: string): string {
   const element = gpx.slice(span.start, span.end);
   const encoded = encodeXmlText(rawName, gpx);
+  const existing = findChild(maskNested(element), 'name');
   let next: string;
-  if (/<name\b[^>]*>[\s\S]*?<\/name>/.test(element)) {
-    next = element.replace(/(<name\b[^>]*>)[\s\S]*?(<\/name>)/, (_m, open: string, close: string) => {
-      return `${open}${encoded}${close}`;
-    });
+  if (existing) {
+    next = element.slice(0, existing.start) + encoded + element.slice(existing.end);
   } else if (element.endsWith('/>')) {
     next = `${element.slice(0, -2).trimEnd()}><name>${encoded}</name></wpt>`;
   } else {
@@ -249,7 +345,7 @@ function appendWptChild(element: string, child: string): string {
   const inner = element.slice(tagEnd, closeAt);
   if (!inner.trim()) return element.slice(0, tagEnd) + child + element.slice(tagEnd);
   const lead = /^\s*/.exec(inner)![0];
-  const extensions = element.indexOf('<extensions', tagEnd);
+  const extensions = maskMarkup(element).indexOf('<extensions', tagEnd);
   if (extensions !== -1) return element.slice(0, extensions) + child + lead + element.slice(extensions);
   const at = closeAt - /\s*$/.exec(inner)![0].length;
   return element.slice(0, at) + lead + child + element.slice(at);
@@ -259,11 +355,10 @@ function appendWptChild(element: string, child: string): string {
 export function setGpxWaypointType(gpx: string, span: GpxWaypointSpan, type: string): string {
   const element = gpx.slice(span.start, span.end);
   const encoded = encodeXmlText(type, gpx);
-  const m = /(<type\b[^>]*>)([\s\S]*?)<\/type>/.exec(maskNested(element));
+  const existing = findChild(maskNested(element), 'type');
   let next: string;
-  if (m) {
-    const at = m.index + m[1].length;
-    next = element.slice(0, at) + encoded + element.slice(at + m[2].length);
+  if (existing) {
+    next = element.slice(0, existing.start) + encoded + element.slice(existing.end);
   } else {
     next = appendWptChild(element, `<type>${encoded}</type>`);
   }
@@ -286,27 +381,24 @@ function whitespaceStart(text: string, offset: number): number {
 export function setGpxWaypointDesc(gpx: string, span: GpxWaypointSpan, desc: string): string {
   const element = gpx.slice(span.start, span.end);
   const masked = maskNested(element);
-  const existing = /(<desc\b[^>]*>)([\s\S]*?)<\/desc>/.exec(masked);
+  const existing = findChild(masked, 'desc');
   let next: string;
   if (existing && !desc) {
-    next =
-      element.slice(0, whitespaceStart(element, existing.index)) + element.slice(existing.index + existing[0].length);
+    next = element.slice(0, whitespaceStart(element, existing.open)) + element.slice(existing.close);
   } else if (existing) {
-    const at = existing.index + existing[1].length;
-    next = element.slice(0, at) + encodeXmlText(desc, gpx) + element.slice(at + existing[2].length);
+    next = element.slice(0, existing.start) + encodeXmlText(desc, gpx) + element.slice(existing.end);
   } else if (!desc) {
     return gpx;
   } else {
     const child = `<desc>${encodeXmlText(desc, gpx)}</desc>`;
-    const name = /<name\b[^>]*>[\s\S]*?<\/name>/.exec(masked);
+    const name = findChild(masked, 'name');
     if (!name) {
       next = appendWptChild(element, child);
     } else {
-      const cmt = /<cmt\b[^>]*>[\s\S]*?<\/cmt>/.exec(masked);
-      const anchor = cmt && cmt.index > name.index ? cmt : name;
-      const at = anchor.index + anchor[0].length;
-      const lead = element.slice(whitespaceStart(element, name.index), name.index);
-      next = element.slice(0, at) + lead + child + element.slice(at);
+      const cmt = findChild(masked, 'cmt');
+      const anchor = cmt && cmt.open > name.open ? cmt : name;
+      const lead = element.slice(whitespaceStart(element, name.open), name.open);
+      next = element.slice(0, anchor.close) + lead + child + element.slice(anchor.close);
     }
   }
   return gpx.slice(0, span.start) + next + gpx.slice(span.end);
@@ -327,10 +419,12 @@ export interface NewGpxWaypoint {
 /**
  * The GPX with a new `<wpt>` after the last one, written in the file's own
  * style: the same spacing before it as before the last `<wpt>`, its children
- * on one line or one per line as the last `<wpt>` has them, and `<ele>`,
- * `<name>`, `<desc>` and `<type>` in the order the last `<wpt>` uses (an
- * `<ele>` the last one lacks goes first, where GPX 1.1 puts it). A file with
- * no `<wpt>` gets it before its first `<trk>` / `<rte>` (or `</gpx>`).
+ * on one line or one per line as the last `<wpt>` has them (with the file's
+ * line ending), its coordinates padded to six decimals when every `<wpt>`'s
+ * are, and `<ele>`, `<name>`, `<desc>` and `<type>` in the order the last
+ * `<wpt>` uses (an `<ele>` the last one lacks goes first, where GPX 1.1 puts
+ * it). A file with no `<wpt>` gets it before its first `<trk>` / `<rte>` (or
+ * `</gpx>`).
  */
 export function insertGpxWaypoint(gpx: string, waypoint: NewGpxWaypoint): string {
   const spans = listGpxWaypoints(gpx);
@@ -356,13 +450,19 @@ export function insertGpxWaypoint(gpx: string, waypoint: NewGpxWaypoint): string
     order.splice(previous ? order.indexOf(previous) + 1 : 0, 0, tag);
   });
   const parts = order.map(tag => children[tag]).filter((c): c is string => !!c);
-  const open = `<wpt lat="${formatCoordinate(waypoint.lat)}" lon="${formatCoordinate(waypoint.lon)}">`;
+  const padded = gpxCoordinatesPadded(spans);
+  const open = `<wpt lat="${formatCoordinate(waypoint.lat, padded)}" lon="${formatCoordinate(waypoint.lon, padded)}">`;
   let element: string;
-  const multiLine = /\n/.test(template);
+  // One child per line when the last <wpt> breaks the line after its start
+  // tag, not merely when it has a line break somewhere: a one-line <wpt> can
+  // carry a <desc> that runs over several lines (Heysen's do).
+  const afterOpen = template.slice(template.indexOf('>') + 1);
+  const multiLine = /^[ \t]*\r?\n/.test(afterOpen);
   if (multiLine) {
-    const childIndent = /\n([ \t]*)</.exec(template)?.[1] ?? '  ';
+    const eol = template.includes('\r\n') ? '\r\n' : '\n';
+    const childIndent = /\n([ \t]*)</.exec(afterOpen)?.[1] ?? '  ';
     const closeIndent = /\n([ \t]*)<\/wpt>$/.exec(template)?.[1] ?? '';
-    element = `${open}${parts.map(p => `\n${childIndent}${p}`).join('')}\n${closeIndent}</wpt>`;
+    element = `${open}${parts.map(p => `${eol}${childIndent}${p}`).join('')}${eol}${closeIndent}</wpt>`;
   } else {
     element = `${open}${parts.join('')}</wpt>`;
   }
@@ -370,7 +470,8 @@ export function insertGpxWaypoint(gpx: string, waypoint: NewGpxWaypoint): string
     const lead = gpx.slice(whitespaceStart(gpx, last.start), last.start);
     return gpx.slice(0, last.end) + lead + element + gpx.slice(last.end);
   }
-  const anchors = ['<trk', '<rte', '</gpx>'].map(tag => gpx.indexOf(tag)).filter(i => i !== -1);
+  const scan = maskMarkup(gpx);
+  const anchors = ['<trk', '<rte', '</gpx>'].map(tag => scan.indexOf(tag)).filter(i => i !== -1);
   if (!anchors.length) throw new Error('Not a GPX file: no <trk>, <rte> or </gpx> to put a waypoint before');
   const anchor = Math.min(...anchors);
   const lead = gpx.slice(whitespaceStart(gpx, anchor), anchor);
@@ -567,6 +668,53 @@ function jsonStringLike(value: string, fileText: string): string {
   const raw = (fileText.match(/[\u0080-\uffff]/g) ?? []).length;
   const literal = JSON.stringify(value);
   return escapes > raw ? escapeNonAscii(literal) : literal;
+}
+
+/**
+ * A JSON object's text with the string `from`, in the array of strings at its
+ * top-level `key`, renamed to `to`; every other byte is left as it was, so a
+ * hand-laid-out file (trail.json, which Prettier formats) keeps its layout.
+ *
+ * - `keepFrom` false: `from` becomes `to` in place (or is dropped, with the
+ *   separator that joined it, when `to` is already listed);
+ * - `keepFrom` true: `to` is added straight after `from`, separated as its
+ *   neighbours are (something else still goes by `from`).
+ *
+ * Null when the object has no such array, the array has no `from`, or nothing
+ * needs to change. Throws when `key` is there but is not an array of strings.
+ */
+export function renameJsonArrayString(
+  text: string,
+  source: string,
+  key: string,
+  from: string,
+  to: string,
+  keepFrom: boolean
+): string | null {
+  const parsed = JSON.parse(text) as Record<string, unknown>;
+  const list = parsed[key];
+  if (list === undefined) return null;
+  if (!Array.isArray(list) || list.some(item => typeof item !== 'string')) {
+    throw new Error(`${source}: "${key}" is not a list of names, so the editor cannot change it`);
+  }
+  const index = list.indexOf(from);
+  if (index === -1) return null;
+  const span = jsonValueSpan(text, [key, index]);
+  if (!span) throw new Error(`${source}: could not find "${from}" in "${key}"`);
+  const listed = list.includes(to);
+  const literal = jsonStringLike(to, text);
+  if (!keepFrom && !listed) return text.slice(0, span.start) + literal + text.slice(span.end);
+  const previous = index > 0 ? jsonValueSpan(text, [key, index - 1]) : null;
+  const next = index + 1 < list.length ? jsonValueSpan(text, [key, index + 1]) : null;
+  if (keepFrom) {
+    if (listed) return null;
+    const separator = previous ? text.slice(previous.end, span.start) : next ? text.slice(span.end, next.start) : ', ';
+    return text.slice(0, span.end) + separator + literal + text.slice(span.end);
+  }
+  // `to` is already listed: drop `from`, with the separator on one side of it.
+  if (next) return text.slice(0, span.start) + text.slice(next.start);
+  if (previous) return text.slice(0, previous.end) + text.slice(span.end);
+  return text.slice(0, span.start) + text.slice(span.end);
 }
 
 /** The export with one marker moved and/or retitled; every other byte is left as it was. */
