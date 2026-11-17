@@ -116,7 +116,12 @@ export default defineConfig({
   build: {
     outDir: '../../dist',
     emptyOutDir: true,
-    rollupOptions: {
+    // Vite 8's default target is Baseline Widely Available (Safari 16.4,
+    // Chrome 111), which would leave older phone browsers on a blank page.
+    // Pin Vite 6's 'modules' default so the supported floor stays where it was
+    // until someone decides to move it (docs/architecture/web-ui.md).
+    target: ['es2020', 'edge88', 'firefox78', 'chrome87', 'safari14'],
+    rolldownOptions: {
       input: {
         main: resolve(__dirname, 'src/web/index.html'),
         // User GPX import pages. These sit at the top level of src/web on

@@ -14,6 +14,10 @@ the GitHub repo is `eamon-b/tracknotes`.
 The app's own hosts are on the same domain: the comments API at `api.tracknotes.info` trail data, offline packs and photos at `data.tracknotes.info` (R2 bucket `tracknotes-data`), and the basemap tiles imported and community routes' corridor packs are built from at `tiles.tracknotes.info` (the `--env app` deployment of `contours/worker/`, issue #269).
 `contour-map-tiles.net` (`tiles.` included) belongs to the public world-contours dataset (`contours/site/`), which the app uses but does not own.
 
+**Supported browsers.**
+`vite.config.ts` pins `build.target` to Vite 6's old `modules` default (es2020, Chrome 87, Firefox 78, Edge 88, Safari 14) rather than Vite 8's Baseline Widely Available default (Safari 16.4, Chrome 111), so older phone browsers still get a working page.
+Raising the floor is a deliberate change to that list, not a side effect of a Vite upgrade.
+
 - `index.html` / `index.ts` - Landing page: filter bar (search, length chips, sort; `localStorage` `tracknotes-list-filter`), Featured (hidden when empty), curated trails grouped Country → State in collapsible sections, Community routes (only when `VITE_API_BASE_URL` is set, Verified/Unverified badges; the list has a 10 s deadline, after which the tier shows its error note), My trails (IndexedDB) with a "Shared by me" block when the API is set and the browser is linked: the reader's own routes from `listMyCommunityRoutes` (same 10 s deadline, fetched in parallel; failures stay inside the block; a 401 clears the session and offers the link form), hidden ones with why (`hiddenReasonText`) and the review summary.
   Its footer links `public/terms.html` and `public/privacy.html`, the same pages as `TERMS_URL` and `PRIVACY_POLICY_URL` in `@lib/contribution-licence`.
   "On the map" (`landing-map.ts`, issue #163) follows the Community section's rule (shown only when the API is set; a failed list still shows the curated markers): one circle marker per curated trail (index `start`) and community route (summary `start`, else its bbox centre) the filter keeps, popups linking to each page;
