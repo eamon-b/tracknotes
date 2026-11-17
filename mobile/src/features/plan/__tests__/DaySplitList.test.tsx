@@ -115,6 +115,26 @@ describe('DaySplitList', () => {
     expect(allText(render([day({})], 8))).not.toContain('2026-');
   });
 
+  it('states the daylight beside the date, and a walk longer than it', () => {
+    // Melbourne's latitude at midwinter: about 9 h 32 min of daylight.
+    const short = allText(
+      render([day({ date: '2026-06-21', latitude: -37.81, estimatedHours: 8 })], 8),
+    );
+    expect(short).toContain('2026-06-21 · 9 h 32 min of daylight');
+    expect(short).not.toContain('more walking than daylight');
+
+    const long = allText(
+      render([day({ date: '2026-06-21', latitude: -37.81, estimatedHours: 11 })], 8),
+    );
+    expect(long).toContain('About 1 h 30 min more walking than daylight');
+
+    // No start date: no daylight, whatever the latitude.
+    const undated = allText(render([day({ latitude: -37.81, estimatedHours: 11 })], 8));
+    expect(undated).not.toContain('daylight');
+    // A date without a latitude (a day computed before the field existed) shows the date alone.
+    expect(allText(render([day({ date: '2026-06-21' })], 8))).not.toContain('daylight');
+  });
+
   it('calls out the rest days taken at a day\u2019s end stop', () => {
     expect(allText(render([day({ endName: 'Salida', restDays: 1 })], 8))).toContain(
       '+1 rest day at Salida',

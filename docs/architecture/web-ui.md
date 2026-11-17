@@ -50,6 +50,7 @@ Raising the floor is a deliberate change to that list, not a side effect of a Vi
 - `trails/plan-viewer.ts` - Interactive plan viewer.
   Beside the start date, a 0.5-step "Zero days before day 1" box (`#plan-start-zero-days`) writes `startZeroDays` (`setStartZeroDays`; blank is none, an entry is rounded to the half day and held in 0..`zeroDaysMax`, an unreadable one keeps the stored figure, and the box then shows what is in force);
   every day card's date moves on by its whole days (`computePlanDays`), a line above Day 1 says how many, and a shared (read-only) plan shows it in the header text instead of the box.
+  A dated day card states its hours of daylight in the stats row, and adds a line when the estimated walking time is longer (`@lib/daylight` `dayDaylight`; nothing is shown without a start date).
   The resupply page counts it in the summary's total days.
   The header's pace preset and hours/day inputs are persisted per browser in `PlanUiPrefs` (`trail-plan-ui-<id>`, see `plan-state.ts` below; never in the plan document) and feed both `computeDays` and the Resupply tab's legs — the page fixes neither figure.
   Planned resupply stops are marked on every surface of the page, not only in the Resupply tab: `toggleResupply` keeps ids the route does not offer, as `chooseResupplyOption` does, and All and None act on the route shown and leave the other routes' ticks alone (they may be towns on an alternate, with zero days of their own).

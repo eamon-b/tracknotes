@@ -22,6 +22,7 @@
 
 import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { dayDaylight, formatDaylightDuration } from '@lib/daylight';
 import { formatDistance, formatElevation } from '@lib/format-distance';
 import type { ComputedDay } from '@lib/plan-types';
 import { countPoisByCategory, POI_CATEGORY_LABELS, poisBetween } from '@lib/poi-display';
@@ -175,85 +176,103 @@ export function DaySplitList({
           {`Zero days before day 1: ${formatZeroDays(startZeroDays)}`}
         </Text>
       )}
-      {days.map((day, i) => (
-        <Pressable
-          key={day.dayNumber}
-          onPress={onDayPress ? () => onDayPress(day) : undefined}
-          disabled={!onDayPress}
-          accessibilityRole={onDayPress ? 'button' : undefined}
-          accessibilityHint={onDayPress ? "Shows the day's waypoints" : undefined}
-          style={({ pressed }) => [
-            styles.card,
-            { backgroundColor: colors.surface, borderColor: colors.border },
-            pressed && onDayPress && styles.pressed,
-          ]}
-        >
-          <View style={styles.head}>
-            <Text
-              style={[styles.dayNum, { color: colors.accentText, backgroundColor: colors.accent }]}
-            >
-              Day {day.dayNumber}
-            </Text>
-            <Text style={[styles.route, { color: colors.textPrimary }]} numberOfLines={1}>
-              {day.startName} → {day.endName}
-            </Text>
-            {onDayPress && (
+      {days.map((day, i) => {
+        // Hours of daylight on the day's date, where it is walked: stated beside
+        // the estimate, with no judgement on what to do about a long day.
+        const light = dayDaylight(day);
+        return (
+          <Pressable
+            key={day.dayNumber}
+            onPress={onDayPress ? () => onDayPress(day) : undefined}
+            disabled={!onDayPress}
+            accessibilityRole={onDayPress ? 'button' : undefined}
+            accessibilityHint={onDayPress ? "Shows the day's waypoints" : undefined}
+            style={({ pressed }) => [
+              styles.card,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+              pressed && onDayPress && styles.pressed,
+            ]}
+          >
+            <View style={styles.head}>
               <Text
-                style={[styles.chevron, { color: colors.textSecondary }]}
-                importantForAccessibility="no"
-                accessibilityElementsHidden
+                style={[
+                  styles.dayNum,
+                  { color: colors.accentText, backgroundColor: colors.accent },
+                ]}
               >
-                ›
+                Day {day.dayNumber}
+              </Text>
+              <Text style={[styles.route, { color: colors.textPrimary }]} numberOfLines={1}>
+                {day.startName} → {day.endName}
+              </Text>
+              {onDayPress && (
+                <Text
+                  style={[styles.chevron, { color: colors.textSecondary }]}
+                  importantForAccessibility="no"
+                  accessibilityElementsHidden
+                >
+                  ›
+                </Text>
+              )}
+            </View>
+
+            {day.date !== undefined && (
+              <Text style={[styles.date, { color: colors.textSecondary }]}>
+                {light === null
+                  ? day.date
+                  : `${day.date} · ${formatDaylightDuration(light.daylightHours)} of daylight`}
               </Text>
             )}
-          </View>
 
-          {day.date !== undefined && (
-            <Text style={[styles.date, { color: colors.textSecondary }]}>{day.date}</Text>
-          )}
+            <View style={styles.stats}>
+              <Stat label="Distance" value={formatDistance(day.distanceKm, units)} />
+              <Stat label="Ascent" value={`↑ ${formatElevation(day.ascentM, units)}`} />
+              <Stat label="Descent" value={`↓ ${formatElevation(day.descentM, units)}`} />
+              <Stat label="Est. time" value={formatHours(day.estimatedHours)} />
+            </View>
 
-          <View style={styles.stats}>
-            <Stat label="Distance" value={formatDistance(day.distanceKm, units)} />
-            <Stat label="Ascent" value={`↑ ${formatElevation(day.ascentM, units)}`} />
-            <Stat label="Descent" value={`↓ ${formatElevation(day.descentM, units)}`} />
-            <Stat label="Est. time" value={formatHours(day.estimatedHours)} />
-          </View>
+            {day.offTrailKm !== undefined && day.offTrailKm > 0 && (
+              <Text style={[styles.water, { color: colors.textSecondary }]}>
+                {`Includes ${formatDistance(day.offTrailKm, units)} off the route, to or from a stop`}
+              </Text>
+            )}
 
-          {day.offTrailKm !== undefined && day.offTrailKm > 0 && (
-            <Text style={[styles.water, { color: colors.textSecondary }]}>
-              {`Includes ${formatDistance(day.offTrailKm, units)} off the route, to or from a stop`}
-            </Text>
-          )}
+            <View style={styles.footer}>
+              <Text style={[styles.camp, { color: endColor(day, colors) }]}>{endLabel(day)}</Text>
+              <Text style={[styles.water, { color: colors.textSecondary }]}>
+                {day.waterSources} water source{day.waterSources === 1 ? '' : 's'}
+              </Text>
+            </View>
 
-          <View style={styles.footer}>
-            <Text style={[styles.camp, { color: endColor(day, colors) }]}>{endLabel(day)}</Text>
-            <Text style={[styles.water, { color: colors.textSecondary }]}>
-              {day.waterSources} water source{day.waterSources === 1 ? '' : 's'}
-            </Text>
-          </View>
+            {poiSummaries?.[i] && <AlongTheWay summary={poiSummaries[i]} />}
 
-          {poiSummaries?.[i] && <AlongTheWay summary={poiSummaries[i]} />}
+            {(() => {
+              const warning = endWarning?.(day.endKm) ?? null;
+              return warning === null ? null : (
+                <Text style={[styles.overHint, { color: colors.warning }]}>{`⚠ ${warning}`}</Text>
+              );
+            })()}
 
-          {(() => {
-            const warning = endWarning?.(day.endKm) ?? null;
-            return warning === null ? null : (
-              <Text style={[styles.overHint, { color: colors.warning }]}>{`⚠ ${warning}`}</Text>
-            );
-          })()}
+            {day.restDays !== undefined && day.restDays > 0 && (
+              <Text style={[styles.rest, { color: colors.accent }]}>
+                {`+${day.restDays} rest day${day.restDays === 1 ? '' : 's'} at ${day.endName}`}
+              </Text>
+            )}
 
-          {day.restDays !== undefined && day.restDays > 0 && (
-            <Text style={[styles.rest, { color: colors.accent }]}>
-              {`+${day.restDays} rest day${day.restDays === 1 ? '' : 's'} at ${day.endName}`}
-            </Text>
-          )}
+            {light !== null && light.shortfallHours > 0 && (
+              <Text style={[styles.overHint, { color: colors.warning }]}>
+                {`About ${formatDaylightDuration(light.shortfallHours)} more walking than daylight`}
+              </Text>
+            )}
 
-          {day.estimatedHours > allowanceFor(day) && (
-            <Text style={[styles.overHint, { color: colors.warning }]}>
-              {`+${formatHours(day.estimatedHours - targetHours)} over target`}
-            </Text>
-          )}
-        </Pressable>
-      ))}
+            {day.estimatedHours > allowanceFor(day) && (
+              <Text style={[styles.overHint, { color: colors.warning }]}>
+                {`+${formatHours(day.estimatedHours - targetHours)} over target`}
+              </Text>
+            )}
+          </Pressable>
+        );
+      })}
       {unplanned !== null && (
         <View
           style={[styles.card, styles.unplanned, { borderColor: colors.border }]}

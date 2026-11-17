@@ -275,6 +275,22 @@ describe('computeDays', () => {
     expect(days[1].date).toBe('2025-03-16');
   });
 
+  it('carries the latitude each day is walked at', () => {
+    // makeFlatTrail runs north from -35 at 0.001 degrees per point.
+    const trail = makeFlatTrail(60);
+    const days = computeDays(trail, [{ km: 30, waypointName: 'Camp' }], null, null, 4);
+    const pts = trail.track.points;
+    const latAt = (km: number) =>
+      pts.reduce((best, p) => (Math.abs(p.dist - km) < Math.abs(best.dist - km) ? p : best)).lat;
+    expect(days[0].latitude).toBe(Math.round(((latAt(0) + latAt(30)) / 2) * 100) / 100);
+    expect(days[1].latitude).toBe(Math.round(((latAt(30) + latAt(60)) / 2) * 100) / 100);
+  });
+
+  it('has no latitude when the track has no points', () => {
+    const empty: PlanTrail = { config: { name: 'Empty' }, track: { points: [], totalDistance: 10 } };
+    expect(computeDays(empty, [], null, null, 4)[0].latitude).toBeUndefined();
+  });
+
   it('date is undefined when no startDate', () => {
     const trail = makeFlatTrail(50);
     const days = computeDays(trail, [], null, null, 4);
