@@ -4,8 +4,8 @@
  *
  * Every function here is pure text in, text out, so the editor's writes can be
  * tested without a file system. The rule they share: **a save changes only the
- * bytes it means to.** The GPX is edited in place (one `<wpt>` start tag or one
- * `<name>`), never re-serialised; a JSON file is re-serialised only after
+ * bytes it means to.** The GPX is edited in place (one `<wpt>` start tag, one
+ * `<name>` or one `<ele>`), never re-serialised; a JSON file is re-serialised only after
  * checking that its layout can be reproduced exactly, so an unrelated
  * reformatting (or an unescaped `–`) never rides along with an edit and
  * buries it in the diff.
@@ -61,6 +61,8 @@ export interface GpxWaypointSpan {
   desc?: string;
   /** Decoded `<type>`, when present. */
   type?: string;
+  /** Its `<ele>` as written (`745.0`), when present: metres, and the decimals the file keeps. */
+  ele?: string;
 }
 
 const WPT_PATTERN = /<wpt\b([^>]*?)(\/>|>([\s\S]*?)<\/wpt>)/g;
@@ -101,8 +103,11 @@ export function listGpxWaypoints(gpx: string): GpxWaypointSpan[] {
     };
     const desc = childText(body, 'desc');
     if (desc !== undefined) span.desc = desc;
-    const type = childText(maskNested(body), 'type');
+    const masked = maskNested(body);
+    const type = childText(masked, 'type');
     if (type !== undefined) span.type = type.trim();
+    const ele = childText(masked, 'ele');
+    if (ele !== undefined) span.ele = ele.trim();
     spans.push(span);
   }
   return spans;
@@ -154,6 +159,53 @@ export function setGpxWaypointPosition(gpx: string, span: GpxWaypointSpan, lat: 
     .replace(/(\blat\s*=\s*)("[^"]*"|'[^']*')/, (_m, lead: string) => `${lead}"${formatCoordinate(lat)}"`)
     .replace(/(\blon\s*=\s*)("[^"]*"|'[^']*')/, (_m, lead: string) => `${lead}"${formatCoordinate(lon)}"`);
   return gpx.slice(0, span.start) + replaced + element.slice(tagEnd) + gpx.slice(span.end);
+}
+
+/** How many decimals a plain decimal number is written with (`745.0` has 1); null for anything else. */
+export function elevationDecimals(text: string): number | null {
+  const m = /^-?\d+(?:\.(\d+))?$/.exec(text.trim());
+  return m ? (m[1]?.length ?? 0) : null;
+}
+
+/** `metres` as an `<ele>`'s text with `decimals` decimals, trailing zeros kept as the files keep them (`745.0`). */
+export function formatElevation(metres: number, decimals: number): string {
+  const text = metres.toFixed(decimals);
+  return Number(text) === 0 ? text.replace(/^-/, '') : text;
+}
+
+/**
+ * How a file's `<wpt>`s write their `<ele>`, or null when they do not carry
+ * one. The rule: at least half of the file's `<wpt>`s have an `<ele>` (the
+ * bundled files are all or nothing; half keeps one hand-added `<wpt>` either
+ * way from flipping the answer). `decimals` is the count most of them use, the
+ * finer one on a tie.
+ */
+export function gpxWaypointElevationStyle(spans: readonly GpxWaypointSpan[]): { decimals: number } | null {
+  const withEle = spans.filter(s => s.ele !== undefined);
+  if (withEle.length === 0 || withEle.length * 2 < spans.length) return null;
+  const counts = new Map<number, number>();
+  for (const span of withEle) {
+    const decimals = elevationDecimals(span.ele!);
+    if (decimals !== null) counts.set(decimals, (counts.get(decimals) ?? 0) + 1);
+  }
+  let best = { decimals: 1, count: 0 };
+  for (const [decimals, count] of counts) {
+    if (count > best.count || (count === best.count && decimals > best.decimals)) best = { decimals, count };
+  }
+  return { decimals: best.decimals };
+}
+
+/**
+ * The GPX with the text of one waypoint's `<ele>` replaced; nothing else
+ * changes, the spacing inside the element included. A `<wpt>` with no `<ele>`
+ * comes back as it was: this never adds one.
+ */
+export function setGpxWaypointElevation(gpx: string, span: GpxWaypointSpan, text: string): string {
+  const element = gpx.slice(span.start, span.end);
+  const m = /(<ele\b[^>]*>)(\s*)([^<]*?)\s*<\/ele>/.exec(maskNested(element));
+  if (!m) return gpx;
+  const at = span.start + m.index + m[1].length + m[2].length;
+  return gpx.slice(0, at) + text + gpx.slice(at + m[3].length);
 }
 
 /**
@@ -233,14 +285,17 @@ export interface NewGpxWaypoint {
   name: string;
   type: string;
   desc?: string;
+  /** The text of its `<ele>` (`formatElevation`); none is written without it. */
+  ele?: string;
 }
 
 /**
  * The GPX with a new `<wpt>` after the last one, written in the file's own
  * style: the same spacing before it as before the last `<wpt>`, its children
- * on one line or one per line as the last `<wpt>` has them, and `<name>`,
- * `<desc>` and `<type>` in the order the last `<wpt>` uses. A file with no
- * `<wpt>` gets it before its first `<trk>` / `<rte>` (or `</gpx>`).
+ * on one line or one per line as the last `<wpt>` has them, and `<ele>`,
+ * `<name>`, `<desc>` and `<type>` in the order the last `<wpt>` uses (an
+ * `<ele>` the last one lacks goes first, where GPX 1.1 puts it). A file with
+ * no `<wpt>` gets it before its first `<trk>` / `<rte>` (or `</gpx>`).
  */
 export function insertGpxWaypoint(gpx: string, waypoint: NewGpxWaypoint): string {
   const spans = listGpxWaypoints(gpx);
@@ -248,12 +303,13 @@ export function insertGpxWaypoint(gpx: string, waypoint: NewGpxWaypoint): string
   const template = last ? gpx.slice(last.start, last.end) : '';
   const masked = maskNested(template);
   const children: Record<string, string | undefined> = {
+    ele: waypoint.ele !== undefined ? `<ele>${encodeXmlText(waypoint.ele, gpx)}</ele>` : undefined,
     name: `<name>${encodeXmlText(waypoint.name, gpx)}</name>`,
     desc: waypoint.desc ? `<desc>${encodeXmlText(waypoint.desc, gpx)}</desc>` : undefined,
     type: `<type>${encodeXmlText(waypoint.type, gpx)}</type>`,
   };
   // The order of the tags the last <wpt> has; a tag it lacks goes after its usual predecessor.
-  const defaults = ['name', 'desc', 'type'];
+  const defaults = ['ele', 'name', 'desc', 'type'];
   const at = (tag: string) => masked.search(new RegExp(`<${tag}\\b`));
   const order = defaults.filter(tag => at(tag) !== -1).sort((a, b) => at(a) - at(b));
   defaults.forEach((tag, i) => {

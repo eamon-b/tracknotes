@@ -13,7 +13,8 @@
  *    replaced, or removed when emptied);
  *  - position: the `<wpt>`'s `lat`/`lon`, the CalTopo marker the build types it
  *    from (so the type cannot change), and its registry entry (so a move of any
- *    distance keeps its id, comments and description);
+ *    distance keeps its id, comments and description); an `<ele>` the `<wpt>`
+ *    has is looked up again for the new position (`elevation.ts`);
  *  - name: the `<wpt>`'s `<name>` and the CalTopo marker's title, both keeping
  *    their type prefix, the registry entry's name, and `descriptions.json`'s
  *    `name` aid.
@@ -51,12 +52,16 @@ import {
   type WaypointExpected,
   type WaypointPlacement,
 } from './api-types';
+import { lookupElevation, routeElevation, type DemSource, type ElevationLookup } from './elevation';
 import {
   addCaltopoFolder,
   editCaltopoMarker,
   editJsonPreservingLayout,
+  elevationDecimals,
   findGpxWaypoint,
   formatCoordinate,
+  formatElevation,
+  gpxWaypointElevationStyle,
   insertGpxWaypoint,
   listGpxWaypoints,
   nearestCaltopoMarker,
@@ -67,6 +72,7 @@ import {
   removeGpxWaypoint,
   renameKeepingPrefix,
   setCaltopoMarkerFolder,
+  setGpxWaypointElevation,
   setGpxWaypointName,
   setGpxWaypointPosition,
   setGpxWaypointType,
@@ -484,6 +490,8 @@ function toEditorWaypoint(
     waypoint.typeSource = typeSourceText(typeSource, context.geojsonPath && path.basename(context.geojsonPath));
   if (locked) waypoint.lockedReason = locked;
   if (!span && !context.readOnlyReason) waypoint.deleted = true;
+  const ele = sourceElevation(span);
+  if (ele !== undefined) waypoint.ele = ele;
   if (built.distanceFromTrailKm !== undefined) waypoint.distanceFromTrailKm = built.distanceFromTrailKm;
   const sourceText = sourceDescription(span, sources.caltopo, joined);
   if (sourceText) waypoint.sourceDescription = sourceText;
@@ -533,6 +541,8 @@ function toPendingWaypoint(
     canDelete: !context.readOnlyReason,
     lockedReason: reason,
   };
+  const ele = sourceElevation(span);
+  if (ele !== undefined) waypoint.ele = ele;
   const sourceText = sourceDescription(span, sources.caltopo, {
     name: typeSource.cleanedName,
     lat: span.lat,
@@ -540,6 +550,13 @@ function toPendingWaypoint(
   });
   if (sourceText) waypoint.sourceDescription = sourceText;
   return waypoint;
+}
+
+/** A `<wpt>`'s `<ele>` in metres, when it has one that is a number. */
+function sourceElevation(span: GpxWaypointSpan | null): number | undefined {
+  if (!span?.ele) return undefined;
+  const metres = Number(span.ele);
+  return Number.isFinite(metres) ? metres : undefined;
 }
 
 /** The text the build would show without a curated entry: the CalTopo marker's, else the GPX `<desc>`. */
@@ -855,6 +872,126 @@ function assertIdsKept(
 }
 
 // ---------------------------------------------------------------------------
+// Elevation: the <ele> of a <wpt> that is added or moved
+// ---------------------------------------------------------------------------
+
+/**
+ * The asynchronous half of a save that places a waypoint (an add or a move):
+ * the elevation at the position, from the route or else from `dem`
+ * (`elevation.ts`), for the caller to hand to {@link addWaypoint} or
+ * {@link saveWaypointEdit}, which stay synchronous. Undefined when the save
+ * would write no `<ele>` whatever the answer (no `<wpt>` in the GPX has one,
+ * so the DEM is never asked on such a trail), or for a request the save
+ * refuses on sight (no position, an unknown, unbuilt or read-only trail).
+ * Never throws: the save reports what is wrong.
+ */
+export async function lookupWaypointElevation(
+  paths: EditorPaths,
+  dirParam: string,
+  at: { lat?: unknown; lon?: unknown } | null | undefined,
+  dem?: DemSource,
+  timeoutMs?: number
+): Promise<ElevationLookup | undefined> {
+  try {
+    const { lat, lon } = validPosition(at?.lat, at?.lon);
+    const dir = resolveTrailDir(paths, dirParam);
+    const config = trailConfig(paths, dir);
+    const trailId = config.id ?? dir.toLowerCase();
+    if (readOnlyReason(trailId)) return undefined;
+    const gpx = fs.readFileSync(path.join(paths.trailsDir, dir, gpxFileName(paths, dir, config)), 'utf-8');
+    if (!listGpxWaypoints(gpx).some(span => span.ele !== undefined)) return undefined;
+    const built = readJson<ProcessedTrail>(generatedPath(paths, trailId));
+    return await lookupElevation(built, writtenCoordinate(lat), writtenCoordinate(lon), dem, timeoutMs);
+  } catch {
+    return undefined;
+  }
+}
+
+/** A coordinate as a save writes it: the position an elevation is looked up for. */
+function writtenCoordinate(value: number): number {
+  return Number(formatCoordinate(value));
+}
+
+/**
+ * The elevation at a save's position: the lookup its caller made for exactly
+ * this position ({@link lookupWaypointElevation}), else the route's own
+ * answer, which needs no network.
+ */
+function elevationAt(context: TrailContext, lat: number, lon: number, given?: ElevationLookup): ElevationLookup {
+  const at = { lat: writtenCoordinate(lat), lon: writtenCoordinate(lon) };
+  if (given && given.lat === at.lat && given.lon === at.lon) return given;
+  let route: ElevationLookup;
+  try {
+    route = routeElevation(context.built, at.lat, at.lon);
+  } catch {
+    // An elevation is never worth failing a save for.
+    route = { ...at, metres: null, why: 'the route could not be read' };
+  }
+  if (route.metres !== null) return route;
+  return { ...route, why: `${route.why ?? 'the route gave none'}, and the Copernicus DEM was not asked` };
+}
+
+/** Where a found elevation came from, for a save's notes. */
+function elevationSourceText(found: ElevationLookup): string {
+  if (found.source === 'route') {
+    const away = Math.round(found.offRouteMeters ?? 0);
+    return `from the route (the track's own elevations${away > 0 ? `, read ${away} m away` : ''})`;
+  }
+  return `from the Copernicus DEM${found.why ? ` (${found.why})` : ''}`;
+}
+
+/**
+ * The `<ele>` a new `<wpt>` gets, and the note that says so. One is written
+ * when the file's `<wpt>`s carry one (`gpxWaypointElevationStyle`: at least
+ * half of them do) and the lookup found a height, in the decimals they use.
+ */
+function newWaypointElevation(
+  spans: readonly GpxWaypointSpan[],
+  lookup: () => ElevationLookup
+): { ele?: string; note: string } {
+  const style = gpxWaypointElevationStyle(spans);
+  if (!style) return { note: 'No <ele> written: the <wpt>s in this GPX carry none.' };
+  const found = lookup();
+  if (found.metres === null) {
+    return {
+      note: `No <ele> written, though the other <wpt>s in this GPX have one: ${found.why ?? 'no elevation was found'}. The build does not read it; add one by hand to keep the file complete.`,
+    };
+  }
+  const ele = formatElevation(found.metres, style.decimals);
+  return { ele, note: `Its <ele> is ${ele} m, ${elevationSourceText(found)}.` };
+}
+
+/**
+ * The GPX with a moved `<wpt>`'s `<ele>` rewritten for its new position, in
+ * the decimals it had, and the note that says so. `span` is the `<wpt>` as it
+ * is in `gpx`. One with no `<ele>` is left without (no note); when the lookup
+ * found nothing the old value stays, and the note says it may be stale.
+ */
+function movedWaypointElevation(
+  gpx: string,
+  span: GpxWaypointSpan,
+  lookup: () => ElevationLookup
+): { gpx: string; note?: string } {
+  if (span.ele === undefined) return { gpx };
+  const found = lookup();
+  if (found.metres === null) {
+    return {
+      gpx,
+      note: `Its <ele> is left at ${span.ele} m, which may be stale for the new position: ${found.why ?? 'no elevation was found'}.`,
+    };
+  }
+  const decimals = elevationDecimals(span.ele) ?? gpxWaypointElevationStyle(listGpxWaypoints(gpx))?.decimals ?? 1;
+  const ele = formatElevation(found.metres, decimals);
+  return {
+    gpx: setGpxWaypointElevation(gpx, span, ele),
+    note:
+      ele === span.ele
+        ? `Its <ele> stays ${ele} m, ${elevationSourceText(found)}.`
+        : `Its <ele> went from ${span.ele} to ${ele} m, ${elevationSourceText(found)}.`,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Type changes
 // ---------------------------------------------------------------------------
 
@@ -932,12 +1069,17 @@ function retypeNotes(from: string, to: string): string[] {
  * Apply one waypoint's edit to the source files. Throws `EditorError` (and
  * writes nothing) when the edit is invalid, or the waypoint changed on disk
  * since the page read it.
+ *
+ * `elevation` is what {@link lookupWaypointElevation} found for the position a
+ * move asks for; without it a moved `<wpt>`'s `<ele>` is rewritten only where
+ * the route itself gives the height.
  */
 export function saveWaypointEdit(
   paths: EditorPaths,
   dirParam: string,
   waypointId: string,
-  request: WaypointEditRequest
+  request: WaypointEditRequest,
+  elevation?: ElevationLookup
 ): WaypointEditResponse {
   const context = loadContext(paths, dirParam);
   const sources = readSources(paths, context);
@@ -970,6 +1112,7 @@ export function saveWaypointEdit(
   let gpxText = sources.gpx;
   let geojsonText = sources.geojsonText;
   let registryAfter: string | null = null;
+  let elevationNote: string | undefined;
   if (move || rename || retype) {
     const span = findGpxWaypoint(sources.spans, current);
     if (!span) throw new EditorError('Its <wpt> is no longer in the GPX: reload the trail', 409);
@@ -991,6 +1134,13 @@ export function saveWaypointEdit(
       const moved = findGpxWaypoint(listGpxWaypoints(gpxText), { lat: current.lat, lon: current.lon, name });
       if (!moved) throw new EditorError('Lost its <wpt> while renaming it', 500);
       gpxText = setGpxWaypointPosition(gpxText, moved, lat, lon);
+      // An <ele> the <wpt> carries follows it: read from the <wpt> itself, as it now is in the text.
+      const placed = listGpxWaypoints(gpxText).find(s => s.start === moved.start);
+      if (placed) {
+        const rewritten = movedWaypointElevation(gpxText, placed, () => elevationAt(context, lat, lon, elevation));
+        gpxText = rewritten.gpx;
+        elevationNote = rewritten.note;
+      }
     }
     if (retype && (typeSource.by === 'gpx-type' || typeSource.by === 'gpx-name')) {
       const at = findGpxWaypoint(listGpxWaypoints(gpxText), { lat, lon, name });
@@ -1081,6 +1231,7 @@ export function saveWaypointEdit(
   if (move) {
     const metres = haversineDistance(current.lat, current.lon, lat, lon);
     notes.push(`Moved ${Math.round(metres)} m; its registry entry moved with it, so it keeps id ${current.id}.`);
+    if (elevationNote) notes.push(elevationNote);
     if (current.access?.method === 'osm' || current.access?.method === 'none') {
       notes.push(
         `access.json routes this place from where it was (${current.access.method}): run npm run fetch:access to re-route it.`
@@ -1114,16 +1265,26 @@ export function saveWaypointEdit(
 // ---------------------------------------------------------------------------
 
 /**
- * Add a waypoint: a new `<wpt>` (name, `<type>`, optional `<desc>`) after the
- * last one in the GPX. Nothing goes in the registry or `descriptions.json`:
- * the next build mints its id, and until then the editor shows it as pending.
+ * Add a waypoint: a new `<wpt>` (name, `<type>`, optional `<desc>`, and an
+ * `<ele>` when the file's `<wpt>`s carry one) after the last one in the GPX.
+ * Nothing goes in the registry or `descriptions.json`: the next build mints
+ * its id, and until then the editor shows it as pending.
+ *
+ * `elevation` is what {@link lookupWaypointElevation} found for the position;
+ * without it the `<ele>` is written only where the route itself gives the
+ * height.
  *
  * On a CalTopo-typed trail no marker is added: the build types a `<wpt>` from
  * a marker only when one has its name, and otherwise from its `<type>`, so the
  * `<type>` is enough. A marker that does have its name would win, so the add
  * is refused when one would type it differently.
  */
-export function addWaypoint(paths: EditorPaths, dirParam: string, request: NewWaypointRequest): WaypointEditResponse {
+export function addWaypoint(
+  paths: EditorPaths,
+  dirParam: string,
+  request: NewWaypointRequest,
+  elevation?: ElevationLookup
+): WaypointEditResponse {
   const context = loadContext(paths, dirParam);
   if (context.readOnlyReason) throw new EditorError(context.readOnlyReason);
   const name = validName(request?.name);
@@ -1154,7 +1315,10 @@ export function addWaypoint(paths: EditorPaths, dirParam: string, request: NewWa
       'Another <wpt> is at exactly this position, and the editor tells waypoints apart by their coordinates: place it a little to one side.'
     );
   }
-  const gpx = insertGpxWaypoint(sources.gpx, { lat, lon, name, type, desc: description.trim() || undefined });
+  const { ele, note: elevationNote } = newWaypointElevation(sources.spans, () =>
+    elevationAt(context, lat, lon, elevation)
+  );
+  const gpx = insertGpxWaypoint(sources.gpx, { lat, lon, name, type, desc: description.trim() || undefined, ele });
   const spansAfter = listGpxWaypoints(gpx);
   const addedIndex = spansAfter.findIndex(s => s.lat === lat && s.lon === lon && s.name === name);
   if (addedIndex === -1) throw new EditorError('The new <wpt> could not be read back from the GPX', 500);
@@ -1188,6 +1352,7 @@ export function addWaypoint(paths: EditorPaths, dirParam: string, request: NewWa
       `Rebuild to give it its id (the next build mints ${newId}); until then it shows as pending and can only be deleted.`
     );
   }
+  notes.push(elevationNote);
   if (description.trim()) {
     notes.push(
       'The description went into its GPX <desc>; once it has an id it can become curated text in descriptions.json.'

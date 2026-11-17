@@ -72,6 +72,8 @@ export interface EditorWaypoint {
   builtLat: number;
   builtLon: number;
   builtName: string;
+  /** Its `<wpt>`'s `<ele>` in the GPX now, in metres, when it has one (the build does not read it). */
+  ele?: number;
   placements: WaypointPlacement[];
   /** Main-route km, or the km of the nearest point on the main route; for ordering. */
   sortKm: number;

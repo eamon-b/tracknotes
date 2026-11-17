@@ -527,11 +527,24 @@ function renderReadout(lat: number, lon: number): void {
   });
 }
 
+/** The `<ele>` the waypoint's `<wpt>` has in the GPX, and what a pending move does to it. */
+function renderSourceElevation(): void {
+  const w = selected();
+  const draft = currentDraft();
+  const line = $('wpe-ele');
+  line.hidden = w?.ele === undefined;
+  if (!w || !draft || w.ele === undefined) return;
+  line.textContent = `GPX <ele>: ${w.ele} m${
+    draftChanges(w, draft).position ? '; saving the move looks it up again for the new position' : ''
+  }`;
+}
+
 function fillPosition(): void {
   const draft = currentDraft();
   if (!draft) return;
   updatePositionFields(draft.lat, draft.lon);
   renderReadout(draft.lat, draft.lon);
+  renderSourceElevation();
   $('wpe-links').innerHTML = externalMapLinks(draft.lat, draft.lon)
     .map(l => `<a href="${escapeHtml(l.href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(l.label)}</a>`)
     .join('');
@@ -703,6 +716,7 @@ function onLatLonInput(): void {
   setDraft(w.id, { ...draft, lat: round6(lat), lon: round6(lon) });
   drawSelection(true);
   renderReadout(lat, lon);
+  renderSourceElevation();
   renderNearby();
   renderButtons();
   renderList();

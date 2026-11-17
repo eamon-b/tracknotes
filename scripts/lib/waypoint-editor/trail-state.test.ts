@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { assignWaypointIds, MATCH_RADIUS_METERS, type WaypointRegistry } from '../waypoint-ids';
 import { haversineDistance } from '../../../src/lib/distance';
 import { PENDING_KEY_PREFIX, type WaypointEditRequest } from './api-types';
+import type { DemSource } from './elevation';
 import {
   addWaypoint,
   deleteWaypoint,
@@ -12,6 +13,7 @@ import {
   editorPaths,
   listTrails,
   loadEditorTrail,
+  lookupWaypointElevation,
   registryId,
   saveWaypointEdit,
   type EditorPaths,
@@ -564,5 +566,206 @@ describe('deleting waypoints', () => {
       })
     ).toThrow(/upstream/);
     expect(snapshot()).toEqual(before);
+  });
+});
+
+// A trail whose <wpt>s carry an <ele> (two of the three: enough), on a track with real heights.
+const ELE_GPX = [
+  '<gpx version="1.1">',
+  '  <wpt lat="-36.525" lon="148.25"><ele>1100.0</ele><name>Upper Hut</name><type>hut</type></wpt>',
+  '  <wpt lat="-36.52" lon="148.3"><name>Spring</name><type>water</type></wpt>',
+  '  <wpt lat="-36.55" lon="148.35"><ele>1105.5</ele><name>Saddle Camp</name><desc>A flat saddle.</desc><type>campsite</type></wpt>',
+  '  <trk><trkseg><trkpt lat="-36.5" lon="148.2"/><trkpt lat="-36.6" lon="148.4"/></trkseg></trk>',
+  '</gpx>',
+  '',
+].join('\n');
+
+const ELE_REGISTRY = [
+  { id: 'w_11112222', name: 'Upper Hut', type: 'hut', lat: -36.525, lon: 148.25 },
+  { id: 'w_33334444', name: 'Spring', type: 'water', lat: -36.52, lon: 148.3 },
+  { id: 'w_55556666', name: 'Saddle Camp', type: 'campsite', lat: -36.55, lon: 148.35 },
+];
+
+// The same line as `track`, falling from 1200 m to 1000 m and climbing to 1400 m.
+const ELE_TRACK = [
+  { lat: -36.5, lon: 148.2, dist: 0, ele: 1200 },
+  { lat: -36.55, lon: 148.3, dist: 10, ele: 1000 },
+  { lat: -36.6, lon: 148.4, dist: 20, ele: 1400 },
+];
+
+const ELE_BUILT = {
+  ...BUILT,
+  config: { id: 'ele', name: 'Ele Track' },
+  track: { points: ELE_TRACK, displayPoints: ELE_TRACK, totalDistance: 20, totalAscent: 400, totalDescent: 200 },
+  waypoints: [
+    { id: 'w_11112222', name: 'Upper Hut', type: 'hut', lat: -36.525, lon: 148.25, totalDistance: 5 },
+    { id: 'w_55556666', name: 'Saddle Camp', type: 'campsite', lat: -36.55, lon: 148.35, totalDistance: 14 },
+  ],
+  offTrailWaypoints: [
+    { id: 'w_33334444', name: 'Spring', type: 'water', lat: -36.52, lon: 148.3, distanceFromTrail: 2.6 },
+  ],
+  pois: [],
+};
+
+function writeEle(): void {
+  write('data/trails/ele/trail.json', JSON.stringify({ id: 'ele', name: 'Ele Track', gpxFile: 'ele.gpx' }));
+  write('data/trails/ele/ele.gpx', ELE_GPX);
+  write('public/data/generated/ele.json', JSON.stringify(ELE_BUILT));
+  const registry = JSON.parse(read('data/waypoint-ids.json')) as WaypointRegistry;
+  write('data/waypoint-ids.json', `${JSON.stringify({ ...registry, ele: ELE_REGISTRY }, null, 2)}\n`);
+}
+
+/** A DEM that answers `metres` (or fails), recording where it was asked. */
+function fakeDem(metres: number | Error): DemSource & { asked: [number, number][] } {
+  const asked: [number, number][] = [];
+  const dem = async (lat: number, lon: number) => {
+    asked.push([lat, lon]);
+    if (metres instanceof Error) throw metres;
+    return metres;
+  };
+  return Object.assign(dem, { asked });
+}
+
+// 30% of the way down the first segment, which falls 200 m from 1200 m: on the route at 1140 m.
+const ON_ROUTE = { lat: -36.515, lon: 148.23 };
+// A few km off the line.
+const OFF_ROUTE = { lat: -36.58, lon: 148.3 };
+
+describe('waypoint elevations', () => {
+  beforeEach(writeEle);
+  const gpx = () => read('data/trails/ele/ele.gpx');
+  const tank = { name: 'Tank', type: 'water-tank' };
+  const SADDLE = '<wpt lat="-36.55" lon="148.35"><ele>1105.5</ele>';
+
+  it("gives a new <wpt> on the route the route's elevation, written like its neighbours'", () => {
+    const result = addWaypoint(paths, 'ele', { ...tank, ...ON_ROUTE });
+    expect(gpx()).toBe(
+      ELE_GPX.replace(
+        '<type>campsite</type></wpt>\n',
+        '<type>campsite</type></wpt>\n  <wpt lat="-36.515" lon="148.23"><ele>1140.0</ele><name>Tank</name><type>water-tank</type></wpt>\n'
+      )
+    );
+    expect(result.notes).toContain("Its <ele> is 1140.0 m, from the route (the track's own elevations).");
+    expect(result.waypoint).toMatchObject({ pending: true, ele: 1140 });
+    expect(result.changedFiles).toEqual(['data/trails/ele/ele.gpx']);
+
+    // A little off the line is still on the route, as the build matches it (500 m by default).
+    const beside = addWaypoint(paths, 'ele', { name: 'Bore', type: 'water', lat: ON_ROUTE.lat, lon: 148.232 });
+    expect(beside.notes.join('\n')).toMatch(
+      /Its <ele> is 11\d\d\.\d m, from the route \(the track's own elevations, read \d+ m away\)/
+    );
+  });
+
+  it('gives one off the route the DEM height its caller looked up, and none when there is no answer', async () => {
+    const dem = fakeDem(987.64);
+    // The page sends more decimals than a save writes: the lookup is for the position written.
+    const at = { lat: OFF_ROUTE.lat + 4e-8, lon: OFF_ROUTE.lon };
+    const elevation = await lookupWaypointElevation(paths, 'ele', at, dem);
+    expect(dem.asked).toEqual([[OFF_ROUTE.lat, OFF_ROUTE.lon]]);
+    expect(elevation).toMatchObject({ metres: 987.64, source: 'dem' });
+    const result = addWaypoint(paths, 'ele', { ...tank, ...at }, elevation);
+    expect(gpx()).toContain('<wpt lat="-36.58" lon="148.3"><ele>987.6</ele><name>Tank</name>');
+    expect(result.notes.join('\n')).toMatch(
+      /Its <ele> is 987\.6 m, from the Copernicus DEM \(it is \d\.\d km from the route\)/
+    );
+
+    // A DEM that cannot be read never fails the save: the <wpt> goes in without an <ele>.
+    const bore = { lat: -36.59, lon: 148.3 };
+    const failed = await lookupWaypointElevation(paths, 'ele', bore, fakeDem(new Error('offline')));
+    expect(failed?.metres).toBeNull();
+    const second = addWaypoint(paths, 'ele', { name: 'Bore', type: 'water', ...bore }, failed);
+    expect(gpx()).toContain('<wpt lat="-36.59" lon="148.3"><name>Bore</name><type>water</type></wpt>');
+    expect(second.notes.join('\n')).toMatch(
+      /No <ele> written, though the other <wpt>s in this GPX have one: it is \d\.\d km from the route, and the Copernicus DEM could not be read \(offline\)/
+    );
+
+    // Called as the tests above call it, with no lookup: the route alone is asked.
+    const third = addWaypoint(paths, 'ele', { name: 'Soak', type: 'water', lat: -36.6, lon: 148.3 });
+    expect(gpx()).toContain('<wpt lat="-36.6" lon="148.3"><name>Soak</name><type>water</type></wpt>');
+    expect(third.notes.join('\n')).toMatch(/No <ele> written.*the Copernicus DEM was not asked/);
+    // And a lookup made for some other position is not this save's.
+    const other = addWaypoint(paths, 'ele', { name: 'Well', type: 'water', lat: -36.61, lon: 148.3 }, elevation);
+    expect(other.notes.join('\n')).toMatch(/No <ele> written/);
+  });
+
+  it('writes no <ele>, and asks no DEM, where the file’s <wpt>s carry none', async () => {
+    const dem = fakeDem(500);
+    expect(await lookupWaypointElevation(paths, 'demo', { lat: -36.58, lon: 148.38 }, dem)).toBeUndefined();
+    expect(dem.asked).toEqual([]);
+    const result = addWaypoint(paths, 'demo', { ...tank, lat: -36.58, lon: 148.38 });
+    expect(read('data/trails/demo/demo.gpx')).toContain(
+      '<wpt lat="-36.58" lon="148.38"><name>Tank</name><type>water-tank</type></wpt>'
+    );
+    expect(result.notes).toContain('No <ele> written: the <wpt>s in this GPX carry none.');
+    expect(result.waypoint.ele).toBeUndefined();
+  });
+
+  it('looks nothing up for a request the save will refuse, and never throws', async () => {
+    const dem = fakeDem(500);
+    const refused: [string, { lat?: unknown; lon?: unknown } | null][] = [
+      ['te_araroa', OFF_ROUTE],
+      ['no-such-trail', OFF_ROUTE],
+      ['ele', { lat: 'north', lon: 148.3 }],
+      ['ele', {}],
+      ['ele', null],
+    ];
+    for (const [dir, at] of refused) expect(await lookupWaypointElevation(paths, dir, at, dem)).toBeUndefined();
+    fs.rmSync(path.join(root, 'public/data/generated/ele.json'));
+    expect(await lookupWaypointElevation(paths, 'ele', OFF_ROUTE, dem)).toBeUndefined();
+    expect(dem.asked).toEqual([]);
+  });
+
+  it('rewrites a moved <wpt>’s <ele> in place, changing nothing else in the GPX', () => {
+    const result = request('ele', 'w_55556666', ON_ROUTE);
+    expect(gpx()).toBe(ELE_GPX.replace(SADDLE, '<wpt lat="-36.515" lon="148.23"><ele>1140.0</ele>'));
+    expect(result.notes).toContain(
+      "Its <ele> went from 1105.5 to 1140.0 m, from the route (the track's own elevations)."
+    );
+    expect(result.waypoint).toMatchObject({ lat: -36.515, lon: 148.23, ele: 1140 });
+    expect(result.changedFiles.sort()).toEqual(['data/trails/ele/ele.gpx', 'data/waypoint-ids.json']);
+    const registry = JSON.parse(read('data/waypoint-ids.json')) as WaypointRegistry;
+    expect(registry.ele.find(e => e.id === 'w_55556666')).toMatchObject({ lat: -36.515, lon: 148.23 });
+  });
+
+  it('rewrites it from the DEM off the route, and leaves it, saying it may be stale, when nothing is found', async () => {
+    const stale = request('ele', 'w_55556666', OFF_ROUTE);
+    expect(gpx()).toBe(ELE_GPX.replace(SADDLE, '<wpt lat="-36.58" lon="148.3"><ele>1105.5</ele>'));
+    expect(stale.notes.join('\n')).toMatch(
+      /Its <ele> is left at 1105\.5 m, which may be stale for the new position: it is \d\.\d km from the route, and the Copernicus DEM was not asked/
+    );
+
+    const w = loadEditorTrail(paths, 'ele').waypoints.find(x => x.id === 'w_55556666')!;
+    const to = { lat: -36.59, lon: 148.3 };
+    const result = saveWaypointEdit(
+      paths,
+      'ele',
+      w.id,
+      { expected: { name: w.name, lat: w.lat, lon: w.lon, description: w.description }, ...to },
+      await lookupWaypointElevation(paths, 'ele', to, fakeDem(951.26))
+    );
+    expect(gpx()).toBe(ELE_GPX.replace(SADDLE, '<wpt lat="-36.59" lon="148.3"><ele>951.3</ele>'));
+    expect(result.notes.join('\n')).toMatch(/Its <ele> went from 1105\.5 to 951\.3 m, from the Copernicus DEM/);
+  });
+
+  it('adds no <ele> to a moved <wpt> that has none, and leaves one alone on a rename', () => {
+    const moved = request('ele', 'w_33334444', ON_ROUTE);
+    expect(gpx()).toBe(
+      ELE_GPX.replace(
+        '<wpt lat="-36.52" lon="148.3"><name>Spring</name>',
+        '<wpt lat="-36.515" lon="148.23"><name>Spring</name>'
+      )
+    );
+    expect(moved.notes.join('\n')).not.toMatch(/<ele>/);
+    expect(moved.waypoint.ele).toBeUndefined();
+    request('ele', 'w_11112222', { name: 'Top Hut' });
+    expect(gpx()).toContain('<wpt lat="-36.525" lon="148.25"><ele>1100.0</ele><name>Top Hut</name>');
+  });
+
+  it('shows each waypoint’s <ele> from its <wpt>', () => {
+    expect(loadEditorTrail(paths, 'ele').waypoints.map(w => [w.name, w.ele])).toEqual([
+      ['Upper Hut', 1100],
+      ['Spring', undefined],
+      ['Saddle Camp', 1105.5],
+    ]);
   });
 });

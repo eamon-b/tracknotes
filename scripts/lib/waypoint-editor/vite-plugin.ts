@@ -8,6 +8,10 @@
  *  - writes that carry the `X-Waypoint-Editor` header, from no other origin
  *    (a custom header forces a CORS preflight the dev server does not grant).
  *
+ * The saves are synchronous; the one thing a save may wait for, the elevation
+ * of a new or moved waypoint off the route (the Copernicus DEM, read over the
+ * network), is looked up here first and handed to the save.
+ *
  * Routes, under `/__waypoint-editor`:
  *   GET  /trails                       trail list
  *   GET  /trails/:dir                  one trail's editor model
@@ -31,6 +35,7 @@ import type {
   WaypointEditRequest,
 } from './api-types';
 import { EDITOR_API_BASE, EDITOR_HEADER } from './api-types';
+import { copernicusDemSource } from './elevation';
 import {
   addWaypoint,
   deleteWaypoint,
@@ -38,6 +43,7 @@ import {
   editorPaths,
   listTrails,
   loadEditorTrail,
+  lookupWaypointElevation,
   saveWaypointEdit,
   type EditorPaths,
 } from './trail-state';
@@ -213,6 +219,12 @@ function gitChanges(root: string): Promise<ChangedFile[]> {
 export function waypointEditorPlugin(root: string): Plugin {
   const paths = editorPaths(root);
   const rebuild = new RebuildJob(paths);
+  const dem = copernicusDemSource();
+  const refuseDuringRebuild = () => {
+    if (rebuild.status.state === 'running') {
+      throw new EditorError('A rebuild is running: save when it has finished', 409);
+    }
+  };
 
   const handle = async (req: IncomingMessage, res: ServerResponse, route: string): Promise<void> => {
     const method = req.method ?? 'GET';
@@ -228,16 +240,19 @@ export function waypointEditorPlugin(root: string): Plugin {
       return send(res, 200, loadEditorTrail(paths, segments[1]));
     }
     const waypointRoute = segments[0] === 'trails' && segments[2] === 'waypoints';
-    if (waypointRoute && (method === 'POST' || method === 'DELETE') && rebuild.status.state === 'running') {
-      throw new EditorError('A rebuild is running: save when it has finished', 409);
-    }
+    if (waypointRoute && (method === 'POST' || method === 'DELETE')) refuseDuringRebuild();
     if (method === 'POST' && segments.length === 3 && waypointRoute) {
       const body = (await readBody(req)) as NewWaypointRequest;
-      return send(res, 201, addWaypoint(paths, segments[1], body));
+      const elevation = await lookupWaypointElevation(paths, segments[1], body, dem);
+      // The lookup can take seconds: a rebuild may have started meanwhile.
+      refuseDuringRebuild();
+      return send(res, 201, addWaypoint(paths, segments[1], body, elevation));
     }
     if (method === 'POST' && segments.length === 4 && waypointRoute) {
       const body = (await readBody(req)) as WaypointEditRequest;
-      return send(res, 200, saveWaypointEdit(paths, segments[1], segments[3], body));
+      const elevation = await lookupWaypointElevation(paths, segments[1], body, dem);
+      refuseDuringRebuild();
+      return send(res, 200, saveWaypointEdit(paths, segments[1], segments[3], body, elevation));
     }
     if (method === 'DELETE' && segments.length === 4 && waypointRoute) {
       const body = (await readBody(req)) as WaypointDeleteRequest;

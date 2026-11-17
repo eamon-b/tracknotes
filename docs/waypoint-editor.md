@@ -30,6 +30,7 @@ The page remembers the trail, and `?trail=<dir>&id=<waypoint id>` links straight
   type, with what decides it in the build (a CalTopo folder, a GPX `<type>`, a name prefix, a known town, or nothing);
   id and the lists the waypoint is in;
   latitude and longitude, plus a box that takes a pasted position or a Google Maps / OpenStreetMap link;
+  the `<ele>` its `<wpt>` has in the GPX, when it has one;
   links to the same spot on OpenStreetMap and Google (map and satellite);
   the description with a character count and voice hints;
   the GPX / CalTopo source text the app shows when there is no curated text, with "Start from this";
@@ -41,6 +42,8 @@ The page remembers the trail, and `?trail=<dir>&id=<waypoint id>` links straight
 Drag the marker, click "Click map to place" (`Alt+P`) and click the map or a POI, type or paste coordinates, use "Move here" on a nearby POI, or "Snap to route".
 Snapping uses the drawn (simplified) line, so it can sit a few metres off the full-resolution track.
 A save refuses a move over 50 km and asks before one over 2 km.
+A `<wpt>` that has an `<ele>` has it looked up again for the new position ("Elevation" below);
+one with no `<ele>` is not given one.
 
 ### Descriptions
 
@@ -73,7 +76,8 @@ The save's notes say when the waypoint starts or stops counting as water or as a
 ### Adding a waypoint
 
 "New waypoint" (under the map) opens a form: click the map or an OSM POI to place it (drag the marker to adjust), then give it a name, a type and, optionally, a description.
-"Add waypoint" inserts a `<wpt>` after the last one in the GPX, written like its neighbours (the same indentation, one line or one child per line, `<name>`, `<desc>` and `<type>` in the order the file uses).
+"Add waypoint" inserts a `<wpt>` after the last one in the GPX, written like its neighbours (the same indentation, one line or one child per line, `<ele>`, `<name>`, `<desc>` and `<type>` in the order the file uses).
+It gets an `<ele>` when the file's `<wpt>`s carry one ("Elevation" below).
 Nothing goes in `data/waypoint-ids.json` or `descriptions.json`: the waypoint has no id until the next build mints one, so the description goes in its `<desc>`, where the build reads it as source text.
 Until a rebuild it is listed as `pending rebuild` under a temporary key (`new:` and a hash of its `<wpt>`; a colon is never in an id, so it cannot be mistaken for one) and can only be deleted;
 the save's notes name the id the next build will mint.
@@ -82,6 +86,30 @@ On a CalTopo-typed trail no marker is added: the build types a `<wpt>` from a ma
 A marker that does have its name would win however far away it is, so the add is refused when one would type it differently.
 It is also refused for a name that starts with a type prefix (the build strips it), a position more than 50 km from the route, a position another `<wpt>` already has (the editor tells waypoints apart by their coordinates), and anything that would stop the build or change another waypoint's id.
 When the new waypoint stands where a retired waypoint of the same type and name stood, the next build hands it that id back (with its comments and description), and the notes say so.
+
+### Elevation
+
+The build never reads a `<wpt>`'s `<ele>`: an on-route waypoint's elevation in the built data is its matched track point's, and an off-trail waypoint has none.
+The editor keeps the `<ele>` anyway, so that the source GPX stays complete and consistent in the files whose `<wpt>`s carry one (Great North Walk, Grampians Peaks, Overland, Three Passes, the CDT and others; Heysen's and Shikoku's carry none).
+
+- **A new waypoint** gets an `<ele>` when at least half of the file's `<wpt>`s have one, and none otherwise.
+  It goes where the last `<wpt>` has its own (first, where GPX 1.1 puts it, when that one has none), with the number of decimals most of the file's `<ele>`s use (`745.0`).
+- **A moved waypoint** whose `<wpt>` has an `<ele>` has it rewritten in place, with the decimals it had.
+  One with no `<ele>` is not given one.
+
+The elevation is looked up for the position as it is written (six decimals):
+
+1. **From the route**, when the position is on it: within the distance at which the build matches a waypoint to the main route (`waypointMaxDistance` in `trail.json`, 500 m by default), measured to the line of the last build's full-resolution track and never across a route break.
+   The height is interpolated between the track points either side, so it is the one the elevation profile shows there.
+   A track with no real elevations (`elevationSource: 'none'`, or every point at 0) gives none.
+2. **From the Copernicus GLO-30 DEM** otherwise, read over the network (`scripts/lib/dem-sampler.ts`), waiting at most 8 seconds.
+   That covers a place off the route, and one on an alternate or side trip further than that from the main route.
+   Behind a proxy, start the dev server with `NODE_USE_ENV_PROXY=1 npm run dev`, as for `npm run fetch:access`.
+   No trail whose `<wpt>`s carry no `<ele>` ever asks the DEM.
+3. **Not at all** when neither answers (offline, a timeout, open sea): the save goes ahead regardless.
+   A new `<wpt>` is then written without an `<ele>`, and a moved one keeps the `<ele>` it had, which may be stale.
+
+The save's notes say what was written and where it came from ("812.3 m, from the route", "from the Copernicus DEM"), or that nothing was found and why, or that the file's `<wpt>`s carry none.
 
 ### Deleting a waypoint
 
@@ -139,13 +167,13 @@ All the writes of one save are computed before any is made, so a refusal leaves 
 - **Position:** the `<wpt>`'s `lat`/`lon` (six decimals);
   the CalTopo marker the build takes the waypoint's type from (the nearest one with the same cleaned name), so the type cannot change;
   and the waypoint's entry in `data/waypoint-ids.json`, so the next build matches it however far it moved and it keeps its id, comments and description.
-  A `<wpt>`'s `<ele>` is left as it was.
+  A `<wpt>`'s `<ele>`, when it has one, is rewritten for the new position ("Elevation" above), and left as it was when no elevation is found.
 - **Name:** the `<wpt>`'s `<name>` and the CalTopo marker's title, each keeping its type prefix (`C `, `WT: `);
   the registry entry's name;
   and the `name` aid in `descriptions.json`.
 - **Type:** the CalTopo marker's `folderId` (and a new folder feature, first in `features`), or the `<wpt>`'s `<type>` (added when it has none, with any name prefix dropped);
   and the registry entry's `type`.
-- **New waypoint:** one `<wpt>` in the GPX, and nothing else.
+- **New waypoint:** one `<wpt>` in the GPX (with an `<ele>` when the file's `<wpt>`s carry one), and nothing else.
 - **Delete:** the `<wpt>` (with the spacing before it), the CalTopo marker feature (with the comma that joined it) and the `descriptions.json` entries of every pass.
 
 A save is refused, writing nothing, if the waypoint changed on disk since the page read it (reload the trail).
