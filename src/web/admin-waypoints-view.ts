@@ -460,6 +460,18 @@ export function parseLatLon(input: string): { lat: number; lon: number } | null 
 }
 
 /**
+ * The coordinate a position edit means, given the saved one. The form shows a
+ * position at six decimals, and some GPX files hold more (CalTopo writes
+ * `138.19241669999997`): a value that is the saved one as shown is the saved
+ * one, so retyping what a field shows, or dropping the marker back where it
+ * was, is never a move.
+ */
+export function editedCoordinate(value: number, saved: number): number {
+  const shown = Number(value.toFixed(6));
+  return shown === Number(saved.toFixed(6)) ? saved : shown;
+}
+
+/**
  * One coordinate as typed into the Lat or Lon field: a plain decimal number
  * within `limit` (90 for a latitude, 180 for a longitude). Null for an empty
  * or unparsable field, which must never be read as 0.
