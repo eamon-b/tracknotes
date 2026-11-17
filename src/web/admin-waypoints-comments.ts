@@ -8,10 +8,14 @@
  * listing of reported and flagged comments adds hidden ones and report counts.
  * The editor only reads: nothing here posts, edits or moderates.
  *
+ * A waypoint's comments are paged: the form shows the newest
+ * `COMMENTS_PAGE_SIZE` and reveals more on request, so a hut with hundreds of
+ * them neither makes a very long form nor fetches every thumbnail at once.
+ *
  * Everything in a comment is user-supplied: every string goes through
  * `escapeHtml` and every photo URL through `safeHttpUrl`. The markup builders
  * are pure and tested in `admin-waypoints-comments.test.ts`;
- * `admin-waypoints.ts` wires them to the page.
+ * `admin-waypoints.ts` holds what is revealed and wires them to the page.
  */
 
 import { commentTargetKind } from '@lib/comment-targets';
@@ -142,6 +146,41 @@ export function orphanedCommentIds(state: CommentsState, knownIds: ReadonlySet<s
 }
 
 // ---------------------------------------------------------------------------
+// Paging
+// ---------------------------------------------------------------------------
+
+/** How many of a waypoint's comments the form shows at first, and reveals per "Show more". */
+export const COMMENTS_PAGE_SIZE = 10;
+
+/** The same for the ids in the "filed under ids no waypoint has" note. */
+export const ORPHAN_IDS_PAGE_SIZE = 20;
+
+/**
+ * How much of a paged list is revealed, and of which list: `key` names it (the
+ * selected waypoint for its comments, the trail for its orphaned ids).
+ * `shown` is `Infinity` after "Show all", so a Reload that brings more still shows all.
+ */
+export interface Reveal {
+  key: string;
+  shown: number;
+}
+
+/**
+ * What is revealed of the list `key`: `reveal` itself while it is about that
+ * list (a re-render, a Reload, a save), one page again once it is about another.
+ */
+export function revealFor(reveal: Reveal | null, key: string, pageSize: number): Reveal {
+  return reveal && reveal.key === key ? reveal : { key, shown: pageSize };
+}
+
+/** The count a "Show more" / "Show all" button asks for (its `data-*-show` value), or null if it is not one. */
+export function parseShown(value: string | undefined): number | null {
+  if (value === 'all') return Infinity;
+  const n = Number(value);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
+
+// ---------------------------------------------------------------------------
 // Loading
 // ---------------------------------------------------------------------------
 
@@ -266,11 +305,79 @@ export function commentsCountText(state: CommentsState, waypointId: string): str
   return state.kind === 'ready' ? String(state.byWaypoint.get(waypointId)?.length ?? 0) : '';
 }
 
-/** The Comments section's body for one waypoint, in every state. */
+/** "Show N more", and "Show all" when more than one further page remains. `attr` is the delegated click's `data-*`. */
+function showMoreButtonsHtml(attr: string, shown: number, total: number, pageSize: number): string {
+  const remaining = total - shown;
+  if (remaining <= 0) return '';
+  const step = Math.min(pageSize, remaining);
+  return (
+    ` <button type="button" class="wpe-btn wpe-btn-small" ${attr}="${shown + step}">Show ${step} more</button>` +
+    (remaining > pageSize
+      ? ` <button type="button" class="wpe-btn wpe-btn-small" ${attr}="all">Show all ${total}</button>`
+      : '')
+  );
+}
+
+/**
+ * What the comments below the fold include that an editor must not miss:
+ * hidden ones, and published ones with reports (both known only to an admin).
+ */
+function unshownFlagsText(unshown: readonly EditorComment[]): string {
+  const hidden = unshown.filter(c => c.hiddenBy).length;
+  const reported = unshown.filter(c => !c.hiddenBy && c.reportCount).length;
+  if (!hidden && !reported) return '';
+  const parts = [hidden ? `${hidden} hidden` : '', reported ? `${reported}${hidden ? ' more' : ''} reported` : ''];
+  return `The ${unshown.length} not shown include ${parts.filter(Boolean).join(' and ')}.`;
+}
+
+/**
+ * One waypoint's comments (newest first), the first `shown` of them, with the
+ * line that says how many that is and the buttons that reveal the rest.
+ * Comments past `shown` are left out of the markup, so their thumbnails are not fetched.
+ */
+export function commentsListHtml(list: readonly EditorComment[], shown: number = COMMENTS_PAGE_SIZE): string {
+  if (!list.length) return '<p class="wpe-muted">No comments on this waypoint.</p>';
+  const count = Math.min(list.length, Math.max(COMMENTS_PAGE_SIZE, shown));
+  const items = `<ul class="wpe-comments-list">${list.slice(0, count).map(commentHtml).join('')}</ul>`;
+  if (list.length <= COMMENTS_PAGE_SIZE) return items;
+  if (count === list.length) {
+    return `${items}<p class="wpe-muted wpe-comments-paging">Showing all ${list.length} comments.</p>`;
+  }
+  const flags = unshownFlagsText(list.slice(count));
+  return (
+    items +
+    `<p class="wpe-muted wpe-comments-paging">Showing the newest ${count} of ${list.length} comments.` +
+    (flags ? ` <strong class="wpe-comments-unshown">${flags}</strong>` : '') +
+    showMoreButtonsHtml('data-comments-show', count, list.length, COMMENTS_PAGE_SIZE) +
+    `</p>`
+  );
+}
+
+/** The note listing ids with comments that no waypoint has, the first `shown` of them. */
+export function orphanNoteHtml(orphaned: readonly string[], shown: number = ORPHAN_IDS_PAGE_SIZE): string {
+  if (!orphaned.length) return '';
+  const count = Math.min(orphaned.length, Math.max(ORPHAN_IDS_PAGE_SIZE, shown));
+  const ids = orphaned
+    .slice(0, count)
+    .map(id => `<code class="wpe-orphan-id">${escapeHtml(id)}</code>`)
+    .join(', ');
+  const rest =
+    count < orphaned.length
+      ? `, and ${orphaned.length - count} more.` +
+        showMoreButtonsHtml('data-orphans-show', count, orphaned.length, ORPHAN_IDS_PAGE_SIZE)
+      : '.';
+  return `<p class="wpe-muted">Comments are also filed under ${orphaned.length === 1 ? 'an id' : `${orphaned.length} ids`} no waypoint here has (a lost id?): ${ids}${rest}</p>`;
+}
+
+/**
+ * The Comments section's body for one waypoint, in every state.
+ * `shown` and `orphansShown` are how many comments and orphaned ids to list
+ * (`revealFor`); the default is one page of each.
+ */
 export function commentsSectionHtml(
   state: CommentsState,
   waypointId: string,
-  options: { orphaned?: readonly string[] } = {}
+  options: { orphaned?: readonly string[]; shown?: number; orphansShown?: number } = {}
 ): string {
   switch (state.kind) {
     case 'unconfigured':
@@ -282,23 +389,12 @@ export function commentsSectionHtml(
         `<p class="wpe-muted is-error">Comments are unavailable. ${escapeHtml(state.message)}</p>` +
         '<button type="button" class="wpe-btn wpe-btn-small" data-comments-reload>Try again</button>'
       );
-    case 'ready': {
-      const list = state.byWaypoint.get(waypointId) ?? [];
-      const body = list.length
-        ? `<ul class="wpe-comments-list">${list.map(commentHtml).join('')}</ul>`
-        : '<p class="wpe-muted">No comments on this waypoint.</p>';
-      const orphaned = options.orphaned ?? [];
-      const orphanNote = orphaned.length
-        ? `<p class="wpe-muted">Comments are also filed under ${orphaned.length === 1 ? 'an id' : `${orphaned.length} ids`} no waypoint here has (a lost id?): ${orphaned
-            .map(id => `<code>${escapeHtml(id)}</code>`)
-            .join(', ')}.</p>`
-        : '';
+    case 'ready':
       return (
-        body +
+        commentsListHtml(state.byWaypoint.get(waypointId) ?? [], options.shown) +
         `<p class="wpe-muted">${state.total === 1 ? '1 comment' : `${state.total} comments`} on this trail. ${escapeHtml(ADMIN_NOTES[state.admin])} ` +
         '<button type="button" class="wpe-btn wpe-btn-small" data-comments-reload>Reload</button></p>' +
-        orphanNote
+        orphanNoteHtml(options.orphaned ?? [], options.orphansShown)
       );
-    }
   }
 }
