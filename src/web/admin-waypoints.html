@@ -126,13 +126,14 @@
 
         <div class="wpe-field">
           <div class="wpe-desc-head">
-            <label for="wpe-desc">Description</label>
+            <label for="wpe-desc" id="wpe-desc-label">Description</label>
             <span class="wpe-muted" id="wpe-desc-count"></span>
           </div>
-          <textarea id="wpe-desc" rows="7" spellcheck="true"></textarea>
+          <p class="wpe-desc-where" id="wpe-desc-where" hidden></p>
+          <textarea id="wpe-desc" rows="7" spellcheck="true" aria-describedby="wpe-desc-where"></textarea>
           <ul class="wpe-hints" id="wpe-hints"></ul>
           <details class="wpe-source" id="wpe-source" hidden>
-            <summary>Source text (GPX / CalTopo)</summary>
+            <summary id="wpe-source-summary">Source text (GPX / CalTopo)</summary>
             <p id="wpe-source-text"></p>
             <button type="button" class="wpe-btn wpe-btn-small" id="wpe-use-source">Start from this</button>
           </details>
@@ -174,7 +175,7 @@
           <span>Description (optional: written to the GPX &lt;desc&gt;, since it has no id yet)</span>
           <textarea id="wpe-new-desc" rows="4" spellcheck="true"></textarea>
         </label>
-        <p class="wpe-muted">The next rebuild mints its id; until then it is listed as pending and can only be deleted.</p>
+        <p class="wpe-muted">The next rebuild mints its id; until then it is listed as pending, and edits to it go to its &lt;wpt&gt; in the GPX alone.</p>
         <div class="wpe-actions">
           <span class="wpe-header-spacer"></span>
           <button type="button" class="wpe-btn" id="wpe-new-cancel">Cancel</button>

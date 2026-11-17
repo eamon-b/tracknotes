@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { EditorWaypoint } from '../../scripts/lib/waypoint-editor/api-types';
 import {
+  compareWaypoints,
   deleteConfirmText,
+  descriptionField,
   draftChanges,
   draftOf,
+  hasCuratedText,
   isReviewed,
   matchesFilter,
   nearbyPois,
@@ -106,6 +109,34 @@ describe('drafts, filters and review marks', () => {
     const hasComments = { query: '', type: '', status: 'has-comments' } as const;
     expect(matchesFilter(w, hasComments, marks)).toBe(false);
     expect(matchesFilter(w, hasComments, marks, new Map([['w_1', 2]]))).toBe(true);
+  });
+
+  it("never counts a pending waypoint's <desc> as curated text, and says where its description is saved", () => {
+    const pending = waypoint({ id: 'new:abc', pending: true, description: 'A tank.' });
+    const marks = {};
+    expect(hasCuratedText(pending)).toBe(false);
+    expect(hasCuratedText(waypoint({ description: 'A hut.' }))).toBe(true);
+    expect(matchesFilter(pending, { query: '', type: '', status: 'no-text' }, marks)).toBe(true);
+    expect(matchesFilter(pending, { query: '', type: '', status: 'has-text' }, marks)).toBe(false);
+
+    const field = descriptionField(pending);
+    expect(field.label).toMatch(/GPX <desc>/);
+    expect(field.where).toMatch(/not curated text/);
+    expect(field.where).toMatch(/descriptions\.json/);
+    expect(field.removeConfirm).toMatch(/<desc>/);
+    const curated = descriptionField(waypoint({ sourceDescription: 'From the GPX.' }));
+    expect(curated).toMatchObject({ label: 'Description', where: '' });
+    expect(curated.placeholder).toMatch(/source text below/);
+    expect(curated.removeConfirm).toMatch(/curated description/);
+  });
+
+  it('orders the list by km, then name', () => {
+    const rows = [waypoint({ name: 'B', sortKm: 4 }), waypoint({ name: 'A', sortKm: 4 }), waypoint({ sortKm: 1 })];
+    expect(rows.sort(compareWaypoints).map(w => [w.sortKm, w.name])).toEqual([
+      [1, 'Upper Hut'],
+      [4, 'A'],
+      [4, 'B'],
+    ]);
   });
 
   it('lets a review mark lapse when the content changes', () => {

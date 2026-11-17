@@ -49,10 +49,13 @@ import {
 } from './admin-waypoints-comments';
 import {
   STATUS_FILTER_LABELS,
+  compareWaypoints,
   deleteConfirmText,
+  descriptionField,
   draftChanges,
   draftOf,
   externalMapLinks,
+  hasCuratedText,
   isDirty,
   isReviewed,
   matchesFilter,
@@ -206,6 +209,8 @@ function saveMarks(): void {
 }
 
 function setReviewed(w: EditorWaypoint, reviewed: boolean): void {
+  // A pending waypoint has only a temporary key, which a rename or a move changes: nothing is kept under it.
+  if (w.pending) return;
   if (reviewed) state.marks[w.id] = reviewFingerprint(w);
   else delete state.marks[w.id];
   saveMarks();
@@ -282,7 +287,7 @@ function renderProgress(): void {
   }
   const total = trail.waypoints.length;
   const reviewed = trail.waypoints.filter(w => isReviewed(state.marks, w)).length;
-  const described = trail.waypoints.filter(w => w.description).length;
+  const described = trail.waypoints.filter(hasCuratedText).length;
   const unsaved = trail.waypoints.filter(w => isDirty(w, state.drafts.get(w.id))).length;
   el.innerHTML =
     `<progress max="${total}" value="${reviewed}"></progress>` +
@@ -372,26 +377,7 @@ function drawTrail(): void {
     Lf.polyline([b.from, b.to], { color: '#9e9e9e', weight: 2, dashArray: '6 6' }).addTo(m.route);
   }
 
-  for (const w of trail.waypoints) {
-    const dot = Lf.circleMarker([w.lat, w.lon], {
-      radius: 6,
-      color: w.pending ? '#222222' : '#ffffff',
-      weight: 2,
-      dashArray: w.pending ? '2 2' : undefined,
-      fillColor: familyColor(w.type),
-      fillOpacity: 1,
-    })
-      .bindTooltip(`${escapeHtml(w.name)} <span class="wpe-muted">${escapeHtml(waypointTypeLabel(w.type))}</span>`, {
-        direction: 'top',
-        offset: [0, -6],
-      })
-      .on('click', () => {
-        if (state.placing || state.adding !== undefined) return;
-        select(w.id, { pan: false });
-      })
-      .addTo(m.dots);
-    m.dotById.set(w.id, dot);
-  }
+  for (const w of trail.waypoints) addDot(m, w);
 
   for (const p of trail.pois) {
     Lf.circleMarker([p.lat, p.lon], { radius: 4, color: '#555', weight: 1, fillColor: '#ffd166', fillOpacity: 0.9 })
@@ -408,6 +394,28 @@ function drawTrail(): void {
 
   const bounds = shapes.main.flat();
   if (bounds.length) m.map.fitBounds(Lf.latLngBounds(bounds), { padding: [20, 20] });
+}
+
+/** One waypoint's dot on the map, kept under its id (a pending waypoint's key) in `dotById`. */
+function addDot(m: MapState, w: EditorWaypoint): void {
+  const dot = m.L.circleMarker([w.lat, w.lon], {
+    radius: 6,
+    color: w.pending ? '#222222' : '#ffffff',
+    weight: 2,
+    dashArray: w.pending ? '2 2' : undefined,
+    fillColor: familyColor(w.type),
+    fillOpacity: 1,
+  })
+    .bindTooltip(`${escapeHtml(w.name)} <span class="wpe-muted">${escapeHtml(waypointTypeLabel(w.type))}</span>`, {
+      direction: 'top',
+      offset: [0, -6],
+    })
+    .on('click', () => {
+      if (state.placing || state.adding !== undefined) return;
+      select(w.id, { pan: false });
+    })
+    .addTo(m.dots);
+  m.dotById.set(w.id, dot);
 }
 
 function drawSelection(pan: boolean): void {
@@ -631,11 +639,14 @@ function fillForm(): void {
   $<HTMLInputElement>('wpe-paste').disabled = !w.canMove;
   $<HTMLInputElement>('wpe-paste').value = '';
   const desc = $<HTMLTextAreaElement>('wpe-desc');
+  const field = descriptionField(w);
   desc.value = draft.description;
   desc.disabled = !w.canDescribe;
-  desc.placeholder = w.sourceDescription
-    ? 'No curated text: the source text below is what the app shows.'
-    : 'No text yet.';
+  desc.placeholder = field.placeholder;
+  $('wpe-desc-label').textContent = field.label;
+  $('wpe-desc-where').hidden = !field.where;
+  $('wpe-desc-where').textContent = field.where;
+  $('wpe-source-summary').textContent = field.sourceSummary;
 
   const meta: string[] = [
     `<span>${waypointGlyphHtml(w.type)} ${escapeHtml(waypointTypeLabel(w.type))} · ${w.pending ? '<em>no id until the next build</em>' : `<code>${escapeHtml(w.id)}</code>`}</span>`,
@@ -655,7 +666,7 @@ function fillForm(): void {
   const source = $<HTMLDetailsElement>('wpe-source');
   source.hidden = !w.sourceDescription;
   $('wpe-source-text').textContent = w.sourceDescription ?? '';
-  source.open = !w.description && !!w.sourceDescription;
+  source.open = !hasCuratedText(w) && !!w.sourceDescription;
   $('wpe-use-source').hidden = !w.canDescribe;
 
   $<HTMLInputElement>('wpe-reviewed').checked = isReviewed(state.marks, w);
@@ -675,6 +686,11 @@ function select(id: string | null, options: { pan?: boolean } = {}): void {
   drawSelection(options.pan ?? true);
   renderList();
   scrollSelectedIntoView();
+  syncUrl();
+}
+
+/** Keep `?trail=&id=` on the selection, so the address links to it. */
+function syncUrl(): void {
   const url = new URL(location.href);
   if (state.trail) url.searchParams.set('trail', state.trail.dir);
   if (state.selectedId) url.searchParams.set('id', state.selectedId);
@@ -752,7 +768,7 @@ async function save(goNext: boolean): Promise<void> {
   const movedM = haversineDistance(w.lat, w.lon, draft.lat, draft.lon);
   if (changes.position && movedM > 2000 && !confirm(`Move “${w.name}” ${(movedM / 1000).toFixed(1)} km?`)) return;
   if (changes.description && !draft.description.trim() && w.description) {
-    if (!confirm('Remove the curated description? The source text (if any) shows again.')) return;
+    if (!confirm(descriptionField(w).removeConfirm)) return;
   }
   const request: WaypointEditRequest = {
     expected: { name: w.name, lat: w.lat, lon: w.lon, description: w.description, type: w.type },
@@ -769,8 +785,25 @@ async function save(goNext: boolean): Promise<void> {
       `/trails/${encodeURIComponent(state.trail!.dir)}/waypoints/${encodeURIComponent(w.id)}`,
       { method: 'POST', body: request }
     );
-    replaceWaypoint(result.waypoint);
-    state.drafts.delete(w.id);
+    // A renamed or moved pending waypoint comes back under a new temporary key:
+    // the row, the dot, the selection and the address follow it, and nothing
+    // (draft, review mark, what "Show more" revealed) stays under the old one.
+    const previousId = w.id;
+    replaceWaypoint(result.waypoint, previousId);
+    state.drafts.delete(previousId);
+    if (result.waypoint.id !== previousId) {
+      if (state.selectedId === previousId) state.selectedId = result.waypoint.id;
+      if (previousId in state.marks) {
+        delete state.marks[previousId];
+        saveMarks();
+      }
+      const trailId = state.trail!.id;
+      if (revealed.comments?.key === commentsRevealKey(trailId, previousId)) {
+        // A save keeps what is revealed: it is the same waypoint under its new key.
+        revealed.comments = { ...revealed.comments, key: commentsRevealKey(trailId, result.waypoint.id) };
+      }
+      syncUrl();
+    }
     if (goNext || $<HTMLInputElement>('wpe-reviewed').checked) setReviewed(result.waypoint, true);
     void refreshChanges();
     if (goNext) {
@@ -790,13 +823,24 @@ async function save(goNext: boolean): Promise<void> {
   }
 }
 
-function replaceWaypoint(w: EditorWaypoint): void {
+/** Put the saved waypoint in place of the one the page held as `previousId` (its id, unless a pending one was re-keyed). */
+function replaceWaypoint(w: EditorWaypoint, previousId = w.id): void {
   const trail = state.trail;
   if (!trail) return;
-  const index = trail.waypoints.findIndex(x => x.id === w.id);
+  const index = trail.waypoints.findIndex(x => x.id === previousId);
   if (index !== -1) trail.waypoints[index] = w;
+  if (previousId !== w.id) state.byId.delete(previousId);
   state.byId.set(w.id, w);
-  const dot = state.map?.dotById.get(w.id);
+  // A pending waypoint is listed by the km nearest its own position, which a move changes.
+  if (w.pending) trail.waypoints.sort(compareWaypoints);
+  const m = state.map;
+  if (m && previousId !== w.id) {
+    m.dotById.get(previousId)?.remove();
+    m.dotById.delete(previousId);
+    addDot(m, w);
+    return;
+  }
+  const dot = m?.dotById.get(w.id);
   dot?.setLatLng([w.lat, w.lon]);
   dot?.setStyle({ fillColor: familyColor(w.type) });
   dot?.setTooltipContent(
@@ -817,10 +861,15 @@ const commentsCache = new Map<string, Promise<CommentsState>>();
  */
 const revealed = { comments: null as Reveal | null, orphans: null as Reveal | null };
 
+/** The list `revealed.comments` is about: one waypoint's comments (a pending waypoint's key changes with it). */
+function commentsRevealKey(trailId: string, waypointId: string): string {
+  return `${trailId}/${waypointId}`;
+}
+
 function renderComments(): void {
   const w = selected();
   if (!w || !state.trail) return;
-  revealed.comments = revealFor(revealed.comments, `${state.trail.id}/${w.id}`, COMMENTS_PAGE_SIZE);
+  revealed.comments = revealFor(revealed.comments, commentsRevealKey(state.trail.id, w.id), COMMENTS_PAGE_SIZE);
   revealed.orphans = revealFor(revealed.orphans, state.trail.id, ORPHAN_IDS_PAGE_SIZE);
   $('wpe-comments-count').textContent = commentsCountText(state.comments, w.id);
   $('wpe-comments-body').innerHTML = commentsSectionHtml(state.comments, w.id, {
@@ -1013,6 +1062,8 @@ async function loadTrail(dir: string, keepSelection?: string | null): Promise<vo
     if (state.trail?.id !== trail.id) state.drafts.clear();
     state.trail = trail;
     state.byId = new Map(trail.waypoints.map(w => [w.id, w]));
+    // A draft outlives its waypoint when a rebuild gives a pending one its id (or retires a deleted one).
+    for (const id of [...state.drafts.keys()]) if (!state.byId.has(id)) state.drafts.delete(id);
     state.breakStarts = routeBreakStarts(trail.track.breaks, 'displayPoints');
     state.marks = loadMarks(trail.id);
     storageSet(TRAIL_KEY, dir);

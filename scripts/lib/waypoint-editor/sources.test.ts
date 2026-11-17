@@ -22,6 +22,7 @@ import {
   removeGpxWaypoint,
   renameKeepingPrefix,
   setCaltopoMarkerFolder,
+  setGpxWaypointDesc,
   setGpxWaypointElevation,
   setGpxWaypointName,
   setGpxWaypointPosition,
@@ -184,6 +185,29 @@ describe('GPX types, new and removed waypoints', () => {
     expect(setGpxWaypointType(MULTI, multi[0], 'resupply')).toContain(
       '    <link href="https://example.com/" />\n    <type>resupply</type>\n    <extensions>'
     );
+  });
+
+  it('replaces a <desc> in place, adds one after the <name> in the line style of the <wpt>, and removes one', () => {
+    expect(setGpxWaypointDesc(GPX, spans[0], 'Tank <only>')).toBe(
+      GPX.replace('<desc>Tank &amp; table</desc>', '<desc>Tank &lt;only&gt;</desc>')
+    );
+    expect(setGpxWaypointDesc(GPX, spans[0], '')).toBe(GPX.replace('<desc>Tank &amp; table</desc>', ''));
+    const added = setGpxWaypointDesc(GPX, spans[1], 'A low saddle.');
+    expect(added).toBe(GPX.replace('<name>Pass</name></wpt>', '<name>Pass</name><desc>A low saddle.</desc></wpt>'));
+    // Adding then removing gives the file back, and removing what is not there changes nothing.
+    expect(setGpxWaypointDesc(added, listGpxWaypoints(added)[1], '')).toBe(GPX);
+    expect(setGpxWaypointDesc(GPX, spans[1], '')).toBe(GPX);
+    expect(setGpxWaypointDesc(GPX, spans[3], 'Bare.')).toContain(
+      '<wpt lat="-36.7" lon="148.4"><desc>Bare.</desc></wpt>'
+    );
+
+    const multi = listGpxWaypoints(MULTI);
+    const multiAdded = setGpxWaypointDesc(MULTI, multi[0], 'A town.');
+    expect(multiAdded).toContain(
+      '    <name>East Glacier Park</name>\n    <desc>A town.</desc>\n    <link href="https://example.com/" />'
+    );
+    expect(setGpxWaypointDesc(multiAdded, listGpxWaypoints(multiAdded)[0], '')).toBe(MULTI);
+    expect(setGpxWaypointDesc(MULTI, multi[1], '')).toContain('    <type>poi</type>\n  </wpt>');
   });
 
   it('inserts a new <wpt> after the last one, in the style and child order the file uses', () => {

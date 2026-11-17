@@ -51,10 +51,14 @@ export interface EditorWaypoint {
    * Stable id (`data/waypoint-ids.json`): comments and descriptions are keyed by it.
    * A pending waypoint (added since the last build) has no id yet: this is then a
    * temporary key starting with {@link PENDING_KEY_PREFIX}, never sent anywhere
-   * that keys by id.
+   * that keys by id. The key is a hash of its name and position, so it changes
+   * when either does.
    */
   id: string;
-  /** Added to the GPX since the last build: the next build mints its id. */
+  /**
+   * Added to the GPX since the last build: the next build mints its id. Until
+   * then every edit goes to its `<wpt>` and nowhere that keys by id.
+   */
   pending?: boolean;
   /** Its `<wpt>` is gone from the GPX since the last build (deleted here, or edited by hand): the next build retires its id. */
   deleted?: boolean;
@@ -80,16 +84,24 @@ export interface EditorWaypoint {
   sortKm: number;
   /** From the last build, for an off-trail place. */
   distanceFromTrailKm?: number;
-  /** Curated text from `descriptions.json`, '' when there is none. */
+  /**
+   * Curated text from `descriptions.json`, '' when there is none. For a pending
+   * waypoint, which has no id to key a curated text by, its GPX `<desc>`: source
+   * text, edited in the GPX.
+   */
   description: string;
-  /** The GPX / CalTopo text the build shows when there is no curated text. */
+  /**
+   * The GPX / CalTopo text the build shows when there is no curated text. For a
+   * pending waypoint, only a CalTopo marker's text (which the build shows in
+   * place of the `<desc>`).
+   */
   sourceDescription?: string;
   canMove: boolean;
   canRename: boolean;
   canDescribe: boolean;
   canChangeType: boolean;
   canDelete: boolean;
-  /** Why moving, renaming or retyping is off, when it is. */
+  /** Why some or all of the edits above are off, when they are. */
   lockedReason?: string;
   /** `access.json`'s entry for this place: a move can leave its walk stale. */
   access?: { method?: string; store?: string };
@@ -143,7 +155,10 @@ export interface WaypointEditRequest {
   name?: string;
   lat?: number;
   lon?: number;
-  /** '' removes the curated text (the source text then shows again). */
+  /**
+   * '' removes the curated text (the source text then shows again). On a
+   * pending waypoint this is its GPX `<desc>`, and '' removes that.
+   */
   description?: string;
   /** One of `WAYPOINT_TYPES`: changes the source the build types it from and its registry entry's type. */
   type?: string;
@@ -172,6 +187,10 @@ export interface WaypointDeleteResponse {
 }
 
 export interface WaypointEditResponse {
+  /**
+   * The waypoint as saved. A pending waypoint that was renamed or moved comes
+   * back under a new temporary key (`id`): the page drops the old one.
+   */
   waypoint: EditorWaypoint;
   /** Repo-relative paths written. */
   changedFiles: string[];

@@ -68,6 +68,56 @@ export function changedSinceBuild(w: EditorWaypoint): boolean {
   return !!w.pending || !!w.deleted || movedSinceBuild(w) || renamedSinceBuild(w) || retypedSinceBuild(w);
 }
 
+/**
+ * Whether `w` has curated text (`descriptions.json`). A pending waypoint's
+ * `description` is its GPX `<desc>`: source text, never curated.
+ */
+export function hasCuratedText(w: EditorWaypoint): boolean {
+  return !!w.description && !w.pending;
+}
+
+/** How the form presents the description box: where its text is saved, and what emptying it does. */
+export interface DescriptionField {
+  label: string;
+  /** Said under the label when the text is not curated text; '' otherwise. */
+  where: string;
+  placeholder: string;
+  /** Asked before a save that empties a description that had text. */
+  removeConfirm: string;
+  /** Heading of the source-text box under it. */
+  sourceSummary: string;
+}
+
+/**
+ * A waypoint with an id takes curated text, kept in `descriptions.json` under
+ * that id. A pending one has no id, so the box edits its `<desc>` in the GPX
+ * instead, and says so: it is source text until a rebuild gives it an id.
+ */
+export function descriptionField(w: EditorWaypoint): DescriptionField {
+  if (w.pending) {
+    return {
+      label: 'Description: GPX <desc>',
+      where:
+        'No id yet, so this is not curated text: it is saved as the <desc> of its <wpt> in the GPX, source text the app shows as it stands. Once a rebuild gives it an id, text saved here goes to descriptions.json and outranks the <desc>.',
+      placeholder: 'No <desc> in the GPX.',
+      removeConfirm: 'Remove its <desc> from the GPX? It has no other description.',
+      sourceSummary: 'CalTopo marker text (the build shows this, not the <desc>)',
+    };
+  }
+  return {
+    label: 'Description',
+    where: '',
+    placeholder: w.sourceDescription ? 'No curated text: the source text below is what the app shows.' : 'No text yet.',
+    removeConfirm: 'Remove the curated description? The source text (if any) shows again.',
+    sourceSummary: 'Source text (GPX / CalTopo)',
+  };
+}
+
+/** The list's order, as the server sorts it: by km, then name. */
+export function compareWaypoints(a: EditorWaypoint, b: EditorWaypoint): number {
+  return a.sortKm - b.sortKm || a.name.localeCompare(b.name);
+}
+
 // ---------------------------------------------------------------------------
 // Review marks (per browser)
 // ---------------------------------------------------------------------------
@@ -138,9 +188,9 @@ export function matchesFilter(
   if (filter.query && !nameMatches(w.name, filter.query) && w.id !== filter.query.trim()) return false;
   switch (filter.status) {
     case 'no-text':
-      return !w.description;
+      return !hasCuratedText(w);
     case 'has-text':
-      return !!w.description;
+      return hasCuratedText(w);
     case 'unreviewed':
       return !isReviewed(marks, w);
     case 'reviewed':
@@ -273,7 +323,7 @@ export function rowHtml(
   if (state.dirty) badges.push('<span class="wpe-badge wpe-badge-dirty" title="Unsaved changes">unsaved</span>');
   if (w.pending) {
     badges.push(
-      '<span class="wpe-badge wpe-badge-pending" title="Added since the last build: rebuild to give it an id">pending rebuild</span>'
+      '<span class="wpe-badge wpe-badge-pending" title="Added since the last build: no id until a rebuild, so edits go to its &lt;wpt&gt; in the GPX alone">pending rebuild</span>'
     );
   } else if (w.deleted) {
     badges.push(
@@ -321,7 +371,7 @@ export function typeOptionsHtml(current: string | null): string {
 /** What deleting `w` does, for the confirm dialog. */
 export function deleteConfirmText(w: EditorWaypoint): string {
   if (w.pending)
-    return `Remove the unbuilt waypoint “${w.name}” from the GPX? It has no id yet, so nothing else changes.`;
+    return `Remove the unbuilt waypoint “${w.name}” from the GPX? It has no id yet, so nothing else changes (a CalTopo marker with its name, if any, stays).`;
   const lines = [
     `Delete “${w.name}” (${w.id})?`,
     '',
