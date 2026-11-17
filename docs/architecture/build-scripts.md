@@ -81,6 +81,7 @@ keep this file in step with the code it describes.
   Failed queries get three more passes a minute apart;
   `--only <ids>` re-runs what a run lost.
   A waypoint the build merged near-duplicates into (`dedupeWaypoints`, its `mergedIds`) gives every twin the same entry, or the merge would keep the twin without one on the next build;
+  nothing else reads `mergedIds` (the app looks comments and descriptions up by a row's own id), which is why the waypoint editor lists each merged-away twin for deleting;
   on such a trail a second fetch-and-build round can still move a survivor, so re-run until `fetch-access` changes nothing.
   A place off an alternate is routed to that alternate's line (`alternateRoute`: km from its `points[0]`, the branch point) and its entry names the alternate as `variant`, with `junctionKm`/`nearestKm` along it;
   an alternate whose name another shares is never routed to, since the entry names it.
@@ -152,10 +153,12 @@ keep this file in step with the code it describes.
   it runs Rebuild (`build:trails` then `build:mobile-trails`), reporting the ids minted or retired and every warning line of the build (all of stderr, where the build puts its warnings, the id-minting ones included), and refuses saves while one runs, with the state on `globalThis` and in a lock file so that a dev-server restart or a second dev server sees it;
   `vite.config.ts` imports it, so it imports only types and Node built-ins and loads the modules below per request with `ssrLoadModule`: an edit to them, or to `src/lib`, does not restart the dev server;
   `trail-state.ts` joins the last build's waypoints back to their `<wpt>` by exact coordinates (registry entry first, so a saved move is still found) and applies a save to the GPX, the CalTopo export, `descriptions.json` and `data/waypoint-ids.json`, all writes computed before any is made;
-  it lists a `<wpt>` no built waypoint came from (and no live registry entry sits on) as pending, under a `new:` key (a hash of its name and position), until the next build mints its id;
+  it lists each id in a built waypoint's `mergedIds` (a near-duplicate the build merged away, `dedupeWaypoints`) as a row of its own, joined to its `<wpt>` through its registry entry, deletable through the same delete and renamable (which takes it out of the merge under the id it has), with its position, type and description locked;
+  `mergesWith` repeats the build's single-linkage rule over the waypoints of one merge, to say which duplicates the next build will list again when one is deleted or renamed;
+  it lists a `<wpt>` none of those came from (and no live registry entry sits on) as pending, under a `new:` key (a hash of its name and position), until the next build mints its id;
   a pending waypoint goes through the same `saveWaypointEdit` as any other, but every edit stays in its `<wpt>` (the description in its `<desc>`), nothing is written to the registry or `descriptions.json`, the refusals are an add's, and the answer carries it under its new key;
   `resolveSourceType` reproduces how `build-trails.ts` types a `<wpt>` (nearest same-named CalTopo marker, then `<type>`, then the name), so a type change edits the source that decides it and the registry entry's `type` together;
-  a type change, add, delete or edit to a pending waypoint is refused unless the build's own `assignWaypointIds`, run on a copy of the registry over the sources before and after, keeps every other id (and, for a type change, this one);
+  a type change, add, delete, edit to a pending waypoint or rename of a merged duplicate is refused unless the build's own `assignWaypointIds`, run on a copy of the registry over the sources before and after, keeps every other id (and, for a type change, this one);
   the same run gives the id the next build will mint for (or hand back to) a pending waypoint, which the save's notes name;
   `elevation.ts` looks up the elevation for the `<ele>` of an added or moved `<wpt>`, a pending one's move included (the build never reads it; the source GPX stays complete): the route's own, interpolated between the track points either side, when the position is within the build's match radius of the main route (`waypointMaxDistance`, 500 m by default; never across a route break, never from a track without elevations), otherwise Copernicus GLO-30 through `lib/dem-sampler.ts` with an 8 s limit, otherwise nothing;
   the DEM is an injected `DemSource`, imported on first use, so tests never touch the network and starting the dev server loads no `geotiff`;

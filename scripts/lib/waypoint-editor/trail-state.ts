@@ -24,6 +24,12 @@
  * that keys by id is written for it: every edit goes to its `<wpt>` (the
  * description to its `<desc>`), and the build's id matching is run to say
  * which id the next build will give it.
+ *
+ * A `<wpt>` the build merged into a near-duplicate (`dedupeWaypoints`) has an
+ * id and a live registry entry but no built row: the surviving row lists it in
+ * `mergedIds`. It is joined to its `<wpt>` through its registry entry and
+ * listed as a row of its own (`mergedInto`), so a redundant duplicate can be
+ * deleted, or one that is a different place renamed apart.
  */
 
 import { createHash, randomUUID } from 'crypto';
@@ -34,6 +40,7 @@ import { snapToTrail } from '../../../src/lib/position-on-trail';
 import { haversineDistance } from '../../../src/lib/distance';
 import type { ProcessedTrail, RouteVariant } from '../../../src/lib/trail-types';
 import { classifyWaypoint } from '../../../src/lib/waypoint-classifier';
+import { WAYPOINT_DEDUPE_DEFAULT_RADIUS_METERS } from '../../../src/lib/waypoint-dedupe';
 import {
   isAccessWaypoint,
   isResupplyWaypoint,
@@ -42,7 +49,13 @@ import {
   waypointTypeLabel,
 } from '../../../src/lib/waypoint-taxonomy';
 import { DESCRIPTIONS_FILENAME, MAX_DESCRIPTION_LENGTH, type CuratedDescriptionsFile } from '../waypoint-descriptions';
-import { assignWaypointIds, MATCH_RADIUS_METERS, type WaypointForId, type WaypointRegistry } from '../waypoint-ids';
+import {
+  assignWaypointIds,
+  MATCH_RADIUS_METERS,
+  type WaypointForId,
+  type WaypointRegistry,
+  type WaypointRegistryEntry,
+} from '../waypoint-ids';
 import {
   PENDING_KEY_PREFIX,
   type EditorTrail,
@@ -127,6 +140,15 @@ interface TrailConfigFile {
   name?: string;
   gpxFile?: string;
   geojsonFile?: string;
+  dedupeWaypoints?: boolean | { radiusMeters?: number };
+}
+
+/** The radius the build merges same-name, same-type waypoints within (`buildTrail`), 0 when the trail does not merge. */
+function dedupeRadiusMeters(config: TrailConfigFile): number {
+  const dedupe = config.dedupeWaypoints;
+  if (dedupe === true) return WAYPOINT_DEDUPE_DEFAULT_RADIUS_METERS;
+  if (typeof dedupe !== 'object' || dedupe === null) return 0;
+  return Math.max(0, dedupe.radiusMeters ?? WAYPOINT_DEDUPE_DEFAULT_RADIUS_METERS);
 }
 
 /** Why a trail's sources are not edited here, or undefined when they are. */
@@ -227,6 +249,8 @@ interface TrailContext {
   descriptionsPath: string;
   built: ProcessedTrail;
   builtAt: string;
+  /** `dedupeWaypoints`' radius as trail.json has it now; 0 when off. */
+  dedupeRadiusMeters: number;
 }
 
 function loadContext(paths: EditorPaths, dirParam: string): TrailContext {
@@ -248,6 +272,7 @@ function loadContext(paths: EditorPaths, dirParam: string): TrailContext {
     descriptionsPath: path.join(trailDir, DESCRIPTIONS_FILENAME),
     built: readJson<ProcessedTrail>(builtFile),
     builtAt: fs.statSync(builtFile).mtime.toISOString(),
+    dedupeRadiusMeters: dedupeRadiusMeters(config),
   };
   if (geojson) context.geojsonPath = path.join(trailDir, geojson);
   const reason = readOnlyReason(trailId);
@@ -265,6 +290,8 @@ interface BuiltWaypoint {
   description?: string;
   placements: WaypointPlacement[];
   distanceFromTrailKm?: number;
+  /** Ids of the near-duplicates the build merged into it, over every list it is in. */
+  mergedIds?: string[];
 }
 
 function variantKind(variant: RouteVariant, alternate: boolean): PlacementKind {
@@ -275,7 +302,15 @@ function variantKind(variant: RouteVariant, alternate: boolean): PlacementKind {
 function collectBuiltWaypoints(trail: ProcessedTrail): BuiltWaypoint[] {
   const byId = new Map<string, BuiltWaypoint>();
   const add = (
-    w: { id?: string; name: string; type: string; lat: number; lon: number; description?: string },
+    w: {
+      id?: string;
+      name: string;
+      type: string;
+      lat: number;
+      lon: number;
+      description?: string;
+      mergedIds?: string[];
+    },
     placement: WaypointPlacement,
     distanceFromTrailKm?: number
   ) => {
@@ -288,6 +323,9 @@ function collectBuiltWaypoints(trail: ProcessedTrail): BuiltWaypoint[] {
     }
     entry.placements.push(placement);
     if (distanceFromTrailKm !== undefined) entry.distanceFromTrailKm = distanceFromTrailKm;
+    for (const id of w.mergedIds ?? []) {
+      if (!entry.mergedIds?.includes(id)) entry.mergedIds = [...(entry.mergedIds ?? []), id];
+    }
   };
   for (const w of trail.waypoints ?? []) add(w, { kind: 'main', km: w.totalDistance ?? w.distance });
   for (const w of trail.offTrailWaypoints ?? []) add(w, { kind: 'off-trail' }, w.distanceFromTrail);
@@ -347,6 +385,181 @@ function joinToSources(
     }
     return { built, name: built.name, lat: built.lat, lon: built.lon, span: null };
   });
+}
+
+/** A `<wpt>` the last build merged into `survivor` and dropped: it has an id and a registry entry, but no built row. */
+interface MergedAway {
+  id: string;
+  survivor: Joined;
+  entry: WaypointRegistryEntry;
+  /** Null when its `<wpt>` is gone since the build. */
+  span: GpxWaypointSpan | null;
+}
+
+/**
+ * The merged-away duplicates, joined to their `<wpt>`s. The build drops the
+ * row, so the registry entry is all that says where the `<wpt>` is: the join
+ * is on the entry's exact coordinates (the build refreshes them, and a save
+ * here keeps them in step), like every other join. One with no entry cannot be
+ * placed and is not listed; nor is one that still has a row of its own in
+ * another list, or whose `<wpt>` a built waypoint was joined to.
+ */
+function joinMergedAway(
+  joined: readonly Joined[],
+  spans: readonly GpxWaypointSpan[],
+  registry: WaypointRegistry,
+  trailId: string,
+  taken: ReadonlySet<number>
+): MergedAway[] {
+  const builtIds = new Set(joined.map(j => j.built.id));
+  const entries = new Map((registry[trailId] ?? []).map(e => [e.id, e]));
+  const seen = new Set<string>();
+  const merged: MergedAway[] = [];
+  for (const survivor of joined) {
+    for (const id of survivor.built.mergedIds ?? []) {
+      if (builtIds.has(id) || seen.has(id) || registryId(id) !== id) continue;
+      const entry = entries.get(id);
+      if (!entry) continue;
+      const span = findGpxWaypoint(spans, entry);
+      if (span && taken.has(span.start)) continue;
+      seen.add(id);
+      merged.push({ id, survivor, entry, span });
+    }
+  }
+  return merged;
+}
+
+/** What the build's merge compares: the cleaned name, the type and the position. */
+interface MergeMember {
+  id: string;
+  name: string;
+  type: string;
+  lat: number;
+  lon: number;
+}
+
+/**
+ * The members the build would merge with `seed`: same name and type, chained
+ * by gaps of at most `radiusMeters` (single linkage, as
+ * `dedupeNearDuplicateWaypoints` clusters). Only among `members`: waypoints
+ * the last build put in one list, so they are compared with each other again.
+ */
+function mergesWith(seed: MergeMember, members: readonly MergeMember[], radiusMeters: number): Set<string> {
+  const group = new Set([seed.id]);
+  const queue = [seed];
+  const alike = members.filter(m => m.name === seed.name && m.type === seed.type);
+  while (queue.length) {
+    const at = queue.pop()!;
+    for (const member of alike) {
+      if (group.has(member.id)) continue;
+      if (haversineDistance(at.lat, at.lon, member.lat, member.lon) > radiusMeters) continue;
+      group.add(member.id);
+      queue.push(member);
+    }
+  }
+  return group;
+}
+
+/** The rows the last build merged into one (the survivor and its merged-away duplicates) whose `<wpt>`s are still there. */
+function mergeGroup(rows: ReadonlyMap<string, EditorWaypoint>, survivorId: string): EditorWaypoint[] {
+  const survivor = rows.get(survivorId);
+  if (!survivor) return [];
+  const group = [survivor, ...(survivor.mergedIds ?? []).flatMap(id => rows.get(id) ?? [])];
+  return group.filter(w => !w.deleted);
+}
+
+/**
+ * The duplicates merged with `leaving`'s survivor that the next build lists
+ * again once `leaving` is out of the group (deleted, or renamed apart): the
+ * ones it alone chained to the survivor.
+ */
+function freedByLeaving(
+  rows: ReadonlyMap<string, EditorWaypoint>,
+  leaving: EditorWaypoint,
+  radiusMeters: number
+): EditorWaypoint[] {
+  if (!leaving.mergedInto) return [];
+  const group = mergeGroup(rows, leaving.mergedInto);
+  const survivor = group.find(w => w.id === leaving.mergedInto);
+  if (!survivor) return [];
+  const before = mergesWith(survivor, group, radiusMeters);
+  const after = mergesWith(
+    survivor,
+    group.filter(w => w.id !== leaving.id),
+    radiusMeters
+  );
+  return group.filter(w => w.id !== leaving.id && before.has(w.id) && !after.has(w.id));
+}
+
+/** A merged-away duplicate as a row: its own id, name and position, flagged with the waypoint it merged into. */
+function toMergedWaypoint(
+  context: TrailContext,
+  merged: MergedAway,
+  survivor: EditorWaypoint,
+  curated: Map<string, string>,
+  access: Record<string, AccessEntryLite>,
+  sources: Sources
+): EditorWaypoint {
+  const { id, entry, span } = merged;
+  const typeSource = span ? resolveSourceType(span, sources.caltopo) : null;
+  const editable = !context.readOnlyReason && !!span;
+  const waypoint: EditorWaypoint = {
+    id,
+    mergedInto: survivor.id,
+    mergedDistanceM: haversineDistance(entry.lat, entry.lon, survivor.lat, survivor.lon),
+    name: entry.name,
+    type: typeSource?.type ?? entry.type,
+    // The build dropped its row: what it built under this name and type is the survivor.
+    builtType: merged.survivor.built.type,
+    lat: entry.lat,
+    lon: entry.lon,
+    builtLat: entry.lat,
+    builtLon: entry.lon,
+    builtName: merged.survivor.built.name,
+    placements: [],
+    // Listed beside the waypoint it merged into.
+    sortKm: survivor.sortKm,
+    description: curated.get(id) ?? '',
+    // Its position, type and description are not the app's while it is merged
+    // (the survivor's are); a rename is what takes it out of the merge.
+    canMove: false,
+    canRename: editable,
+    canDescribe: false,
+    canChangeType: false,
+    canDelete: editable,
+  };
+  if (typeSource)
+    waypoint.typeSource = typeSourceText(typeSource, context.geojsonPath && path.basename(context.geojsonPath));
+  if (!span && !context.readOnlyReason) waypoint.deleted = true;
+  const ele = sourceElevation(span);
+  if (ele !== undefined) waypoint.ele = ele;
+  const sourceText = sourceDescription(span, sources.caltopo, entry);
+  if (sourceText) waypoint.sourceDescription = sourceText;
+  const accessEntry = access[id];
+  if (accessEntry) {
+    waypoint.access = {};
+    if (accessEntry.method) waypoint.access.method = accessEntry.method;
+    if (accessEntry.store) waypoint.access.store = accessEntry.store;
+  }
+  return waypoint;
+}
+
+/** Why a merged-away duplicate is locked, and what to do with it. */
+function mergedLockedReason(context: TrailContext, waypoint: EditorWaypoint, survivor: EditorWaypoint): string {
+  if (context.readOnlyReason) return context.readOnlyReason;
+  if (waypoint.deleted) {
+    return 'Its <wpt> is no longer in the GPX: deleted since the last build (or edited by hand). The next build retires its id; rebuild before editing it.';
+  }
+  const into = `“${waypoint.builtName}” (${survivor.id})`;
+  if (waypoint.unmerges) {
+    return `The last build merged this <wpt> into ${into}, but as the sources stand it is no longer a duplicate of it (the two differ in name or type, are more than ${context.dedupeRadiusMeters} m apart, or that waypoint is gone), so the next build lists it as a waypoint of its own under ${waypoint.id}. Rebuild, then edit it like any other; until then it can be renamed or deleted.`;
+  }
+  const apart = waypoint.mergedDistanceM ?? 0;
+  const rule =
+    apart <= context.dedupeRadiusMeters
+      ? `the same name and type within ${context.dedupeRadiusMeters} m (dedupeWaypoints in trail.json)`
+      : `the same name and type, each within ${context.dedupeRadiusMeters} m of another duplicate between the two (dedupeWaypoints in trail.json merges a chain)`;
+  return `The last build merged this <wpt> into ${into}, ${Math.round(apart)} m away: ${rule}, so the app shows that one row and none for this. Delete it if it is a redundant duplicate. If it is a different place, rename it: under a name of its own the next build lists it again under ${waypoint.id}, and it can then be moved, retyped and described like any other. Its position, type and description are locked while it is merged: the app shows that waypoint's, so correct them there (the build appends this one's description, when it has one, to that waypoint's).`;
 }
 
 function displayPoints(trail: ProcessedTrail): { lat: number; lon: number; dist: number }[] {
@@ -605,18 +818,43 @@ function buildEditorWaypoints(
   const built = joined.map(j =>
     toEditorWaypoint(context, j, curated, access, sharers, sources, sortKm(j, points, starts))
   );
-  // A <wpt> no built waypoint came from is new since the build, unless a live
-  // registry entry sits exactly on it under its name: then it has an id, and the
-  // build merged it into a near-duplicate (`dedupeWaypoints`).
+
+  // The <wpt>s the build merged into a near-duplicate (`dedupeWaypoints`): each
+  // has an id but no built row, and is listed beside the waypoint it merged into.
+  const rows = new Map(built.map(w => [w.id, w]));
+  const mergedAway = joinMergedAway(joined, sources.spans, sources.registry, context.trailId, new Set(sharers.keys()));
+  const merged = mergedAway.map(m =>
+    toMergedWaypoint(context, m, rows.get(m.survivor.built.id)!, curated, access, sources)
+  );
+  for (const w of merged) rows.set(w.id, w);
+  for (const j of joined) {
+    if (j.built.mergedIds?.length) rows.get(j.built.id)!.mergedIds = j.built.mergedIds;
+  }
+  for (const w of merged) {
+    // Still a duplicate, as the sources stand? Only while the waypoint it
+    // merged into is there and the build would chain the two together again.
+    const survivor = rows.get(w.mergedInto!)!;
+    const group = mergeGroup(rows, survivor.id);
+    const stays = !w.deleted && !survivor.deleted && mergesWith(survivor, group, context.dedupeRadiusMeters).has(w.id);
+    if (!stays && !w.deleted) w.unmerges = true;
+    w.lockedReason = mergedLockedReason(context, w, survivor);
+  }
+
+  // A <wpt> none of those came from is new since the build, unless a live
+  // registry entry sits exactly on it under its name: then it has an id the
+  // editor cannot place (the build and the registry are out of step).
+  const used = new Set([...sharers.keys(), ...mergedAway.flatMap(m => (m.span ? [m.span.start] : []))]);
   const live = (sources.registry[context.trailId] ?? []).filter(e => !e.retired);
   const hasId = (span: GpxWaypointSpan) => {
     const name = classifyWaypoint(span.name || 'Unnamed').cleanedName;
     return live.some(e => e.lat === span.lat && e.lon === span.lon && e.name === name);
   };
   const pending = sources.spans
-    .filter(span => !sharers.has(span.start) && !hasId(span))
+    .filter(span => !used.has(span.start) && !hasId(span))
     .map(span => toPendingWaypoint(context, span, sources, points, starts));
-  return [...built, ...pending].sort((a, b) => a.sortKm - b.sortKm || a.name.localeCompare(b.name));
+  // In km order, each merged-away duplicate straight after the waypoint it merged into.
+  const ordered = [...built, ...pending].sort((a, b) => a.sortKm - b.sortKm || a.name.localeCompare(b.name));
+  return ordered.flatMap(w => [w, ...merged.filter(m => m.mergedInto === w.id)]);
 }
 
 export function loadEditorTrail(paths: EditorPaths, dirParam: string): EditorTrail {
@@ -1161,6 +1399,9 @@ export function saveWaypointEdit(
       }
     }
   }
+  // Renaming a merged-away duplicate is how it leaves the merge: the new name
+  // must be the one the build shows, or its type could change with it.
+  if (current.mergedInto && rename) assertNoTypePrefix(newName);
 
   const changed = new Set<string>();
   const notes: string[] = [];
@@ -1267,9 +1508,11 @@ export function saveWaypointEdit(
   }
 
   let nextId: string | null = null;
-  if (retype || (current.pending && (move || rename))) {
+  if (retype || (current.pending && (move || rename)) || (current.mergedInto && rename)) {
     // Check the result as the build will see it: the type it resolves to, and
-    // that every id comes through (this one included, when it has one).
+    // that every id comes through (this one included, when it has one). A
+    // merged-away duplicate is renamed to come back as a row under its id, so
+    // its rename is held to the same check.
     const caltopoAfter = geojsonText === null ? null : readCaltopoExport(geojsonText);
     const spansAfter = listGpxWaypoints(gpxText);
     const at = current.pending ? spansAfter[pendingIndex] : findGpxWaypoint(spansAfter, { lat, lon, name });
@@ -1280,6 +1523,11 @@ export function saveWaypointEdit(
       // the <wpt> is all there is, and it must be what the editor shows.
       if (current.pending && resolved && resolved.cleanedName === name) {
         throw typeClashError(context, resolved, wanted, at!);
+      }
+      if (!retype && resolved) {
+        throw new EditorError(
+          `Under that name the build would type it ${resolved.type}, not ${wanted}, and mint it a new id: nothing was written. Its type comes from ${current.typeSource ?? 'its name'}.`
+        );
       }
       throw new EditorError(
         `Could not make that type stick: the build would still type it ${resolved?.type ?? '(not found)'}, so nothing was written.`,
@@ -1372,10 +1620,39 @@ export function saveWaypointEdit(
   // A pending waypoint's temporary key is a hash of its name and position, so
   // a rename or a move re-keys it: the answer carries it under the new key.
   const key = current.pending ? pendingKey(listGpxWaypoints(gpxText)[pendingIndex]) : waypointId;
-  const after = buildEditorWaypoints(paths, loadContext(paths, dirParam)).find(w => w.id === key);
+  const rowsAfter = buildEditorWaypoints(paths, loadContext(paths, dirParam));
+  const after = rowsAfter.find(w => w.id === key);
   if (!after)
     throw new EditorError('The waypoint could not be found again after saving: rebuild and check the diff', 500);
+  // The build merges on name, type and distance: an edit to the waypoint that
+  // duplicates were merged into can end the merge, and they come back as rows.
+  const wasMerged = new Set(waypoints.filter(w => w.mergedInto === current.id && !w.unmerges).map(w => w.id));
+  const freed = rowsAfter.filter(w => wasMerged.has(w.id) && w.unmerges);
+  if (freed.length) {
+    const one = freed.length === 1;
+    notes.push(
+      `${freed.map(w => w.id).join(', ')}, which the build merged into it, ${one ? 'is' : 'are'} no longer ${one ? 'a duplicate' : 'duplicates'} of it as the sources now stand: the next build lists ${one ? 'it' : 'them'} again as ${one ? 'a row of its own, under its own id' : 'rows of their own, under their own ids'}.`
+    );
+  }
+  if (current.mergedInto && rename) {
+    const into = `“${after.builtName}” (${current.mergedInto})`;
+    if (after.unmerges) {
+      notes.push(
+        `Under its own name the next build no longer merges it into ${into}: it is listed again as a row of its own under ${current.id}, with the comments filed under that id.`
+      );
+      const freed = freedByLeaving(byId, current, context.dedupeRadiusMeters);
+      if (freed.length) notes.push(freedNote(freed, into, context.dedupeRadiusMeters));
+    } else {
+      notes.push(`Under that name the next build still merges it into ${into}.`);
+    }
+  }
   return { waypoint: after, changedFiles: [...changed], notes };
+}
+
+/** Says which other duplicates come back when one leaves a chain the build merged. */
+function freedNote(freed: readonly EditorWaypoint[], into: string, radiusMeters: number): string {
+  const ids = freed.map(w => w.id).join(', ');
+  return `${ids} ${freed.length === 1 ? 'was' : 'were'} merged into ${into} only through this one (each within ${radiusMeters} m of the next): the next build lists ${freed.length === 1 ? 'it' : 'them'} again too, under ${freed.length === 1 ? 'its own id' : 'their own ids'}.`;
 }
 
 /**
@@ -1491,7 +1768,8 @@ export function deleteWaypoint(
   const context = loadContext(paths, dirParam);
   if (context.readOnlyReason) throw new EditorError(context.readOnlyReason);
   const sources = readSources(paths, context);
-  const current = buildEditorWaypoints(paths, context, sources).find(w => w.id === key);
+  const rows = new Map(buildEditorWaypoints(paths, context, sources).map(w => [w.id, w]));
+  const current = rows.get(key);
   if (!current) throw new EditorError(`${context.trailId} has no waypoint ${key}`, 404);
   if (!current.pending && registryId(current.id) !== current.id) {
     throw new EditorError(
@@ -1546,10 +1824,40 @@ export function deleteWaypoint(
   }
   if (current.pending) {
     notes.push('Removed the unbuilt waypoint; it never had an id.');
+  } else if (current.mergedInto) {
+    // The build dropped its row, so the app never showed anything keyed to its
+    // id: nothing in the app reads `mergedIds` to find comments.
+    const into = `“${current.builtName}” (${current.mergedInto})`;
+    notes.push(
+      `The next build marks ${current.id} retired in data/waypoint-ids.json (entries are never deleted, and a retired id never passes to another place) and drops it from the ids merged into ${into}, which stays as it is.`
+    );
+    notes.push(
+      `Comments keyed to ${current.id} were already out of sight, and stay so: the app looks comments up by a row's own id, and this duplicate has had no row since the build began merging it. They stay on the server.`
+    );
+    if (current.description || current.sourceDescription) {
+      notes.push(
+        `The build appended its description to that of ${into} in the trail data; the next build no longer does.`
+      );
+    }
+    const freed = freedByLeaving(rows, current, context.dedupeRadiusMeters);
+    if (freed.length) notes.push(freedNote(freed, into, context.dedupeRadiusMeters));
+    if (current.access) {
+      notes.push(
+        `access.json still has an entry for ${current.id}: npm run fetch:access drops it, or remove it by hand.`
+      );
+    }
   } else {
     notes.push(
       `The next build marks ${current.id} retired in data/waypoint-ids.json (entries are never deleted, and a retired id never passes to another place); comments keyed to ${removed.join(', ')} are orphaned.`
     );
+    const duplicates = mergeGroup(rows, current.id).filter(w => w.id !== current.id && w.mergedInto === current.id);
+    if (duplicates.length) {
+      const ids = duplicates.map(w => w.id).join(', ');
+      const one = duplicates.length === 1;
+      notes.push(
+        `${ids} ${one ? 'is a near-duplicate' : 'are near-duplicates'} the build merged into it, with ${one ? 'a <wpt>' : '<wpt>s'} of ${one ? 'its' : 'their'} own that ${one ? 'stays' : 'stay'}: the next build lists ${one ? 'it' : 'them'} again as ${one ? 'a row of its own, under its own id' : `rows of their own, under their own ids (those within ${context.dedupeRadiusMeters} m of each other as one row)`}, with the comments filed under ${one ? 'that id' : 'those ids'}. Comments keyed to ${current.id} do not move to ${one ? 'it' : 'them'}. Delete ${one ? 'it' : 'them'} too if the place is gone.`
+      );
+    }
     if (current.sharesSourceWith?.length) {
       notes.push(`${current.sharesSourceWith.join(', ')} went with it: built from the same <wpt>.`);
     }

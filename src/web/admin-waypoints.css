@@ -287,6 +287,17 @@ kbd {
   color: var(--text-muted);
 }
 
+/* A duplicate the build merged away (no row in the app), and the waypoint it merged into. */
+.wpe-badge-merged {
+  border: 1px dashed var(--tint-warn-border);
+  color: var(--tint-warn-text);
+}
+
+.wpe-badge-merged-into {
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
 .wpe-reviewed {
   color: var(--success);
   font-weight: 700;
@@ -389,6 +400,27 @@ kbd {
 
 .wpe-meta code {
   font-size: 0.85em;
+}
+
+/* A waypoint id that selects its row (the merge line in the form). */
+.wpe-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--primary);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Said over a waypoint's comments: the app shows none of those filed under a merged-away id. */
+.wpe-comments-note {
+  margin: 0.4rem 0;
+  padding: 0.35rem 0.5rem;
+  border-left: 3px solid var(--tint-warn-border);
+  background: var(--tint-warn);
+  color: var(--tint-warn-text);
+  font-size: 0.8rem;
 }
 
 .wpe-latlon {

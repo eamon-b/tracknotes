@@ -52,13 +52,18 @@ import {
   compareWaypoints,
   deleteConfirmText,
   descriptionField,
+  dotStyle,
+  dotTooltipHtml,
   draftChanges,
   draftOf,
   externalMapLinks,
   hasCuratedText,
   isDirty,
   isReviewed,
+  knownCommentIds,
   matchesFilter,
+  mergeCommentsNote,
+  mergeMetaHtml,
   movedSinceBuild,
   nearbyPois,
   parseLatLon,
@@ -398,18 +403,8 @@ function drawTrail(): void {
 
 /** One waypoint's dot on the map, kept under its id (a pending waypoint's key) in `dotById`. */
 function addDot(m: MapState, w: EditorWaypoint): void {
-  const dot = m.L.circleMarker([w.lat, w.lon], {
-    radius: 6,
-    color: w.pending ? '#222222' : '#ffffff',
-    weight: 2,
-    dashArray: w.pending ? '2 2' : undefined,
-    fillColor: familyColor(w.type),
-    fillOpacity: 1,
-  })
-    .bindTooltip(`${escapeHtml(w.name)} <span class="wpe-muted">${escapeHtml(waypointTypeLabel(w.type))}</span>`, {
-      direction: 'top',
-      offset: [0, -6],
-    })
+  const dot = m.L.circleMarker([w.lat, w.lon], dotStyle(w, familyColor(w.type)))
+    .bindTooltip(dotTooltipHtml(w), { direction: 'top', offset: [0, -6] })
     .on('click', () => {
       if (state.placing || state.adding !== undefined) return;
       select(w.id, { pan: false });
@@ -443,6 +438,26 @@ function drawSelection(pan: boolean): void {
     ).addTo(m.guides);
     Lf.circleMarker([w.builtLat, w.builtLon], { radius: 5, color: '#888', weight: 2, fillOpacity: 0 })
       .bindTooltip('Position in the last build')
+      .addTo(m.guides);
+  }
+  // A merge the build made: a line from a merged-away duplicate to the waypoint it merged into, and back.
+  const mergeColor = themeColor('--tint-warn-text', '#8a5a00');
+  for (const id of w.mergedInto ? [w.mergedInto] : (w.mergedIds ?? [])) {
+    const other = state.byId.get(id);
+    if (!other || other.deleted || w.deleted) continue;
+    Lf.polyline(
+      [
+        [w.lat, w.lon],
+        [other.lat, other.lon],
+      ],
+      { color: mergeColor, weight: 2, dashArray: '1 5' }
+    )
+      .bindTooltip(
+        w.mergedInto
+          ? `Merged into ${escapeHtml(other.name)} (${escapeHtml(other.id)})`
+          : `${escapeHtml(other.id)} merged into this`,
+        { sticky: true }
+      )
       .addTo(m.guides);
   }
   if (draftChanges(w, draft).position) {
@@ -661,6 +676,8 @@ function fillForm(): void {
   }
   if (w.sharesSourceWith?.length)
     meta.push(`<span>Same &lt;wpt&gt; as ${escapeHtml(w.sharesSourceWith.join(', '))}</span>`);
+  const merge = mergeMetaHtml(w, state.byId);
+  if (merge) meta.push(merge);
   $('wpe-meta').innerHTML = meta.join('');
 
   const source = $<HTMLDetailsElement>('wpe-source');
@@ -834,18 +851,10 @@ function replaceWaypoint(w: EditorWaypoint, previousId = w.id): void {
   // A pending waypoint is listed by the km nearest its own position, which a move changes.
   if (w.pending) trail.waypoints.sort(compareWaypoints);
   const m = state.map;
-  if (m && previousId !== w.id) {
-    m.dotById.get(previousId)?.remove();
-    m.dotById.delete(previousId);
-    addDot(m, w);
-    return;
-  }
-  const dot = m?.dotById.get(w.id);
-  dot?.setLatLng([w.lat, w.lon]);
-  dot?.setStyle({ fillColor: familyColor(w.type) });
-  dot?.setTooltipContent(
-    `${escapeHtml(w.name)} <span class="wpe-muted">${escapeHtml(waypointTypeLabel(w.type))}</span>`
-  );
+  if (!m) return;
+  m.dotById.get(previousId)?.remove();
+  m.dotById.delete(previousId);
+  addDot(m, w);
 }
 
 // ---------------------------------------------------------------------------
@@ -873,9 +882,11 @@ function renderComments(): void {
   revealed.orphans = revealFor(revealed.orphans, state.trail.id, ORPHAN_IDS_PAGE_SIZE);
   $('wpe-comments-count').textContent = commentsCountText(state.comments, w.id);
   $('wpe-comments-body').innerHTML = commentsSectionHtml(state.comments, w.id, {
-    orphaned: orphanedCommentIds(state.comments, new Set(state.byId.keys())),
+    // A merged-away id is live (it is in its survivor's mergedIds, and has a row here), not lost.
+    orphaned: orphanedCommentIds(state.comments, knownCommentIds(state.trail.waypoints)),
     shown: revealed.comments.shown,
     orphansShown: revealed.orphans.shown,
+    note: mergeCommentsNote(w, state.byId, state.commentCounts),
   });
 }
 
@@ -1019,7 +1030,7 @@ async function deleteSelected(): Promise<void> {
   const w = selected();
   const trail = state.trail;
   if (!w || !trail || !w.canDelete || state.saving) return;
-  if (!confirm(deleteConfirmText(w))) return;
+  if (!confirm(deleteConfirmText(w, state.commentCounts.get(w.id)))) return;
   const rows = visibleWaypoints();
   const index = rows.findIndex(x => x.id === w.id);
   const next = rows[index + 1] ?? rows[index - 1] ?? null;
@@ -1232,6 +1243,10 @@ function wire(): void {
     const button = (e.target as HTMLElement).closest<HTMLElement>('[data-poi-move]');
     const poi = state.trail?.pois.find(p => p.id === button?.dataset.poiMove);
     if (poi) moveDraftTo(poi.lat, poi.lon);
+  });
+  $('wpe-meta').addEventListener('click', e => {
+    const id = (e.target as HTMLElement).closest<HTMLElement>('[data-goto]')?.dataset.goto;
+    if (id && state.byId.has(id)) select(id);
   });
   $('wpe-comments-body').addEventListener('click', e => {
     const target = e.target as HTMLElement;

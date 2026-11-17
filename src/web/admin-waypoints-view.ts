@@ -104,6 +104,20 @@ export function descriptionField(w: EditorWaypoint): DescriptionField {
       sourceSummary: 'CalTopo marker text (the build shows this, not the <desc>)',
     };
   }
+  if (w.mergedInto) {
+    // The app shows no row for it, so no text of its own: the box is locked.
+    return {
+      label: 'Description',
+      where: '',
+      placeholder: w.unmerges
+        ? 'Locked until a rebuild lists it as a waypoint of its own.'
+        : 'A merged duplicate takes no description of its own: describe the waypoint it merged into.',
+      removeConfirm: 'Remove the curated description?',
+      sourceSummary: w.unmerges
+        ? 'Source text (GPX / CalTopo)'
+        : 'Source text (GPX / CalTopo): the build appends it to the description of the waypoint it merged into',
+    };
+  }
   return {
     label: 'Description',
     where: '',
@@ -152,7 +166,16 @@ export function reviewStorageKey(trailId: string): string {
 // ---------------------------------------------------------------------------
 
 export type StatusFilter =
-  'all' | 'no-text' | 'has-text' | 'unreviewed' | 'reviewed' | 'changed' | 'pending' | 'off-route' | 'has-comments';
+  | 'all'
+  | 'no-text'
+  | 'has-text'
+  | 'unreviewed'
+  | 'reviewed'
+  | 'changed'
+  | 'pending'
+  | 'merged'
+  | 'off-route'
+  | 'has-comments';
 
 export const STATUS_FILTER_LABELS: Record<StatusFilter, string> = {
   all: 'All waypoints',
@@ -162,6 +185,7 @@ export const STATUS_FILTER_LABELS: Record<StatusFilter, string> = {
   reviewed: 'Reviewed',
   changed: 'Changed since build',
   pending: 'Added, pending rebuild',
+  merged: 'Merged duplicates (with what they merged into)',
   'off-route': 'Off the route',
   'has-comments': 'Has comments',
 };
@@ -174,7 +198,13 @@ export interface WaypointFilter {
 }
 
 function isOffRoute(w: EditorWaypoint): boolean {
-  return !w.placements.some(p => p.kind === 'main');
+  // A merged-away duplicate is in no list at all: the build dropped its row.
+  return !w.mergedInto && !w.placements.some(p => p.kind === 'main');
+}
+
+/** In a merge the build made: a duplicate it dropped, or the waypoint it kept in that duplicate's place. */
+export function isInMerge(w: EditorWaypoint): boolean {
+  return !!w.mergedInto || !!w.mergedIds?.length;
 }
 
 export function matchesFilter(
@@ -188,7 +218,8 @@ export function matchesFilter(
   if (filter.query && !nameMatches(w.name, filter.query) && w.id !== filter.query.trim()) return false;
   switch (filter.status) {
     case 'no-text':
-      return !hasCuratedText(w);
+      // A merged-away duplicate takes no text of its own: it is not work to do.
+      return !hasCuratedText(w) && !w.mergedInto;
     case 'has-text':
       return hasCuratedText(w);
     case 'unreviewed':
@@ -199,6 +230,8 @@ export function matchesFilter(
       return changedSinceBuild(w);
     case 'pending':
       return !!w.pending;
+    case 'merged':
+      return isInMerge(w);
     case 'off-route':
       return isOffRoute(w);
     case 'has-comments':
@@ -332,11 +365,21 @@ export function rowHtml(
   } else if (changedSinceBuild(w)) {
     badges.push('<span class="wpe-badge wpe-badge-changed" title="Saved; rebuild to see it in the data">saved</span>');
   }
-  if (!w.description && !w.pending && !w.deleted)
+  if (w.mergedInto && !w.deleted) {
+    const title = w.unmerges
+      ? `The last build merged it into ${w.mergedInto}; as the sources stand the next build lists it on its own`
+      : `The build merged it into ${w.mergedInto}: it has an id but no row in the app`;
+    badges.push(`<span class="wpe-badge wpe-badge-merged" title="${escapeHtml(title)}">merged</span>`);
+  } else if (w.mergedIds?.length) {
+    badges.push(
+      `<span class="wpe-badge wpe-badge-merged-into" title="${escapeHtml(`The build merged ${w.mergedIds.join(', ')} into it`)}">+${w.mergedIds.length} merged</span>`
+    );
+  }
+  if (!w.description && !w.pending && !w.deleted && !w.mergedInto)
     badges.push('<span class="wpe-badge wpe-badge-empty" title="No curated description">no text</span>');
   badges.push(commentBadgeHtml(state.comments));
   const reviewed = state.reviewed ? '<span class="wpe-reviewed" title="Reviewed">✓</span>' : '';
-  const off = w.placements.some(p => p.kind === 'main') ? '' : ' <span class="wpe-muted">off route</span>';
+  const off = isOffRoute(w) ? ' <span class="wpe-muted">off route</span>' : '';
   return (
     `<li class="wpe-row${state.selected ? ' is-selected' : ''}" data-id="${escapeHtml(w.id)}" role="option" ` +
     `aria-selected="${state.selected}" tabindex="-1">` +
@@ -368,10 +411,35 @@ export function typeOptionsHtml(current: string | null): string {
   );
 }
 
-/** What deleting `w` does, for the confirm dialog. */
-export function deleteConfirmText(w: EditorWaypoint): string {
+/** What deleting `w` does, for the confirm dialog. `comments` is how many hikers' comments are filed under its id, when known. */
+export function deleteConfirmText(w: EditorWaypoint, comments?: number): string {
   if (w.pending)
     return `Remove the unbuilt waypoint “${w.name}” from the GPX? It has no id yet, so nothing else changes (a CalTopo marker with its name, if any, stays).`;
+  if (w.mergedInto) {
+    // The build dropped its row, so the app never showed what is keyed to its id.
+    const into = `“${w.builtName}” (${w.mergedInto})`;
+    const lines = [
+      `Delete the merged duplicate “${w.name}” (${w.id})?`,
+      '',
+      w.unmerges
+        ? `The last build merged it into ${into}, so the app shows no row for it yet; as the sources stand the next build would list it on its own.`
+        : `The build merged it into ${into}, ${Math.round(w.mergedDistanceM ?? 0)} m away, so the app shows no row for it: that waypoint stays as it is.`,
+      'This removes its <wpt> from the GPX, the CalTopo marker that types it (if any) and any curated description under its id.',
+      'Its registry entry stays: the next build marks the id retired, so it never passes to another place.',
+      `Comments keyed to ${w.id} are already out of sight, and stay so: the app looks comments up by a row's own id, and this duplicate has had no row since the build began merging it. They stay on the server.`,
+    ];
+    if (comments) {
+      lines.push(
+        `It has ${comments === 1 ? '1 comment' : `${comments} comments`}: read ${comments === 1 ? 'it' : 'them'} in the form first, in case a report belongs on ${into}.`
+      );
+    }
+    if (w.description || w.sourceDescription) {
+      lines.push(
+        `The build appended its description to that of ${into} in the trail data; the next build no longer does.`
+      );
+    }
+    return lines.join('\n');
+  }
   const lines = [
     `Delete “${w.name}” (${w.id})?`,
     '',
@@ -382,7 +450,122 @@ export function deleteConfirmText(w: EditorWaypoint): string {
   if (w.sharesSourceWith?.length) {
     lines.push(`Also deletes ${w.sharesSourceWith.join(', ')}: later passes built from the same <wpt>.`);
   }
+  if (w.mergedIds?.length) {
+    const one = w.mergedIds.length === 1;
+    lines.push(
+      `The build merged ${w.mergedIds.join(', ')} into it: ${one ? 'that <wpt> stays' : 'those <wpt>s stay'}, so the next build lists ${one ? 'it' : 'them'} again as ${one ? 'a row of its own, under its own id' : 'rows of their own, under their own ids'}. Comments keyed to ${w.id} do not move to ${one ? 'it' : 'them'}. Delete ${one ? 'it' : 'them'} too if the place is gone.`
+    );
+  }
   return lines.join('\n');
+}
+
+// ---------------------------------------------------------------------------
+// Merged near-duplicates (`dedupeWaypoints`)
+// ---------------------------------------------------------------------------
+
+function metres(a: { lat: number; lon: number }, b: { lat: number; lon: number }): number {
+  return Math.round(haversineDistance(a.lat, a.lon, b.lat, b.lon));
+}
+
+/** A waypoint id that selects its row when the page has one (`data-goto`), plain otherwise. */
+function idLinkHtml(id: string, known: boolean): string {
+  const code = `<code>${escapeHtml(id)}</code>`;
+  return known
+    ? `<button type="button" class="wpe-link" data-goto="${escapeHtml(id)}" title="Go to this waypoint">${code}</button>`
+    : code;
+}
+
+/**
+ * The form's line on a merge the build made: on a merged-away duplicate, the
+ * waypoint it merged into and how far apart they are; on that waypoint, the
+ * ids merged into it. '' for any other waypoint.
+ */
+export function mergeMetaHtml(w: EditorWaypoint, byId: ReadonlyMap<string, EditorWaypoint>): string {
+  if (w.mergedInto) {
+    const survivor = byId.get(w.mergedInto);
+    const where = survivor ? ` “${escapeHtml(survivor.name)}”` : '';
+    const apart = w.mergedDistanceM === undefined ? '' : `, ${Math.round(w.mergedDistanceM)} m away`;
+    return (
+      `<span class="wpe-meta-merged">Merged by the last build into${where} ${idLinkHtml(w.mergedInto, !!survivor)}${apart}: no row in the app` +
+      (w.unmerges ? '; the next build lists it on its own' : '') +
+      `</span>`
+    );
+  }
+  if (!w.mergedIds?.length) return '';
+  const items = w.mergedIds.map(id => {
+    const duplicate = byId.get(id);
+    const state = !duplicate ? '' : duplicate.deleted ? ' (deleted)' : ` (${metres(w, duplicate)} m away)`;
+    return `${idLinkHtml(id, !!duplicate)}${state}`;
+  });
+  return `<span class="wpe-meta-merged">The last build merged into it: ${items.join(', ')}</span>`;
+}
+
+/**
+ * What to say over a waypoint's comments about a merge: the app looks comments
+ * up by a row's own id and never reads `mergedIds`, so comments filed under a
+ * merged-away id are shown nowhere in it. Undefined when there is nothing to say.
+ */
+export function mergeCommentsNote(
+  w: EditorWaypoint,
+  byId: ReadonlyMap<string, EditorWaypoint>,
+  commentCounts: ReadonlyMap<string, number>
+): string | undefined {
+  if (w.mergedInto) {
+    if (!commentCounts.get(w.id)) return undefined;
+    const survivor = byId.get(w.mergedInto);
+    return `The app does not show these: it looks comments up by a row's own id, and the build merged this waypoint into ${survivor ? `“${survivor.name}” ` : ''}(${w.mergedInto}). A report here may belong on that waypoint.`;
+  }
+  const hidden = (w.mergedIds ?? []).filter(id => commentCounts.get(id));
+  if (!hidden.length) return undefined;
+  const total = hidden.reduce((sum, id) => sum + (commentCounts.get(id) ?? 0), 0);
+  return `${total === 1 ? '1 more comment is' : `${total} more comments are`} filed under ${hidden.join(', ')}, merged into this waypoint by the build: the app does not show ${total === 1 ? 'it' : 'them'} here. Open ${hidden.length === 1 ? 'that row' : 'those rows'} to read ${total === 1 ? 'it' : 'them'}.`;
+}
+
+/**
+ * Every id a comment may rightly be filed under on this trail: each row's own,
+ * and each id the build merged into a row, so a merged-away id is never
+ * reported as lost.
+ */
+export function knownCommentIds(waypoints: readonly EditorWaypoint[]): Set<string> {
+  return new Set(waypoints.flatMap(w => [w.id, ...(w.mergedIds ?? [])]));
+}
+
+/** How a waypoint's dot is drawn on the map (Leaflet path options), given its family colour. */
+export interface DotStyle {
+  radius: number;
+  color: string;
+  weight: number;
+  dashArray: string | undefined;
+  fillColor: string;
+  fillOpacity: number;
+}
+
+/**
+ * A built waypoint is a solid dot in its family colour with a white edge. One
+ * pending a rebuild has a dashed dark edge. A merged-away duplicate, which the
+ * app does not show, is a smaller hollow ring in the family colour.
+ */
+export function dotStyle(w: EditorWaypoint, familyColor: string): DotStyle {
+  if (w.mergedInto) {
+    return { radius: 5, color: familyColor, weight: 2, dashArray: '1 4', fillColor: '#ffffff', fillOpacity: 0.7 };
+  }
+  return {
+    radius: 6,
+    color: w.pending ? '#222222' : '#ffffff',
+    weight: 2,
+    dashArray: w.pending ? '2 2' : undefined,
+    fillColor: familyColor,
+    fillOpacity: 1,
+  };
+}
+
+/** A dot's tooltip: name and type, and for a merged-away duplicate what it merged into. Escaped. */
+export function dotTooltipHtml(w: EditorWaypoint): string {
+  return (
+    `${escapeHtml(w.name)} <span class="wpe-muted">${escapeHtml(waypointTypeLabel(w.type))}` +
+    (w.mergedInto ? ` · merged into ${escapeHtml(w.mergedInto)}` : '') +
+    `</span>`
+  );
 }
 
 export interface PositionReadout {

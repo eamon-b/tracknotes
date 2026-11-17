@@ -18,20 +18,25 @@ A waypoint added since the last build has only a temporary key there (`id=new:�
 
 ### The screen
 
-- **List** (left): every waypoint with an id, in km order (off-route ones by the km of the nearest route point), with its type glyph and badges: `unsaved` (edits held in the page), `saved` (written since the last build), `pending rebuild` (added since the last build: no id yet, so it is edited in the GPX alone), `deleted` (its `<wpt>` is gone since the last build), `no text` (no curated description) and ✓ (reviewed).
+- **List** (left): every `<wpt>` the trail has, in km order (off-route ones by the km of the nearest route point), with its type glyph and badges: `unsaved` (edits held in the page), `saved` (written since the last build), `pending rebuild` (added since the last build: no id yet, so it is edited in the GPX alone), `deleted` (its `<wpt>` is gone since the last build), `merged` (a near-duplicate the build merged into another waypoint: it has an id but no row in the app), `+N merged` (the waypoint those were merged into), `no text` (no curated description) and ✓ (reviewed).
+  A merged duplicate is listed straight after the waypoint it merged into.
   Search matches names accent-insensitively, or an exact id;
-  the filters narrow by type and by status (no curated text, not reviewed, changed since build, added and pending a rebuild, off the route, has comments).
+  the filters narrow by type and by status (no curated text, not reviewed, changed since build, added and pending a rebuild, merged duplicates with what they merged into, off the route, has comments).
   A row with hikers' comments carries a count badge.
 - **Map** (centre): the route as built (cut at route breaks, variants dashed), every waypoint coloured by family, and the selected one as a draggable marker.
+  A waypoint pending a rebuild has a dashed dark edge;
+  a merged duplicate is a smaller hollow ring with a dotted edge, since the app does not show it.
   The layer control switches between OpenTopoMap, Esri satellite imagery and OpenStreetMap, and shows OSM POIs.
   A grey dashed line joins a saved move to where the last build drew the waypoint;
-  a blue one joins an unsaved move to the saved position.
+  a blue one joins an unsaved move to the saved position;
+  a dotted one joins a selected merged duplicate to the waypoint it merged into (and that waypoint to its duplicates).
   The bar under the map gives the nearest route km, the distance from the route and the distance moved, live while dragging.
 - **Form** (right): name;
   type, with what decides it in the build (a CalTopo folder, a GPX `<type>`, a name prefix, a known town, or nothing);
   id and the lists the waypoint is in;
+  for a merged duplicate, the waypoint the build merged it into (a link to it) and how far apart they are, and on that waypoint the ids merged into it;
   latitude and longitude, plus a box that takes a pasted position or a Google Maps / OpenStreetMap link;
-  the `<ele>` its `<wpt>` has in the GPX, when it has one;
+  the `<ele>` its `<wpt>` has in the GPX, when it has one (a merged duplicate's and a pending waypoint's included);
   links to the same spot on OpenStreetMap and Google (map and satellite);
   the description with a character count and voice hints;
   the GPX / CalTopo source text the app shows when there is no curated text, with "Start from this";
@@ -150,6 +155,36 @@ Until the rebuild the waypoint stays in the list as `deleted`, locked.
 A revisited place's later pass (`<id>_2`) cannot be deleted on its own, since it is built from the first pass's `<wpt>`: deleting the first pass deletes every pass and their descriptions.
 An `access.json` entry for the place is left for `npm run fetch:access` (the notes say so).
 Deleting a pending waypoint just takes its `<wpt>` out again (a CalTopo marker with its name stays).
+Deleting a waypoint that near-duplicates were merged into leaves those `<wpt>`s where they are, so the next build lists them again as rows of their own, under their own ids (the confirm and the notes name them): comments keyed to the deleted id do not move to them.
+
+### Merged near-duplicates
+
+On a trail with `dedupeWaypoints` in `trail.json`, the build mints an id for every `<wpt>` and then merges waypoints with the same name and type that are within the radius of one another (150 m unless `radiusMeters` says otherwise, and in a chain: a third within reach of the second is merged with the first).
+One survives, with the others' ids in its `mergedIds`;
+the others keep their `<wpt>`, their id and a live registry entry, but have no row in the built data.
+The editor lists each of them as a row of its own, joined to its `<wpt>` through its registry entry (the entry's exact coordinates, like every other join), so a redundant duplicate can be removed here.
+
+- **Deleting one** goes through the usual delete: its `<wpt>`, the CalTopo marker that typed it (unless shared) and any `descriptions.json` entry under its id, with the same id check.
+  The next build retires exactly its id and drops it from the survivor's `mergedIds`;
+  the survivor is untouched.
+- **Its comments.**
+  Nothing in the app reads `mergedIds`: the phone looks comments up by the id of the row it shows, and a merged duplicate has had no row since the build began merging it.
+  So comments keyed to its id were already shown nowhere, and deleting it changes nothing a hiker sees: the confirm and the notes say that, not that the comments are orphaned.
+  Its row here does show them (the only place that does), paged like any waypoint's, and the confirm counts them, in case a report belongs on the waypoint it merged into.
+  A note that the app does not show them sits above the first comment, so "Show more" never hides it.
+  That waypoint's own comments section says, in the same place, when comments are filed under an id merged into it.
+- **Its description.**
+  The build appends a merged duplicate's description (its `<desc>`, a CalTopo marker's text, or a curated entry under its id) to the survivor's, as a paragraph of its own, unless the survivor's text already has it.
+  Deleting it takes that paragraph out of the survivor's bundled text at the next build, and the notes say so.
+- **A chain.**
+  When the deleted duplicate was the only link between the survivor and a further one, that further one is no longer within the radius of anything left in the merge and the next build lists it again: the notes name it.
+- **Editing the survivor.**
+  The merge is on name, type and distance, so renaming, retyping or moving the survivor can end it: the save's notes name the duplicates the next build will then list again.
+- **Renaming one** is the way out when it is a different place and not a duplicate: under a name of its own the build no longer merges it, and the next build lists it as a waypoint under the id it already has, with the comments filed under that id.
+  The save renames its `<wpt>` (and its CalTopo marker) and its registry entry together, and is refused unless the build's id matching keeps every id, its own included.
+  Until the rebuild the row says the next build will list it on its own.
+- **Its position, type and description are locked** while it is merged: the app shows the survivor's, so those are corrected on the survivor, and a description saved under a merged id would only be appended to the survivor's bundled text.
+  The form says so, with the two ways forward (delete it, or rename it).
 
 ### Hikers' comments
 
@@ -163,6 +198,7 @@ The page makes one public read per trail, `GET /v1/trails/:trailId/comments` wit
 switching waypoint does not refetch.
 Comments are keyed by stable waypoint id, so a comment filed under an id no waypoint on the trail has any more is listed by id under the section, as a sign an id was lost.
 That list shows 20 ids at a time, with the same "Show more" and "Show all", and what is revealed of it lasts until another trail is opened.
+An id the build merged into another waypoint is not lost: it has a row of its own, which shows its comments ("Merged near-duplicates" above).
 In a browser linked to an admin account (the link from `admin-moderation.html`), the page also reads `GET /v1/admin/comments?reported=1`, adding comments hidden by reports or deleted by an admin, and report counts;
 without one, or with a non-admin account, it says hidden comments are not shown and lists the public ones.
 Hidden and reported comments sit in the same newest-first list and page with it, so the "showing" line says how many of the comments not yet shown are hidden, and how many more are published but reported ("The 227 not shown include 3 hidden and 2 more reported.").
@@ -209,6 +245,8 @@ All the writes of one save are computed before any is made, so a refusal leaves 
   and the CalTopo marker with its name, when that marker types no other waypoint.
   Never the registry or `descriptions.json`: it has no id.
 - **Delete:** the `<wpt>` (with the spacing before it), the CalTopo marker feature (with the comma that joined it) and the `descriptions.json` entries of every pass.
+- **Merged duplicate:** a delete as above, or a rename (its `<wpt>`'s `<name>`, its CalTopo marker's title and its registry entry's name);
+  nothing else.
 
 A save is refused, writing nothing, if the waypoint changed on disk since the page read it (reload the trail).
 
@@ -226,6 +264,7 @@ A save is refused, writing nothing, if the waypoint changed on disk since the pa
 After a rebuild the Changed files drawer lists the ids the build **minted** or **retired**.
 A move, rename or type change made here should produce neither;
 a waypoint added here should mint exactly the id its last save named (a move, rename or retype of a pending waypoint names it afresh), and one deleted here should retire exactly its own.
+That holds for a merged duplicate too: deleting one retires its id alone, and a duplicate that comes back as a row (renamed apart, freed from a chain, or left behind by a deleted survivor) keeps the id it had, so nothing is minted.
 Anything else means a waypoint lost its id (and the comments keyed to it), for example because a rename changed its type through a name prefix: fix the source and rebuild before committing.
 The drawer also shows the build's warning lines, open, and its output.
 The warning lines are every line the build printed on stderr, which is where it puts all of its warnings and failures (`console.warn` and `console.error`; a clean build prints nothing there), plus any stdout line that opens with `Warning:`, `⚠`, `!` or `✗`.
@@ -252,7 +291,8 @@ If only the dev server is killed, the step that is running finishes (a half-writ
 - A waypoint whose `<wpt>` cannot be found (deleted here, or the GPX was edited by hand since the build) is locked until a rebuild.
 - A pending waypoint (added since the build) through a CalTopo marker that also types another waypoint: it can be described and deleted, not moved, renamed or retyped.
 - The description of a pending waypoint whose CalTopo marker has one, until a rebuild gives it an id.
-- A `<wpt>` the build merged into a near-duplicate (`dedupeWaypoints`) is not listed: it has an id, but no row of its own.
+- The position, type and description of a `<wpt>` the build merged into a near-duplicate (`dedupeWaypoints`): it can be deleted, or renamed apart ("Merged near-duplicates").
+- A merged duplicate whose id has no registry entry: nothing says which `<wpt>` it is, so it is not listed (its `<wpt>` shows as pending).
 - A type no CalTopo folder title means, on a waypoint a CalTopo marker types (see "Changing a type").
 
 ## Descriptions on the phone

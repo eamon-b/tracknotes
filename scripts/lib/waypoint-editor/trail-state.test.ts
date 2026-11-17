@@ -1028,3 +1028,267 @@ describe('a pending waypoint’s elevation', () => {
     expect(gpx()).toBe(ELE_GPX);
   });
 });
+
+// A trail that merges near-duplicates (`dedupeWaypoints`): three taps under one
+// name, 89 m apart in a line, so the third is within the radius of the first
+// only through the second. The build kept the first and dropped the others.
+const DUP_GPX = [
+  '<gpx version="1.1">',
+  '  <wpt lat="-36.5" lon="148.25"><name>Tap</name><type>water</type></wpt>',
+  '  <wpt lat="-36.5008" lon="148.25"><ele>412.5</ele><name>Tap</name><desc>By the gate.</desc><type>water</type></wpt>',
+  '  <wpt lat="-36.5016" lon="148.25"><name>Tap</name><type>water</type></wpt>',
+  '  <wpt lat="-36.55" lon="148.35"><name>Saddle Camp</name><type>campsite</type></wpt>',
+  '  <trk><trkseg><trkpt lat="-36.5" lon="148.2"/><trkpt lat="-36.6" lon="148.4"/></trkseg></trk>',
+  '</gpx>',
+  '',
+].join('\n');
+
+const DUP_REGISTRY = [
+  { id: 'w_d0000001', name: 'Tap', type: 'water', lat: -36.5, lon: 148.25 },
+  { id: 'w_d0000002', name: 'Tap', type: 'water', lat: -36.5008, lon: 148.25 },
+  { id: 'w_d0000003', name: 'Tap', type: 'water', lat: -36.5016, lon: 148.25 },
+  { id: 'w_cccc3333', name: 'Saddle Camp', type: 'campsite', lat: -36.55, lon: 148.35 },
+];
+
+function writeDup(dir = 'dup', dedupeWaypoints: unknown = true): void {
+  write(
+    `data/trails/${dir}/trail.json`,
+    JSON.stringify({ id: dir, name: 'Dup Track', gpxFile: 'dup.gpx', dedupeWaypoints })
+  );
+  write(`data/trails/${dir}/dup.gpx`, DUP_GPX);
+  write(
+    `public/data/generated/${dir}.json`,
+    JSON.stringify({
+      ...BUILT,
+      config: { id: dir, name: 'Dup Track' },
+      waypoints: [
+        {
+          id: 'w_d0000001',
+          name: 'Tap',
+          type: 'water',
+          lat: -36.5,
+          lon: 148.25,
+          totalDistance: 4,
+          description: 'By the gate.',
+          mergedIds: ['w_d0000002', 'w_d0000003'],
+        },
+        { id: 'w_cccc3333', name: 'Saddle Camp', type: 'campsite', lat: -36.55, lon: 148.35, totalDistance: 14 },
+      ],
+      offTrailWaypoints: [],
+      pois: [],
+    })
+  );
+  const registry = JSON.parse(read('data/waypoint-ids.json')) as WaypointRegistry;
+  write('data/waypoint-ids.json', `${JSON.stringify({ ...registry, [dir]: DUP_REGISTRY }, null, 2)}\n`);
+}
+
+function dupFiles(): Record<string, string> {
+  return { gpx: read('data/trails/dup/dup.gpx'), registry: read('data/waypoint-ids.json') };
+}
+
+function row(dir: string, id: string) {
+  return loadEditorTrail(paths, dir).waypoints.find(w => w.id === id)!;
+}
+
+function remove(dir: string, id: string) {
+  const w = row(dir, id);
+  return deleteWaypoint(paths, dir, id, {
+    expected: { name: w.name, lat: w.lat, lon: w.lon, description: w.description, type: w.type },
+  });
+}
+
+describe('near-duplicates the build merged', () => {
+  it('lists each merged-away <wpt> as a row of its own, joined through its registry entry', () => {
+    writeDup();
+    const waypoints = loadEditorTrail(paths, 'dup').waypoints;
+    expect(waypoints.map(w => [w.id, w.name, w.mergedInto])).toEqual([
+      ['w_d0000001', 'Tap', undefined],
+      ['w_d0000002', 'Tap', 'w_d0000001'],
+      ['w_d0000003', 'Tap', 'w_d0000001'],
+      ['w_cccc3333', 'Saddle Camp', undefined],
+    ]);
+    expect(waypoints.some(w => w.pending)).toBe(false);
+    const [survivor, second, third] = waypoints;
+    expect(survivor.mergedIds).toEqual(['w_d0000002', 'w_d0000003']);
+    expect([survivor.canMove, survivor.canDelete, survivor.lockedReason]).toEqual([true, true, undefined]);
+
+    expect(second).toMatchObject({
+      type: 'water',
+      builtName: 'Tap',
+      lat: -36.5008,
+      lon: 148.25,
+      placements: [],
+      sortKm: survivor.sortKm,
+      description: '',
+      sourceDescription: 'By the gate.',
+      typeSource: 'its GPX <type>',
+    });
+    expect(Math.round(second.mergedDistanceM!)).toBe(89);
+    // Its <wpt>'s <ele> shows like any other row's.
+    expect([survivor.ele, second.ele, third.ele]).toEqual([undefined, 412.5, undefined]);
+    expect(Math.round(third.mergedDistanceM!)).toBe(178);
+    // Deleting is the point; a rename takes it out of the merge; the rest is the survivor's to correct.
+    for (const w of [second, third]) {
+      expect([w.canDelete, w.canRename, w.canMove, w.canChangeType, w.canDescribe]).toEqual([
+        true,
+        true,
+        false,
+        false,
+        false,
+      ]);
+      expect(w.unmerges).toBeUndefined();
+      expect(w.deleted).toBeUndefined();
+    }
+    expect(second.lockedReason).toMatch(/merged this <wpt> into “Tap” \(w_d0000001\), 89 m away/);
+    expect(second.lockedReason).toMatch(/Delete it if it is a redundant duplicate/);
+    expect(second.lockedReason).toMatch(/rename it/);
+  });
+
+  it('refuses a move, a retype and a description on one, saying what to do, and writes nothing', () => {
+    writeDup();
+    const before = dupFiles();
+    expect(() => request('dup', 'w_d0000002', { lat: -36.5009, lon: 148.25 })).toThrow(/rename it/);
+    expect(() => request('dup', 'w_d0000002', { type: 'water-tank' })).toThrow(/locked while it is merged/);
+    expect(() => request('dup', 'w_d0000002', { description: 'A tap.' })).toThrow(/appends this one's description/);
+    expect(() => request('dup', 'w_d0000002', { name: 'W Gate Tap' })).toThrow(/type prefix/);
+    expect(dupFiles()).toEqual(before);
+  });
+
+  it('deletes one through the usual path, and its id alone is retired by the next build', () => {
+    writeDup();
+    const before = dupFiles();
+    const result = remove('dup', 'w_d0000003');
+    expect(result.removed).toEqual(['w_d0000003']);
+    expect(read('data/trails/dup/dup.gpx')).toBe(
+      DUP_GPX.replace('\n  <wpt lat="-36.5016" lon="148.25"><name>Tap</name><type>water</type></wpt>', '')
+    );
+    expect(read('data/waypoint-ids.json')).toBe(before.registry);
+    const notes = result.notes.join('\n');
+    expect(notes).toMatch(/marks w_d0000003 retired/);
+    expect(notes).toMatch(/drops it from the ids merged into “Tap” \(w_d0000001\)/);
+    // What is true of its comments: the app never showed them, so nothing is newly orphaned.
+    expect(notes).toMatch(/Comments keyed to w_d0000003 were already out of sight/);
+    expect(notes).not.toMatch(/orphaned/);
+    expect(notes).not.toMatch(/only through this one/);
+
+    // Until the rebuild it is listed as deleted, still flagged with what it merged into.
+    expect(row('dup', 'w_d0000003')).toMatchObject({ deleted: true, mergedInto: 'w_d0000001', canDelete: false });
+    const registry = JSON.parse(before.registry) as WaypointRegistry;
+    const inputs = buildInputs('dup');
+    expect(assignWaypointIds('dup', inputs, registry)).toEqual(['w_d0000001', 'w_d0000002', 'w_cccc3333']);
+    expect(registry.dup.filter(e => e.retired).map(e => e.id)).toEqual(['w_d0000003']);
+  });
+
+  it('says which other duplicate comes back when the one that chained it is deleted, and what goes with its text', () => {
+    writeDup();
+    const notes = remove('dup', 'w_d0000002').notes.join('\n');
+    expect(notes).toMatch(/w_d0000003 was merged into “Tap” \(w_d0000001\) only through this one/);
+    expect(notes).toMatch(/lists it again too, under its own id/);
+    expect(notes).toMatch(/appended its description to that of “Tap” \(w_d0000001\)/);
+    // The editor already shows the third as leaving the merge.
+    expect(row('dup', 'w_d0000003')).toMatchObject({ mergedInto: 'w_d0000001', unmerges: true });
+    expect(row('dup', 'w_d0000003').lockedReason).toMatch(/no longer a duplicate/);
+  });
+
+  it('says, on deleting the waypoint they merged into, that the duplicates come back under their own ids', () => {
+    writeDup();
+    const result = remove('dup', 'w_d0000001');
+    const notes = result.notes.join('\n');
+    expect(notes).toMatch(/comments keyed to w_d0000001 are orphaned/);
+    expect(notes).toMatch(/w_d0000002, w_d0000003 are near-duplicates the build merged into it/);
+    expect(notes).toMatch(/lists them again as rows of their own, under their own ids/);
+    expect(notes).toMatch(/Comments keyed to w_d0000001 do not move to them/);
+    expect(result.removed).toEqual(['w_d0000001']);
+    expect(read('data/trails/dup/dup.gpx')).toContain('<wpt lat="-36.5008" lon="148.25">');
+    expect(row('dup', 'w_d0000002')).toMatchObject({ unmerges: true, canDelete: true });
+  });
+
+  it('renames one apart: its registry entry follows, it keeps its id, and the next build lists it', () => {
+    writeDup();
+    const result = request('dup', 'w_d0000003', { name: 'Gate Tap' });
+    expect(read('data/trails/dup/dup.gpx')).toBe(
+      DUP_GPX.replace(
+        '<wpt lat="-36.5016" lon="148.25"><name>Tap</name>',
+        '<wpt lat="-36.5016" lon="148.25"><name>Gate Tap</name>'
+      )
+    );
+    const registry = JSON.parse(read('data/waypoint-ids.json')) as WaypointRegistry;
+    expect(registry.dup.find(e => e.id === 'w_d0000003')).toEqual({
+      id: 'w_d0000003',
+      name: 'Gate Tap',
+      type: 'water',
+      lat: -36.5016,
+      lon: 148.25,
+    });
+    expect(result.waypoint).toMatchObject({
+      id: 'w_d0000003',
+      name: 'Gate Tap',
+      builtName: 'Tap',
+      mergedInto: 'w_d0000001',
+      unmerges: true,
+    });
+    expect(result.waypoint.lockedReason).toMatch(/no longer a duplicate of it/);
+    expect(result.notes.join('\n')).toMatch(/no longer merges it into “Tap” \(w_d0000001\).*under w_d0000003/);
+    const inputs = buildInputs('dup');
+    const ids = assignWaypointIds('dup', inputs, registry);
+    expect(Object.fromEntries(inputs.map((w, i) => [`${w.name} ${w.lat}`, ids[i]]))).toEqual({
+      'Tap -36.5': 'w_d0000001',
+      'Tap -36.5008': 'w_d0000002',
+      'Gate Tap -36.5016': 'w_d0000003',
+      'Saddle Camp -36.55': 'w_cccc3333',
+    });
+    expect(registry.dup.some(e => e.retired)).toBe(false);
+
+    // Renaming the middle one frees the far one too; renaming it back merges it again.
+    const middle = request('dup', 'w_d0000002', { name: 'Yard Tap' });
+    expect(middle.waypoint.unmerges).toBe(true);
+    const back = request('dup', 'w_d0000002', { name: 'Tap' });
+    expect(back.waypoint.unmerges).toBeUndefined();
+    expect(back.notes.join('\n')).toMatch(/still merges it into “Tap” \(w_d0000001\)/);
+  });
+
+  it('names the duplicate a rename frees from the chain', () => {
+    writeDup();
+    const notes = request('dup', 'w_d0000002', { name: 'Yard Tap' }).notes.join('\n');
+    expect(notes).toMatch(/w_d0000003 was merged into “Tap” \(w_d0000001\) only through this one/);
+  });
+
+  it('says when an edit to the waypoint they merged into ends the merge', () => {
+    writeDup();
+    // 60 m north: the nearer duplicate is still within the radius, and chains the far one.
+    expect(request('dup', 'w_d0000001', { lat: -36.49946, lon: 148.25 }).notes.join('\n')).not.toMatch(/no longer/);
+    const notes = request('dup', 'w_d0000001', { name: 'Hut Tap' }).notes.join('\n');
+    expect(notes).toMatch(/w_d0000002, w_d0000003, which the build merged into it, are no longer duplicates of it/);
+    expect(notes).toMatch(/rows of their own, under their own ids/);
+    expect(row('dup', 'w_d0000002').unmerges).toBe(true);
+  });
+
+  it('follows trail.json: a smaller radius, or no merging, means the next build lists them', () => {
+    writeDup('dup', { radiusMeters: 100 });
+    expect(row('dup', 'w_d0000002').unmerges).toBeUndefined();
+    writeDup('dup', false);
+    expect(row('dup', 'w_d0000002')).toMatchObject({ mergedInto: 'w_d0000001', unmerges: true });
+  });
+
+  it('lists nothing it cannot place, and keeps Te Araroa read-only', () => {
+    writeDup();
+    const registry = JSON.parse(read('data/waypoint-ids.json')) as WaypointRegistry;
+    registry.dup = registry.dup.filter(e => e.id !== 'w_d0000003');
+    write('data/waypoint-ids.json', `${JSON.stringify(registry, null, 2)}\n`);
+    const waypoints = loadEditorTrail(paths, 'dup').waypoints;
+    // No registry entry says where w_d0000003's <wpt> is: the <wpt> shows as pending, the id stays on the survivor.
+    expect(waypoints.map(w => w.id).filter(id => id.startsWith('w_'))).toEqual([
+      'w_d0000001',
+      'w_d0000002',
+      'w_cccc3333',
+    ]);
+    expect(waypoints.find(w => w.id === 'w_d0000001')?.mergedIds).toEqual(['w_d0000002', 'w_d0000003']);
+    expect(waypoints.filter(w => w.pending)).toHaveLength(1);
+
+    writeDup('te_araroa');
+    const merged = row('te_araroa', 'w_d0000002');
+    expect([merged.canDelete, merged.canRename, merged.canMove]).toEqual([false, false, false]);
+    expect(merged.lockedReason).toMatch(/upstream/);
+    expect(() => remove('te_araroa', 'w_d0000002')).toThrow(/upstream/);
+  });
+});

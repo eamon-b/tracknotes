@@ -128,6 +128,12 @@ describe('orphanedCommentIds', () => {
     ]);
     expect(orphanedCommentIds(state, new Set(['w_0000aaaa']))).toEqual(['w_deadbeef']);
   });
+
+  it('does not count an id the build merged into a waypoint: it is live, with a row of its own', () => {
+    const state = ready([editor({ waypointId: 'w_0000aaaa' }), editor({ id: 'x', waypointId: 'w_deadbeef' })]);
+    // The editor hands in each row's id and each survivor's mergedIds (`knownCommentIds`).
+    expect(orphanedCommentIds(state, new Set(['w_0000aaaa', 'w_deadbeef']))).toEqual([]);
+  });
 });
 
 describe('commentHtml', () => {
@@ -189,6 +195,18 @@ describe('commentsSectionHtml', () => {
     expect(html).toContain('Linked as an admin');
     expect(html).toContain('w_&lt;x&gt;</code>');
     expect(commentsSectionHtml(state, 'w_0000cccc')).toContain('No comments on this waypoint.');
+    // A note over the list (a merged-away duplicate's comments are shown nowhere in the app), escaped.
+    const noted = commentsSectionHtml(state, 'w_0000aaaa', { note: 'The app does not show these <b>.' });
+    expect(noted).toContain('<p class="wpe-comments-note">The app does not show these &lt;b&gt;.</p>');
+    expect(noted.indexOf('wpe-comments-note')).toBeLessThan(noted.indexOf('The tank is gone.'));
+    // It sits above the first comment, so paging a long list never hides it.
+    const many = ready(Array.from({ length: 12 }, (_, i) => editor({ id: `n${i}` })));
+    for (const shown of [undefined, 12, Infinity]) {
+      const paged = commentsSectionHtml(many, 'w_0000aaaa', { note: 'The app does not show these.', shown });
+      expect(paged.indexOf('wpe-comments-note')).toBeGreaterThan(-1);
+      expect(paged.indexOf('wpe-comments-note')).toBeLessThan(paged.indexOf('wpe-comments-list'));
+      expect(paged).toContain(shown ? 'Showing all 12 comments.' : 'Showing the newest 10 of 12 comments.');
+    }
   });
 
   it('badges a row only when it has comments', () => {
