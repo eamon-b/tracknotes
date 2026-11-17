@@ -5,6 +5,7 @@ import {
   applyCuratedDescriptions,
   DESCRIPTIONS_FILENAME,
   MAX_DESCRIPTION_LENGTH,
+  liveEditsOverwritten,
   loadCuratedDescriptions,
   parseCuratedDescriptions,
   planDescriptionSync,
@@ -139,20 +140,77 @@ describe('planDescriptionSync', () => {
       withdrawals: [],
       unchanged: 0,
       overwrites: [],
+      adoptions: [],
     });
   });
 
-  it('names the live text a PUT or a withdrawal would overwrite', () => {
-    // A live edit made on admin-descriptions.html that never reached the file.
+  it('lists an ordinary edit as replacing uploaded text, not a live edit', () => {
+    // The routine case: descriptions.json changed, and the API still holds
+    // what the previous upload sent.
     const plan = planDescriptionSync(authored, [
-      { waypointId: 'w_aaaa0001', description: 'Same text.' },
-      { waypointId: 'w_aaaa0002', description: 'Edited live.' },
-      { waypointId: 'w_aaaa0003', description: '' },
-      { waypointId: 'w_zzzz0009', description: 'Edited live, not in the file.' },
+      { waypointId: 'w_aaaa0001', description: 'Same text.', source: 'upload' },
+      { waypointId: 'w_aaaa0002', description: 'Old wording.', source: 'upload' },
+      { waypointId: 'w_aaaa0003', description: '', source: 'upload' },
+      { waypointId: 'w_zzzz0009', description: 'Entry deleted from the file.', source: 'upload' },
     ]);
+    expect(plan.puts.map(entry => entry.waypointId)).toEqual(['w_aaaa0002', 'w_aaaa0003']);
+    expect(plan.withdrawals).toEqual(['w_zzzz0009']);
     expect(plan.overwrites).toEqual([
-      { waypointId: 'w_aaaa0002', live: 'Edited live.' },
-      { waypointId: 'w_zzzz0009', live: 'Edited live, not in the file.' },
+      { waypointId: 'w_aaaa0002', live: 'Old wording.', origin: 'upload' },
+      { waypointId: 'w_zzzz0009', live: 'Entry deleted from the file.', origin: 'upload' },
+    ]);
+    expect(liveEditsOverwritten(plan)).toEqual([]);
+    expect(plan.adoptions).toEqual([]);
+  });
+
+  it('names the live edits and the live clear a PUT or a withdrawal would undo', () => {
+    // Made on admin-descriptions.html and never committed to the file.
+    const plan = planDescriptionSync(authored, [
+      { waypointId: 'w_aaaa0001', description: 'Same text.', source: 'upload' },
+      { waypointId: 'w_aaaa0002', description: 'Edited live.', source: 'live' },
+      { waypointId: 'w_aaaa0003', description: '', source: 'live' },
+      { waypointId: 'w_zzzz0009', description: 'Edited live, not in the file.', source: 'live' },
+    ]);
+    expect(liveEditsOverwritten(plan)).toEqual([
+      { waypointId: 'w_aaaa0002', live: 'Edited live.', origin: 'live' },
+      // An admin cleared an id the file lists: the PUT re-sends the file's text.
+      { waypointId: 'w_aaaa0003', live: '', origin: 'live' },
+      { waypointId: 'w_zzzz0009', live: 'Edited live, not in the file.', origin: 'live' },
+    ]);
+    expect(plan.overwrites).toEqual(liveEditsOverwritten(plan));
+  });
+
+  it('calls replaced text of an older worker unknown, and never a live edit', () => {
+    const plan = planDescriptionSync(authored, [
+      { waypointId: 'w_aaaa0002', description: 'Who wrote this?' },
+      { waypointId: 'w_aaaa0003', description: '' },
+    ]);
+    expect(plan.overwrites).toEqual([{ waypointId: 'w_aaaa0002', live: 'Who wrote this?', origin: 'unknown' }]);
+    expect(liveEditsOverwritten(plan)).toEqual([]);
+    expect(plan.adoptions).toEqual([]);
+  });
+
+  it('re-sends a live edit the file already matches, to mark it uploaded', () => {
+    const plan = planDescriptionSync(
+      [
+        { waypointId: 'w_aaaa0001', name: 'Hut', description: 'Committed live edit.' },
+        { waypointId: 'w_aaaa0002', description: 'Uploaded.' },
+      ],
+      [
+        { waypointId: 'w_aaaa0001', description: 'Committed live edit.', source: 'live' },
+        { waypointId: 'w_aaaa0002', description: 'Uploaded.', source: 'upload' },
+        // A live clear of an id the file does not list: the file agrees.
+        { waypointId: 'w_cccc0001', description: '', source: 'live' },
+        { waypointId: 'w_cccc0002', description: '', source: 'upload' },
+      ]
+    );
+    expect(plan.puts).toEqual([]);
+    expect(plan.withdrawals).toEqual([]);
+    expect(plan.overwrites).toEqual([]);
+    expect(plan.unchanged).toBe(2);
+    expect(plan.adoptions).toEqual([
+      { waypointId: 'w_aaaa0001', name: 'Hut', description: 'Committed live edit.' },
+      { waypointId: 'w_cccc0001', description: '' },
     ]);
   });
 });

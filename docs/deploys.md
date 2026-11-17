@@ -25,7 +25,10 @@ Trail data and descriptions reach every installed app, so each waits for a revie
 Its `plan` job runs the dry run without credentials and puts it in the run's summary;
 nothing to publish means no `publish` job and nothing to approve.
 Approve under the run's *Review deployments*, which the GitHub mobile app shows too.
-Before approving an *Upload descriptions* run, read its plan for `! replaces synced text` lines and the drift warning: each is synced text that is not in `descriptions.json`, such as a live edit from `admin-descriptions.html` (`docs/waypoint-editor.md`), which the upload overwrites — commit it to the file first, or reject the run.
+Before approving an *Upload descriptions* run, read its plan for lines marked `!` (`! replaces a live edit`, `! undoes a live clear`) and the warning that ends it: each is a live edit made on `admin-descriptions.html` that `descriptions.json` does not match (`docs/waypoint-editor.md`), which the upload overwrites — commit it to the file first, or reject the run.
+A `replaces uploaded text` line is the ordinary case, a newer `descriptions.json` replacing what the last upload sent, and needs nothing: a routine edit raises no warning.
+A `mark as uploaded` line re-sends a committed live edit's text unchanged, so that the API records it as uploaded; no phone downloads it again, and a run with nothing else to send still asks for approval for it.
+A warning that live edits could not be checked means the comments API does not report where its synced text came from: the worker that does (migration `0012`) is not deployed, so let *Deploy comments API* finish and re-run this workflow before approving.
 
 A run deploys `main` as it is when the run starts, not the commit that triggered it.
 Its first job reads `main`'s head (the GitHub API) and checks that out: a run that queued behind another, or a re-run of an old one, deploys the newest code rather than putting older code back, and a merge after it that did not touch the trigger paths (so started no run of its own) cannot leave it undeployed.

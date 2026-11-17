@@ -33,6 +33,15 @@
     .desc-too-long { color: var(--danger); font-weight: 600; }
     .desc-hints { margin: 0.25rem 0 0 1.25rem; font-size: 0.85rem; color: var(--tint-warn-text); }
     .desc-snippet { width: 100%; box-sizing: border-box; min-height: 10rem; font-family: ui-monospace, monospace; font-size: 0.8rem; }
+    .desc-badge-pass { border-style: dashed; }
+    .desc-pass { margin: 0.25rem 0; padding-left: 0.6rem; border-left: 3px solid var(--border); }
+    .desc-conflict { margin: 0 0 0.5rem; padding: 0.5rem 0.75rem; border: 1px solid var(--tint-warn-border); border-radius: 6px; background: var(--tint-warn); color: var(--tint-warn-text-strong); font-size: 0.9rem; }
+    .desc-conflict p { margin: 0 0 0.35rem; }
+    .desc-conflict p:last-child { margin-bottom: 0; }
+    .desc-conflict .desc-empty { color: inherit; }
+    .desc-notice { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 0.75rem 0; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-subtle); }
+    .desc-notice[hidden] { display: none; }
+    .desc-notice p { margin: 0; flex: 1 1 16rem; }
   </style>
 </head>
 <body>
@@ -45,17 +54,22 @@
       <h1>Waypoint descriptions</h1>
       <p class="subtitle">
         Correct a waypoint's description on every phone without a rebuild: the app shows the synced text over the bundled one.
-        A live edit is for urgency only. Commit it to the trail's <code>descriptions.json</code> too, or the next
-        <em>Upload descriptions</em> run overwrites it.
+        A live edit is for urgency only. Commit it to the trail's <code>descriptions.json</code> too: where the trail
+        has that file, the next <em>Upload descriptions</em> run overwrites a live edit the file does not match.
       </p>
     </header>
 
     <p class="loading" id="desc-status">Loading…</p>
     <div id="desc-link" hidden></div>
     <p class="import-error" id="desc-error" role="alert" hidden></p>
+    <div class="desc-notice" id="desc-notice" role="status" hidden>
+      <p id="desc-notice-text"></p>
+      <button type="button" id="desc-notice-dismiss" class="community-btn">Dismiss</button>
+    </div>
 
     <div id="desc-toolbar" class="community-actions" hidden>
-      <span class="import-note" id="desc-identity"></span>
+      <span class="import-note" id="desc-identity" role="status"></span>
+      <button type="button" id="desc-check-retry" class="community-btn" hidden>Retry the account check</button>
       <button type="button" id="desc-link-button" class="community-btn" hidden>Link this browser to edit</button>
       <button type="button" id="desc-reload" class="community-btn">Reload</button>
     </div>

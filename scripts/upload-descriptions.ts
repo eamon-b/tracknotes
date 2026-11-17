@@ -41,15 +41,27 @@
  * prints exactly that difference; without one it prints a PUT per entry and
  * cannot know about withdrawals.
  *
- * Drift: the live description editor (`src/web/admin-descriptions.html`)
- * writes the same table, so the API can hold text the file never had. Every
- * PUT or withdrawal that would replace non-empty live text says so, with the
- * text it replaces, and the run ends with a warning (a `::warning::`
- * annotation under GitHub Actions, so the *Upload descriptions* plan shows it
- * before anyone approves). It only warns: the file stays the source of truth,
- * and a live edit is meant to be committed to it (`docs/waypoint-editor.md`). Only trails that still have a
- * descriptions.json are visited, so withdrawing a trail's last description
- * means leaving its file with an empty "descriptions" array.
+ * Live edits: the live description editor (`src/web/admin-descriptions.html`)
+ * writes the same table, and each row says which tool last changed its text
+ * (`source`: `live` for that page, `upload` for this script, which sends
+ * `source: 'upload'` with every PUT). A PUT or withdrawal that replaces text
+ * an earlier upload sent is the ordinary case and is listed plainly, with the
+ * text it replaces. One that replaces a live edit, or undoes a live clear, the
+ * file does not match is marked `!` and the run ends with a warning (a
+ * `::warning::` annotation under GitHub Actions, so the *Upload descriptions*
+ * plan shows it before anyone approves). It only warns: the file stays the
+ * source of truth, and a live edit is meant to be committed to it
+ * (`docs/waypoint-editor.md`).
+ *   - A live edit the file already matches (it was committed) is re-sent,
+ *     text unchanged, to mark it uploaded: the API changes only the marker,
+ *     not `updated_at`, so no phone re-downloads it, and the next change to
+ *     that entry is an ordinary edit.
+ *   - Against a worker that predates the marker the rows carry no `source`:
+ *     nothing can be called a live edit, and the run says so instead.
+ * Only trails that still have a descriptions.json are visited, so withdrawing
+ * a trail's last description means leaving its file with an empty
+ * "descriptions" array, and a live edit on a trail with no file is never
+ * touched by an upload.
  */
 
 import * as fs from 'fs';
@@ -57,9 +69,12 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 import {
   DESCRIPTIONS_FILENAME,
+  liveEditsOverwritten,
   loadCuratedDescriptions,
   planDescriptionSync,
   type CuratedDescription,
+  type DescriptionOverwrite,
+  type DescriptionSyncPlan,
   type LiveDescription,
 } from './lib/waypoint-descriptions.js';
 import type { TrailDescriptionsResponse, UpsertDescriptionRequest } from '../src/lib/comments-api-types.js';
@@ -165,7 +180,7 @@ async function putDescription(
   entry: CuratedDescription
 ): Promise<void> {
   const url = `${apiBase.replace(/\/+$/, '')}/v1/admin/trails/${encodeURIComponent(trailId)}/descriptions/${encodeURIComponent(entry.waypointId)}`;
-  const body: UpsertDescriptionRequest = { description: entry.description };
+  const body = uploadBody(entry.description);
 
   const response = await fetch(url, {
     method: 'PUT',
@@ -205,48 +220,61 @@ async function main(): Promise<void> {
     }
   }
 
-  const driftWarnings: string[] = [];
+  /** Per trail: live edits and clears the upload undoes (the warning). */
+  const liveEditWarnings: string[] = [];
+  /** Per trail: replaced text whose origin the API did not report. */
+  const unknownOrigin: string[] = [];
   let puts = 0;
   let withdrawn = 0;
+  let adopted = 0;
   let unchanged = 0;
   for (const { dir, trailId } of trails) {
     const entries = loadCuratedDescriptions(path.join(TRAILS_DIR, dir), trailId);
     // Without a live read (a dry run with no API base) every entry is a PUT
     // and nothing is known to withdraw.
     const live = apiBase ? await fetchLiveDescriptions(apiBase, trailId) : null;
-    const plan = live
+    const plan: DescriptionSyncPlan = live
       ? planDescriptionSync(entries, live)
-      : { puts: entries, withdrawals: [], unchanged: 0, overwrites: [] };
-    const replaced = new Map(plan.overwrites.map(row => [row.waypointId, row.live]));
+      : { puts: entries, withdrawals: [], unchanged: 0, overwrites: [], adoptions: [] };
     const withdrawals = options.withdraw ? plan.withdrawals : [];
+    const sent = new Set([...plan.puts.map(entry => entry.waypointId), ...withdrawals]);
+    // What this run really replaces: a withdrawal `--no-withdraw` skips replaces nothing.
+    const replaced = new Map(plan.overwrites.filter(row => sent.has(row.waypointId)).map(row => [row.waypointId, row]));
     console.log(
       `\n${trailId}: ${entries.length} description(s) — ${plan.puts.length} to send, ` +
         `${plan.unchanged} unchanged, ${withdrawals.length} to withdraw` +
         (!options.withdraw && plan.withdrawals.length > 0
           ? ` (${plan.withdrawals.length} skipped: --no-withdraw)`
           : '') +
+        (plan.adoptions.length > 0 ? `, ${plan.adoptions.length} committed live edit(s) to mark as uploaded` : '') +
         (live ? '' : ' (no API base: live set not read)')
     );
 
     const requests: Array<{ entry: CuratedDescription; label: string }> = [
       ...plan.puts.map(entry => ({
         entry,
-        label: `  ${entry.waypointId}${entry.name ? ` (${entry.name})` : ''}${replacedNote(replaced, entry.waypointId)}`,
+        label: `  ${entry.waypointId}${entry.name ? ` (${entry.name})` : ''}${replacedNote(replaced.get(entry.waypointId))}`,
       })),
       ...withdrawals.map(waypointId => ({
         entry: { waypointId, description: '' },
-        label: `  ${waypointId} (withdraw)${replacedNote(replaced, waypointId)}`,
+        label: `  ${waypointId} (withdraw)${replacedNote(replaced.get(waypointId))}`,
+      })),
+      ...plan.adoptions.map(entry => ({
+        entry,
+        label:
+          `  ${entry.waypointId}${entry.name ? ` (${entry.name})` : ''} (mark as uploaded: ` +
+          `${entry.description === '' ? 'a live clear the file agrees with' : 'a live edit that is now in the file'}; text unchanged)`,
       })),
     ];
-    const overwriting = requests.filter(({ entry }) => replaced.has(entry.waypointId)).length;
-    if (overwriting > 0) {
-      driftWarnings.push(`${trailId}: ${overwriting}`);
-    }
+    const liveEdits = liveEditsOverwritten({ overwrites: [...replaced.values()] }).length;
+    if (liveEdits > 0) liveEditWarnings.push(`${trailId}: ${liveEdits}`);
+    const unknown = [...replaced.values()].filter(row => row.origin === 'unknown').length;
+    if (unknown > 0) unknownOrigin.push(`${trailId}: ${unknown}`);
     for (const { entry, label } of requests) {
       if (options.dryRun) {
         const target = apiBase ?? `<${API_BASE_ENV}>`;
         console.log(`${label}\n    PUT ${target}/v1/admin/trails/${trailId}/descriptions/${entry.waypointId}`);
-        console.log(`    ${JSON.stringify({ description: entry.description } satisfies UpsertDescriptionRequest)}`);
+        console.log(`    ${JSON.stringify(uploadBody(entry.description))}`);
       } else {
         await putDescription(apiBase!, token!, trailId, entry);
         console.log(`${label} ✓`);
@@ -254,30 +282,58 @@ async function main(): Promise<void> {
     }
     puts += plan.puts.length;
     withdrawn += withdrawals.length;
+    adopted += plan.adoptions.length;
     unchanged += plan.unchanged;
   }
 
+  // The *Upload descriptions* workflow greps this line for "nothing to do"
+  // (`would have 0 description(s) sent, 0 withdrawn, 0 committed live edit(s)
+  // marked`): keep the two in step.
   const summary =
-    `${puts} description(s) sent, ${withdrawn} withdrawn, ${unchanged} already up to date, ` +
-    `across ${trails.length} trail(s).`;
+    `${puts} description(s) sent, ${withdrawn} withdrawn, ${adopted} committed live edit(s) marked as uploaded, ` +
+    `${unchanged} already up to date, across ${trails.length} trail(s).`;
   console.log(options.dryRun ? `\nDry run: would have ${summary}` : `\nDone: ${summary}`);
-  if (driftWarnings.length > 0) {
+  if (liveEditWarnings.length > 0) {
     const warning =
-      `${options.dryRun ? 'Would replace' : 'Replaced'} synced text that differs from descriptions.json ` +
-      `(${driftWarnings.join(', ')}). If any of it was a live edit (admin-descriptions.html), ` +
-      `it is not in the file: commit it to descriptions.json, or it is lost.`;
+      `${options.dryRun ? 'Would undo' : 'Undid'} live edits or clears that descriptions.json does not match ` +
+      `(${liveEditWarnings.join(', ')}; the lines marked "!"). Each was made on admin-descriptions.html and ` +
+      `is not in the file as written: commit a live edit to descriptions.json (the page's export) or it is lost, ` +
+      `and delete an entry from the file to keep its clear.`;
     console.log(`\nWarning: ${warning}`);
-    if (process.env.GITHUB_ACTIONS === 'true') console.log(`::warning title=Synced descriptions drift::${warning}`);
+    if (process.env.GITHUB_ACTIONS === 'true') console.log(`::warning title=Live description edits undone::${warning}`);
+  }
+  if (unknownOrigin.length > 0) {
+    const warning =
+      `This API does not say where its synced text came from (its worker predates the marker), so the replaced ` +
+      `text (${unknownOrigin.join(', ')}) could not be checked for live edits made on admin-descriptions.html.`;
+    console.log(`\nWarning: ${warning}`);
+    if (process.env.GITHUB_ACTIONS === 'true') console.log(`::warning title=Live edits not checked::${warning}`);
   }
 }
 
-/** The live text a request replaces, for its dry-run line: `''` when it replaces none. */
-function replacedNote(replaced: ReadonlyMap<string, string>, waypointId: string): string {
-  const live = replaced.get(waypointId);
-  if (live === undefined) return '';
-  const oneLine = live.replace(/\s+/g, ' ');
-  const shown = oneLine.length > 100 ? `${oneLine.slice(0, 100)}…` : oneLine;
-  return `\n    ! replaces synced text: ${JSON.stringify(shown)}`;
+/** The body of every PUT this script sends: the text, written by the upload. */
+function uploadBody(description: string): UpsertDescriptionRequest {
+  return { description, source: 'upload' };
+}
+
+/**
+ * What a request replaces, for its line. Text an upload sent is listed
+ * plainly; a live edit or a live clear is marked `!`.
+ */
+function replacedNote(row: DescriptionOverwrite | undefined): string {
+  if (!row) return '';
+  if (row.live === '')
+    return '\n    ! undoes a live clear (cleared on admin-descriptions.html; the file still lists it)';
+  const oneLine = row.live.replace(/\s+/g, ' ');
+  const shown = JSON.stringify(oneLine.length > 100 ? `${oneLine.slice(0, 100)}…` : oneLine);
+  switch (row.origin) {
+    case 'live':
+      return `\n    ! replaces a live edit: ${shown}`;
+    case 'upload':
+      return `\n    replaces uploaded text: ${shown}`;
+    default:
+      return `\n    replaces synced text of unknown origin: ${shown}`;
+  }
 }
 
 main().catch(error => {
