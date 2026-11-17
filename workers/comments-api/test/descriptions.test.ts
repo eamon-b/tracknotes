@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { authHeaders, linkCode, linkDevice, makeAdmin, putDescription, registerDevice, url } from './helpers';
 import type { Device } from './helpers';
 import type {
+  DescriptionConflictResponse,
   LinkDeviceResponse,
   TrailDescriptionsResponse,
   WaypointDescription,
@@ -96,6 +97,7 @@ describe('PUT /v1/admin/trails/:trailId/descriptions/:waypointId', () => {
       waypointId: 'desc-same-wp',
       description: 'same',
       updatedAt: stamp,
+      source: 'upload',
     });
 
     // So a delta since before the re-PUT does not carry it.
@@ -204,6 +206,238 @@ describe('PUT /v1/admin/trails/:trailId/descriptions/:waypointId', () => {
       .bind('heysen', 'desc-linked-wp')
       .first<{ description: string }>();
     expect(row?.description).toBe('Edited in the browser.');
+  });
+
+  describe('source: which tool wrote the text', () => {
+    async function storedSource(trailId: string, waypointId: string): Promise<string | null | undefined> {
+      const row = await env.DB.prepare(
+        `SELECT source FROM waypoint_descriptions WHERE trail_id = ? AND waypoint_id = ?`
+      )
+        .bind(trailId, waypointId)
+        .first<{ source: string | null }>();
+      return row?.source;
+    }
+
+    it('stores the source a write names and serves it on the public read', async () => {
+      const admin = await adminDevice();
+      const live = (await (
+        await putDescription(admin, 'overland', 'src-live-wp', { description: 'Tank is closed.', source: 'live' })
+      ).json()) as WaypointDescription;
+      expect(live.source).toBe('live');
+      const uploaded = (await (
+        await putDescription(admin, 'overland', 'src-upload-wp', { description: 'From the file.', source: 'upload' })
+      ).json()) as WaypointDescription;
+      expect(uploaded.source).toBe('upload');
+
+      const read = await readDescriptions('overland');
+      expect(read.descriptions.map((d) => [d.waypointId, d.source])).toEqual([
+        ['src-live-wp', 'live'],
+        ['src-upload-wp', 'upload'],
+      ]);
+      // Which tool, never who: the row holds nothing about the account or token.
+      const columns = await env.DB.prepare(`PRAGMA table_info(waypoint_descriptions)`).all<{ name: string }>();
+      expect(columns.results.map((c) => c.name).sort()).toEqual([
+        'description',
+        'source',
+        'trail_id',
+        'updated_at',
+        'waypoint_id',
+      ]);
+    });
+
+    it('serves a row with no stored source (older, or a write that names none) as an upload', async () => {
+      const admin = await adminDevice();
+      // A row as migration 0012 found it.
+      await env.DB.prepare(
+        `INSERT INTO waypoint_descriptions (trail_id, waypoint_id, description, updated_at)
+         VALUES ('thorsborne', 'src-old-wp', 'Uploaded long ago.', '2026-01-01T00:00:00.000Z')`
+      ).run();
+      const sourceless = (await (
+        await putDescription(admin, 'thorsborne', 'src-none-wp', { description: 'No source named.' })
+      ).json()) as WaypointDescription;
+      expect(sourceless.source).toBe('upload');
+      expect(await storedSource('thorsborne', 'src-none-wp')).toBeNull();
+
+      const read = await readDescriptions('thorsborne');
+      expect(read.descriptions.map((d) => d.source)).toEqual(['upload', 'upload']);
+    });
+
+    it('400 for a source it does not know, writing nothing', async () => {
+      const admin = await adminDevice();
+      const res = await putDescription(admin, 'heysen', 'src-bad-wp', { description: 'x', source: 'phone' });
+      expect(res.status).toBe(400);
+      expect(errorCode(await res.json())).toBe('invalid_source');
+      expect(await storedSource('heysen', 'src-bad-wp')).toBeUndefined();
+    });
+
+    it('follows the text: an upload over a live edit, and a live edit over an upload', async () => {
+      const admin = await adminDevice();
+      await putDescription(admin, 'heysen', 'src-follow-wp', { description: 'File v1.', source: 'upload' });
+      await putDescription(admin, 'heysen', 'src-follow-wp', { description: 'Live fix.', source: 'live' });
+      expect(await storedSource('heysen', 'src-follow-wp')).toBe('live');
+      // A live clear is a live write too.
+      await putDescription(admin, 'heysen', 'src-follow-wp', { description: '', source: 'live' });
+      expect(await storedSource('heysen', 'src-follow-wp')).toBe('live');
+      await putDescription(admin, 'heysen', 'src-follow-wp', { description: 'File v2.', source: 'upload' });
+      expect(await storedSource('heysen', 'src-follow-wp')).toBe('upload');
+    });
+
+    it('lets an upload of the same text take a live edit over, without re-shipping it to phones', async () => {
+      // The live edit was committed to descriptions.json: the next upload
+      // re-sends its text, after which a later file change is an ordinary edit.
+      const admin = await adminDevice();
+      await putDescription(admin, 'heysen', 'src-adopt-wp', { description: 'Committed since.', source: 'live' });
+      const stamp = new Date(Date.now() - 60_000).toISOString();
+      await env.DB.prepare(`UPDATE waypoint_descriptions SET updated_at = ? WHERE trail_id = ? AND waypoint_id = ?`)
+        .bind(stamp, 'heysen', 'src-adopt-wp')
+        .run();
+
+      const res = await putDescription(admin, 'heysen', 'src-adopt-wp', {
+        description: 'Committed since.',
+        source: 'upload',
+      });
+      expect(res.status).toBe(200);
+      expect((await res.json()) as WaypointDescription).toEqual({
+        waypointId: 'src-adopt-wp',
+        description: 'Committed since.',
+        updatedAt: stamp,
+        source: 'upload',
+      });
+      expect(await storedSource('heysen', 'src-adopt-wp')).toBe('upload');
+      const delta = await readDescriptions('heysen', new Date(Date.now() - 30_000).toISOString());
+      expect(delta.descriptions.some((d) => d.waypointId === 'src-adopt-wp')).toBe(false);
+    });
+
+    it('does not call an unchanged text a live edit', async () => {
+      // Saving, from the page, the text an upload already sent changes nothing.
+      const admin = await adminDevice();
+      await putDescription(admin, 'heysen', 'src-same-wp', { description: 'From the file.', source: 'upload' });
+      const res = await putDescription(admin, 'heysen', 'src-same-wp', {
+        description: 'From the file.',
+        source: 'live',
+      });
+      expect(((await res.json()) as WaypointDescription).source).toBe('upload');
+      expect(await storedSource('heysen', 'src-same-wp')).toBe('upload');
+    });
+  });
+
+  describe('ifUpdatedAt: the live editor’s optimistic check', () => {
+    async function conflictOf(res: Response): Promise<DescriptionConflictResponse> {
+      expect(res.status).toBe(409);
+      const body = (await res.json()) as DescriptionConflictResponse;
+      expect(body.error.code).toBe('description_conflict');
+      return body;
+    }
+
+    it('writes when the row is the version the client read', async () => {
+      const admin = await adminDevice();
+      const first = (await (
+        await putDescription(admin, 'kep_track', 'pre-ok-wp', { description: 'v1', source: 'upload' })
+      ).json()) as WaypointDescription;
+      const res = await putDescription(admin, 'kep_track', 'pre-ok-wp', {
+        description: 'v2',
+        source: 'live',
+        ifUpdatedAt: first.updatedAt,
+      });
+      expect(res.status).toBe(200);
+      expect((await res.json()) as WaypointDescription).toMatchObject({ description: 'v2', source: 'live' });
+    });
+
+    it('409s with the current row, writing nothing, when the row changed since', async () => {
+      // Admin A read v1; admin B saved since; A's save must not replace B's text.
+      const admin = await adminDevice();
+      const first = (await (
+        await putDescription(admin, 'kep_track', 'pre-stale-wp', { description: 'v1', source: 'upload' })
+      ).json()) as WaypointDescription;
+      await env.DB.prepare(`UPDATE waypoint_descriptions SET updated_at = ? WHERE trail_id = ? AND waypoint_id = ?`)
+        .bind(new Date(Date.now() - 60_000).toISOString(), 'kep_track', 'pre-stale-wp')
+        .run();
+      const theirs = (await (
+        await putDescription(admin, 'kep_track', 'pre-stale-wp', { description: 'B’s fix.', source: 'live' })
+      ).json()) as WaypointDescription;
+
+      const conflict = await conflictOf(
+        await putDescription(admin, 'kep_track', 'pre-stale-wp', {
+          description: 'A’s typo fix.',
+          source: 'live',
+          ifUpdatedAt: first.updatedAt,
+        })
+      );
+      expect(conflict.current).toEqual(theirs);
+      const read = await readDescriptions('kep_track');
+      expect(read.descriptions.find((d) => d.waypointId === 'pre-stale-wp')).toEqual(theirs);
+
+      // With the version it was just shown, the same save goes through.
+      const retry = await putDescription(admin, 'kep_track', 'pre-stale-wp', {
+        description: 'A’s typo fix.',
+        source: 'live',
+        ifUpdatedAt: conflict.current!.updatedAt,
+      });
+      expect(retry.status).toBe(200);
+    });
+
+    it('takes null as "I read no row": creates one, or 409s when one has appeared', async () => {
+      const admin = await adminDevice();
+      const created = await putDescription(admin, 'kep_track', 'pre-null-wp', {
+        description: 'First.',
+        source: 'live',
+        ifUpdatedAt: null,
+      });
+      expect(created.status).toBe(200);
+      const row = (await created.json()) as WaypointDescription;
+
+      const conflict = await conflictOf(
+        await putDescription(admin, 'kep_track', 'pre-null-wp', {
+          description: 'Second.',
+          source: 'live',
+          ifUpdatedAt: null,
+        })
+      );
+      expect(conflict.current).toEqual(row);
+    });
+
+    it('409s with no current row when the client names a row that does not exist', async () => {
+      const admin = await adminDevice();
+      const conflict = await conflictOf(
+        await putDescription(admin, 'kep_track', 'pre-missing-wp', {
+          description: 'x',
+          source: 'live',
+          ifUpdatedAt: '2026-11-01T00:00:00.000Z',
+        })
+      );
+      expect(conflict.current).toBeNull();
+    });
+
+    it('is not a conflict when the row already holds the text sent', async () => {
+      const admin = await adminDevice();
+      const stored = (await (
+        await putDescription(admin, 'kep_track', 'pre-same-wp', { description: 'Agreed.', source: 'live' })
+      ).json()) as WaypointDescription;
+      const res = await putDescription(admin, 'kep_track', 'pre-same-wp', {
+        description: 'Agreed.',
+        source: 'live',
+        ifUpdatedAt: '2020-01-01T00:00:00.000Z',
+      });
+      expect(res.status).toBe(200);
+      expect((await res.json()) as WaypointDescription).toEqual(stored);
+    });
+
+    it('stays unconditional without one, as the upload and older clients send', async () => {
+      const admin = await adminDevice();
+      await putDescription(admin, 'kep_track', 'pre-none-wp', { description: 'v1' });
+      const res = await putDescription(admin, 'kep_track', 'pre-none-wp', { description: 'v2', source: 'upload' });
+      expect(res.status).toBe(200);
+      expect(((await res.json()) as WaypointDescription).description).toBe('v2');
+    });
+
+    it('400 for a precondition that is not a timestamp or null', async () => {
+      const admin = await adminDevice();
+      for (const ifUpdatedAt of ['yesterday', 7, {}]) {
+        const res = await putDescription(admin, 'kep_track', 'pre-bad-wp', { description: 'x', ifUpdatedAt });
+        expect(res.status).toBe(400);
+        expect(errorCode(await res.json())).toBe('invalid_precondition');
+      }
+    });
   });
 
   it('405 for a wrong method on the admin descriptions path', async () => {

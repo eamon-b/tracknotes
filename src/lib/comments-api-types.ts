@@ -110,12 +110,27 @@ export interface AdminReportsResponse {
 // Waypoint descriptions (curated, served over the sync channel)
 // ---------------------------------------------------------------------------
 
+/**
+ * Which tool wrote a synced description's text: `live` is the live description
+ * editor on the deployed site (`src/web/admin-descriptions.html`), `upload` is
+ * `scripts/upload-descriptions.ts` sending a trail's `descriptions.json`. It
+ * says which tool, never who.
+ */
+export type DescriptionSource = 'live' | 'upload';
+
 /** A curated waypoint description row. */
 export interface WaypointDescription {
   waypointId: string;
   /** Markdown-free plain text. Empty string means "cleared" (tombstone). */
   description: string;
   updatedAt: string;
+  /**
+   * What last changed the text. A row from before the marker existed, or
+   * written without one, is served as `upload`. Absent only from a worker that
+   * predates the marker, where a reader must treat the origin as unknown. The
+   * phone ignores it.
+   */
+  source?: DescriptionSource;
 }
 
 /**
@@ -132,6 +147,26 @@ export interface TrailDescriptionsResponse {
 /** PUT /v1/admin/trails/:trailId/descriptions/:waypointId request body. */
 export interface UpsertDescriptionRequest {
   description: string;
+  /**
+   * Which tool is writing, stored when the text changes. An `upload` that
+   * re-sends the text a `live` row already holds marks the row `upload`
+   * without touching `updatedAt`: the live edit has reached the file.
+   */
+  source?: DescriptionSource;
+  /**
+   * Optimistic check, sent by the live editor only: the `updatedAt` the client
+   * last read for this waypoint's row, or `null` when it read no row. When the
+   * row has changed since (and does not already hold this text) nothing is
+   * written and the answer is 409 `description_conflict`
+   * (`DescriptionConflictResponse`). Left out, the write is unconditional.
+   */
+  ifUpdatedAt?: string | null;
+}
+
+/** The 409 `description_conflict` body: the error envelope plus the row as it is now. */
+export interface DescriptionConflictResponse extends ApiError {
+  /** The stored row, or `null` when the client named a row that does not exist. */
+  current: WaypointDescription | null;
 }
 
 // ---------------------------------------------------------------------------

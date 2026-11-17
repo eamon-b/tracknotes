@@ -11,21 +11,41 @@ import { json, readJson } from './http';
 import type { Env } from './http';
 import { requireAdmin } from './auth';
 import { appendSinceFilter } from './cursor';
-import { validateDescription, validateTrailId, validateWaypointId } from './validation';
+import {
+  validateDescription,
+  validateDescriptionSource,
+  validateIfUpdatedAt,
+  validateTrailId,
+  validateWaypointId,
+} from './validation';
 import { resolveTrail } from './trails';
-import type { TrailDescriptionsResponse, WaypointDescription } from '../../../src/lib/comments-api-types';
+import type {
+  DescriptionConflictResponse,
+  TrailDescriptionsResponse,
+  WaypointDescription,
+} from '../../../src/lib/comments-api-types';
 
 interface DescriptionRow {
   waypoint_id: string;
   description: string;
   updated_at: string;
+  /** 'live' | 'upload', or NULL on a row from before migration 0012 or written without a source. */
+  source: string | null;
 }
 
+const ROW_COLUMNS = 'waypoint_id, description, updated_at, source';
+
+/**
+ * A row as the API serves it. Anything that is not a live edit reads as
+ * `upload`: the live editor is the only writer that says `live`, and it did
+ * not exist before the column did, so a NULL row was uploaded.
+ */
 function toWaypointDescription(row: DescriptionRow): WaypointDescription {
   return {
     waypointId: row.waypoint_id,
     description: row.description,
     updatedAt: row.updated_at,
+    source: row.source === 'live' ? 'live' : 'upload',
   };
 }
 
@@ -55,7 +75,7 @@ export async function getTrailDescriptions(request: Request, env: Env, trailIdRa
   }
 
   const { results } = await env.DB.prepare(
-    `SELECT waypoint_id, description, updated_at
+    `SELECT ${ROW_COLUMNS}
        FROM waypoint_descriptions
       WHERE ${conditions.join(' AND ')}
       ORDER BY waypoint_id ASC`
@@ -80,8 +100,25 @@ export async function getTrailDescriptions(request: Request, env: Env, trailIdRa
  * Re-sending the text a waypoint already has is a no-op: `updated_at` is what
  * every phone's delta pull keys on, and `upload-descriptions` re-PUTs the whole
  * curated file each run, so bumping it unconditionally re-shipped every
- * description to every phone on every upload. The conflict update only fires
- * when the text differs; otherwise the stored row is answered as it stands.
+ * description to every phone on every upload. The row only changes when the
+ * text differs; otherwise the stored row is answered as it stands.
+ *
+ * `source` says which tool is writing (`live`: the live description editor,
+ * `upload`: the upload script) and is stored with any change of text, so the
+ * page and the upload's plan can tell an uncommitted live edit from text an
+ * upload sent. It comes from the request, not from the token: both writers
+ * present a bearer token of an admin account, and nothing fixes which kind
+ * (`primary` or `linked`) the upload's is. One write changes `source` alone:
+ * an `upload` of the text a `live` row already holds marks it `upload` (the
+ * live edit has reached descriptions.json), leaving `updated_at` as it was so
+ * no phone re-downloads it.
+ *
+ * `ifUpdatedAt` is the live editor's optimistic check: the `updated_at` it
+ * last read for the row, or null for "no row". When the row has changed since
+ * and does not already hold the text sent, nothing is written and the answer
+ * is 409 `description_conflict` with the row as it is now. Each conditional
+ * write is one statement, so two editors cannot both pass the check. The
+ * upload sends no precondition: the file is the source of truth.
  */
 export async function upsertTrailDescription(
   request: Request,
@@ -96,31 +133,88 @@ export async function upsertTrailDescription(
 
   const body = await readJson(request);
   const description = validateDescription(body.description);
+  const source = validateDescriptionSource(body.source);
+  const ifUpdatedAt = validateIfUpdatedAt(body);
   const now = new Date().toISOString();
 
-  const row = await env.DB.prepare(
-    `INSERT INTO waypoint_descriptions (trail_id, waypoint_id, description, updated_at)
-     VALUES (?, ?, ?, ?)
-     ON CONFLICT(trail_id, waypoint_id) DO UPDATE
-       SET description = excluded.description, updated_at = excluded.updated_at
-       WHERE excluded.description <> waypoint_descriptions.description
-     RETURNING waypoint_id, description, updated_at`
-  )
-    .bind(trailId, waypointId, description, now)
-    .first<DescriptionRow>();
-  if (row) return json(toWaypointDescription(row));
+  let written: DescriptionRow | null;
+  if (ifUpdatedAt === undefined) {
+    written = await env.DB.prepare(
+      `INSERT INTO waypoint_descriptions (trail_id, waypoint_id, description, updated_at, source)
+       VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT(trail_id, waypoint_id) DO UPDATE
+         SET description = excluded.description, updated_at = excluded.updated_at, source = excluded.source
+         WHERE excluded.description <> waypoint_descriptions.description
+       RETURNING ${ROW_COLUMNS}`
+    )
+      .bind(trailId, waypointId, description, now, source)
+      .first<DescriptionRow>();
+  } else if (ifUpdatedAt === null) {
+    // The client read no row: only an insert may go through.
+    written = await env.DB.prepare(
+      `INSERT INTO waypoint_descriptions (trail_id, waypoint_id, description, updated_at, source)
+       VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT(trail_id, waypoint_id) DO NOTHING
+       RETURNING ${ROW_COLUMNS}`
+    )
+      .bind(trailId, waypointId, description, now, source)
+      .first<DescriptionRow>();
+  } else {
+    // The client read a row: only that same version may be replaced.
+    written = await env.DB.prepare(
+      `UPDATE waypoint_descriptions
+          SET description = ?, updated_at = ?, source = ?
+        WHERE trail_id = ? AND waypoint_id = ? AND updated_at = ? AND description <> ?
+       RETURNING ${ROW_COLUMNS}`
+    )
+      .bind(description, now, source, trailId, waypointId, ifUpdatedAt, description)
+      .first<DescriptionRow>();
+  }
+  if (written) return json(toWaypointDescription(written));
 
-  // No RETURNING row: the conflict update's WHERE held it back, i.e. the text
-  // was already this. Answer with the row as stored, its original stamp intact.
-  const unchanged = await env.DB.prepare(
-    `SELECT waypoint_id, description, updated_at
+  // Nothing was written: the row already holds this text, or a precondition
+  // did not hold. Read it as stored to tell which.
+  const current = await env.DB.prepare(
+    `SELECT ${ROW_COLUMNS}
        FROM waypoint_descriptions WHERE trail_id = ? AND waypoint_id = ?`
   )
     .bind(trailId, waypointId)
     .first<DescriptionRow>();
-  if (!unchanged) {
-    // Unreachable short of a concurrent hard delete (nothing deletes rows).
-    return json({ waypointId, description, updatedAt: now } satisfies WaypointDescription);
+
+  if (current && current.description === description) {
+    // Already this text: answer the row as stored, its original stamp intact.
+    // An upload re-sending a live edit's text takes the row over.
+    if (source === 'upload' && current.source === 'live') {
+      await env.DB.prepare(
+        `UPDATE waypoint_descriptions SET source = 'upload'
+          WHERE trail_id = ? AND waypoint_id = ? AND description = ? AND source = 'live'`
+      )
+        .bind(trailId, waypointId, description)
+        .run();
+      return json(toWaypointDescription({ ...current, source: 'upload' }));
+    }
+    return json(toWaypointDescription(current));
   }
-  return json(toWaypointDescription(unchanged));
+
+  if (ifUpdatedAt !== undefined) {
+    const conflict: DescriptionConflictResponse = {
+      error: {
+        code: 'description_conflict',
+        message: current
+          ? 'This description has changed since it was read'
+          : 'This description no longer has a synced row',
+      },
+      current: current ? toWaypointDescription(current) : null,
+    };
+    return json(conflict, 409);
+  }
+
+  // Unreachable short of a concurrent hard delete (nothing deletes rows): the
+  // unconditional upsert writes unless the row already holds the text.
+  return json({
+    waypointId,
+    description,
+    updatedAt: now,
+    source: source === 'live' ? 'live' : 'upload',
+  } satisfies WaypointDescription);
 }
