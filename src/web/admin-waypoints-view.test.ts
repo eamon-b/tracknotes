@@ -13,8 +13,10 @@ import {
   hasCuratedText,
   isDirty,
   isInMerge,
+  isReviewable,
   isReviewed,
   knownCommentIds,
+  laterPassOf,
   matchesFilter,
   mergeCommentsNote,
   mergeMetaHtml,
@@ -31,8 +33,11 @@ import {
   rowHtml,
   saveAffectsOtherRows,
   saveNotes,
+  sharedSourceText,
   stepTarget,
+  takesIdMetaHtml,
   typeOptionsHtml,
+  typePrefixProblem,
   variantLabel,
   voiceHints,
   type ReviewMarks,
@@ -355,10 +360,91 @@ describe('drafts, filters and review marks', () => {
     expect(field.where).toMatch(/not curated text/);
     expect(field.where).toMatch(/descriptions\.json/);
     expect(field.removeConfirm).toMatch(/<desc>/);
+    // Its CalTopo marker has a description, which the build shows instead: the box is locked, and says so.
+    const locked = descriptionField({ ...pending, canDescribe: false, sourceDescription: 'Town.' });
+    expect(locked.where).toMatch(/Read-only until a rebuild/);
+    expect(locked.where).not.toMatch(/it is saved as/);
     const curated = descriptionField(waypoint({ sourceDescription: 'From the GPX.' }));
     expect(curated).toMatchObject({ label: 'Description', where: '' });
     expect(curated.placeholder).toMatch(/source text below/);
     expect(curated.removeConfirm).toMatch(/curated description/);
+  });
+
+  it('lists a waypoint the last build does not have as locked work for a rebuild, never as text or review to do', () => {
+    const unbuilt = waypoint({
+      id: 'w_9',
+      notBuilt: true,
+      placements: [],
+      canMove: false,
+      canRename: false,
+      canDescribe: false,
+      canChangeType: false,
+      canDelete: false,
+    });
+    const marks = {};
+    const status = (s: WaypointFilter['status']) => matchesFilter(unbuilt, { query: '', type: '', status: s }, marks);
+    expect(status('changed')).toBe(true);
+    expect(status('no-text')).toBe(false);
+    expect(status('off-route')).toBe(false);
+    expect(status('pending')).toBe(false);
+    expect(isReviewable(unbuilt)).toBe(false);
+    expect(isReviewable(waypoint({ id: 'new:abc', pending: true }))).toBe(false);
+    expect(isReviewable(waypoint())).toBe(true);
+    expect(isReviewable(waypoint({ deleted: true }))).toBe(true);
+
+    const row = rowHtml(unbuilt, { selected: false, dirty: false, reviewed: false });
+    expect(row).toContain('>not built<');
+    expect(row).toContain('locked until a rebuild');
+    expect(row).not.toContain('no text');
+    expect(row).not.toContain('off route');
+    expect(row).not.toContain('>saved<');
+  });
+
+  it('tells a later pass of a revisited place from an id that only ends in digits', () => {
+    expect(laterPassOf('w_07233ee1_2')).toBe('w_07233ee1');
+    expect(laterPassOf('w_07233ee1_12')).toBe('w_07233ee1');
+    expect(laterPassOf('w_07233ee1')).toBeNull();
+    // All digits after the one underscore is a whole id, not pass 176641 of "w".
+    expect(laterPassOf('w_00176641')).toBeNull();
+    expect(laterPassOf('new:0123456789')).toBeNull();
+  });
+
+  it("shows a later pass's description as the place's, read-only, and says where to edit it", () => {
+    const pass = waypoint({
+      id: 'w_07233ee1_2',
+      description: 'Lodges and a bakery.',
+      canDescribe: false,
+      canDelete: false,
+      sharesSourceWith: ['w_07233ee1'],
+    });
+    const field = descriptionField(pass);
+    expect(field.label).toMatch(/read-only/);
+    expect(field.where).toMatch(/later pass of w_07233ee1\b/);
+    expect(field.where).toMatch(/edit it on w_07233ee1\./);
+    expect(field.placeholder).toMatch(/w_07233ee1/);
+    // The first pass is described as usual; a locked row that is not a later pass says nothing extra.
+    expect(descriptionField(waypoint({ id: 'w_07233ee1', sharesSourceWith: ['w_07233ee1_2'] })).where).toBe('');
+    expect(descriptionField(waypoint({ id: 'w_00176641', canDescribe: false })).where).toBe('');
+
+    // Either pass: what is done to the <wpt> is done to the place.
+    for (const w of [pass, waypoint({ id: 'w_07233ee1', sharesSourceWith: ['w_07233ee1_2'] })]) {
+      const text = sharedSourceText(w);
+      expect(text).toMatch(/a move, a rename or a type change/);
+      expect(text).toMatch(/every pass/);
+      expect(text).toContain(w.sharesSourceWith![0]);
+    }
+    expect(sharedSourceText(waypoint())).toBe('');
+  });
+
+  it("catches a new waypoint's type prefix before it is sent, as the server would refuse it", () => {
+    expect(typePrefixProblem('Mount Solitary')).toBeNull();
+    expect(typePrefixProblem('  ')).toBeNull();
+    // A known town is typed by its name, but shown as typed.
+    expect(typePrefixProblem('Thredbo')).toBeNull();
+    const problem = typePrefixProblem(' C Camp Thing ');
+    expect(problem).toMatch(/type prefix “C ”/);
+    expect(problem).toMatch(/would show “Camp Thing”/);
+    expect(typePrefixProblem('WT: Tank')).toMatch(/“Tank”/);
   });
 
   it('steps to the next row from the place in the whole list, in or out of the filter', () => {
@@ -437,6 +523,23 @@ describe('markup', () => {
     expect(rowHtml(waypoint({ placements: [] }), { selected: false, dirty: false, reviewed: false })).toContain(
       'off route'
     );
+    // One the next build hands an existing id says so: on the badge, and in the form with a link to that row.
+    const taking = waypoint({ id: 'new:abc', pending: true, takesId: 'w_5aaaaf44', name: 'Leadore <b>' });
+    const takingRow = rowHtml(taking, { selected: false, dirty: false, reviewed: false });
+    expect(takingRow).toContain('pending rebuild → w_5aaaaf44');
+    expect(takingRow).toContain('gives it the id w_5aaaaf44');
+    expect(unplacedRow).not.toContain('→');
+    const owner = waypoint({ id: 'w_5aaaaf44', name: 'Leadore <i>', deleted: true });
+    const withOwner = takesIdMetaHtml(taking, new Map([[owner.id, owner]]));
+    expect(withOwner).toContain('data-goto="w_5aaaaf44"');
+    expect(withOwner).toContain('of “Leadore &lt;i&gt;”');
+    expect(withOwner).toMatch(/in place of minting one/);
+    // A retired entry coming back has no row to link to.
+    const alone = takesIdMetaHtml(taking, new Map());
+    expect(alone).toContain('<code>w_5aaaaf44</code>');
+    expect(alone).not.toContain('data-goto');
+    expect(takesIdMetaHtml(unplaced, new Map())).toBe('');
+    expect(takesIdMetaHtml(waypoint({ takesId: 'w_x' }), new Map())).toBe('');
     const options = typeOptionsHtml('<b>x</b>');
     expect(options.startsWith('<option value="&lt;b&gt;x&lt;/b&gt;">')).toBe(true);
     expect(options).toContain('<option value="water-tank">Water tank (water-tank)</option>');

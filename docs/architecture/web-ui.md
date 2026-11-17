@@ -161,10 +161,16 @@ The app's own hosts are on the same domain: the comments API at `api.tracknotes.
   an edit updates its one row in place (`rowContentHtml`), never the whole list, so a field that commits on blur cannot swallow the click that blurred it;
   Lat and Lon commit on `change` and before any shortcut acts (`commitPendingFields`), through `parseCoordinate`, which never reads an empty field as 0;
   the readout and "Snap to route" measure to the nearest of the main route (cut at `track.breaks`) and the variants' lines (`routeLines`, `nearestLineSnap`);
-  review marks are per browser (`tracknotes-waypoint-review-<trailId>`) and lapse when the waypoint's content changes.
+  review marks are per browser (`tracknotes-waypoint-review-<trailId>`) and lapse when the waypoint's content changes;
+  a row that takes no mark (`isReviewable`: a pending one, and a `notBuilt` one) is left out of the progress count.
   A waypoint added since the last build is `pending` and keyed `new:<hash>` until a rebuild mints its id: anything keyed by waypoint id (comments, descriptions, review marks) must skip it.
   It is edited like any other, but its description box is its GPX `<desc>` (`descriptionField` labels it, and `hasCuratedText` keeps it out of the curated-text counts and filters).
   The key is a hash of its name and position, so a save that renames or moves it answers with a new one: `save` re-keys the row, the map dot, the selection, the `?id=` address, the draft and what "Show more" had revealed of its comments, and leaves nothing under the old key.
+  A pending row the next build hands an existing id carries `takesId`: its badge names the id, and the form links to the row that has it (`takesIdMetaHtml`).
+  A `<wpt>` with a registry id that the last build here does not list is `notBuilt`: a locked row badged `not built`, matched by "Changed since build" and by neither "No curated text" nor "Off the route".
+  A later pass of a revisited place (`laterPassOf`, the server's `registryId` rule) shows the place's description read-only, with no count or voice hints, and both passes say that a move, a rename or a type change is the place's (`sharedSourceText`).
+  A trail the server refuses (422 for a GPX the build cannot read) leaves the list and the map empty with the reason in the banner, and "Reload trail" asks for it again.
+  The add form checks the name for a type prefix before sending (`typePrefixProblem`, the classifier the server uses).
   A `<wpt>` the build merged into a near-duplicate (`dedupeWaypoints`) is a row of its own under its id, flagged `mergedInto` (the survivor carries `mergedIds`): a badge, a status filter, a hollow dotted ring on the map, and a line in the form that links to the waypoint it merged into.
   The app never reads `mergedIds`, so comments under a merged-away id show nowhere in it: the row here shows them over a note saying so, `knownCommentIds` keeps the id out of the "lost id" list, and the delete confirmation says the comments were already out of sight where it would otherwise say orphaned.
   `admin-waypoints-view.ts` is pure (drafts, filters and stepping, typed and pasted positions, the route's lines and snapping, voice hints, review fingerprints, escaped list markup, the type select's options, the description box's labels, the merge line and map dot styles, the delete confirmation, the save notes) and tested in `admin-waypoints-view.test.ts`;

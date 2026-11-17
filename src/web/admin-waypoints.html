@@ -51,6 +51,7 @@
       Saves write the source files below. Rebuild, review the diff, then commit the sources with the rebuilt
       <code>mobile/assets/trails</code> files and the registry (CI fails on uncommitted rebuilt data).
     </p>
+    <p class="wpe-muted" id="wpe-trail-files" hidden></p>
     <ul id="wpe-changes-list" class="wpe-changes-list"></ul>
     <div id="wpe-rebuild-status"></div>
   </section>
@@ -168,7 +169,8 @@
         <p class="wpe-muted" id="wpe-new-where">Click the map (or an OSM POI) to place it; drag the marker to adjust.</p>
         <label class="wpe-field">
           <span>Name</span>
-          <input type="text" id="wpe-new-name" autocomplete="off" spellcheck="true">
+          <input type="text" id="wpe-new-name" autocomplete="off" spellcheck="true" aria-describedby="wpe-new-name-error">
+          <small class="wpe-field-error" id="wpe-new-name-error" role="alert"></small>
         </label>
         <label class="wpe-field">
           <span>Type</span>

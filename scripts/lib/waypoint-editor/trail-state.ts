@@ -316,7 +316,8 @@ interface BuiltWaypoint {
   lon: number;
   description?: string;
   placements: WaypointPlacement[];
-  distanceFromTrailKm?: number;
+  /** For an off-trail place: metres to the nearest point of the main track (the built data's `distanceFromTrail`). */
+  distanceFromTrailM?: number;
   /** Ids of the near-duplicates the build merged into it, over every list it is in. */
   mergedIds?: string[];
 }
@@ -339,7 +340,7 @@ function collectBuiltWaypoints(trail: ProcessedTrail): BuiltWaypoint[] {
       mergedIds?: string[];
     },
     placement: WaypointPlacement,
-    distanceFromTrailKm?: number
+    distanceFromTrailM?: number
   ) => {
     if (!w.id) return;
     let entry = byId.get(w.id);
@@ -349,7 +350,7 @@ function collectBuiltWaypoints(trail: ProcessedTrail): BuiltWaypoint[] {
       byId.set(w.id, entry);
     }
     entry.placements.push(placement);
-    if (distanceFromTrailKm !== undefined) entry.distanceFromTrailKm = distanceFromTrailKm;
+    if (distanceFromTrailM !== undefined) entry.distanceFromTrailM = distanceFromTrailM;
     for (const id of w.mergedIds ?? []) {
       if (!entry.mergedIds?.includes(id)) entry.mergedIds = [...(entry.mergedIds ?? []), id];
     }
@@ -895,7 +896,7 @@ function toEditorWaypoint(
   if (!span && !joined.ambiguous && !context.readOnlyReason) waypoint.deleted = true;
   const ele = sourceElevation(span);
   if (ele !== undefined) waypoint.ele = ele;
-  if (built.distanceFromTrailKm !== undefined) waypoint.distanceFromTrailM = built.distanceFromTrailKm;
+  if (built.distanceFromTrailM !== undefined) waypoint.distanceFromTrailM = built.distanceFromTrailM;
   const sourceText = sourceDescription(span, sources.caltopo, joined);
   if (sourceText) waypoint.sourceDescription = sourceText;
   else if (!curated.has(place) && built.description) waypoint.sourceDescription = built.description;

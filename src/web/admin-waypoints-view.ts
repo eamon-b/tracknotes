@@ -8,6 +8,7 @@
 
 import { haversineDistance } from '@lib/distance';
 import { nameMatches } from '@lib/name-filter';
+import { classifyWaypoint } from '@lib/waypoint-classifier';
 import { snapToTrail, type SnapPoint } from '@lib/position-on-trail';
 import { WAYPOINT_TYPES, waypointTypeLabel } from '@lib/waypoint-taxonomy';
 import type {
@@ -159,9 +160,49 @@ export function retypedSinceBuild(w: EditorWaypoint): boolean {
   return w.type !== w.builtType;
 }
 
-/** Saved since the last build in any way, or added since it. */
+/** Saved since the last build in any way, added since it, or in the registry but not in the build on this machine. */
 export function changedSinceBuild(w: EditorWaypoint): boolean {
-  return !!w.pending || !!w.deleted || movedSinceBuild(w) || renamedSinceBuild(w) || retypedSinceBuild(w);
+  return (
+    !!w.pending || !!w.deleted || !!w.notBuilt || movedSinceBuild(w) || renamedSinceBuild(w) || retypedSinceBuild(w)
+  );
+}
+
+/**
+ * The first pass's id when `id` is a later pass of a revisited place
+ * (`<id>_2`), else null. As the server reads it (`registryId`): only a suffix
+ * after a whole id counts, so `w_00176641` is an id of its own.
+ */
+export function laterPassOf(id: string): string | null {
+  return /^(.+_[^_]+)_\d+$/.exec(id)?.[1] ?? null;
+}
+
+/**
+ * Whether a review mark can be kept for `w`. A pending waypoint has only a
+ * temporary key, which a rename or a move changes. One the last build here
+ * does not list (`notBuilt`) is locked until a rebuild, with no km and no
+ * lists to check it against. Neither counts in the review progress.
+ */
+export function isReviewable(w: EditorWaypoint): boolean {
+  return !w.pending && !w.notBuilt;
+}
+
+/**
+ * Why the build would not show `name` as typed, or null when it would: it
+ * strips a type prefix (`C `, `WT: `, …) from a name, so the server refuses
+ * one on a new waypoint and on a rename. Checked in the add form before
+ * anything is sent.
+ */
+export function typePrefixProblem(name: string): string | null {
+  const typed = name.trim();
+  const classified = classifyWaypoint(typed);
+  if (!typed || classified.cleanedName === typed) return null;
+  return `“${typed}” starts with the type prefix “${classified.matchedPrefix ?? ''}”, which the build strips from names (it would show “${classified.cleanedName}”): leave it off, the type comes from Type.`;
+}
+
+/** What the form says of the other ids built from the same `<wpt>` (the passes of a revisited place). */
+export function sharedSourceText(w: EditorWaypoint): string {
+  if (!w.sharesSourceWith?.length) return '';
+  return `Same <wpt> as ${w.sharesSourceWith.join(', ')}: a move, a rename or a type change here changes the place, so every pass`;
 }
 
 /**
@@ -175,7 +216,7 @@ export function hasCuratedText(w: EditorWaypoint): boolean {
 /** How the form presents the description box: where its text is saved, and what emptying it does. */
 export interface DescriptionField {
   label: string;
-  /** Said under the label when the text is not curated text; '' otherwise. */
+  /** Said under the label when the text is not curated text, or is not this row's to edit; '' otherwise. */
   where: string;
   placeholder: string;
   /** Asked before a save that empties a description that had text. */
@@ -193,8 +234,9 @@ export function descriptionField(w: EditorWaypoint): DescriptionField {
   if (w.pending) {
     return {
       label: 'Description: GPX <desc>',
-      where:
-        'No id yet, so this is not curated text: it is saved as the <desc> of its <wpt> in the GPX, source text the app shows as it stands. Once a rebuild gives it an id, text saved here goes to descriptions.json and outranks the <desc>.',
+      where: w.canDescribe
+        ? 'No id yet, so this is not curated text: it is saved as the <desc> of its <wpt> in the GPX, source text the app shows as it stands. Once a rebuild gives it an id, text saved here goes to descriptions.json and outranks the <desc>.'
+        : 'Read-only until a rebuild gives it an id: the build shows the text below in place of its <desc>.',
       placeholder: 'No <desc> in the GPX.',
       removeConfirm: 'Remove its <desc> from the GPX? It has no other description.',
       sourceSummary: 'CalTopo marker text (the build shows this, not the <desc>)',
@@ -212,6 +254,17 @@ export function descriptionField(w: EditorWaypoint): DescriptionField {
       sourceSummary: w.unmerges
         ? 'Source text (GPX / CalTopo)'
         : 'Source text (GPX / CalTopo): the build appends it to the description of the waypoint it merged into',
+    };
+  }
+  const place = laterPassOf(w.id);
+  if (place && !w.canDescribe) {
+    // The text is the place's: the build applies it before it makes the passes.
+    return {
+      label: 'Description: the place’s, read-only here',
+      where: `This is a later pass of ${place}. The description is the place's and shows on every pass: edit it on ${place}.`,
+      placeholder: `No curated text for the place: write it on ${place}.`,
+      removeConfirm: 'Remove the curated description?',
+      sourceSummary: 'Source text (GPX / CalTopo)',
     };
   }
   return {
@@ -320,7 +373,8 @@ export interface WaypointFilter {
 function isOffRoute(w: EditorWaypoint): boolean {
   // A merged-away duplicate is in no list at all: the build dropped its row.
   // A pending waypoint has no placements yet: where it sits comes from the next build.
-  return !w.mergedInto && !w.pending && !w.placements.some(p => p.kind === 'main');
+  // Nor has one the last build here does not list.
+  return !w.mergedInto && !w.pending && !w.notBuilt && !w.placements.some(p => p.kind === 'main');
 }
 
 /** In a merge the build made: a duplicate it dropped, or the waypoint it kept in that duplicate's place. */
@@ -340,7 +394,8 @@ export function matchesFilter(
   switch (filter.status) {
     case 'no-text':
       // A merged-away duplicate takes no text of its own: it is not work to do.
-      return !hasCuratedText(w) && !w.mergedInto;
+      // Nor is one the last build does not list: it is locked until a rebuild.
+      return !hasCuratedText(w) && !w.mergedInto && !w.notBuilt;
     case 'has-text':
       return hasCuratedText(w);
     case 'unreviewed':
@@ -592,12 +647,21 @@ export function rowContentHtml(w: EditorWaypoint, state: RowState): string {
   const badges: string[] = [];
   if (state.dirty) badges.push('<span class="wpe-badge wpe-badge-dirty" title="Unsaved changes">unsaved</span>');
   if (w.pending) {
+    const title =
+      'Added since the last build: no id until a rebuild, so edits go to its <wpt> in the GPX alone. Its place on the route (main route, a variant, or off it) and its km come from that build.' +
+      (w.takesId
+        ? ` The next build gives it the id ${w.takesId}, which the registry already holds, with the comments keyed to it.`
+        : '');
     badges.push(
-      '<span class="wpe-badge wpe-badge-pending" title="Added since the last build: no id until a rebuild, so edits go to its &lt;wpt&gt; in the GPX alone. Its place on the route (main route, a variant, or off it) and its km come from that build.">pending rebuild</span>'
+      `<span class="wpe-badge wpe-badge-pending" title="${escapeHtml(title)}">pending rebuild${w.takesId ? ` → ${escapeHtml(w.takesId)}` : ''}</span>`
     );
   } else if (w.deleted) {
     badges.push(
-      '<span class="wpe-badge wpe-badge-pending" title="Its &lt;wpt&gt; is gone: the next build retires its id">deleted</span>'
+      '<span class="wpe-badge wpe-badge-pending" title="Its &lt;wpt&gt; is gone: the next build retires its id, unless a pending waypoint takes it (the form says which)">deleted</span>'
+    );
+  } else if (w.notBuilt) {
+    badges.push(
+      '<span class="wpe-badge wpe-badge-pending" title="It has an id in data/waypoint-ids.json, but the last build on this machine does not list it: locked until a rebuild">not built</span>'
     );
   } else if (changedSinceBuild(w)) {
     badges.push('<span class="wpe-badge wpe-badge-changed" title="Saved; rebuild to see it in the data">saved</span>');
@@ -612,7 +676,7 @@ export function rowContentHtml(w: EditorWaypoint, state: RowState): string {
       `<span class="wpe-badge wpe-badge-merged-into" title="${escapeHtml(`The build merged ${w.mergedIds.join(', ')} into it`)}">+${w.mergedIds.length} merged</span>`
     );
   }
-  if (!w.description && !w.pending && !w.deleted && !w.mergedInto)
+  if (!w.description && !w.pending && !w.deleted && !w.mergedInto && !w.notBuilt)
     badges.push('<span class="wpe-badge wpe-badge-empty" title="No curated description">no text</span>');
   badges.push(commentBadgeHtml(state.comments));
   const reviewed = state.reviewed ? '<span class="wpe-reviewed" title="Reviewed">✓</span>' : '';
@@ -714,6 +778,22 @@ function idLinkHtml(id: string, known: boolean): string {
   return known
     ? `<button type="button" class="wpe-link" data-goto="${escapeHtml(id)}" title="Go to this waypoint">${code}</button>`
     : code;
+}
+
+/**
+ * The form's line on a pending waypoint the next build hands an id the
+ * registry already holds (`takesId`), in place of minting one: the id, as a
+ * link to the row that has it when there is one (the waypoint whose `<wpt>`
+ * went). '' for any other waypoint.
+ */
+export function takesIdMetaHtml(w: EditorWaypoint, byId: ReadonlyMap<string, EditorWaypoint>): string {
+  if (!w.pending || !w.takesId) return '';
+  const owner = byId.get(w.takesId);
+  const whose = owner ? ` of “${escapeHtml(owner.name)}”` : '';
+  return (
+    `<span class="wpe-meta-takes-id">The next build gives it the id ${idLinkHtml(w.takesId, !!owner)}${whose}, ` +
+    `which the registry already holds, in place of minting one: the comments keyed to that id come with it</span>`
+  );
 }
 
 /**

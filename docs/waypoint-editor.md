@@ -22,10 +22,14 @@ A waypoint added since the last build has only a temporary key there (`id=new:�
   A reload keeps the selection, the map view, the list's place and every unsaved edit;
   only opening another trail starts afresh.
   Then the review progress, "Changed files", "Rebuild trail data" and "Keys".
-- **List** (left): every `<wpt>` the trail has, in km order (off-route ones by the km of the nearest route point), with its type glyph and badges: `unsaved` (edits held in the page), `saved` (written since the last build), `pending rebuild` (added since the last build: no id yet, so it is edited in the GPX alone), `deleted` (its `<wpt>` is gone since the last build), `merged` (a near-duplicate the build merged into another waypoint: it has an id but no row in the app), `+N merged` (the waypoint those were merged into), `no text` (no curated description) and ✓ (reviewed).
+  The Changed files drawer names the source files a save on the open trail may write (the GPX, the CalTopo export, `descriptions.json`, the registry, and `trail.json` for a rename of a revisited place) above the files git reports as changed;
+  on a read-only trail it names none.
+  A trail that cannot be read (a GPX the build cannot read, a trail not built yet) leaves the list and the map empty with the reason in the banner: pick another trail, or put it right and press "Reload trail", which asks for it again.
+- **List** (left): every `<wpt>` the trail has, in km order (off-route ones by the km of the nearest route point), with its type glyph and badges: `unsaved` (edits held in the page), `saved` (written since the last build), `pending rebuild` (added since the last build: no id yet, so it is edited in the GPX alone; `pending rebuild → <id>` when the next build hands it an id the registry already holds), `deleted` (its `<wpt>` is gone since the last build), `not built` (it has an id in the registry but the last build on this machine does not list it: locked until a rebuild), `merged` (a near-duplicate the build merged into another waypoint: it has an id but no row in the app), `+N merged` (the waypoint those were merged into), `no text` (no curated description) and ✓ (reviewed).
   A merged duplicate is listed straight after the waypoint it merged into.
   Search matches names accent-insensitively, or an exact id;
   the filters narrow by type and by status (no curated text, not reviewed, changed since build, added and pending a rebuild, merged duplicates with what they merged into, off the route, has comments).
+  "Changed since build" lists a `not built` row too, and "No curated text" and "Off the route" leave it out: it cannot be described here yet, and its place on the route comes from the rebuild.
   A row with hikers' comments carries a count badge.
   A waypoint pending a rebuild has no place on the route yet (main route, a variant, or off it): that comes from the build, so its row is never labelled `off route` and the "off the route" filter leaves it out.
 - **Map** (centre): the route as built (cut at route breaks, variants dashed), every waypoint coloured by family, and the selected one as a draggable marker.
@@ -42,6 +46,8 @@ A waypoint added since the last build has only a temporary key there (`id=new:�
 - **Form** (right): name;
   type, with what decides it in the build (a CalTopo folder, a GPX `<type>`, a name prefix, a known town, or nothing);
   id and the lists the waypoint is in, and for an off-route place how far it was from the main route in the last build (metres under a kilometre, kilometres above);
+  for a pending waypoint the next build hands an existing id, that id (a link to the row that has it, when one does);
+  for a pass of a revisited place, the other passes built from the same `<wpt>`, and that a move, a rename or a type change here changes the place, so every pass;
   for a merged duplicate, the waypoint the build merged it into (a link to it) and how far apart they are, and on that waypoint the ids merged into it;
   latitude and longitude, plus a box that takes a pasted position or a Google Maps / OpenStreetMap link;
   the `<ele>` its `<wpt>` has in the GPX, when it has one (a merged duplicate's and a pending waypoint's included);
@@ -91,6 +97,8 @@ in a file that is in that order it lands in order, and in one with entries out o
 An entry's `name`, an aid to reading the file, is written on a new entry and changed only by a save that renames the waypoint.
 Emptying the box removes the entry, and the source text shows again.
 A revisited place's later pass (`<id>_2`) has no text of its own: the build applies the description to the place before it makes the passes, so the row shows the first pass's text, and its lock note names the first pass as the place to edit it.
+Its box is read-only, labelled as the place's description, with a line under the label naming the id to edit it on;
+it shows no character count and no voice hints, and "Start from this" is not offered.
 The voice hints flag what the house voice avoids (`scripts/lib/waypoint-descriptions.ts`): addressing the walker as "you", telling them what to do ("should", "make sure", a sentence that opens "Treat", "Carry", …), a doubled space and a missing full stop.
 They are hints only.
 Every fact still needs its source in `plans/waypoint-description-sources.md`.
@@ -131,6 +139,8 @@ A waypoint whose registry entry no longer matches its `<wpt>` (an entry edited b
 ### Adding a waypoint
 
 "New waypoint" (under the map) opens a form: click the map or an OSM POI to place it (drag the marker to adjust), then give it a name, a type and, optionally, a description.
+A name that starts with a type prefix is flagged under the field as it is typed, and "Add waypoint" stays off until it is corrected (the server refuses it too).
+Any other refusal is shown under the form, which keeps what was typed and where the marker is.
 "Add waypoint" inserts a `<wpt>` after the last one in the GPX, written like its neighbours: the same indentation and line ending, one line or one child per line as the last `<wpt>` is laid out (a `<desc>` that runs over several lines does not make it one child per line), coordinates padded to six decimals where every `<wpt>`'s are (`lon="151.213190"`), and `<ele>`, `<name>`, `<desc>` and `<type>` in the order the file uses.
 It gets an `<ele>` when the file's `<wpt>`s carry one ("Elevation" below).
 Nothing goes in `data/waypoint-ids.json` or `descriptions.json`: the waypoint has no id until the next build mints one, so the description goes in its `<desc>`, where the build reads it as source text.
@@ -275,6 +285,8 @@ The editor never writes to the comments API: moderation stays on `admin-moderati
 "Reviewed" (`Alt+R`) is a per-browser mark held in `localStorage`, shown as ✓ and counted in the header's progress bar.
 A mark lapses when the waypoint's name, position or description changes, so a correction pulled from git puts the waypoint back in the unreviewed pile.
 A pending waypoint cannot be marked: a mark is kept under the waypoint's id, and it has none yet.
+Nor can a `not built` one, which is locked until a rebuild.
+Neither counts in the progress bar's total.
 `Ctrl+Enter` saves, marks the waypoint reviewed and moves to the next one in the filtered list (on an unchanged waypoint it just marks and moves on), which is the fast way through a trail.
 "Next" is worked out before the save or the mark is applied, from the waypoint's place in the whole list.
 So it is the following row even when the action takes the waypoint out of the filter ("Not reviewed", "No curated text" once a description is saved, a type filter after a retype) or gives a pending one a new key;
@@ -307,7 +319,8 @@ After a save that changes other rows (another pass of a revisited place, a merge
 Only the bytes it means to change: the GPX is edited in place and a JSON file is rewritten only when its layout can be reproduced exactly (the CalTopo export and trail.json are spliced value by value: some exports mix escaped and raw non-ASCII, and trail.json is laid out by Prettier).
 All the writes of one save, and the answer the page gets, are computed before any write is made, so a refusal leaves nothing half-written and no error follows a write.
 The files are then replaced together or not at all: each new text is written to a temporary file beside its file and renamed over it, and if one cannot be replaced, those already replaced are put back as they were.
-(The temporary files are named `.<file>.<pid>-<n>.wpe-tmp` and `.wpe-bak`; one left behind by a killed dev server can be deleted.)
+(The temporary files are named `.<file>.<pid>-<n>.wpe-tmp` and `.wpe-bak`; one left behind by a killed dev server can be deleted.
+They are in `.gitignore`, so one is never committed or listed among the changed files.)
 
 - **Description:** the entry in `descriptions.json` (created if the trail has none);
   its `name` aid is left as it is.
@@ -379,8 +392,10 @@ If only the dev server is killed, the step that is running finishes (a half-writ
 - Two `<wpt>`s on one position with one name and type (twins): the editor cannot tell which is whose, lists each id locked and neither `<wpt>` as pending, and says to give them names of their own.
 - A `<wpt>` that has an id in `data/waypoint-ids.json` but no row in the last build on this machine, and is in no row's merged ids.
   The build lists every `<wpt>` (main route, off-trail, a variant's waypoints, which include a terminus's endpoint, or the ids merged into another), so this is the registry ahead of the generated data: the registry is committed, the generated data is built on each machine, and a pull that brings a new waypoint needs a rebuild.
-  It is listed under its id, locked, until then.
-- A GPX the build cannot read (a `<wpt>` with no usable `lat` or `lon`): the editor reads `<wpt>`s as the build's parser does and refuses the trail, naming the `<wpt>`.
+  It is listed under its id, badged `not built` and locked, until then.
+- A GPX the build cannot read (a `<wpt>` with no usable `lat` or `lon`): the editor reads `<wpt>`s as the build's parser does and refuses the trail, naming the file and the `<wpt>`.
+  The page shows that in the banner in place of the trail;
+  fix the GPX by hand and press "Reload trail".
   A `<wpt>` inside an XML comment is not a waypoint, here as in the build.
 - A CalTopo marker that also types another waypoint: a move or a rename leaves it as it is, and a retype is refused until the waypoint is renamed.
 - The description of a revisited place's later pass (`<id>_2`): it is the place's, edited on the first pass.
