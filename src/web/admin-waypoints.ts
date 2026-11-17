@@ -8,14 +8,19 @@
  * `npm run dev`; the deployed site has neither the page nor the API.
  *
  * Unsaved edits are kept per waypoint while browsing (the list marks them), so
- * a long review can hop between neighbours before saving. Review marks are per
- * browser and lapse when the waypoint's content changes.
+ * a long review can hop between neighbours before saving. A draft holds only
+ * the fields that were changed, so a field nobody touched follows the server
+ * when the trail is read again. Review marks are per browser and lapse when
+ * the waypoint's content changes.
+ *
+ * The form stays live while a save is in flight: a save captures what it needs
+ * before it awaits, and its answer is applied to the waypoint it was for,
+ * whatever is selected by then (`save`).
  */
 
 import type * as Leaflet from 'leaflet';
 import { haversineDistance } from '@lib/distance';
 import { routeBreakStarts } from '@lib/route-breaks';
-import { snapToTrail } from '@lib/position-on-trail';
 import { waypointFamily } from '@lib/waypoint-glyphs';
 import { waypointTypeLabel } from '@lib/waypoint-taxonomy';
 import type { ProcessedTrail } from '@lib/trail-types';
@@ -40,6 +45,7 @@ import {
   commentCounts,
   commentsCountText,
   commentsSectionHtml,
+  commentsStatusText,
   loadTrailComments,
   orphanedCommentIds,
   parseShown,
@@ -54,9 +60,11 @@ import {
   descriptionField,
   dotStyle,
   dotTooltipHtml,
+  draftAfterSave,
   draftChanges,
-  draftOf,
+  draftValues,
   externalMapLinks,
+  formatDistance,
   hasCuratedText,
   isDirty,
   isReviewed,
@@ -66,20 +74,31 @@ import {
   mergeMetaHtml,
   movedSinceBuild,
   nearbyPois,
+  nearestLineSnap,
+  parseCoordinate,
   parseLatLon,
   placementText,
-  readoutText,
+  positionReadout,
+  pruneDraft,
   reviewFingerprint,
   reviewStorageKey,
   retypedSinceBuild,
+  routeLines,
+  rowContentHtml,
   rowHtml,
+  saveAffectsOtherRows,
+  saveNotes,
+  stepTarget,
   typeCounts,
   typeOptionsHtml,
   voiceHints,
   waypointGlyphHtml,
   type ReviewMarks,
+  type RouteLine,
+  type RowState,
   type StatusFilter,
   type WaypointDraft,
+  type WaypointFields,
   type WaypointFilter,
 } from './admin-waypoints-view';
 import { loadLeaflet } from './landing-map';
@@ -173,8 +192,19 @@ const state = {
   newMarker: null as Leaflet.Marker | null,
   saving: false,
   rebuilding: false,
+  /** A trail read is in flight (a switch, or a reload of this one). */
+  loading: false,
+  /** The trail the page was last asked for: an answer for any other is stale. */
+  trailWanted: null as string | null,
   map: null as MapState | null,
-  breakStarts: new Set<number>() as ReadonlySet<number>,
+  /** The main route (cut at its breaks) and each variant's line, to measure and snap to. */
+  lines: [] as RouteLine[],
+  /** Lat or Lon was typed into and not yet committed (they commit on `change`, or before a shortcut acts). */
+  positionTyped: false,
+  /** The last draft Discard (or Esc) dropped, so it can be put back. */
+  discarded: null as { trailId: string; id: string; draft: WaypointDraft; focusId: string } | null,
+  /** Each drawn row's content, so an edit re-renders its one row only when it changed. */
+  rowContent: new Map<string, string>(),
   /** Hikers' comments on the current trail (`admin-waypoints-comments.ts`), and their counts per id. */
   comments: { kind: 'loading' } as CommentsState,
   commentCounts: new Map<string, number>() as ReadonlyMap<string, number>,
@@ -184,20 +214,31 @@ function selected(): EditorWaypoint | null {
   return state.selectedId ? (state.byId.get(state.selectedId) ?? null) : null;
 }
 
-function currentDraft(): WaypointDraft | null {
+/** What the form shows for the selected waypoint: its saved fields with its draft over them. */
+function currentValues(): WaypointFields | null {
   const w = selected();
-  if (!w) return null;
-  return state.drafts.get(w.id) ?? draftOf(w);
+  return w ? draftValues(w, state.drafts.get(w.id)) : null;
 }
 
-function setDraft(id: string, draft: WaypointDraft): void {
+/** Lay `patch` over the waypoint's draft, keeping only the fields that then differ from the saved waypoint. */
+function patchDraft(id: string, patch: WaypointDraft): void {
   const saved = state.byId.get(id);
-  if (saved && !isDirty(saved, draft)) state.drafts.delete(id);
-  else state.drafts.set(id, draft);
+  if (!saved) return;
+  const next = pruneDraft(saved, { ...state.drafts.get(id), ...patch });
+  if (next) state.drafts.set(id, next);
+  else state.drafts.delete(id);
+}
+
+function isVisible(w: EditorWaypoint): boolean {
+  return matchesFilter(w, state.filter, state.marks, state.commentCounts);
 }
 
 function visibleWaypoints(): EditorWaypoint[] {
-  return (state.trail?.waypoints ?? []).filter(w => matchesFilter(w, state.filter, state.marks, state.commentCounts));
+  return (state.trail?.waypoints ?? []).filter(isVisible);
+}
+
+function anyUnsaved(): boolean {
+  return !!state.trail?.waypoints.some(w => isDirty(w, state.drafts.get(w.id)));
 }
 
 function loadMarks(trailId: string): ReviewMarks {
@@ -235,6 +276,12 @@ function showNotes(notes: string[], error = false): void {
   $('wpe-notes').innerHTML = notes.map(n => `<li${error ? ' class="is-error"' : ''}>${escapeHtml(n)}</li>`).join('');
 }
 
+/** Notes under the form when a waypoint is selected; in the banner when none is, since the form is then hidden. */
+function report(notes: string[], error = false): void {
+  if (selected() && state.adding === undefined) showNotes(notes, error);
+  else banner(notes.join(' '));
+}
+
 // ---------------------------------------------------------------------------
 // List
 // ---------------------------------------------------------------------------
@@ -257,24 +304,53 @@ function renderFilters(): void {
   statusSelect.value = state.filter.status;
 }
 
+function rowState(w: EditorWaypoint): RowState {
+  return {
+    selected: w.id === state.selectedId,
+    dirty: isDirty(w, state.drafts.get(w.id)),
+    reviewed: isReviewed(state.marks, w),
+    comments: state.commentCounts.get(w.id),
+  };
+}
+
 function renderList(): void {
   const list = $('wpe-list');
   const scroll = list.scrollTop;
   const rows = visibleWaypoints();
+  state.rowContent.clear();
   list.innerHTML = rows
-    .map(w =>
-      rowHtml(w, {
-        selected: w.id === state.selectedId,
-        dirty: isDirty(w, state.drafts.get(w.id)),
-        reviewed: isReviewed(state.marks, w),
-        comments: state.commentCounts.get(w.id),
-      })
-    )
+    .map(w => {
+      const row = rowState(w);
+      state.rowContent.set(w.id, rowContentHtml(w, row));
+      return rowHtml(w, row);
+    })
     .join('');
   list.scrollTop = scroll;
   const total = state.trail?.waypoints.length ?? 0;
   $('wpe-list-count').textContent =
     rows.length === total ? `${total} waypoints` : `${rows.length} of ${total} waypoints`;
+  renderProgress();
+}
+
+/**
+ * Re-render one row where it stands, after an edit to its draft (which never
+ * changes which rows the filter shows). The `<li>` itself stays: a field that
+ * commits on blur does so between a click's mousedown and mouseup, and a list
+ * rebuilt in between would swallow the click.
+ */
+function updateRow(id: string): void {
+  const w = state.byId.get(id);
+  const li = [...$('wpe-list').querySelectorAll<HTMLElement>('.wpe-row')].find(row => row.dataset.id === id);
+  if (w && li) {
+    const row = rowState(w);
+    const html = rowContentHtml(w, row);
+    if (state.rowContent.get(id) !== html) {
+      li.innerHTML = html;
+      state.rowContent.set(id, html);
+    }
+    li.classList.toggle('is-selected', row.selected);
+    li.setAttribute('aria-selected', String(row.selected));
+  }
   renderProgress();
 }
 
@@ -309,8 +385,18 @@ function familyColor(type: string): string {
   return themeColor(`--wp-${waypointFamily(type)}`, '#5A6B64');
 }
 
-async function ensureMap(): Promise<MapState> {
-  if (state.map) return state.map;
+/** The one map, made on first use: asked for again while Leaflet is still loading, it is the same one. */
+let mapLoading: Promise<MapState> | null = null;
+
+function ensureMap(): Promise<MapState> {
+  mapLoading ??= createMap().catch((error: unknown) => {
+    mapLoading = null; // let the next trail read try again
+    throw error;
+  });
+  return mapLoading;
+}
+
+async function createMap(): Promise<MapState> {
   const Lf = await loadLeaflet();
   const map = Lf.map($('wpe-map'), { zoomControl: true });
   const bases: Record<string, Leaflet.TileLayer> = {
@@ -352,7 +438,8 @@ async function ensureMap(): Promise<MapState> {
   return state.map;
 }
 
-function drawTrail(): void {
+/** Draw the route, the waypoints and the POIs. `fit` zooms to the whole trail: only when another trail was opened. */
+function drawTrail(fit: boolean): void {
   const m = state.map;
   const trail = state.trail;
   if (!m || !trail) return;
@@ -398,7 +485,7 @@ function drawTrail(): void {
   }
 
   const bounds = shapes.main.flat();
-  if (bounds.length) m.map.fitBounds(Lf.latLngBounds(bounds), { padding: [20, 20] });
+  if (fit && bounds.length) m.map.fitBounds(Lf.latLngBounds(bounds), { padding: [20, 20] });
 }
 
 /** One waypoint's dot on the map, kept under its id (a pending waypoint's key) in `dotById`. */
@@ -416,7 +503,7 @@ function addDot(m: MapState, w: EditorWaypoint): void {
 function drawSelection(pan: boolean): void {
   const m = state.map;
   const w = selected();
-  const draft = currentDraft();
+  const draft = currentValues();
   if (!m) return;
   const { L: Lf } = m;
   m.guides.clearLayers();
@@ -460,7 +547,7 @@ function drawSelection(pan: boolean): void {
       )
       .addTo(m.guides);
   }
-  if (draftChanges(w, draft).position) {
+  if (draftChanges(w, state.drafts.get(w.id)).position) {
     Lf.polyline(
       [
         [w.lat, w.lon],
@@ -519,53 +606,132 @@ function round6(value: number): number {
   return Number(value.toFixed(6));
 }
 
-function updatePositionFields(lat: number, lon: number): void {
-  $<HTMLInputElement>('wpe-lat').value = round6(lat).toString();
-  $<HTMLInputElement>('wpe-lon').value = round6(lon).toString();
+/** Mark a position field as not holding a position (or clear the mark). */
+function flagField(input: HTMLInputElement, invalid: boolean): void {
+  if (invalid) input.setAttribute('aria-invalid', 'true');
+  else input.removeAttribute('aria-invalid');
 }
 
-function moveDraftTo(lat: number, lon: number): void {
-  const w = selected();
-  const draft = currentDraft();
-  if (!w || !draft || !w.canMove) return;
-  setDraft(w.id, { ...draft, lat: round6(lat), lon: round6(lon) });
+/** Write a position into Lat and Lon, as the draft or a drag has it: nothing typed is pending after that. */
+function updatePositionFields(lat: number, lon: number): void {
+  const latInput = $<HTMLInputElement>('wpe-lat');
+  const lonInput = $<HTMLInputElement>('wpe-lon');
+  latInput.value = round6(lat).toString();
+  lonInput.value = round6(lon).toString();
+  flagField(latInput, false);
+  flagField(lonInput, false);
+  $('wpe-pos-error').textContent = '';
+  state.positionTyped = false;
+}
+
+/** The draft's position changed: redraw what follows it. */
+function afterMove(id: string, pan: boolean): void {
   fillPosition();
-  drawSelection(false);
+  drawSelection(pan);
   renderButtons();
-  renderList();
+  updateRow(id);
+}
+
+function moveDraftTo(lat: number, lon: number, pan = false): void {
+  const w = selected();
+  if (!w || !w.canMove) return;
+  patchDraft(w.id, { lat: round6(lat), lon: round6(lon) });
+  afterMove(w.id, pan);
+}
+
+/**
+ * Read Lat and Lon as typed and move the draft there. An empty or unparsable
+ * field is flagged and moves nothing (`Number('')` is 0, which is a place).
+ * False when the fields do not hold a position.
+ */
+function commitPosition(): boolean {
+  const w = selected();
+  if (!w || !w.canMove) return true;
+  const latInput = $<HTMLInputElement>('wpe-lat');
+  const lonInput = $<HTMLInputElement>('wpe-lon');
+  const lat = parseCoordinate(latInput.value, 90);
+  const lon = parseCoordinate(lonInput.value, 180);
+  flagField(latInput, lat === null);
+  flagField(lonInput, lon === null);
+  if (lat === null || lon === null) {
+    $('wpe-pos-error').textContent =
+      [
+        lat === null ? 'Lat must be a number from -90 to 90' : '',
+        lon === null ? 'Lon must be a number from -180 to 180' : '',
+      ]
+        .filter(Boolean)
+        .join('; ') + ': the waypoint has not moved. Esc in the field puts the position back.';
+    renderButtons();
+    return false;
+  }
+  moveDraftTo(lat, lon, true);
+  return true;
+}
+
+/** Whether Lat or Lon is flagged as not holding a position. */
+function positionInvalid(): boolean {
+  return ['wpe-lat', 'wpe-lon'].some(id => $(id).getAttribute('aria-invalid') === 'true');
+}
+
+/**
+ * Move the draft to what the paste box holds. Called on a paste, on Enter and
+ * when the box loses focus, never on each keystroke: a position typed by hand
+ * parses as one from the first digit of its longitude.
+ */
+function applyPaste(text?: string): boolean {
+  const input = $<HTMLInputElement>('wpe-paste');
+  const value = text ?? input.value;
+  if (!value.trim()) {
+    flagField(input, false);
+    return true;
+  }
+  const at = parseLatLon(value);
+  flagField(input, !at);
+  if (!at) return false;
+  input.value = '';
+  moveDraftTo(at.lat, at.lon, true);
+  return true;
+}
+
+/**
+ * Commit what is typed but not yet committed (Lat and Lon commit on `change`,
+ * the paste box on Enter or blur), so a shortcut pressed with focus still in
+ * the field acts on what the form shows. False, with the reason under the
+ * form, when a field does not hold a position: the shortcut must then not act.
+ */
+function commitPendingFields(): boolean {
+  const w = selected();
+  if (!w || !w.canMove || state.adding !== undefined) return true;
+  let ok = applyPaste();
+  if (state.positionTyped || positionInvalid()) ok = commitPosition() && ok;
+  if (!ok) {
+    showNotes(['The position fields do not hold a latitude and longitude. Correct them, or press Esc there.'], true);
+  }
+  return ok;
 }
 
 function renderReadout(lat: number, lon: number): void {
   const w = selected();
-  const trail = state.trail;
-  if (!w || !trail) {
-    $('wpe-readout').textContent = '';
-    return;
-  }
-  const snap = snapToTrail(lat, lon, trail.track.points, undefined, state.breakStarts);
-  $('wpe-readout').textContent = readoutText({
-    km: snap ? snap.currentKm : null,
-    offRouteM: snap ? snap.offTrailMeters : null,
-    movedM: haversineDistance(w.lat, w.lon, lat, lon),
-  });
+  $('wpe-readout').textContent =
+    w && state.trail ? positionReadout(state.lines, lat, lon, haversineDistance(w.lat, w.lon, lat, lon)) : '';
 }
 
 /** The `<ele>` the waypoint's `<wpt>` has in the GPX, and what a pending move does to it. */
 function renderSourceElevation(): void {
   const w = selected();
-  const draft = currentDraft();
   const line = $('wpe-ele');
   line.hidden = w?.ele === undefined;
-  if (!w || !draft || w.ele === undefined) return;
+  if (!w || w.ele === undefined) return;
   line.textContent = `GPX <ele>: ${w.ele} m${
-    draftChanges(w, draft).position ? '; saving the move looks it up again for the new position' : ''
+    draftChanges(w, state.drafts.get(w.id)).position ? '; saving the move looks it up again for the new position' : ''
   }`;
 }
 
-function fillPosition(): void {
-  const draft = currentDraft();
+/** The position block from the draft. `keepTyping` leaves Lat and Lon alone while something typed there is uncommitted. */
+function fillPosition(keepTyping = false): void {
+  const draft = currentValues();
   if (!draft) return;
-  updatePositionFields(draft.lat, draft.lon);
+  if (!(keepTyping && state.positionTyped)) updatePositionFields(draft.lat, draft.lon);
   renderReadout(draft.lat, draft.lon);
   renderSourceElevation();
   $('wpe-links').innerHTML = externalMapLinks(draft.lat, draft.lon)
@@ -575,7 +741,7 @@ function fillPosition(): void {
 }
 
 function renderNearby(): void {
-  const draft = currentDraft();
+  const draft = currentValues();
   const trail = state.trail;
   const w = selected();
   const list = $('wpe-nearby-list');
@@ -610,7 +776,9 @@ function renderButtons(): void {
   const w = selected();
   const dirty = w ? isDirty(w, state.drafts.get(w.id)) : false;
   const busy = state.saving || state.rebuilding;
-  $<HTMLButtonElement>('wpe-save').disabled = !dirty || busy;
+  const moved = !!w && draftChanges(w, state.drafts.get(w.id)).position;
+  // A typed position counts before it is committed: a click on Save commits it on the way (blur, then `save`).
+  $<HTMLButtonElement>('wpe-save').disabled = !(dirty || state.positionTyped) || busy;
   $<HTMLButtonElement>('wpe-save-next').disabled = busy;
   $<HTMLButtonElement>('wpe-save-next').textContent = dirty ? 'Save & next' : 'Next';
   $<HTMLButtonElement>('wpe-revert').disabled = !dirty;
@@ -618,19 +786,30 @@ function renderButtons(): void {
   del.disabled = !w?.canDelete || busy;
   del.title = w && !w.canDelete && /_\d+$/.test(w.id) ? 'A later pass of a revisited place: delete the first pass' : '';
   $<HTMLButtonElement>('wpe-new').disabled = !state.trail || !!state.trail.readOnlyReason || busy;
-  $<HTMLButtonElement>('wpe-reset-pos').disabled = !(
-    w &&
-    state.drafts.get(w.id) &&
-    draftChanges(w, state.drafts.get(w.id)!).position
-  );
+  // Also on while a typed position is uncommitted or flagged: it puts the fields back.
+  $<HTMLButtonElement>('wpe-reset-pos').disabled = !(moved || state.positionTyped || (!!w && positionInvalid()));
   $<HTMLButtonElement>('wpe-snap').disabled = !w?.canMove;
   $<HTMLButtonElement>('wpe-place').disabled = !w?.canMove;
-  $<HTMLButtonElement>('wpe-rebuild').disabled = state.rebuilding;
+  $<HTMLButtonElement>('wpe-rebuild').disabled = busy;
+  const reload = $<HTMLButtonElement>('wpe-reload');
+  reload.disabled = !state.trail || busy || state.loading;
+  reload.textContent = state.loading && state.trail ? 'Reloading…' : 'Reload trail';
 }
 
-function fillForm(): void {
+/**
+ * Write `value` into a text field. With `keepTyping` (a re-render of the form
+ * for the waypoint it already shows, after a save or a reload) a field that
+ * already says the same thing is left as typed, caret and trailing space included.
+ */
+function setText(input: HTMLInputElement | HTMLTextAreaElement, value: string, keepTyping: boolean): void {
+  if (keepTyping && input.value.trim() === value.trim()) return;
+  if (input.value !== value) input.value = value;
+}
+
+function fillForm(options: { keepTyping?: boolean } = {}): void {
+  const keepTyping = options.keepTyping ?? false;
   const w = selected();
-  const draft = currentDraft();
+  const draft = currentValues();
   $('wpe-empty').hidden = !!w;
   $('wpe-form').hidden = !w;
   if (!w || !draft) return;
@@ -640,7 +819,7 @@ function fillForm(): void {
   locked.textContent = w.lockedReason ?? '';
 
   const name = $<HTMLInputElement>('wpe-name');
-  name.value = draft.name;
+  setText(name, draft.name, keepTyping);
   name.disabled = !w.canRename;
   const typeSelect = $<HTMLSelectElement>('wpe-type-select');
   typeSelect.innerHTML = typeOptionsHtml(w.type);
@@ -651,11 +830,15 @@ function fillForm(): void {
     : '';
   $<HTMLInputElement>('wpe-lat').disabled = !w.canMove;
   $<HTMLInputElement>('wpe-lon').disabled = !w.canMove;
-  $<HTMLInputElement>('wpe-paste').disabled = !w.canMove;
-  $<HTMLInputElement>('wpe-paste').value = '';
+  const paste = $<HTMLInputElement>('wpe-paste');
+  paste.disabled = !w.canMove;
+  if (!keepTyping) {
+    paste.value = '';
+    flagField(paste, false);
+  }
   const desc = $<HTMLTextAreaElement>('wpe-desc');
   const field = descriptionField(w);
-  desc.value = draft.description;
+  setText(desc, draft.description, keepTyping);
   desc.disabled = !w.canDescribe;
   desc.placeholder = field.placeholder;
   $('wpe-desc-label').textContent = field.label;
@@ -667,8 +850,12 @@ function fillForm(): void {
     `<span>${waypointGlyphHtml(w.type)} ${escapeHtml(waypointTypeLabel(w.type))} · ${w.pending ? '<em>no id until the next build</em>' : `<code>${escapeHtml(w.id)}</code>`}</span>`,
     ...w.placements.map(p => `<span>${escapeHtml(placementText(p))}</span>`),
   ];
-  if (w.distanceFromTrailKm !== undefined)
-    meta.push(`<span>${(w.distanceFromTrailKm * 1000).toFixed(0)} m from the route in the last build</span>`);
+  if (w.pending && !w.placements.length) {
+    meta.push('<span>Its place on the route (main route, a variant, or off it) comes from the next build</span>');
+  }
+  if (w.distanceFromTrailM !== undefined) {
+    meta.push(`<span>${escapeHtml(formatDistance(w.distanceFromTrailM))} from the main route in the last build</span>`);
+  }
   if (w.access) {
     meta.push(
       `<span>access.json: ${escapeHtml([w.access.method, w.access.store && `store ${w.access.store}`].filter(Boolean).join(', '))}</span>`
@@ -688,16 +875,29 @@ function fillForm(): void {
 
   $<HTMLInputElement>('wpe-reviewed').checked = isReviewed(state.marks, w);
   $<HTMLInputElement>('wpe-reviewed').disabled = !!w.pending;
-  fillPosition();
+  fillPosition(keepTyping);
   renderDescriptionAids();
   renderButtons();
   renderComments();
+}
+
+/**
+ * Re-render everything about the selection where it stands, after the data
+ * under it changed (a save's answer, the trail read again): the notes, the map
+ * view and what is being typed are left alone.
+ */
+function refreshSelection(): void {
+  if (state.adding === undefined) fillForm({ keepTyping: true });
+  drawSelection(false);
+  renderList();
+  syncUrl();
 }
 
 function select(id: string | null, options: { pan?: boolean } = {}): void {
   setPlacing(false);
   endAdding();
   state.selectedId = id && state.byId.has(id) ? id : null;
+  state.positionTyped = false;
   showNotes([]);
   fillForm();
   drawSelection(options.pan ?? true);
@@ -715,128 +915,180 @@ function syncUrl(): void {
   history.replaceState(null, '', url);
 }
 
-function step(delta: number): void {
-  const rows = visibleWaypoints();
-  if (!rows.length) return;
-  const index = rows.findIndex(w => w.id === state.selectedId);
-  const next = index === -1 ? 0 : Math.min(rows.length - 1, Math.max(0, index + delta));
-  select(rows[next].id);
+/** Go to the next or previous row of the filtered list, from the selection's place in the whole list. */
+function step(delta: 1 | -1): void {
+  if (!state.trail || !commitPendingFields()) return;
+  const id = stepTarget(state.trail.waypoints, isVisible, state.selectedId, delta);
+  if (id) select(id);
 }
 
 function onFormInput(): void {
   const w = selected();
-  const draft = currentDraft();
-  if (!w || !draft) return;
-  const next = {
-    ...draft,
+  if (!w) return;
+  patchDraft(w.id, {
     name: $<HTMLInputElement>('wpe-name').value,
     description: $<HTMLTextAreaElement>('wpe-desc').value,
     type: $<HTMLSelectElement>('wpe-type-select').value,
-  };
-  setDraft(w.id, next);
+  });
   renderDescriptionAids();
   renderButtons();
-  renderList();
+  updateRow(w.id);
 }
 
-function onLatLonInput(): void {
-  const lat = Number($<HTMLInputElement>('wpe-lat').value);
-  const lon = Number($<HTMLInputElement>('wpe-lon').value);
-  if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return;
-  const w = selected();
-  const draft = currentDraft();
-  if (!w || !draft) return;
-  setDraft(w.id, { ...draft, lat: round6(lat), lon: round6(lon) });
-  drawSelection(true);
-  renderReadout(lat, lon);
-  renderSourceElevation();
-  renderNearby();
-  renderButtons();
-  renderList();
-}
-
+/**
+ * Snap to the nearest of the route's lines: the main route, or an alternate
+ * or side trip when its line is nearer, so a side-trip waypoint is not carried
+ * across country to the main route. Never onto the straight line of a route break.
+ */
 function snapToRoute(): void {
-  const draft = currentDraft();
-  const trail = state.trail;
-  if (!draft || !trail) return;
-  const points = trail.track.points;
-  const snap = snapToTrail(draft.lat, draft.lon, points, undefined, state.breakStarts);
-  if (!snap) return;
-  const a = points[snap.index];
-  const b = points[Math.min(points.length - 1, snap.index + 1)];
-  const span = b.dist - a.dist;
-  const t = span > 0 ? Math.min(1, Math.max(0, (snap.currentKm - a.dist) / span)) : 0;
-  moveDraftTo(a.lat + (b.lat - a.lat) * t, a.lon + (b.lon - a.lon) * t);
-  drawSelection(true);
+  const w = selected();
+  const at = currentValues();
+  if (!w || !at || !w.canMove) return;
+  const { nearest } = nearestLineSnap(state.lines, at.lat, at.lon);
+  if (nearest) moveDraftTo(nearest.lat, nearest.lon, true);
 }
 
-async function save(goNext: boolean): Promise<void> {
+// ---------------------------------------------------------------------------
+// Discarding a draft, undoably
+// ---------------------------------------------------------------------------
+
+/** Drop the selected waypoint's unsaved edits, keeping them for Undo. */
+function discardDraft(): void {
   const w = selected();
-  const draft = state.drafts.get(w?.id ?? '');
-  if (!w || state.saving) return;
-  if (!draft || !isDirty(w, draft)) {
-    if (goNext) {
-      setReviewed(w, true);
-      step(1);
-    }
+  const trail = state.trail;
+  if (!w || !trail) return;
+  const draft = state.drafts.get(w.id);
+  state.drafts.delete(w.id);
+  fillForm();
+  drawSelection(false);
+  updateRow(w.id);
+  if (!draft) return;
+  state.discarded = { trailId: trail.id, id: w.id, draft, focusId: document.activeElement?.id ?? '' };
+  $('wpe-notes').innerHTML =
+    `<li>Discarded the unsaved edits to “${escapeHtml(w.name)}”. ` +
+    `<button type="button" class="wpe-btn wpe-btn-small" data-undo-discard>Undo</button></li>`;
+}
+
+/** Put the last discarded draft back, over the waypoint as it now stands. */
+function undoDiscard(): void {
+  const kept = state.discarded;
+  if (!kept || state.trail?.id !== kept.trailId || !state.byId.has(kept.id)) return;
+  state.discarded = null;
+  if (state.selectedId !== kept.id) select(kept.id);
+  patchDraft(kept.id, kept.draft);
+  showNotes([]);
+  fillForm();
+  drawSelection(false);
+  updateRow(kept.id);
+  // The Undo button is gone: focus goes back to where the discard was made from.
+  (document.getElementById(kept.focusId) ?? $('wpe-revert')).focus();
+}
+
+// ---------------------------------------------------------------------------
+// Saving
+// ---------------------------------------------------------------------------
+
+/**
+ * Save the selected waypoint's draft. Everything the save needs is fixed
+ * before it awaits (which waypoint, the request, the draft it was built from,
+ * where "next" is), because the form stays live meanwhile: the answer is
+ * applied to that waypoint whatever is selected by then, edits made during
+ * the save stay as a draft on top of it, and the notes name the waypoint when
+ * they land under another one's form.
+ */
+async function save(goNext: boolean): Promise<void> {
+  if (state.saving || !commitPendingFields()) return;
+  const trail = state.trail;
+  const w = selected();
+  if (!trail || !w) return;
+  const id = w.id;
+  const sent = state.drafts.get(id);
+  // Where "next" is, in the list as it stands: the save may take this row out of the filter, or re-key it.
+  const nextId = goNext ? stepTarget(trail.waypoints, isVisible, id, 1) : null;
+  if (!sent || !isDirty(w, sent)) {
+    if (!goNext) return;
+    setReviewed(w, true);
+    if (nextId) select(nextId);
+    else refreshSelection();
     return;
   }
-  const changes = draftChanges(w, draft);
-  const movedM = haversineDistance(w.lat, w.lon, draft.lat, draft.lon);
+  const changes = draftChanges(w, sent);
+  const values = draftValues(w, sent);
+  const movedM = haversineDistance(w.lat, w.lon, values.lat, values.lon);
   if (changes.position && movedM > 2000 && !confirm(`Move “${w.name}” ${(movedM / 1000).toFixed(1)} km?`)) return;
-  if (changes.description && !draft.description.trim() && w.description) {
+  if (changes.description && !values.description.trim() && w.description) {
     if (!confirm(descriptionField(w).removeConfirm)) return;
   }
   const request: WaypointEditRequest = {
     expected: { name: w.name, lat: w.lat, lon: w.lon, description: w.description, type: w.type },
   };
-  if (changes.name) request.name = draft.name.trim();
-  if (changes.type) request.type = draft.type;
-  if (changes.position) Object.assign(request, { lat: draft.lat, lon: draft.lon });
-  if (changes.description) request.description = draft.description.trim();
+  if (changes.name) request.name = values.name.trim();
+  if (changes.type) request.type = values.type;
+  if (changes.position) Object.assign(request, { lat: values.lat, lon: values.lon });
+  if (changes.description) request.description = values.description.trim();
 
   state.saving = true;
   renderButtons();
   try {
     const result = await api<WaypointEditResponse>(
-      `/trails/${encodeURIComponent(state.trail!.dir)}/waypoints/${encodeURIComponent(w.id)}`,
+      `/trails/${encodeURIComponent(trail.dir)}/waypoints/${encodeURIComponent(id)}`,
       { method: 'POST', body: request }
     );
+    if (state.trailWanted !== trail.dir || state.trail?.id !== trail.id) {
+      // Another trail was opened meanwhile: the save is on disk, and nothing here is about it any more.
+      // Said in the banner, and again once that trail has landed (which resets the banner).
+      const said = `On ${trail.name}: ${saveNotes(result, false).join(' ')}`;
+      if (state.loading) bannerAfterLoad = said;
+      banner(said);
+      void refreshChanges();
+      return;
+    }
+    const saved = result.waypoint;
+    // Whatever was typed during the save stays an edit, on top of what was saved.
+    const kept = draftAfterSave(w, saved, sent, state.drafts.get(id));
+    // Reviewed is the waypoint's own mark (its checkbox sets it at once), read
+    // for this id: never the checkbox, which may be another waypoint's by now.
+    const markReviewed = goNext || isReviewed(state.marks, w);
     // A renamed or moved pending waypoint comes back under a new temporary key:
     // the row, the dot, the selection and the address follow it, and nothing
     // (draft, review mark, what "Show more" revealed) stays under the old one.
-    const previousId = w.id;
-    replaceWaypoint(result.waypoint, previousId);
-    state.drafts.delete(previousId);
-    if (result.waypoint.id !== previousId) {
-      if (state.selectedId === previousId) state.selectedId = result.waypoint.id;
-      if (previousId in state.marks) {
-        delete state.marks[previousId];
+    replaceWaypoint(saved, id);
+    state.drafts.delete(id);
+    if (kept) state.drafts.set(saved.id, kept);
+    if (saved.id !== id) {
+      if (state.selectedId === id) state.selectedId = saved.id;
+      if (id in state.marks) {
+        delete state.marks[id];
         saveMarks();
       }
-      const trailId = state.trail!.id;
-      if (revealed.comments?.key === commentsRevealKey(trailId, previousId)) {
+      if (state.discarded?.id === id) state.discarded = null;
+      if (revealed.comments?.key === commentsRevealKey(trail.id, id)) {
         // A save keeps what is revealed: it is the same waypoint under its new key.
-        revealed.comments = { ...revealed.comments, key: commentsRevealKey(trailId, result.waypoint.id) };
+        revealed.comments = { ...revealed.comments, key: commentsRevealKey(trail.id, saved.id) };
       }
-      syncUrl();
     }
-    if (goNext || $<HTMLInputElement>('wpe-reviewed').checked) setReviewed(result.waypoint, true);
+    if (markReviewed) setReviewed(saved, true);
     void refreshChanges();
-    if (goNext) {
-      step(1);
-      showNotes(result.notes.map(n => `${result.waypoint.name}: ${n}`));
+
+    // Only move on if the saved waypoint is still the one selected.
+    let stillSelected = state.selectedId === saved.id;
+    if (goNext && stillSelected && nextId && state.byId.has(nextId)) {
+      select(nextId);
+      stillSelected = false;
     } else {
-      fillForm();
-      drawSelection(false);
-      renderList();
-      showNotes([`Saved to ${result.changedFiles.join(', ') || 'no file (nothing changed)'}.`, ...result.notes]);
+      refreshSelection();
     }
+    report(saveNotes(result, stillSelected));
+    // Another pass of the same place, or the other half of a merge, changed on
+    // disk with it: read the trail again so those rows are not left stale.
+    if (saveAffectsOtherRows(w, saved)) await loadTrail(trail.dir);
   } catch (error) {
-    showNotes([error instanceof Error ? error.message : String(error)], true);
+    const message = error instanceof Error ? error.message : String(error);
+    report([state.selectedId === id ? message : `“${w.name}” was not saved: ${message}`], true);
   } finally {
     state.saving = false;
     renderButtons();
+    renderNewButtons();
   }
 }
 
@@ -875,19 +1127,33 @@ function commentsRevealKey(trailId: string, waypointId: string): string {
   return `${trailId}/${waypointId}`;
 }
 
-function renderComments(): void {
+/**
+ * Render the Comments section for the selected waypoint. The section is
+ * replaced whole, so focus on its reload control is handed to the new one,
+ * and it is not a live region: `announce` puts one short line in the status
+ * region instead (after a load, a Reload or "Show more"), and a plain
+ * re-render (a selection, a keystroke's re-fill) says nothing.
+ */
+function renderComments(announce = false): void {
   const w = selected();
   if (!w || !state.trail) return;
   revealed.comments = revealFor(revealed.comments, commentsRevealKey(state.trail.id, w.id), COMMENTS_PAGE_SIZE);
   revealed.orphans = revealFor(revealed.orphans, state.trail.id, ORPHAN_IDS_PAGE_SIZE);
   $('wpe-comments-count').textContent = commentsCountText(state.comments, w.id);
-  $('wpe-comments-body').innerHTML = commentsSectionHtml(state.comments, w.id, {
+  const body = $('wpe-comments-body');
+  const active = document.activeElement;
+  const hadFocus = active instanceof HTMLElement && body.contains(active) && active.matches('[data-comments-reload]');
+  body.innerHTML = commentsSectionHtml(state.comments, w.id, {
     // A merged-away id is live (it is in its survivor's mergedIds, and has a row here), not lost.
     orphaned: orphanedCommentIds(state.comments, knownCommentIds(state.trail.waypoints)),
     shown: revealed.comments.shown,
     orphansShown: revealed.orphans.shown,
     note: mergeCommentsNote(w, state.byId, state.commentCounts),
   });
+  if (hadFocus) body.querySelector<HTMLElement>('[data-comments-reload]')?.focus();
+  $('wpe-comments-status').textContent = announce
+    ? commentsStatusText(state.comments, w.id, revealed.comments.shown)
+    : '';
 }
 
 /**
@@ -901,7 +1167,7 @@ function showMore(list: keyof typeof revealed, itemSelector: string, value: stri
   const body = $('wpe-comments-body');
   const before = body.querySelectorAll(itemSelector).length;
   revealed[list] = { key: current.key, shown };
-  renderComments();
+  renderComments(true);
   const first = body.querySelectorAll<HTMLElement>(itemSelector)[before];
   if (first) {
     first.tabIndex = -1;
@@ -918,13 +1184,14 @@ async function refreshComments(trailId: string, reload = false): Promise<void> {
   }
   state.comments = { kind: 'loading' };
   state.commentCounts = new Map();
-  renderComments();
+  renderComments(reload);
   const result = await pending;
   if (result.kind === 'error') commentsCache.delete(trailId); // retry on the next load
-  if (state.trail?.id !== trailId) return;
+  // An answer for a trail the page has left, or one a later Reload has replaced, is stale.
+  if (state.trail?.id !== trailId || (commentsCache.get(trailId) ?? pending) !== pending) return;
   state.comments = result;
   state.commentCounts = commentCounts(result);
-  renderComments();
+  renderComments(true);
   renderList();
 }
 
@@ -977,12 +1244,8 @@ function placeNew(lat: number, lon: number): void {
   } else {
     state.newMarker.setLatLng([lat, lon]);
   }
-  const snap = snapToTrail(lat, lon, trail.track.points, undefined, state.breakStarts);
-  $('wpe-new-where').textContent =
-    `${state.adding.lat}, ${state.adding.lon}` +
-    (snap
-      ? ` · nearest route km ${snap.currentKm.toFixed(2)} · ${Math.round(snap.offTrailMeters)} m from the route`
-      : '');
+  const where = positionReadout(state.lines, lat, lon, 0);
+  $('wpe-new-where').textContent = `${state.adding.lat}, ${state.adding.lon}${where ? ` · ${where}` : ''}`;
   renderNewButtons();
 }
 
@@ -1013,8 +1276,9 @@ async function addNew(): Promise<void> {
     $<HTMLInputElement>('wpe-new-name').value = '';
     $<HTMLTextAreaElement>('wpe-new-desc').value = '';
     endAdding();
-    await loadTrail(trail.dir, result.waypoint.id);
-    showNotes([`Added to ${result.changedFiles.join(', ')}.`, ...result.notes]);
+    // The map stays where it is: the new waypoint is where it was just clicked.
+    await loadTrail(trail.dir, { select: result.waypoint.id });
+    report([`Added to ${result.changedFiles.join(', ')}.`, ...result.notes]);
     void refreshChanges();
   } catch (error) {
     $('wpe-new-notes').innerHTML =
@@ -1031,9 +1295,8 @@ async function deleteSelected(): Promise<void> {
   const trail = state.trail;
   if (!w || !trail || !w.canDelete || state.saving) return;
   if (!confirm(deleteConfirmText(w, state.commentCounts.get(w.id)))) return;
-  const rows = visibleWaypoints();
-  const index = rows.findIndex(x => x.id === w.id);
-  const next = rows[index + 1] ?? rows[index - 1] ?? null;
+  // The neighbour to land on, worked out before the row goes.
+  const next = stepTarget(trail.waypoints, isVisible, w.id, 1) ?? stepTarget(trail.waypoints, isVisible, w.id, -1);
   state.saving = true;
   renderButtons();
   try {
@@ -1049,10 +1312,8 @@ async function deleteSelected(): Promise<void> {
       delete state.marks[id];
     }
     saveMarks();
-    await loadTrail(trail.dir, next?.id ?? null);
-    const notes = [`Deleted from ${result.changedFiles.join(', ')}.`, ...result.notes];
-    if (state.selectedId) showNotes(notes);
-    else banner(notes.join(' '));
+    await loadTrail(trail.dir, { select: next });
+    report([`Deleted “${w.name}” from ${result.changedFiles.join(', ')}.`, ...result.notes]);
     void refreshChanges();
   } catch (error) {
     showNotes([error instanceof Error ? error.message : String(error)], true);
@@ -1066,30 +1327,93 @@ async function deleteSelected(): Promise<void> {
 // Trails, changes, rebuild
 // ---------------------------------------------------------------------------
 
-async function loadTrail(dir: string, keepSelection?: string | null): Promise<void> {
-  banner(null);
+/** Counts trail reads, so that an answer which is no longer the latest asked for is dropped. */
+let trailRequests = 0;
+/** The last trail read failed and said so in the banner: the next one that works clears it. */
+let trailReadFailed = false;
+/** Something to say in the banner once the trail being read has landed (a save that returned meanwhile). */
+let bannerAfterLoad: string | null = null;
+
+/**
+ * Read a trail and show it. Opening another trail starts afresh. Reading the
+ * one already open again (Reload trail, a rebuild, an add or delete, a save
+ * that touched other rows) keeps the working state: the map view, the list's
+ * scroll, the selection (unless `select` names another), what is being typed,
+ * and every draft, rebased field by field onto the waypoints as they now are.
+ */
+async function loadTrail(dir: string, options: { select?: string | null } = {}): Promise<void> {
+  const request = ++trailRequests;
+  state.trailWanted = dir;
+  state.loading = true;
+  renderButtons();
+  let trail: EditorTrail;
   try {
-    const trail = await api<EditorTrail>(`/trails/${encodeURIComponent(dir)}`);
-    if (state.trail?.id !== trail.id) state.drafts.clear();
-    state.trail = trail;
-    state.byId = new Map(trail.waypoints.map(w => [w.id, w]));
-    // A draft outlives its waypoint when a rebuild gives a pending one its id (or retires a deleted one).
-    for (const id of [...state.drafts.keys()]) if (!state.byId.has(id)) state.drafts.delete(id);
-    state.breakStarts = routeBreakStarts(trail.track.breaks, 'displayPoints');
-    state.marks = loadMarks(trail.id);
-    storageSet(TRAIL_KEY, dir);
-    if (trail.readOnlyReason) banner(trail.readOnlyReason);
-    void refreshComments(trail.id);
-    renderFilters();
-    await ensureMap();
-    drawTrail();
-    select(keepSelection && state.byId.has(keepSelection) ? keepSelection : null);
+    trail = await api<EditorTrail>(`/trails/${encodeURIComponent(dir)}`);
   } catch (error) {
-    state.trail = null;
-    state.byId.clear();
-    renderList();
-    select(null);
+    if (request !== trailRequests) return;
+    state.loading = false;
+    if (state.trail?.dir !== dir) {
+      state.trail = null;
+      state.byId.clear();
+      state.drafts.clear();
+      state.lines = [];
+      renderList();
+      select(null);
+    }
+    // A failed re-read leaves the trail as the page has it, drafts included.
+    renderButtons();
+    trailReadFailed = true;
     banner(error instanceof Error ? error.message : String(error));
+    return;
+  }
+  // A later read was asked for (another trail picked, a reload): this answer is stale.
+  if (request !== trailRequests) return;
+  state.loading = false;
+  const same = state.trail?.id === trail.id;
+  if (!same) {
+    state.drafts.clear();
+    state.discarded = null;
+  }
+  state.trail = trail;
+  state.byId = new Map(trail.waypoints.map(w => [w.id, w]));
+  // Rebase each draft onto its waypoint as it now is: an edit the sources have caught up with is no longer one.
+  // A draft outlives its waypoint when a rebuild gives a pending one its id (or retires a deleted one).
+  for (const [id, draft] of [...state.drafts]) {
+    const w = state.byId.get(id);
+    const next = w ? pruneDraft(w, draft) : undefined;
+    if (next) state.drafts.set(id, next);
+    else state.drafts.delete(id);
+  }
+  state.lines = routeLines(trail.track, routeBreakStarts(trail.track.breaks, 'displayPoints'));
+  state.marks = loadMarks(trail.id);
+  storageSet(TRAIL_KEY, dir);
+  $<HTMLSelectElement>('wpe-trail').value = dir;
+  // A re-read of the same trail leaves the banner alone: it may hold the notes of what led to it.
+  if (!same || trailReadFailed || bannerAfterLoad) {
+    banner([bannerAfterLoad, trail.readOnlyReason].filter(Boolean).join(' ') || null);
+  }
+  trailReadFailed = false;
+  bannerAfterLoad = null;
+  if (!same) void refreshComments(trail.id);
+  renderFilters();
+  const mapReady = !!state.map;
+  if (mapReady) drawTrail(!same);
+  const wanted = 'select' in options ? (options.select ?? null) : same ? state.selectedId : null;
+  const id = wanted && state.byId.has(wanted) ? wanted : null;
+  if (same && id === state.selectedId) refreshSelection();
+  else select(id, { pan: !same });
+  renderButtons();
+  if (!mapReady) {
+    // The first trail: the list and the form are live while Leaflet loads, so
+    // draw whatever is open and selected once it has, not what was when it began.
+    try {
+      await ensureMap();
+    } catch (error) {
+      banner(`The map did not load: ${error instanceof Error ? error.message : String(error)}`);
+      return;
+    }
+    drawTrail(true);
+    drawSelection(true);
   }
 }
 
@@ -1145,7 +1469,7 @@ function renderRebuild(status: RebuildStatus): void {
 }
 
 async function rebuild(): Promise<void> {
-  if (state.rebuilding) return;
+  if (state.rebuilding || state.saving) return;
   const unsaved = state.trail?.waypoints.filter(w => isDirty(w, state.drafts.get(w.id))).length ?? 0;
   if (
     unsaved &&
@@ -1166,7 +1490,7 @@ async function rebuild(): Promise<void> {
       status = await api<RebuildStatus>('/rebuild');
       renderRebuild(status);
     }
-    if (state.trail) await loadTrail(state.trail.dir, state.selectedId);
+    if (state.trail) await loadTrail(state.trail.dir);
   } catch (error) {
     banner(error instanceof Error ? error.message : String(error));
   } finally {
@@ -1192,12 +1516,14 @@ function toggleDrawer(buttonId: string, drawerId: string): void {
 function wire(): void {
   $<HTMLSelectElement>('wpe-trail').addEventListener('change', e => {
     const dir = (e.target as HTMLSelectElement).value;
-    const dirty = state.trail?.waypoints.some(w => isDirty(w, state.drafts.get(w.id)));
-    if (dirty && !confirm('Discard the unsaved changes on this trail?')) {
+    if (anyUnsaved() && !confirm('Discard the unsaved changes on this trail?')) {
       (e.target as HTMLSelectElement).value = state.trail!.dir;
       return;
     }
-    void loadTrail(dir);
+    void loadTrail(dir, { select: null });
+  });
+  $('wpe-reload').addEventListener('click', () => {
+    if (state.trail && !state.saving && !state.rebuilding) void loadTrail(state.trail.dir);
   });
   $<HTMLInputElement>('wpe-search').addEventListener('input', e => {
     state.filter.query = (e.target as HTMLInputElement).value;
@@ -1227,17 +1553,30 @@ function wire(): void {
     void addNew();
   });
   $('wpe-desc').addEventListener('input', onFormInput);
-  $('wpe-lat').addEventListener('change', onLatLonInput);
-  $('wpe-lon').addEventListener('change', onLatLonInput);
-  $<HTMLInputElement>('wpe-paste').addEventListener('input', e => {
-    const input = e.target as HTMLInputElement;
-    const at = parseLatLon(input.value);
-    input.setCustomValidity(input.value && !at ? 'Not a position' : '');
-    if (at) {
-      moveDraftTo(at.lat, at.lon);
-      drawSelection(true);
-      input.value = '';
-    }
+  for (const id of ['wpe-lat', 'wpe-lon']) {
+    // Typed, not yet committed: `change` commits it, and so does any shortcut before it acts.
+    $(id).addEventListener('input', () => {
+      state.positionTyped = true;
+      renderButtons();
+    });
+    $(id).addEventListener('change', () => void commitPosition());
+  }
+  const paste = $<HTMLInputElement>('wpe-paste');
+  // A paste applies at once; text typed by hand applies on Enter or when the box is left.
+  paste.addEventListener('paste', e => {
+    const text = e.clipboardData?.getData('text') ?? '';
+    if (!parseLatLon(text)) return;
+    e.preventDefault();
+    applyPaste(text);
+  });
+  paste.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' || e.isComposing) return;
+    e.preventDefault(); // not the form's submit
+    applyPaste();
+  });
+  paste.addEventListener('change', () => void applyPaste());
+  paste.addEventListener('input', () => {
+    if (!paste.value.trim() || parseLatLon(paste.value)) flagField(paste, false);
   });
   $('wpe-nearby-list').addEventListener('click', e => {
     const button = (e.target as HTMLElement).closest<HTMLElement>('[data-poi-move]');
@@ -1250,7 +1589,8 @@ function wire(): void {
   });
   $('wpe-comments-body').addEventListener('click', e => {
     const target = e.target as HTMLElement;
-    if (target.closest('[data-comments-reload]') && state.trail) {
+    const reload = target.closest('[data-comments-reload]');
+    if (reload && reload.getAttribute('aria-disabled') !== 'true' && state.trail) {
       void refreshComments(state.trail.id, true);
     }
     const comments = target.closest<HTMLElement>('[data-comments-show]');
@@ -1276,23 +1616,16 @@ function wire(): void {
     void save(false);
   });
   $('wpe-save-next').addEventListener('click', () => void save(true));
-  $('wpe-revert').addEventListener('click', () => {
-    const w = selected();
-    if (!w) return;
-    state.drafts.delete(w.id);
-    fillForm();
-    drawSelection(false);
-    renderList();
+  $('wpe-revert').addEventListener('click', discardDraft);
+  $('wpe-notes').addEventListener('click', e => {
+    if ((e.target as HTMLElement).closest('[data-undo-discard]')) undoDiscard();
   });
   $('wpe-reset-pos').addEventListener('click', () => {
     const w = selected();
-    const draft = currentDraft();
-    if (!w || !draft) return;
-    setDraft(w.id, { ...draft, lat: w.lat, lon: w.lon });
-    fillPosition();
-    drawSelection(true);
-    renderButtons();
-    renderList();
+    if (!w) return;
+    // Back to the saved position; also clears a typed position that was never one.
+    patchDraft(w.id, { lat: w.lat, lon: w.lon });
+    afterMove(w.id, true);
   });
   $('wpe-place').addEventListener('click', () => setPlacing(!state.placing));
   $('wpe-snap').addEventListener('click', snapToRoute);
@@ -1321,9 +1654,17 @@ function wire(): void {
       e.preventDefault();
       setPlacing(!state.placing);
     } else if (e.key === 'Escape') {
+      // Esc that cancels an IME composition (Shikoku's Japanese names) is not ours.
+      if (e.isComposing || e.keyCode === 229) return;
       if (state.adding !== undefined) endAdding();
       else if (state.placing) setPlacing(false);
-      else if (!typing || e.target === $('wpe-desc') || e.target === $('wpe-name')) $('wpe-revert').click();
+      else if (e.target === $('wpe-lat') || e.target === $('wpe-lon') || e.target === $('wpe-paste')) {
+        // Put back what was typed there, not the whole draft.
+        $<HTMLInputElement>('wpe-paste').value = '';
+        flagField($<HTMLInputElement>('wpe-paste'), false);
+        fillPosition();
+        renderButtons();
+      } else if (!typing || e.target === $('wpe-desc') || e.target === $('wpe-name')) discardDraft();
     } else if (e.key === '/' && !typing) {
       e.preventDefault();
       $('wpe-search').focus();
@@ -1331,7 +1672,7 @@ function wire(): void {
   });
 
   window.addEventListener('beforeunload', e => {
-    if (state.trail?.waypoints.some(w => isDirty(w, state.drafts.get(w.id)))) e.preventDefault();
+    if (anyUnsaved()) e.preventDefault();
   });
 }
 
@@ -1356,7 +1697,7 @@ async function boot(): Promise<void> {
   if (!dir) return;
   select.value = dir;
   void refreshChanges();
-  await loadTrail(dir, params.get('id'));
+  await loadTrail(dir, { select: params.get('id') });
 }
 
 void boot();

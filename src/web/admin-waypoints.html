@@ -32,6 +32,7 @@
       <span class="visually-hidden">Trail</span>
       <select id="wpe-trail"></select>
     </label>
+    <button type="button" class="wpe-btn" id="wpe-reload" title="Read the trail's source files again. Unsaved edits are kept.">Reload trail</button>
     <div class="wpe-progress" id="wpe-progress" aria-live="polite"></div>
     <div class="wpe-header-spacer"></div>
     <button type="button" class="wpe-btn" id="wpe-changes-btn" aria-expanded="false" aria-controls="wpe-changes">
@@ -62,7 +63,7 @@
       <dt><kbd>Alt</kbd> + <kbd>↓</kbd> / <kbd>↑</kbd></dt><dd>Next / previous waypoint in the list</dd>
       <dt><kbd>Alt</kbd> + <kbd>R</kbd></dt><dd>Mark reviewed (or not)</dd>
       <dt><kbd>Alt</kbd> + <kbd>P</kbd></dt><dd>Place mode: the next map click moves the waypoint</dd>
-      <dt><kbd>Esc</kbd></dt><dd>Leave place mode, or discard this waypoint's unsaved changes</dd>
+      <dt><kbd>Esc</kbd></dt><dd>Leave place mode; in Lat, Lon or the paste box, put the position back as it was; otherwise discard this waypoint's unsaved changes (Undo, under the form, brings them back)</dd>
       <dt><kbd>/</kbd></dt><dd>Search the list</dd>
     </dl>
     <p class="wpe-muted">Drag the selected marker to move it; unsaved edits are kept per waypoint while you browse.</p>
@@ -85,7 +86,7 @@
       <div id="wpe-map" class="wpe-map"></div>
       <div class="wpe-map-bar">
         <button type="button" class="wpe-btn" id="wpe-place" aria-pressed="false" title="Alt+P">Click map to place</button>
-        <button type="button" class="wpe-btn" id="wpe-snap">Snap to route</button>
+        <button type="button" class="wpe-btn" id="wpe-snap" title="Move onto the nearest line: the main route, or an alternate or side trip when that is nearer">Snap to route</button>
         <button type="button" class="wpe-btn" id="wpe-reset-pos">Undo move</button>
         <button type="button" class="wpe-btn" id="wpe-new" aria-pressed="false">New waypoint</button>
         <span class="wpe-readout" id="wpe-readout" aria-live="polite"></span>
@@ -116,9 +117,10 @@
             <label><span>Lat</span><input type="text" id="wpe-lat" inputmode="decimal" autocomplete="off"></label>
             <label><span>Lon</span><input type="text" id="wpe-lon" inputmode="decimal" autocomplete="off"></label>
           </div>
+          <small class="wpe-field-error" id="wpe-pos-error" role="alert"></small>
           <small class="wpe-muted" id="wpe-ele" hidden></small>
           <label class="wpe-paste">
-            <span>Paste a position or a map link</span>
+            <span>Paste a position or a map link (typed by hand: Enter applies it)</span>
             <input type="text" id="wpe-paste" placeholder="-36.1234, 148.5678 or a Google/OSM link" autocomplete="off">
           </label>
           <div class="wpe-links" id="wpe-links"></div>
@@ -127,7 +129,7 @@
         <div class="wpe-field">
           <div class="wpe-desc-head">
             <label for="wpe-desc" id="wpe-desc-label">Description</label>
-            <span class="wpe-muted" id="wpe-desc-count"></span>
+            <span class="wpe-muted wpe-desc-count" id="wpe-desc-count"></span>
           </div>
           <p class="wpe-desc-where" id="wpe-desc-where" hidden></p>
           <textarea id="wpe-desc" rows="7" spellcheck="true" aria-describedby="wpe-desc-where"></textarea>
@@ -141,7 +143,8 @@
 
         <details class="wpe-field wpe-comments" id="wpe-comments" open>
           <summary>Hikers' comments <span class="wpe-count" id="wpe-comments-count"></span></summary>
-          <div id="wpe-comments-body" aria-live="polite"></div>
+          <p class="visually-hidden" id="wpe-comments-status" role="status"></p>
+          <div id="wpe-comments-body"></div>
         </details>
 
         <details class="wpe-field wpe-nearby" id="wpe-nearby" open>

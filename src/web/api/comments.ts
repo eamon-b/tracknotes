@@ -7,9 +7,15 @@
  *   in snapshot mode (no `since`, so live comments only, no tombstones), one
  *   request per page of up to 1000. No token is sent, so the response stays
  *   shareable by caches and carries no `mine`.
- * - `adminListModeratedComments`: `GET /v1/admin/comments?reported=1`, every
- *   reported or screen-flagged comment on every trail, hidden ones included.
- *   Admin only: the worker answers 403 to any other account.
+ * - `adminListComments`: `GET /v1/admin/comments`, hidden and deleted comments
+ *   included. Admin only: the worker answers 403 to any other account. The
+ *   listing covers every trail, with no trail filter and no cursor, and stops
+ *   at `ADMIN_LIST_LIMIT` rows, so it cannot be read to the end: a caller is
+ *   told when a read came back full (`truncated`). It has two orders:
+ *   everything, newest first; or with `?reported=1` only the comments that
+ *   have a report or an automated-review status, those hidden by reports
+ *   first. A comment an admin deleted that nobody reported and the review
+ *   never flagged is in the first only.
  */
 
 import type { AdminComment, AdminCommentsResponse, BulkSyncResponse, SyncComment } from '@lib/comments-api-types';
@@ -25,8 +31,8 @@ export interface CommentsApiDeps {
 /** The largest page the bulk endpoint serves (`BULK_MAX_LIMIT` in the worker). */
 const BULK_PAGE_LIMIT = 1000;
 
-/** The most the admin listing returns in one read (`ADMIN_MAX_LIMIT`). */
-const ADMIN_LIST_LIMIT = 500;
+/** The most the admin listing returns in one read (`ADMIN_MAX_LIMIT` in the worker). */
+export const ADMIN_LIST_LIMIT = 500;
 
 /** Every live comment on a trail, following the keyset cursor to the end. */
 export async function listTrailComments(trailId: string, deps: CommentsApiDeps = {}): Promise<SyncComment[]> {
@@ -46,15 +52,33 @@ export async function listTrailComments(trailId: string, deps: CommentsApiDeps =
   return comments;
 }
 
-/** Reported or flagged comments on every trail (hidden ones too), for an admin's linked browser. */
-export async function adminListModeratedComments(
+/** One read of the admin listing. */
+export interface AdminListing {
+  comments: AdminComment[];
+  /**
+   * The read came back with as many rows as one read may hold, so there may be
+   * more the listing has no way to send (it has no cursor).
+   */
+  truncated: boolean;
+}
+
+/**
+ * One read of the admin listing across every trail, for an admin's linked
+ * browser: every comment newest first, or with `reportedOnly` the reported and
+ * review-flagged ones (hidden by reports first).
+ */
+export async function adminListComments(
   session: WebSession,
+  options: { reportedOnly: boolean },
   deps: CommentsApiDeps = {}
-): Promise<AdminComment[]> {
-  const body = await apiRequest<AdminCommentsResponse>(`/v1/admin/comments?reported=1&limit=${ADMIN_LIST_LIMIT}`, {
+): Promise<AdminListing> {
+  const qs = new URLSearchParams();
+  if (options.reportedOnly) qs.set('reported', '1');
+  qs.set('limit', String(ADMIN_LIST_LIMIT));
+  const body = await apiRequest<AdminCommentsResponse>(`/v1/admin/comments?${qs.toString()}`, {
     token: session.token,
     fetchImpl: deps.fetchImpl,
     baseUrl: deps.baseUrl,
   });
-  return body.comments;
+  return { comments: body.comments, truncated: body.comments.length >= ADMIN_LIST_LIMIT };
 }

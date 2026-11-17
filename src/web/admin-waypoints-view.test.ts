@@ -6,9 +6,12 @@ import {
   descriptionField,
   dotStyle,
   dotTooltipHtml,
+  draftAfterSave,
   draftChanges,
-  draftOf,
+  draftValues,
+  formatDistance,
   hasCuratedText,
+  isDirty,
   isInMerge,
   isReviewed,
   knownCommentIds,
@@ -16,11 +19,24 @@ import {
   mergeCommentsNote,
   mergeMetaHtml,
   nearbyPois,
+  nearestLineSnap,
+  parseCoordinate,
   parseLatLon,
+  positionReadout,
+  pruneDraft,
+  readoutText,
   reviewFingerprint,
+  routeLines,
+  rowContentHtml,
   rowHtml,
+  saveAffectsOtherRows,
+  saveNotes,
+  stepTarget,
   typeOptionsHtml,
+  variantLabel,
   voiceHints,
+  type ReviewMarks,
+  type WaypointFilter,
 } from './admin-waypoints-view';
 
 function waypoint(extra: Partial<EditorWaypoint> = {}): EditorWaypoint {
@@ -159,6 +175,44 @@ describe('parseLatLon', () => {
     expect(parseLatLon('95, 10')).toBeNull();
     expect(parseLatLon('')).toBeNull();
   });
+
+  it("reads a Google Maps place link from its pin, not the view's centre", () => {
+    const link =
+      'https://www.google.com/maps/place/Lobuche/@27.9512,86.8034,14z/data=!3m1!4b1!4m6!3m5!1s0x39e9:0x1!8m2!3d27.9481!4d86.8102!16s%2Fg%2F1';
+    expect(parseLatLon(link)).toEqual({ lat: 27.9481, lon: 86.8102 });
+    // No pin: the centre is all there is.
+    expect(parseLatLon('https://www.google.com/maps/@27.9512,86.8034,14z')).toEqual({ lat: 27.9512, lon: 86.8034 });
+  });
+
+  it('does not read a position typed by hand until it is whole', () => {
+    // The page applies the box on a paste, Enter or blur, never per keystroke: every prefix
+    // from the first digit of the longitude on parses as a (wrong) position.
+    expect(parseLatLon('27.6901, 8')).toEqual({ lat: 27.6901, lon: 8 });
+    expect(parseLatLon('27.6901, 86.7215')).toEqual({ lat: 27.6901, lon: 86.7215 });
+  });
+});
+
+describe('parseCoordinate', () => {
+  it('reads a decimal within its range', () => {
+    expect(parseCoordinate(' -36.1234 ', 90)).toBe(-36.1234);
+    expect(parseCoordinate('148', 180)).toBe(148);
+    expect(parseCoordinate('+27.5', 90)).toBe(27.5);
+    expect(parseCoordinate('\u221236.5', 90)).toBe(-36.5);
+    expect(parseCoordinate('0', 90)).toBe(0);
+  });
+
+  it('never reads an empty or unparsable field as 0, or a value out of range', () => {
+    // Number('') and Number(' ') are 0, which is a place off West Africa.
+    expect(parseCoordinate('', 90)).toBeNull();
+    expect(parseCoordinate('   ', 180)).toBeNull();
+    expect(parseCoordinate('abc', 90)).toBeNull();
+    expect(parseCoordinate('27.6, 86.7', 90)).toBeNull();
+    expect(parseCoordinate('1e2', 180)).toBeNull();
+    expect(parseCoordinate('-', 90)).toBeNull();
+    expect(parseCoordinate('91', 90)).toBeNull();
+    expect(parseCoordinate('148.5', 90)).toBeNull();
+    expect(parseCoordinate('-180.1', 180)).toBeNull();
+  });
 });
 
 describe('voiceHints', () => {
@@ -179,14 +233,90 @@ describe('voiceHints', () => {
 describe('drafts, filters and review marks', () => {
   it('compares a draft with the saved waypoint, ignoring surrounding space', () => {
     const w = waypoint({ description: 'A hut.' });
-    expect(draftChanges(w, { ...draftOf(w), description: ' A hut. ' })).toEqual({
+    expect(draftChanges(w, { description: ' A hut. ' })).toEqual({
       name: false,
       position: false,
       description: false,
       type: false,
     });
-    expect(draftChanges(w, { ...draftOf(w), lat: -36.501 }).position).toBe(true);
-    expect(draftChanges(w, { ...draftOf(w), type: 'campsite' }).type).toBe(true);
+    expect(draftChanges(w, { lat: -36.501, lon: w.lon }).position).toBe(true);
+    expect(draftChanges(w, { type: 'campsite' }).type).toBe(true);
+    expect(draftChanges(w, undefined)).toEqual({ name: false, position: false, description: false, type: false });
+    expect(isDirty(w, undefined)).toBe(false);
+    expect(isDirty(w, { name: 'Upper Hut ' })).toBe(false);
+    expect(isDirty(w, { name: 'Lower Hut' })).toBe(true);
+  });
+
+  it('keeps in a draft only the fields that were changed', () => {
+    const w = waypoint({ description: 'A hut.' });
+    expect(draftValues(w, { description: 'A hut with a tank.' })).toEqual({
+      name: 'Upper Hut',
+      lat: -36.5,
+      lon: 148.25,
+      description: 'A hut with a tank.',
+      type: 'hut',
+    });
+    // Every field the form holds, of which one differs: only that one is the draft.
+    const whole = { name: 'Upper Hut', lat: -36.5, lon: 148.25, description: 'A hut with a tank.', type: 'hut' };
+    expect(pruneDraft(w, whole)).toEqual({ description: 'A hut with a tank.' });
+    // A position is kept whole, even when one coordinate is as saved.
+    expect(pruneDraft(w, { ...whole, lat: -36.6 })).toEqual({
+      lat: -36.6,
+      lon: 148.25,
+      description: 'A hut with a tank.',
+    });
+    expect(pruneDraft(w, { name: 'Upper Hut', description: ' A hut. ' })).toBeUndefined();
+    expect(pruneDraft(w, undefined)).toBeUndefined();
+  });
+
+  it('lets untouched fields follow the server when the trail is read again', () => {
+    // A description-only draft, then the sources change under the page (a rebuild, a pull, a save of another pass).
+    const draft = pruneDraft(waypoint(), { description: 'A hut.' });
+    const reloaded = waypoint({ name: 'Upper Hut (new)', lat: -36.6, type: 'campsite' });
+    const rebased = pruneDraft(reloaded, draft);
+    expect(rebased).toEqual({ description: 'A hut.' });
+    // The old name, position and type are not edits: a save sends the description alone.
+    expect(draftChanges(reloaded, rebased)).toEqual({ name: false, position: false, description: true, type: false });
+    expect(draftValues(reloaded, rebased)).toMatchObject({ name: 'Upper Hut (new)', lat: -36.6, type: 'campsite' });
+    // An edit the sources have caught up with is no longer one.
+    expect(pruneDraft(waypoint({ description: 'A hut.' }), draft)).toBeUndefined();
+  });
+
+  it('keeps what was typed during a save as a new draft on the saved state', () => {
+    const before = waypoint();
+    const sent = { description: 'A hut.' };
+    const after = waypoint({ description: 'A hut.' });
+    // Nothing typed since: the draft is spent.
+    expect(draftAfterSave(before, after, sent, sent)).toBeUndefined();
+    // More text typed while the save was in flight.
+    expect(draftAfterSave(before, after, sent, { description: 'A hut. With a tank.' })).toEqual({
+      description: 'A hut. With a tank.',
+    });
+    // Another field edited meanwhile: only that one is left to save.
+    expect(draftAfterSave(before, after, sent, { description: 'A hut.', name: 'Lower Hut' })).toEqual({
+      name: 'Lower Hut',
+    });
+    // The sent text taken back out during the save: an edit against what is now saved.
+    expect(draftAfterSave(before, after, sent, undefined)).toEqual({ description: '' });
+    // What the server made of the sent value (trimmed, rounded) is followed, not fought.
+    const moved = { lat: -36.6000004, lon: 148.25 };
+    expect(draftAfterSave(before, waypoint({ lat: -36.6 }), moved, moved)).toBeUndefined();
+    expect(draftAfterSave(before, after, { description: 'A hut. ' }, { description: 'A hut. ' })).toBeUndefined();
+  });
+
+  it('knows which saves can change other rows, and names the waypoint in notes shown elsewhere', () => {
+    const plain = waypoint();
+    expect(saveAffectsOtherRows(plain, plain)).toBe(false);
+    expect(saveAffectsOtherRows(waypoint({ sharesSourceWith: ['w_1_2'] }), plain)).toBe(true);
+    expect(saveAffectsOtherRows(plain, waypoint({ mergedIds: ['w_2'] }))).toBe(true);
+    expect(saveAffectsOtherRows(merged(), merged())).toBe(true);
+
+    const result = { waypoint: { name: 'Upper Hut' }, changedFiles: ['a.gpx', 'b.json'], notes: ['Moved 12 m.'] };
+    expect(saveNotes(result, true)).toEqual(['Saved to a.gpx, b.json.', 'Moved 12 m.']);
+    expect(saveNotes(result, false)).toEqual(['Saved “Upper Hut” to a.gpx, b.json.', '“Upper Hut”: Moved 12 m.']);
+    expect(saveNotes({ ...result, changedFiles: [], notes: [] }, true)).toEqual([
+      'Saved to no file (nothing changed).',
+    ]);
   });
 
   it('filters by status, type and name or id', () => {
@@ -231,6 +361,32 @@ describe('drafts, filters and review marks', () => {
     expect(curated.removeConfirm).toMatch(/curated description/);
   });
 
+  it('steps to the next row from the place in the whole list, in or out of the filter', () => {
+    const all = ['a', 'b', 'c', 'd', 'e'].map(id => waypoint({ id }));
+    const every = () => true;
+    expect(stepTarget(all, every, 'b', 1)).toBe('c');
+    expect(stepTarget(all, every, 'b', -1)).toBe('a');
+    // The ends: nowhere to go.
+    expect(stepTarget(all, every, 'e', 1)).toBeNull();
+    expect(stepTarget(all, every, 'a', -1)).toBeNull();
+    // Nothing selected (or an id the list no longer has): the first row.
+    expect(stepTarget(all, every, null, 1)).toBe('a');
+    expect(stepTarget(all, every, 'gone', -1)).toBe('a');
+    expect(stepTarget([], every, null, 1)).toBeNull();
+
+    // "Not reviewed", with b just marked reviewed: b has left the filtered list,
+    // and the next row is still the one after it, not the top of the list.
+    const marks: ReviewMarks = { b: reviewFingerprint(all[1]), d: reviewFingerprint(all[3]) };
+    const filter: WaypointFilter = { query: '', type: '', status: 'unreviewed' };
+    const unreviewed = (w: (typeof all)[number]) => matchesFilter(w, filter, marks);
+    expect(all.filter(unreviewed).map(w => w.id)).toEqual(['a', 'c', 'e']);
+    expect(stepTarget(all, unreviewed, 'b', 1)).toBe('c');
+    expect(stepTarget(all, unreviewed, 'b', -1)).toBe('a');
+    // Rows the filter hides are stepped over.
+    expect(stepTarget(all, unreviewed, 'c', 1)).toBe('e');
+    expect(stepTarget(all, unreviewed, 'e', -1)).toBe('c');
+  });
+
   it('orders the list by km, then name', () => {
     const rows = [waypoint({ name: 'B', sortKm: 4 }), waypoint({ name: 'A', sortKm: 4 }), waypoint({ sortKm: 1 })];
     expect(rows.sort(compareWaypoints).map(w => [w.sortKm, w.name])).toEqual([
@@ -272,6 +428,15 @@ describe('markup', () => {
     });
     expect(html).toContain('pending rebuild');
     expect(html).not.toContain('no text');
+    // It has no placements yet, which is not the same as being off the route.
+    const unplaced = waypoint({ id: 'new:abc', pending: true, placements: [] });
+    const unplacedRow = rowHtml(unplaced, { selected: false, dirty: false, reviewed: false });
+    expect(unplacedRow).not.toContain('off route');
+    expect(unplacedRow).toContain('come from that build');
+    expect(matchesFilter(unplaced, { query: '', type: '', status: 'off-route' }, {})).toBe(false);
+    expect(rowHtml(waypoint({ placements: [] }), { selected: false, dirty: false, reviewed: false })).toContain(
+      'off route'
+    );
     const options = typeOptionsHtml('<b>x</b>');
     expect(options.startsWith('<option value="&lt;b&gt;x&lt;/b&gt;">')).toBe(true);
     expect(options).toContain('<option value="water-tank">Water tank (water-tank)</option>');
@@ -309,11 +474,120 @@ describe('markup', () => {
     );
   });
 
+  it('renders a row and its content apart, so one row can be updated in place', () => {
+    const state = { selected: true, dirty: true, reviewed: true, comments: 1 };
+    const content = rowContentHtml(waypoint(), state);
+    expect(content.startsWith('<span class="wpe-row-km">')).toBe(true);
+    expect(content).toContain('unsaved');
+    const row = rowHtml(waypoint(), state);
+    expect(row).toBe(
+      `<li class="wpe-row is-selected" data-id="w_1" role="option" aria-selected="true" tabindex="-1">${content}</li>`
+    );
+  });
+
+  it('formats a distance in metres under a kilometre and kilometres above', () => {
+    expect(formatDistance(0.4)).toBe('0 m');
+    expect(formatDistance(412.6)).toBe('413 m');
+    expect(formatDistance(999.6)).toBe('1.00 km');
+    // Thodung on the Three Passes: 1125 m, not "1125000 m".
+    expect(formatDistance(1125)).toBe('1.13 km');
+    expect(formatDistance(25340)).toBe('25.3 km');
+  });
+
   it('lists nearby POIs nearest first, within the radius', () => {
     const pois = [
       { id: 'node/1', name: 'Far', category: 'water', lat: -36.51, lon: 148.25 },
       { id: 'node/2', name: 'Near', category: 'water', lat: -36.5001, lon: 148.25 },
     ];
     expect(nearbyPois(pois, { lat: -36.5, lon: 148.25 }, 400).map(p => p.name)).toEqual(['Near']);
+  });
+});
+
+describe("the route's lines", () => {
+  // A main route running south along lon 148, with a break (a ferry) between its 2nd and 3rd points,
+  // and a side trip leaving it eastwards at lat -36.01.
+  const track = {
+    points: [
+      { lat: -36.0, lon: 148.0, dist: 0 },
+      { lat: -36.02, lon: 148.0, dist: 2.2 },
+      { lat: -36.1, lon: 148.0, dist: 2.2 },
+      { lat: -36.12, lon: 148.0, dist: 4.4 },
+    ],
+    breaks: undefined,
+    variants: [
+      {
+        name: 'Side trip: Lookout',
+        type: 'side-trip',
+        line: [
+          [-36.01, 148.0],
+          [-36.01, 148.02],
+        ] as [number, number][],
+      },
+    ],
+  };
+  const lines = routeLines(track, new Set([2]));
+
+  it('names a variant without repeating a kind its name opens with', () => {
+    expect(variantLabel({ name: 'Side trip: Deurali > Thodung', type: 'side-trip' })).toBe(
+      'side trip “Deurali > Thodung”'
+    );
+    expect(variantLabel({ name: 'Alternative: Khunde high route', type: 'alternate' })).toBe(
+      'alternate “Khunde high route”'
+    );
+    expect(variantLabel({ name: 'Mt Bogong', type: 'side-trip' })).toBe('side trip “Mt Bogong”');
+    expect(lines.map(l => l.label)).toEqual([null, 'side trip “Lookout”']);
+    expect(lines[1].points[1].dist).toBeCloseTo(1.8, 1);
+  });
+
+  it('snaps to the nearest line, the main route or a variant', () => {
+    // 1 km out along the side trip, a few metres off it: nearest is the side trip, not the main route.
+    const out = nearestLineSnap(lines, -36.0101, 148.011);
+    expect(out.nearest?.label).toBe('side trip “Lookout”');
+    expect(out.nearest?.lat).toBeCloseTo(-36.01, 6);
+    expect(out.nearest?.lon).toBeCloseTo(148.011, 4);
+    expect(out.nearest?.offM).toBeLessThan(15);
+    expect(out.main?.label).toBeNull();
+    expect(out.main?.lon).toBeCloseTo(148.0, 6);
+    expect(out.main?.offM).toBeGreaterThan(900);
+
+    // Beside the main route, away from the side trip: the main route.
+    const beside = nearestLineSnap(lines, -36.11, 148.0005);
+    expect(beside.nearest?.label).toBeNull();
+    expect(beside.nearest?.lat).toBeCloseTo(-36.11, 4);
+    expect(beside.nearest?.lon).toBeCloseTo(148.0, 6);
+    expect(beside.nearest?.km).toBeCloseTo(3.3, 1);
+    expect(nearestLineSnap([], -36, 148)).toEqual({ main: null, nearest: null });
+  });
+
+  it('never snaps onto the straight line of a route break', () => {
+    // Halfway across the break: the nearest trail is one of its two landings, not the line between them.
+    const { nearest } = nearestLineSnap(lines, -36.06, 148.0);
+    expect([-36.02, -36.1]).toContain(nearest?.lat);
+    expect(nearest?.offM).toBeGreaterThan(4000);
+    // Without the break the same position would sit on the line.
+    expect(nearestLineSnap(routeLines(track, new Set()), -36.06, 148.0).nearest?.offM).toBeLessThan(1);
+  });
+
+  it('says in the readout which line it measured to', () => {
+    expect(readoutText({ km: 17.186, offRouteM: 4.4, movedM: 0 })).toBe(
+      'nearest main route km 17.19 · 4 m from the main route'
+    );
+    expect(
+      readoutText({
+        km: 17.19,
+        offRouteM: 1125,
+        nearer: { label: 'side trip “Deurali > Thodung”', offM: 3 },
+        movedM: 12.4,
+      })
+    ).toBe(
+      '3 m from side trip “Deurali > Thodung” · 1.13 km from the main route (nearest at km 17.19) · moved 12 m from the saved position'
+    );
+    expect(positionReadout(lines, -36.0101, 148.011, 0)).toMatch(
+      /^\d+ m from side trip “Lookout” · \d+ m from the main route \(nearest at km 1\.\d\d\)$/
+    );
+    expect(positionReadout(lines, -36.11, 148.0005, 2500)).toMatch(
+      /^nearest main route km 3\.\d\d · \d+ m from the main route · moved 2\.50 km from the saved position$/
+    );
+    expect(positionReadout([], -36, 148, 0)).toBe('');
   });
 });
