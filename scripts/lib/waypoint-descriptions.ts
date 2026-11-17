@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { MAX_DESCRIPTION_LENGTH } from '../../src/lib/waypoint-description-limits.js';
 
 /**
  * Curated waypoint descriptions for the trail build pipeline.
@@ -31,12 +32,12 @@ import * as path from 'path';
 export const DESCRIPTIONS_FILENAME = 'descriptions.json';
 
 /**
- * Longest description accepted. Mirrors `MAX_DESCRIPTION_LEN` in
- * `workers/comments-api/src/validation.ts` so anything that builds can also be
- * uploaded — a bundled description the admin endpoint would reject with a 400
- * is a trap we'd only discover at upload time.
+ * Longest description accepted. The same constant the comments API's admin
+ * PUT checks (`src/lib/waypoint-description-limits.ts`), so anything that
+ * builds can also be uploaded — a bundled description the admin endpoint would
+ * reject with a 400 is a trap we'd only discover at upload time.
  */
-export const MAX_DESCRIPTION_LENGTH = 4000;
+export { MAX_DESCRIPTION_LENGTH };
 
 /** Same id shape the registry mints and the comments API validates. */
 const WAYPOINT_ID_PATTERN = /^[a-z0-9_-]{4,64}$/;
@@ -202,6 +203,14 @@ export interface DescriptionSyncPlan {
   withdrawals: string[];
   /** Authored entries the API already holds verbatim; nothing to send. */
   unchanged: number;
+  /**
+   * The live text each PUT or withdrawal would replace, for the ids where the
+   * API serves non-empty text that differs from the file. A live edit made on
+   * the deployed description editor (`src/web/admin-descriptions.html`) and
+   * never committed to `descriptions.json` shows up here, so the dry run can
+   * say what an upload would overwrite before anyone approves it.
+   */
+  overwrites: { waypointId: string; live: string }[];
 }
 
 /**
@@ -225,5 +234,8 @@ export function planDescriptionSync(
     .filter(([id, text]) => text !== '' && !authoredIds.has(id))
     .map(([id]) => id)
     .sort();
-  return { puts, withdrawals, unchanged: authored.length - puts.length };
+  const overwrites = [...puts.map(entry => entry.waypointId), ...withdrawals]
+    .map(waypointId => ({ waypointId, live: liveById.get(waypointId) ?? '' }))
+    .filter(row => row.live !== '');
+  return { puts, withdrawals, unchanged: authored.length - puts.length, overwrites };
 }

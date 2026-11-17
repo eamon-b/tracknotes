@@ -1,7 +1,12 @@
 import { SELF, env } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
-import { authHeaders, makeAdmin, putDescription, registerDevice, url } from './helpers';
-import type { TrailDescriptionsResponse, WaypointDescription } from '../../../src/lib/comments-api-types';
+import { authHeaders, linkCode, linkDevice, makeAdmin, putDescription, registerDevice, url } from './helpers';
+import type { Device } from './helpers';
+import type {
+  LinkDeviceResponse,
+  TrailDescriptionsResponse,
+  WaypointDescription,
+} from '../../../src/lib/comments-api-types';
 
 function errorCode(body: unknown): string {
   return (body as { error: { code: string } }).error.code;
@@ -12,6 +17,15 @@ async function adminDevice(name = 'Editor') {
   const device = await registerDevice(name);
   await makeAdmin(device.userId);
   return device;
+}
+
+/** A browser linked to `phone`'s account with a link code (a `linked` token). */
+async function linkedBrowser(phone: Device): Promise<Device> {
+  const { code } = await linkCode(phone);
+  const res = await linkDevice({ code, label: 'Admin browser' });
+  expect(res.status).toBe(201);
+  const body = (await res.json()) as LinkDeviceResponse;
+  return { userId: body.userId, token: body.token, displayName: body.displayName };
 }
 
 async function readDescriptions(trailId: string, since?: string): Promise<TrailDescriptionsResponse> {
@@ -170,6 +184,26 @@ describe('PUT /v1/admin/trails/:trailId/descriptions/:waypointId', () => {
       .bind('desc-auth-wp')
       .first<{ n: number }>();
     expect(count?.n).toBe(0);
+  });
+
+  it("accepts a linked browser of an admin account, and refuses one of a non-admin's", async () => {
+    // The live description editor (src/web/admin-descriptions.html) writes with
+    // the linked browser's token, as the moderation pages do.
+    const admin = await adminDevice('Linked editor');
+    const browser = await linkedBrowser(admin);
+    const res = await putDescription(browser, 'heysen', 'desc-linked-wp', { description: 'Edited in the browser.' });
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as WaypointDescription).description).toBe('Edited in the browser.');
+
+    const plainBrowser = await linkedBrowser(await registerDevice('Plain phone'));
+    const refused = await putDescription(plainBrowser, 'heysen', 'desc-linked-wp', { description: 'nope' });
+    expect(refused.status).toBe(403);
+    const row = await env.DB.prepare(
+      `SELECT description FROM waypoint_descriptions WHERE trail_id = ? AND waypoint_id = ?`
+    )
+      .bind('heysen', 'desc-linked-wp')
+      .first<{ description: string }>();
+    expect(row?.description).toBe('Edited in the browser.');
   });
 
   it('405 for a wrong method on the admin descriptions path', async () => {

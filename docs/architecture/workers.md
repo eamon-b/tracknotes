@@ -111,6 +111,9 @@ Deletes, reports and replays are not gated by trail.
 Rows are never deleted (removal is a tombstone), so "is a community route" is cached for the isolate's life and "is live" for `LIVE_CACHE_MS` (60 s, live results only): a hide stops new comments within a minute on every isolate, and a restore is read at once.
 The descriptions read answers an empty list for a route (its descriptions are in the route itself);
 the admin description PUT stays curated-only (`validateTrailId`).
+That PUT is `requireAdmin`, which takes any live token of an admin account, a linked browser's included, so the live description editor (`src/web/admin-descriptions.html`) writes with the browser's own token and needs no route of its own;
+`TRACKNOTES_ADMIN_TOKEN` (what `upload-descriptions` sends) is just one such token.
+Its length limit is `MAX_DESCRIPTION_LENGTH` in `src/lib/waypoint-description-limits.ts`, shared with the trail build and the editor.
 
 ## Comments API Worker: community route POIs (`workers/comments-api/`)
 

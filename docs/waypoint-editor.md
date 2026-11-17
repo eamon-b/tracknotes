@@ -3,6 +3,7 @@
 `src/web/admin-waypoints.html` is an admin page for reviewing and correcting a bundled trail's waypoints: their description, name and position.
 It runs only under `npm run dev` and writes straight into the trail's source files, so every correction goes through git review, the normal rebuild and the normal deploy.
 The deployed site has neither the page (it is not a Vite build input) nor its API (the `waypoint-editor` Vite plugin is `apply: 'serve'`).
+An urgent description fix on the deployed site goes through the live editor instead, and is then committed here ("Live edits on the deployed site" below).
 
 ## Using it
 
@@ -120,6 +121,33 @@ The drawer also shows the build's warning lines and output.
 
 The phone shows bundled descriptions from the app's trail data and synced ones from the comments API (`synced ?? bundled`).
 Merging a change to `descriptions.json` runs the *Upload descriptions* workflow (`docs/deploys.md`), which uploads the file once approved.
+
+## Live edits on the deployed site
+
+For a correction that cannot wait for a merge (a closed water tank, a wrong fact), `https://tracknotes.info/admin-descriptions.html` edits the synced description directly, from any browser.
+It is unlinked and noindex, and it is the only description tool on the deployed site; this local editor stays the way descriptions are authored.
+
+- **Access:** reading needs nothing; editing needs the browser linked (with a link code from the app) to an admin account, the same as the moderation pages.
+- **The list:** pick a trail, and each waypoint shows its bundled description beside its synced one, a yellow box where they differ, and a state: *in sync*, *drift*, *cleared*, *not uploaded* (in the file, not yet on the API) or *bundled only*.
+  The filters narrow to drift, to synced rows, to synced text that differs from the bundle, to the file's entries, or to waypoints with no description at all.
+- **Edit synced text** sends the new text to every phone on its next sync, with the same character limit and voice hints as here.
+- **Clear synced text** sends an empty description (a tombstone): phones fall back to the bundled text, so a clear can undo a live edit but cannot hide a curated text; to correct one, edit it.
+
+### The drift rule: edit live for urgency, then commit to descriptions.json
+
+`descriptions.json` is the source of truth.
+The *Upload descriptions* workflow runs on any merged change to any trail's `descriptions.json`, and it makes the API match the files: a synced text the file does not have is replaced with the file's text, or withdrawn if the file has no entry.
+So a live edit that never reaches the file is lost at the next upload, whichever trail's file that merge changed.
+
+The page knows the file as the site was last deployed, and marks every synced text that is not in it as **drift**, with a banner over the list.
+To commit the drift:
+
+1. On the page, **Download updated descriptions.json** (the trail's file with the drifted synced text written in: an existing entry in place, a new one in route order) or **Copy the changed entries**.
+2. Put it at the path the banner names (`data/trails/<dir>/descriptions.json`), check the `git diff` shows only those entries, and check every fact has its source in `plans/waypoint-description-sources.md`.
+3. Rebuild (`npm run build:trails && npm run build:mobile-trails`), and commit the file with the rebuilt data as for any description change.
+
+Once that merges, the upload finds the API already holds the text (nothing to send for it), and the page shows the row as *in sync* after the site redeploys.
+The upload's dry run also prints every synced text it would replace (`! replaces synced text`) and ends with a warning, so the approver sees drift that was missed before approving (`docs/deploys.md`).
 
 ## Safety
 

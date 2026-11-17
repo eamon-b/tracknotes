@@ -39,7 +39,15 @@
  *     a description is withdrawn; `--no-withdraw` skips this step.
  * A dry run with an API base reads the live set too (no token needed) and
  * prints exactly that difference; without one it prints a PUT per entry and
- * cannot know about withdrawals. Only trails that still have a
+ * cannot know about withdrawals.
+ *
+ * Drift: the live description editor (`src/web/admin-descriptions.html`)
+ * writes the same table, so the API can hold text the file never had. Every
+ * PUT or withdrawal that would replace non-empty live text says so, with the
+ * text it replaces, and the run ends with a warning (a `::warning::`
+ * annotation under GitHub Actions, so the *Upload descriptions* plan shows it
+ * before anyone approves). It only warns: the file stays the source of truth,
+ * and a live edit is meant to be committed to it (`docs/waypoint-editor.md`). Only trails that still have a
  * descriptions.json are visited, so withdrawing a trail's last description
  * means leaving its file with an empty "descriptions" array.
  */
@@ -197,6 +205,7 @@ async function main(): Promise<void> {
     }
   }
 
+  const driftWarnings: string[] = [];
   let puts = 0;
   let withdrawn = 0;
   let unchanged = 0;
@@ -205,7 +214,10 @@ async function main(): Promise<void> {
     // Without a live read (a dry run with no API base) every entry is a PUT
     // and nothing is known to withdraw.
     const live = apiBase ? await fetchLiveDescriptions(apiBase, trailId) : null;
-    const plan = live ? planDescriptionSync(entries, live) : { puts: entries, withdrawals: [], unchanged: 0 };
+    const plan = live
+      ? planDescriptionSync(entries, live)
+      : { puts: entries, withdrawals: [], unchanged: 0, overwrites: [] };
+    const replaced = new Map(plan.overwrites.map(row => [row.waypointId, row.live]));
     const withdrawals = options.withdraw ? plan.withdrawals : [];
     console.log(
       `\n${trailId}: ${entries.length} description(s) — ${plan.puts.length} to send, ` +
@@ -219,13 +231,17 @@ async function main(): Promise<void> {
     const requests: Array<{ entry: CuratedDescription; label: string }> = [
       ...plan.puts.map(entry => ({
         entry,
-        label: `  ${entry.waypointId}${entry.name ? ` (${entry.name})` : ''}`,
+        label: `  ${entry.waypointId}${entry.name ? ` (${entry.name})` : ''}${replacedNote(replaced, entry.waypointId)}`,
       })),
       ...withdrawals.map(waypointId => ({
         entry: { waypointId, description: '' },
-        label: `  ${waypointId} (withdraw)`,
+        label: `  ${waypointId} (withdraw)${replacedNote(replaced, waypointId)}`,
       })),
     ];
+    const overwriting = requests.filter(({ entry }) => replaced.has(entry.waypointId)).length;
+    if (overwriting > 0) {
+      driftWarnings.push(`${trailId}: ${overwriting}`);
+    }
     for (const { entry, label } of requests) {
       if (options.dryRun) {
         const target = apiBase ?? `<${API_BASE_ENV}>`;
@@ -245,6 +261,23 @@ async function main(): Promise<void> {
     `${puts} description(s) sent, ${withdrawn} withdrawn, ${unchanged} already up to date, ` +
     `across ${trails.length} trail(s).`;
   console.log(options.dryRun ? `\nDry run: would have ${summary}` : `\nDone: ${summary}`);
+  if (driftWarnings.length > 0) {
+    const warning =
+      `${options.dryRun ? 'Would replace' : 'Replaced'} synced text that differs from descriptions.json ` +
+      `(${driftWarnings.join(', ')}). If any of it was a live edit (admin-descriptions.html), ` +
+      `it is not in the file: commit it to descriptions.json, or it is lost.`;
+    console.log(`\nWarning: ${warning}`);
+    if (process.env.GITHUB_ACTIONS === 'true') console.log(`::warning title=Synced descriptions drift::${warning}`);
+  }
+}
+
+/** The live text a request replaces, for its dry-run line: `''` when it replaces none. */
+function replacedNote(replaced: ReadonlyMap<string, string>, waypointId: string): string {
+  const live = replaced.get(waypointId);
+  if (live === undefined) return '';
+  const oneLine = live.replace(/\s+/g, ' ');
+  const shown = oneLine.length > 100 ? `${oneLine.slice(0, 100)}…` : oneLine;
+  return `\n    ! replaces synced text: ${JSON.stringify(shown)}`;
 }
 
 main().catch(error => {
