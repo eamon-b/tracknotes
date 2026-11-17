@@ -200,6 +200,12 @@ describe('ElevationProfile', () => {
     }
     expect(typeof pinch.onTouchesDown).toBe('function');
     expect(typeof tap.onDeactivate).toBe('function');
+    // Every callback only updates React state, so Gesture Handler calls them on
+    // the JS thread itself: a config without `runOnJS: true` would run plain
+    // functions on the UI thread and crash on first touch.
+    for (const config of [pan, pinch, tap]) {
+      expect(config.runOnJS).toBe(true);
+    }
     for (const config of [pan, pinch, tap]) {
       expect(config).not.toHaveProperty('onStart');
       expect(config).not.toHaveProperty('onEnd');

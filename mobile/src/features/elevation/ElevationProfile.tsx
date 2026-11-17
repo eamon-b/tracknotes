@@ -24,8 +24,8 @@
  * `onEleWindowChange`. Colors are theme-resolved so
  * the Skia canvas adapts to dark mode.
  *
- * Gesture design: recognition happens on the UI thread (gesture-handler
- * worklets) but the window arithmetic runs on JS, against a snapshot of the
+ * Gesture design: recognition is native (gesture-handler), and the callbacks
+ * and the window arithmetic run on JS (`runOnJS: true`), against a snapshot of the
  * window taken at gesture start — so every frame is computed from the *raw*
  * gesture delta. That keeps the handlers referentially stable (a gesture object
  * recreated mid-drag is cancelled by gesture-handler) and makes the committed
@@ -56,7 +56,6 @@ import {
   type PinchGestureConfig,
   type TapGestureConfig,
 } from 'react-native-gesture-handler';
-import { runOnJS } from 'react-native-reanimated';
 import { type DistanceUnit } from '@lib/format-distance';
 import { useReduceMotion, useTheme } from '../../theme';
 import { spacing, typography } from '../../tokens';
@@ -577,10 +576,10 @@ export function ElevationProfile({
   // native handler whenever the config object changes, and the old builder
   // gesture was likewise built once so a window change could never touch a
   // drag in flight (see the note above).
-  // The callbacks carry an explicit 'worklet' directive because the worklets
-  // Babel plugin only workletizes a config written inline in the hook call,
-  // and these are inside useMemo; they run on the UI thread and hop to JS with
-  // runOnJS, exactly as the builder callbacks did.
+  // `runOnJS: true` has Gesture Handler call the callbacks on the JS thread
+  // itself. Each one only ever hopped to JS to update React state, so nothing
+  // needs the UI thread: there are no worklets here to mis-mark, and no
+  // Reanimated `runOnJS` (deprecated in Reanimated 4) to wrap them.
   // Callback names follow the v3 rename: onStart → onActivate, onEnd →
   // onDeactivate (both still fire only for a gesture that became active, and
   // onDeactivate fires on cancel too, as onEnd did).
@@ -590,19 +589,17 @@ export function ElevationProfile({
   // stealing the pinch.
   const panConfig = useMemo<PanGestureConfig>(
     () => ({
+      runOnJS: true,
       minDistance: PAN_MIN_DISTANCE,
       maxPointers: 1,
       onActivate: () => {
-        'worklet';
-        runOnJS(beginGesture)(0, 0);
+        beginGesture(0, 0);
       },
       onUpdate: (e) => {
-        'worklet';
-        runOnJS(applyPan)(e.translationX, e.translationY, false);
+        applyPan(e.translationX, e.translationY, false);
       },
       onDeactivate: (e) => {
-        'worklet';
-        runOnJS(applyPan)(e.translationX, e.translationY, true);
+        applyPan(e.translationX, e.translationY, true);
       },
     }),
     [beginGesture, applyPan],
@@ -613,23 +610,20 @@ export function ElevationProfile({
   // so they are recorded as the second finger lands, before the pinch starts.
   const pinchConfig = useMemo<PinchGestureConfig>(
     () => ({
+      runOnJS: true,
       onTouchesDown: (e) => {
-        'worklet';
         if (e.allTouches.length < 2) return;
         const [a, b] = e.allTouches;
-        runOnJS(recordPinchFingers)(b.x - a.x, b.y - a.y);
+        recordPinchFingers(b.x - a.x, b.y - a.y);
       },
       onActivate: (e) => {
-        'worklet';
-        runOnJS(beginGesture)(e.focalX, e.focalY);
+        beginGesture(e.focalX, e.focalY);
       },
       onUpdate: (e) => {
-        'worklet';
-        runOnJS(applyPinch)(e.scale, false);
+        applyPinch(e.scale, false);
       },
       onDeactivate: (e) => {
-        'worklet';
-        runOnJS(applyPinch)(e.scale, true);
+        applyPinch(e.scale, true);
       },
     }),
     [beginGesture, recordPinchFingers, applyPinch],
@@ -637,10 +631,10 @@ export function ElevationProfile({
 
   const tapConfig = useMemo<TapGestureConfig>(
     () => ({
+      runOnJS: true,
       maxDistance: 12,
       onDeactivate: (e) => {
-        'worklet';
-        runOnJS(handleTap)(e.x, e.y);
+        handleTap(e.x, e.y);
       },
     }),
     [handleTap],
