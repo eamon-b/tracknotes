@@ -449,9 +449,11 @@ describe('admin-descriptions.html', () => {
     expect(retry.hidden).toBe(false);
     expect(document.querySelector('[data-action="edit"]')).toBeNull();
 
-    // Loading another trail does not wipe it either.
+    // Loading another trail does not wipe it either. The rows of the last load stay in the
+    // (hidden) list while the next is in flight, so wait for the list to be shown again.
+    const list = document.getElementById('desc-section')!;
     document.getElementById('desc-reload')!.click();
-    await waitFor(() => document.querySelectorAll('.desc-row').length === 3);
+    await waitFor(() => !list.hidden && document.querySelectorAll('.desc-row').length === 3);
     expect(identity.textContent).toContain('Could not check');
 
     meStatus = 200;
