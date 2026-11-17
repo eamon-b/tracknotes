@@ -19,4 +19,6 @@ interface ImportMetaEnv {
 
 interface ImportMeta {
   readonly env: ImportMetaEnv;
+  /** Vite's compile-time glob import (`admin-descriptions.ts` bundles each trail's descriptions.json with it). */
+  readonly glob: import('vite/types/importGlob').ImportGlobFunction;
 }

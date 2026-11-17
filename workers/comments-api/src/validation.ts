@@ -9,6 +9,7 @@ import { PLAN_FIELD_SCHEMA, PLAN_LIMITS, isStoredZeroDays } from '../../../src/l
 import type { PlanDocument, PlanStop } from '../../../src/lib/plan-types';
 import { KM_EPSILON } from '../../../src/lib/plan-direction';
 import { commentTargetFitsTrail, commentTargetKind } from '../../../src/lib/comment-targets';
+import { MAX_DESCRIPTION_LENGTH } from '../../../src/lib/waypoint-description-limits';
 import type { CommentTargetKind, CommentTrailKind } from '../../../src/lib/comment-targets';
 import { isCommunityRouteId } from '../../../src/lib/community-types';
 import type { PlanDirection } from '../../../src/lib/plan-direction';
@@ -59,7 +60,8 @@ const REPORT_REASONS: readonly ReportReason[] = ['spam', 'offensive', 'inaccurat
 const MAX_TEXT_LEN = 2000;
 const MAX_DISPLAY_NAME_LEN = 40;
 const MAX_REPORT_DETAIL_LEN = 500;
-const MAX_DESCRIPTION_LEN = 4000;
+/** Shared with the trail build and the live description editor. */
+const MAX_DESCRIPTION_LEN = MAX_DESCRIPTION_LENGTH;
 
 /** Clock skew we tolerate on client-supplied `observedAt` before clamping. */
 const OBSERVED_AT_FUTURE_TOLERANCE_MS = 10 * 60 * 1000;

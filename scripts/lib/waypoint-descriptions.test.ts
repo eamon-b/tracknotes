@@ -138,7 +138,22 @@ describe('planDescriptionSync', () => {
       puts: authored,
       withdrawals: [],
       unchanged: 0,
+      overwrites: [],
     });
+  });
+
+  it('names the live text a PUT or a withdrawal would overwrite', () => {
+    // A live edit made on admin-descriptions.html that never reached the file.
+    const plan = planDescriptionSync(authored, [
+      { waypointId: 'w_aaaa0001', description: 'Same text.' },
+      { waypointId: 'w_aaaa0002', description: 'Edited live.' },
+      { waypointId: 'w_aaaa0003', description: '' },
+      { waypointId: 'w_zzzz0009', description: 'Edited live, not in the file.' },
+    ]);
+    expect(plan.overwrites).toEqual([
+      { waypointId: 'w_aaaa0002', live: 'Edited live.' },
+      { waypointId: 'w_zzzz0009', live: 'Edited live, not in the file.' },
+    ]);
   });
 });
 

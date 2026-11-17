@@ -144,6 +144,9 @@ export default defineConfig({
         'admin-community': resolve(__dirname, 'src/web/admin-community.html'),
         // Reported comments and shared hiker waypoints (unlinked, noindex).
         'admin-moderation': resolve(__dirname, 'src/web/admin-moderation.html'),
+        // The live waypoint description editor (unlinked, noindex): writes the
+        // synced descriptions phones show over the bundled ones.
+        'admin-descriptions': resolve(__dirname, 'src/web/admin-descriptions.html'),
         // Dynamically include all generated trail pages
         ...getTrailInputs(),
       },

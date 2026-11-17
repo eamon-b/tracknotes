@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="./favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png">
+  <title>Waypoint descriptions - Tracknotes</title>
+  <!-- Admin tool: not linked from any public page, never indexed. -->
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./my-trails.css">
+  <link rel="stylesheet" href="./community.css">
+  <style>
+    .desc-controls { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: end; margin: 0.75rem 0; }
+    .desc-controls .community-field { margin: 0; flex: 1 1 12rem; }
+    .desc-compare { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 0.75rem; margin: 0.5rem 0; }
+    .desc-cell { padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-subtle); font-size: 0.9rem; }
+    .desc-cell h4 { margin: 0 0 0.25rem; font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
+    .desc-cell p { margin: 0; }
+    .desc-cell.is-different { border-color: var(--tint-warn-border); background: var(--tint-warn); color: var(--tint-warn-text-strong); }
+    .desc-cell.is-cleared { border-style: dashed; }
+    .desc-empty { color: var(--text-muted); font-style: italic; }
+    .desc-badge { display: inline-block; margin-left: 0.35rem; padding: 0.05rem 0.45rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; vertical-align: middle; background: var(--bg-subtle); color: var(--text-muted); border: 1px solid var(--border); }
+    .desc-badge-drift { background: var(--tint-warn); color: var(--tint-warn-text-strong); border-color: var(--tint-warn-border); }
+    .desc-badge-in-sync { background: var(--tint-success); color: var(--tint-success-text); }
+    .desc-drift { margin: 0.75rem 0; padding: 0.75rem 1rem; border-left: 4px solid var(--tint-warn-border); background: var(--tint-warn); color: var(--tint-warn-text-strong); border-radius: 0 var(--radius) var(--radius) 0; }
+    .desc-drift p { margin: 0 0 0.4rem; }
+    .desc-drift .community-hint { color: inherit; }
+    .desc-editor { margin-top: 0.5rem; }
+    .desc-editor textarea { width: 100%; box-sizing: border-box; }
+    .desc-too-long { color: var(--danger); font-weight: 600; }
+    .desc-hints { margin: 0.25rem 0 0 1.25rem; font-size: 0.85rem; color: var(--tint-warn-text); }
+    .desc-snippet { width: 100%; box-sizing: border-box; min-height: 10rem; font-family: ui-monospace, monospace; font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+  <div class="container community-page">
+    <nav class="breadcrumb">
+      <a href="./">Home</a> / <span>Waypoint descriptions</span>
+    </nav>
+
+    <header>
+      <h1>Waypoint descriptions</h1>
+      <p class="subtitle">
+        Correct a waypoint's description on every phone without a rebuild: the app shows the synced text over the bundled one.
+        A live edit is for urgency only. Commit it to the trail's <code>descriptions.json</code> too, or the next
+        <em>Upload descriptions</em> run overwrites it.
+      </p>
+    </header>
+
+    <p class="loading" id="desc-status">Loading…</p>
+    <div id="desc-link" hidden></div>
+    <p class="import-error" id="desc-error" role="alert" hidden></p>
+
+    <div id="desc-toolbar" class="community-actions" hidden>
+      <span class="import-note" id="desc-identity"></span>
+      <button type="button" id="desc-link-button" class="community-btn" hidden>Link this browser to edit</button>
+      <button type="button" id="desc-reload" class="community-btn">Reload</button>
+    </div>
+
+    <div id="desc-controls" class="desc-controls" hidden>
+      <div class="community-field">
+        <label for="desc-trail">Trail</label>
+        <select id="desc-trail" class="community-input"></select>
+      </div>
+      <div class="community-field">
+        <label for="desc-filter">Show</label>
+        <select id="desc-filter" class="community-input"></select>
+      </div>
+      <div class="community-field">
+        <label for="desc-search">Search</label>
+        <input id="desc-search" class="community-input" type="search" placeholder="Name or id">
+      </div>
+    </div>
+
+    <section id="desc-section" hidden>
+      <div id="desc-summary"></div>
+      <div id="desc-copy-fallback" hidden>
+        <p class="community-hint">The browser would not copy. Select the entries below and copy them by hand.</p>
+        <textarea id="desc-snippet" class="community-input desc-snippet" readonly></textarea>
+      </div>
+      <p class="community-hint" id="desc-shown"></p>
+      <div id="desc-list"></div>
+    </section>
+  </div>
+
+  <script type="module" src="./admin-descriptions.ts"></script>
+</body>
+</html>

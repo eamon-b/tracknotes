@@ -60,6 +60,7 @@ Each trail has its own directory containing:
   The prose is factual and non-prescriptive — it describes the place and its water, never instructs the walker or addresses them as "you".
   See `scripts/lib/waypoint-descriptions.ts`.
   The local waypoint editor (`docs/waypoint-editor.md`) edits these entries, and waypoint names and positions, from a map;
+  the deployed live description editor (`src/web/admin-descriptions.html`) writes the synced text directly, for urgency, and exports it back into this file, which stays the source of truth: an upload overwrites synced text the file does not have.
   a move there carries the waypoint's registry entry with it, so the id survives a move of any distance.
 
 A trail may also carry `Terminus: <name>` tracks — alternative starts/finishes, declared with `trackClassification.terminusPatterns` and drawn junction-first, with a `<wpt>` of `<type>endpoint</type>` at the free end.
