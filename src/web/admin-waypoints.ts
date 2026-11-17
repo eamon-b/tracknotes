@@ -1071,8 +1071,9 @@ function renderRebuild(status: RebuildStatus): void {
     parts.push('<p class="wpe-muted">No waypoint ids were minted or retired.</p>');
   }
   if (status.warnings.length) {
+    // Open: the build's id-minting warnings are its only report of a new id beside another waypoint.
     parts.push(
-      `<details${status.state === 'failed' ? ' open' : ''}><summary>${status.warnings.length} warning line(s)</summary><pre class="wpe-log">${escapeHtml(status.warnings.join('\n'))}</pre></details>`
+      `<details open><summary>${status.warnings.length} warning line(s)</summary><pre class="wpe-log">${escapeHtml(status.warnings.join('\n'))}</pre></details>`
     );
   }
   parts.push(

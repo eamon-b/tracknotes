@@ -193,7 +193,24 @@ After a rebuild the Changed files drawer lists the ids the build **minted** or *
 A move, rename or type change made here should produce neither;
 a waypoint added here should mint exactly the id its save named, and one deleted here should retire exactly its own.
 Anything else means a waypoint lost its id (and the comments keyed to it), for example because a rename changed its type through a name prefix: fix the source and rebuild before committing.
-The drawer also shows the build's warning lines and output.
+The drawer also shows the build's warning lines, open, and its output.
+The warning lines are every line the build printed on stderr, which is where it puts all of its warnings and failures (`console.warn` and `console.error`; a clean build prints nothing there), plus any stdout line that opens with `Warning:`, `⚠`, `!` or `✗`.
+They are collected from the whole output as it arrives, not from the part of the log the drawer keeps.
+So they include the build's id-minting warnings (`! <trail>: new <type> "…" is within 100 m of …`, once where it happened and again under the summary "N new waypoint id(s) were minted beside another waypoint of the same type"), which that build is the only one to print.
+A waypoint added here next to another of its type produces one: check the two are not the same place under two names.
+A failed build's last warning line names the step that stopped and its exit code.
+
+### While a rebuild runs
+
+Saves, adds and deletes are refused (409) from the moment a rebuild starts until it ends, and a second Rebuild does not start a second build.
+That holds across a restart of the dev server by Vite, which happens when `vite.config.ts` or a file it imports changes: the rebuild carries on, and its state and report are kept.
+The editor's own modules and `src/lib` are not among those files (the plugin loads them per request), so editing them restarts nothing, and the next request runs the edited code.
+It also holds across dev server processes: a running rebuild leaves a lock file in the system's temporary directory, naming the dev server and the build step, and another dev server on the same checkout refuses saves and rebuilds while either is alive.
+The refusal names the file, to delete if no build is in fact running; a lock over 30 minutes old is ignored.
+
+Nothing stops a build step when the dev server stops.
+`Ctrl+C` in the terminal reaches the build as well, as it would a build run by hand: rebuild again.
+If only the dev server is killed, the step that is running finishes (a half-written `data/waypoint-ids.json` would be worse), `build:mobile-trails` is not started if it had not been, and the report is lost: start the dev server and rebuild again.
 
 ## What it will not edit
 
@@ -237,5 +254,25 @@ The upload's dry run also prints every synced text it would replace (`! replaces
 
 ## Safety
 
-The API writes the repository, so it answers only loopback requests (set `WAYPOINT_EDITOR_ALLOW_REMOTE=1` to edit from another machine on a trusted network), and a write must carry the `X-Waypoint-Editor` header from no other origin, which a page on another site cannot send without a CORS preflight the dev server never grants.
+The API writes the repository, so it checks every request itself, reads included, before doing anything else (`requestRefusal` in `scripts/lib/waypoint-editor/vite-plugin.ts`), and answers 403 unless:
+
+- **It comes from this machine:** the connection is from a loopback address.
+- **Its `Host` is a loopback name:** `localhost`, a `*.localhost` name, a `127.0.0.0/8` address or `[::1]`, with or without a port.
+  This is what stops DNS rebinding: a page on another site whose name is re-pointed at 127.0.0.1 reaches the dev server from loopback and same-origin, so with any header it likes and no CORS preflight, but the `Host` it sends is still its own name.
+  A plugin's middleware runs before Vite's own host check, so the API does not rely on that one.
+- **Its `Origin`, when it sends one, is the dev server's own** (it equals the `Host`).
+  A browser sends `Origin` with every cross-origin `fetch` and with every write, so a page on another site, or on another port of this machine, is refused here.
+  A refused CORS preflight is not the guard: Vite's own CORS middleware allows any localhost origin.
+- **A write carries the `X-Waypoint-Editor` header**, which a form post cannot set.
+
+Reads are closed to other pages the same way: one with a foreign `Origin` is refused, and every response carries `Cross-Origin-Resource-Policy: same-origin` and `X-Content-Type-Options: nosniff`, so a page cannot load one without an `Origin` either.
+Most of what they return is the trail data the site publishes anyway, but the rebuild log and the changed-files list name paths on this machine.
+
+`WAYPOINT_EDITOR_ALLOW_REMOTE=1` is for editing from another machine on a trusted network (`WAYPOINT_EDITOR_ALLOW_REMOTE=1 npx vite --host`, then `http://<this machine's address>:5173/admin-waypoints.html`).
+It lifts the loopback-address check, and the `Host` may then also be any IP address literal, or a name listed in `server.allowedHosts` in `vite.config.ts` (a leading dot covers subdomains, as Vite reads it).
+An address cannot be re-pointed the way a name can, and a listed name is one you vouch for.
+No other DNS name is accepted, not even under `server.allowedHosts: true`, and the `Origin` and header checks stay.
+Anyone who can reach the port can then write the repository's files, so use it only where that is acceptable.
+
 Trail directories are taken only from the list under `data/trails/`.
+A request body is at most 64 KB of JSON (413 beyond that), and a malformed URL or body is answered 400.
