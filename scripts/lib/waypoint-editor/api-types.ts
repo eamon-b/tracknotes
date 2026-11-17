@@ -12,9 +12,10 @@ import type { RouteBreak } from '../../../src/lib/trail-types';
 export const EDITOR_API_BASE = '/__waypoint-editor';
 
 /**
- * Sent on every write: a custom header makes a cross-site `fetch` need a CORS
- * preflight the dev server never grants, so another page open in the same
- * browser cannot drive the editor.
+ * Sent on every write, so that a plain form post or a link cannot be one. It
+ * is one check of several: what keeps another page open in the same browser
+ * from driving the editor is the API's `Host` and `Origin` checks
+ * (`requestRefusal` in `vite-plugin.ts`).
  */
 export const EDITOR_HEADER = 'X-Waypoint-Editor';
 
@@ -189,9 +190,14 @@ export interface RebuildStatus {
   state: 'idle' | 'running' | 'succeeded' | 'failed';
   startedAt?: string;
   finishedAt?: string;
-  /** The last part of the build's output. */
+  /** The build's output: all of a normal build's, the last part of a longer one. */
   log: string;
-  /** Warning lines from the build. */
+  /**
+   * Every warning and error line of the build, from its whole output and in
+   * the order printed (so the id-minting warnings appear where they happened
+   * and again under the build's summary), then why a failed build stopped.
+   * Filled in as the build runs.
+   */
   warnings: string[];
   /** Ids the rebuild minted or retired: either means a waypoint lost its id (and its comments). */
   minted: RegistryChange[];
