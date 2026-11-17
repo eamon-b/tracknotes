@@ -9,6 +9,7 @@ import { haversineDistance } from '@lib/distance';
 import { nameMatches } from '@lib/name-filter';
 import { waypointTypeLabel } from '@lib/waypoint-taxonomy';
 import type { EditorWaypoint, WaypointPlacement } from '../../scripts/lib/waypoint-editor/api-types';
+import { commentBadgeHtml } from './admin-waypoints-comments';
 import { waypointFamilyClass, waypointIcon } from './trails/waypoint-icons';
 import { escapeHtml } from './web-utils';
 
@@ -89,7 +90,8 @@ export function reviewStorageKey(trailId: string): string {
 // Filtering
 // ---------------------------------------------------------------------------
 
-export type StatusFilter = 'all' | 'no-text' | 'has-text' | 'unreviewed' | 'reviewed' | 'changed' | 'off-route';
+export type StatusFilter =
+  'all' | 'no-text' | 'has-text' | 'unreviewed' | 'reviewed' | 'changed' | 'off-route' | 'has-comments';
 
 export const STATUS_FILTER_LABELS: Record<StatusFilter, string> = {
   all: 'All waypoints',
@@ -99,6 +101,7 @@ export const STATUS_FILTER_LABELS: Record<StatusFilter, string> = {
   reviewed: 'Reviewed',
   changed: 'Changed since build',
   'off-route': 'Off the route',
+  'has-comments': 'Has comments',
 };
 
 export interface WaypointFilter {
@@ -112,7 +115,13 @@ function isOffRoute(w: EditorWaypoint): boolean {
   return !w.placements.some(p => p.kind === 'main');
 }
 
-export function matchesFilter(w: EditorWaypoint, filter: WaypointFilter, marks: ReviewMarks): boolean {
+export function matchesFilter(
+  w: EditorWaypoint,
+  filter: WaypointFilter,
+  marks: ReviewMarks,
+  /** Hikers' comments per waypoint id (`admin-waypoints-comments.ts`); empty until they load. */
+  commentCounts: ReadonlyMap<string, number> = new Map()
+): boolean {
   if (filter.type && w.type !== filter.type) return false;
   if (filter.query && !nameMatches(w.name, filter.query) && w.id !== filter.query.trim()) return false;
   switch (filter.status) {
@@ -128,6 +137,8 @@ export function matchesFilter(w: EditorWaypoint, filter: WaypointFilter, marks: 
       return movedSinceBuild(w) || renamedSinceBuild(w);
     case 'off-route':
       return isOffRoute(w);
+    case 'has-comments':
+      return (commentCounts.get(w.id) ?? 0) > 0;
     default:
       return true;
   }
@@ -240,7 +251,10 @@ export function waypointGlyphHtml(type: string): string {
   return `<span class="${escapeHtml(waypointFamilyClass(type))}">${waypointIcon(type)}</span>`;
 }
 
-export function rowHtml(w: EditorWaypoint, state: { selected: boolean; dirty: boolean; reviewed: boolean }): string {
+export function rowHtml(
+  w: EditorWaypoint,
+  state: { selected: boolean; dirty: boolean; reviewed: boolean; comments?: number }
+): string {
   const badges: string[] = [];
   if (state.dirty) badges.push('<span class="wpe-badge wpe-badge-dirty" title="Unsaved changes">unsaved</span>');
   if (movedSinceBuild(w) || renamedSinceBuild(w)) {
@@ -248,6 +262,7 @@ export function rowHtml(w: EditorWaypoint, state: { selected: boolean; dirty: bo
   }
   if (!w.description)
     badges.push('<span class="wpe-badge wpe-badge-empty" title="No curated description">no text</span>');
+  badges.push(commentBadgeHtml(state.comments));
   const reviewed = state.reviewed ? '<span class="wpe-reviewed" title="Reviewed">✓</span>' : '';
   const off = w.placements.some(p => p.kind === 'main') ? '' : ' <span class="wpe-muted">off route</span>';
   return (

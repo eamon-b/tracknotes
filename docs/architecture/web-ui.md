@@ -113,7 +113,7 @@ Raising the floor is a deliberate change to that list, not a side effect of a Vi
   the article body is `docs/gpx-import.md`, rendered at build time by the `gpx-import-doc` Vite plugin (GitHub-style heading ids, so `#anchors` against the doc keep working)
 - `my-trail.html` / `my-plan.html` (+ `.ts`) - Trail/plan pages for imported trails, booted from `?id=` via `imported-trails-db.ts` and the viewers' `preloadedTrail` argument;
   "Export for Tracknotes" handoff (`tracknotes-export.ts`, shared with `community-route`: an "Include my plan" checkbox, ticked, appears only when `plan-state` has a document for the trail — re-checked on a `storage` event — and while ticked the file carries that `PlanDocument`, never `PlanUiPrefs`)
-- `trails/plan-sync.ts`, `api/` (`client.ts`, `session.ts`, `plans.ts`) - The plan page's sync arm, on only when `VITE_API_BASE_URL` is set (the comments/plans API origin; public, ships in the bundle; unset = local-only planner with the Sync/Share controls removed).
+- `trails/plan-sync.ts`, `api/` (`client.ts`, `session.ts`, `plans.ts`; `comments.ts` is the waypoint editor's read-only comments client) - The plan page's sync arm, on only when `VITE_API_BASE_URL` is set (the comments/plans API origin; public, ships in the bundle; unset = local-only planner with the Sync/Share controls removed).
   A browser links to the phone's identity by entering the code the phone mints (Settings → Linked browsers);
   the linked token lives in `localStorage` `tracknotes.webSession`, only ever rides in the `Authorization` header, and can be unlinked from the page.
   Imported (`u_`) trails never sync
@@ -145,7 +145,8 @@ Raising the floor is a deliberate change to that list, not a side effect of a Vi
   Served only by `npm run dev`: the page is not a build input and the API plugin is `apply: 'serve'`.
   Unsaved edits are kept per waypoint while browsing;
   review marks are per browser (`tracknotes-waypoint-review-<trailId>`) and lapse when the waypoint's content changes.
-  `admin-waypoints-view.ts` is pure (filters, pasted positions, voice hints, review fingerprints, escaped list markup) and tested in `admin-waypoints-view.test.ts`
+  `admin-waypoints-view.ts` is pure (filters, pasted positions, voice hints, review fingerprints, escaped list markup) and tested in `admin-waypoints-view.test.ts`;
+  `admin-waypoints-comments.ts` shows each waypoint's hikers' comments read-only (one public `GET /v1/trails/:trailId/comments` per trail through `api/comments.ts`, plus `GET /v1/admin/comments?reported=1` for hidden ones when the browser is linked to an admin), grouped by waypoint id with every string escaped and photo URLs through `safeHttpUrl`, tested in `admin-waypoints-comments.test.ts`
 - `imported-trails-db.ts` - IndexedDB store (`tracknotes-imports`) for imported `ProcessedTrail`s;
   `index.html` lists them under "My trails"
 - `web-utils.ts` - `escapeHtml`, `getQueryParam` — every user-supplied string (trail names) must go through `escapeHtml`

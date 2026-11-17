@@ -30,6 +30,15 @@ import {
   type WaypointEditResponse,
 } from '../../scripts/lib/waypoint-editor/api-types';
 import { adminRouteShapes } from './admin-route-map';
+import { loadSession } from './api/session';
+import {
+  commentCounts,
+  commentsCountText,
+  commentsSectionHtml,
+  loadTrailComments,
+  orphanedCommentIds,
+  type CommentsState,
+} from './admin-waypoints-comments';
 import {
   STATUS_FILTER_LABELS,
   draftChanges,
@@ -144,6 +153,9 @@ const state = {
   rebuilding: false,
   map: null as MapState | null,
   breakStarts: new Set<number>() as ReadonlySet<number>,
+  /** Hikers' comments on the current trail (`admin-waypoints-comments.ts`), and their counts per id. */
+  comments: { kind: 'loading' } as CommentsState,
+  commentCounts: new Map<string, number>() as ReadonlyMap<string, number>,
 };
 
 function selected(): EditorWaypoint | null {
@@ -163,7 +175,7 @@ function setDraft(id: string, draft: WaypointDraft): void {
 }
 
 function visibleWaypoints(): EditorWaypoint[] {
-  return (state.trail?.waypoints ?? []).filter(w => matchesFilter(w, state.filter, state.marks));
+  return (state.trail?.waypoints ?? []).filter(w => matchesFilter(w, state.filter, state.marks, state.commentCounts));
 }
 
 function loadMarks(trailId: string): ReviewMarks {
@@ -231,6 +243,7 @@ function renderList(): void {
         selected: w.id === state.selectedId,
         dirty: isDirty(w, state.drafts.get(w.id)),
         reviewed: isReviewed(state.marks, w),
+        comments: state.commentCounts.get(w.id),
       })
     )
     .join('');
@@ -604,6 +617,7 @@ function fillForm(): void {
   fillPosition();
   renderDescriptionAids();
   renderButtons();
+  renderComments();
 }
 
 function select(id: string | null, options: { pan?: boolean } = {}): void {
@@ -740,6 +754,41 @@ function replaceWaypoint(w: EditorWaypoint): void {
 }
 
 // ---------------------------------------------------------------------------
+// Hikers' comments (read-only, from the comments API)
+// ---------------------------------------------------------------------------
+
+/** One bulk read per trail per page load; Reload replaces it. */
+const commentsCache = new Map<string, Promise<CommentsState>>();
+
+function renderComments(): void {
+  const w = selected();
+  if (!w) return;
+  $('wpe-comments-count').textContent = commentsCountText(state.comments, w.id);
+  $('wpe-comments-body').innerHTML = commentsSectionHtml(state.comments, w.id, {
+    orphaned: orphanedCommentIds(state.comments, new Set(state.byId.keys())),
+  });
+}
+
+async function refreshComments(trailId: string, reload = false): Promise<void> {
+  if (reload) commentsCache.delete(trailId);
+  let pending = commentsCache.get(trailId);
+  if (!pending) {
+    pending = loadTrailComments(trailId, { session: loadSession() });
+    commentsCache.set(trailId, pending);
+  }
+  state.comments = { kind: 'loading' };
+  state.commentCounts = new Map();
+  renderComments();
+  const result = await pending;
+  if (result.kind === 'error') commentsCache.delete(trailId); // retry on the next load
+  if (state.trail?.id !== trailId) return;
+  state.comments = result;
+  state.commentCounts = commentCounts(result);
+  renderComments();
+  renderList();
+}
+
+// ---------------------------------------------------------------------------
 // Trails, changes, rebuild
 // ---------------------------------------------------------------------------
 
@@ -754,6 +803,7 @@ async function loadTrail(dir: string, keepSelection?: string | null): Promise<vo
     state.marks = loadMarks(trail.id);
     storageSet(TRAIL_KEY, dir);
     if (trail.readOnlyReason) banner(trail.readOnlyReason);
+    void refreshComments(trail.id);
     renderFilters();
     await ensureMap();
     drawTrail();
@@ -907,6 +957,11 @@ function wire(): void {
     const button = (e.target as HTMLElement).closest<HTMLElement>('[data-poi-move]');
     const poi = state.trail?.pois.find(p => p.id === button?.dataset.poiMove);
     if (poi) moveDraftTo(poi.lat, poi.lon);
+  });
+  $('wpe-comments-body').addEventListener('click', e => {
+    if ((e.target as HTMLElement).closest('[data-comments-reload]') && state.trail) {
+      void refreshComments(state.trail.id, true);
+    }
   });
   $('wpe-use-source').addEventListener('click', () => {
     const w = selected();

@@ -17,7 +17,8 @@ The page remembers the trail, and `?trail=<dir>&id=<waypoint id>` links straight
 
 - **List** (left): every waypoint with an id, in km order (off-route ones by the km of the nearest route point), with its type glyph and badges: `unsaved` (edits held in the page), `saved` (written since the last build), `no text` (no curated description) and ✓ (reviewed).
   Search matches names accent-insensitively, or an exact id;
-  the filters narrow by type and by status (no curated text, not reviewed, changed since build, off the route).
+  the filters narrow by type and by status (no curated text, not reviewed, changed since build, off the route, has comments).
+  A row with hikers' comments carries a count badge.
 - **Map** (centre): the route as built (cut at route breaks, variants dashed), every waypoint coloured by family, and the selected one as a draggable marker.
   The layer control switches between OpenTopoMap, Esri satellite imagery and OpenStreetMap, and shows OSM POIs.
   A grey dashed line joins a saved move to where the last build drew the waypoint;
@@ -28,6 +29,7 @@ The page remembers the trail, and `?trail=<dir>&id=<waypoint id>` links straight
   links to the same spot on OpenStreetMap and Google (map and satellite);
   the description with a character count and voice hints;
   the GPX / CalTopo source text the app shows when there is no curated text, with "Start from this";
+  the hikers' comments on the waypoint (below);
   and the OSM POIs within 400 m, each with "Move here".
 
 ### Moving a waypoint
@@ -43,6 +45,18 @@ Emptying the box removes the entry, and the source text shows again.
 The voice hints flag what the house voice avoids (`scripts/lib/waypoint-descriptions.ts`): addressing the walker as "you", telling them what to do ("should", "make sure", a sentence that opens "Treat", "Carry", …), a doubled space and a missing full stop.
 They are hints only.
 Every fact still needs its source in `plans/waypoint-description-sources.md`.
+
+### Hikers' comments
+
+The form lists what hikers have posted on the selected waypoint through the app ("the tank is gone", "the camp is 200 m further on"), newest first, with the author's display name, the date (and the day it was seen, when different), any water report and photos as thumbnails linking to the full image.
+They are read from the comments API at `VITE_API_BASE_URL` (start `npm run dev` with it set, e.g. `VITE_API_BASE_URL=https://api.tracknotes.info npm run dev`; unset, the section says comments are unavailable).
+The page makes one public read per trail, `GET /v1/trails/:trailId/comments` without `since` (live comments only, every page of up to 1000), with no token, and keeps it until Reload or a page reload;
+switching waypoint does not refetch.
+Comments are keyed by stable waypoint id, so a comment filed under an id no waypoint on the trail has any more is listed by id under the section, as a sign an id was lost.
+In a browser linked to an admin account (the link from `admin-moderation.html`), the page also reads `GET /v1/admin/comments?reported=1`, adding comments hidden by reports or deleted by an admin, and report counts;
+without one, or with a non-admin account, it says hidden comments are not shown and lists the public ones.
+The worker's CORS is `*`, so a localhost page may read it.
+The editor never writes to the comments API: moderation stays on `admin-moderation.html`, and a comment is a lead, not a source, so a fact it gives still needs its source in `plans/waypoint-description-sources.md`.
 
 ### Reviewing
 
