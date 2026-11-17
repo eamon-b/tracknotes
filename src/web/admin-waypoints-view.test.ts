@@ -93,6 +93,9 @@ describe('drafts, filters and review marks', () => {
         marks
       )
     ).toBe(true);
+    const hasComments = { query: '', type: '', status: 'has-comments' } as const;
+    expect(matchesFilter(w, hasComments, marks)).toBe(false);
+    expect(matchesFilter(w, hasComments, marks, new Map([['w_1', 2]]))).toBe(true);
   });
 
   it('lets a review mark lapse when the content changes', () => {
@@ -113,6 +116,10 @@ describe('markup', () => {
     expect(html).not.toContain('<img');
     expect(html).toContain('&lt;img');
     expect(html).toContain('unsaved');
+    expect(html).not.toContain('comment');
+    expect(rowHtml(waypoint(), { selected: false, dirty: false, reviewed: false, comments: 2 })).toContain(
+      '2 comments'
+    );
   });
 
   it('lists nearby POIs nearest first, within the radius', () => {
