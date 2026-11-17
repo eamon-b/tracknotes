@@ -6,6 +6,8 @@ name: Upload waypoint descriptions
 # the difference from the live set, and withdraws a description a file no longer
 # lists. Phones pick it up, so it waits for a reviewer: the `plan` job's dry run
 # is in its summary, and `upload` runs once someone approves `production-data`.
+# A line marked `!` in the plan, and its warning, is a live edit made on
+# admin-descriptions.html that the file does not match: docs/waypoint-editor.md.
 # Setup: docs/deploys.md.
 
 on:
@@ -69,7 +71,9 @@ jobs:
           out="$RUNNER_TEMP/plan.txt"
           npm run -s upload:descriptions -- --dry-run 2>&1 | tee "$out"
           { echo "### Upload plan for ${SHA:0:7}"; echo '```'; cat "$out"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-          if grep -q 'would have 0 description(s) sent, 0 withdrawn' "$out"; then
+          # Nothing to send, withdraw or mark (a committed live edit is re-sent to
+          # mark it uploaded): the script's summary line, kept in step with it.
+          if grep -q 'would have 0 description(s) sent, 0 withdrawn, 0 committed live edit(s) marked' "$out"; then
             echo "upload=false" >> "$GITHUB_OUTPUT"
           else
             echo "upload=true" >> "$GITHUB_OUTPUT"

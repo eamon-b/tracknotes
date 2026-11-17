@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import type { DescriptionSource } from '../../src/lib/comments-api-types.js';
 import { MAX_DESCRIPTION_LENGTH } from '../../src/lib/waypoint-description-limits.js';
 
 /**
@@ -193,6 +194,26 @@ export function applyCuratedDescriptions(
 export interface LiveDescription {
   waypointId: string;
   description: string;
+  /**
+   * Which tool last changed the text: `live` is the deployed description
+   * editor (`src/web/admin-descriptions.html`), `upload` is this upload.
+   * Absent from a worker that predates the marker (migration 0012).
+   */
+  source?: DescriptionSource;
+}
+
+/**
+ * Where the synced row a request replaces came from: `unknown` when the API
+ * does not say (a worker that predates the marker).
+ */
+export type OverwriteOrigin = DescriptionSource | 'unknown';
+
+/** A synced row that a PUT or a withdrawal changes. */
+export interface DescriptionOverwrite {
+  waypointId: string;
+  /** The synced text it replaces; `''` for a live clear the PUT undoes. */
+  live: string;
+  origin: OverwriteOrigin;
 }
 
 /** What `upload-descriptions` has to send to make the API match the file. */
@@ -204,13 +225,23 @@ export interface DescriptionSyncPlan {
   /** Authored entries the API already holds verbatim; nothing to send. */
   unchanged: number;
   /**
-   * The live text each PUT or withdrawal would replace, for the ids where the
-   * API serves non-empty text that differs from the file. A live edit made on
-   * the deployed description editor (`src/web/admin-descriptions.html`) and
-   * never committed to `descriptions.json` shows up here, so the dry run can
-   * say what an upload would overwrite before anyone approves it.
+   * The synced row each PUT or withdrawal changes, with where it came from:
+   * every one that replaces non-empty text, plus a PUT that undoes a live
+   * clear. Most are `upload` rows, an older version of the file's own text,
+   * which a routine edit replaces. A `live` one is a live edit (or clear) made
+   * on the deployed description editor that the file does not match — never
+   * committed, or committed in other words — so the dry run can say what an
+   * upload would undo before anyone approves it (`liveEditsOverwritten`).
    */
-  overwrites: { waypointId: string; live: string }[];
+  overwrites: DescriptionOverwrite[];
+  /**
+   * Live writes the file already matches: a live edit whose text is in the
+   * file, or a live clear of an id the file does not list. Nothing about the
+   * text changes; re-sending it as an upload marks the row uploaded, so the
+   * next change to the file is an ordinary edit rather than "replaces a live
+   * edit". `description` is what to re-send (`''` for a clear).
+   */
+  adoptions: { waypointId: string; name?: string; description: string }[];
 }
 
 /**
@@ -221,21 +252,38 @@ export interface DescriptionSyncPlan {
  * phones that cached the text learn it is gone); an id already withdrawn live
  * is left alone. Unchanged text is not re-sent at all — the API no longer
  * bumps `updated_at` for it either, but there is no reason to spend the
- * request. Outputs are in authored / id order, so a dry run reads stably.
+ * request — unless the row is a live edit, which is re-sent to mark it
+ * uploaded (`adoptions`). Outputs are in authored / id order, so a dry run
+ * reads stably.
  */
 export function planDescriptionSync(
   authored: readonly CuratedDescription[],
   live: readonly LiveDescription[]
 ): DescriptionSyncPlan {
-  const liveById = new Map(live.map(row => [row.waypointId, row.description]));
-  const authoredIds = new Set(authored.map(entry => entry.waypointId));
-  const puts = authored.filter(entry => liveById.get(entry.waypointId) !== entry.description);
-  const withdrawals = [...liveById]
-    .filter(([id, text]) => text !== '' && !authoredIds.has(id))
-    .map(([id]) => id)
+  const liveById = new Map(live.map(row => [row.waypointId, row]));
+  const authoredById = new Map(authored.map(entry => [entry.waypointId, entry]));
+  const puts = authored.filter(entry => liveById.get(entry.waypointId)?.description !== entry.description);
+  const withdrawals = [...liveById.values()]
+    .filter(row => row.description !== '' && !authoredById.has(row.waypointId))
+    .map(row => row.waypointId)
     .sort();
-  const overwrites = [...puts.map(entry => entry.waypointId), ...withdrawals]
-    .map(waypointId => ({ waypointId, live: liveById.get(waypointId) ?? '' }))
-    .filter(row => row.live !== '');
-  return { puts, withdrawals, unchanged: authored.length - puts.length, overwrites };
+  const overwrites = [...puts.map(entry => entry.waypointId), ...withdrawals].flatMap(waypointId => {
+    const row = liveById.get(waypointId);
+    // No row, or a tombstone nobody cleared live: the request replaces nothing.
+    if (!row || (row.description === '' && row.source !== 'live')) return [];
+    return [{ waypointId, live: row.description, origin: row.source ?? ('unknown' as const) }];
+  });
+  const adoptions = [...liveById.values()]
+    .filter(row => row.source === 'live' && row.description === (authoredById.get(row.waypointId)?.description ?? ''))
+    .map(row => {
+      const name = authoredById.get(row.waypointId)?.name;
+      return { waypointId: row.waypointId, ...(name === undefined ? {} : { name }), description: row.description };
+    })
+    .sort((a, b) => a.waypointId.localeCompare(b.waypointId));
+  return { puts, withdrawals, unchanged: authored.length - puts.length, overwrites, adoptions };
+}
+
+/** The live edits and live clears an upload would undo: what its warning is about. */
+export function liveEditsOverwritten(plan: Pick<DescriptionSyncPlan, 'overwrites'>): DescriptionOverwrite[] {
+  return plan.overwrites.filter(row => row.origin === 'live');
 }

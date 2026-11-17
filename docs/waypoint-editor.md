@@ -299,6 +299,10 @@ If only the dev server is killed, the step that is running finishes (a half-writ
 
 The phone shows bundled descriptions from the app's trail data and synced ones from the comments API (`synced ?? bundled`).
 Merging a change to `descriptions.json` runs the *Upload descriptions* workflow (`docs/deploys.md`), which uploads the file once approved.
+The upload visits only the trails that have a `descriptions.json`.
+On a trail without one (the CDT, Great Ocean Walk, Great South West Walk, Shikoku, Te Araroa and Three Passes) no upload changes or withdraws a synced row.
+The phone looks a waypoint's synced text up by the waypoint's own id, and the upload sends each entry to the id the file names.
+So a later pass of a revisited place (`<id>_2`) never shows the first pass's synced text: it shows its bundled text, which is the first pass's entry as the build applied it.
 
 ## Live edits on the deployed site
 
@@ -306,26 +310,66 @@ For a correction that cannot wait for a merge (a closed water tank, a wrong fact
 It is unlinked and noindex, and it is the only description tool on the deployed site; this local editor stays the way descriptions are authored.
 
 - **Access:** reading needs nothing; editing needs the browser linked (with a link code from the app) to an admin account, the same as the moderation pages.
-- **The list:** pick a trail, and each waypoint shows its bundled description beside its synced one, a yellow box where they differ, and a state: *in sync*, *drift*, *cleared*, *not uploaded* (in the file, not yet on the API) or *bundled only*.
-  The filters narrow to drift, to synced rows, to synced text that differs from the bundle, to the file's entries, or to waypoints with no description at all.
+  When the account check itself fails (the API is unreachable or answers an error), the page says it could not check and offers **Retry the account check**: it stays read-only until the check succeeds, and never reports that as "not an admin".
+- **The list:** pick a trail, and each waypoint shows its bundled description beside its synced one (with its date and whether a live edit or an upload wrote it), a yellow box where they differ, and a state: *in sync*, *drift*, *awaiting upload*, *cleared*, *not uploaded* (in the file, not yet on the API) or *bundled only*.
+  The filters narrow to drift, to rows awaiting an upload, to synced rows, to synced text that differs from the bundle, to the file's entries, or to waypoints with no description at all.
 - **Edit synced text** sends the new text to every phone on its next sync, with the same character limit and voice hints as here.
 - **Clear synced text** sends an empty description (a tombstone): phones fall back to the bundled text, so a clear can undo a live edit but cannot hide a curated text; to correct one, edit it.
+- **Two admins at once:** a save or a clear carries the version of the row the page was showing, and the API refuses it when someone else has changed the row since.
+  Nothing is written; the page shows the text now on the server above the draft, which is kept, and saving again replaces their text knowingly.
+- **While typing:** saving one row redraws that row only, and the refresh that follows leaves every open edit box as it is.
+  A save still in flight when another trail is picked is not drawn into that trail's list; a line above the list says how it ended.
 
 ### The drift rule: edit live for urgency, then commit to descriptions.json
 
 `descriptions.json` is the source of truth.
-The *Upload descriptions* workflow runs on any merged change to any trail's `descriptions.json`, and it makes the API match the files: a synced text the file does not have is replaced with the file's text, or withdrawn if the file has no entry.
-So a live edit that never reaches the file is lost at the next upload, whichever trail's file that merge changed.
+The *Upload descriptions* workflow runs on any merged change to any trail's `descriptions.json`, and for every trail that has that file it makes the API match it: a synced text the file does not have is replaced with the file's text, or withdrawn if the file has no entry.
+So on a trail with a `descriptions.json`, a live edit that never reaches the file is lost at the next upload, whichever trail's file that merge changed.
+On a trail with no `descriptions.json` no upload touches a live edit: it stays on phones until someone changes or clears it on the page, and it exists only on the API until it is committed.
 
-The page knows the file as the site was last deployed, and marks every synced text that is not in it as **drift**, with a banner over the list.
+Every synced row records which tool last changed its text: `live` (this page) or `upload` (the workflow).
+It records the tool, never the person.
+A row from before that marker existed counts as uploaded, since this page did not exist then.
+The page knows the file as the site was last deployed, and classes a synced row that differs from it by that marker:
+
+- **drift**: a live edit the file does not match, or a live clear of a waypoint the file lists (*drift: cleared live*).
+  The next upload of that trail replaces the live edit with the file's text (or withdraws it), and re-sends the file's text over the clear.
+  Drift is counted in the banner over the list.
+- **awaiting upload**: a row an upload wrote that the file has since moved past, because a change to `descriptions.json` (or a deleted entry) has merged and its *Upload descriptions* run has not been approved or run yet.
+  The site redeploys within minutes of a merge while the upload waits for approval, so this is the ordinary state between the two.
+  It is not drift: there is nothing to commit, and the export never writes the API's older text back over the file or puts a deleted entry back.
+- **origin unknown**: shown only while the page talks to a comments API that does not report the marker (the worker deploy that adds it has not run).
+  The page then cannot tell the two cases apart, so it counts the row as neither and leaves it out of the export.
+  A live edit saved in that window is known as one only until the page is reloaded, and counts as uploaded once the worker is deployed: commit it at once, as the page says when it saves.
+
 To commit the drift:
 
-1. On the page, **Download updated descriptions.json** (the trail's file with the drifted synced text written in: an existing entry in place, a new one in route order) or **Copy the changed entries**.
+1. On the page, **Download updated descriptions.json** (the trail's file with each live edit written in: an existing entry in place, a new one in route order, every other entry exactly as the file has it) or **Copy the changed entries**.
+   On a trail with no file the button reads **Download a new descriptions.json** and starts one.
 2. Put it at the path the banner names (`data/trails/<dir>/descriptions.json`), check the `git diff` shows only those entries, and check every fact has its source in `plans/waypoint-description-sources.md`.
 3. Rebuild (`npm run build:trails && npm run build:mobile-trails`), and commit the file with the rebuilt data as for any description change.
 
-Once that merges, the upload finds the API already holds the text (nothing to send for it), and the page shows the row as *in sync* after the site redeploys.
-The upload's dry run also prints every synced text it would replace (`! replaces synced text`) and ends with a warning, so the approver sees drift that was missed before approving (`docs/deploys.md`).
+Once that merges, the upload re-sends the committed text to mark the row as uploaded, and the page shows the row as *in sync* after the site redeploys.
+The text and its timestamp do not change, so no phone downloads it again, and the next change to that entry is an ordinary edit.
+A live edit committed in other words stays *drift*, and stays marked in the upload's plan, until that upload has run and the file's wording has replaced it.
+The upload's dry run lists every synced text it would replace.
+Text an earlier upload sent is listed plainly (`replaces uploaded text`): that is every routine edit, and raises no warning.
+A live edit the file does not match is marked `!` (`! replaces a live edit`, `! undoes a live clear`) and the run ends with a warning, so the approver sees drift that was missed before approving (`docs/deploys.md`).
+
+What the export leaves out:
+
+- **A live clear.**
+  A clear never hides a curated text, and the next upload re-sends the file's entry.
+  To remove a description for good, delete its entry from the file.
+- **A later pass of a revisited place** (`<id>_2`, badged *later pass*; eight rows, all on Three Passes).
+  The build applies `descriptions.json` before it mints the suffix, so the file is keyed by the first pass's id, every pass is bundled with that entry's text, and an entry for `<id>_2` matches no waypoint.
+  A live edit on a later pass reaches phones on that pass only and cannot be committed: make the lasting fix on the first pass's id.
+  For an urgent correction, edit each pass, since phones look each one up by its own id; the first pass's row names the others.
+  The page does not copy a first-pass edit to the later passes itself: on a trail with a `descriptions.json` the next upload would withdraw those rows, which the file cannot list.
+- **Te Araroa.**
+  Its waypoints and their descriptions are built upstream in the `te-araroa-data` package (`npm run sync:te-araroa`) and are not curated in this repository, so it has no `descriptions.json` and the page offers none to download.
+  A live edit there works, and no upload touches it: make the lasting fix upstream, and clear the synced text once a build carries it.
+- **A row on an id the trail no longer has**, which no waypoint shows.
 
 ## Safety
 

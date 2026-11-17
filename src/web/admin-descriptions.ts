@@ -6,11 +6,12 @@
  * pulls and shows over the bundled text), marks where they differ, and lets an
  * admin's linked browser PUT a new synced text or clear it.
  *
- * The drift rule (`docs/waypoint-editor.md`): a synced text that is not in the
+ * The drift rule (`docs/waypoint-editor.md`): a live edit that is not in the
  * trail's `descriptions.json` is overwritten by the next *Upload descriptions*
- * run. The file as this site was built is bundled into this page (a lazy glob
- * of `data/trails/*\/descriptions.json`), so the page can show the drift and
- * export the updated file to commit.
+ * run of that trail. The file as this site was built is bundled into this page
+ * (a lazy glob of `data/trails/*\/descriptions.json`), and each synced row
+ * says which tool last changed it, so the page can tell a live edit to commit
+ * from a row that merely waits for an upload, and export the former.
  *
  * Reading needs nothing; editing needs a linked browser whose account the
  * worker treats as an admin (`GET /v1/me` says so up front, and the worker
@@ -20,7 +21,7 @@
 import type { WaypointDescription } from '@lib/comments-api-types';
 import type { ProcessedTrail } from '@lib/trail-types';
 import { ApiError, NetworkError, getApiBase } from './api/client';
-import { adminPutDescription, fetchMe, fetchSyncedDescriptions } from './api/descriptions';
+import { adminPutDescription, conflictCurrent, fetchMe, fetchSyncedDescriptions } from './api/descriptions';
 import { clearSession, loadSession, type WebSession } from './api/session';
 import {
   MAX_DESCRIPTION_LENGTH,
@@ -29,7 +30,8 @@ import {
   checkDraft,
   draftStatusHtml,
   exportFileText,
-  filePath,
+  fileContext,
+  liveEditAdvice,
   matchesRow,
   parseCuratedFile,
   patchSnippet,
@@ -39,6 +41,7 @@ import {
   trailDirOf,
   trailWaypoints,
   type DescriptionRow,
+  type FileContext,
   type RowFilter,
   type TrailWaypoint,
 } from './admin-descriptions-view';
@@ -61,6 +64,8 @@ const TRAIL_KEY = 'tracknotes-admin-descriptions-trail';
 
 /** At most this many rows are drawn at once; the filters narrow the rest. */
 const MAX_ROWS = 300;
+
+const COPY_LABEL = 'Copy the changed entries';
 
 interface IndexEntry {
   id: string;
@@ -105,9 +110,12 @@ function init(): void {
   const status = $('desc-status');
   const linkBox = $('desc-link');
   const errorEl = $('desc-error');
+  const notice = $('desc-notice');
+  const noticeText = $('desc-notice-text');
   const toolbar = $('desc-toolbar');
   const identity = $('desc-identity');
   const linkButton = $<HTMLButtonElement>('desc-link-button');
+  const retryButton = $<HTMLButtonElement>('desc-check-retry');
   const controls = $('desc-controls');
   const trailSelect = $<HTMLSelectElement>('desc-trail');
   const filterSelect = $<HTMLSelectElement>('desc-filter');
@@ -119,9 +127,16 @@ function init(): void {
   const copyFallback = $('desc-copy-fallback');
   const snippetBox = $<HTMLTextAreaElement>('desc-snippet');
 
+  /** What went wrong loading a trail (or the trail list). Each load starts by clearing it. */
   const setError = (message: string): void => {
     errorEl.textContent = message;
     errorEl.hidden = message === '';
+  };
+
+  /** Something about a write that has no row to sit in. Stays until dismissed or replaced. */
+  const showNotice = (message: string): void => {
+    noticeText.textContent = message;
+    notice.hidden = message === '';
   };
 
   if (!getApiBase()) {
@@ -131,53 +146,174 @@ function init(): void {
 
   let session: WebSession | null = loadSession();
   let canEdit = false;
+  /** Why `GET /v1/me` could not say whether the linked account is an admin ('' when it answered). */
+  let adminError = '';
   let trailId = '';
   let trailDir: string | null = null;
   let fileText: string | null = null;
+  let ctx: FileContext = fileContext('', null, null);
   let waypoints: TrailWaypoint[] = [];
   let synced: WaypointDescription[] = [];
   let rows: DescriptionRow[] = [];
   /** Open edit boxes and what they hold, by waypoint id. */
   const drafts = new Map<string, string>();
-  /** Bumped per trail load, so a slow answer for the previous trail is dropped. */
+  /**
+   * For each open edit box, the synced row's `updatedAt` when it was opened
+   * (null: no row): what the admin was looking at, sent as the save's
+   * precondition so it cannot replace a text saved by someone else since.
+   */
+  const bases = new Map<string, string | null>();
+  /** Edit boxes whose save was refused as a conflict, with the server's row (null: none). */
+  const conflicts = new Map<string, WaypointDescription | null>();
+  /** The markup last drawn for each row in the list, so a refresh replaces only rows that changed. */
+  const drawn = new Map<string, string>();
+  let summaryDrawn = '';
+  /**
+   * Texts this page saved to an API that does not record which rows are live
+   * edits (a worker that predates the marker), by `trail/waypoint`: for the
+   * rest of this visit the page still knows they are.
+   */
+  const savedHere = new Map<string, string>();
+  /** Bumped per trail load, so an answer that belongs to an earlier list is not drawn into this one. */
   let loadSeq = 0;
+  /** Bumped when a PUT is answered, so a refresh that read the rows before it does not put the older row back. */
+  let writeSeq = 0;
 
   for (const [value, label] of Object.entries(ROW_FILTER_LABELS)) {
     filterSelect.insertAdjacentHTML('beforeend', `<option value="${value}">${escapeHtml(label)}</option>`);
   }
 
-  const renderList = (): void => {
+  const rowElement = (id: string): HTMLElement | null =>
+    list.querySelector<HTMLElement>(`[data-row="${CSS.escape(id)}"]`);
+
+  const htmlFor = (row: DescriptionRow): string =>
+    rowHtml(row, {
+      canEdit,
+      editing: drafts.has(row.id),
+      draft: drafts.get(row.id),
+      conflict: conflicts.has(row.id) ? conflicts.get(row.id) : undefined,
+      ctx,
+    });
+
+  const matchingRows = (): DescriptionRow[] => {
     const filter = filterSelect.value as RowFilter;
-    const matching = rows.filter(r => matchesRow(r, filter, search.value));
-    const drawn = matching.slice(0, MAX_ROWS);
+    return rows.filter(r => matchesRow(r, filter, search.value));
+  };
+
+  /** Draw the whole list. Open edit boxes are redrawn from `drafts`, so they keep their text but not the caret. */
+  const renderList = (): void => {
+    const matching = matchingRows();
+    const drawnRows = matching.slice(0, MAX_ROWS);
     shown.textContent =
-      matching.length > drawn.length
-        ? `Showing the first ${drawn.length} of ${matching.length}: narrow with the filters or search.`
+      matching.length > drawnRows.length
+        ? `Showing the first ${drawnRows.length} of ${matching.length}: narrow with the filters or search.`
         : `${matching.length} shown.`;
+    drawn.clear();
+    for (const r of drawnRows) drawn.set(r.id, htmlFor(r));
     list.innerHTML =
-      drawn.length > 0
-        ? drawn.map(r => rowHtml(r, { canEdit, editing: drafts.has(r.id), draft: drafts.get(r.id) })).join('')
-        : '<p class="import-note">No waypoints match.</p>';
+      drawnRows.length > 0 ? [...drawn.values()].join('') : '<p class="import-note">No waypoints match.</p>';
+  };
+
+  /** Redraw one row in place, leaving every other row (and any edit box in it) alone. */
+  const redrawRow = (id: string): void => {
+    const element = rowElement(id);
+    const row = rows.find(r => r.id === id);
+    if (!element || !row) return;
+    const html = htmlFor(row);
+    if (drawn.get(id) === html) return;
+    const active = document.activeElement;
+    const focused = active instanceof HTMLElement && element.contains(active) ? active.dataset.action : undefined;
+    element.insertAdjacentHTML('afterend', html);
+    element.remove();
+    drawn.set(id, html);
+    if (focused) rowElement(id)?.querySelector<HTMLElement>(`[data-action="${focused}"]`)?.focus();
+  };
+
+  /**
+   * Bring the list up to date after the data changed underneath it, without
+   * touching a row whose edit box is open: someone may be typing in it, and
+   * its save is checked against what they were shown (`bases`). With no edit
+   * box open, a change to which rows match redraws the list.
+   */
+  const patchRows = (): void => {
+    const want = matchingRows().slice(0, MAX_ROWS);
+    const have = [...list.querySelectorAll<HTMLElement>('[data-row]')].map(el => el.dataset.row);
+    const sameRows = want.length === have.length && want.every((r, i) => r.id === have[i]);
+    if (!sameRows && drafts.size === 0) {
+      renderList();
+      return;
+    }
+    for (const id of have) {
+      if (id && !drafts.has(id)) redrawRow(id);
+    }
+  };
+
+  const renderSummary = (): void => {
+    const html = summaryHtml(rows, ctx);
+    if (html === summaryDrawn) return;
+    summaryDrawn = html;
+    summary.innerHTML = html;
+    copyFallback.hidden = true;
+  };
+
+  /** Rebuild the rows from the trail, the file and the synced set. */
+  const recompute = (): void => {
+    ctx = fileContext(trailId, trailDir, fileText);
+    const known = synced.map(s =>
+      s.source === undefined && savedHere.get(`${trailId}/${s.waypointId}`) === s.description
+        ? { ...s, source: 'live' as const }
+        : s
+    );
+    rows = buildRows(waypoints, parseCuratedFile(fileText), known);
   };
 
   const render = (): void => {
-    rows = buildRows(waypoints, parseCuratedFile(fileText), synced);
-    summary.innerHTML = summaryHtml(rows, filePath(trailDir, trailId));
-    copyFallback.hidden = true;
+    recompute();
+    renderSummary();
     renderList();
+  };
+
+  const focusDraft = (id: string): void => {
+    list.querySelector<HTMLTextAreaElement>(`[data-draft="${CSS.escape(id)}"]`)?.focus();
+  };
+
+  const showRowError = (id: string, message: string): void => {
+    const rowError = list.querySelector<HTMLElement>(`[data-error="${CSS.escape(id)}"]`);
+    if (!rowError) return;
+    rowError.textContent = message;
+    rowError.hidden = message === '';
+  };
+
+  const setRowBusy = (id: string, busy: boolean): void => {
+    for (const b of list.querySelectorAll<HTMLButtonElement>(`button[data-id="${CSS.escape(id)}"]`)) b.disabled = busy;
+  };
+
+  const closeEditor = (id: string): void => {
+    drafts.delete(id);
+    bases.delete(id);
+    conflicts.delete(id);
   };
 
   const showIdentity = (): void => {
     toolbar.hidden = false;
     linkButton.hidden = session !== null;
+    retryButton.hidden = !(session && adminError);
+    const who = session?.displayName || 'this account';
     if (!session) identity.textContent = 'Read-only: link this browser to an admin account to edit.';
-    else if (canEdit) identity.textContent = `Linked as ${session.displayName || 'this account'} (admin).`;
-    else identity.textContent = `Linked as ${session.displayName || 'this account'}, which is not an admin: read-only.`;
+    else if (adminError) {
+      identity.textContent = `Linked as ${who}. Could not check whether this account is an admin (${adminError}), so the page is read-only until the check succeeds.`;
+    } else if (canEdit) identity.textContent = `Linked as ${who} (admin).`;
+    else identity.textContent = `Linked as ${who}, which is not an admin: read-only.`;
   };
 
-  /** Ask the API whether the linked account is an admin. */
+  /**
+   * Ask the API whether the linked account is an admin. A failure that is not
+   * "this browser is no longer linked" leaves the answer unknown (`adminError`),
+   * which is shown as such with a retry, never as "not an admin".
+   */
   const checkAdmin = async (): Promise<void> => {
     canEdit = false;
+    adminError = '';
     if (!session) return;
     try {
       canEdit = (await fetchMe(session)).isAdmin;
@@ -186,7 +322,7 @@ function init(): void {
         clearSession();
         session = null;
       } else {
-        setError(`Could not check this browser's account: ${errorText(err)}`);
+        adminError = errorText(err);
       }
     }
   };
@@ -196,6 +332,8 @@ function init(): void {
     trailId = id;
     store(id);
     drafts.clear();
+    bases.clear();
+    conflicts.clear();
     setError('');
     section.hidden = true;
     status.hidden = false;
@@ -225,13 +363,16 @@ function init(): void {
     render();
   };
 
-  /** Re-read the synced set after a write, keeping the page where it is. */
+  /** Re-read the synced set after a write, keeping the page, and any open edit box, where it is. */
   const refreshSynced = async (): Promise<void> => {
     const seq = loadSeq;
+    const writes = writeSeq;
     const live = await fetchSyncedDescriptions(trailId);
-    if (seq !== loadSeq) return;
+    if (seq !== loadSeq || writes !== writeSeq) return;
     synced = live;
-    render();
+    recompute();
+    renderSummary();
+    patchRows();
   };
 
   const askToLink = (): void => {
@@ -245,29 +386,66 @@ function init(): void {
         session = linked;
         void checkAdmin().then(() => {
           showIdentity();
-          if (trailId) render();
+          if (trailId && !section.hidden) renderList();
         });
       }
     );
   };
 
-  const write = async (id: string, description: string, rowError: HTMLElement | null): Promise<void> => {
+  /**
+   * PUT a waypoint's synced text ('' clears it) as a live edit, on the trail
+   * and the list that are on screen now. The answer is drawn only if that list
+   * is still the one on screen (`loadSeq`): after a switch of trail it belongs
+   * to no row here.
+   */
+  const write = async (id: string, description: string): Promise<void> => {
     if (!session) return;
-    const buttons = list.querySelectorAll<HTMLButtonElement>(`button[data-id="${CSS.escape(id)}"]`);
-    for (const b of buttons) b.disabled = true;
+    const seq = loadSeq;
+    const trail = trailId;
+    const before = rows.find(r => r.id === id);
+    const name = before?.name ?? id;
+    // What the admin was shown: the row as it was when its edit box opened, else as drawn.
+    const readUpdatedAt = bases.has(id) ? (bases.get(id) ?? null) : (before?.syncedAt ?? null);
+    showRowError(id, '');
+    setRowBusy(id, true);
+
+    let stored: WaypointDescription;
     try {
-      const stored = await adminPutDescription(session, trailId, id, description);
-      drafts.delete(id);
-      synced = [...synced.filter(s => s.waypointId !== id), stored];
-      render();
-      void refreshSynced().catch(() => {
-        /* the PUT's answer is already drawn */
-      });
+      stored = await adminPutDescription(session, trail, id, description, readUpdatedAt);
     } catch (err) {
+      if (seq !== loadSeq) {
+        showNotice(`Saving “${name}” on ${trail} failed after the list changed: ${errorText(err)}`);
+        return;
+      }
+      const current = conflictCurrent(err);
+      if (current !== undefined) {
+        // Someone else changed the row. Show theirs, keep this admin's draft,
+        // and make theirs the version the next save is checked against.
+        writeSeq++;
+        synced = [...synced.filter(s => s.waypointId !== id), ...(current ? [current] : [])];
+        recompute();
+        renderSummary();
+        if (drafts.has(id)) {
+          bases.set(id, current?.updatedAt ?? null);
+          conflicts.set(id, current);
+          redrawRow(id);
+          setRowBusy(id, false);
+          focusDraft(id);
+        } else {
+          redrawRow(id);
+          setRowBusy(id, false);
+          showRowError(
+            id,
+            'Not cleared: this synced text changed after this page read it. The row now shows what the server has; clear it again if it should still go.'
+          );
+        }
+        return;
+      }
       if (err instanceof ApiError && err.status === 401) {
         clearSession();
         session = null;
         canEdit = false;
+        adminError = '';
         showIdentity();
         renderList();
         askToLink();
@@ -277,12 +455,46 @@ function init(): void {
         canEdit = false;
         showIdentity();
       }
-      if (rowError) {
-        rowError.textContent = `Failed: ${errorText(err)}`;
-        rowError.hidden = false;
-      }
-      for (const b of buttons) b.disabled = false;
+      setRowBusy(id, false);
+      showRowError(id, `Failed: ${errorText(err)}`);
+      return;
     }
+
+    if (stored.source === undefined) {
+      savedHere.set(`${trail}/${id}`, stored.description);
+      showNotice(
+        `Saved “${name}”. This API does not record which rows are live edits yet (its worker predates that marker), so once this page is reloaded the row reads “origin unknown” and is left out of the export: commit it to descriptions.json now.`
+      );
+    }
+    if (seq !== loadSeq) {
+      // Written, but the list on screen is no longer the one it was written
+      // from. Another trail's list has no row for it; a reload of this trail
+      // may have read the synced set before the write landed, so read again.
+      if (trailId !== trail) {
+        if (stored.source !== undefined) showNotice(`Saved “${name}” on ${trail}.`);
+      } else if (section.hidden) void loadTrail(trail);
+      else {
+        void refreshSynced().catch(() => {
+          /* Reload reads it again */
+        });
+      }
+      return;
+    }
+    writeSeq++;
+    if (description !== '') closeEditor(id);
+    else if (drafts.has(id)) {
+      // A clear beside an open edit box: the draft stays, now based on the cleared row.
+      bases.set(id, stored.updatedAt);
+      conflicts.delete(id);
+    }
+    synced = [...synced.filter(s => s.waypointId !== id), stored];
+    recompute();
+    renderSummary();
+    redrawRow(id);
+    setRowBusy(id, false);
+    void refreshSynced().catch(() => {
+      /* the PUT's answer is already drawn */
+    });
   };
 
   list.addEventListener('click', event => {
@@ -291,46 +503,34 @@ function init(): void {
     const id = target.dataset.id!;
     const row = rows.find(r => r.id === id);
     if (!row) return;
-    const rowError = list.querySelector<HTMLElement>(`[data-error="${CSS.escape(id)}"]`);
     switch (target.dataset.action) {
       case 'edit':
         drafts.set(id, row.synced || row.bundled);
-        renderList();
-        list.querySelector<HTMLTextAreaElement>(`[data-draft="${CSS.escape(id)}"]`)?.focus();
+        bases.set(id, row.syncedAt ?? null);
+        redrawRow(id);
+        focusDraft(id);
         return;
       case 'cancel':
-        drafts.delete(id);
-        renderList();
+        closeEditor(id);
+        redrawRow(id);
         return;
       case 'save': {
         const check = checkDraft(drafts.get(id) ?? '');
         if (check.tooLong) {
-          if (rowError) {
-            rowError.textContent = `Too long: ${check.length} characters, the most is ${MAX_DESCRIPTION_LENGTH}.`;
-            rowError.hidden = false;
-          }
+          showRowError(id, `Too long: ${check.length} characters, the most is ${MAX_DESCRIPTION_LENGTH}.`);
           return;
         }
         if (check.text === '') {
-          if (rowError) {
-            rowError.textContent = 'Empty: use Clear synced text to fall back to the bundled text.';
-            rowError.hidden = false;
-          }
+          showRowError(id, 'Empty: use Clear synced text to fall back to the bundled text.');
           return;
         }
         if (check.text === row.synced) {
-          drafts.delete(id);
-          renderList();
+          closeEditor(id);
+          redrawRow(id);
           return;
         }
-        if (
-          !window.confirm(
-            `Send this text to every phone for “${row.name}”?\n\nIt is a live edit: commit it to descriptions.json too (the export above), or the next Upload descriptions run overwrites it.`
-          )
-        ) {
-          return;
-        }
-        void write(id, check.text, rowError);
+        if (!window.confirm(`Send this text to every phone for “${row.name}”?\n\n${liveEditAdvice(row, ctx)}`)) return;
+        void write(id, check.text);
         return;
       }
       case 'clear':
@@ -338,12 +538,16 @@ function init(): void {
           !window.confirm(
             `Clear the synced text for “${row.name}”? Phones fall back to the bundled text${
               row.bundled ? '' : ' (this waypoint has none)'
-            }.`
+            }.${
+              row.file !== undefined
+                ? '\n\ndescriptions.json has an entry for this waypoint, so the next upload re-sends the file’s text.'
+                : ''
+            }`
           )
         ) {
           return;
         }
-        void write(id, '', rowError);
+        void write(id, '');
         return;
       default:
     }
@@ -384,7 +588,7 @@ function init(): void {
       }
       navigator.clipboard.writeText(text).then(() => {
         target.textContent = 'Copied';
-        setTimeout(() => (target.textContent = 'Copy the changed entries'), 1500);
+        setTimeout(() => (target.textContent = COPY_LABEL), 1500);
       }, fallback);
     }
   });
@@ -393,6 +597,16 @@ function init(): void {
   filterSelect.addEventListener('change', renderList);
   search.addEventListener('input', renderList);
   linkButton.addEventListener('click', askToLink);
+  retryButton.addEventListener('click', () => {
+    retryButton.disabled = true;
+    identity.textContent = 'Checking this browser’s account…';
+    void checkAdmin().then(() => {
+      retryButton.disabled = false;
+      showIdentity();
+      if (trailId && !section.hidden) renderList();
+    });
+  });
+  $('desc-notice-dismiss').addEventListener('click', () => showNotice(''));
   $('desc-reload').addEventListener('click', () => {
     if (trailId) void loadTrail(trailId);
   });

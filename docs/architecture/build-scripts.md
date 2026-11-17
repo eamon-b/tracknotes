@@ -165,7 +165,12 @@ keep this file in step with the code it describes.
   the plugin awaits the lookup (`lookupWaypointElevation`) and hands the result to the save, which stays synchronous, and a lookup that fails or times out never fails a save;
   `sources.ts` holds the byte-preserving edits (a `<wpt>` attribute, `<name>`, `<desc>`, `<type>` or `<ele>` in place, a `<desc>` added or removed, a `<wpt>` inserted or removed in the file's own style, a JSON value spliced in place, a CalTopo feature or `folderId` spliced in or out, a JSON file rewritten only when its layout reproduces exactly).
 - `upload-descriptions.ts` - PUTs curated waypoint descriptions to the comments API (`npm run upload:descriptions`, admin token in `$TRACKNOTES_ADMIN_TOKEN`; `--dry-run` prints the requests).
-  A PUT or withdrawal that would replace non-empty synced text prints that text, and the run ends with a warning (a `::warning::` annotation in Actions): synced text the file lacks may be a live edit from `admin-descriptions.html` that was never committed
+  Every PUT says `source: 'upload'`, and the plan (`planDescriptionSync`, one function for the dry run and the real one) reads each synced row's `source` to say what a PUT or withdrawal replaces:
+  text an earlier upload sent is listed plainly (`replaces uploaded text`), which is every routine edit;
+  a live edit from `admin-descriptions.html` that the file does not match, or a live clear of an id the file lists, is marked `!` and ends the run with a warning (a `::warning::` annotation in Actions; the exit code is unchanged).
+  A live edit the file already matches is re-sent unchanged to mark it uploaded (`adoptions`; the API leaves `updated_at` alone), so a later change to that entry is an ordinary edit;
+  the summary line counts those, and the workflow's "nothing to upload" check greps that line, so the two change together.
+  Against a worker that reports no `source` nothing is called a live edit, and a separate warning says the replaced text could not be checked
   The *Upload waypoint descriptions* workflow runs it after a merge that changes a `descriptions.json`, once approved (`docs/deploys.md`), as *Publish trail data* runs `publish-trail-data.ts`.
 - `dependency-audit.ts` - `npm run audit:deps`: `npm audit` over the root, `mobile/`, `workers/comments-api` and `contours/worker` lockfiles as one report (`severeFindings`), failing only on a high or critical advisory `npm audit fix` can fix without a breaking change.
   Run monthly by *Dependency audit* (`docs/deploys.md`)
