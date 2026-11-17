@@ -8,6 +8,7 @@ import { PENDING_KEY_PREFIX, type WaypointEditRequest } from './api-types';
 import type { DemSource } from './elevation';
 import {
   addWaypoint,
+  commitWrites,
   deleteWaypoint,
   EditorError,
   editorPaths,
@@ -287,6 +288,11 @@ const TOPO_BUILT = {
   pois: [],
 };
 
+// A marker no <wpt> has the name of, to splice in before the end of the features.
+const ORPHAN_AT = '],"type":"FeatureCollection"}';
+const ORPHAN_MARKER =
+  '{"geometry":{"coordinates":[148.39,-36.59,0,0],"type":"Point"},"id":"m8","type":"Feature","properties":{"title":"W Bore","class":"Marker","folderId":"f2","description":"A windmill."}}';
+
 function writeTopo(): void {
   write('data/trails/topo/trail.json', JSON.stringify({ id: 'topo', name: 'Topo Track', gpxFile: 'topo.gpx' }));
   write('data/trails/topo/topo.gpx', TOPO_GPX);
@@ -469,11 +475,34 @@ describe('adding waypoints', () => {
     const at = { lat: -36.58, lon: 148.38 };
     expect(() => addWaypoint(paths, 'demo', { name: 'C New Camp', type: 'campsite', ...at })).toThrow(/type prefix/);
     expect(() => addWaypoint(paths, 'demo', { name: 'Camp', type: 'water-access', ...at })).toThrow(/not one of/);
+    // A marker with no <wpt> of its own: nothing shares it, but it would type the new waypoint its way.
+    write('data/trails/topo/topo.json', TOPO_GEOJSON.replace(ORPHAN_AT, `,${ORPHAN_MARKER}${ORPHAN_AT}`));
     const before = topoFiles();
-    expect(() => addWaypoint(paths, 'topo', { name: 'Creek', type: 'hut', ...at })).toThrow(/would type it as water/);
+    expect(() => addWaypoint(paths, 'topo', { name: 'Bore', type: 'hut', ...at })).toThrow(/would type it as water/);
+    // One that types a <wpt> already would be shared, whatever type is asked for.
+    expect(() => addWaypoint(paths, 'topo', { name: 'Creek', type: 'hut', ...at })).toThrow(/also types “W Creek”/);
+    expect(() => addWaypoint(paths, 'topo', { name: 'Creek', type: 'water', ...at })).toThrow(/also types “W Creek”/);
     expect(topoFiles()).toEqual(before);
     expect(() => addWaypoint(paths, 'te_araroa', { name: 'Camp', type: 'campsite', ...at })).toThrow(/upstream/);
     expect(() => addWaypoint(paths, 'demo', { name: 'Far', type: 'hut', lat: -38, lon: 148.3 })).toThrow(/50 km/);
+  });
+
+  it('adds a <wpt> for a CalTopo marker that has none, and says whose description the build shows', () => {
+    writeTopo();
+    write('data/trails/topo/topo.json', TOPO_GEOJSON.replace(ORPHAN_AT, `,${ORPHAN_MARKER}${ORPHAN_AT}`));
+    const result = addWaypoint(paths, 'topo', {
+      name: 'Bore',
+      type: 'water',
+      lat: -36.58,
+      lon: 148.38,
+      description: 'A stock bore.',
+    });
+    expect(result.waypoint).toMatchObject({ pending: true, type: 'water', canDescribe: false });
+    expect(result.waypoint.typeSource).toMatch(/CalTopo folder “Water Sources”/);
+    expect(result.waypoint.sourceDescription).toBe('A windmill.');
+    const notes = result.notes.join('\n');
+    expect(notes).toMatch(/the build shows the description of the CalTopo marker “W Bore”/);
+    expect(notes).not.toMatch(/it can become curated text/);
   });
 
   it('types a new <wpt> on a CalTopo trail from its <type> when no marker has its name', () => {
@@ -619,31 +648,36 @@ describe('editing a pending waypoint', () => {
     expect(read('data/waypoint-ids.json')).toBe(`${JSON.stringify(registry, null, 2)}\n`);
 
     // An entry whose <wpt> was deleted since the build is not retired yet: a
-    // newcomer of its type within reach is, to the build, that waypoint moved.
+    // newcomer of its type within reach is, to the build, that waypoint moved,
+    // so the add is refused until a rebuild ("an id that is not retired yet", below).
     deleteWaypoint(paths, 'demo', 'w_cccc3333', {
       expected: { name: 'Saddle Camp', lat: -36.55, lon: 148.35, description: 'A flat saddle.' },
     });
-    const near = addWaypoint(paths, 'demo', { name: 'Ridge Camp', type: 'campsite', lat: -36.5503, lon: 148.35 });
-    expect(near.notes.join('\n')).toMatch(/the id w_cccc3333 of “Saddle Camp”.*moved or renamed/);
+    expect(() =>
+      addWaypoint(paths, 'demo', { name: 'Ridge Camp', type: 'campsite', lat: -36.5503, lon: 148.35 })
+    ).toThrow(/moved or renamed.*Rebuild first so w_cccc3333 is retired/);
   });
 
-  it('refuses a name a CalTopo marker would type differently, and a marker that types another waypoint too', () => {
+  it('refuses a name a CalTopo marker would type differently, or types another waypoint by', () => {
     writeTopo();
+    const withOrphan = TOPO_GEOJSON.replace(ORPHAN_AT, `,${ORPHAN_MARKER}${ORPHAN_AT}`);
+    write('data/trails/topo/topo.json', withOrphan);
     const added = addWaypoint(paths, 'topo', { name: 'Tank', type: 'water-tank', lat: -36.58, lon: 148.38 }).waypoint;
     const before = topoFiles();
-    // "W Creek" is a water marker: under that name the build would type it water, not water-tank.
-    expect(() => request('topo', added.id, { name: 'Creek' })).toThrow(/would type it as water/);
+    // "W Bore" is a water marker with no <wpt>: under its name the build would type this water, not water-tank.
+    expect(() => request('topo', added.id, { name: 'Bore' })).toThrow(/would type it as water/);
+    // "W Creek" types the built Creek: under its name the two would share the marker.
+    expect(() => request('topo', added.id, { name: 'Creek' })).toThrow(/also types “W Creek”/);
+    expect(() => request('topo', added.id, { name: 'Creek', type: 'water' })).toThrow(/also types “W Creek”/);
     expect(topoFiles()).toEqual(before);
-    // With the type the marker gives, the rename goes through: the editor shows what the build will make of it.
-    const renamed = request('topo', added.id, { name: 'Creek', type: 'water' }).waypoint;
-    expect(renamed).toMatchObject({ name: 'Creek', type: 'water' });
+    // With the type the marker gives, the rename goes through: the editor shows what the build will make of
+    // it, and the marker, which types nothing else, is this waypoint's from then on.
+    const renamed = request('topo', added.id, { name: 'Bore', type: 'water' }).waypoint;
+    expect(renamed).toMatchObject({ name: 'Bore', type: 'water' });
     expect(renamed.typeSource).toMatch(/CalTopo folder “Water Sources”/);
-    expect(read('data/trails/topo/topo.json')).toBe(TOPO_GEOJSON);
-    // That marker is the built Creek's: this one cannot be moved, renamed or retyped through it.
-    const after = topoFiles();
-    expect(() => request('topo', renamed.id, { lat: -36.581, lon: 148.381 })).toThrow(/types this waypoint and also/);
-    expect(() => request('topo', renamed.id, { type: 'hut' })).toThrow(/types this waypoint and also/);
-    expect(topoFiles()).toEqual(after);
+    expect(read('data/trails/topo/topo.json')).toBe(withOrphan);
+    request('topo', renamed.id, { lat: -36.581, lon: 148.381 });
+    expect(read('data/trails/topo/topo.json')).toBe(withOrphan.replace('[148.39,-36.59,0,0]', '[148.381,-36.581,0,0]'));
   });
 
   it('edits a hand-added <wpt> with its own CalTopo marker as a normal save does, the registry apart', () => {
@@ -1290,5 +1324,598 @@ describe('near-duplicates the build merged', () => {
     expect([merged.canDelete, merged.canRename, merged.canMove]).toEqual([false, false, false]);
     expect(merged.lockedReason).toMatch(/upstream/);
     expect(() => remove('te_araroa', 'w_d0000002')).toThrow(/upstream/);
+  });
+});
+
+// Two towns hitched from one pass: two <wpt>s on the same coordinates, as the CDT has 18 times over.
+const PASS_GPX = [
+  '<gpx version="1.1">',
+  '  <wpt lat="-36.52" lon="148.24"><name>Leadore (access: Bannock Pass)</name><type>resupply-access</type></wpt>',
+  '  <wpt lat="-36.52" lon="148.24"><name>Salmon (access: Bannock Pass)</name><type>town-access</type></wpt>',
+  '  <trk><trkseg><trkpt lat="-36.5" lon="148.2"/><trkpt lat="-36.6" lon="148.4"/></trkseg></trk>',
+  '</gpx>',
+  '',
+].join('\n');
+
+const PASS_REGISTRY = [
+  { id: 'w_5aaaaf44', name: 'Leadore (access: Bannock Pass)', type: 'resupply-access', lat: -36.52, lon: 148.24 },
+  { id: 'w_e7d8d267', name: 'Salmon (access: Bannock Pass)', type: 'town-access', lat: -36.52, lon: 148.24 },
+];
+
+function writePass(): void {
+  write('data/trails/pass/trail.json', JSON.stringify({ id: 'pass', name: 'Pass Track', gpxFile: 'pass.gpx' }));
+  write('data/trails/pass/pass.gpx', PASS_GPX);
+  write(
+    'public/data/generated/pass.json',
+    JSON.stringify({
+      ...BUILT,
+      config: { id: 'pass', name: 'Pass Track' },
+      waypoints: PASS_REGISTRY.map(e => ({ ...e, totalDistance: 4 })),
+      offTrailWaypoints: [],
+      pois: [],
+    })
+  );
+  const registry = JSON.parse(read('data/waypoint-ids.json')) as WaypointRegistry;
+  write('data/waypoint-ids.json', `${JSON.stringify({ ...registry, pass: PASS_REGISTRY }, null, 2)}\n`);
+}
+
+describe('joining a built waypoint to its <wpt>', () => {
+  it('never hands a deleted waypoint the <wpt> of another that shares its coordinates', () => {
+    writePass();
+    remove('pass', 'w_5aaaaf44');
+    const salmonWpt =
+      '<wpt lat="-36.52" lon="148.24"><name>Salmon (access: Bannock Pass)</name><type>town-access</type></wpt>';
+    expect(read('data/trails/pass/pass.gpx')).toContain(salmonWpt);
+
+    // Until the rebuild it stays in the list as deleted, locked; it is not Salmon under another id.
+    const leadore = row('pass', 'w_5aaaaf44');
+    expect(leadore).toMatchObject({ deleted: true, type: 'resupply-access', name: 'Leadore (access: Bannock Pass)' });
+    expect([leadore.canDelete, leadore.canMove, leadore.canRename, leadore.canChangeType]).toEqual([
+      false,
+      false,
+      false,
+      false,
+    ]);
+    expect(leadore.sharesSourceWith).toBeUndefined();
+    const salmon = row('pass', 'w_e7d8d267');
+    expect(salmon.deleted).toBeUndefined();
+    expect(salmon.sharesSourceWith).toBeUndefined();
+
+    // Deleting or moving it "again" does not reach Salmon's <wpt> or either registry entry.
+    const before = { gpx: read('data/trails/pass/pass.gpx'), registry: read('data/waypoint-ids.json') };
+    expect(() => remove('pass', 'w_5aaaaf44')).toThrow(/no longer in the GPX/);
+    expect(() => request('pass', 'w_5aaaaf44', { lat: -36.521, lon: 148.241 })).toThrow(/no longer in the GPX/);
+    expect({ gpx: read('data/trails/pass/pass.gpx'), registry: read('data/waypoint-ids.json') }).toEqual(before);
+
+    // The next build retires Leadore's id and leaves Salmon's alone.
+    const registry = JSON.parse(before.registry) as WaypointRegistry;
+    expect(assignWaypointIds('pass', buildInputs('pass'), registry)).toEqual(['w_e7d8d267']);
+    expect(registry.pass.filter(e => e.retired).map(e => e.id)).toEqual(['w_5aaaaf44']);
+  });
+
+  it('tells apart two <wpt>s on one position by name, and follows each through a rename', () => {
+    writePass();
+    const renamed = request('pass', 'w_e7d8d267', { name: 'Salmon (access: the pass)' });
+    expect(renamed.waypoint).toMatchObject({ id: 'w_e7d8d267', name: 'Salmon (access: the pass)' });
+    expect(row('pass', 'w_5aaaaf44')).toMatchObject({ name: 'Leadore (access: Bannock Pass)', canMove: true });
+    expect(read('data/trails/pass/pass.gpx')).toBe(
+      PASS_GPX.replace('Salmon (access: Bannock Pass)', 'Salmon (access: the pass)')
+    );
+  });
+
+  it('adds a waypoint where a deleted one stood without mistaking it for that one', () => {
+    remove('demo', 'w_cccc3333');
+    // A different type, so the build cannot read it as the campsite moved or renamed.
+    const added = addWaypoint(paths, 'demo', { name: 'Saddle Lookout', type: 'poi', lat: -36.55, lon: 148.35 });
+    expect(added.waypoint).toMatchObject({ pending: true, name: 'Saddle Lookout', type: 'poi' });
+    expect(row('demo', 'w_cccc3333')).toMatchObject({ deleted: true, name: 'Saddle Camp', canMove: false });
+    expect(loadEditorTrail(paths, 'demo').waypoints.filter(w => w.pending)).toHaveLength(1);
+  });
+
+  it('lists a <wpt> that has a registry id the last build here does not know, locked', () => {
+    // The registry (committed) is ahead of the generated data (built on this machine): a pull without a rebuild.
+    write(
+      'data/trails/demo/demo.gpx',
+      GPX.replace(
+        '  <trk>',
+        '  <wpt lat="-36.58" lon="148.38"><name>Lower Tank</name><type>water-tank</type></wpt>\n  <trk>'
+      )
+    );
+    const registry = JSON.parse(read('data/waypoint-ids.json')) as WaypointRegistry;
+    registry.demo.push({ id: 'w_ffff0001', name: 'Lower Tank', type: 'water-tank', lat: -36.58, lon: 148.38 });
+    write('data/waypoint-ids.json', `${JSON.stringify(registry, null, 2)}\n`);
+
+    const waypoints = loadEditorTrail(paths, 'demo').waypoints;
+    expect(waypoints.some(w => w.pending)).toBe(false);
+    const tank = waypoints.find(w => w.id === 'w_ffff0001')!;
+    expect(tank).toMatchObject({ notBuilt: true, name: 'Lower Tank', type: 'water-tank', lat: -36.58, lon: 148.38 });
+    expect([tank.canMove, tank.canRename, tank.canDescribe, tank.canChangeType, tank.canDelete]).toEqual([
+      false,
+      false,
+      false,
+      false,
+      false,
+    ]);
+    expect(tank.lockedReason).toMatch(/last build .* does not list it.*Rebuild/);
+    const before = snapshot();
+    expect(() => request('demo', 'w_ffff0001', { lat: -36.581, lon: 148.381 })).toThrow(/Rebuild/);
+    expect(snapshot()).toEqual(before);
+  });
+
+  it('refuses a GPX the build would stop on, naming the file', () => {
+    write('data/trails/demo/demo.gpx', GPX.replace(' lat="-36.52"', ''));
+    expect(() => loadEditorTrail(paths, 'demo')).toThrow(/demo\.gpx.*Missing lat/);
+    expect(() => loadEditorTrail(paths, 'demo')).toThrow(EditorError);
+  });
+
+  it('locks twins it cannot tell apart, and lists neither <wpt> as pending', () => {
+    // A second <wpt> on Spring's position under its name and type: nothing says which is w_bbbb2222's.
+    const spring = '  <wpt lat="-36.52" lon="148.3"><name>Spring</name><type>water</type></wpt>\n';
+    write('data/trails/demo/demo.gpx', GPX.replace(spring, spring + spring));
+    const waypoints = loadEditorTrail(paths, 'demo').waypoints;
+    expect(waypoints.map(w => w.id)).toEqual(['w_aaaa1111', 'w_bbbb2222', 'w_cccc3333']);
+    const twin = waypoints[1];
+    expect(twin.deleted).toBeUndefined();
+    expect([twin.canMove, twin.canRename, twin.canDescribe, twin.canChangeType, twin.canDelete]).toEqual([
+      false,
+      false,
+      false,
+      false,
+      false,
+    ]);
+    expect(twin.lockedReason).toMatch(/More than one <wpt> stands on its position under its name and type/);
+    // A twin of another type is a waypoint of its own: the name and the type together say whose a <wpt> is.
+    write('data/trails/demo/demo.gpx', GPX.replace(spring, spring + spring.replace('water', 'poi')));
+    const told = loadEditorTrail(paths, 'demo').waypoints;
+    expect(told.find(w => w.id === 'w_bbbb2222')).toMatchObject({ type: 'water', canMove: true });
+    expect(told.filter(w => w.pending).map(w => [w.name, w.type])).toEqual([['Spring', 'poi']]);
+  });
+
+  it('shows a <wpt> renamed by hand as what the build will make of it, and holds its edits until a rebuild', () => {
+    write('data/trails/demo/demo.gpx', GPX.replace('<name>Saddle Camp</name>', '<name>Col Camp</name>'));
+    const waypoints = loadEditorTrail(paths, 'demo').waypoints;
+    const gone = waypoints.find(w => w.id === 'w_cccc3333')!;
+    expect(gone.deleted).toBe(true);
+    // Not "the next build retires its id": the build reads the renamed <wpt> as this waypoint.
+    expect(gone.lockedReason).toMatch(/gives its id to “Col Camp”, a <wpt> of its type 0 m away/);
+    const pending = waypoints.find(w => w.pending)!;
+    expect(pending).toMatchObject({ name: 'Col Camp', type: 'campsite', takesId: 'w_cccc3333' });
+    const before = snapshot();
+    expect(() => request('demo', pending.id, { lat: -36.551, lon: 148.351 })).toThrow(
+      /gives this <wpt> the id w_cccc3333 of “Saddle Camp”.*Rebuild before editing it/
+    );
+    expect(snapshot()).toEqual(before);
+    // Renamed back, it is the waypoint again.
+    const back = request('demo', pending.id, { name: 'Saddle Camp' });
+    expect(back.waypoint).toMatchObject({ id: 'w_cccc3333', name: 'Saddle Camp' });
+    expect(back.waypoint.pending).toBeUndefined();
+    expect(read('data/trails/demo/demo.gpx')).toBe(GPX);
+  });
+});
+
+// A second <wpt> named "Flat" 9 km from the first: the build types both from
+// the one marker titled "C Flat" (the nearest marker with the name, however far).
+function writeSharedMarker(): void {
+  writeTopo();
+  write(
+    'data/trails/topo/topo.gpx',
+    TOPO_GPX.replace('<trk>', '<wpt lat="-36.58" lon="148.38"><name>Flat</name></wpt><trk>')
+  );
+  write(
+    'public/data/generated/topo.json',
+    JSON.stringify({
+      ...TOPO_BUILT,
+      waypoints: [
+        ...TOPO_BUILT.waypoints,
+        { id: 'w_99990001', name: 'Flat', type: 'campsite', lat: -36.58, lon: 148.38, totalDistance: 18 },
+      ],
+    })
+  );
+  const registry = JSON.parse(read('data/waypoint-ids.json')) as WaypointRegistry;
+  registry.topo.push({ id: 'w_99990001', name: 'Flat', type: 'campsite', lat: -36.58, lon: 148.38 });
+  write('data/waypoint-ids.json', `${JSON.stringify(registry, null, 2)}\n`);
+}
+
+/** Every id the next build assigns, by the name and latitude of its `<wpt>`. */
+function nextIds(dir: string): Record<string, string> {
+  const inputs = buildInputs(dir);
+  const ids = assignWaypointIds(dir, inputs, JSON.parse(read('data/waypoint-ids.json')) as WaypointRegistry);
+  return Object.fromEntries(inputs.map((w, i) => [`${w.name} ${w.lat}`, ids[i]]));
+}
+
+describe('a CalTopo marker that types more than one waypoint', () => {
+  it('refuses to add a waypoint under a name a marker already types another by', () => {
+    writeTopo();
+    const before = topoFiles();
+    // The same type as the marker gives: it would still share the marker with the built "Flat".
+    expect(() => addWaypoint(paths, 'topo', { name: 'Flat', type: 'campsite', lat: -36.58, lon: 148.38 })).toThrow(
+      /also types “C Flat”.*name of its own/
+    );
+    expect(topoFiles()).toEqual(before);
+  });
+
+  it('leaves a shared marker where it is on a move, and says so', () => {
+    writeSharedMarker();
+    const result = request('topo', 'w_99990001', { lat: -36.581, lon: 148.381 });
+    expect(read('data/trails/topo/topo.json')).toBe(TOPO_GEOJSON);
+    expect(read('data/trails/topo/topo.gpx')).toContain('<wpt lat="-36.581" lon="148.381"><name>Flat</name></wpt>');
+    expect(result.notes.join('\n')).toMatch(/Left its CalTopo marker “C Flat” .* where it is: it also types/);
+    // Both keep their type and their id.
+    expect(row('topo', 'w_dddd4444')).toMatchObject({ type: 'campsite', lat: -36.5 });
+    expect(nextIds('topo')).toMatchObject({ 'Flat -36.5': 'w_dddd4444', 'Flat -36.581': 'w_99990001' });
+  });
+
+  it('leaves its title alone on a rename, pinning the type in the GPX, and refuses a retype through it', () => {
+    writeSharedMarker();
+    expect(() => request('topo', 'w_99990001', { type: 'hut' })).toThrow(/also types/);
+    const result = request('topo', 'w_99990001', { name: 'Far Flat' });
+    expect(read('data/trails/topo/topo.json')).toBe(TOPO_GEOJSON);
+    expect(read('data/trails/topo/topo.gpx')).toContain(
+      '<wpt lat="-36.58" lon="148.38"><name>Far Flat</name><type>campsite</type></wpt>'
+    );
+    const notes = result.notes.join('\n');
+    expect(notes).toMatch(/Left its CalTopo marker “C Flat”/);
+    expect(notes).toMatch(/Added a GPX <type> \(campsite\)/);
+    expect(result.waypoint).toMatchObject({ name: 'Far Flat', type: 'campsite', typeSource: 'its GPX <type>' });
+    // The marker still types the waypoint it was made for, and no id moves.
+    expect(row('topo', 'w_dddd4444')).toMatchObject({ type: 'campsite', name: 'Flat' });
+    expect(nextIds('topo')).toMatchObject({ 'Flat -36.5': 'w_dddd4444', 'Far Flat -36.58': 'w_99990001' });
+  });
+
+  it('holds a pending waypoint to the same rules', () => {
+    writeTopo();
+    write(
+      'data/trails/topo/topo.gpx',
+      TOPO_GPX.replace('<trk>', '<wpt lat="-36.58" lon="148.38"><name>Flat</name><type>campsite</type></wpt><trk>')
+    );
+    const pending = loadEditorTrail(paths, 'topo').waypoints.find(w => w.pending)!;
+    expect(() => request('topo', pending.id, { type: 'hut' })).toThrow(/also types/);
+    const moved = request('topo', pending.id, { lat: -36.581, lon: 148.381 });
+    expect(read('data/trails/topo/topo.json')).toBe(TOPO_GEOJSON);
+    expect(moved.notes.join('\n')).toMatch(/Left its CalTopo marker/);
+    const renamed = request('topo', moved.waypoint.id, { name: 'Far Flat' });
+    expect(read('data/trails/topo/topo.json')).toBe(TOPO_GEOJSON);
+    expect(renamed.waypoint).toMatchObject({ pending: true, type: 'campsite', typeSource: 'its GPX <type>' });
+    // Renaming into a name a marker types another waypoint by is what an add refuses.
+    expect(() => request('topo', renamed.waypoint.id, { name: 'Creek', type: 'water' })).toThrow(
+      /also types “W Creek”/
+    );
+  });
+
+  it('refuses to edit a waypoint whose registry entry no longer matches it', () => {
+    // A hand edit: the entry says water-tank, the <wpt> water, so the next build already re-keys it.
+    const registry = JSON.parse(read('data/waypoint-ids.json')) as WaypointRegistry;
+    registry.demo.find(e => e.id === 'w_bbbb2222')!.type = 'water-tank';
+    write('data/waypoint-ids.json', `${JSON.stringify(registry, null, 2)}\n`);
+    const before = snapshot();
+    expect(() => request('demo', 'w_bbbb2222', { lat: -36.521, lon: 148.301 })).toThrow(
+      /would already give it .* rather than w_bbbb2222/
+    );
+    expect(() => request('demo', 'w_bbbb2222', { name: 'Soak' })).toThrow(/would already give it/);
+    expect(snapshot()).toEqual(before);
+  });
+});
+
+// "Retreat": typed by the title of a marker that is in no folder, as the AAWT's Glen Wills Wilderness Retreat is.
+function writeRetreat(): void {
+  writeTopo();
+  write(
+    'data/trails/topo/topo.gpx',
+    TOPO_GPX.replace('<trk>', '<wpt lat="-36.58" lon="148.38"><name>Retreat</name></wpt><trk>')
+  );
+  write(
+    'data/trails/topo/topo.json',
+    TOPO_GEOJSON.replace(
+      '],"type":"FeatureCollection"}',
+      ',{"geometry":{"coordinates":[148.38,-36.58,0,0],"type":"Point"},"id":"m9","type":"Feature","properties":{"title":"Retreat","class":"Marker"}}],"type":"FeatureCollection"}'
+    )
+  );
+  write(
+    'public/data/generated/topo.json',
+    JSON.stringify({
+      ...TOPO_BUILT,
+      waypoints: [
+        ...TOPO_BUILT.waypoints,
+        { id: 'w_a9b5ab88', name: 'Retreat', type: 'waypoint', lat: -36.58, lon: 148.38, totalDistance: 18 },
+      ],
+    })
+  );
+  const registry = JSON.parse(read('data/waypoint-ids.json')) as WaypointRegistry;
+  registry.topo.push({ id: 'w_a9b5ab88', name: 'Retreat', type: 'waypoint', lat: -36.58, lon: 148.38 });
+  write('data/waypoint-ids.json', `${JSON.stringify(registry, null, 2)}\n`);
+}
+
+describe('a rename and the type the build gives the new name', () => {
+  it('refuses a name that would retype a waypoint its marker’s title types, writing nothing', () => {
+    writeRetreat();
+    const before = topoFiles();
+    expect(() => request('topo', 'w_a9b5ab88', { name: 'Thredbo' })).toThrow(
+      /the build would type it town, not waypoint/
+    );
+    // A prefixed name is stripped by the build: "Camp Thing", a campsite, under a new id.
+    expect(() => request('topo', 'w_a9b5ab88', { name: 'C Camp Thing' })).toThrow(/type prefix/);
+    // A prefix-typed <wpt> ("T Hamlet") and a folder-typed marker ("W Creek") alike.
+    expect(() => request('topo', 'w_ffff6666', { name: 'W Hamlet' })).toThrow(/type prefix/);
+    expect(() => request('topo', 'w_eeee5555', { name: 'WT: Creek' })).toThrow(/type prefix/);
+    expect(topoFiles()).toEqual(before);
+    // An ordinary name goes through, and keeps the id.
+    request('topo', 'w_a9b5ab88', { name: 'Glen Retreat' });
+    expect(nextIds('topo')).toMatchObject({ 'Glen Retreat -36.58': 'w_a9b5ab88' });
+  });
+
+  it('pins the type with a <type> when only the name of a GPX-typed waypoint would change it', () => {
+    write(
+      'data/trails/demo/demo.gpx',
+      GPX.replace('  <trk>', '  <wpt lat="-36.58" lon="148.38"><name>Retreat</name></wpt>\n  <trk>')
+    );
+    write(
+      'public/data/generated/demo.json',
+      JSON.stringify({
+        ...BUILT,
+        waypoints: [
+          ...BUILT.waypoints,
+          { id: 'w_a9b5ab88', name: 'Retreat', type: 'waypoint', lat: -36.58, lon: 148.38, totalDistance: 18 },
+        ],
+      })
+    );
+    const registry = JSON.parse(read('data/waypoint-ids.json')) as WaypointRegistry;
+    registry.demo.push({ id: 'w_a9b5ab88', name: 'Retreat', type: 'waypoint', lat: -36.58, lon: 148.38 });
+    write('data/waypoint-ids.json', `${JSON.stringify(registry, null, 2)}\n`);
+
+    const result = request('demo', 'w_a9b5ab88', { name: 'Thredbo' });
+    expect(read('data/trails/demo/demo.gpx')).toContain(
+      '<wpt lat="-36.58" lon="148.38"><name>Thredbo</name><type>waypoint</type></wpt>'
+    );
+    expect(result.notes.join('\n')).toMatch(/Added a GPX <type> \(waypoint\).*known town/);
+    expect(result.waypoint).toMatchObject({ name: 'Thredbo', type: 'waypoint' });
+    expect(nextIds('demo')).toMatchObject({ 'Thredbo -36.58': 'w_a9b5ab88' });
+  });
+
+  it('renames a marker title and a <name> with whitespace at an end without touching anything else', () => {
+    writeTopo();
+    // The AAWT's "W Gurrangorambla Creek " (a trailing space in both files) and Larapinta's " C: Brinkley Bluff".
+    const gpx = TOPO_GPX.replace('<name>W Creek</name>', '<name>W Creek </name>').replace(
+      '<name>C Flat</name>',
+      '<name> C Flat</name>'
+    );
+    const geojson = TOPO_GEOJSON.replace('"title":"W Creek"', '"title":"W Creek "').replace(
+      '"title":"C Flat"',
+      '"title":" C Flat"'
+    );
+    write('data/trails/topo/topo.gpx', gpx);
+    write('data/trails/topo/topo.json', geojson);
+    request('topo', 'w_eeee5555', { name: 'Ck' });
+    request('topo', 'w_dddd4444', { name: 'Flats' });
+    expect(read('data/trails/topo/topo.gpx')).toBe(
+      gpx
+        .replace('<name>W Creek </name>', '<name>W Ck </name>')
+        .replace('<name> C Flat</name>', '<name> C Flats</name>')
+    );
+    expect(read('data/trails/topo/topo.json')).toBe(
+      geojson.replace('"title":"W Creek "', '"title":"W Ck "').replace('"title":" C Flat"', '"title":" C Flats"')
+    );
+    expect(nextIds('topo')).toMatchObject({ 'Ck -36.52': 'w_eeee5555', 'Flats -36.5': 'w_dddd4444' });
+  });
+});
+
+// A route that passes Saddle Camp twice: trail.json lists it by name, and the build makes the later pass `_2`.
+const REVISIT_TRAIL_JSON =
+  '{\n  "id": "demo",\n  "name": "Demo Track",\n  "gpxFile": "demo.gpx",\n  "revisitedWaypoints": ["Elsewhere", "Saddle Camp"]\n}\n';
+
+function writeRevisit(descriptions: { waypointId: string; name?: string; description: string }[] = []): void {
+  write('data/trails/demo/trail.json', REVISIT_TRAIL_JSON);
+  write(
+    'public/data/generated/demo.json',
+    JSON.stringify({
+      ...BUILT,
+      waypoints: [
+        ...BUILT.waypoints,
+        { id: 'w_cccc3333_2', name: 'Saddle Camp', type: 'campsite', lat: -36.55, lon: 148.35, totalDistance: 19 },
+      ],
+    })
+  );
+  if (descriptions.length) {
+    write('data/trails/demo/descriptions.json', `${JSON.stringify({ trailId: 'demo', descriptions }, null, 2)}\n`);
+  }
+}
+
+describe('a revisited place', () => {
+  it('shows the place’s description on every pass, and takes it only on the first', () => {
+    writeRevisit();
+    const second = row('demo', 'w_cccc3333_2');
+    expect(second.description).toBe('A flat saddle.');
+    expect(second.canDescribe).toBe(false);
+    expect(second.lockedReason).toMatch(/later pass of “Saddle Camp” \(w_cccc3333\).*description.*w_cccc3333/);
+    const before = snapshot();
+    expect(() => request('demo', 'w_cccc3333_2', { description: 'Second time round.' })).toThrow(/w_cccc3333/);
+    expect(snapshot()).toEqual(before);
+    // Described on the first pass, it shows on both, as it will in the build.
+    request('demo', 'w_cccc3333', { description: 'A broad saddle.' });
+    expect(row('demo', 'w_cccc3333_2').description).toBe('A broad saddle.');
+    request('demo', 'w_cccc3333', { description: '' });
+    expect(row('demo', 'w_cccc3333_2').description).toBe('');
+  });
+
+  it('surfaces a descriptions.json entry under a later pass’s id, which the build never applies', () => {
+    writeRevisit([
+      DESCRIPTIONS.descriptions[0],
+      { waypointId: 'w_cccc3333_2', name: 'Saddle Camp', description: 'Second time round.' },
+    ]);
+    const second = row('demo', 'w_cccc3333_2');
+    expect(second.description).toBe('A flat saddle.');
+    expect(second.lockedReason).toMatch(
+      /descriptions\.json has an entry under w_cccc3333_2, which the build never applies/
+    );
+  });
+
+  it('renames the place in trail.json’s revisitedWaypoints with it, in the same save', () => {
+    writeRevisit();
+    const result = request('demo', 'w_cccc3333', { name: 'Saddle Campsite' });
+    expect(read('data/trails/demo/trail.json')).toBe(REVISIT_TRAIL_JSON.replace('"Saddle Camp"', '"Saddle Campsite"'));
+    expect(result.changedFiles).toContain('data/trails/demo/trail.json');
+    expect(result.notes.join('\n')).toMatch(/revisitedWaypoints/);
+    // Every pass shows the new name.
+    expect(row('demo', 'w_cccc3333_2')).toMatchObject({ name: 'Saddle Campsite', builtName: 'Saddle Camp' });
+
+    // A rename through the later pass renames the place: the <wpt>, the registry entry, the list and the aid.
+    const back = request('demo', 'w_cccc3333_2', { name: 'Saddle Camp' });
+    expect(back.waypoint).toMatchObject({ id: 'w_cccc3333_2', name: 'Saddle Camp' });
+    expect(back.notes.join('\n')).toMatch(/Also renames w_cccc3333/);
+    expect(read('data/trails/demo/trail.json')).toBe(REVISIT_TRAIL_JSON);
+    expect(read('data/trails/demo/demo.gpx')).toBe(GPX);
+    const registry = JSON.parse(read('data/waypoint-ids.json')) as WaypointRegistry;
+    expect(registry.demo.find(e => e.id === 'w_cccc3333')?.name).toBe('Saddle Camp');
+    expect(JSON.parse(read('data/trails/demo/descriptions.json')).descriptions[0].name).toBe('Saddle Camp');
+    expect(row('demo', 'w_cccc3333').name).toBe('Saddle Camp');
+  });
+
+  it('writes nothing when trail.json cannot be edited in place', () => {
+    writeRevisit();
+    // The list is there but not as an array of strings the editor can splice.
+    write('data/trails/demo/trail.json', REVISIT_TRAIL_JSON.replace('["Elsewhere", "Saddle Camp"]', '"Saddle Camp"'));
+    const before = snapshot();
+    expect(() => request('demo', 'w_cccc3333', { name: 'Saddle Campsite' })).toThrow(/revisitedWaypoints/);
+    expect(snapshot()).toEqual(before);
+  });
+});
+
+describe('an id that is not retired yet', () => {
+  const SADDLE = { expected: { name: 'Saddle Camp', lat: -36.55, lon: 148.35, description: 'A flat saddle.' } };
+
+  it('refuses a waypoint of the same type added within reach of one deleted since the build', () => {
+    deleteWaypoint(paths, 'demo', 'w_cccc3333', SADDLE);
+    const before = snapshot();
+    // 33 m away: the build would read it as Saddle Camp moved and renamed, and hand it the id and its comments.
+    expect(() =>
+      addWaypoint(paths, 'demo', { name: 'Ridge Camp', type: 'campsite', lat: -36.5503, lon: 148.35 })
+    ).toThrow(/Rebuild first so w_cccc3333 is retired/);
+    expect(snapshot()).toEqual(before);
+    // The same goes for a pending waypoint moved, or retyped, into that state.
+    const far = addWaypoint(paths, 'demo', { name: 'Ridge Camp', type: 'campsite', lat: -36.58, lon: 148.38 }).waypoint;
+    expect(() => request('demo', far.id, { lat: -36.5503, lon: 148.35 })).toThrow(
+      /Rebuild first so w_cccc3333 is retired/
+    );
+    const tank = addWaypoint(paths, 'demo', {
+      name: 'Ridge Tank',
+      type: 'water-tank',
+      lat: -36.5503,
+      lon: 148.35,
+    }).waypoint;
+    expect(() => request('demo', tank.id, { type: 'campsite' })).toThrow(/Rebuild first so w_cccc3333 is retired/);
+  });
+
+  it('lets the deleted waypoint itself be restored, and says the id comes back', () => {
+    deleteWaypoint(paths, 'demo', 'w_cccc3333', SADDLE);
+    const restored = addWaypoint(paths, 'demo', { name: 'Saddle Camp', type: 'campsite', lat: -36.5503, lon: 148.35 });
+    expect(restored.notes.join('\n')).toMatch(/gives it back the id w_cccc3333/);
+    expect(restored.waypoint).toMatchObject({ pending: true, takesId: 'w_cccc3333' });
+    // The deleted row no longer claims its id is about to be retired.
+    const deleted = row('demo', 'w_cccc3333');
+    expect(deleted.deleted).toBe(true);
+    expect(deleted.lockedReason).toMatch(/gives its id to “Saddle Camp”/);
+    expect(deleted.lockedReason).not.toMatch(/retires its id/);
+    expect(nextIds('demo')).toMatchObject({ 'Saddle Camp -36.5503': 'w_cccc3333' });
+  });
+
+  it('joins a waypoint restored at its exact position straight back to its id', () => {
+    deleteWaypoint(paths, 'demo', 'w_cccc3333', SADDLE);
+    const restored = addWaypoint(paths, 'demo', { name: 'Saddle Camp', type: 'campsite', lat: -36.55, lon: 148.35 });
+    expect(restored.waypoint).toMatchObject({ id: 'w_cccc3333', name: 'Saddle Camp' });
+    expect(restored.waypoint.pending).toBeUndefined();
+    expect(restored.waypoint.deleted).toBeUndefined();
+    expect(restored.notes.join('\n')).toMatch(/w_cccc3333/);
+    expect(read('data/trails/demo/demo.gpx')).toBe(GPX);
+  });
+});
+
+describe('what a save writes, and how', () => {
+  it('leaves the name aid of a descriptions.json entry alone unless the save renames', () => {
+    const aided = {
+      ...DESCRIPTIONS,
+      descriptions: [{ ...DESCRIPTIONS.descriptions[0], name: 'Saddle camp (the old one)' }],
+    };
+    write('data/trails/demo/descriptions.json', `${JSON.stringify(aided, null, 2)}\n`);
+    request('demo', 'w_cccc3333', { description: 'A broad saddle.' });
+    expect(JSON.parse(read('data/trails/demo/descriptions.json')).descriptions[0]).toEqual({
+      waypointId: 'w_cccc3333',
+      name: 'Saddle camp (the old one)',
+      description: 'A broad saddle.',
+    });
+    request('demo', 'w_cccc3333', { description: 'A wide saddle.', name: 'Saddle Campsite' });
+    expect(JSON.parse(read('data/trails/demo/descriptions.json')).descriptions[0].name).toBe('Saddle Campsite');
+  });
+
+  it('rounds a position once, so a move and a retype in one save find the <wpt> again', () => {
+    const result = request('demo', 'w_bbbb2222', { lat: -36.5212345678, lon: 148.3012345678, type: 'water-tank' });
+    expect(read('data/trails/demo/demo.gpx')).toContain(
+      '<wpt lat="-36.521235" lon="148.301235"><name>Spring</name><type>water-tank</type></wpt>'
+    );
+    expect(result.waypoint).toMatchObject({ lat: -36.521235, lon: 148.301235, type: 'water-tank' });
+    const registry = JSON.parse(read('data/waypoint-ids.json')) as WaypointRegistry;
+    expect(registry.demo.find(e => e.id === 'w_bbbb2222')).toMatchObject({ lat: -36.521235, lon: 148.301235 });
+    // A position that rounds to where it is is not a move.
+    const still = request('demo', 'w_bbbb2222', { lat: -36.5212350001, lon: 148.301235 });
+    expect(still.changedFiles).toEqual([]);
+  });
+
+  it('replaces every file or none: a write that fails leaves the others as they were', () => {
+    // descriptions.json is a link into a directory that is not there, so it cannot be written.
+    fs.rmSync(path.join(root, 'data/trails/demo/descriptions.json'));
+    fs.symlinkSync(
+      path.join(root, 'nowhere', 'descriptions.json'),
+      path.join(root, 'data/trails/demo/descriptions.json')
+    );
+    const gpx = read('data/trails/demo/demo.gpx');
+    const registry = read('data/waypoint-ids.json');
+    expect(() => request('demo', 'w_cccc3333', { name: 'Saddle Campsite', description: 'A saddle.' })).toThrow(
+      /nothing was changed/
+    );
+    expect(read('data/trails/demo/demo.gpx')).toBe(gpx);
+    expect(read('data/waypoint-ids.json')).toBe(registry);
+    expect(fs.readdirSync(path.join(root, 'data/trails/demo')).sort()).toEqual([
+      'demo.gpx',
+      'descriptions.json',
+      'trail.json',
+    ]);
+    expect(fs.readdirSync(path.join(root, 'data')).sort()).toEqual(['trails', 'waypoint-ids.json']);
+  });
+
+  it('puts back the files already replaced when a later one cannot be', () => {
+    const a = path.join(root, 'a.txt');
+    const b = path.join(root, 'b.txt');
+    const c = path.join(root, 'c.txt');
+    fs.writeFileSync(a, 'A1');
+    fs.writeFileSync(c, 'C1');
+    const failing = {
+      ...fs,
+      renameSync: (from: fs.PathLike, to: fs.PathLike) => {
+        if (String(to) === c) throw new Error('disk full');
+        fs.renameSync(from, to);
+      },
+    };
+    const writes = [
+      { file: a, text: 'A2' },
+      { file: b, text: 'B2' },
+      { file: c, text: 'C2' },
+    ];
+    expect(() => commitWrites(writes, failing)).toThrow(/disk full.*put back/);
+    expect(fs.readFileSync(a, 'utf-8')).toBe('A1');
+    expect(fs.existsSync(b)).toBe(false);
+    expect(fs.readFileSync(c, 'utf-8')).toBe('C1');
+    expect(
+      fs
+        .readdirSync(root)
+        .filter(f => f.endsWith('.txt') || f.startsWith('.'))
+        .sort()
+    ).toEqual(['a.txt', 'c.txt']);
+
+    commitWrites(writes);
+    expect([a, b, c].map(f => fs.readFileSync(f, 'utf-8'))).toEqual(['A2', 'B2', 'C2']);
+    expect(
+      fs
+        .readdirSync(root)
+        .filter(f => f.endsWith('.txt') || f.startsWith('.'))
+        .sort()
+    ).toEqual(['a.txt', 'b.txt', 'c.txt']);
   });
 });

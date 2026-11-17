@@ -11,6 +11,7 @@ import {
   findGpxWaypoint,
   folderTitlesForType,
   formatElevation,
+  gpxWaypointBuildName,
   gpxWaypointElevationStyle,
   insertGpxWaypoint,
   jsonValueSpan,
@@ -20,6 +21,7 @@ import {
   readCaltopoExport,
   removeCaltopoFeature,
   removeGpxWaypoint,
+  renameJsonArrayString,
   renameKeepingPrefix,
   setCaltopoMarkerFolder,
   setGpxWaypointDesc,
@@ -66,8 +68,12 @@ describe('GPX waypoints', () => {
     expect(spans[0].type).toBe('hut');
   });
 
-  it('finds a waypoint by its exact coordinates, using the name only to break a tie', () => {
+  it('finds a waypoint by its exact coordinates and the name the build shows, a lone candidate included', () => {
     expect(findGpxWaypoint(spans, { lat: -36.5, lon: 148.25, name: 'Upper Hut' })?.name).toBe('C Upper Hut');
+    // Another waypoint's <wpt> is never claimed for standing where this one stood.
+    expect(findGpxWaypoint(spans, { lat: -36.5, lon: 148.25, name: 'Lower Hut' })).toBeNull();
+    expect(findGpxWaypoint(spans, { lat: -36.5, lon: 148.25, name: 'Hut' })).toBeNull();
+    expect(findGpxWaypoint(spans, { lat: -36.7, lon: 148.4, name: 'Unnamed' })?.start).toBe(spans[3].start);
     expect(findGpxWaypoint(spans, { lat: -36.6, lon: 148.3, name: 'Town (access: Pass)' })?.name).toBe(
       'Town (access: Pass)'
     );
@@ -91,9 +97,60 @@ describe('GPX waypoints', () => {
   });
 
   it('keeps the type prefix through a rename', () => {
-    expect(renameKeepingPrefix('C Upper Hut', 'Upper Hut', 'Lower Hut')).toBe('C Lower Hut');
-    expect(renameKeepingPrefix('WT: Tank', 'Tank', 'Rain tank')).toBe('WT: Rain tank');
-    expect(renameKeepingPrefix('Pass', 'Pass', 'Saddle')).toBe('Saddle');
+    expect(renameKeepingPrefix('C Upper Hut', 'Lower Hut')).toBe('C Lower Hut');
+    expect(renameKeepingPrefix('WT: Tank', 'Rain tank')).toBe('WT: Rain tank');
+    expect(renameKeepingPrefix('Pass', 'Saddle')).toBe('Saddle');
+  });
+
+  it('changes only the name part, whatever the prefix style and the whitespace around it', () => {
+    // Every prefix style in the bundled GPX files and CalTopo exports.
+    const styles: [string, string][] = [
+      ['C Camp', 'C '],
+      ['C: Camp', 'C: '],
+      ['WT: Camp', 'WT: '],
+      ['WT:Camp', 'WT:'],
+      ['WT Camp', 'WT '],
+      ['W Camp', 'W '],
+      ['H Camp', 'H '],
+      ['T: Camp', 'T: '],
+      ['T Camp', 'T '],
+      ['TH Camp', 'TH '],
+      ['CP Camp', 'CP '],
+      ['R Camp', 'R '],
+      ['F Camp', 'F '],
+      ['S Camp', 'S '],
+      ['E Camp', 'E '],
+      ['Camp', ''],
+    ];
+    const around: [string, string][] = [
+      ['', ''],
+      [' ', ''],
+      ['', ' '],
+      ['\n    ', '\n  '],
+    ];
+    for (const [raw, prefix] of styles) {
+      for (const [lead, trail] of around) {
+        expect(renameKeepingPrefix(`${lead}${raw}${trail}`, 'New Ck')).toBe(`${lead}${prefix}New Ck${trail}`);
+      }
+    }
+    // The AAWT's marker, with its trailing space, and Larapinta's, with a leading one.
+    expect(renameKeepingPrefix('W Gurrangorambla Creek ', 'Gurrangorambla Ck')).toBe('W Gurrangorambla Ck ');
+    expect(renameKeepingPrefix(' C: Brinkley Bluff', 'Brinkley')).toBe(' C: Brinkley');
+    // A name that only ends like the old one is not a prefix and a name.
+    expect(renameKeepingPrefix('Dry Creek', 'Ck')).toBe('Ck');
+  });
+
+  it('keeps the whitespace a <name> has around its text, in the GPX too', () => {
+    const gpx =
+      '<gpx><wpt lat="1" lon="2"><name> C: Brinkley Bluff</name></wpt>' +
+      '<wpt lat="3" lon="4"><name>W Creek </name></wpt></gpx>';
+    const [bluff, creek] = listGpxWaypoints(gpx);
+    expect(setGpxWaypointName(gpx, bluff, renameKeepingPrefix(bluff.name, 'Brinkley'))).toBe(
+      gpx.replace(' C: Brinkley Bluff', ' C: Brinkley')
+    );
+    expect(setGpxWaypointName(gpx, creek, renameKeepingPrefix(creek.name, 'Ck'))).toBe(
+      gpx.replace('W Creek ', 'W Ck ')
+    );
   });
 });
 
@@ -290,6 +347,8 @@ describe('GPX waypoint elevations', () => {
       end: 0,
       lat: 0,
       lon: 0,
+      latText: '0',
+      lonText: '0',
       name: '',
       ...(ele === undefined ? {} : { ele }),
     });
@@ -397,5 +456,139 @@ describe('CalTopo folders', () => {
     const last = removeCaltopoFeature(GEOJSON, 'x.json', { index: 4, title: 'Omeo' });
     expect(last.endsWith('"folderId":"f2"}}],"type":"FeatureCollection"}')).toBe(true);
     expect(JSON.parse(last).features).toHaveLength(4);
+  });
+});
+
+describe('the file’s own style', () => {
+  // Heysen's: every <wpt> on one line, but a <desc> that runs over several.
+  const HEYSEN = [
+    '<gpx>',
+    '<wpt lat="-31.1" lon="138.3"><name>Parachilna</name></wpt>',
+    '<wpt lat="-31.1328" lon="138.3974"><name>Prairie Hotel</name><desc>Hotel/Pub',
+    '',
+    'More info: https://example.com/</desc></wpt>',
+    '<trk/>',
+    '</gpx>',
+  ].join('\n');
+
+  it('writes a new <wpt> on one line when the last one only has a multi-line <desc>', () => {
+    expect(insertGpxWaypoint(HEYSEN, { lat: -31.2, lon: 138.4, name: 'Tank', type: 'water-tank' })).toBe(
+      HEYSEN.replace(
+        '</desc></wpt>\n',
+        '</desc></wpt>\n<wpt lat="-31.2" lon="138.4"><name>Tank</name><type>water-tank</type></wpt>\n'
+      )
+    );
+  });
+
+  // The open-data files': six decimals, trailing zeros kept.
+  const PADDED = [
+    '<gpx>',
+    '  <wpt lat="-33.855100" lon="151.213190"><ele>4.0</ele><name>Circular Quay</name><type>trailhead</type></wpt>',
+    '  <wpt lat="-33.820400" lon="150.021000"><ele>787.4</ele><name>Jenolan Caves</name><type>trailhead</type></wpt>',
+    '  <trk/>',
+    '</gpx>',
+  ].join('\n');
+
+  it('pads a coordinate to six decimals where every <wpt> in the file does, and strips zeros elsewhere', () => {
+    expect(
+      insertGpxWaypoint(PADDED, { lat: -33.9, lon: 151.21319, name: 'Tank', type: 'water', ele: '5.0' })
+    ).toContain(
+      '  <wpt lat="-33.900000" lon="151.213190"><ele>5.0</ele><name>Tank</name><type>water</type></wpt>\n  <trk/>'
+    );
+    const spans = listGpxWaypoints(PADDED);
+    expect(spans[0]).toMatchObject({ lat: -33.8551, lon: 151.21319 });
+    expect(setGpxWaypointPosition(PADDED, spans[0], -33.8552, 151.2)).toBe(
+      PADDED.replace('lat="-33.855100" lon="151.213190"', 'lat="-33.855200" lon="151.200000"')
+    );
+    // One <wpt> written short and the file is not padded.
+    const mixed = PADDED.replace('lon="150.021000"', 'lon="150.021"');
+    expect(setGpxWaypointPosition(mixed, listGpxWaypoints(mixed)[0], -33.8552, 151.2)).toContain(
+      '<wpt lat="-33.8552" lon="151.2"><ele>4.0</ele>'
+    );
+  });
+
+  it('writes CRLF into a CRLF file', () => {
+    const crlf = ['<gpx>', '  <wpt lat="1" lon="2">', '    <name>A</name>', '  </wpt>', '  <trk/>', '</gpx>', ''].join(
+      '\r\n'
+    );
+    const out = insertGpxWaypoint(crlf, { lat: 3, lon: 4, name: 'B', type: 'hut' });
+    expect(out).toBe(
+      crlf.replace(
+        '  </wpt>\r\n',
+        '  </wpt>\r\n  <wpt lat="3" lon="4">\r\n    <name>B</name>\r\n    <type>hut</type>\r\n  </wpt>\r\n'
+      )
+    );
+    expect(out.replace(/\r\n/g, '')).not.toContain('\n');
+  });
+});
+
+describe('reading a GPX as the build does', () => {
+  it('ignores a <wpt> inside a comment, and a tag inside a comment or CDATA within one', () => {
+    const gpx =
+      '<gpx><!-- <wpt lat="9" lon="9"><name>Old</name></wpt> -->' +
+      '<wpt lat="1" lon="2"><!-- <name>Was</name> --><name>Now</name>' +
+      '<desc><![CDATA[See <type>x</type> & </wpt>]]></desc></wpt>' +
+      '<wpt lat="3" lon="4"><name>Next</name></wpt></gpx>';
+    const spans = listGpxWaypoints(gpx);
+    expect(spans.map(s => [s.name, s.lat, s.type, s.desc])).toEqual([
+      ['Now', 1, undefined, 'See <type>x</type> & </wpt>'],
+      ['Next', 3, undefined, undefined],
+    ]);
+    // Edits land on the real element, not on the commented-out text.
+    expect(setGpxWaypointName(gpx, spans[0], 'Later')).toBe(gpx.replace('<name>Now</name>', '<name>Later</name>'));
+    expect(setGpxWaypointType(gpx, spans[0], 'hut')).toBe(
+      gpx.replace(']]></desc></wpt>', ']]></desc><type>hut</type></wpt>')
+    );
+  });
+
+  it('refuses a <wpt> without a usable lat or lon, as the build does', () => {
+    expect(() => listGpxWaypoints('<gpx><wpt lon="2"><name>A</name></wpt></gpx>')).toThrow(/Missing lat/);
+    expect(() => listGpxWaypoints('<gpx><wpt lat="1" lon=""><name>A</name></wpt></gpx>')).toThrow(/Missing lon/);
+    expect(() => listGpxWaypoints('<gpx><wpt lat="north" lon="2"><name>A</name></wpt></gpx>')).toThrow(/Invalid lat/);
+    expect(() => listGpxWaypoints('<gpx><wpt lat="91" lon="2"/></gpx>')).toThrow(/Out-of-range lat/);
+    expect(listGpxWaypoints('<gpx><wpt lat=" 1 " lon="2"/></gpx>')[0]).toMatchObject({ lat: 1, lon: 2 });
+  });
+
+  it('reads a <name> and a <type> untrimmed, and names an unnamed <wpt> as the build does', () => {
+    const gpx =
+      '<gpx><wpt lat="1" lon="2"><name> C Flat </name><type> hut </type></wpt>' +
+      '<wpt lat="3" lon="4"><name>   </name><type></type></wpt><wpt lat="5" lon="6"/></gpx>';
+    const spans = listGpxWaypoints(gpx);
+    expect(spans.map(s => [s.name, s.type])).toEqual([
+      [' C Flat ', ' hut '],
+      ['   ', undefined],
+      ['', undefined],
+    ]);
+    // The build: classifyWaypoint(name || 'Unnamed').cleanedName, on the text as it stands.
+    expect(spans.map(s => gpxWaypointBuildName(s.name))).toEqual(['Flat', '', 'Unnamed']);
+  });
+});
+
+describe('a string in a JSON array', () => {
+  // trail.json as Prettier leaves it: no serialiser reproduces the short arrays.
+  const TRAIL =
+    '{\n  "id": "demo",\n  "states": ["A", "B"],\n  "revisitedWaypoints": [\n    "Lobuche",\n    "Namche Bazaar"\n  ]\n}\n';
+  const rename = (key: string, from: string, to: string, keep = false) =>
+    renameJsonArrayString(TRAIL, 'trail.json', key, from, to, keep);
+
+  it('replaces it in place, leaving every other byte alone', () => {
+    expect(rename('revisitedWaypoints', 'Lobuche', 'Lobuche Village')).toBe(
+      TRAIL.replace('"Lobuche"', '"Lobuche Village"')
+    );
+    expect(rename('revisitedWaypoints', 'Gokyo', 'Gokyo Lakes')).toBeNull();
+    expect(rename('nothing', 'Lobuche', 'X')).toBeNull();
+  });
+
+  it('adds the new name after the old one when another waypoint still has the old, spaced like its neighbours', () => {
+    expect(rename('revisitedWaypoints', 'Namche Bazaar', 'Namche', true)).toBe(
+      TRAIL.replace('"Namche Bazaar"', '"Namche Bazaar",\n    "Namche"')
+    );
+    expect(rename('states', 'A', 'C', true)).toBe(TRAIL.replace('["A", "B"]', '["A", "C", "B"]'));
+  });
+
+  it('drops the old name when the new one is already listed', () => {
+    expect(rename('revisitedWaypoints', 'Lobuche', 'Namche Bazaar')).toBe(TRAIL.replace('"Lobuche",\n    ', ''));
+    expect(rename('revisitedWaypoints', 'Namche Bazaar', 'Lobuche')).toBe(TRAIL.replace(',\n    "Namche Bazaar"', ''));
+    expect(rename('revisitedWaypoints', 'Lobuche', 'Namche Bazaar', true)).toBeNull();
   });
 });

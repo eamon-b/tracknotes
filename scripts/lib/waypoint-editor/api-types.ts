@@ -60,8 +60,28 @@ export interface EditorWaypoint {
    * then every edit goes to its `<wpt>` and nowhere that keys by id.
    */
   pending?: boolean;
-  /** Its `<wpt>` is gone from the GPX since the last build (deleted here, or edited by hand): the next build retires its id. */
+  /**
+   * For a pending waypoint: the id of a registry entry the next build hands it
+   * in place of minting one. Either a retired entry of its name and type (the
+   * waypoint coming back), or a live entry whose own `<wpt>` is gone since the
+   * last build, which the build reads as that waypoint moved or renamed. The
+   * comments keyed to the id come with it.
+   */
+  takesId?: string;
+  /**
+   * Its `<wpt>` is gone from the GPX since the last build (deleted here, or
+   * edited by hand): the next build retires its id, unless a pending waypoint
+   * takes it (`takesId`; this row's `lockedReason` then says which).
+   */
   deleted?: boolean;
+  /**
+   * Its `<wpt>` has a live entry in `data/waypoint-ids.json` (so this row is
+   * under its real id) but the last build on this machine does not list it:
+   * the registry is ahead of the generated trail data, as after a pull that
+   * was not followed by a rebuild. Locked until a rebuild; it has no
+   * placements, and `built*` repeat the registry entry.
+   */
+  notBuilt?: boolean;
   /**
    * The last build merged this `<wpt>` into a same-name, same-type neighbour
    * (`dedupeWaypoints`) and dropped its row: this is the id of the waypoint that
@@ -104,7 +124,9 @@ export interface EditorWaypoint {
   /**
    * Curated text from `descriptions.json`, '' when there is none. For a pending
    * waypoint, which has no id to key a curated text by, its GPX `<desc>`: source
-   * text, edited in the GPX.
+   * text, edited in the GPX. For a revisited place's later pass (`<id>_2`), the
+   * place's text, keyed by the first pass's id: the build shows it on every
+   * pass, and it is edited on the first (`canDescribe` is false here).
    */
   description: string;
   /**
@@ -122,7 +144,7 @@ export interface EditorWaypoint {
   lockedReason?: string;
   /** `access.json`'s entry for this place: a move can leave its walk stale. */
   access?: { method?: string; store?: string };
-  /** Other ids built from the same `<wpt>` (a revisited place's `_2`): a move moves them too. */
+  /** Other ids built from the same `<wpt>` (a revisited place's `_2`): a move, a rename or a retype is theirs too. */
   sharesSourceWith?: string[];
 }
 
@@ -139,8 +161,12 @@ export interface EditorTrail {
   id: string;
   name: string;
   readOnlyReason?: string;
-  /** Repo-relative paths of the files a save may write. */
-  files: { gpx: string; geojson?: string; descriptions: string; registry: string };
+  /**
+   * Repo-relative paths of the files a save may write. `config` is the
+   * trail's trail.json, written only when a rename changes a name listed in
+   * its `revisitedWaypoints`.
+   */
+  files: { gpx: string; geojson?: string; descriptions: string; registry: string; config?: string };
   /** Route geometry from the last build, enough to draw and snap to. */
   track: {
     /** `track.displayPoints` with cumulative km. */
