@@ -4,8 +4,10 @@
  * not a build input), so nothing here reaches the deployed site.
  *
  * It writes the repository's own files, so every request, reads included, must
- * pass `requestRefusal`, which stands on its own (a plugin's middleware runs
- * before Vite's host check and CORS middleware, so neither is relied on):
+ * pass `requestRefusal`, which stands on its own. Vite's host check and CORS
+ * middleware are not relied on: under Vite 6 a plugin's middleware runs before
+ * them; Vite 8 runs its host check first, but `server.allowedHosts: true`
+ * turns that off, and its CORS middleware allows any localhost origin:
  *  - it comes from this machine (loopback), unless `WAYPOINT_EDITOR_ALLOW_REMOTE=1`;
  *  - its `Host` is a loopback name, so a DNS-rebinding page, whose requests
  *    arrive from loopback with its own name as `Host`, is refused;

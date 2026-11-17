@@ -491,7 +491,9 @@ The API writes the repository, so it checks every request itself, reads included
 - **It comes from this machine:** the connection is from a loopback address.
 - **Its `Host` is a loopback name:** `localhost`, a `*.localhost` name, a `127.0.0.0/8` address or `[::1]`, with or without a port.
   This is what stops DNS rebinding: a page on another site whose name is re-pointed at 127.0.0.1 reaches the dev server from loopback and same-origin, so with any header it likes and no CORS preflight, but the `Host` it sends is still its own name.
-  A plugin's middleware runs before Vite's own host check, so the API does not rely on that one.
+  The API does not rely on Vite's own host check.
+  Under Vite 6 a plugin's middleware runs before it;
+  Vite 8 runs it first, and then refuses such a request itself (403, in Vite's words), but `server.allowedHosts: true` turns it off, and the API still refuses.
 - **Its `Origin`, when it sends one, is the dev server's own** (it equals the `Host`).
   A browser sends `Origin` with every cross-origin `fetch` and with every write, so a page on another site, or on another port of this machine, is refused here.
   A refused CORS preflight is not the guard: Vite's own CORS middleware allows any localhost origin.
