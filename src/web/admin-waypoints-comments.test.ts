@@ -3,12 +3,15 @@ import type { AdminComment, SyncComment } from '@lib/comments-api-types';
 import {
   COMMENTS_PAGE_SIZE,
   ORPHAN_IDS_PAGE_SIZE,
+  adminNoteText,
   commentBadgeHtml,
   commentCounts,
+  commentDate,
   commentHtml,
   commentsCountText,
   commentsListHtml,
   commentsSectionHtml,
+  commentsStatusText,
   groupByWaypoint,
   loadTrailComments,
   mergeComments,
@@ -16,6 +19,7 @@ import {
   orphanedCommentIds,
   parseShown,
   revealFor,
+  type AdminCoverage,
   type CommentsState,
   type EditorComment,
 } from './admin-waypoints-comments';
@@ -67,8 +71,12 @@ function editor(extra: Partial<EditorComment> = {}): EditorComment {
   return { ...mergeComments([live()], null, 'heysen')[0], ...extra };
 }
 
-function ready(comments: EditorComment[], admin: 'unlinked' | 'admin' = 'unlinked'): CommentsState {
-  return { kind: 'ready', byWaypoint: groupByWaypoint(comments), total: comments.length, admin };
+function ready(
+  comments: EditorComment[],
+  admin: 'unlinked' | 'admin' = 'unlinked',
+  adminCoverage: AdminCoverage | null = admin === 'admin' ? 'complete' : null
+): CommentsState {
+  return { kind: 'ready', byWaypoint: groupByWaypoint(comments), total: comments.length, admin, adminCoverage };
 }
 
 describe('groupByWaypoint', () => {
@@ -185,6 +193,63 @@ describe('commentsSectionHtml', () => {
     const error = commentsSectionHtml({ kind: 'error', message: 'Nope <b>' }, 'w_1');
     expect(error).toContain('Nope &lt;b&gt;');
     expect(error).toContain('data-comments-reload');
+  });
+
+  it('carries the reload control through loading, error and ready, so focus can follow it', () => {
+    const control = (html: string) =>
+      new DOMParser().parseFromString(html, 'text/html').querySelector('[data-comments-reload]');
+    // While loading it is inert but still focusable: aria-disabled, not disabled.
+    const loading = control(commentsSectionHtml({ kind: 'loading' }, 'w_1'));
+    expect(loading?.getAttribute('aria-disabled')).toBe('true');
+    expect(loading?.hasAttribute('disabled')).toBe(false);
+    for (const state of [{ kind: 'error', message: 'x' } as const, ready([editor()])]) {
+      const button = control(commentsSectionHtml(state, 'w_0000aaaa'));
+      expect(button).not.toBeNull();
+      expect(button?.hasAttribute('aria-disabled')).toBe(false);
+    }
+  });
+
+  it('has one short status line for each state, never the comments themselves', () => {
+    expect(commentsStatusText({ kind: 'loading' }, 'w_1')).toBe('Loading comments…');
+    expect(commentsStatusText({ kind: 'error', message: 'Nope' }, 'w_1')).toBe('Comments are unavailable.');
+    expect(commentsStatusText({ kind: 'unconfigured' }, 'w_1')).toMatch(/no comments API/);
+    const many = ready(Array.from({ length: 25 }, (_, i) => editor({ id: `n${i}` })));
+    expect(commentsStatusText(many, 'w_0000aaaa')).toBe('Showing the newest 10 of 25 comments.');
+    expect(commentsStatusText(many, 'w_0000aaaa', 20)).toBe('Showing the newest 20 of 25 comments.');
+    expect(commentsStatusText(many, 'w_0000aaaa', Infinity)).toBe('25 comments on this waypoint.');
+    expect(commentsStatusText(many, 'w_0000bbbb')).toBe('No comments on this waypoint.');
+    expect(commentsStatusText(ready([editor()]), 'w_0000aaaa')).toBe('1 comment on this waypoint.');
+  });
+
+  it('says exactly what an admin’s listing includes, and when it was truncated', () => {
+    const note = (adminCoverage: AdminCoverage | null) => adminNoteText({ admin: 'admin', adminCoverage });
+    expect(note('complete')).toMatch(/hidden by reports or deleted by an admin are included/);
+    expect(note('complete')).not.toMatch(/truncated|only when/);
+    // The newest-first read was cut: an old admin delete nobody reported is out of reach.
+    expect(note('recent')).toMatch(/every comment that has a report or an automated-review result/);
+    expect(note('recent')).toMatch(/no trail filter or cursor, and one read stops at 500 rows/);
+    expect(note('recent')).toMatch(
+      /an admin deleted that was never reported or reviewed is included only when it is among the newest 500/
+    );
+    expect(note('recent')).not.toMatch(/was truncated/);
+    // Both reads were cut.
+    expect(note('partial')).toMatch(/the admin listing was truncated/);
+    expect(note('partial')).toMatch(/some reported or hidden comments on this trail may be missing/);
+    // Coverage that was never stated claims the least.
+    expect(note(null)).toBe(note('partial'));
+    for (const coverage of ['complete', 'recent', 'partial'] as const) {
+      expect(note(coverage)).toMatch(/deleted by their author are left out/);
+    }
+    expect(adminNoteText({ admin: 'unlinked', adminCoverage: null })).toMatch(/only in a browser linked to an admin/);
+    expect(commentsSectionHtml(ready([editor()], 'admin', 'recent'), 'w_0000aaaa')).toContain(
+      'among the newest 500 comments on all trails'
+    );
+  });
+
+  it('gives a date, or the input as it is (callers escape it)', () => {
+    expect(commentDate('2026-10-05T23:59:00.000Z')).toBe('2026-10-05');
+    expect(commentDate('<b>soon</b>')).toBe('<b>soon</b>');
+    expect(commentHtml(editor({ createdAt: '<b>soon</b>' }))).not.toContain('<b>soon</b>');
   });
 
   it('lists the waypoint’s comments, or says it has none, with the trail total and orphans', () => {
@@ -458,14 +523,50 @@ describe('loadTrailComments', () => {
           : respond(200, { comments: [live()], nextCursor: null, syncedAt: 'x' })
       );
     const asAdmin = await loadTrailComments('heysen', { session, fetchImpl: make(200), baseUrl: BASE });
-    expect(asAdmin).toMatchObject({ kind: 'ready', total: 2, admin: 'admin' });
+    // Both admin reads return the one row: it is counted once.
+    expect(asAdmin).toMatchObject({ kind: 'ready', total: 2, admin: 'admin', adminCoverage: 'complete' });
     expect(await loadTrailComments('heysen', { session, fetchImpl: make(403), baseUrl: BASE })).toMatchObject({
       total: 1,
       admin: 'not-admin',
+      adminCoverage: null,
     });
     expect(await loadTrailComments('heysen', { session, fetchImpl: make(401), baseUrl: BASE })).toMatchObject({
       admin: 'expired',
     });
+  });
+
+  it('reads the admin listing both ways, since it has no trail filter or cursor, and says how far that reaches', async () => {
+    // `full` rows fill a read to its limit, so the listing may hold more than it sent.
+    const full = (prefix: string) =>
+      Array.from({ length: 500 }, (_, i) => moderated({ id: `${prefix}${i}`, trailId: 'larapinta' }));
+    const adminDeleted = moderated({ id: 'quiet', deletedBy: 'admin', reportCount: 0 });
+    const load = async (newest: AdminComment[], reported: AdminComment[]) => {
+      const urls: string[] = [];
+      const fetchImpl = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+        const u = String(url);
+        if (!u.includes('/admin/')) return respond(200, { comments: [live()], nextCursor: null, syncedAt: 'x' });
+        urls.push(u.slice(BASE.length));
+        expect((init?.headers as Record<string, string>).Authorization).toBe('Bearer tok');
+        return respond(200, { comments: u.includes('reported=1') ? reported : newest });
+      });
+      return { state: await loadTrailComments('heysen', { session, fetchImpl, baseUrl: BASE }), urls };
+    };
+
+    // Everything fits one newest-first read: a comment an admin deleted that nobody reported is there.
+    const whole = await load([adminDeleted, moderated()], [moderated()]);
+    expect(whole.urls.sort()).toEqual(['/v1/admin/comments?limit=500', '/v1/admin/comments?reported=1&limit=500']);
+    expect(whole.state).toMatchObject({ kind: 'ready', total: 3, adminCoverage: 'complete' });
+    const hidden = whole.state.kind === 'ready' ? whole.state.byWaypoint.get('w_0000aaaa')! : [];
+    expect(hidden.map(c => [c.id, c.hiddenBy]).sort()).toEqual([
+      ['c1', null],
+      ['c9', 'reports'],
+      ['quiet', 'admin'],
+    ]);
+
+    // The newest-first read is cut: reported ones are all known, older unreported admin deletes are not.
+    expect((await load(full('n'), [moderated()])).state).toMatchObject({ total: 2, adminCoverage: 'recent' });
+    // Both are cut.
+    expect((await load(full('n'), full('r'))).state).toMatchObject({ adminCoverage: 'partial' });
   });
 
   it('reports a failed read as an error state', async () => {

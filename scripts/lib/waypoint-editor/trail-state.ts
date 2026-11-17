@@ -711,7 +711,7 @@ function toEditorWaypoint(
   if (!span && !context.readOnlyReason) waypoint.deleted = true;
   const ele = sourceElevation(span);
   if (ele !== undefined) waypoint.ele = ele;
-  if (built.distanceFromTrailKm !== undefined) waypoint.distanceFromTrailKm = built.distanceFromTrailKm;
+  if (built.distanceFromTrailKm !== undefined) waypoint.distanceFromTrailM = built.distanceFromTrailKm;
   const sourceText = sourceDescription(span, sources.caltopo, joined);
   if (sourceText) waypoint.sourceDescription = sourceText;
   else if (!curated.has(built.id) && built.description) waypoint.sourceDescription = built.description;

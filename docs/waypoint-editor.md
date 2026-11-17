@@ -18,11 +18,16 @@ A waypoint added since the last build has only a temporary key there (`id=new:�
 
 ### The screen
 
+- **Header**: the trail select, and "Reload trail", which reads the trail's source files again (after a `git pull`, an edit by hand, or a save refused because the waypoint changed on disk).
+  A reload keeps the selection, the map view, the list's place and every unsaved edit;
+  only opening another trail starts afresh.
+  Then the review progress, "Changed files", "Rebuild trail data" and "Keys".
 - **List** (left): every `<wpt>` the trail has, in km order (off-route ones by the km of the nearest route point), with its type glyph and badges: `unsaved` (edits held in the page), `saved` (written since the last build), `pending rebuild` (added since the last build: no id yet, so it is edited in the GPX alone), `deleted` (its `<wpt>` is gone since the last build), `merged` (a near-duplicate the build merged into another waypoint: it has an id but no row in the app), `+N merged` (the waypoint those were merged into), `no text` (no curated description) and ✓ (reviewed).
   A merged duplicate is listed straight after the waypoint it merged into.
   Search matches names accent-insensitively, or an exact id;
   the filters narrow by type and by status (no curated text, not reviewed, changed since build, added and pending a rebuild, merged duplicates with what they merged into, off the route, has comments).
   A row with hikers' comments carries a count badge.
+  A waypoint pending a rebuild has no place on the route yet (main route, a variant, or off it): that comes from the build, so its row is never labelled `off route` and the "off the route" filter leaves it out.
 - **Map** (centre): the route as built (cut at route breaks, variants dashed), every waypoint coloured by family, and the selected one as a draggable marker.
   A waypoint pending a rebuild has a dashed dark edge;
   a merged duplicate is a smaller hollow ring with a dotted edge, since the app does not show it.
@@ -30,15 +35,18 @@ A waypoint added since the last build has only a temporary key there (`id=new:�
   A grey dashed line joins a saved move to where the last build drew the waypoint;
   a blue one joins an unsaved move to the saved position;
   a dotted one joins a selected merged duplicate to the waypoint it merged into (and that waypoint to its duplicates).
-  The bar under the map gives the nearest route km, the distance from the route and the distance moved, live while dragging.
+  The bar under the map says which line the position is measured to, live while dragging: the nearest main-route km and the distance from the main route;
+  or, when an alternate's or side trip's line is nearer, the distance from that line (named) and then from the main route;
+  then the distance moved.
+  The map zooms to the whole trail only when another trail is opened: a save, an add, a delete, a rebuild and "Reload trail" leave the view where it is.
 - **Form** (right): name;
   type, with what decides it in the build (a CalTopo folder, a GPX `<type>`, a name prefix, a known town, or nothing);
-  id and the lists the waypoint is in;
+  id and the lists the waypoint is in, and for an off-route place how far it was from the main route in the last build (metres under a kilometre, kilometres above);
   for a merged duplicate, the waypoint the build merged it into (a link to it) and how far apart they are, and on that waypoint the ids merged into it;
   latitude and longitude, plus a box that takes a pasted position or a Google Maps / OpenStreetMap link;
   the `<ele>` its `<wpt>` has in the GPX, when it has one (a merged duplicate's and a pending waypoint's included);
   links to the same spot on OpenStreetMap and Google (map and satellite);
-  the description with a character count and voice hints;
+  the description with a character count (red once over the limit) and voice hints;
   the GPX / CalTopo source text the app shows when there is no curated text, with "Start from this";
   the hikers' comments on the waypoint (below);
   and the OSM POIs within 400 m, each with "Move here".
@@ -46,7 +54,17 @@ A waypoint added since the last build has only a temporary key there (`id=new:�
 ### Moving a waypoint
 
 Drag the marker, click "Click map to place" (`Alt+P`) and click the map or a POI, type or paste coordinates, use "Move here" on a nearby POI, or "Snap to route".
-Snapping uses the drawn (simplified) line, so it can sit a few metres off the full-resolution track.
+
+- **Lat and Lon** take effect when the field is left, and before any shortcut or button acts: `Ctrl+S`, `Ctrl+Enter` or `Alt`+`↓` pressed with the cursor still in the field act on what it shows.
+  An empty or unparsable field is flagged and moves nothing (it is never read as 0);
+  a save or a step to another row then waits until it is corrected, and `Esc` in the field, or "Undo move", puts the position back.
+- **The paste box** applies a pasted position at once, and one typed by hand on `Enter` or when the box is left (never keystroke by keystroke: `27.6901, 8` is already a position).
+  A Google Maps place link is read from its pin (`!3d…!4d…`);
+  the centre of the view (`@…`) is used only when the link has no pin.
+- **"Snap to route"** moves onto the nearest line: the main route, or an alternate or side trip when its line is nearer, so a side-trip waypoint snaps to its side trip and not across country to the main route.
+  It never snaps onto the straight line of a route break.
+  The main route is snapped to as drawn (simplified), so the result can sit a few metres off the full-resolution track.
+
 A save refuses a move over 50 km and asks before one over 2 km.
 A `<wpt>` that has an `<ele>` has it looked up again for the new position ("Elevation" below);
 one with no `<ele>` is not given one.
@@ -199,9 +217,20 @@ switching waypoint does not refetch.
 Comments are keyed by stable waypoint id, so a comment filed under an id no waypoint on the trail has any more is listed by id under the section, as a sign an id was lost.
 That list shows 20 ids at a time, with the same "Show more" and "Show all", and what is revealed of it lasts until another trail is opened.
 An id the build merged into another waypoint is not lost: it has a row of its own, which shows its comments ("Merged near-duplicates" above).
-In a browser linked to an admin account (the link from `admin-moderation.html`), the page also reads `GET /v1/admin/comments?reported=1`, adding comments hidden by reports or deleted by an admin, and report counts;
-without one, or with a non-admin account, it says hidden comments are not shown and lists the public ones.
+In a browser linked to an admin account (the link from `admin-moderation.html`), the page also reads the admin listing, `GET /v1/admin/comments`, to add hidden comments and report counts.
+That listing covers every trail, with no trail filter and no cursor, and one read stops at 500 rows, so it cannot be read to the end for one trail.
+The page reads it both ways it can be ordered and keeps this trail's rows: `?limit=500` (every comment, newest first) and `?reported=1&limit=500` (only comments with a report or an automated-review result, those hidden by reports first).
+What that reaches, the line under the comments says:
+
+- **The newest-first read came back short of 500 rows:** it is every comment on every trail, so each comment on this trail hidden by reports or deleted by an admin is included.
+- **It came back full:** every comment with a report or a review result is still included, hidden or not, but a comment an admin deleted that was never reported or reviewed is included only when it is among the newest 500 comments on all trails.
+- **Both came back full:** the listing was truncated, and some reported or hidden comments on this trail may be missing, with their report counts.
+
+A comment deleted by its author is never listed.
+Without a linked browser, or with a non-admin account, the line says hidden comments are not shown and the public ones are listed.
 Hidden and reported comments sit in the same newest-first list and page with it, so the "showing" line says how many of the comments not yet shown are hidden, and how many more are published but reported ("The 227 not shown include 3 hidden and 2 more reported.").
+Reload (and "Try again" after a failed read) keeps keyboard focus on the control while the section is redrawn.
+The section is not a live region, so a screen reader does not read every comment again: one short status line ("Showing the newest 20 of 237 comments.") is announced after a load, a Reload or "Show more".
 The worker's CORS is `*`, so a localhost page may read it.
 The editor never writes to the comments API: moderation stays on `admin-moderation.html`, and a comment is a lead, not a source, so a fact it gives still needs its source in `plans/waypoint-description-sources.md`.
 
@@ -211,9 +240,20 @@ The editor never writes to the comments API: moderation stays on `admin-moderati
 A mark lapses when the waypoint's name, position or description changes, so a correction pulled from git puts the waypoint back in the unreviewed pile.
 A pending waypoint cannot be marked: a mark is kept under the waypoint's id, and it has none yet.
 `Ctrl+Enter` saves, marks the waypoint reviewed and moves to the next one in the filtered list (on an unchanged waypoint it just marks and moves on), which is the fast way through a trail.
+"Next" is worked out before the save or the mark is applied, from the waypoint's place in the whole list.
+So it is the following row even when the action takes the waypoint out of the filter ("Not reviewed", "No curated text" once a description is saved, a type filter after a retype) or gives a pending one a new key;
+`Alt`+`↓`/`↑` step the same way from a waypoint the filter no longer shows.
 
 Edits are kept per waypoint while browsing, so you can compare neighbours before saving;
 the page warns before closing or switching trail with unsaved edits.
+An unsaved edit holds only the fields that were changed.
+When the trail is read again ("Reload trail", a rebuild, an add or a delete, a save that touched other rows) every other field follows the files, so a later save never puts back a name, type or position that changed meanwhile.
+"Discard" (or `Esc`) drops a waypoint's unsaved edits and offers "Undo" under the form, until another waypoint is selected.
+
+The form stays usable while a save is in flight.
+Text typed meanwhile is kept as a new unsaved edit on top of what was saved.
+If another waypoint is selected by the time the save returns, the result still goes to the waypoint that was saved (its row, its review mark), the selection stays where it is, and the notes name the waypoint they are about.
+After a save that changes other rows (another pass of a revisited place, a merged duplicate or the waypoint it merged into) the page reads the trail again, so those rows show what is on disk and the next save on them is not refused as stale.
 
 ### Keys
 
@@ -222,8 +262,9 @@ the page warns before closing or switching trail with unsaved edits.
 `Alt`+`↓`/`↑` next / previous;
 `Alt`+`R` toggle reviewed;
 `Alt`+`P` place mode;
-`Esc` leave place mode, or discard this waypoint's unsaved edits;
+`Esc` leave place mode, put the position back as it was when pressed in Lat, Lon or the paste box, or otherwise discard this waypoint's unsaved edits (with "Undo");
 `/` search.
+`Esc` is ignored while an input method is composing (a Japanese name on Shikoku), where it cancels the composition.
 
 ## What a save writes
 
@@ -248,7 +289,7 @@ All the writes of one save are computed before any is made, so a refusal leaves 
 - **Merged duplicate:** a delete as above, or a rename (its `<wpt>`'s `<name>`, its CalTopo marker's title and its registry entry's name);
   nothing else.
 
-A save is refused, writing nothing, if the waypoint changed on disk since the page read it (reload the trail).
+A save is refused, writing nothing, if the waypoint changed on disk since the page read it: "Reload trail" reads it again and keeps the unsaved edit, which can then be saved.
 
 ### What a save leaves for you
 
@@ -257,7 +298,7 @@ A save is refused, writing nothing, if the waypoint changed on disk since the pa
   The save's notes say which.
 - **Lists and km:** whether a moved or new waypoint is on the main route, off it or on a variant, and its km, come from the rebuild.
 - **Revisited places:** `<id>_2`, `<id>_3` are built from the same `<wpt>` as `<id>`, so moving or retyping one moves or retypes all of them;
-  the form says so.
+  the form says so, and the page reads the trail again after such a save, so the other passes show it at once.
 
 ### The rebuild report
 

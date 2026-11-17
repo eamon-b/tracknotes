@@ -1,14 +1,21 @@
 /**
- * The waypoint editor's pure parts: filtering the list, reading a pasted
- * position, the description voice hints, review marks, and the list and
- * readout markup. No DOM or Leaflet here, so it is tested on its own
+ * The waypoint editor's pure parts: drafts, filtering and stepping through the
+ * list, reading a typed or pasted position, snapping to the route's lines, the
+ * description voice hints, review marks, and the list and readout markup. No
+ * DOM or Leaflet here, so it is tested on its own
  * (`admin-waypoints-view.test.ts`); `admin-waypoints.ts` wires it to the page.
  */
 
 import { haversineDistance } from '@lib/distance';
 import { nameMatches } from '@lib/name-filter';
+import { snapToTrail, type SnapPoint } from '@lib/position-on-trail';
 import { WAYPOINT_TYPES, waypointTypeLabel } from '@lib/waypoint-taxonomy';
-import type { EditorWaypoint, WaypointPlacement } from '../../scripts/lib/waypoint-editor/api-types';
+import type {
+  EditorTrail,
+  EditorWaypoint,
+  WaypointEditResponse,
+  WaypointPlacement,
+} from '../../scripts/lib/waypoint-editor/api-types';
 import { commentBadgeHtml } from './admin-waypoints-comments';
 import { waypointFamilyClass, waypointIcon } from './trails/waypoint-icons';
 import { escapeHtml } from './web-utils';
@@ -17,7 +24,8 @@ import { escapeHtml } from './web-utils';
 // Drafts: what the form holds for a waypoint before it is saved
 // ---------------------------------------------------------------------------
 
-export interface WaypointDraft {
+/** The fields of a waypoint the form edits. */
+export interface WaypointFields {
   name: string;
   lat: number;
   lon: number;
@@ -25,29 +33,117 @@ export interface WaypointDraft {
   type: string;
 }
 
-export function draftOf(w: Pick<EditorWaypoint, 'name' | 'lat' | 'lon' | 'description' | 'type'>): WaypointDraft {
+/**
+ * What the form holds for a waypoint before it is saved: only the fields the
+ * user changed (`lat` and `lon` together). A field that is absent follows the
+ * waypoint as the server last gave it, so a reload (a rebuild, a save of
+ * another pass of the same place, sources changed through git) never turns a
+ * field nobody touched into an edit that would put the old value back.
+ */
+export type WaypointDraft = Partial<WaypointFields>;
+
+/** The form's fields as the waypoint is saved. */
+export function fieldsOf(w: WaypointFields): WaypointFields {
   return { name: w.name, lat: w.lat, lon: w.lon, description: w.description, type: w.type };
+}
+
+/** What the form shows for a waypoint: its saved fields, with the draft's over them. */
+export function draftValues(saved: WaypointFields, draft: WaypointDraft | undefined): WaypointFields {
+  return { ...fieldsOf(saved), ...draft };
 }
 
 const COORD_EPSILON = 1e-9;
 
 /** Which fields a draft changes from the saved waypoint. */
 export function draftChanges(
-  saved: EditorWaypoint,
-  draft: WaypointDraft
+  saved: WaypointFields,
+  draft: WaypointDraft | undefined
 ): { name: boolean; position: boolean; description: boolean; type: boolean } {
+  const values = draftValues(saved, draft);
   return {
-    name: draft.name.trim() !== saved.name,
-    position: Math.abs(draft.lat - saved.lat) > COORD_EPSILON || Math.abs(draft.lon - saved.lon) > COORD_EPSILON,
-    description: draft.description.trim() !== saved.description,
-    type: draft.type !== saved.type,
+    name: values.name.trim() !== saved.name,
+    position: Math.abs(values.lat - saved.lat) > COORD_EPSILON || Math.abs(values.lon - saved.lon) > COORD_EPSILON,
+    description: values.description.trim() !== saved.description,
+    type: values.type !== saved.type,
   };
 }
 
-export function isDirty(saved: EditorWaypoint, draft: WaypointDraft | undefined): boolean {
+export function isDirty(saved: WaypointFields, draft: WaypointDraft | undefined): boolean {
   if (!draft) return false;
   const c = draftChanges(saved, draft);
   return c.name || c.position || c.description || c.type;
+}
+
+/**
+ * `draft` cut down to the fields that differ from `saved`, or undefined when
+ * none does. Run on every edit, and again over every draft when the trail is
+ * read again, so a draft is rebased onto the waypoint as it now stands.
+ */
+export function pruneDraft(saved: WaypointFields, draft: WaypointDraft | undefined): WaypointDraft | undefined {
+  if (!draft) return undefined;
+  const values = draftValues(saved, draft);
+  const changes = draftChanges(saved, draft);
+  const next: WaypointDraft = {};
+  if (changes.name) next.name = values.name;
+  if (changes.position) {
+    next.lat = values.lat;
+    next.lon = values.lon;
+  }
+  if (changes.description) next.description = values.description;
+  if (changes.type) next.type = values.type;
+  return Object.keys(next).length ? next : undefined;
+}
+
+/**
+ * The draft to keep once a save has returned. The form stays live while a save
+ * is in flight, so `current` (the draft now) may hold more than `sent` (the
+ * draft the request was built from); both were made against `before`. A field
+ * the user changed during the save stays an edit, on top of `after` (the
+ * waypoint as saved); every other field follows what was saved.
+ */
+export function draftAfterSave(
+  before: WaypointFields,
+  after: WaypointFields,
+  sent: WaypointDraft | undefined,
+  current: WaypointDraft | undefined
+): WaypointDraft | undefined {
+  const was = draftValues(before, sent);
+  const now = draftValues(before, current);
+  const edited: WaypointDraft = {};
+  if (now.name !== was.name) edited.name = now.name;
+  if (now.lat !== was.lat || now.lon !== was.lon) {
+    edited.lat = now.lat;
+    edited.lon = now.lon;
+  }
+  if (now.description !== was.description) edited.description = now.description;
+  if (now.type !== was.type) edited.type = now.type;
+  return pruneDraft(after, edited);
+}
+
+/**
+ * Whether a save of `before` (answered with `after`) can have changed other
+ * rows: another pass of a revisited place is built from the same `<wpt>`, and
+ * a merge the build made ties a duplicate to the waypoint it merged into. The
+ * page then reads the trail again, so those rows (and what the next save on
+ * them expects to find on disk) are not left stale.
+ */
+export function saveAffectsOtherRows(before: EditorWaypoint, after: EditorWaypoint): boolean {
+  return [before, after].some(w => !!w.sharesSourceWith?.length || !!w.mergedInto || !!w.mergedIds?.length);
+}
+
+/**
+ * The lines shown after a save. Under the saved waypoint's own form they need
+ * no name; once another waypoint is selected ("Save & next", or the selection
+ * moved on while the save was in flight) each names the waypoint it is about.
+ */
+export function saveNotes(
+  result: Pick<WaypointEditResponse, 'changedFiles' | 'notes'> & { waypoint: { name: string } },
+  stillSelected: boolean
+): string[] {
+  const files = result.changedFiles.join(', ') || 'no file (nothing changed)';
+  if (stillSelected) return [`Saved to ${files}.`, ...result.notes];
+  const name = `“${result.waypoint.name}”`;
+  return [`Saved ${name} to ${files}.`, ...result.notes.map(n => `${name}: ${n}`)];
 }
 
 /** Saved since the last build: its source no longer matches what the build drew. */
@@ -132,6 +228,30 @@ export function compareWaypoints(a: EditorWaypoint, b: EditorWaypoint): number {
   return a.sortKm - b.sortKm || a.name.localeCompare(b.name);
 }
 
+/**
+ * The row to go to from `fromId`: the next (`delta` 1) or previous (-1) row of
+ * the filtered list, found from the waypoint's place in the whole list `all`,
+ * so it is right whether or not `fromId` is itself in the filtered list.
+ * It is worked out before an action that may take the row out of the filter
+ * (a review mark under "Not reviewed", a saved description under "No curated
+ * text", a retype under a type filter) or re-key it, and still answers for a
+ * row that has already dropped out. With nothing to start from it is the
+ * first row; null when there is no row that way.
+ */
+export function stepTarget<T extends { id: string }>(
+  all: readonly T[],
+  visible: (w: T) => boolean,
+  fromId: string | null,
+  delta: 1 | -1
+): string | null {
+  const from = fromId === null ? -1 : all.findIndex(w => w.id === fromId);
+  if (from === -1) return all.find(visible)?.id ?? null;
+  for (let i = from + delta; i >= 0 && i < all.length; i += delta) {
+    if (visible(all[i])) return all[i].id;
+  }
+  return null;
+}
+
 // ---------------------------------------------------------------------------
 // Review marks (per browser)
 // ---------------------------------------------------------------------------
@@ -199,7 +319,8 @@ export interface WaypointFilter {
 
 function isOffRoute(w: EditorWaypoint): boolean {
   // A merged-away duplicate is in no list at all: the build dropped its row.
-  return !w.mergedInto && !w.placements.some(p => p.kind === 'main');
+  // A pending waypoint has no placements yet: where it sits comes from the next build.
+  return !w.mergedInto && !w.pending && !w.placements.some(p => p.kind === 'main');
 }
 
 /** In a merge the build made: a duplicate it dropped, or the waypoint it kept in that duplicate's place. */
@@ -256,13 +377,16 @@ export function typeCounts(waypoints: readonly EditorWaypoint[]): { type: string
 
 /**
  * A position from whatever was pasted: `-36.12, 148.45`, `-36.12 148.45`, a
- * Google Maps link (`@-36.12,148.45,15z` or `?q=-36.12,148.45`), an OSM link
+ * Google Maps link (a place's pin `!3d-36.12!4d148.45`, else the view's centre
+ * `@-36.12,148.45,15z`, or `?q=-36.12,148.45`), an OSM link
  * (`#map=17/-36.12/148.45` or `mlat=…&mlon=…`). Null when it is not one.
  */
 export function parseLatLon(input: string): { lat: number; lon: number } | null {
   const text = input.trim();
   const patterns: RegExp[] = [
     /mlat=(-?\d+(?:\.\d+)?)&mlon=(-?\d+(?:\.\d+)?)/,
+    // A Google Maps place link carries the pin itself; its `@lat,lon` is only where the view is centred.
+    /!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/,
     /#map=\d+(?:\.\d+)?\/(-?\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?)/,
     /@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/,
     /[?&](?:q|query|ll)=(-?\d+(?:\.\d+)?)(?:,|%2C)\s*(-?\d+(?:\.\d+)?)/,
@@ -278,6 +402,103 @@ export function parseLatLon(input: string): { lat: number; lon: number } | null 
     }
   }
   return null;
+}
+
+/**
+ * One coordinate as typed into the Lat or Lon field: a plain decimal number
+ * within `limit` (90 for a latitude, 180 for a longitude). Null for an empty
+ * or unparsable field, which must never be read as 0.
+ */
+export function parseCoordinate(input: string, limit: 90 | 180): number | null {
+  const text = input.trim().replace(/^\u2212/, '-');
+  if (!/^[+-]?(?:\d+\.?\d*|\.\d+)$/.test(text)) return null;
+  const value = Number(text);
+  return Number.isFinite(value) && Math.abs(value) <= limit ? value : null;
+}
+
+// ---------------------------------------------------------------------------
+// The route's lines: the main route and its alternates and side trips
+// ---------------------------------------------------------------------------
+
+/** A line a waypoint can sit on or be snapped to. */
+export interface RouteLine {
+  /** Null for the main route; otherwise the variant, in words (`side trip “Deurali > Thodung”`). */
+  label: string | null;
+  /** Its points with cumulative km. */
+  points: readonly SnapPoint[];
+  /** The first index after each route break (`routeBreakStarts`): the step into one is not trail. */
+  breakStarts?: ReadonlySet<number>;
+}
+
+/** The nearest point on one line. */
+export interface LineSnap {
+  label: string | null;
+  lat: number;
+  lon: number;
+  /** km along that line. */
+  km: number;
+  /** Metres from the position to the line. */
+  offM: number;
+}
+
+/** An alternate, side trip or terminus in words, without a kind its name already opens with. */
+export function variantLabel(v: { name: string; type: string }): string {
+  const kind = v.type === 'side-trip' ? 'side trip' : v.type;
+  const name = v.name.replace(/^(?:alternate|alternative|side[ -]trip|terminus)\s*[:–-]\s*/i, '');
+  return `${kind} “${name || v.name}”`;
+}
+
+/** The main route (cut at its breaks) and every variant's line, each with cumulative km. */
+export function routeLines(track: EditorTrail['track'], mainBreakStarts: ReadonlySet<number>): RouteLine[] {
+  const lines: RouteLine[] = [{ label: null, points: track.points, breakStarts: mainBreakStarts }];
+  for (const v of track.variants) {
+    let km = 0;
+    const points = v.line.map(([lat, lon], i) => {
+      if (i > 0) km += haversineDistance(v.line[i - 1][0], v.line[i - 1][1], lat, lon) / 1000;
+      return { lat, lon, dist: km };
+    });
+    if (points.length) lines.push({ label: variantLabel(v), points });
+  }
+  return lines;
+}
+
+function snapToLine(line: RouteLine, lat: number, lon: number): LineSnap | null {
+  const snap = snapToTrail(lat, lon, line.points, undefined, line.breakStarts);
+  if (!snap) return null;
+  const a = line.points[snap.index];
+  // `index` starts the segment the snapped point lies on; the step into a route break is never one.
+  const b = line.breakStarts?.has(snap.index + 1) ? undefined : line.points[snap.index + 1];
+  const span = b ? b.dist - a.dist : 0;
+  const t = b && span > 0 ? Math.min(1, Math.max(0, (snap.currentKm - a.dist) / span)) : 0;
+  return {
+    label: line.label,
+    lat: b ? a.lat + (b.lat - a.lat) * t : a.lat,
+    lon: b ? a.lon + (b.lon - a.lon) * t : a.lon,
+    km: snap.currentKm,
+    offM: snap.offTrailMeters,
+  };
+}
+
+/**
+ * Where a position sits against the route: the nearest point on the main
+ * route, and the nearest on any line (the main route unless a variant's line
+ * is nearer), which is what "Snap to route" moves to. A side-trip waypoint
+ * snaps to its side trip, not across country to the main route.
+ */
+export function nearestLineSnap(
+  lines: readonly RouteLine[],
+  lat: number,
+  lon: number
+): { main: LineSnap | null; nearest: LineSnap | null } {
+  let main: LineSnap | null = null;
+  let nearest: LineSnap | null = null;
+  for (const line of lines) {
+    const snap = snapToLine(line, lat, lon);
+    if (!snap) continue;
+    if (line.label === null) main = snap;
+    if (!nearest || snap.offM < nearest.offM) nearest = snap;
+  }
+  return { main, nearest };
 }
 
 // ---------------------------------------------------------------------------
@@ -328,6 +549,13 @@ export function formatKm(km: number | undefined): string {
   return km === undefined || !Number.isFinite(km) ? '' : km.toFixed(1);
 }
 
+/** A distance given in metres: whole metres under a kilometre, kilometres above. */
+export function formatDistance(metres: number): string {
+  if (Math.round(metres) < 1000) return `${Math.round(metres)} m`;
+  const km = metres / 1000;
+  return `${km.toFixed(km < 10 ? 2 : 1)} km`;
+}
+
 export function placementText(p: WaypointPlacement): string {
   const km = p.km !== undefined ? ` at km ${formatKm(p.km)}` : '';
   switch (p.kind) {
@@ -348,15 +576,24 @@ export function waypointGlyphHtml(type: string): string {
   return `<span class="${escapeHtml(waypointFamilyClass(type))}">${waypointIcon(type)}</span>`;
 }
 
-export function rowHtml(
-  w: EditorWaypoint,
-  state: { selected: boolean; dirty: boolean; reviewed: boolean; comments?: number }
-): string {
+export interface RowState {
+  selected: boolean;
+  dirty: boolean;
+  reviewed: boolean;
+  comments?: number;
+}
+
+/**
+ * What is inside a list row. Kept apart from the `<li>` so that an edit can
+ * update the one row in place: rebuilding the list between a mousedown and its
+ * mouseup (a blur that commits a field does) would swallow the click.
+ */
+export function rowContentHtml(w: EditorWaypoint, state: RowState): string {
   const badges: string[] = [];
   if (state.dirty) badges.push('<span class="wpe-badge wpe-badge-dirty" title="Unsaved changes">unsaved</span>');
   if (w.pending) {
     badges.push(
-      '<span class="wpe-badge wpe-badge-pending" title="Added since the last build: no id until a rebuild, so edits go to its &lt;wpt&gt; in the GPX alone">pending rebuild</span>'
+      '<span class="wpe-badge wpe-badge-pending" title="Added since the last build: no id until a rebuild, so edits go to its &lt;wpt&gt; in the GPX alone. Its place on the route (main route, a variant, or off it) and its km come from that build.">pending rebuild</span>'
     );
   } else if (w.deleted) {
     badges.push(
@@ -381,13 +618,17 @@ export function rowHtml(
   const reviewed = state.reviewed ? '<span class="wpe-reviewed" title="Reviewed">✓</span>' : '';
   const off = isOffRoute(w) ? ' <span class="wpe-muted">off route</span>' : '';
   return (
-    `<li class="wpe-row${state.selected ? ' is-selected' : ''}" data-id="${escapeHtml(w.id)}" role="option" ` +
-    `aria-selected="${state.selected}" tabindex="-1">` +
     `<span class="wpe-row-km">${escapeHtml(formatKm(w.sortKm))}</span>` +
     `<span class="wpe-row-glyph" title="${escapeHtml(waypointTypeLabel(w.type))}">${waypointGlyphHtml(w.type)}</span>` +
     `<span class="wpe-row-name">${escapeHtml(w.name)}${off}</span>` +
-    `<span class="wpe-row-badges">${badges.join('')}${reviewed}</span>` +
-    `</li>`
+    `<span class="wpe-row-badges">${badges.join('')}${reviewed}</span>`
+  );
+}
+
+export function rowHtml(w: EditorWaypoint, state: RowState): string {
+  return (
+    `<li class="wpe-row${state.selected ? ' is-selected' : ''}" data-id="${escapeHtml(w.id)}" role="option" ` +
+    `aria-selected="${state.selected}" tabindex="-1">${rowContentHtml(w, state)}</li>`
   );
 }
 
@@ -571,18 +812,39 @@ export function dotTooltipHtml(w: EditorWaypoint): string {
 export interface PositionReadout {
   /** km along the main route at the nearest point. */
   km: number | null;
-  /** Metres from the route. */
+  /** Metres from the main route. */
   offRouteM: number | null;
+  /** The alternate or side trip whose line is nearer than the main route's, and metres from it. */
+  nearer?: { label: string; offM: number };
   /** Metres from the saved position. */
   movedM: number;
 }
 
+/** The bar under the map: which line the position is measured to, how far from it, and how far it has moved. */
 export function readoutText(r: PositionReadout): string {
   const parts: string[] = [];
-  if (r.km !== null) parts.push(`nearest route km ${r.km.toFixed(2)}`);
-  if (r.offRouteM !== null) parts.push(`${Math.round(r.offRouteM)} m from the route`);
-  if (r.movedM >= 0.5) parts.push(`moved ${Math.round(r.movedM)} m from the saved position`);
+  if (r.nearer) {
+    parts.push(`${formatDistance(r.nearer.offM)} from ${r.nearer.label}`);
+    if (r.km !== null && r.offRouteM !== null) {
+      parts.push(`${formatDistance(r.offRouteM)} from the main route (nearest at km ${r.km.toFixed(2)})`);
+    }
+  } else {
+    if (r.km !== null) parts.push(`nearest main route km ${r.km.toFixed(2)}`);
+    if (r.offRouteM !== null) parts.push(`${formatDistance(r.offRouteM)} from the main route`);
+  }
+  if (r.movedM >= 0.5) parts.push(`moved ${formatDistance(r.movedM)} from the saved position`);
   return parts.join(' · ');
+}
+
+/** The readout for a position against the route's lines. */
+export function positionReadout(lines: readonly RouteLine[], lat: number, lon: number, movedM: number): string {
+  const { main, nearest } = nearestLineSnap(lines, lat, lon);
+  return readoutText({
+    km: main ? main.km : null,
+    offRouteM: main ? main.offM : null,
+    nearer: nearest && nearest.label !== null ? { label: nearest.label, offM: nearest.offM } : undefined,
+    movedM,
+  });
 }
 
 export interface NearbyPoi {

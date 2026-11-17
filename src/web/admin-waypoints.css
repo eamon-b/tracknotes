@@ -102,6 +102,12 @@
   padding: 0.2rem 0.5rem;
 }
 
+/* Focusable but inert: the comments' Reload while a load is in flight. */
+.wpe-btn[aria-disabled='true'] {
+  opacity: 0.55;
+  cursor: default;
+}
+
 .wpe-btn[aria-pressed='true'] {
   background: var(--tint-accent-strong);
   border-color: var(--primary);
@@ -441,6 +447,21 @@ kbd {
 .wpe-latlon input {
   font-variant-numeric: tabular-nums;
   width: 100%;
+}
+
+/* A Lat, Lon or pasted position that is not one: it is never read as a move. */
+.wpe-position input[aria-invalid='true'] {
+  border-color: var(--danger);
+  outline-color: var(--danger);
+}
+
+.wpe-field-error {
+  color: var(--danger);
+  font-size: 0.8rem;
+}
+
+.wpe-field-error:empty {
+  display: none;
 }
 
 .wpe-links {

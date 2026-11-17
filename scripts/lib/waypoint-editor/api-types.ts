@@ -99,8 +99,8 @@ export interface EditorWaypoint {
   placements: WaypointPlacement[];
   /** Main-route km, or the km of the nearest point on the main route; for ordering. */
   sortKm: number;
-  /** From the last build, for an off-trail place. */
-  distanceFromTrailKm?: number;
+  /** From the last build, for an off-trail place: metres to the nearest point of the main track. */
+  distanceFromTrailM?: number;
   /**
    * Curated text from `descriptions.json`, '' when there is none. For a pending
    * waypoint, which has no id to key a curated text by, its GPX `<desc>`: source
