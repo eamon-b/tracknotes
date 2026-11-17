@@ -138,7 +138,9 @@ export function commentCounts(state: CommentsState): Map<string, number> {
 /**
  * Curated-waypoint ids with comments that no waypoint on this trail has: the
  * comments a lost id orphaned (`docs/architecture/trail-data.md`). OSM POIs and
- * shared hiker waypoints take comments too and are not counted.
+ * shared hiker waypoints take comments too and are not counted. `knownIds`
+ * must hold the ids the build merged into a waypoint as well as the rows' own
+ * (`knownCommentIds`): a merged-away id is live, not lost.
  */
 export function orphanedCommentIds(state: CommentsState, knownIds: ReadonlySet<string>): string[] {
   if (state.kind !== 'ready') return [];
@@ -377,7 +379,16 @@ export function orphanNoteHtml(orphaned: readonly string[], shown: number = ORPH
 export function commentsSectionHtml(
   state: CommentsState,
   waypointId: string,
-  options: { orphaned?: readonly string[]; shown?: number; orphansShown?: number } = {}
+  options: {
+    orphaned?: readonly string[];
+    shown?: number;
+    orphansShown?: number;
+    /**
+     * Said over the list once loaded, e.g. that the app shows none of these (a
+     * merged-away duplicate). It sits above the first comment, so paging never hides it.
+     */
+    note?: string;
+  } = {}
 ): string {
   switch (state.kind) {
     case 'unconfigured':
@@ -391,6 +402,7 @@ export function commentsSectionHtml(
       );
     case 'ready':
       return (
+        (options.note ? `<p class="wpe-comments-note">${escapeHtml(options.note)}</p>` : '') +
         commentsListHtml(state.byWaypoint.get(waypointId) ?? [], options.shown) +
         `<p class="wpe-muted">${state.total === 1 ? '1 comment' : `${state.total} comments`} on this trail. ${escapeHtml(ADMIN_NOTES[state.admin])} ` +
         '<button type="button" class="wpe-btn wpe-btn-small" data-comments-reload>Reload</button></p>' +

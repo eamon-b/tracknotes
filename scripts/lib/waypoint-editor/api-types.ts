@@ -62,6 +62,23 @@ export interface EditorWaypoint {
   pending?: boolean;
   /** Its `<wpt>` is gone from the GPX since the last build (deleted here, or edited by hand): the next build retires its id. */
   deleted?: boolean;
+  /**
+   * The last build merged this `<wpt>` into a same-name, same-type neighbour
+   * (`dedupeWaypoints`) and dropped its row: this is the id of the waypoint that
+   * survived. It keeps its own id and registry entry, but the app shows no row
+   * for it, so nothing keyed to its id (comments, a description) is shown there.
+   */
+  mergedInto?: string;
+  /** For a merged-away duplicate: metres between it and the waypoint it merged into, as the sources stand. */
+  mergedDistanceM?: number;
+  /**
+   * For a merged-away duplicate: the sources no longer make it a duplicate of
+   * that waypoint (renamed, or that waypoint is gone), so the next build lists
+   * it as a waypoint of its own, under its id.
+   */
+  unmerges?: boolean;
+  /** Ids of the near-duplicates the last build merged into this waypoint (each is listed with `mergedInto`). */
+  mergedIds?: string[];
   /** Name as the build shows it (any `C ` / `WT: ` prefix removed). */
   name: string;
   /** The type the sources give it now (a type change saved since the build included). */

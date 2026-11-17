@@ -95,6 +95,8 @@ Migrate the registry entries in the same commit.
 The waypoint editor does this for a type changed there: it rewrites the entry's `type` in the same save, and refuses a change the build's id matching says would cost any waypoint its id.
 A waypoint it adds gets no entry (the next build mints one), and one it deletes keeps its entry for the build to retire.
 Edits to an added waypoint before that build stay in its `<wpt>`: there is no entry to migrate, and its description is its `<desc>` until it has an id.
+A `<wpt>` the build merges into a near-duplicate (`dedupeWaypoints`) still gets an id and a live entry, since ids are minted before the merge, but no row: the survivor lists it in `mergedIds`, the survivor's description gains its description as a further paragraph, and nothing in the app shows the comments keyed to its id.
+The editor lists it so it can be deleted (its entry is then retired like any other) or renamed apart.
 A waypoint whose exact name is on a nearby entry claims it before any proximity match (nearest pair first across the trail), so a newcomer of the same type within 100 m of an existing waypoint mints its own id instead of taking that one's;
 when it does, the build warns, naming the waypoints beside it (one place entered under two names looks the same), and repeats the warning at the end.
 It warns only on the build that mints: from then on the newcomer claims its own entry by name, so check the warning before committing the registry.
