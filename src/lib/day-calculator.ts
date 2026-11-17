@@ -424,6 +424,17 @@ export function computeDays(
     const hours = estimateHikingTime(distanceKm, gain, loss, baseKmh);
     const water = countWaterSources(start.km, end.km, waypoints);
 
+    // Where the day is walked, for its hours of daylight (`@lib/daylight`).
+    // Read off the same points, in the same km space, as everything above,
+    // so a reversed or section-scoped trail needs no special case.
+    let latitude: number | undefined;
+    if (trackPoints.length > 0) {
+      const startLat = trackPoints[findNearestByDistance(trackPoints, start.km)].lat;
+      const endLat = trackPoints[findNearestByDistance(trackPoints, end.km)].lat;
+      const mean = (startLat + endLat) / 2;
+      if (Number.isFinite(mean)) latitude = Math.round(mean * 100) / 100;
+    }
+
     let date: string | undefined;
     if (startDate) {
       // Use UTC to avoid timezone shifts
@@ -444,6 +455,7 @@ export function computeDays(
       descentM: loss,
       estimatedHours: hours,
       waterSources: water,
+      ...(latitude !== undefined ? { latitude } : {}),
       ...(offTrailKm > 0 ? { offTrailKm: Math.round(offTrailKm * 10) / 10 } : {}),
       ...(walkOut ? { walkOut } : {}),
       ...(walkIn ? { walkIn } : {}),

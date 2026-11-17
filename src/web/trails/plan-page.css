@@ -253,6 +253,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
   color: var(--text-secondary);
 }
 .day-card-rest,
+.day-card-daylight,
 .days-start-zero {
   margin-top: 0.3rem;
   font-size: 0.72rem;

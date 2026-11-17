@@ -258,6 +258,15 @@ Shared processing modules (used by both web and mobile):
   `computePlanDays` looks each stop's walk up by `waypointId` through `stopWalk`, which gives none to a stop no longer at its waypoint's km (saved before a data update moved the place: that day already walks the old way there).
   `day-suggest` counts a candidate's `walk` and `fromWalk` (the last stop's walk out, via `SuggestStart.waypointId` and `stopWalk`) the same way, keeping the shortest walk where places share a junction km, and the phone's Stops-list legs (`plan-stops.stopLegs`, walks looked up in the trail's waypoints, not the candidates shown) and Today rows (`today-plan.todayRows`) add up to the same day.
   All four add walks through `addPlaceWalks`, the one home of the out/in sum
+- `daylight.ts` - Hours of daylight on a planned day, set beside its estimated walking time.
+  `daylightHours(latitude, isoDate)` is the sunrise equation with NOAA's declination series: sunrise to sunset in hours, 0 in polar night and 24 under the midnight sun, undefined for an unusable latitude or date.
+  It gives a length and never a clock time, because a length needs no time zone and a clock time does (half-hour zones on Heysen and Larapinta, daylight saving, a phone abroad).
+  It has no dependency; against suncalc it agrees to about a minute at the trails' latitudes.
+  `dayDaylight(day)` reads a `ComputedDay`'s `date` and `latitude` and returns `{ daylightHours, shortfallHours }`, or null without a start date;
+  `shortfallHours` is the estimate minus the daylight to the estimate's own 0.1 h, 0 when the walk fits.
+  `computeDays` writes `latitude` (the mean of the route's latitude at the day's two ends, two decimals) from the same points and km space as the rest of the day, so a reversed or section-scoped trail needs no special case, and `computePlanDays` moving a date for rest days needs no recompute.
+  It states two figures and their difference and sets no threshold: whether to start before dawn is the hiker's call.
+  `formatDaylightDuration` is "9 h 32 min".
 - `resupply-calculator.ts` - Town resupply points and the km between them, and food carry weight (grams per day required, never defaulted);
   days and the long-carry flag are worked out per leg in `resupply-plan.ts`;
   which waypoints count comes from `isResupplyWaypoint` in `waypoint-taxonomy.ts`

@@ -132,6 +132,14 @@ export interface ComputedDay {
   estimatedHours: number;
   waterSources: number;
   /**
+   * Latitude the day is walked at, in degrees: the mean of the route's
+   * latitude at `startKm` and `endKm`, to two decimals. What `@lib/daylight`
+   * `dayDaylight` reads, with `date`, for the day's hours of daylight; a
+   * day's walk moves the answer by seconds, so one figure serves the day.
+   * Absent when the track has no points.
+   */
+  latitude?: number;
+  /**
    * Of `distanceKm`, the km walked off the route: to this day's end stop and
    * back out from its start stop, when they are off it (`placeWalk`). Their
    * climb is in `ascentM`/`descentM` and the walk in `estimatedHours`.
