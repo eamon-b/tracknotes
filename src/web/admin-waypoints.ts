@@ -35,11 +35,16 @@ import {
 import { adminRouteShapes } from './admin-route-map';
 import { loadSession } from './api/session';
 import {
+  COMMENTS_PAGE_SIZE,
+  ORPHAN_IDS_PAGE_SIZE,
   commentCounts,
   commentsCountText,
   commentsSectionHtml,
   loadTrailComments,
   orphanedCommentIds,
+  parseShown,
+  revealFor,
+  type Reveal,
   type CommentsState,
 } from './admin-waypoints-comments';
 import {
@@ -792,13 +797,42 @@ function replaceWaypoint(w: EditorWaypoint): void {
 /** One bulk read per trail per page load; Reload replaces it. */
 const commentsCache = new Map<string, Promise<CommentsState>>();
 
+/**
+ * What "Show more" has revealed: of the selected waypoint's comments (one page
+ * again when another waypoint is selected), and of the trail's orphaned ids.
+ */
+const revealed = { comments: null as Reveal | null, orphans: null as Reveal | null };
+
 function renderComments(): void {
   const w = selected();
-  if (!w) return;
+  if (!w || !state.trail) return;
+  revealed.comments = revealFor(revealed.comments, `${state.trail.id}/${w.id}`, COMMENTS_PAGE_SIZE);
+  revealed.orphans = revealFor(revealed.orphans, state.trail.id, ORPHAN_IDS_PAGE_SIZE);
   $('wpe-comments-count').textContent = commentsCountText(state.comments, w.id);
   $('wpe-comments-body').innerHTML = commentsSectionHtml(state.comments, w.id, {
     orphaned: orphanedCommentIds(state.comments, new Set(state.byId.keys())),
+    shown: revealed.comments.shown,
+    orphansShown: revealed.orphans.shown,
   });
+}
+
+/**
+ * "Show more" / "Show all" on the comments or the orphaned ids. The re-render
+ * removes the button that had focus, so focus moves to the first item revealed.
+ */
+function showMore(list: keyof typeof revealed, itemSelector: string, value: string | undefined): void {
+  const shown = parseShown(value);
+  const current = revealed[list];
+  if (shown === null || !current) return;
+  const body = $('wpe-comments-body');
+  const before = body.querySelectorAll(itemSelector).length;
+  revealed[list] = { key: current.key, shown };
+  renderComments();
+  const first = body.querySelectorAll<HTMLElement>(itemSelector)[before];
+  if (first) {
+    first.tabIndex = -1;
+    first.focus();
+  }
 }
 
 async function refreshComments(trailId: string, reload = false): Promise<void> {
@@ -1134,9 +1168,14 @@ function wire(): void {
     if (poi) moveDraftTo(poi.lat, poi.lon);
   });
   $('wpe-comments-body').addEventListener('click', e => {
-    if ((e.target as HTMLElement).closest('[data-comments-reload]') && state.trail) {
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-comments-reload]') && state.trail) {
       void refreshComments(state.trail.id, true);
     }
+    const comments = target.closest<HTMLElement>('[data-comments-show]');
+    if (comments) showMore('comments', '.wpe-comment', comments.dataset.commentsShow);
+    const orphans = target.closest<HTMLElement>('[data-orphans-show]');
+    if (orphans) showMore('orphans', '.wpe-orphan-id', orphans.dataset.orphansShow);
   });
   $('wpe-use-source').addEventListener('click', () => {
     const w = selected();

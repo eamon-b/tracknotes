@@ -96,12 +96,18 @@ Deleting a pending waypoint just takes its `<wpt>` out again.
 ### Hikers' comments
 
 The form lists what hikers have posted on the selected waypoint through the app ("the tank is gone", "the camp is 200 m further on"), newest first, with the author's display name, the date (and the day it was seen, when different), any water report and photos as thumbnails linking to the full image.
+A waypoint with many comments shows its newest 10, with a line saying how many are shown of how many, "Show 10 more" for the next page and "Show all" when more than one further page remains;
+the count in the heading is always the waypoint's total.
+What is revealed belongs to the selected waypoint: selecting another starts again at the newest 10, while typing in the form, Reload and a save keep it.
+Comments that are not shown are not in the page, so their thumbnails are not fetched (those shown load lazily).
 They are read from the comments API at `VITE_API_BASE_URL` (start `npm run dev` with it set, e.g. `VITE_API_BASE_URL=https://api.tracknotes.info npm run dev`; unset, the section says comments are unavailable).
 The page makes one public read per trail, `GET /v1/trails/:trailId/comments` without `since` (live comments only, every page of up to 1000), with no token, and keeps it until Reload or a page reload;
 switching waypoint does not refetch.
 Comments are keyed by stable waypoint id, so a comment filed under an id no waypoint on the trail has any more is listed by id under the section, as a sign an id was lost.
+That list shows 20 ids at a time, with the same "Show more" and "Show all", and what is revealed of it lasts until another trail is opened.
 In a browser linked to an admin account (the link from `admin-moderation.html`), the page also reads `GET /v1/admin/comments?reported=1`, adding comments hidden by reports or deleted by an admin, and report counts;
 without one, or with a non-admin account, it says hidden comments are not shown and lists the public ones.
+Hidden and reported comments sit in the same newest-first list and page with it, so the "showing" line says how many of the comments not yet shown are hidden, and how many more are published but reported ("The 227 not shown include 3 hidden and 2 more reported.").
 The worker's CORS is `*`, so a localhost page may read it.
 The editor never writes to the comments API: moderation stays on `admin-moderation.html`, and a comment is a lead, not a source, so a fact it gives still needs its source in `plans/waypoint-description-sources.md`.
 

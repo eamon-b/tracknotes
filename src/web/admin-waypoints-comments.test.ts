@@ -1,15 +1,21 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AdminComment, SyncComment } from '@lib/comments-api-types';
 import {
+  COMMENTS_PAGE_SIZE,
+  ORPHAN_IDS_PAGE_SIZE,
   commentBadgeHtml,
   commentCounts,
   commentHtml,
   commentsCountText,
+  commentsListHtml,
   commentsSectionHtml,
   groupByWaypoint,
   loadTrailComments,
   mergeComments,
+  orphanNoteHtml,
   orphanedCommentIds,
+  parseShown,
+  revealFor,
   type CommentsState,
   type EditorComment,
 } from './admin-waypoints-comments';
@@ -181,7 +187,7 @@ describe('commentsSectionHtml', () => {
     expect(html).toContain('The tank is gone.');
     expect(html).toContain('2 comments on this trail');
     expect(html).toContain('Linked as an admin');
-    expect(html).toContain('<code>w_&lt;x&gt;</code>');
+    expect(html).toContain('w_&lt;x&gt;</code>');
     expect(commentsSectionHtml(state, 'w_0000cccc')).toContain('No comments on this waypoint.');
   });
 
@@ -190,6 +196,202 @@ describe('commentsSectionHtml', () => {
     expect(commentBadgeHtml(0)).toBe('');
     expect(commentBadgeHtml(1)).toContain('1 comment<');
     expect(commentBadgeHtml(4)).toContain('4 comments');
+  });
+});
+
+describe('paging a waypoint’s comments', () => {
+  const N = COMMENTS_PAGE_SIZE;
+
+  /** `count` comments on one waypoint, `c0` the newest, each with a thumbnail named after it. */
+  function comments(count: number, extra: (i: number) => Partial<EditorComment> = () => ({})): EditorComment[] {
+    const list = Array.from({ length: count }, (_, i) =>
+      editor({
+        id: `c${i}`,
+        text: `Comment ${i}`,
+        createdAt: new Date(Date.UTC(2026, 9, 1) - i * 3_600_000).toISOString(),
+        photoUrls: [`https://data.example.test/p/${i}.jpg`],
+        ...extra(i),
+      })
+    );
+    return groupByWaypoint(list).get('w_0000aaaa')!;
+  }
+
+  function parse(html: string) {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    return {
+      ids: [...doc.querySelectorAll('.wpe-comment')].map(li => li.getAttribute('data-comment-id')),
+      images: [...doc.querySelectorAll('img')],
+      paging: doc.querySelector('.wpe-comments-paging')?.textContent ?? null,
+      unshown: doc.querySelector('.wpe-comments-unshown')?.textContent ?? null,
+      buttons: [...doc.querySelectorAll('button[data-comments-show]')].map(b => [
+        b.textContent,
+        b.getAttribute('data-comments-show'),
+      ]),
+    };
+  }
+
+  it('shows a page or less whole, with no paging line', () => {
+    const page = parse(commentsListHtml(comments(N)));
+    expect(page.ids).toHaveLength(N);
+    expect(page.paging).toBeNull();
+    expect(page.buttons).toEqual([]);
+    expect(parse(commentsListHtml(comments(3))).ids).toEqual(['c0', 'c1', 'c2']);
+  });
+
+  it('shows the newest page of one more than a page, and offers the one left', () => {
+    const page = parse(commentsListHtml(comments(N + 1)));
+    expect(page.ids).toEqual(Array.from({ length: N }, (_, i) => `c${i}`));
+    expect(page.paging).toContain(`Showing the newest ${N} of ${N + 1} comments.`);
+    expect(page.buttons).toEqual([['Show 1 more', String(N + 1)]]);
+  });
+
+  it('offers the last page alone when exactly one further page remains', () => {
+    expect(parse(commentsListHtml(comments(2 * N))).buttons).toEqual([[`Show ${N} more`, String(2 * N)]]);
+  });
+
+  it('offers the next page and "Show all" when more than one further page remains', () => {
+    const list = comments(3 * N + 5);
+    const first = parse(commentsListHtml(list));
+    expect(first.ids).toHaveLength(N);
+    expect(first.buttons).toEqual([
+      [`Show ${N} more`, String(2 * N)],
+      [`Show all ${3 * N + 5}`, 'all'],
+    ]);
+
+    const second = parse(commentsListHtml(list, 2 * N));
+    expect(second.ids).toHaveLength(2 * N);
+    expect(second.ids.at(-1)).toBe(`c${2 * N - 1}`);
+    expect(second.paging).toContain(`Showing the newest ${2 * N} of ${3 * N + 5} comments.`);
+    expect(second.buttons).toEqual([
+      [`Show ${N} more`, String(3 * N)],
+      [`Show all ${3 * N + 5}`, 'all'],
+    ]);
+
+    const last = parse(commentsListHtml(list, 3 * N));
+    expect(last.buttons).toEqual([['Show 5 more', String(3 * N + 5)]]);
+  });
+
+  it('shows everything after "Show all", and when more is asked for than there is', () => {
+    const list = comments(3 * N + 5);
+    for (const shown of [parseShown('all')!, 3 * N + 5, 1000]) {
+      const all = parse(commentsListHtml(list, shown));
+      expect(all.ids).toHaveLength(3 * N + 5);
+      expect(all.paging).toBe(`Showing all ${3 * N + 5} comments.`);
+      expect(all.buttons).toEqual([]);
+    }
+  });
+
+  it('never shows less than a page', () => {
+    expect(parse(commentsListHtml(comments(N + 1), 0)).ids).toHaveLength(N);
+    expect(parse(commentsListHtml(comments(4), 1)).ids).toHaveLength(4);
+  });
+
+  it('leaves comments that are not shown out of the markup, so their thumbnails are not fetched', () => {
+    const page = parse(commentsListHtml(comments(N + 3)));
+    expect(page.images.map(img => img.getAttribute('src'))).toEqual(
+      Array.from({ length: N }, (_, i) => `https://data.example.test/p/${i}.jpg`)
+    );
+    expect(page.images.every(img => img.getAttribute('loading') === 'lazy')).toBe(true);
+    expect(commentsListHtml(comments(N + 3))).not.toContain(`/p/${N}.jpg`);
+  });
+
+  it('says when comments below the fold are hidden or reported', () => {
+    const list = comments(3 * N, i => {
+      if (i === 2) return { hiddenBy: 'reports', reportCount: 4 }; // on the first page: not counted
+      if (i === N + 1) return { hiddenBy: 'reports', reportCount: 3 };
+      if (i === N + 2) return { hiddenBy: 'admin', reportCount: 0 };
+      if (i === 2 * N + 1) return { reportCount: 1 };
+      return {};
+    });
+    expect(parse(commentsListHtml(list)).unshown).toBe(`The ${2 * N} not shown include 2 hidden and 1 more reported.`);
+    expect(parse(commentsListHtml(list, 2 * N)).unshown).toBe(`The ${N} not shown include 1 reported.`);
+    expect(parse(commentsListHtml(list, 3 * N)).unshown).toBeNull();
+
+    const hiddenOnly = comments(N + 2, i => (i === N ? { hiddenBy: 'admin' } : {}));
+    expect(parse(commentsListHtml(hiddenOnly)).unshown).toBe('The 2 not shown include 1 hidden.');
+    // Without the admin listing nothing is known to be hidden or reported.
+    expect(parse(commentsListHtml(comments(3 * N))).unshown).toBeNull();
+  });
+
+  it('pages the section, keeping the heading count the waypoint’s total', () => {
+    const list = [...comments(2 * N + 1), editor({ id: 'other', waypointId: 'w_0000bbbb' })];
+    const state = ready(list, 'admin');
+    expect(commentsCountText(state, 'w_0000aaaa')).toBe(String(2 * N + 1));
+    const first = parse(commentsSectionHtml(state, 'w_0000aaaa'));
+    expect(first.ids).toHaveLength(N);
+    expect(first.buttons.map(b => b[1])).toEqual([String(2 * N), 'all']);
+    expect(parse(commentsSectionHtml(state, 'w_0000aaaa', { shown: 2 * N })).ids).toHaveLength(2 * N);
+    expect(commentsSectionHtml(state, 'w_0000aaaa')).toContain(`${2 * N + 2} comments on this trail`);
+    expect(parse(commentsSectionHtml(state, 'w_0000bbbb')).paging).toBeNull();
+  });
+});
+
+describe('revealFor and parseShown', () => {
+  it('keeps what was revealed for the same waypoint and starts again for another', () => {
+    const first = revealFor(null, 'heysen/w_0000aaaa', COMMENTS_PAGE_SIZE);
+    expect(first).toEqual({ key: 'heysen/w_0000aaaa', shown: COMMENTS_PAGE_SIZE });
+    const more = { key: first.key, shown: 30 };
+    expect(revealFor(more, 'heysen/w_0000aaaa', COMMENTS_PAGE_SIZE)).toBe(more);
+    const other = revealFor(more, 'heysen/w_0000bbbb', COMMENTS_PAGE_SIZE);
+    expect(other).toEqual({ key: 'heysen/w_0000bbbb', shown: COMMENTS_PAGE_SIZE });
+    // Back on the first waypoint, what was revealed there is forgotten.
+    expect(revealFor(other, 'heysen/w_0000aaaa', COMMENTS_PAGE_SIZE).shown).toBe(COMMENTS_PAGE_SIZE);
+  });
+
+  it('reads a button’s count, and nothing else', () => {
+    expect(parseShown('20')).toBe(20);
+    expect(parseShown('all')).toBe(Infinity);
+    for (const bad of [undefined, '', '0', '-5', '1.5', 'lots']) expect(parseShown(bad)).toBeNull();
+  });
+});
+
+describe('orphanNoteHtml', () => {
+  const M = ORPHAN_IDS_PAGE_SIZE;
+  const ids = (count: number) => Array.from({ length: count }, (_, i) => `w_${String(i).padStart(8, '0')}`);
+
+  function parse(html: string) {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    return {
+      ids: [...doc.querySelectorAll('.wpe-orphan-id')].map(c => c.textContent),
+      text: doc.body.textContent ?? '',
+      buttons: [...doc.querySelectorAll('button[data-orphans-show]')].map(b => [
+        b.textContent,
+        b.getAttribute('data-orphans-show'),
+      ]),
+    };
+  }
+
+  it('says nothing without orphans, and lists a page or less whole', () => {
+    expect(orphanNoteHtml([])).toBe('');
+    expect(parse(orphanNoteHtml(['w_deadbeef'])).text).toContain('under an id no waypoint here has');
+    const page = parse(orphanNoteHtml(ids(M)));
+    expect(page.ids).toEqual(ids(M));
+    expect(page.buttons).toEqual([]);
+  });
+
+  it('caps a long list, saying how many more there are', () => {
+    const first = parse(orphanNoteHtml(ids(2 * M + 3)));
+    expect(first.ids).toEqual(ids(M));
+    expect(first.text).toContain(`under ${2 * M + 3} ids no waypoint here has`);
+    expect(first.text).toContain(`and ${M + 3} more.`);
+    expect(first.buttons).toEqual([
+      [`Show ${M} more`, String(2 * M)],
+      [`Show all ${2 * M + 3}`, 'all'],
+    ]);
+    const second = parse(orphanNoteHtml(ids(2 * M + 3), 2 * M));
+    expect(second.ids).toHaveLength(2 * M);
+    expect(second.buttons).toEqual([['Show 3 more', String(2 * M + 3)]]);
+    const all = parse(orphanNoteHtml(ids(2 * M + 3), Infinity));
+    expect(all.ids).toHaveLength(2 * M + 3);
+    expect(all.text).not.toContain('more');
+  });
+
+  it('escapes the ids, and takes its count from the section', () => {
+    expect(orphanNoteHtml(['w_<x>'])).toContain('&lt;x&gt;</code>');
+    const state = ready([editor()]);
+    const html = commentsSectionHtml(state, 'w_0000aaaa', { orphaned: ids(M + 5), orphansShown: M + 5 });
+    expect(parse(html).ids).toHaveLength(M + 5);
+    expect(parse(commentsSectionHtml(state, 'w_0000aaaa', { orphaned: ids(M + 5) })).ids).toHaveLength(M);
   });
 });
 
