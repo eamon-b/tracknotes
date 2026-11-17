@@ -449,8 +449,9 @@ kbd {
   width: 100%;
 }
 
-/* A Lat, Lon or pasted position that is not one: it is never read as a move. */
-.wpe-position input[aria-invalid='true'] {
+/* A Lat, Lon or pasted position that is not one: it is never read as a move. A new waypoint's name the build would not show as typed. */
+.wpe-position input[aria-invalid='true'],
+#wpe-new-name[aria-invalid='true'] {
   border-color: var(--danger);
   outline-color: var(--danger);
 }

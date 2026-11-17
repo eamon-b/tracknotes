@@ -49,5 +49,12 @@ logs/
 # Claude Code session worktrees (agent scratch space)
 .claude/worktrees/
 
+# The waypoint editor's saves write each file to a temporary one beside it and
+# rename it over (`.<file>.<pid>-<n>.wpe-tmp`, with a `.wpe-bak` copy of the old
+# file until the save is through). One left by a dev server killed mid-save is
+# never trail data: keep it out of commits and of the editor's changed-files list.
+*.wpe-tmp
+*.wpe-bak
+
 # Overpass answers cached by fetch-access.ts
 data/osm-ways-cache/

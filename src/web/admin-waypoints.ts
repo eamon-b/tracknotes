@@ -67,8 +67,10 @@ import {
   formatDistance,
   hasCuratedText,
   isDirty,
+  isReviewable,
   isReviewed,
   knownCommentIds,
+  laterPassOf,
   matchesFilter,
   mergeCommentsNote,
   mergeMetaHtml,
@@ -88,9 +90,12 @@ import {
   rowHtml,
   saveAffectsOtherRows,
   saveNotes,
+  sharedSourceText,
   stepTarget,
+  takesIdMetaHtml,
   typeCounts,
   typeOptionsHtml,
+  typePrefixProblem,
   voiceHints,
   waypointGlyphHtml,
   type ReviewMarks,
@@ -255,8 +260,8 @@ function saveMarks(): void {
 }
 
 function setReviewed(w: EditorWaypoint, reviewed: boolean): void {
-  // A pending waypoint has only a temporary key, which a rename or a move changes: nothing is kept under it.
-  if (w.pending) return;
+  // No mark is kept for a pending waypoint (a temporary key) or one the last build does not list (locked).
+  if (!isReviewable(w)) return;
   if (reviewed) state.marks[w.id] = reviewFingerprint(w);
   else delete state.marks[w.id];
   saveMarks();
@@ -366,8 +371,10 @@ function renderProgress(): void {
     el.textContent = '';
     return;
   }
-  const total = trail.waypoints.length;
-  const reviewed = trail.waypoints.filter(w => isReviewed(state.marks, w)).length;
+  // Of the rows a mark can be kept for: a pending waypoint and one the last build does not list take none.
+  const reviewable = trail.waypoints.filter(isReviewable);
+  const total = reviewable.length;
+  const reviewed = reviewable.filter(w => isReviewed(state.marks, w)).length;
   const described = trail.waypoints.filter(hasCuratedText).length;
   const unsaved = trail.waypoints.filter(w => isDirty(w, state.drafts.get(w.id))).length;
   el.innerHTML =
@@ -442,12 +449,14 @@ async function createMap(): Promise<MapState> {
 function drawTrail(fit: boolean): void {
   const m = state.map;
   const trail = state.trail;
-  if (!m || !trail) return;
+  if (!m) return;
   const { L: Lf } = m;
   m.route.clearLayers();
   m.dots.clearLayers();
   m.pois.clearLayers();
   m.dotById.clear();
+  // No trail (the one asked for could not be read): the map is left empty, not showing the last one.
+  if (!trail) return;
 
   // adminRouteShapes cuts the main line at track.breaks and draws variants.
   const shapes = adminRouteShapes({
@@ -765,11 +774,16 @@ function renderDescriptionAids(): void {
   const text = $<HTMLTextAreaElement>('wpe-desc').value;
   const max = state.trail?.maxDescriptionLength ?? 4000;
   const count = $('wpe-desc-count');
-  count.textContent = `${text.trim().length} / ${max}`;
-  count.classList.toggle('is-over', text.trim().length > max);
-  $('wpe-hints').innerHTML = voiceHints(text)
-    .map(h => `<li><strong>${escapeHtml(h.match)}</strong>: ${escapeHtml(h.message)}</li>`)
-    .join('');
+  // A box that cannot be edited here (a later pass shows the place's text, a
+  // locked row its own) takes no limit and no hints: there is nothing to act on.
+  const editable = !!selected()?.canDescribe;
+  count.textContent = editable ? `${text.trim().length} / ${max}` : '';
+  count.classList.toggle('is-over', editable && text.trim().length > max);
+  $('wpe-hints').innerHTML = editable
+    ? voiceHints(text)
+        .map(h => `<li><strong>${escapeHtml(h.match)}</strong>: ${escapeHtml(h.message)}</li>`)
+        .join('')
+    : '';
 }
 
 function renderButtons(): void {
@@ -784,7 +798,8 @@ function renderButtons(): void {
   $<HTMLButtonElement>('wpe-revert').disabled = !dirty;
   const del = $<HTMLButtonElement>('wpe-delete');
   del.disabled = !w?.canDelete || busy;
-  del.title = w && !w.canDelete && /_\d+$/.test(w.id) ? 'A later pass of a revisited place: delete the first pass' : '';
+  const place = w && !w.canDelete && !w.pending ? laterPassOf(w.id) : null;
+  del.title = place ? `A later pass of a revisited place: delete the first pass, ${place}` : '';
   $<HTMLButtonElement>('wpe-new').disabled = !state.trail || !!state.trail.readOnlyReason || busy;
   // Also on while a typed position is uncommitted or flagged: it puts the fields back.
   $<HTMLButtonElement>('wpe-reset-pos').disabled = !(moved || state.positionTyped || (!!w && positionInvalid()));
@@ -792,7 +807,8 @@ function renderButtons(): void {
   $<HTMLButtonElement>('wpe-place').disabled = !w?.canMove;
   $<HTMLButtonElement>('wpe-rebuild').disabled = busy;
   const reload = $<HTMLButtonElement>('wpe-reload');
-  reload.disabled = !state.trail || busy || state.loading;
+  // Also on when the trail asked for could not be read (a GPX the build cannot read): it asks again.
+  reload.disabled = !(state.trail || state.trailWanted) || busy || state.loading;
   reload.textContent = state.loading && state.trail ? 'Reloading…' : 'Reload trail';
 }
 
@@ -853,6 +869,13 @@ function fillForm(options: { keepTyping?: boolean } = {}): void {
   if (w.pending && !w.placements.length) {
     meta.push('<span>Its place on the route (main route, a variant, or off it) comes from the next build</span>');
   }
+  const takes = takesIdMetaHtml(w, state.byId);
+  if (takes) meta.push(takes);
+  if (w.notBuilt) {
+    meta.push(
+      '<span>Not in the last build on this machine: its km and its place on the route come from a rebuild</span>'
+    );
+  }
   if (w.distanceFromTrailM !== undefined) {
     meta.push(`<span>${escapeHtml(formatDistance(w.distanceFromTrailM))} from the main route in the last build</span>`);
   }
@@ -861,8 +884,8 @@ function fillForm(options: { keepTyping?: boolean } = {}): void {
       `<span>access.json: ${escapeHtml([w.access.method, w.access.store && `store ${w.access.store}`].filter(Boolean).join(', '))}</span>`
     );
   }
-  if (w.sharesSourceWith?.length)
-    meta.push(`<span>Same &lt;wpt&gt; as ${escapeHtml(w.sharesSourceWith.join(', '))}</span>`);
+  const shared = sharedSourceText(w);
+  if (shared) meta.push(`<span>${escapeHtml(shared)}</span>`);
   const merge = mergeMetaHtml(w, state.byId);
   if (merge) meta.push(merge);
   $('wpe-meta').innerHTML = meta.join('');
@@ -874,7 +897,7 @@ function fillForm(options: { keepTyping?: boolean } = {}): void {
   $('wpe-use-source').hidden = !w.canDescribe;
 
   $<HTMLInputElement>('wpe-reviewed').checked = isReviewed(state.marks, w);
-  $<HTMLInputElement>('wpe-reviewed').disabled = !!w.pending;
+  $<HTMLInputElement>('wpe-reviewed').disabled = !isReviewable(w);
   fillPosition(keepTyping);
   renderDescriptionAids();
   renderButtons();
@@ -1250,14 +1273,19 @@ function placeNew(lat: number, lon: number): void {
 }
 
 function renderNewButtons(): void {
-  const ready = !!state.adding && !!$<HTMLInputElement>('wpe-new-name').value.trim();
+  const name = $<HTMLInputElement>('wpe-new-name');
+  // A name the build would strip a type prefix from is refused by the server: say so before it is sent.
+  const problem = typePrefixProblem(name.value);
+  flagField(name, !!problem);
+  $('wpe-new-name-error').textContent = problem ?? '';
+  const ready = !!state.adding && !!name.value.trim() && !problem;
   $<HTMLButtonElement>('wpe-new-add').disabled = !ready || state.saving || state.rebuilding;
 }
 
 async function addNew(): Promise<void> {
   const trail = state.trail;
   const at = state.adding;
-  if (!trail || !at || state.saving) return;
+  if (!trail || !at || state.saving || typePrefixProblem($<HTMLInputElement>('wpe-new-name').value)) return;
   const request: NewWaypointRequest = {
     name: $<HTMLInputElement>('wpe-new-name').value.trim(),
     type: $<HTMLSelectElement>('wpe-new-type').value,
@@ -1359,6 +1387,8 @@ async function loadTrail(dir: string, options: { select?: string | null } = {}):
       state.lines = [];
       renderList();
       select(null);
+      drawTrail(false);
+      renderTrailFiles();
     }
     // A failed re-read leaves the trail as the page has it, drafts included.
     renderButtons();
@@ -1396,6 +1426,7 @@ async function loadTrail(dir: string, options: { select?: string | null } = {}):
   bannerAfterLoad = null;
   if (!same) void refreshComments(trail.id);
   renderFilters();
+  renderTrailFiles();
   const mapReady = !!state.map;
   if (mapReady) drawTrail(!same);
   const wanted = 'select' in options ? (options.select ?? null) : same ? state.selectedId : null;
@@ -1415,6 +1446,23 @@ async function loadTrail(dir: string, options: { select?: string | null } = {}):
     drawTrail(true);
     drawSelection(true);
   }
+}
+
+/** The Changed files drawer's line on which source files a save on the open trail may write. */
+function renderTrailFiles(): void {
+  const trail = state.trail;
+  const el = $('wpe-trail-files');
+  // Nothing is written on a read-only trail.
+  el.hidden = !trail || !!trail.readOnlyReason;
+  if (!trail || trail.readOnlyReason) return;
+  const { gpx, geojson, descriptions, registry, config } = trail.files;
+  const code = (file: string) => `<code>${escapeHtml(file)}</code>`;
+  el.innerHTML =
+    `A save on ${escapeHtml(trail.name)} writes ${[gpx, geojson, descriptions, registry]
+      .filter((file): file is string => !!file)
+      .map(code)
+      .join(', ')}` +
+    (config ? `, and ${code(config)} when a rename changes a name in its <code>revisitedWaypoints</code>.` : '.');
 }
 
 async function refreshChanges(): Promise<void> {
@@ -1523,7 +1571,9 @@ function wire(): void {
     void loadTrail(dir, { select: null });
   });
   $('wpe-reload').addEventListener('click', () => {
-    if (state.trail && !state.saving && !state.rebuilding) void loadTrail(state.trail.dir);
+    // The open trail again, or the one asked for that could not be read.
+    const dir = state.trail?.dir ?? state.trailWanted;
+    if (dir && !state.saving && !state.rebuilding) void loadTrail(dir);
   });
   $<HTMLInputElement>('wpe-search').addEventListener('input', e => {
     state.filter.query = (e.target as HTMLInputElement).value;
@@ -1648,6 +1698,8 @@ function wire(): void {
     } else if (e.altKey && e.code === 'KeyR') {
       e.preventDefault();
       const box = $<HTMLInputElement>('wpe-reviewed');
+      // Off for a waypoint that takes no mark (pending, or not in the last build).
+      if (box.disabled) return;
       box.checked = !box.checked;
       box.dispatchEvent(new Event('change'));
     } else if (e.altKey && e.code === 'KeyP') {
