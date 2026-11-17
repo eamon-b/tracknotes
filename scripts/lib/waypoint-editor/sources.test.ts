@@ -5,10 +5,13 @@ import {
   detectJsonLayout,
   editCaltopoMarker,
   editJsonPreservingLayout,
+  elevationDecimals,
   encodeXmlText,
   findCaltopoMarker,
   findGpxWaypoint,
   folderTitlesForType,
+  formatElevation,
+  gpxWaypointElevationStyle,
   insertGpxWaypoint,
   jsonValueSpan,
   listGpxWaypoints,
@@ -19,6 +22,7 @@ import {
   removeGpxWaypoint,
   renameKeepingPrefix,
   setCaltopoMarkerFolder,
+  setGpxWaypointElevation,
   setGpxWaypointName,
   setGpxWaypointPosition,
   setGpxWaypointType,
@@ -207,6 +211,108 @@ describe('GPX types, new and removed waypoints', () => {
     const added = insertGpxWaypoint(GPX, { lat: 1, lon: 2, name: 'Tank', type: 'water' });
     const span = listGpxWaypoints(added).find(s => s.name === 'Tank')!;
     expect(removeGpxWaypoint(added, span)).toBe(GPX);
+  });
+});
+
+describe('GPX waypoint elevations', () => {
+  // The bundled open-data files' style: every <wpt> on one line, <ele> first, one decimal.
+  const WITH_ELE = [
+    '<gpx version="1.1">',
+    '  <wpt lat="-33.1" lon="151.1"><ele>745.0</ele><name>Drinking water</name><type>water</type></wpt>',
+    '  <wpt lat="-33.2" lon="151.2"><ele>13.4</ele><name>Warners Bay</name><desc>Shops.</desc><type>town</type></wpt>',
+    '  <trk><trkseg><trkpt lat="-33.1" lon="151.1"><ele>745</ele></trkpt></trkseg></trk>',
+    '</gpx>',
+    '',
+  ].join('\n');
+  // A device's style: one child per line, <ele> first, whole metres, a height of its own in <extensions>.
+  const MULTI_ELE = [
+    '<gpx version="1.1">',
+    '  <wpt lat="48.1" lon="-113.1">',
+    '    <ele> 1309 </ele>',
+    '    <name>Crazy Cook</name>',
+    '    <extensions><x:ele>9999</x:ele><ele>8888</ele></extensions>',
+    '  </wpt>',
+    '  <wpt lat="48.2" lon="-113.2">',
+    '    <name>Spring</name>',
+    '    <extensions><ele>7777</ele></extensions>',
+    '  </wpt>',
+    '</gpx>',
+    '',
+  ].join('\n');
+
+  it("reads a <wpt>'s own <ele> as written, never one inside <extensions>", () => {
+    expect(listGpxWaypoints(WITH_ELE).map(s => s.ele)).toEqual(['745.0', '13.4']);
+    expect(listGpxWaypoints(MULTI_ELE).map(s => s.ele)).toEqual(['1309', undefined]);
+    expect(listGpxWaypoints(GPX).map(s => s.ele)).toEqual(['10', undefined, undefined, undefined]);
+  });
+
+  it('counts and writes decimals, keeping trailing zeros and never a negative zero', () => {
+    expect([elevationDecimals('745.0'), elevationDecimals(' 1309 '), elevationDecimals('-3.25')]).toEqual([1, 0, 2]);
+    expect([elevationDecimals(''), elevationDecimals('1e3'), elevationDecimals('high')]).toEqual([null, null, null]);
+    expect(formatElevation(745.04, 1)).toBe('745.0');
+    expect(formatElevation(811.5, 0)).toBe('812');
+    expect(formatElevation(-0.04, 1)).toBe('0.0');
+    expect(formatElevation(-12.345, 2)).toBe('-12.35');
+  });
+
+  it("says a file's <wpt>s carry an <ele> when at least half of them do, in the decimals most use", () => {
+    expect(gpxWaypointElevationStyle(listGpxWaypoints(WITH_ELE))).toEqual({ decimals: 1 });
+    // One of two: half is enough. One of four (the fixture at the top): not.
+    expect(gpxWaypointElevationStyle(listGpxWaypoints(MULTI_ELE))).toEqual({ decimals: 0 });
+    expect(gpxWaypointElevationStyle(listGpxWaypoints(GPX))).toBeNull();
+    expect(gpxWaypointElevationStyle([])).toBeNull();
+    const span = (ele?: string) => ({
+      start: 0,
+      end: 0,
+      lat: 0,
+      lon: 0,
+      name: '',
+      ...(ele === undefined ? {} : { ele }),
+    });
+    // The CDT mixes whole metres with one decimal: the commoner wins, the finer on a tie.
+    expect(gpxWaypointElevationStyle([span('1309'), span('1284.9'), span('2011.3')])).toEqual({ decimals: 1 });
+    expect(gpxWaypointElevationStyle([span('1309'), span('1284.9')])).toEqual({ decimals: 1 });
+    expect(gpxWaypointElevationStyle([span('unknown'), span()])).toEqual({ decimals: 1 });
+  });
+
+  it('rewrites an <ele> in place and nothing else, and never adds one', () => {
+    const spans = listGpxWaypoints(WITH_ELE);
+    expect(setGpxWaypointElevation(WITH_ELE, spans[0], '802.3')).toBe(
+      WITH_ELE.replace('<ele>745.0</ele>', '<ele>802.3</ele>')
+    );
+    expect(setGpxWaypointElevation(WITH_ELE, spans[1], '9.0')).toBe(
+      WITH_ELE.replace('<ele>13.4</ele>', '<ele>9.0</ele>')
+    );
+    const multi = listGpxWaypoints(MULTI_ELE);
+    // The spacing inside the element is the file's, and the <ele>s in <extensions> are not this one.
+    expect(setGpxWaypointElevation(MULTI_ELE, multi[0], '1412')).toBe(
+      MULTI_ELE.replace('<ele> 1309 </ele>', '<ele> 1412 </ele>')
+    );
+    expect(setGpxWaypointElevation(MULTI_ELE, multi[1], '1412')).toBe(MULTI_ELE);
+    expect(setGpxWaypointElevation(GPX, listGpxWaypoints(GPX)[1], '5')).toBe(GPX);
+  });
+
+  it('writes a new <wpt> with its <ele> where the last <wpt> has it, and first when that one has none', () => {
+    const tank = { lat: -33.3, lon: 151.3, name: 'Tank', type: 'water-tank' };
+    expect(insertGpxWaypoint(WITH_ELE, { ...tank, ele: '812.3' })).toBe(
+      WITH_ELE.replace(
+        '<type>town</type></wpt>\n',
+        '<type>town</type></wpt>\n  <wpt lat="-33.3" lon="151.3"><ele>812.3</ele><name>Tank</name><type>water-tank</type></wpt>\n'
+      )
+    );
+    // The last <wpt> of this file has no <ele>: GPX 1.1 puts it first.
+    expect(insertGpxWaypoint(MULTI_ELE, { ...tank, ele: '640' })).toContain(
+      '  </wpt>\n  <wpt lat="-33.3" lon="151.3">\n    <ele>640</ele>\n    <name>Tank</name>\n    <type>water-tank</type>\n  </wpt>\n</gpx>'
+    );
+    // A file that writes it after the name keeps it after the name.
+    const after = '<gpx><wpt lat="1" lon="2"><name>Flat</name><ele>5</ele><type>hut</type></wpt><trk/></gpx>';
+    expect(insertGpxWaypoint(after, { ...tank, ele: '7' })).toContain(
+      '<wpt lat="-33.3" lon="151.3"><name>Tank</name><ele>7</ele><type>water-tank</type></wpt><trk/>'
+    );
+    // Without one, none is written, as before.
+    expect(insertGpxWaypoint(WITH_ELE, tank)).toContain(
+      '<wpt lat="-33.3" lon="151.3"><name>Tank</name><type>water-tank</type></wpt>'
+    );
   });
 });
 
