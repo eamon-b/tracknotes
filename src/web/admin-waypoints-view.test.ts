@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { EditorWaypoint } from '../../scripts/lib/waypoint-editor/api-types';
 import {
+  deleteConfirmText,
   draftChanges,
   draftOf,
   isReviewed,
@@ -9,6 +10,7 @@ import {
   parseLatLon,
   reviewFingerprint,
   rowHtml,
+  typeOptionsHtml,
   voiceHints,
 } from './admin-waypoints-view';
 
@@ -17,6 +19,7 @@ function waypoint(extra: Partial<EditorWaypoint> = {}): EditorWaypoint {
     id: 'w_1',
     name: 'Upper Hut',
     type: 'hut',
+    builtType: 'hut',
     lat: -36.5,
     lon: 148.25,
     builtLat: -36.5,
@@ -28,6 +31,8 @@ function waypoint(extra: Partial<EditorWaypoint> = {}): EditorWaypoint {
     canMove: true,
     canRename: true,
     canDescribe: true,
+    canChangeType: true,
+    canDelete: true,
     ...extra,
   };
 }
@@ -74,8 +79,10 @@ describe('drafts, filters and review marks', () => {
       name: false,
       position: false,
       description: false,
+      type: false,
     });
     expect(draftChanges(w, { ...draftOf(w), lat: -36.501 }).position).toBe(true);
+    expect(draftChanges(w, { ...draftOf(w), type: 'campsite' }).type).toBe(true);
   });
 
   it('filters by status, type and name or id', () => {
@@ -86,6 +93,9 @@ describe('drafts, filters and review marks', () => {
     expect(matchesFilter(w, { query: 'w_1', type: '', status: 'all' }, marks)).toBe(true);
     expect(matchesFilter(w, { query: '', type: 'water', status: 'all' }, marks)).toBe(false);
     expect(matchesFilter(waypoint({ lat: -36.6 }), { query: '', type: '', status: 'changed' }, marks)).toBe(true);
+    expect(matchesFilter(waypoint({ type: 'campsite' }), { query: '', type: '', status: 'changed' }, marks)).toBe(true);
+    expect(matchesFilter(waypoint(), { query: '', type: '', status: 'pending' }, marks)).toBe(false);
+    expect(matchesFilter(waypoint({ pending: true }), { query: '', type: '', status: 'pending' }, marks)).toBe(true);
     expect(
       matchesFilter(
         waypoint({ placements: [{ kind: 'off-trail' }] }),
@@ -120,6 +130,28 @@ describe('markup', () => {
     expect(rowHtml(waypoint(), { selected: false, dirty: false, reviewed: false, comments: 2 })).toContain(
       '2 comments'
     );
+  });
+
+  it('marks a pending waypoint, and offers the classifier types plus a foreign current one, escaped', () => {
+    const html = rowHtml(waypoint({ id: 'new:abc', pending: true }), {
+      selected: false,
+      dirty: false,
+      reviewed: false,
+    });
+    expect(html).toContain('pending rebuild');
+    expect(html).not.toContain('no text');
+    const options = typeOptionsHtml('<b>x</b>');
+    expect(options.startsWith('<option value="&lt;b&gt;x&lt;/b&gt;">')).toBe(true);
+    expect(options).toContain('<option value="water-tank">Water tank (water-tank)</option>');
+    expect(typeOptionsHtml('hut').match(/value="hut"/g)).toHaveLength(1);
+  });
+
+  it('says in the delete confirmation that the id is retired and its comments orphaned', () => {
+    const text = deleteConfirmText(waypoint({ sharesSourceWith: ['w_1_2'] }));
+    expect(text).toMatch(/retired/);
+    expect(text).toMatch(/Comments keyed to w_1 are orphaned/);
+    expect(text).toMatch(/Also deletes w_1_2/);
+    expect(deleteConfirmText(waypoint({ pending: true }))).toMatch(/no id yet/);
   });
 
   it('lists nearby POIs nearest first, within the radius', () => {

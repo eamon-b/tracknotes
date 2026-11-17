@@ -11,7 +11,9 @@
  * Routes, under `/__waypoint-editor`:
  *   GET  /trails                       trail list
  *   GET  /trails/:dir                  one trail's editor model
+ *   POST /trails/:dir/waypoints        add a waypoint (NewWaypointRequest)
  *   POST /trails/:dir/waypoints/:id    save one waypoint (WaypointEditRequest)
+ *   DELETE /trails/:dir/waypoints/:id  delete one waypoint (WaypointDeleteRequest)
  *   GET  /changes                      git status of the trail data
  *   GET  /rebuild, POST /rebuild       rebuild status / start build:trails + build:mobile-trails
  */
@@ -20,9 +22,18 @@ import { spawn, execFile } from 'child_process';
 import * as fs from 'fs';
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { Plugin } from 'vite';
-import type { ChangedFile, RebuildStatus, RegistryChange, WaypointEditRequest } from './api-types';
+import type {
+  ChangedFile,
+  NewWaypointRequest,
+  RebuildStatus,
+  RegistryChange,
+  WaypointDeleteRequest,
+  WaypointEditRequest,
+} from './api-types';
 import { EDITOR_API_BASE, EDITOR_HEADER } from './api-types';
 import {
+  addWaypoint,
+  deleteWaypoint,
   EditorError,
   editorPaths,
   listTrails,
@@ -216,11 +227,21 @@ export function waypointEditorPlugin(root: string): Plugin {
     if (method === 'GET' && segments.length === 2 && segments[0] === 'trails') {
       return send(res, 200, loadEditorTrail(paths, segments[1]));
     }
-    if (method === 'POST' && segments.length === 4 && segments[0] === 'trails' && segments[2] === 'waypoints') {
-      if (rebuild.status.state === 'running')
-        throw new EditorError('A rebuild is running: save when it has finished', 409);
+    const waypointRoute = segments[0] === 'trails' && segments[2] === 'waypoints';
+    if (waypointRoute && (method === 'POST' || method === 'DELETE') && rebuild.status.state === 'running') {
+      throw new EditorError('A rebuild is running: save when it has finished', 409);
+    }
+    if (method === 'POST' && segments.length === 3 && waypointRoute) {
+      const body = (await readBody(req)) as NewWaypointRequest;
+      return send(res, 201, addWaypoint(paths, segments[1], body));
+    }
+    if (method === 'POST' && segments.length === 4 && waypointRoute) {
       const body = (await readBody(req)) as WaypointEditRequest;
       return send(res, 200, saveWaypointEdit(paths, segments[1], segments[3], body));
+    }
+    if (method === 'DELETE' && segments.length === 4 && waypointRoute) {
+      const body = (await readBody(req)) as WaypointDeleteRequest;
+      return send(res, 200, deleteWaypoint(paths, segments[1], segments[3], body));
     }
     if (method === 'GET' && route === '/changes') return send(res, 200, await gitChanges(root));
     if (route === '/rebuild') {

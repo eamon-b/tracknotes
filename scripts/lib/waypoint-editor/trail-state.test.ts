@@ -4,12 +4,15 @@ import * as path from 'path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { assignWaypointIds, MATCH_RADIUS_METERS, type WaypointRegistry } from '../waypoint-ids';
 import { haversineDistance } from '../../../src/lib/distance';
-import type { WaypointEditRequest } from './api-types';
+import { PENDING_KEY_PREFIX, type WaypointEditRequest } from './api-types';
 import {
+  addWaypoint,
+  deleteWaypoint,
   EditorError,
   editorPaths,
   listTrails,
   loadEditorTrail,
+  registryId,
   saveWaypointEdit,
   type EditorPaths,
 } from './trail-state';
@@ -245,5 +248,321 @@ describe('saveWaypointEdit', () => {
     const result = request('demo', 'w_bbbb2222', { lat: -36.521, lon: 148.301 });
     expect(result.notes.join('\n')).toMatch(/fetch:access/);
     expect(result.changedFiles.sort()).toEqual(['data/trails/demo/demo.gpx', 'data/waypoint-ids.json']);
+  });
+});
+
+// A CalTopo-typed trail: the GPX carries names only, the export's folders type them.
+const TOPO_GPX =
+  '<?xml version="1.0"?>\n<gpx creator="CALTOPO" version="1.1">' +
+  '<wpt lat="-36.5" lon="148.25"><name>C Flat</name></wpt>' +
+  '<wpt lat="-36.52" lon="148.3"><name>W Creek</name></wpt>' +
+  '<wpt lat="-36.55" lon="148.35"><name>T Hamlet</name></wpt>' +
+  '<trk><trkseg><trkpt lat="-36.5" lon="148.2"/><trkpt lat="-36.6" lon="148.4"/></trkseg></trk></gpx>';
+
+const TOPO_GEOJSON =
+  '{"features":[' +
+  '{"geometry":null,"id":"f1","type":"Feature","properties":{"title":"Campsites","class":"Folder"}},' +
+  '{"geometry":null,"id":"f2","type":"Feature","properties":{"title":"Water Sources","class":"Folder"}},' +
+  '{"geometry":{"coordinates":[148.25,-36.5,0,0],"type":"Point"},"id":"m1","type":"Feature","properties":{"title":"C Flat","class":"Marker","folderId":"f1","description":"A flat."}},' +
+  '{"geometry":{"coordinates":[148.3,-36.52,0,0],"type":"Point"},"id":"m2","type":"Feature","properties":{"title":"W Creek","class":"Marker","folderId":"f2"}}' +
+  '],"type":"FeatureCollection"}';
+
+const TOPO_REGISTRY = [
+  { id: 'w_dddd4444', name: 'Flat', type: 'campsite', lat: -36.5, lon: 148.25 },
+  { id: 'w_eeee5555', name: 'Creek', type: 'water', lat: -36.52, lon: 148.3 },
+  { id: 'w_ffff6666', name: 'Hamlet', type: 'town', lat: -36.55, lon: 148.35 },
+];
+
+const TOPO_BUILT = {
+  ...BUILT,
+  config: { id: 'topo', name: 'Topo Track' },
+  waypoints: [
+    { id: 'w_dddd4444', name: 'Flat', type: 'campsite', lat: -36.5, lon: 148.25, totalDistance: 4 },
+    { id: 'w_eeee5555', name: 'Creek', type: 'water', lat: -36.52, lon: 148.3, totalDistance: 8 },
+    { id: 'w_ffff6666', name: 'Hamlet', type: 'town', lat: -36.55, lon: 148.35, totalDistance: 14 },
+  ],
+  offTrailWaypoints: [],
+  pois: [],
+};
+
+function writeTopo(): void {
+  write('data/trails/topo/trail.json', JSON.stringify({ id: 'topo', name: 'Topo Track', gpxFile: 'topo.gpx' }));
+  write('data/trails/topo/topo.gpx', TOPO_GPX);
+  write('data/trails/topo/topo.json', TOPO_GEOJSON);
+  write('public/data/generated/topo.json', JSON.stringify(TOPO_BUILT));
+  const registry = JSON.parse(read('data/waypoint-ids.json')) as WaypointRegistry;
+  write('data/waypoint-ids.json', `${JSON.stringify({ ...registry, topo: TOPO_REGISTRY }, null, 2)}\n`);
+}
+
+function topoFiles(): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const rel of ['data/trails/topo/topo.gpx', 'data/trails/topo/topo.json', 'data/waypoint-ids.json']) {
+    out[rel] = read(rel);
+  }
+  return out;
+}
+
+/** What the build hands `assignWaypointIds` for a trail as its sources stand now. */
+function buildInputs(dir: string): { name: string; type: string; lat: number; lon: number }[] {
+  return loadEditorTrail(paths, dir)
+    .waypoints.filter(w => !w.deleted)
+    .map(w => ({ name: w.name, type: w.type, lat: w.lat, lon: w.lon }));
+}
+
+describe('registryId', () => {
+  it('strips a revisit suffix, and only that', () => {
+    expect(registryId('w_07233ee1_2')).toBe('w_07233ee1');
+    expect(registryId('w_00176641')).toBe('w_00176641');
+    expect(registryId('w_00176641_3')).toBe('w_00176641');
+  });
+});
+
+describe('type changes', () => {
+  it('rewrites the GPX <type> and the registry entry, so the id survives the next build', () => {
+    const result = request('demo', 'w_bbbb2222', { type: 'water-tank' });
+    expect(read('data/trails/demo/demo.gpx')).toBe(
+      GPX.replace('<name>Spring</name><type>water</type>', '<name>Spring</name><type>water-tank</type>')
+    );
+    const registry = JSON.parse(read('data/waypoint-ids.json')) as WaypointRegistry;
+    expect(registry.demo.find(e => e.id === 'w_bbbb2222')?.type).toBe('water-tank');
+    expect(result.waypoint).toMatchObject({ type: 'water-tank', builtType: 'water', typeSource: 'its GPX <type>' });
+    expect(result.changedFiles.sort()).toEqual(['data/trails/demo/demo.gpx', 'data/waypoint-ids.json']);
+
+    // The registry matches on type: with the entry migrated the id holds…
+    const inputs = buildInputs('demo');
+    expect(assignWaypointIds('demo', inputs, structuredClone(registry))).toEqual([
+      'w_aaaa1111',
+      'w_bbbb2222',
+      'w_cccc3333',
+    ]);
+    // …and without it the next build would have minted a new one and orphaned its comments.
+    const unmigrated = assignWaypointIds('demo', inputs, structuredClone(REGISTRY));
+    expect(unmigrated[1]).not.toBe('w_bbbb2222');
+  });
+
+  it('moves a CalTopo marker into an existing folder for the type, keeping the id', () => {
+    writeTopo();
+    const result = request('topo', 'w_dddd4444', { type: 'water' });
+    expect(read('data/trails/topo/topo.json')).toBe(
+      TOPO_GEOJSON.replace('"C Flat","class":"Marker","folderId":"f1"', '"C Flat","class":"Marker","folderId":"f2"')
+    );
+    expect(read('data/trails/topo/topo.gpx')).toBe(TOPO_GPX);
+    expect(result.notes.join('\n')).toMatch(/folder “Water Sources”/);
+    expect(result.notes.join('\n')).toMatch(/now counts as water/);
+    const registry = JSON.parse(read('data/waypoint-ids.json')) as WaypointRegistry;
+    expect(assignWaypointIds('topo', buildInputs('topo'), registry)).toEqual([
+      'w_dddd4444',
+      'w_eeee5555',
+      'w_ffff6666',
+    ]);
+  });
+
+  it('adds a CalTopo folder when the export has none for the type', () => {
+    writeTopo();
+    request('topo', 'w_eeee5555', { type: 'water-tank' });
+    const geojson = read('data/trails/topo/topo.json');
+    const folder = (JSON.parse(geojson) as { features: { id: string; properties: { title: string } }[] }).features[0];
+    expect(folder.properties.title).toBe('Water tanks');
+    expect(geojson).toContain(`"W Creek","class":"Marker","folderId":"${folder.id}"`);
+    const after = loadEditorTrail(paths, 'topo').waypoints.find(w => w.id === 'w_eeee5555')!;
+    expect([after.type, after.builtType]).toEqual(['water-tank', 'water']);
+    expect(after.typeSource).toMatch(/folder “Water tanks”/);
+  });
+
+  it('gives a name-typed <wpt> a <type> and drops the prefix that typed it', () => {
+    writeTopo();
+    const result = request('topo', 'w_ffff6666', { type: 'hut' });
+    expect(read('data/trails/topo/topo.gpx')).toBe(
+      TOPO_GPX.replace('<name>T Hamlet</name>', '<name>Hamlet</name><type>hut</type>')
+    );
+    expect(result.notes.join('\n')).toMatch(/Dropped the type prefix “T”/);
+    const registry = JSON.parse(read('data/waypoint-ids.json')) as WaypointRegistry;
+    expect(registry.topo.find(e => e.id === 'w_ffff6666')?.type).toBe('hut');
+    expect(assignWaypointIds('topo', buildInputs('topo'), registry)[2]).toBe('w_ffff6666');
+  });
+
+  it('refuses a type no CalTopo folder can give, and one the editor does not offer, writing nothing', () => {
+    writeTopo();
+    const before = topoFiles();
+    expect(() => request('topo', 'w_dddd4444', { type: 'town-access' })).toThrow(/no folder title means/);
+    expect(() => request('topo', 'w_dddd4444', { type: 'water-access' })).toThrow(/not one of the waypoint types/);
+    expect(topoFiles()).toEqual(before);
+  });
+
+  it('refuses when a CalTopo marker types another waypoint too', () => {
+    writeTopo();
+    // A second <wpt> named "Flat" nearer the same marker than to any other.
+    write(
+      'data/trails/topo/topo.gpx',
+      TOPO_GPX.replace('<trk>', '<wpt lat="-36.501" lon="148.251"><name>Flat</name></wpt><trk>')
+    );
+    expect(() => request('topo', 'w_dddd4444', { type: 'hut' })).toThrow(/also types/);
+  });
+
+  it('refuses a stale type', () => {
+    const w = loadEditorTrail(paths, 'demo').waypoints.find(x => x.id === 'w_bbbb2222')!;
+    expect(() =>
+      saveWaypointEdit(paths, 'demo', w.id, {
+        expected: { name: w.name, lat: w.lat, lon: w.lon, description: w.description, type: 'hut' },
+        type: 'water-tank',
+      })
+    ).toThrow(expect.objectContaining({ status: 409 }));
+  });
+});
+
+describe('adding waypoints', () => {
+  it('inserts a <wpt> after the last one and lists it as pending until a rebuild mints its id', () => {
+    const before = snapshot();
+    const result = addWaypoint(paths, 'demo', {
+      name: 'Lower Tank',
+      type: 'water-tank',
+      lat: -36.58,
+      lon: 148.38,
+      description: 'A rainwater tank.',
+    });
+    expect(read('data/trails/demo/demo.gpx')).toBe(
+      GPX.replace(
+        '<type>campsite</type></wpt>\n',
+        '<type>campsite</type></wpt>\n  <wpt lat="-36.58" lon="148.38"><name>Lower Tank</name><desc>A rainwater tank.</desc><type>water-tank</type></wpt>\n'
+      )
+    );
+    expect(read('data/waypoint-ids.json')).toBe(before['data/waypoint-ids.json']);
+    expect(read('data/trails/demo/descriptions.json')).toBe(before['data/trails/demo/descriptions.json']);
+    expect(result.changedFiles).toEqual(['data/trails/demo/demo.gpx']);
+    expect(result.waypoint).toMatchObject({ pending: true, name: 'Lower Tank', type: 'water-tank', canDelete: true });
+    expect(result.waypoint.id.startsWith(PENDING_KEY_PREFIX)).toBe(true);
+    expect([result.waypoint.canMove, result.waypoint.canRename, result.waypoint.canDescribe]).toEqual([
+      false,
+      false,
+      false,
+    ]);
+
+    // The next build mints the id the note names, and every other id holds.
+    const minted = /mints (w_[0-9a-f]+)/.exec(result.notes.join('\n'))?.[1];
+    const ids = assignWaypointIds(
+      'demo',
+      buildInputs('demo')
+        .filter(w => w.name !== 'Lower Tank')
+        .concat([{ name: 'Lower Tank', type: 'water-tank', lat: -36.58, lon: 148.38 }]),
+      JSON.parse(read('data/waypoint-ids.json')) as WaypointRegistry
+    );
+    expect(ids).toEqual(['w_aaaa1111', 'w_bbbb2222', 'w_cccc3333', minted]);
+
+    // Deleting it again gives the file back byte for byte.
+    const pending = loadEditorTrail(paths, 'demo').waypoints.find(w => w.pending)!;
+    const removed = deleteWaypoint(paths, 'demo', pending.id, {
+      expected: { name: pending.name, lat: pending.lat, lon: pending.lon, description: '' },
+    });
+    expect(removed.removed).toEqual([pending.id]);
+    expect(snapshot()).toEqual(before);
+  });
+
+  it('refuses a prefixed name, an unknown type, a clash with a CalTopo marker, and Te Araroa', () => {
+    writeTopo();
+    const at = { lat: -36.58, lon: 148.38 };
+    expect(() => addWaypoint(paths, 'demo', { name: 'C New Camp', type: 'campsite', ...at })).toThrow(/type prefix/);
+    expect(() => addWaypoint(paths, 'demo', { name: 'Camp', type: 'water-access', ...at })).toThrow(/not one of/);
+    const before = topoFiles();
+    expect(() => addWaypoint(paths, 'topo', { name: 'Creek', type: 'hut', ...at })).toThrow(/would type it as water/);
+    expect(topoFiles()).toEqual(before);
+    expect(() => addWaypoint(paths, 'te_araroa', { name: 'Camp', type: 'campsite', ...at })).toThrow(/upstream/);
+    expect(() => addWaypoint(paths, 'demo', { name: 'Far', type: 'hut', lat: -38, lon: 148.3 })).toThrow(/50 km/);
+  });
+
+  it('types a new <wpt> on a CalTopo trail from its <type> when no marker has its name', () => {
+    writeTopo();
+    const result = addWaypoint(paths, 'topo', { name: 'Tank', type: 'water-tank', lat: -36.58, lon: 148.38 });
+    expect(read('data/trails/topo/topo.gpx')).toBe(
+      TOPO_GPX.replace(
+        '<name>T Hamlet</name></wpt>',
+        '<name>T Hamlet</name></wpt><wpt lat="-36.58" lon="148.38"><name>Tank</name><type>water-tank</type></wpt>'
+      )
+    );
+    expect(read('data/trails/topo/topo.json')).toBe(TOPO_GEOJSON);
+    expect(result.waypoint.typeSource).toBe('its GPX <type>');
+  });
+});
+
+describe('deleting waypoints', () => {
+  it('removes the <wpt> and its description, and leaves the registry for the build to retire', () => {
+    const registryBefore = read('data/waypoint-ids.json');
+    const result = deleteWaypoint(paths, 'demo', 'w_cccc3333', {
+      expected: { name: 'Saddle Camp', lat: -36.55, lon: 148.35, description: 'A flat saddle.' },
+    });
+    expect(read('data/trails/demo/demo.gpx')).toBe(
+      GPX.replace('\n  <wpt lat="-36.55" lon="148.35"><name>Saddle Camp</name><type>campsite</type></wpt>', '')
+    );
+    expect(JSON.parse(read('data/trails/demo/descriptions.json')).descriptions).toEqual([]);
+    expect(read('data/waypoint-ids.json')).toBe(registryBefore);
+    expect(result.notes.join('\n')).toMatch(/retired.*orphaned/);
+    // Until the rebuild it is still listed, as deleted and locked.
+    const listed = loadEditorTrail(paths, 'demo').waypoints.find(w => w.id === 'w_cccc3333')!;
+    expect([listed.deleted, listed.canDelete, listed.canDescribe, listed.canMove]).toEqual([true, false, false, false]);
+
+    const registry = JSON.parse(registryBefore) as WaypointRegistry;
+    expect(assignWaypointIds('demo', buildInputs('demo'), registry)).toEqual(['w_aaaa1111', 'w_bbbb2222']);
+    expect(registry.demo.find(e => e.id === 'w_cccc3333')?.retired).toBe(true);
+  });
+
+  it('removes the CalTopo marker that typed it', () => {
+    writeTopo();
+    deleteWaypoint(paths, 'topo', 'w_dddd4444', {
+      expected: { name: 'Flat', lat: -36.5, lon: 148.25, description: '' },
+    });
+    expect(read('data/trails/topo/topo.gpx')).toBe(
+      TOPO_GPX.replace('<wpt lat="-36.5" lon="148.25"><name>C Flat</name></wpt>', '')
+    );
+    const geojson = JSON.parse(read('data/trails/topo/topo.json')) as { features: { id: string }[] };
+    expect(geojson.features.map(f => f.id)).toEqual(['f1', 'f2', 'm2']);
+  });
+
+  it("refuses a revisited place's later pass, and takes every pass with the first", () => {
+    write(
+      'public/data/generated/demo.json',
+      JSON.stringify({
+        ...BUILT,
+        alternates: [
+          {
+            name: 'Loop',
+            type: 'alternate',
+            points: track,
+            waypoints: [
+              { id: 'w_cccc3333_2', name: 'Saddle Camp', type: 'campsite', lat: -36.55, lon: 148.35, distance: 3 },
+            ],
+          },
+        ],
+      })
+    );
+    write(
+      'data/trails/demo/descriptions.json',
+      `${JSON.stringify({ trailId: 'demo', descriptions: [DESCRIPTIONS.descriptions[0], { waypointId: 'w_cccc3333_2', description: 'Again.' }] }, null, 2)}\n`
+    );
+    const second = loadEditorTrail(paths, 'demo').waypoints.find(w => w.id === 'w_cccc3333_2')!;
+    expect(second.canDelete).toBe(false);
+    expect(() =>
+      deleteWaypoint(paths, 'demo', second.id, {
+        expected: { name: second.name, lat: second.lat, lon: second.lon, description: second.description },
+      })
+    ).toThrow(/later pass of w_cccc3333/);
+    const result = deleteWaypoint(paths, 'demo', 'w_cccc3333', {
+      expected: { name: 'Saddle Camp', lat: -36.55, lon: 148.35, description: 'A flat saddle.' },
+    });
+    expect(result.removed).toEqual(['w_cccc3333', 'w_cccc3333_2']);
+    expect(JSON.parse(read('data/trails/demo/descriptions.json')).descriptions).toEqual([]);
+  });
+
+  it('refuses a stale delete and Te Araroa, writing nothing', () => {
+    const before = snapshot();
+    expect(() =>
+      deleteWaypoint(paths, 'demo', 'w_cccc3333', {
+        expected: { name: 'Saddle Camp', lat: -36.55, lon: 148.35, description: '' },
+      })
+    ).toThrow(expect.objectContaining({ status: 409 }));
+    expect(() =>
+      deleteWaypoint(paths, 'te_araroa', 'w_aaaa1111', {
+        expected: { name: 'Upper Hut', lat: -36.5, lon: 148.25, description: '' },
+      })
+    ).toThrow(/upstream/);
+    expect(snapshot()).toEqual(before);
   });
 });

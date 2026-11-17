@@ -1,6 +1,7 @@
 /**
  * The local waypoint editor (`admin-waypoints.html`): review and correct a
- * bundled trail's waypoints — description, name and position — against a map
+ * bundled trail's waypoints — description, name, type and position, and add or
+ * delete them — against a map
  * with satellite imagery and OpenStreetMap's POIs, and write the corrections
  * straight into the trail's source files through the dev server's
  * `/__waypoint-editor` API (`scripts/lib/waypoint-editor/`). Served only by
@@ -25,7 +26,9 @@ import {
   type EditorTrail,
   type EditorTrailSummary,
   type EditorWaypoint,
+  type NewWaypointRequest,
   type RebuildStatus,
+  type WaypointDeleteResponse,
   type WaypointEditRequest,
   type WaypointEditResponse,
 } from '../../scripts/lib/waypoint-editor/api-types';
@@ -41,6 +44,7 @@ import {
 } from './admin-waypoints-comments';
 import {
   STATUS_FILTER_LABELS,
+  deleteConfirmText,
   draftChanges,
   draftOf,
   externalMapLinks,
@@ -54,8 +58,10 @@ import {
   readoutText,
   reviewFingerprint,
   reviewStorageKey,
+  retypedSinceBuild,
   rowHtml,
   typeCounts,
+  typeOptionsHtml,
   voiceHints,
   waypointGlyphHtml,
   type ReviewMarks,
@@ -149,6 +155,9 @@ const state = {
   marks: {} as ReviewMarks,
   filter: { query: '', type: '', status: 'all' } as WaypointFilter,
   placing: false,
+  /** "New waypoint" mode: undefined when off, null until the map is clicked, then where it goes. */
+  adding: undefined as { lat: number; lon: number } | null | undefined,
+  newMarker: null as Leaflet.Marker | null,
   saving: false,
   rebuilding: false,
   map: null as MapState | null,
@@ -316,6 +325,10 @@ async function ensureMap(): Promise<MapState> {
   Lf.control.layers(bases, { 'OSM POIs': pois }, { position: 'topright' }).addTo(map);
   Lf.control.scale({ metric: true, imperial: false }).addTo(map);
   map.on('click', (e: Leaflet.LeafletMouseEvent) => {
+    if (state.adding !== undefined) {
+      placeNew(e.latlng.lat, e.latlng.lng);
+      return;
+    }
     if (!state.placing) return;
     setPlacing(false);
     moveDraftTo(e.latlng.lat, e.latlng.lng);
@@ -357,8 +370,9 @@ function drawTrail(): void {
   for (const w of trail.waypoints) {
     const dot = Lf.circleMarker([w.lat, w.lon], {
       radius: 6,
-      color: '#ffffff',
+      color: w.pending ? '#222222' : '#ffffff',
       weight: 2,
+      dashArray: w.pending ? '2 2' : undefined,
       fillColor: familyColor(w.type),
       fillOpacity: 1,
     })
@@ -367,7 +381,7 @@ function drawTrail(): void {
         offset: [0, -6],
       })
       .on('click', () => {
-        if (state.placing) return;
+        if (state.placing || state.adding !== undefined) return;
         select(w.id, { pan: false });
       })
       .addTo(m.dots);
@@ -378,7 +392,8 @@ function drawTrail(): void {
     Lf.circleMarker([p.lat, p.lon], { radius: 4, color: '#555', weight: 1, fillColor: '#ffd166', fillOpacity: 0.9 })
       .bindTooltip(`${escapeHtml(p.name || '(unnamed)')} <span class="wpe-muted">${escapeHtml(p.category)}</span>`)
       .on('click', () => {
-        if (state.placing) {
+        if (state.adding !== undefined) placeNew(p.lat, p.lon);
+        else if (state.placing) {
           setPlacing(false);
           moveDraftTo(p.lat, p.lon);
         }
@@ -558,6 +573,10 @@ function renderButtons(): void {
   $<HTMLButtonElement>('wpe-save-next').disabled = busy;
   $<HTMLButtonElement>('wpe-save-next').textContent = dirty ? 'Save & next' : 'Next';
   $<HTMLButtonElement>('wpe-revert').disabled = !dirty;
+  const del = $<HTMLButtonElement>('wpe-delete');
+  del.disabled = !w?.canDelete || busy;
+  del.title = w && !w.canDelete && /_\d+$/.test(w.id) ? 'A later pass of a revisited place: delete the first pass' : '';
+  $<HTMLButtonElement>('wpe-new').disabled = !state.trail || !!state.trail.readOnlyReason || busy;
   $<HTMLButtonElement>('wpe-reset-pos').disabled = !(
     w &&
     state.drafts.get(w.id) &&
@@ -582,6 +601,13 @@ function fillForm(): void {
   const name = $<HTMLInputElement>('wpe-name');
   name.value = draft.name;
   name.disabled = !w.canRename;
+  const typeSelect = $<HTMLSelectElement>('wpe-type-select');
+  typeSelect.innerHTML = typeOptionsHtml(w.type);
+  typeSelect.value = draft.type;
+  typeSelect.disabled = !w.canChangeType;
+  $('wpe-type-source').textContent = w.typeSource
+    ? `Typed by ${w.typeSource}${retypedSinceBuild(w) ? ` (${waypointTypeLabel(w.builtType)} in the last build)` : ''}.`
+    : '';
   $<HTMLInputElement>('wpe-lat').disabled = !w.canMove;
   $<HTMLInputElement>('wpe-lon').disabled = !w.canMove;
   $<HTMLInputElement>('wpe-paste').disabled = !w.canMove;
@@ -594,7 +620,7 @@ function fillForm(): void {
     : 'No text yet.';
 
   const meta: string[] = [
-    `<span>${waypointGlyphHtml(w.type)} ${escapeHtml(waypointTypeLabel(w.type))} · <code>${escapeHtml(w.id)}</code></span>`,
+    `<span>${waypointGlyphHtml(w.type)} ${escapeHtml(waypointTypeLabel(w.type))} · ${w.pending ? '<em>no id until the next build</em>' : `<code>${escapeHtml(w.id)}</code>`}</span>`,
     ...w.placements.map(p => `<span>${escapeHtml(placementText(p))}</span>`),
   ];
   if (w.distanceFromTrailKm !== undefined)
@@ -612,8 +638,10 @@ function fillForm(): void {
   source.hidden = !w.sourceDescription;
   $('wpe-source-text').textContent = w.sourceDescription ?? '';
   source.open = !w.description && !!w.sourceDescription;
+  $('wpe-use-source').hidden = !w.canDescribe;
 
   $<HTMLInputElement>('wpe-reviewed').checked = isReviewed(state.marks, w);
+  $<HTMLInputElement>('wpe-reviewed').disabled = !!w.pending;
   fillPosition();
   renderDescriptionAids();
   renderButtons();
@@ -622,6 +650,7 @@ function fillForm(): void {
 
 function select(id: string | null, options: { pan?: boolean } = {}): void {
   setPlacing(false);
+  endAdding();
   state.selectedId = id && state.byId.has(id) ? id : null;
   showNotes([]);
   fillForm();
@@ -651,6 +680,7 @@ function onFormInput(): void {
     ...draft,
     name: $<HTMLInputElement>('wpe-name').value,
     description: $<HTMLTextAreaElement>('wpe-desc').value,
+    type: $<HTMLSelectElement>('wpe-type-select').value,
   };
   setDraft(w.id, next);
   renderDescriptionAids();
@@ -706,9 +736,10 @@ async function save(goNext: boolean): Promise<void> {
     if (!confirm('Remove the curated description? The source text (if any) shows again.')) return;
   }
   const request: WaypointEditRequest = {
-    expected: { name: w.name, lat: w.lat, lon: w.lon, description: w.description },
+    expected: { name: w.name, lat: w.lat, lon: w.lon, description: w.description, type: w.type },
   };
   if (changes.name) request.name = draft.name.trim();
+  if (changes.type) request.type = draft.type;
   if (changes.position) Object.assign(request, { lat: draft.lat, lon: draft.lon });
   if (changes.description) request.description = draft.description.trim();
 
@@ -748,6 +779,7 @@ function replaceWaypoint(w: EditorWaypoint): void {
   state.byId.set(w.id, w);
   const dot = state.map?.dotById.get(w.id);
   dot?.setLatLng([w.lat, w.lon]);
+  dot?.setStyle({ fillColor: familyColor(w.type) });
   dot?.setTooltipContent(
     `${escapeHtml(w.name)} <span class="wpe-muted">${escapeHtml(waypointTypeLabel(w.type))}</span>`
   );
@@ -786,6 +818,140 @@ async function refreshComments(trailId: string, reload = false): Promise<void> {
   state.commentCounts = commentCounts(result);
   renderComments();
   renderList();
+}
+
+// ---------------------------------------------------------------------------
+// Adding and deleting
+// ---------------------------------------------------------------------------
+
+function startAdding(): void {
+  if (!state.trail || state.trail.readOnlyReason) return;
+  select(null);
+  state.adding = null;
+  $('wpe-empty').hidden = true;
+  $('wpe-new-form').hidden = false;
+  $('wpe-new').setAttribute('aria-pressed', 'true');
+  $('wpe-map').classList.add('is-placing');
+  const typeSelect = $<HTMLSelectElement>('wpe-new-type');
+  if (!typeSelect.options.length) typeSelect.innerHTML = typeOptionsHtml(null);
+  $('wpe-new-notes').innerHTML = '';
+  $('wpe-new-where').textContent = 'Click the map (or an OSM POI) to place it; drag the marker to adjust.';
+  renderNewButtons();
+  $('wpe-new-name').focus();
+}
+
+/** Leave "New waypoint" mode, dropping its marker and form. */
+function endAdding(): void {
+  if (state.adding === undefined) return;
+  state.adding = undefined;
+  state.newMarker?.remove();
+  state.newMarker = null;
+  $('wpe-new-form').hidden = true;
+  $('wpe-new').setAttribute('aria-pressed', 'false');
+  $('wpe-map').classList.remove('is-placing');
+  $('wpe-empty').hidden = !!selected();
+}
+
+function placeNew(lat: number, lon: number): void {
+  const m = state.map;
+  const trail = state.trail;
+  if (!m || !trail || state.adding === undefined) return;
+  state.adding = { lat: round6(lat), lon: round6(lon) };
+  if (!state.newMarker) {
+    const marker = m.L.marker([lat, lon], { draggable: true, zIndexOffset: 1000, keyboard: false })
+      .bindTooltip('New waypoint', { direction: 'top', offset: [0, -30] })
+      .addTo(m.map);
+    marker.on('dragend', () => {
+      const where = marker.getLatLng();
+      placeNew(where.lat, where.lng);
+    });
+    state.newMarker = marker;
+  } else {
+    state.newMarker.setLatLng([lat, lon]);
+  }
+  const snap = snapToTrail(lat, lon, trail.track.points, undefined, state.breakStarts);
+  $('wpe-new-where').textContent =
+    `${state.adding.lat}, ${state.adding.lon}` +
+    (snap
+      ? ` · nearest route km ${snap.currentKm.toFixed(2)} · ${Math.round(snap.offTrailMeters)} m from the route`
+      : '');
+  renderNewButtons();
+}
+
+function renderNewButtons(): void {
+  const ready = !!state.adding && !!$<HTMLInputElement>('wpe-new-name').value.trim();
+  $<HTMLButtonElement>('wpe-new-add').disabled = !ready || state.saving || state.rebuilding;
+}
+
+async function addNew(): Promise<void> {
+  const trail = state.trail;
+  const at = state.adding;
+  if (!trail || !at || state.saving) return;
+  const request: NewWaypointRequest = {
+    name: $<HTMLInputElement>('wpe-new-name').value.trim(),
+    type: $<HTMLSelectElement>('wpe-new-type').value,
+    lat: at.lat,
+    lon: at.lon,
+  };
+  const description = $<HTMLTextAreaElement>('wpe-new-desc').value.trim();
+  if (description) request.description = description;
+  state.saving = true;
+  renderNewButtons();
+  try {
+    const result = await api<WaypointEditResponse>(`/trails/${encodeURIComponent(trail.dir)}/waypoints`, {
+      method: 'POST',
+      body: request,
+    });
+    $<HTMLInputElement>('wpe-new-name').value = '';
+    $<HTMLTextAreaElement>('wpe-new-desc').value = '';
+    endAdding();
+    await loadTrail(trail.dir, result.waypoint.id);
+    showNotes([`Added to ${result.changedFiles.join(', ')}.`, ...result.notes]);
+    void refreshChanges();
+  } catch (error) {
+    $('wpe-new-notes').innerHTML =
+      `<li class="is-error">${escapeHtml(error instanceof Error ? error.message : String(error))}</li>`;
+  } finally {
+    state.saving = false;
+    renderNewButtons();
+    renderButtons();
+  }
+}
+
+async function deleteSelected(): Promise<void> {
+  const w = selected();
+  const trail = state.trail;
+  if (!w || !trail || !w.canDelete || state.saving) return;
+  if (!confirm(deleteConfirmText(w))) return;
+  const rows = visibleWaypoints();
+  const index = rows.findIndex(x => x.id === w.id);
+  const next = rows[index + 1] ?? rows[index - 1] ?? null;
+  state.saving = true;
+  renderButtons();
+  try {
+    const result = await api<WaypointDeleteResponse>(
+      `/trails/${encodeURIComponent(trail.dir)}/waypoints/${encodeURIComponent(w.id)}`,
+      {
+        method: 'DELETE',
+        body: { expected: { name: w.name, lat: w.lat, lon: w.lon, description: w.description, type: w.type } },
+      }
+    );
+    for (const id of result.removed) {
+      state.drafts.delete(id);
+      delete state.marks[id];
+    }
+    saveMarks();
+    await loadTrail(trail.dir, next?.id ?? null);
+    const notes = [`Deleted from ${result.changedFiles.join(', ')}.`, ...result.notes];
+    if (state.selectedId) showNotes(notes);
+    else banner(notes.join(' '));
+    void refreshChanges();
+  } catch (error) {
+    showNotes([error instanceof Error ? error.message : String(error)], true);
+  } finally {
+    state.saving = false;
+    renderButtons();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -940,6 +1106,15 @@ function wire(): void {
   });
 
   $('wpe-name').addEventListener('input', onFormInput);
+  $('wpe-type-select').addEventListener('change', onFormInput);
+  $('wpe-delete').addEventListener('click', () => void deleteSelected());
+  $('wpe-new').addEventListener('click', () => (state.adding === undefined ? startAdding() : endAdding()));
+  $('wpe-new-cancel').addEventListener('click', () => endAdding());
+  $('wpe-new-name').addEventListener('input', renderNewButtons);
+  $('wpe-new-form').addEventListener('submit', e => {
+    e.preventDefault();
+    void addNew();
+  });
   $('wpe-desc').addEventListener('input', onFormInput);
   $('wpe-lat').addEventListener('change', onLatLonInput);
   $('wpe-lon').addEventListener('change', onLatLonInput);
@@ -1026,7 +1201,8 @@ function wire(): void {
       e.preventDefault();
       setPlacing(!state.placing);
     } else if (e.key === 'Escape') {
-      if (state.placing) setPlacing(false);
+      if (state.adding !== undefined) endAdding();
+      else if (state.placing) setPlacing(false);
       else if (!typing || e.target === $('wpe-desc') || e.target === $('wpe-name')) $('wpe-revert').click();
     } else if (e.key === '/' && !typing) {
       e.preventDefault();

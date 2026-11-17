@@ -276,6 +276,12 @@ kbd {
   color: var(--primary);
 }
 
+.wpe-badge-pending {
+  background: var(--tint-warn);
+  color: var(--tint-warn-text);
+  font-style: italic;
+}
+
 .wpe-badge-empty {
   background: var(--bg-subtle);
   color: var(--text-muted);
@@ -571,4 +577,24 @@ kbd {
 
 .wpe-comments .is-error {
   color: var(--danger);
+}
+
+/* Type editing, adding and deleting waypoints */
+.wpe-field select {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.35rem 0.5rem;
+}
+
+.wpe-btn-danger:not(:disabled) {
+  color: var(--danger);
+  border-color: currentColor;
+}
+
+.wpe-new-title {
+  font-size: 1rem;
+  margin: 0 0 0.5rem;
 }
