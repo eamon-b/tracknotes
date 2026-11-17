@@ -63,6 +63,7 @@ import {
   draftAfterSave,
   draftChanges,
   draftValues,
+  editedCoordinate,
   externalMapLinks,
   formatDistance,
   hasCuratedText,
@@ -644,7 +645,8 @@ function afterMove(id: string, pan: boolean): void {
 function moveDraftTo(lat: number, lon: number, pan = false): void {
   const w = selected();
   if (!w || !w.canMove) return;
-  patchDraft(w.id, { lat: round6(lat), lon: round6(lon) });
+  // At six decimals, as the form shows it; the saved position itself where that is what it comes to.
+  patchDraft(w.id, { lat: editedCoordinate(lat, w.lat), lon: editedCoordinate(lon, w.lon) });
   afterMove(w.id, pan);
 }
 
@@ -1610,6 +1612,11 @@ function wire(): void {
       renderButtons();
     });
     $(id).addEventListener('change', () => void commitPosition());
+    // `change` does not fire when the field is left holding what it held on focus (typed over
+    // and typed back): commit then too, so nothing typed stays pending once the field is left.
+    $(id).addEventListener('blur', () => {
+      if (state.positionTyped) commitPosition();
+    });
   }
   const paste = $<HTMLInputElement>('wpe-paste');
   // A paste applies at once; text typed by hand applies on Enter or when the box is left.

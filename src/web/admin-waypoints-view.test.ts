@@ -7,6 +7,7 @@ import {
   dotStyle,
   dotTooltipHtml,
   draftAfterSave,
+  editedCoordinate,
   draftChanges,
   draftValues,
   formatDistance,
@@ -217,6 +218,23 @@ describe('parseCoordinate', () => {
     expect(parseCoordinate('91', 90)).toBeNull();
     expect(parseCoordinate('148.5', 90)).toBeNull();
     expect(parseCoordinate('-180.1', 180)).toBeNull();
+  });
+});
+
+describe('editedCoordinate', () => {
+  it('reads a position at six decimals, and the saved one where that is what it comes to', () => {
+    expect(editedCoordinate(-35.64703512, -35.647533)).toBe(-35.647035);
+    // A GPX that holds more decimals than the form shows: what is shown, typed back, is no move.
+    const saved = 138.19241669999997;
+    expect(editedCoordinate(138.192417, saved)).toBe(saved);
+    expect(editedCoordinate(saved, saved)).toBe(saved);
+    expect(editedCoordinate(138.192418, saved)).toBe(138.192418);
+    const w = { name: 'Hut', lat: -35.64685, lon: saved, description: '', type: 'hut' };
+    expect(isDirty(w, { lat: editedCoordinate(-35.64685, w.lat), lon: editedCoordinate(138.192417, w.lon) })).toBe(
+      false
+    );
+    // Rounded without that, the same typing reads as a move of a few centimetres.
+    expect(isDirty(w, { lat: -35.64685, lon: 138.192417 })).toBe(true);
   });
 });
 

@@ -64,6 +64,7 @@ Drag the marker, click "Click map to place" (`Alt+P`) and click the map or a POI
 - **Lat and Lon** take effect when the field is left, and before any shortcut or button acts: `Ctrl+S`, `Ctrl+Enter` or `Alt`+`↓` pressed with the cursor still in the field act on what it shows.
   An empty or unparsable field is flagged and moves nothing (it is never read as 0);
   a save or a step to another row then waits until it is corrected, and `Esc` in the field, or "Undo move", puts the position back.
+  The fields show a position at six decimals, and some files hold more (CalTopo writes `138.19241669999997`): a field left holding what it showed is no move, so nothing is rewritten for it.
 - **The paste box** applies a pasted position at once, and one typed by hand on `Enter` or when the box is left (never keystroke by keystroke: `27.6901, 8` is already a position).
   A Google Maps place link is read from its pin (`!3d…!4d…`);
   the centre of the view (`@…`) is used only when the link has no pin.
