@@ -1526,14 +1526,26 @@ async function rebuild(): Promise<void> {
     !confirm(`${unsaved} waypoint(s) have unsaved changes, which the rebuild will not include. Rebuild anyway?`)
   )
     return;
+  await followRebuild(() => api<RebuildStatus>('/rebuild', { method: 'POST' }));
+}
+
+/**
+ * Show a rebuild until it ends: the drawer open with its report as it grows,
+ * saves and a second rebuild off, and the trail read again when it is done.
+ * `first` gives the status to start from: the answer to starting one, or the
+ * status of one found already running when the page was opened.
+ */
+async function followRebuild(first: () => Promise<RebuildStatus>): Promise<void> {
+  if (state.rebuilding) return;
   state.rebuilding = true;
   renderButtons();
+  renderNewButtons();
   const drawer = $('wpe-changes');
   drawer.hidden = false;
   $('wpe-changes-btn').setAttribute('aria-expanded', 'true');
   $('wpe-rebuild').textContent = 'Rebuilding…';
   try {
-    let status = await api<RebuildStatus>('/rebuild', { method: 'POST' });
+    let status = await first();
     renderRebuild(status);
     while (status.state === 'running') {
       await new Promise(resolve => setTimeout(resolve, 1500));
@@ -1547,8 +1559,27 @@ async function rebuild(): Promise<void> {
     state.rebuilding = false;
     $('wpe-rebuild').textContent = 'Rebuild trail data';
     renderButtons();
+    renderNewButtons();
     void refreshChanges();
   }
+}
+
+/**
+ * On page load: a rebuild that is running is followed as if this page had
+ * started it, and the last one's report is put back in the drawer. The page
+ * can be reloaded mid-rebuild (by hand, or by Vite when one of the page's own
+ * source files is edited), and the report of minted and retired ids must not
+ * be lost with it.
+ */
+async function resumeRebuild(): Promise<void> {
+  let status: RebuildStatus;
+  try {
+    status = await api<RebuildStatus>('/rebuild');
+  } catch {
+    return; // the first save or rebuild says what is wrong
+  }
+  if (status.state === 'running') await followRebuild(() => Promise.resolve(status));
+  else renderRebuild(status);
 }
 
 function toggleDrawer(buttonId: string, drawerId: string): void {
@@ -1757,6 +1788,7 @@ async function boot(): Promise<void> {
   select.value = dir;
   void refreshChanges();
   await loadTrail(dir, { select: params.get('id') });
+  void resumeRebuild();
 }
 
 void boot();

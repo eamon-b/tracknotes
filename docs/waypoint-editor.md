@@ -376,6 +376,8 @@ A failed build's last warning line names the step that stopped and its exit code
 Saves, adds and deletes are refused (409) from the moment a rebuild starts until it ends, and a second Rebuild does not start a second build.
 That holds across a restart of the dev server by Vite, which happens when `vite.config.ts` or a file it imports changes: the rebuild carries on, and its state and report are kept.
 The editor's own modules and `src/lib` are not among those files (the plugin loads them per request), so editing them restarts nothing, and the next request runs the edited code.
+A page opened or reloaded while a rebuild runs (by hand, or by Vite when one of the page's own source files is edited) picks the rebuild up: the drawer opens, saves stay off, and the report is shown when it ends.
+A page opened after it has ended shows the last rebuild's report in the Changed files drawer, until the dev server process ends.
 It also holds across dev server processes: a running rebuild leaves a lock file in the system's temporary directory, naming the dev server and the build step, and another dev server on the same checkout refuses saves and rebuilds while either is alive.
 The refusal names the file, to delete if no build is in fact running; a lock over 30 minutes old is ignored.
 
