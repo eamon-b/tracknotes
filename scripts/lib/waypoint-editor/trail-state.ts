@@ -20,34 +20,59 @@
  * Nothing else is touched; `build:trails` then turns the sources into data.
  */
 
+import { createHash, randomUUID } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { routeBreakStarts } from '../../../src/lib/route-breaks';
 import { snapToTrail } from '../../../src/lib/position-on-trail';
 import { haversineDistance } from '../../../src/lib/distance';
 import type { ProcessedTrail, RouteVariant } from '../../../src/lib/trail-types';
+import { classifyWaypoint } from '../../../src/lib/waypoint-classifier';
+import {
+  isAccessWaypoint,
+  isResupplyWaypoint,
+  isWaterWaypoint,
+  WAYPOINT_TYPES,
+  waypointTypeLabel,
+} from '../../../src/lib/waypoint-taxonomy';
 import { DESCRIPTIONS_FILENAME, MAX_DESCRIPTION_LENGTH, type CuratedDescriptionsFile } from '../waypoint-descriptions';
-import type { WaypointRegistry } from '../waypoint-ids';
-import type {
-  EditorTrail,
-  EditorTrailSummary,
-  EditorWaypoint,
-  PlacementKind,
-  WaypointEditRequest,
-  WaypointEditResponse,
-  WaypointPlacement,
+import { assignWaypointIds, type WaypointForId, type WaypointRegistry } from '../waypoint-ids';
+import {
+  PENDING_KEY_PREFIX,
+  type EditorTrail,
+  type EditorTrailSummary,
+  type EditorWaypoint,
+  type NewWaypointRequest,
+  type PlacementKind,
+  type WaypointDeleteRequest,
+  type WaypointDeleteResponse,
+  type WaypointEditRequest,
+  type WaypointEditResponse,
+  type WaypointExpected,
+  type WaypointPlacement,
 } from './api-types';
 import {
+  addCaltopoFolder,
   editCaltopoMarker,
   editJsonPreservingLayout,
-  findCaltopoMarker,
   findGpxWaypoint,
   formatCoordinate,
+  insertGpxWaypoint,
   listGpxWaypoints,
+  nearestCaltopoMarker,
+  newFolderTitle,
+  folderTitlesForType,
+  readCaltopoExport,
+  removeCaltopoFeature,
+  removeGpxWaypoint,
   renameKeepingPrefix,
+  setCaltopoMarkerFolder,
   setGpxWaypointName,
   setGpxWaypointPosition,
+  setGpxWaypointType,
   stringifyJson,
+  type CaltopoExport,
+  type CaltopoMarkerInfo,
   type GpxWaypointSpan,
 } from './sources';
 
@@ -263,9 +288,13 @@ function collectBuiltWaypoints(trail: ProcessedTrail): BuiltWaypoint[] {
   return [...byId.values()];
 }
 
-/** A revisited place's later passes are `<id>_2`, `<id>_3`, sharing the first pass's registry entry. */
-function registryId(id: string): string {
-  return id.replace(/_\d+$/, '');
+/**
+ * A revisited place's later passes are `<id>_2`, `<id>_3`, sharing the first
+ * pass's registry entry. Only a suffix after a whole id counts: `w_00176641`
+ * is an id of its own, not pass 176641 of `w`.
+ */
+export function registryId(id: string): string {
+  return id.replace(/^(.+_[^_]+)_\d+$/, '$1');
 }
 
 interface Joined {
@@ -323,13 +352,105 @@ function sortKm(
   return snapToTrail(joined.lat, joined.lon, points, undefined, starts)?.currentKm ?? 0;
 }
 
+/** The source files of one trail as they are on disk now. */
+interface Sources {
+  gpx: string;
+  spans: GpxWaypointSpan[];
+  geojsonText: string | null;
+  caltopo: CaltopoExport | null;
+  registry: WaypointRegistry;
+}
+
+function readSources(paths: EditorPaths, context: TrailContext): Sources {
+  const gpx = fs.readFileSync(context.gpxPath, 'utf-8');
+  const geojsonText = context.geojsonPath ? fs.readFileSync(context.geojsonPath, 'utf-8') : null;
+  return {
+    gpx,
+    spans: listGpxWaypoints(gpx),
+    geojsonText,
+    caltopo: geojsonText === null ? null : readCaltopoExport(geojsonText),
+    registry: readJson<WaypointRegistry>(paths.registryPath),
+  };
+}
+
+/** What decides a `<wpt>`'s type in the build. */
+export interface TypeSource {
+  type: string;
+  /**
+   * - `caltopo-folder`: the folder of the nearest CalTopo marker with its name;
+   * - `caltopo-title`: that marker's title (it is in no folder `FOLDER_TYPE_MAP` knows);
+   * - `gpx-type`: the `<wpt>`'s `<type>`;
+   * - `gpx-name`: its `<name>` (a prefix, a known town, or nothing: `waypoint`).
+   */
+  by: 'caltopo-folder' | 'caltopo-title' | 'gpx-type' | 'gpx-name';
+  /** The name the build gives the waypoint (prefix removed). */
+  cleanedName: string;
+  /** For `gpx-name`: how the name typed it. */
+  nameRule?: 'prefix' | 'known-town' | 'default';
+  /** For `gpx-name` with a prefix: the prefix. */
+  prefix?: string;
+  marker?: CaltopoMarkerInfo;
+}
+
+/**
+ * The type the build gives a `<wpt>`, and what decides it, exactly as
+ * `build-trails.ts` does: the nearest CalTopo marker with the same cleaned
+ * name wins (`resolveTrailWaypoints`); otherwise the GPX `<type>`, otherwise
+ * the name (`flattenGpx`: `wpt.type || classifyWaypoint(name).type`).
+ */
+export function resolveSourceType(
+  wpt: { name: string; type?: string; lat: number; lon: number },
+  caltopo: CaltopoExport | null
+): TypeSource {
+  const classification = classifyWaypoint(wpt.name || 'Unnamed');
+  const cleanedName = classification.cleanedName;
+  if (caltopo && caltopo.markers.length > 0) {
+    const marker = nearestCaltopoMarker(caltopo.markers, { lat: wpt.lat, lon: wpt.lon, name: cleanedName });
+    if (marker) {
+      return { type: marker.type, by: marker.typedByFolder ? 'caltopo-folder' : 'caltopo-title', cleanedName, marker };
+    }
+  }
+  if (wpt.type) return { type: wpt.type, by: 'gpx-type', cleanedName };
+  const source: TypeSource = {
+    type: classification.type,
+    by: 'gpx-name',
+    cleanedName,
+    nameRule:
+      classification.source === 'prefix' || classification.source === 'known-town' ? classification.source : 'default',
+  };
+  if (classification.matchedPrefix) source.prefix = classification.matchedPrefix;
+  return source;
+}
+
+function typeSourceText(source: TypeSource, geojsonFile: string | undefined): string {
+  const file = geojsonFile ? ` in ${geojsonFile}` : '';
+  switch (source.by) {
+    case 'caltopo-folder':
+      return `the CalTopo folder “${source.marker?.folderTitle ?? ''}” of its marker${file}`;
+    case 'caltopo-title':
+      return `the title “${source.marker?.title ?? ''}” of its CalTopo marker${file} (in no folder that sets a type)`;
+    case 'gpx-type':
+      return 'its GPX <type>';
+    case 'gpx-name':
+      if (source.nameRule === 'prefix') return `the prefix “${source.prefix ?? ''}” of its GPX <name>`;
+      if (source.nameRule === 'known-town') return 'its name, a known town (no <type> in the GPX)';
+      return 'nothing: no <type>, prefix or CalTopo folder, so it is unclassified';
+  }
+}
+
+/** A pending waypoint's temporary key: stable while its `<wpt>` is unchanged, and never a valid id. */
+function pendingKey(span: GpxWaypointSpan): string {
+  const hash = createHash('sha1').update(`${span.lat}|${span.lon}|${span.name}`).digest('hex');
+  return `${PENDING_KEY_PREFIX}${hash.slice(0, 10)}`;
+}
+
 function toEditorWaypoint(
   context: TrailContext,
   joined: Joined,
   curated: Map<string, string>,
   access: Record<string, AccessEntryLite>,
   sharers: Map<number, string[]>,
-  geojsonText: string | null,
+  sources: Sources,
   km: number
 ): EditorWaypoint {
   const { built, span } = joined;
@@ -337,11 +458,13 @@ function toEditorWaypoint(
     ? context.readOnlyReason
     : span
       ? undefined
-      : 'Its <wpt> could not be found in the GPX (it may have been edited by hand since the build): rebuild, then try again.';
+      : 'Its <wpt> is no longer in the GPX: deleted since the last build (or edited by hand). The next build retires its id; rebuild before editing it.';
+  const typeSource = span ? resolveSourceType(span, sources.caltopo) : null;
   const waypoint: EditorWaypoint = {
     id: built.id,
     name: joined.name,
-    type: built.type,
+    type: typeSource?.type ?? built.type,
+    builtType: built.type,
     lat: joined.lat,
     lon: joined.lon,
     builtLat: built.lat,
@@ -352,11 +475,17 @@ function toEditorWaypoint(
     description: curated.get(built.id) ?? '',
     canMove: !locked,
     canRename: !locked,
-    canDescribe: !context.readOnlyReason,
+    canDescribe: !context.readOnlyReason && !!span,
+    canChangeType: !locked,
+    // A later pass is built from the first pass's <wpt>: deleting it is deleting the first.
+    canDelete: !locked && registryId(built.id) === built.id,
   };
+  if (typeSource)
+    waypoint.typeSource = typeSourceText(typeSource, context.geojsonPath && path.basename(context.geojsonPath));
   if (locked) waypoint.lockedReason = locked;
+  if (!span && !context.readOnlyReason) waypoint.deleted = true;
   if (built.distanceFromTrailKm !== undefined) waypoint.distanceFromTrailKm = built.distanceFromTrailKm;
-  const sourceText = sourceDescription(span, geojsonText, joined);
+  const sourceText = sourceDescription(span, sources.caltopo, joined);
   if (sourceText) waypoint.sourceDescription = sourceText;
   else if (!curated.has(built.id) && built.description) waypoint.sourceDescription = built.description;
   const accessEntry = access[registryId(built.id)];
@@ -370,14 +499,57 @@ function toEditorWaypoint(
   return waypoint;
 }
 
+/** A `<wpt>` no built waypoint came from: added since the build, so it has no id yet. */
+function toPendingWaypoint(
+  context: TrailContext,
+  span: GpxWaypointSpan,
+  sources: Sources,
+  points: { lat: number; lon: number; dist: number }[],
+  starts: ReadonlySet<number>
+): EditorWaypoint {
+  const typeSource = resolveSourceType(span, sources.caltopo);
+  const reason =
+    context.readOnlyReason ??
+    'Added since the last build, so it has no id yet: Rebuild to give it one, then edit it like any other. Until then it can only be deleted.';
+  const waypoint: EditorWaypoint = {
+    id: pendingKey(span),
+    pending: true,
+    name: typeSource.cleanedName,
+    type: typeSource.type,
+    builtType: typeSource.type,
+    typeSource: typeSourceText(typeSource, context.geojsonPath && path.basename(context.geojsonPath)),
+    lat: span.lat,
+    lon: span.lon,
+    builtLat: span.lat,
+    builtLon: span.lon,
+    builtName: typeSource.cleanedName,
+    placements: [],
+    sortKm: snapToTrail(span.lat, span.lon, points, undefined, starts)?.currentKm ?? 0,
+    description: '',
+    canMove: false,
+    canRename: false,
+    canDescribe: false,
+    canChangeType: false,
+    canDelete: !context.readOnlyReason,
+    lockedReason: reason,
+  };
+  const sourceText = sourceDescription(span, sources.caltopo, {
+    name: typeSource.cleanedName,
+    lat: span.lat,
+    lon: span.lon,
+  });
+  if (sourceText) waypoint.sourceDescription = sourceText;
+  return waypoint;
+}
+
 /** The text the build would show without a curated entry: the CalTopo marker's, else the GPX `<desc>`. */
 function sourceDescription(
   span: GpxWaypointSpan | null,
-  geojsonText: string | null,
-  joined: Joined
+  caltopo: CaltopoExport | null,
+  at: { name: string; lat: number; lon: number }
 ): string | undefined {
-  if (geojsonText) {
-    const marker = findCaltopoMarker(geojsonText, joined);
+  if (caltopo) {
+    const marker = nearestCaltopoMarker(caltopo.markers, at);
     if (marker?.description) return marker.description;
   }
   return span?.desc?.trim() || undefined;
@@ -387,15 +559,16 @@ function relative(paths: EditorPaths, file: string): string {
   return path.relative(paths.root, file).split(path.sep).join('/');
 }
 
-function buildEditorWaypoints(paths: EditorPaths, context: TrailContext): EditorWaypoint[] {
-  const gpx = fs.readFileSync(context.gpxPath, 'utf-8');
-  const geojsonText = context.geojsonPath ? fs.readFileSync(context.geojsonPath, 'utf-8') : null;
-  const registry = readJson<WaypointRegistry>(paths.registryPath);
+function buildEditorWaypoints(
+  paths: EditorPaths,
+  context: TrailContext,
+  sources = readSources(paths, context)
+): EditorWaypoint[] {
   const curated = new Map(
     (readDescriptions(context.descriptionsPath)?.descriptions ?? []).map(d => [d.waypointId, d.description])
   );
   const access = readAccess(context.trailDir);
-  const joined = joinToSources(collectBuiltWaypoints(context.built), listGpxWaypoints(gpx), registry, context.trailId);
+  const joined = joinToSources(collectBuiltWaypoints(context.built), sources.spans, sources.registry, context.trailId);
   const sharers = new Map<number, string[]>();
   for (const j of joined) {
     if (!j.span) continue;
@@ -403,9 +576,21 @@ function buildEditorWaypoints(paths: EditorPaths, context: TrailContext): Editor
   }
   const points = displayPoints(context.built);
   const starts = routeBreakStarts(context.built.track.breaks, 'displayPoints');
-  return joined
-    .map(j => toEditorWaypoint(context, j, curated, access, sharers, geojsonText, sortKm(j, points, starts)))
-    .sort((a, b) => a.sortKm - b.sortKm || a.name.localeCompare(b.name));
+  const built = joined.map(j =>
+    toEditorWaypoint(context, j, curated, access, sharers, sources, sortKm(j, points, starts))
+  );
+  // A <wpt> no built waypoint came from is new since the build, unless a live
+  // registry entry sits exactly on it under its name: then it has an id, and the
+  // build merged it into a near-duplicate (`dedupeWaypoints`).
+  const live = (sources.registry[context.trailId] ?? []).filter(e => !e.retired);
+  const hasId = (span: GpxWaypointSpan) => {
+    const name = classifyWaypoint(span.name || 'Unnamed').cleanedName;
+    return live.some(e => e.lat === span.lat && e.lon === span.lon && e.name === name);
+  };
+  const pending = sources.spans
+    .filter(span => !sharers.has(span.start) && !hasId(span))
+    .map(span => toPendingWaypoint(context, span, sources, points, starts));
+  return [...built, ...pending].sort((a, b) => a.sortKm - b.sortKm || a.name.localeCompare(b.name));
 }
 
 export function loadEditorTrail(paths: EditorPaths, dirParam: string): EditorTrail {
@@ -445,8 +630,32 @@ export function loadEditorTrail(paths: EditorPaths, dirParam: string): EditorTra
 // Saves
 // ---------------------------------------------------------------------------
 
+const OFFERED_TYPES: ReadonlySet<string> = new Set<string>(WAYPOINT_TYPES);
+
 function sameCoordinate(a: number, b: number): boolean {
   return Math.abs(a - b) < 1e-9;
+}
+
+function validName(raw: unknown): string {
+  const name = typeof raw === 'string' ? raw.trim() : '';
+  if (!name) throw new EditorError('A waypoint needs a name');
+  if (name.length > MAX_NAME_LENGTH || /[\r\n\t]/.test(name)) throw new EditorError('That name is not usable');
+  return name;
+}
+
+function validType(raw: unknown): string {
+  if (typeof raw !== 'string' || !OFFERED_TYPES.has(raw)) {
+    throw new EditorError(`"${String(raw)}" is not one of the waypoint types the editor offers (WAYPOINT_TYPES)`);
+  }
+  return raw;
+}
+
+function validPosition(lat: unknown, lon: unknown): { lat: number; lon: number } {
+  if (typeof lat !== 'number' || typeof lon !== 'number' || !Number.isFinite(lat) || !Number.isFinite(lon)) {
+    throw new EditorError('A position needs both lat and lon as numbers');
+  }
+  if (Math.abs(lat) > 90 || Math.abs(lon) > 180) throw new EditorError('That position is not on Earth');
+  return { lat, lon };
 }
 
 function validate(request: WaypointEditRequest, current: EditorWaypoint, maxDescription: number): void {
@@ -458,17 +667,15 @@ function validate(request: WaypointEditRequest, current: EditorWaypoint, maxDesc
     if (!current.canDescribe) throw new EditorError(current.lockedReason ?? 'This description cannot be edited here');
   }
   if (request.name !== undefined) {
-    const name = typeof request.name === 'string' ? request.name.trim() : '';
-    if (!name) throw new EditorError('A waypoint needs a name');
-    if (name.length > MAX_NAME_LENGTH || /[\r\n\t]/.test(name)) throw new EditorError('That name is not usable');
+    validName(request.name);
     if (!current.canRename) throw new EditorError(current.lockedReason ?? 'This waypoint cannot be renamed here');
   }
+  if (request.type !== undefined) {
+    validType(request.type);
+    if (!current.canChangeType) throw new EditorError(current.lockedReason ?? 'This waypoint cannot be retyped here');
+  }
   if (request.lat !== undefined || request.lon !== undefined) {
-    const { lat, lon } = request;
-    if (typeof lat !== 'number' || typeof lon !== 'number' || !Number.isFinite(lat) || !Number.isFinite(lon)) {
-      throw new EditorError('A move needs both lat and lon as numbers');
-    }
-    if (Math.abs(lat) > 90 || Math.abs(lon) > 180) throw new EditorError('That position is not on Earth');
+    const { lat, lon } = validPosition(request.lat, request.lon);
     if (!current.canMove) throw new EditorError(current.lockedReason ?? 'This waypoint cannot be moved here');
     if (haversineDistance(current.lat, current.lon, lat, lon) > MAX_MOVE_METERS) {
       throw new EditorError(`That moves the waypoint more than ${MAX_MOVE_METERS / 1000} km; a slip of the mouse?`);
@@ -476,14 +683,14 @@ function validate(request: WaypointEditRequest, current: EditorWaypoint, maxDesc
   }
 }
 
-function assertExpected(request: WaypointEditRequest, current: EditorWaypoint): void {
-  const expected = request.expected;
+function assertExpected(expected: WaypointExpected | undefined, current: EditorWaypoint): void {
   if (
     !expected ||
     expected.name !== current.name ||
     !sameCoordinate(expected.lat, current.lat) ||
     !sameCoordinate(expected.lon, current.lon) ||
-    expected.description !== current.description
+    expected.description !== current.description ||
+    (expected.type !== undefined && expected.type !== current.type)
   ) {
     throw new EditorError(
       'This waypoint changed on disk since the page read it: reload the trail and redo the edit.',
@@ -557,12 +764,22 @@ function renamedDescriptionText(context: TrailContext, id: string, name: string)
   return next === existing ? null : next;
 }
 
-/** The registry with the waypoint's entry moved and/or renamed; null when it has none or nothing changed. */
+/** `descriptions.json` without the entries for `ids`; null when it has none of them. */
+function withoutDescriptionsText(context: TrailContext, ids: readonly string[]): string | null {
+  if (!fs.existsSync(context.descriptionsPath)) return null;
+  const existing = fs.readFileSync(context.descriptionsPath, 'utf-8');
+  const next = editJsonPreservingLayout<CuratedDescriptionsFile>(existing, DESCRIPTIONS_FILENAME, file => {
+    file.descriptions = file.descriptions.filter(d => !ids.includes(d.waypointId));
+  });
+  return next === existing ? null : next;
+}
+
+/** The registry with the waypoint's entry moved, renamed and/or retyped; null when it has none or nothing changed. */
 function registryText(
   paths: EditorPaths,
   trailId: string,
   id: string,
-  edit: { lat?: number; lon?: number; name?: string }
+  edit: { lat?: number; lon?: number; name?: string; type?: string }
 ): string | null {
   const existing = fs.readFileSync(paths.registryPath, 'utf-8');
   let found = false;
@@ -575,8 +792,140 @@ function registryText(
       entry.lon = Number(formatCoordinate(edit.lon));
     }
     if (edit.name !== undefined && registryId(id) === id) entry.name = edit.name;
+    if (edit.type !== undefined) entry.type = edit.type;
   });
   return !found || next === existing ? null : next;
+}
+
+// ---------------------------------------------------------------------------
+// Ids: what the next build would do
+// ---------------------------------------------------------------------------
+
+/** What `assignWaypointIds` is handed for these sources: every `<wpt>`, in file order, named and typed as the build does. */
+function idInputs(spans: readonly GpxWaypointSpan[], caltopo: CaltopoExport | null): WaypointForId[] {
+  return spans.map(span => {
+    const source = resolveSourceType(span, caltopo);
+    return { name: source.cleanedName, type: source.type, lat: span.lat, lon: span.lon };
+  });
+}
+
+interface IdRun {
+  registry: WaypointRegistry;
+  inputs: WaypointForId[];
+}
+
+/**
+ * Run the build's id matching (on a copy of the registry) over the sources
+ * before and after an edit, and refuse the edit if any waypoint the two share
+ * would come out of the next build with a different id: that is a waypoint
+ * losing its comments and description. `pairs` maps each after-index to the
+ * before-index of the same `<wpt>`. Returns the ids after, and the build's
+ * warnings about the after state.
+ */
+function assertIdsKept(
+  trailId: string,
+  before: IdRun,
+  after: IdRun,
+  pairs: readonly [number, number][]
+): { ids: string[]; warnings: string[] } {
+  let beforeIds: string[];
+  try {
+    beforeIds = assignWaypointIds(trailId, before.inputs, structuredClone(before.registry));
+  } catch (error) {
+    throw new EditorError(
+      `The sources as they are would already stop the build, so the editor cannot check what this edit does to ids: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+  const warnings: string[] = [];
+  let ids: string[];
+  try {
+    ids = assignWaypointIds(trailId, after.inputs, structuredClone(after.registry), m => warnings.push(m.trim()));
+  } catch (error) {
+    throw new EditorError(`That would stop the next build: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  const lost = pairs
+    .filter(([a, b]) => ids[a] !== beforeIds[b])
+    .map(([a, b]) => `“${after.inputs[a].name}” (${beforeIds[b]} would become ${ids[a]})`);
+  if (lost.length) {
+    throw new EditorError(
+      `That would change the id of ${lost.join(', ')}, orphaning the comments and description keyed to it; the editor will not do that.`
+    );
+  }
+  return { ids, warnings };
+}
+
+// ---------------------------------------------------------------------------
+// Type changes
+// ---------------------------------------------------------------------------
+
+/**
+ * The CalTopo export with `marker` moved into a folder that types it `type`
+ * (a new folder when the export has none), so the build, which takes the
+ * folder first, gives the waypoint that type. Throws `EditorError` when no
+ * folder title means `type`, or when the marker types another waypoint too.
+ */
+function retypedCaltopo(
+  context: TrailContext,
+  sources: Sources,
+  geojsonText: string,
+  marker: CaltopoMarkerInfo,
+  title: string,
+  span: GpxWaypointSpan,
+  type: string,
+  notes: string[]
+): string {
+  const file = path.basename(context.geojsonPath!);
+  const others = sources.spans.filter(
+    s => s.start !== span.start && resolveSourceType(s, sources.caltopo).marker?.index === marker.index
+  );
+  if (others.length) {
+    throw new EditorError(
+      `Its CalTopo marker “${marker.title}” in ${file} also types ${others.map(s => `“${s.name}”`).join(', ')} (the build takes the nearest marker with the same name): retyping it would retype those too and cost them their ids. Rename one of them first.`
+    );
+  }
+  const titles = folderTitlesForType(type);
+  const folder = sources.caltopo!.folders.find(f => titles.includes(f.title.toLowerCase()));
+  if (folder) {
+    notes.push(`Moved its CalTopo marker into the folder “${folder.title}” in ${file}.`);
+    return setCaltopoMarkerFolder(geojsonText, file, { index: marker.index, title }, folder.id);
+  }
+  const newTitle = newFolderTitle(type);
+  if (!newTitle) {
+    throw new EditorError(
+      `${file} types this waypoint from the folder of its CalTopo marker, and no folder title means “${waypointTypeLabel(type)}” (${type}): FOLDER_TYPE_MAP in src/lib/waypoint-classifier.ts has none, so the editor cannot give it that type here. Add a folder title for it there first (a classifier change, rebuilt and reviewed on its own).`
+    );
+  }
+  notes.push(`Added a CalTopo folder “${newTitle}” to ${file} and moved its marker into it.`);
+  const id = randomUUID();
+  // The folder goes first in `features`, so the marker's folderId is set before its index shifts.
+  const moved = setCaltopoMarkerFolder(geojsonText, file, { index: marker.index, title }, id);
+  return addCaltopoFolder(moved, file, { id, title: newTitle });
+}
+
+/** Notes on what a type change means beyond the id. */
+function retypeNotes(from: string, to: string): string[] {
+  const notes: string[] = [];
+  const family = (t: string) => [isWaterWaypoint(t) ? 'water' : '', isResupplyWaypoint(t) ? 'resupply' : ''];
+  const [waterFrom, resupplyFrom] = family(from);
+  const [waterTo, resupplyTo] = family(to);
+  if (waterFrom !== waterTo) {
+    notes.push(
+      waterTo
+        ? 'It now counts as water in the carry calculator and the dry-stretch figures.'
+        : 'It no longer counts as water: check the carry and dry-stretch figures either side of it.'
+    );
+  }
+  if (resupplyFrom !== resupplyTo) {
+    notes.push(resupplyTo ? 'It now counts as a resupply point.' : 'It no longer counts as a resupply point.');
+  }
+  if (isAccessWaypoint(to) !== isAccessWaypoint(from)) {
+    notes.push(
+      isAccessWaypoint(to)
+        ? 'A turn-off is the point on the route where the walk to the place leaves it, not the place itself.'
+        : 'It is now the place itself rather than a turn-off to it: if the place is off the route, check where it sits.'
+    );
+  }
+  return notes;
 }
 
 /**
@@ -591,13 +940,14 @@ export function saveWaypointEdit(
   request: WaypointEditRequest
 ): WaypointEditResponse {
   const context = loadContext(paths, dirParam);
-  const waypoints = buildEditorWaypoints(paths, context);
+  const sources = readSources(paths, context);
+  const waypoints = buildEditorWaypoints(paths, context, sources);
   const byId = new Map(waypoints.map(w => [w.id, w]));
   const current = byId.get(waypointId);
   if (!current) throw new EditorError(`${context.trailId} has no waypoint ${waypointId}`, 404);
 
   validate(request, current, MAX_DESCRIPTION_LENGTH);
-  assertExpected(request, current);
+  assertExpected(request.expected, current);
 
   const newName = request.name?.trim();
   const rename = newName !== undefined && newName !== current.name;
@@ -606,53 +956,116 @@ export function saveWaypointEdit(
     request.lon !== undefined &&
     (!sameCoordinate(request.lat, current.lat) || !sameCoordinate(request.lon, current.lon));
   const describe = request.description !== undefined && request.description.trim() !== current.description;
+  const retype = request.type !== undefined && request.type !== current.type;
 
   const changed = new Set<string>();
   const notes: string[] = [];
   const name = rename ? newName : current.name;
+  const lat = move ? request.lat! : current.lat;
+  const lon = move ? request.lon! : current.lon;
 
   // Compute every write before making any, so a refusal (a file whose layout
-  // cannot be reproduced) leaves nothing half-written.
+  // cannot be reproduced, a type that cannot be made safe) leaves nothing half-written.
   const writes: { file: string; text: string }[] = [];
-  if (move || rename) {
-    let gpx = fs.readFileSync(context.gpxPath, 'utf-8');
-    const span = findGpxWaypoint(listGpxWaypoints(gpx), current);
+  let gpxText = sources.gpx;
+  let geojsonText = sources.geojsonText;
+  let registryAfter: string | null = null;
+  if (move || rename || retype) {
+    const span = findGpxWaypoint(sources.spans, current);
     if (!span) throw new EditorError('Its <wpt> is no longer in the GPX: reload the trail', 409);
-    if (rename) {
-      gpx = setGpxWaypointName(gpx, span, renameKeepingPrefix(span.name, current.name, name));
-    }
-    if (move) {
-      const moved = findGpxWaypoint(listGpxWaypoints(gpx), { lat: current.lat, lon: current.lon, name });
-      if (!moved) throw new EditorError('Lost its <wpt> while renaming it', 500);
-      gpx = setGpxWaypointPosition(gpx, moved, request.lat!, request.lon!);
-    }
-    writes.push({ file: context.gpxPath, text: gpx });
-
-    if (context.geojsonPath) {
-      const geojson = fs.readFileSync(context.geojsonPath, 'utf-8');
-      const marker = findCaltopoMarker(geojson, current);
-      if (marker) {
-        const edit: { lat?: number; lon?: number; title?: string } = {};
-        if (move) Object.assign(edit, { lat: request.lat, lon: request.lon });
-        if (rename) edit.title = renameKeepingPrefix(marker.title, current.name, name);
-        const source = path.basename(context.geojsonPath);
-        writes.push({ file: context.geojsonPath, text: editCaltopoMarker(geojson, source, marker, edit) });
-      } else {
+    const typeSource = resolveSourceType(span, sources.caltopo);
+    let rawName = rename ? renameKeepingPrefix(span.name, current.name, name) : span.name;
+    if (retype && typeSource.by === 'gpx-name' && typeSource.prefix) {
+      // The <type> written below decides from now on; a prefix left in the name
+      // would contradict it. Dropped only when the name the build shows stays the same.
+      const classified = classifyWaypoint(rawName);
+      if (classified.matchedPrefix && classifyWaypoint(classified.cleanedName).cleanedName === classified.cleanedName) {
+        rawName = classified.cleanedName;
         notes.push(
-          `No CalTopo marker named "${current.name}" in ${path.basename(context.geojsonPath)}: its type comes from the GPX alone.`
+          `Dropped the type prefix “${classified.matchedPrefix.trim()}” from its GPX <name>: the <type> sets its type now.`
         );
       }
     }
+    if (rawName !== span.name) gpxText = setGpxWaypointName(gpxText, span, rawName);
+    if (move) {
+      const moved = findGpxWaypoint(listGpxWaypoints(gpxText), { lat: current.lat, lon: current.lon, name });
+      if (!moved) throw new EditorError('Lost its <wpt> while renaming it', 500);
+      gpxText = setGpxWaypointPosition(gpxText, moved, lat, lon);
+    }
+    if (retype && (typeSource.by === 'gpx-type' || typeSource.by === 'gpx-name')) {
+      const at = findGpxWaypoint(listGpxWaypoints(gpxText), { lat, lon, name });
+      if (!at) throw new EditorError('Lost its <wpt> while editing it', 500);
+      gpxText = setGpxWaypointType(gpxText, at, request.type!);
+      notes.push(
+        typeSource.by === 'gpx-type'
+          ? 'Changed its GPX <type>.'
+          : `Added a GPX <type>, which outranks ${typeSource.nameRule === 'known-town' ? 'the known-town list' : 'its name'} in the build.`
+      );
+    }
+    if (gpxText !== sources.gpx) writes.push({ file: context.gpxPath, text: gpxText });
+
+    if (context.geojsonPath && geojsonText !== null) {
+      const marker = typeSource.marker;
+      const source = path.basename(context.geojsonPath);
+      if (marker) {
+        let title = marker.title;
+        if (move || rename) {
+          const edit: { lat?: number; lon?: number; title?: string } = {};
+          if (move) Object.assign(edit, { lat, lon });
+          if (rename) edit.title = title = renameKeepingPrefix(marker.title, current.name, name);
+          geojsonText = editCaltopoMarker(geojsonText, source, marker, edit);
+        }
+        if (retype) {
+          geojsonText = retypedCaltopo(context, sources, geojsonText, marker, title, span, request.type!, notes);
+        }
+        writes.push({ file: context.geojsonPath, text: geojsonText });
+      } else if (move || rename) {
+        notes.push(`No CalTopo marker named "${current.name}" in ${source}: its type comes from the GPX alone.`);
+      }
+    }
+
+    const registryEdit: { lat?: number; lon?: number; name?: string; type?: string } = {};
+    if (move) Object.assign(registryEdit, { lat, lon });
+    if (rename) registryEdit.name = name;
+    if (retype) registryEdit.type = request.type;
+    registryAfter = registryText(paths, context.trailId, current.id, registryEdit);
+    if (registryAfter !== null) writes.push({ file: paths.registryPath, text: registryAfter });
+    else if (move || retype) {
+      notes.push(`${current.id} has no registry entry of its own; the next build matches it by position.`);
+    }
   }
 
-  if (move || rename) {
-    const registryEdit: { lat?: number; lon?: number; name?: string } = {};
-    if (move) Object.assign(registryEdit, { lat: request.lat, lon: request.lon });
-    if (rename) registryEdit.name = name;
-    const text = registryText(paths, context.trailId, current.id, registryEdit);
-    if (text !== null) writes.push({ file: paths.registryPath, text });
-    else if (move) notes.push(`${current.id} has no registry entry of its own; the next build matches it by position.`);
+  if (retype) {
+    // Check the result as the build will see it: the type it resolves to, and
+    // that every id (this one included) comes through.
+    const caltopoAfter = geojsonText === null ? null : readCaltopoExport(geojsonText);
+    const spansAfter = listGpxWaypoints(gpxText);
+    const at = findGpxWaypoint(spansAfter, { lat, lon, name });
+    const resolved = at ? resolveSourceType(at, caltopoAfter) : null;
+    if (!resolved || resolved.type !== request.type || resolved.cleanedName !== name) {
+      throw new EditorError(
+        `Could not make that type stick: the build would still type it ${resolved?.type ?? '(not found)'}, so nothing was written.`,
+        500
+      );
+    }
+    const registryNow = sources.registry;
+    const { ids } = assertIdsKept(
+      context.trailId,
+      { registry: registryNow, inputs: idInputs(sources.spans, sources.caltopo) },
+      {
+        registry: registryAfter ? (JSON.parse(registryAfter) as WaypointRegistry) : registryNow,
+        inputs: idInputs(spansAfter, caltopoAfter),
+      },
+      spansAfter.map((_, i) => [i, i] as [number, number])
+    );
+    const kept = ids[spansAfter.indexOf(at!)];
+    if (kept !== registryId(current.id)) {
+      throw new EditorError(
+        `The next build would give it id ${kept} instead of ${registryId(current.id)} (its registry entry did not follow): nothing was written.`
+      );
+    }
   }
+
   const descriptionsText = describe
     ? describedText(context, current, request.description!.trim(), name, byId)
     : rename
@@ -666,7 +1079,7 @@ export function saveWaypointEdit(
   }
 
   if (move) {
-    const metres = haversineDistance(current.lat, current.lon, request.lat!, request.lon!);
+    const metres = haversineDistance(current.lat, current.lon, lat, lon);
     notes.push(`Moved ${Math.round(metres)} m; its registry entry moved with it, so it keeps id ${current.id}.`);
     if (current.access?.method === 'osm' || current.access?.method === 'none') {
       notes.push(
@@ -679,10 +1092,197 @@ export function saveWaypointEdit(
       notes.push(`Also moves ${current.sharesSourceWith.join(', ')}, built from the same <wpt>.`);
     }
   }
-  if (move || rename) notes.push('Run Rebuild to see its km, lists and type from the new source.');
+  if (retype) {
+    notes.push(
+      `Type ${current.type} → ${request.type}; its registry entry's type changed with it, so it keeps id ${registryId(current.id)}.`
+    );
+    notes.push(...retypeNotes(current.type, request.type!));
+    if (current.sharesSourceWith?.length) {
+      notes.push(`Also retypes ${current.sharesSourceWith.join(', ')}, built from the same <wpt>.`);
+    }
+  }
+  if (move || rename || retype) notes.push('Run Rebuild to see its km, lists and type from the new source.');
 
   const after = buildEditorWaypoints(paths, loadContext(paths, dirParam)).find(w => w.id === waypointId);
   if (!after)
     throw new EditorError('The waypoint could not be found again after saving: rebuild and check the diff', 500);
   return { waypoint: after, changedFiles: [...changed], notes };
+}
+
+// ---------------------------------------------------------------------------
+// Adding and deleting
+// ---------------------------------------------------------------------------
+
+/**
+ * Add a waypoint: a new `<wpt>` (name, `<type>`, optional `<desc>`) after the
+ * last one in the GPX. Nothing goes in the registry or `descriptions.json`:
+ * the next build mints its id, and until then the editor shows it as pending.
+ *
+ * On a CalTopo-typed trail no marker is added: the build types a `<wpt>` from
+ * a marker only when one has its name, and otherwise from its `<type>`, so the
+ * `<type>` is enough. A marker that does have its name would win, so the add
+ * is refused when one would type it differently.
+ */
+export function addWaypoint(paths: EditorPaths, dirParam: string, request: NewWaypointRequest): WaypointEditResponse {
+  const context = loadContext(paths, dirParam);
+  if (context.readOnlyReason) throw new EditorError(context.readOnlyReason);
+  const name = validName(request?.name);
+  const classified = classifyWaypoint(name);
+  if (classified.cleanedName !== name) {
+    throw new EditorError(
+      `“${name}” starts with the type prefix “${classified.matchedPrefix ?? ''}”, which the build strips from names: leave it off (the type comes from Type).`
+    );
+  }
+  const type = validType(request.type);
+  const { lat: rawLat, lon: rawLon } = validPosition(request.lat, request.lon);
+  const lat = Number(formatCoordinate(rawLat));
+  const lon = Number(formatCoordinate(rawLon));
+  const description = request.description === undefined ? '' : request.description;
+  if (typeof description !== 'string') throw new EditorError('description must be a string');
+  if (description.trim().length > MAX_DESCRIPTION_LENGTH) {
+    throw new EditorError(`The description is longer than ${MAX_DESCRIPTION_LENGTH} characters`);
+  }
+  const points = displayPoints(context.built);
+  const snap = snapToTrail(lat, lon, points, undefined, routeBreakStarts(context.built.track.breaks, 'displayPoints'));
+  if (!snap || snap.offTrailMeters > MAX_MOVE_METERS) {
+    throw new EditorError(`That is more than ${MAX_MOVE_METERS / 1000} km from the route; a slip of the mouse?`);
+  }
+
+  const sources = readSources(paths, context);
+  if (sources.spans.some(s => s.lat === lat && s.lon === lon)) {
+    throw new EditorError(
+      'Another <wpt> is at exactly this position, and the editor tells waypoints apart by their coordinates: place it a little to one side.'
+    );
+  }
+  const gpx = insertGpxWaypoint(sources.gpx, { lat, lon, name, type, desc: description.trim() || undefined });
+  const spansAfter = listGpxWaypoints(gpx);
+  const addedIndex = spansAfter.findIndex(s => s.lat === lat && s.lon === lon && s.name === name);
+  if (addedIndex === -1) throw new EditorError('The new <wpt> could not be read back from the GPX', 500);
+  const added = spansAfter[addedIndex];
+  const resolved = resolveSourceType(added, sources.caltopo);
+  if (resolved.type !== type) {
+    const marker = resolved.marker;
+    throw new EditorError(
+      marker
+        ? `A CalTopo marker titled “${marker.title}” in ${path.basename(context.geojsonPath!)}, ${(haversineDistance(lat, lon, marker.lat, marker.lon) / 1000).toFixed(1)} km away, would type it as ${marker.type}: the build types a waypoint from the nearest marker with its name. Give it a name of its own.`
+        : `The build would type it as ${resolved.type}, not ${type}.`
+    );
+  }
+  const { ids, warnings } = assertIdsKept(
+    context.trailId,
+    { registry: sources.registry, inputs: idInputs(sources.spans, sources.caltopo) },
+    { registry: sources.registry, inputs: idInputs(spansAfter, sources.caltopo) },
+    sources.spans.map((_, i) => [i < addedIndex ? i : i + 1, i] as [number, number])
+  );
+
+  fs.writeFileSync(context.gpxPath, gpx);
+  const notes: string[] = [];
+  const newId = ids[addedIndex];
+  const reclaimed = (sources.registry[context.trailId] ?? []).find(e => e.id === newId);
+  if (reclaimed) {
+    notes.push(
+      `The next build will give it the retired id ${newId} back: a ${reclaimed.type} of the same name stood here once, and its comments and description come with the id.`
+    );
+  } else {
+    notes.push(
+      `Rebuild to give it its id (the next build mints ${newId}); until then it shows as pending and can only be deleted.`
+    );
+  }
+  if (description.trim()) {
+    notes.push(
+      'The description went into its GPX <desc>; once it has an id it can become curated text in descriptions.json.'
+    );
+  }
+  notes.push(...warnings.map(w => `The build will warn: ${w.replace(/^!\s*/, '')}`));
+  const waypoint = buildEditorWaypoints(paths, loadContext(paths, dirParam)).find(w => w.id === pendingKey(added));
+  if (!waypoint) throw new EditorError('The new waypoint could not be found again after saving: check the diff', 500);
+  return { waypoint, changedFiles: [relative(paths, context.gpxPath)], notes };
+}
+
+/**
+ * Delete a waypoint: its `<wpt>`, the CalTopo marker that typed it (unless
+ * that marker types another waypoint too) and its `descriptions.json` entries.
+ * The registry entry stays for the next build to mark `retired`: entries are
+ * never deleted, and a retired id is never handed to a different place.
+ * A revisited place's later pass (`<id>_2`) is built from the first pass's
+ * `<wpt>`, so it is refused: deleting the first pass deletes them all.
+ */
+export function deleteWaypoint(
+  paths: EditorPaths,
+  dirParam: string,
+  key: string,
+  request: WaypointDeleteRequest
+): WaypointDeleteResponse {
+  const context = loadContext(paths, dirParam);
+  if (context.readOnlyReason) throw new EditorError(context.readOnlyReason);
+  const sources = readSources(paths, context);
+  const current = buildEditorWaypoints(paths, context, sources).find(w => w.id === key);
+  if (!current) throw new EditorError(`${context.trailId} has no waypoint ${key}`, 404);
+  if (!current.pending && registryId(current.id) !== current.id) {
+    throw new EditorError(
+      `${current.id} is a later pass of ${registryId(current.id)}, built from the same <wpt>: delete ${registryId(current.id)} to remove the place (every pass goes with it).`
+    );
+  }
+  if (!current.canDelete) throw new EditorError(current.lockedReason ?? 'This waypoint cannot be deleted here');
+  assertExpected(request?.expected, current);
+  const span = current.pending
+    ? sources.spans.find(s => pendingKey(s) === key)
+    : findGpxWaypoint(sources.spans, current);
+  if (!span) throw new EditorError('Its <wpt> is no longer in the GPX: reload the trail', 409);
+  const spanIndex = sources.spans.indexOf(span);
+
+  const notes: string[] = [];
+  const writes: { file: string; text: string }[] = [];
+  const gpx = removeGpxWaypoint(sources.gpx, span);
+  writes.push({ file: context.gpxPath, text: gpx });
+  let caltopoAfter = sources.caltopo;
+  const marker = current.pending ? undefined : resolveSourceType(span, sources.caltopo).marker;
+  if (marker && context.geojsonPath && sources.geojsonText !== null) {
+    const file = path.basename(context.geojsonPath);
+    const others = sources.spans.filter(
+      s => s.start !== span.start && resolveSourceType(s, sources.caltopo).marker?.index === marker.index
+    );
+    if (others.length) {
+      notes.push(
+        `Left its CalTopo marker “${marker.title}” in ${file}: it also types ${others.map(s => `“${s.name}”`).join(', ')}.`
+      );
+    } else {
+      const geojson = removeCaltopoFeature(sources.geojsonText, file, marker);
+      caltopoAfter = readCaltopoExport(geojson);
+      writes.push({ file: context.geojsonPath, text: geojson });
+    }
+  }
+  const removed = [current.id, ...(current.sharesSourceWith ?? [])];
+  if (!current.pending) {
+    const text = withoutDescriptionsText(context, removed);
+    if (text !== null) writes.push({ file: context.descriptionsPath, text });
+  }
+  assertIdsKept(
+    context.trailId,
+    { registry: sources.registry, inputs: idInputs(sources.spans, sources.caltopo) },
+    { registry: sources.registry, inputs: idInputs(listGpxWaypoints(gpx), caltopoAfter) },
+    sources.spans.flatMap((_, i) => (i === spanIndex ? [] : [[i < spanIndex ? i : i - 1, i] as [number, number]]))
+  );
+
+  const changed: string[] = [];
+  for (const { file, text } of writes) {
+    fs.writeFileSync(file, text);
+    changed.push(relative(paths, file));
+  }
+  if (current.pending) {
+    notes.push('Removed the unbuilt waypoint; it never had an id.');
+  } else {
+    notes.push(
+      `The next build marks ${current.id} retired in data/waypoint-ids.json (entries are never deleted, and a retired id never passes to another place); comments keyed to ${removed.join(', ')} are orphaned.`
+    );
+    if (current.sharesSourceWith?.length) {
+      notes.push(`${current.sharesSourceWith.join(', ')} went with it: built from the same <wpt>.`);
+    }
+    if (current.access) {
+      notes.push(
+        `access.json still has an entry for ${current.id}: npm run fetch:access drops it, or remove it by hand.`
+      );
+    }
+  }
+  return { removed, changedFiles: changed, notes };
 }

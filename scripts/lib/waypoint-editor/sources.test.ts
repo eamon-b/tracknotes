@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  addCaltopoFolder,
   decodeXmlText,
   detectJsonLayout,
   editCaltopoMarker,
@@ -7,11 +8,20 @@ import {
   encodeXmlText,
   findCaltopoMarker,
   findGpxWaypoint,
+  folderTitlesForType,
+  insertGpxWaypoint,
   jsonValueSpan,
   listGpxWaypoints,
+  nearestCaltopoMarker,
+  newFolderTitle,
+  readCaltopoExport,
+  removeCaltopoFeature,
+  removeGpxWaypoint,
   renameKeepingPrefix,
+  setCaltopoMarkerFolder,
   setGpxWaypointName,
   setGpxWaypointPosition,
+  setGpxWaypointType,
 } from './sources';
 
 const GPX = [
@@ -128,5 +138,134 @@ describe('CalTopo markers', () => {
     expect(() => editCaltopoMarker(GEOJSON, 'test.json', { ...marker, index: 2 }, { title: 'X' })).toThrow(
       /no longer where it was read/
     );
+  });
+});
+
+describe('GPX types, new and removed waypoints', () => {
+  const spans = listGpxWaypoints(GPX);
+
+  it('replaces a <type> in place, and adds one in the line style of the <wpt>', () => {
+    const retyped = setGpxWaypointType(GPX, spans[0], 'campsite');
+    expect(retyped).toBe(GPX.replace('<type>hut</type>', '<type>campsite</type>'));
+    expect(setGpxWaypointType(GPX, spans[1], 'road-crossing')).toBe(
+      GPX.replace('<name>Pass</name></wpt>', '<name>Pass</name><type>road-crossing</type></wpt>')
+    );
+    expect(setGpxWaypointType(GPX, spans[3], 'water')).toContain(
+      '<wpt lat="-36.7" lon="148.4"><type>water</type></wpt>'
+    );
+  });
+
+  const MULTI = [
+    '<gpx version="1.1">',
+    '  <wpt lat="1" lon="2">',
+    '    <name>East Glacier Park</name>',
+    '    <link href="https://example.com/" />',
+    '    <extensions>',
+    '      <tn:offTrailKm>0.8</tn:offTrailKm>',
+    '    </extensions>',
+    '  </wpt>',
+    '  <wpt lat="3" lon="4">',
+    '    <name>No.1 Ryozenji</name>',
+    '    <type>poi</type>',
+    '    <desc>Temple 1.</desc>',
+    '  </wpt>',
+    '  <trk><trkseg><trkpt lat="1" lon="2"/></trkseg></trk>',
+    '</gpx>',
+    '',
+  ].join('\n');
+
+  it("adds a <type> on its own line before <extensions>, never reading a <link>'s", () => {
+    const multi = listGpxWaypoints(MULTI);
+    expect(multi[0].type).toBeUndefined();
+    expect(setGpxWaypointType(MULTI, multi[0], 'resupply')).toContain(
+      '    <link href="https://example.com/" />\n    <type>resupply</type>\n    <extensions>'
+    );
+  });
+
+  it('inserts a new <wpt> after the last one, in the style and child order the file uses', () => {
+    const multi = insertGpxWaypoint(MULTI, { lat: -36.1234567, lon: 148.5, name: "Jo's Tank", type: 'water-tank' });
+    expect(multi).toContain(
+      '    <desc>Temple 1.</desc>\n  </wpt>\n  <wpt lat="-36.123457" lon="148.5">\n    <name>Jo\'s Tank</name>\n    <type>water-tank</type>\n  </wpt>\n  <trk>'
+    );
+    const oneLine = insertGpxWaypoint(GPX, { lat: 1, lon: 2, name: 'A & B', type: 'hut', desc: 'Two <rooms>.' });
+    expect(oneLine).toContain(
+      '  <wpt lat="-36.7" lon="148.4"/>\n  <wpt lat="1" lon="2"><name>A &amp; B</name><desc>Two &lt;rooms&gt;.</desc><type>hut</type></wpt>\n  <trk>'
+    );
+    const caltopo = '<gpx><wpt lat="1" lon="2"><name>C Flat</name></wpt><trk/></gpx>';
+    expect(insertGpxWaypoint(caltopo, { lat: 3, lon: 4, name: 'Tank', type: 'water-tank' })).toBe(
+      '<gpx><wpt lat="1" lon="2"><name>C Flat</name></wpt><wpt lat="3" lon="4"><name>Tank</name><type>water-tank</type></wpt><trk/></gpx>'
+    );
+    expect(insertGpxWaypoint('<gpx>\n  <trk/>\n</gpx>', { lat: 3, lon: 4, name: 'Tank', type: 'water' })).toBe(
+      '<gpx>\n  <wpt lat="3" lon="4"><name>Tank</name><type>water</type></wpt>\n  <trk/>\n</gpx>'
+    );
+  });
+
+  it('removes a <wpt> with the spacing before it, and inserting then removing gives the file back', () => {
+    expect(removeGpxWaypoint(GPX, spans[1])).toBe(
+      GPX.replace('\n  <wpt lat="-36.6" lon="148.3"><name>Pass</name></wpt>', '')
+    );
+    const added = insertGpxWaypoint(GPX, { lat: 1, lon: 2, name: 'Tank', type: 'water' });
+    const span = listGpxWaypoints(added).find(s => s.name === 'Tank')!;
+    expect(removeGpxWaypoint(added, span)).toBe(GPX);
+  });
+});
+
+describe('CalTopo folders', () => {
+  const GEOJSON =
+    '{"features":[' +
+    '{"geometry":null,"id":"f1","type":"Feature","properties":{"title":"Campsites","class":"Folder"}},' +
+    '{"geometry":null,"id":"f2","type":"Feature","properties":{"title":"Main route","class":"Folder"}},' +
+    '{"geometry":{"coordinates":[148.25,-36.5,0,0],"type":"Point"},"id":"m1","type":"Feature","properties":{"title":"C Flat","class":"Marker","folderId":"f1"}},' +
+    '{"geometry":{"coordinates":[148.3,-36.6,0,0],"type":"Point"},"id":"m2","type":"Feature","properties":{"title":"W Creek","class":"Marker","folderId":"f2"}},' +
+    '{"geometry":{"coordinates":[148.4,-36.7,0,0],"type":"Point"},"id":"m3","type":"Feature","properties":{"title":"Omeo","class":"Marker"}}' +
+    '],"type":"FeatureCollection"}';
+
+  it('types markers as the build does: a known folder first, then the title', () => {
+    const parsed = readCaltopoExport(GEOJSON)!;
+    expect(parsed.markers.map(m => [m.cleanedName, m.type, m.typedByFolder, m.folderTitle])).toEqual([
+      ['Flat', 'campsite', true, 'Campsites'],
+      ['Creek', 'water', false, 'Main route'],
+      ['Omeo', 'town', false, undefined],
+    ]);
+    expect(nearestCaltopoMarker(parsed.markers, { lat: -36.6, lon: 148.3, name: 'Creek' })?.index).toBe(3);
+    expect(readCaltopoExport('not json')).toBeNull();
+  });
+
+  it('knows which folder titles mean a type', () => {
+    expect(folderTitlesForType('water-tank')).toEqual(['water tanks']);
+    expect(newFolderTitle('water-tank')).toBe('Water tanks');
+    expect(newFolderTitle('town-access')).toBeNull();
+  });
+
+  it('moves a marker into a folder, replacing or adding its folderId and nothing else', () => {
+    expect(setCaltopoMarkerFolder(GEOJSON, 'x.json', { index: 3, title: 'W Creek' }, 'f1')).toBe(
+      GEOJSON.replace('"W Creek","class":"Marker","folderId":"f2"', '"W Creek","class":"Marker","folderId":"f1"')
+    );
+    expect(setCaltopoMarkerFolder(GEOJSON, 'x.json', { index: 4, title: 'Omeo' }, 'f1')).toBe(
+      GEOJSON.replace('"Omeo","class":"Marker"}', '"Omeo","class":"Marker","folderId":"f1"}')
+    );
+    expect(() => setCaltopoMarkerFolder(GEOJSON, 'x.json', { index: 2, title: 'Omeo' }, 'f1')).toThrow(
+      /no longer where it was read/
+    );
+  });
+
+  it('adds a folder first in the features, shaped like CalTopo’s', () => {
+    const out = addCaltopoFolder(GEOJSON, 'x.json', { id: 'f9', title: 'Water tanks' });
+    expect(out).toBe(
+      GEOJSON.replace(
+        '{"features":[',
+        '{"features":[{"geometry":null,"id":"f9","type":"Feature","properties":{"title":"Water tanks","class":"Folder"}},'
+      )
+    );
+    expect(readCaltopoExport(out)!.folders.map(f => f.title)).toEqual(['Water tanks', 'Campsites', 'Main route']);
+  });
+
+  it('removes a marker feature with the comma that joined it, wherever it sits', () => {
+    const middle = removeCaltopoFeature(GEOJSON, 'x.json', { index: 3, title: 'W Creek' });
+    expect(JSON.parse(middle).features.map((f: { id: string }) => f.id)).toEqual(['f1', 'f2', 'm1', 'm3']);
+    expect(middle).toBe(GEOJSON.replace(/\{"geometry":\{"coordinates":\[148\.3[^]*?"folderId":"f2"\}\},/, ''));
+    const last = removeCaltopoFeature(GEOJSON, 'x.json', { index: 4, title: 'Omeo' });
+    expect(last.endsWith('"folderId":"f2"}}],"type":"FeatureCollection"}')).toBe(true);
+    expect(JSON.parse(last).features).toHaveLength(4);
   });
 });

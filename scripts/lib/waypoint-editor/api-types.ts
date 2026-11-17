@@ -42,12 +42,29 @@ export interface WaypointPlacement {
   km?: number;
 }
 
+/** Prefix of a pending waypoint's temporary key: a colon, which no stable id has (`ID_PATTERN`). */
+export const PENDING_KEY_PREFIX = 'new:';
+
 export interface EditorWaypoint {
-  /** Stable id (`data/waypoint-ids.json`): comments and descriptions are keyed by it. */
+  /**
+   * Stable id (`data/waypoint-ids.json`): comments and descriptions are keyed by it.
+   * A pending waypoint (added since the last build) has no id yet: this is then a
+   * temporary key starting with {@link PENDING_KEY_PREFIX}, never sent anywhere
+   * that keys by id.
+   */
   id: string;
+  /** Added to the GPX since the last build: the next build mints its id. */
+  pending?: boolean;
+  /** Its `<wpt>` is gone from the GPX since the last build (deleted here, or edited by hand): the next build retires its id. */
+  deleted?: boolean;
   /** Name as the build shows it (any `C ` / `WT: ` prefix removed). */
   name: string;
+  /** The type the sources give it now (a type change saved since the build included). */
   type: string;
+  /** The type in the last build. */
+  builtType: string;
+  /** What decides its type, in words (`the CalTopo folder "Huts"`, `its GPX <type>`, …). */
+  typeSource?: string;
   /** Position in the source files now (moves saved since the build included). */
   lat: number;
   lon: number;
@@ -67,7 +84,9 @@ export interface EditorWaypoint {
   canMove: boolean;
   canRename: boolean;
   canDescribe: boolean;
-  /** Why moving or renaming is off, when it is. */
+  canChangeType: boolean;
+  canDelete: boolean;
+  /** Why moving, renaming or retyping is off, when it is. */
   lockedReason?: string;
   /** `access.json`'s entry for this place: a move can leave its walk stale. */
   access?: { method?: string; store?: string };
@@ -106,14 +125,47 @@ export interface EditorTrail {
   maxDescriptionLength: number;
 }
 
+export interface WaypointExpected {
+  name: string;
+  lat: number;
+  lon: number;
+  description: string;
+  /** Checked when sent. */
+  type?: string;
+}
+
 export interface WaypointEditRequest {
   /** What the page last read, so an edit made elsewhere since is not overwritten. */
-  expected: { name: string; lat: number; lon: number; description: string };
+  expected: WaypointExpected;
   name?: string;
   lat?: number;
   lon?: number;
   /** '' removes the curated text (the source text then shows again). */
   description?: string;
+  /** One of `WAYPOINT_TYPES`: changes the source the build types it from and its registry entry's type. */
+  type?: string;
+}
+
+/** A new waypoint: a `<wpt>` the next build mints an id for. */
+export interface NewWaypointRequest {
+  name: string;
+  /** One of `WAYPOINT_TYPES`. */
+  type: string;
+  lat: number;
+  lon: number;
+  /** Written as the `<wpt>`'s `<desc>` (it has no id for `descriptions.json` yet). */
+  description?: string;
+}
+
+export interface WaypointDeleteRequest {
+  expected: WaypointExpected;
+}
+
+export interface WaypointDeleteResponse {
+  /** Ids (or the pending key) that are gone from the sources: a revisited place's later passes go with it. */
+  removed: string[];
+  changedFiles: string[];
+  notes: string[];
 }
 
 export interface WaypointEditResponse {

@@ -59,7 +59,7 @@ Each trail has its own directory containing:
   `upload-descriptions.ts` pushes the same file to the comments API, where mobile syncs it as an override (`synced ?? bundled`).
   The prose is factual and non-prescriptive — it describes the place and its water, never instructs the walker or addresses them as "you".
   See `scripts/lib/waypoint-descriptions.ts`.
-  The local waypoint editor (`docs/waypoint-editor.md`) edits these entries, and waypoint names and positions, from a map;
+  The local waypoint editor (`docs/waypoint-editor.md`) edits these entries, and waypoint names, types and positions, from a map, and adds and deletes waypoints;
   the deployed live description editor (`src/web/admin-descriptions.html`) writes the synced text directly, for urgency, and exports it back into this file, which stays the source of truth: an upload overwrites synced text the file does not have.
   a move there carries the waypoint's registry entry with it, so the id survives a move of any distance.
 
@@ -92,6 +92,8 @@ Two rules follow, both in `waypoint-taxonomy.ts`:
 
 Changing a bundled waypoint's `type` re-keys it in `data/waypoint-ids.json`, which matches on type + 100 m proximity: the ids churn silently and any server-side comment keyed to them is orphaned.
 Migrate the registry entries in the same commit.
+The waypoint editor does this for a type changed there: it rewrites the entry's `type` in the same save, and refuses a change the build's id matching says would cost any waypoint its id.
+A waypoint it adds gets no entry (the next build mints one), and one it deletes keeps its entry for the build to retire.
 A waypoint whose exact name is on a nearby entry claims it before any proximity match (nearest pair first across the trail), so a newcomer of the same type within 100 m of an existing waypoint mints its own id instead of taking that one's;
 when it does, the build warns, naming the waypoints beside it (one place entered under two names looks the same), and repeats the warning at the end.
 It warns only on the build that mints: from then on the newcomer claims its own entry by name, so check the warning before committing the registry.

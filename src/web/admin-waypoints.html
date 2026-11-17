@@ -87,6 +87,7 @@
         <button type="button" class="wpe-btn" id="wpe-place" aria-pressed="false" title="Alt+P">Click map to place</button>
         <button type="button" class="wpe-btn" id="wpe-snap">Snap to route</button>
         <button type="button" class="wpe-btn" id="wpe-reset-pos">Undo move</button>
+        <button type="button" class="wpe-btn" id="wpe-new" aria-pressed="false">New waypoint</button>
         <span class="wpe-readout" id="wpe-readout" aria-live="polite"></span>
       </div>
     </section>
@@ -99,6 +100,12 @@
         <label class="wpe-field">
           <span>Name</span>
           <input type="text" id="wpe-name" autocomplete="off" spellcheck="true">
+        </label>
+
+        <label class="wpe-field">
+          <span>Type</span>
+          <select id="wpe-type-select"></select>
+          <small class="wpe-muted" id="wpe-type-source"></small>
         </label>
 
         <div class="wpe-meta" id="wpe-meta"></div>
@@ -143,11 +150,36 @@
         <div class="wpe-actions">
           <label class="wpe-check"><input type="checkbox" id="wpe-reviewed"> Reviewed</label>
           <span class="wpe-header-spacer"></span>
+          <button type="button" class="wpe-btn wpe-btn-danger" id="wpe-delete">Delete…</button>
           <button type="button" class="wpe-btn" id="wpe-revert">Discard</button>
           <button type="submit" class="wpe-btn wpe-btn-primary" id="wpe-save">Save</button>
           <button type="button" class="wpe-btn wpe-btn-primary" id="wpe-save-next" title="Ctrl+Enter">Save &amp; next</button>
         </div>
         <ul class="wpe-notes" id="wpe-notes" aria-live="polite"></ul>
+      </form>
+
+      <form id="wpe-new-form" hidden novalidate>
+        <h2 class="wpe-new-title">New waypoint</h2>
+        <p class="wpe-muted" id="wpe-new-where">Click the map (or an OSM POI) to place it; drag the marker to adjust.</p>
+        <label class="wpe-field">
+          <span>Name</span>
+          <input type="text" id="wpe-new-name" autocomplete="off" spellcheck="true">
+        </label>
+        <label class="wpe-field">
+          <span>Type</span>
+          <select id="wpe-new-type"></select>
+        </label>
+        <label class="wpe-field">
+          <span>Description (optional: written to the GPX &lt;desc&gt;, since it has no id yet)</span>
+          <textarea id="wpe-new-desc" rows="4" spellcheck="true"></textarea>
+        </label>
+        <p class="wpe-muted">The next rebuild mints its id; until then it is listed as pending and can only be deleted.</p>
+        <div class="wpe-actions">
+          <span class="wpe-header-spacer"></span>
+          <button type="button" class="wpe-btn" id="wpe-new-cancel">Cancel</button>
+          <button type="submit" class="wpe-btn wpe-btn-primary" id="wpe-new-add" disabled>Add waypoint</button>
+        </div>
+        <ul class="wpe-notes" id="wpe-new-notes" aria-live="polite"></ul>
       </form>
     </aside>
   </main>

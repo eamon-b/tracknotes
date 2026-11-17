@@ -11,7 +11,7 @@
  * buries it in the diff.
  */
 
-import { classifyWaypoint } from '../../../src/lib/waypoint-classifier';
+import { classifyWaypoint, FOLDER_TYPE_MAP } from '../../../src/lib/waypoint-classifier';
 import { haversineDistance } from '../../../src/lib/distance';
 
 // ---------------------------------------------------------------------------
@@ -75,6 +75,15 @@ function childText(body: string, tag: string): string | undefined {
   return m ? decodeXmlText(m[1]) : undefined;
 }
 
+/**
+ * `xml` with every `<link>` and `<extensions>` block blanked to spaces (same
+ * length, so offsets still hold): a `<link>` carries a `<type>` of its own (a
+ * MIME type), and the GPX parser reads only the `<wpt>`'s direct child.
+ */
+function maskNested(xml: string): string {
+  return xml.replace(/<(link|extensions)\b[^>]*?(?:\/>|>[\s\S]*?<\/\1>)/g, m => ' '.repeat(m.length));
+}
+
 /** Every `<wpt>` in a GPX file, in file order. */
 export function listGpxWaypoints(gpx: string): GpxWaypointSpan[] {
   const spans: GpxWaypointSpan[] = [];
@@ -92,7 +101,7 @@ export function listGpxWaypoints(gpx: string): GpxWaypointSpan[] {
     };
     const desc = childText(body, 'desc');
     if (desc !== undefined) span.desc = desc;
-    const type = childText(body, 'type');
+    const type = childText(maskNested(body), 'type');
     if (type !== undefined) span.type = type.trim();
     spans.push(span);
   }
@@ -174,6 +183,112 @@ export function setGpxWaypointName(gpx: string, span: GpxWaypointSpan, rawName: 
     next = `${element.slice(0, tagEnd)}<name>${encoded}</name>${element.slice(tagEnd)}`;
   }
   return gpx.slice(0, span.start) + next + gpx.slice(span.end);
+}
+
+/**
+ * `element` (one `<wpt>…</wpt>`) with `child` added as its last child (before
+ * any `<extensions>`), spaced like the children it already has: on the same
+ * line in a one-line `<wpt>`, on a line of its own in a multi-line one.
+ */
+function appendWptChild(element: string, child: string): string {
+  if (element.endsWith('/>')) return `${element.slice(0, -2).trimEnd()}>${child}</wpt>`;
+  const tagEnd = element.indexOf('>') + 1;
+  const closeAt = element.lastIndexOf('</wpt>');
+  const inner = element.slice(tagEnd, closeAt);
+  if (!inner.trim()) return element.slice(0, tagEnd) + child + element.slice(tagEnd);
+  const lead = /^\s*/.exec(inner)![0];
+  const extensions = element.indexOf('<extensions', tagEnd);
+  if (extensions !== -1) return element.slice(0, extensions) + child + lead + element.slice(extensions);
+  const at = closeAt - /\s*$/.exec(inner)![0].length;
+  return element.slice(0, at) + lead + child + element.slice(at);
+}
+
+/** The GPX with one waypoint's `<type>` replaced, or added when it has none. */
+export function setGpxWaypointType(gpx: string, span: GpxWaypointSpan, type: string): string {
+  const element = gpx.slice(span.start, span.end);
+  const encoded = encodeXmlText(type, gpx);
+  const m = /(<type\b[^>]*>)([\s\S]*?)<\/type>/.exec(maskNested(element));
+  let next: string;
+  if (m) {
+    const at = m.index + m[1].length;
+    next = element.slice(0, at) + encoded + element.slice(at + m[2].length);
+  } else {
+    next = appendWptChild(element, `<type>${encoded}</type>`);
+  }
+  return gpx.slice(0, span.start) + next + gpx.slice(span.end);
+}
+
+/** Start offset of the whitespace run that ends at `offset`. */
+function whitespaceStart(text: string, offset: number): number {
+  let at = offset;
+  while (at > 0 && /\s/.test(text[at - 1])) at--;
+  return at;
+}
+
+/** A new waypoint as the editor writes it. */
+export interface NewGpxWaypoint {
+  lat: number;
+  lon: number;
+  /** Written as is: the caller makes sure no type prefix rides in it. */
+  name: string;
+  type: string;
+  desc?: string;
+}
+
+/**
+ * The GPX with a new `<wpt>` after the last one, written in the file's own
+ * style: the same spacing before it as before the last `<wpt>`, its children
+ * on one line or one per line as the last `<wpt>` has them, and `<name>`,
+ * `<desc>` and `<type>` in the order the last `<wpt>` uses. A file with no
+ * `<wpt>` gets it before its first `<trk>` / `<rte>` (or `</gpx>`).
+ */
+export function insertGpxWaypoint(gpx: string, waypoint: NewGpxWaypoint): string {
+  const spans = listGpxWaypoints(gpx);
+  const last = spans[spans.length - 1];
+  const template = last ? gpx.slice(last.start, last.end) : '';
+  const masked = maskNested(template);
+  const children: Record<string, string | undefined> = {
+    name: `<name>${encodeXmlText(waypoint.name, gpx)}</name>`,
+    desc: waypoint.desc ? `<desc>${encodeXmlText(waypoint.desc, gpx)}</desc>` : undefined,
+    type: `<type>${encodeXmlText(waypoint.type, gpx)}</type>`,
+  };
+  // The order of the tags the last <wpt> has; a tag it lacks goes after its usual predecessor.
+  const defaults = ['name', 'desc', 'type'];
+  const at = (tag: string) => masked.search(new RegExp(`<${tag}\\b`));
+  const order = defaults.filter(tag => at(tag) !== -1).sort((a, b) => at(a) - at(b));
+  defaults.forEach((tag, i) => {
+    if (order.includes(tag)) return;
+    const previous = defaults
+      .slice(0, i)
+      .reverse()
+      .find(p => order.includes(p));
+    order.splice(previous ? order.indexOf(previous) + 1 : 0, 0, tag);
+  });
+  const parts = order.map(tag => children[tag]).filter((c): c is string => !!c);
+  const open = `<wpt lat="${formatCoordinate(waypoint.lat)}" lon="${formatCoordinate(waypoint.lon)}">`;
+  let element: string;
+  const multiLine = /\n/.test(template);
+  if (multiLine) {
+    const childIndent = /\n([ \t]*)</.exec(template)?.[1] ?? '  ';
+    const closeIndent = /\n([ \t]*)<\/wpt>$/.exec(template)?.[1] ?? '';
+    element = `${open}${parts.map(p => `\n${childIndent}${p}`).join('')}\n${closeIndent}</wpt>`;
+  } else {
+    element = `${open}${parts.join('')}</wpt>`;
+  }
+  if (last) {
+    const lead = gpx.slice(whitespaceStart(gpx, last.start), last.start);
+    return gpx.slice(0, last.end) + lead + element + gpx.slice(last.end);
+  }
+  const anchors = ['<trk', '<rte', '</gpx>'].map(tag => gpx.indexOf(tag)).filter(i => i !== -1);
+  if (!anchors.length) throw new Error('Not a GPX file: no <trk>, <rte> or </gpx> to put a waypoint before');
+  const anchor = Math.min(...anchors);
+  const lead = gpx.slice(whitespaceStart(gpx, anchor), anchor);
+  return gpx.slice(0, anchor) + element + lead + gpx.slice(anchor);
+}
+
+/** The GPX without one `<wpt>`, and without the spacing that led up to it. */
+export function removeGpxWaypoint(gpx: string, span: GpxWaypointSpan): string {
+  return gpx.slice(0, whitespaceStart(gpx, span.start)) + gpx.slice(span.end);
 }
 
 // ---------------------------------------------------------------------------
@@ -262,24 +377,9 @@ export interface CaltopoMarkerRef {
 export function findCaltopoMarker(
   geojsonText: string,
   target: { lat: number; lon: number; name: string }
-): CaltopoMarkerRef | null {
-  const collection = JSON.parse(geojsonText) as CaltopoCollection;
-  let best: CaltopoMarkerRef | null = null;
-  let bestDistance = Infinity;
-  (collection.features ?? []).forEach((feature, index) => {
-    if (feature.properties?.class !== 'Marker') return;
-    const title = feature.properties.title ?? '';
-    if (cleanedWaypointName(title.trim()) !== target.name) return;
-    const [lon, lat] = feature.geometry?.coordinates ?? [];
-    if (typeof lat !== 'number' || typeof lon !== 'number') return;
-    const distance = haversineDistance(target.lat, target.lon, lat, lon);
-    if (distance < bestDistance) {
-      bestDistance = distance;
-      best = { index, title, lat, lon };
-      if (feature.properties.description) best.description = feature.properties.description;
-    }
-  });
-  return best;
+): CaltopoMarkerInfo | null {
+  const parsed = readCaltopoExport(geojsonText);
+  return parsed ? nearestCaltopoMarker(parsed.markers, target) : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -410,4 +510,168 @@ export function editCaltopoMarker(
     out = out.slice(0, span.start) + text + out.slice(span.end);
   }
   return out;
+}
+
+// ---------------------------------------------------------------------------
+// CalTopo folders: where a marker's type comes from
+// ---------------------------------------------------------------------------
+
+/** A marker as the build reads it (`parseCaltopoGeojson` in `build-trails.ts`). */
+export interface CaltopoMarkerInfo extends CaltopoMarkerRef {
+  /** The cleaned title the build keys markers by. */
+  cleanedName: string;
+  folderId?: string;
+  /** The folder's title, when the marker is in one. */
+  folderTitle?: string;
+  /** The type the build gives a waypoint this marker types. */
+  type: string;
+  /** True when the folder decides `type`; otherwise the title does (a prefix, a known town, or nothing). */
+  typedByFolder: boolean;
+}
+
+export interface CaltopoFolder {
+  index: number;
+  id: string;
+  title: string;
+}
+
+export interface CaltopoExport {
+  markers: CaltopoMarkerInfo[];
+  folders: CaltopoFolder[];
+}
+
+/**
+ * The markers and folders of a CalTopo export, typed exactly as the build
+ * types them: `classifyWaypoint(title, { folderName })`, so a folder whose
+ * title is in `FOLDER_TYPE_MAP` decides, and otherwise the title does. Null
+ * when the text is not JSON (the build then types from the GPX alone).
+ */
+export function readCaltopoExport(geojsonText: string): CaltopoExport | null {
+  let collection: CaltopoCollection;
+  try {
+    collection = JSON.parse(geojsonText) as CaltopoCollection;
+  } catch {
+    return null;
+  }
+  const features = collection.features ?? [];
+  const folders: CaltopoFolder[] = [];
+  features.forEach((feature, index) => {
+    if (feature.properties?.class === 'Folder' && typeof feature.id === 'string') {
+      folders.push({ index, id: feature.id, title: feature.properties.title ?? '' });
+    }
+  });
+  const folderTitles = new Map(folders.map(f => [f.id, f.title]));
+  const markers: CaltopoMarkerInfo[] = [];
+  features.forEach((feature, index) => {
+    if (feature.properties?.class !== 'Marker') return;
+    const title = feature.properties.title ?? '';
+    const folderId = feature.properties.folderId;
+    const folderTitle = folderId ? folderTitles.get(folderId) : undefined;
+    const classification = classifyWaypoint(title, { folderName: (folderTitle ?? '').toLowerCase() });
+    const [lon, lat] = feature.geometry?.coordinates ?? [];
+    if (typeof lat !== 'number' || typeof lon !== 'number') return;
+    const marker: CaltopoMarkerInfo = {
+      index,
+      title,
+      lat,
+      lon,
+      cleanedName: classification.cleanedName,
+      type: classification.type,
+      typedByFolder: classification.source === 'folder',
+    };
+    if (feature.properties.description) marker.description = feature.properties.description;
+    if (folderId) marker.folderId = folderId;
+    if (folderTitle !== undefined) marker.folderTitle = folderTitle;
+    markers.push(marker);
+  });
+  return { markers, folders };
+}
+
+/** Of the markers titled `name` (cleaned), the nearest to the position: the one the build types a waypoint from. */
+export function nearestCaltopoMarker(
+  markers: readonly CaltopoMarkerInfo[],
+  target: { lat: number; lon: number; name: string }
+): CaltopoMarkerInfo | null {
+  let best: CaltopoMarkerInfo | null = null;
+  let bestDistance = Infinity;
+  for (const marker of markers) {
+    if (marker.cleanedName !== target.name) continue;
+    const distance = haversineDistance(target.lat, target.lon, marker.lat, marker.lon);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      best = marker;
+    }
+  }
+  return best;
+}
+
+/** Folder titles that type their markers as `type` (`FOLDER_TYPE_MAP`, lower case). */
+export function folderTitlesForType(type: string): string[] {
+  return Object.entries(FOLDER_TYPE_MAP)
+    .filter(([, mapped]) => mapped === type)
+    .map(([title]) => title);
+}
+
+/** The title a new folder for `type` gets (`Water tanks`), or null when no folder title maps to it. */
+export function newFolderTitle(type: string): string | null {
+  const title = folderTitlesForType(type)[0];
+  return title ? title.charAt(0).toUpperCase() + title.slice(1) : null;
+}
+
+function assertMarkerAt(geojsonText: string, source: string, marker: { index: number; title: string }): void {
+  const collection = JSON.parse(geojsonText) as CaltopoCollection;
+  if (collection.features?.[marker.index]?.properties?.title !== marker.title) {
+    throw new Error(`${source}: marker "${marker.title}" is no longer where it was read`);
+  }
+}
+
+/** The export with one marker put in folder `folderId`; every other byte is left as it was. */
+export function setCaltopoMarkerFolder(
+  geojsonText: string,
+  source: string,
+  marker: { index: number; title: string },
+  folderId: string
+): string {
+  assertMarkerAt(geojsonText, source, marker);
+  const literal = JSON.stringify(folderId);
+  const existing = jsonValueSpan(geojsonText, ['features', marker.index, 'properties', 'folderId']);
+  if (existing) return geojsonText.slice(0, existing.start) + literal + geojsonText.slice(existing.end);
+  const properties = jsonValueSpan(geojsonText, ['features', marker.index, 'properties']);
+  if (!properties) throw new Error(`${source}: marker "${marker.title}" has no properties`);
+  const close = properties.end - 1;
+  const empty = !geojsonText.slice(properties.start + 1, close).trim();
+  return `${geojsonText.slice(0, close)}${empty ? '' : ','}"folderId":${literal}${geojsonText.slice(close)}`;
+}
+
+/**
+ * The export with a new folder feature first in `features`, shaped like
+ * CalTopo's own (`{"geometry":null,"id":…,"type":"Feature","properties":{"title":…,"class":"Folder"}}`).
+ */
+export function addCaltopoFolder(geojsonText: string, source: string, folder: { id: string; title: string }): string {
+  const features = jsonValueSpan(geojsonText, ['features']);
+  if (!features || geojsonText[features.start] !== '[') throw new Error(`${source}: no features array`);
+  const empty = !geojsonText.slice(features.start + 1, features.end - 1).trim();
+  const feature =
+    `{"geometry":null,"id":${JSON.stringify(folder.id)},"type":"Feature",` +
+    `"properties":{"title":${jsonStringLike(folder.title, geojsonText)},"class":"Folder"}}`;
+  const at = features.start + 1;
+  return geojsonText.slice(0, at) + feature + (empty ? '' : ',') + geojsonText.slice(at);
+}
+
+/** The export without one marker feature (and the comma that joined it to its neighbour). */
+export function removeCaltopoFeature(
+  geojsonText: string,
+  source: string,
+  marker: { index: number; title: string }
+): string {
+  assertMarkerAt(geojsonText, source, marker);
+  const span = jsonValueSpan(geojsonText, ['features', marker.index]);
+  if (!span) throw new Error(`${source}: marker "${marker.title}" is not in the features array`);
+  const next = jsonValueSpan(geojsonText, ['features', marker.index + 1]);
+  if (next) return geojsonText.slice(0, span.start) + geojsonText.slice(next.start);
+  if (marker.index > 0) {
+    const previous = jsonValueSpan(geojsonText, ['features', marker.index - 1])!;
+    return geojsonText.slice(0, previous.end) + geojsonText.slice(span.end);
+  }
+  return geojsonText.slice(0, span.start) + geojsonText.slice(span.end);
 }

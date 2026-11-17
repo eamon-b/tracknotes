@@ -7,7 +7,7 @@
 
 import { haversineDistance } from '@lib/distance';
 import { nameMatches } from '@lib/name-filter';
-import { waypointTypeLabel } from '@lib/waypoint-taxonomy';
+import { WAYPOINT_TYPES, waypointTypeLabel } from '@lib/waypoint-taxonomy';
 import type { EditorWaypoint, WaypointPlacement } from '../../scripts/lib/waypoint-editor/api-types';
 import { commentBadgeHtml } from './admin-waypoints-comments';
 import { waypointFamilyClass, waypointIcon } from './trails/waypoint-icons';
@@ -22,10 +22,11 @@ export interface WaypointDraft {
   lat: number;
   lon: number;
   description: string;
+  type: string;
 }
 
-export function draftOf(w: Pick<EditorWaypoint, 'name' | 'lat' | 'lon' | 'description'>): WaypointDraft {
-  return { name: w.name, lat: w.lat, lon: w.lon, description: w.description };
+export function draftOf(w: Pick<EditorWaypoint, 'name' | 'lat' | 'lon' | 'description' | 'type'>): WaypointDraft {
+  return { name: w.name, lat: w.lat, lon: w.lon, description: w.description, type: w.type };
 }
 
 const COORD_EPSILON = 1e-9;
@@ -34,18 +35,19 @@ const COORD_EPSILON = 1e-9;
 export function draftChanges(
   saved: EditorWaypoint,
   draft: WaypointDraft
-): { name: boolean; position: boolean; description: boolean } {
+): { name: boolean; position: boolean; description: boolean; type: boolean } {
   return {
     name: draft.name.trim() !== saved.name,
     position: Math.abs(draft.lat - saved.lat) > COORD_EPSILON || Math.abs(draft.lon - saved.lon) > COORD_EPSILON,
     description: draft.description.trim() !== saved.description,
+    type: draft.type !== saved.type,
   };
 }
 
 export function isDirty(saved: EditorWaypoint, draft: WaypointDraft | undefined): boolean {
   if (!draft) return false;
   const c = draftChanges(saved, draft);
-  return c.name || c.position || c.description;
+  return c.name || c.position || c.description || c.type;
 }
 
 /** Saved since the last build: its source no longer matches what the build drew. */
@@ -55,6 +57,15 @@ export function movedSinceBuild(w: EditorWaypoint): boolean {
 
 export function renamedSinceBuild(w: EditorWaypoint): boolean {
   return w.name !== w.builtName;
+}
+
+export function retypedSinceBuild(w: EditorWaypoint): boolean {
+  return w.type !== w.builtType;
+}
+
+/** Saved since the last build in any way, or added since it. */
+export function changedSinceBuild(w: EditorWaypoint): boolean {
+  return !!w.pending || !!w.deleted || movedSinceBuild(w) || renamedSinceBuild(w) || retypedSinceBuild(w);
 }
 
 // ---------------------------------------------------------------------------
@@ -91,7 +102,7 @@ export function reviewStorageKey(trailId: string): string {
 // ---------------------------------------------------------------------------
 
 export type StatusFilter =
-  'all' | 'no-text' | 'has-text' | 'unreviewed' | 'reviewed' | 'changed' | 'off-route' | 'has-comments';
+  'all' | 'no-text' | 'has-text' | 'unreviewed' | 'reviewed' | 'changed' | 'pending' | 'off-route' | 'has-comments';
 
 export const STATUS_FILTER_LABELS: Record<StatusFilter, string> = {
   all: 'All waypoints',
@@ -100,6 +111,7 @@ export const STATUS_FILTER_LABELS: Record<StatusFilter, string> = {
   unreviewed: 'Not reviewed',
   reviewed: 'Reviewed',
   changed: 'Changed since build',
+  pending: 'Added, pending rebuild',
   'off-route': 'Off the route',
   'has-comments': 'Has comments',
 };
@@ -134,7 +146,9 @@ export function matchesFilter(
     case 'reviewed':
       return isReviewed(marks, w);
     case 'changed':
-      return movedSinceBuild(w) || renamedSinceBuild(w);
+      return changedSinceBuild(w);
+    case 'pending':
+      return !!w.pending;
     case 'off-route':
       return isOffRoute(w);
     case 'has-comments':
@@ -257,10 +271,18 @@ export function rowHtml(
 ): string {
   const badges: string[] = [];
   if (state.dirty) badges.push('<span class="wpe-badge wpe-badge-dirty" title="Unsaved changes">unsaved</span>');
-  if (movedSinceBuild(w) || renamedSinceBuild(w)) {
+  if (w.pending) {
+    badges.push(
+      '<span class="wpe-badge wpe-badge-pending" title="Added since the last build: rebuild to give it an id">pending rebuild</span>'
+    );
+  } else if (w.deleted) {
+    badges.push(
+      '<span class="wpe-badge wpe-badge-pending" title="Its &lt;wpt&gt; is gone: the next build retires its id">deleted</span>'
+    );
+  } else if (changedSinceBuild(w)) {
     badges.push('<span class="wpe-badge wpe-badge-changed" title="Saved; rebuild to see it in the data">saved</span>');
   }
-  if (!w.description)
+  if (!w.description && !w.pending && !w.deleted)
     badges.push('<span class="wpe-badge wpe-badge-empty" title="No curated description">no text</span>');
   badges.push(commentBadgeHtml(state.comments));
   const reviewed = state.reviewed ? '<span class="wpe-reviewed" title="Reviewed">✓</span>' : '';
@@ -274,6 +296,43 @@ export function rowHtml(
     `<span class="wpe-row-badges">${badges.join('')}${reviewed}</span>` +
     `</li>`
   );
+}
+
+/**
+ * The type select's options: every type the classifier emits (`WAYPOINT_TYPES`),
+ * labelled, plus `current` first when it is another vocabulary's (Te Araroa's
+ * `gap`-style types are in the list; a foreign one like `ley-note` is not), so
+ * the select can show it without offering it for new waypoints.
+ */
+export function typeOptionsHtml(current: string | null): string {
+  const offered = WAYPOINT_TYPES as readonly string[];
+  const extra =
+    current && !offered.includes(current)
+      ? `<option value="${escapeHtml(current)}">${escapeHtml(waypointTypeLabel(current))} (${escapeHtml(current)})</option>`
+      : '';
+  return (
+    extra +
+    offered
+      .map(t => `<option value="${escapeHtml(t)}">${escapeHtml(waypointTypeLabel(t))} (${escapeHtml(t)})</option>`)
+      .join('')
+  );
+}
+
+/** What deleting `w` does, for the confirm dialog. */
+export function deleteConfirmText(w: EditorWaypoint): string {
+  if (w.pending)
+    return `Remove the unbuilt waypoint “${w.name}” from the GPX? It has no id yet, so nothing else changes.`;
+  const lines = [
+    `Delete “${w.name}” (${w.id})?`,
+    '',
+    'This removes its <wpt> from the GPX, the CalTopo marker that types it (if any) and its curated description.',
+    'Its registry entry stays: the next build marks the id retired, so it never passes to another place.',
+    `Comments keyed to ${w.id} are orphaned: they stay on the server but no waypoint shows them.`,
+  ];
+  if (w.sharesSourceWith?.length) {
+    lines.push(`Also deletes ${w.sharesSourceWith.join(', ')}: later passes built from the same <wpt>.`);
+  }
+  return lines.join('\n');
 }
 
 export interface PositionReadout {
