@@ -4,7 +4,7 @@
  */
 
 import { HttpError } from './http';
-import type { ReportReason, WaterStatus } from '../../../src/lib/comments-api-types';
+import type { DescriptionSource, ReportReason, WaterStatus } from '../../../src/lib/comments-api-types';
 import { PLAN_FIELD_SCHEMA, PLAN_LIMITS, isStoredZeroDays } from '../../../src/lib/plan-types';
 import type { PlanDocument, PlanStop } from '../../../src/lib/plan-types';
 import { KM_EPSILON } from '../../../src/lib/plan-direction';
@@ -190,6 +190,33 @@ export function validateDescription(raw: unknown): string {
     throw new HttpError(400, 'invalid_description', `description must be at most ${MAX_DESCRIPTION_LEN} characters`);
   }
   return trimmed;
+}
+
+/**
+ * Validate the optional `source` of a description PUT: which tool is writing.
+ * Left out (or null) is allowed and stored as NULL, which reads as `upload`.
+ */
+export function validateDescriptionSource(raw: unknown): DescriptionSource | null {
+  if (raw === undefined || raw === null) return null;
+  if (raw !== 'live' && raw !== 'upload') {
+    throw new HttpError(400, 'invalid_source', "source must be 'live' or 'upload'");
+  }
+  return raw;
+}
+
+/**
+ * Validate the optional `ifUpdatedAt` precondition of a description PUT.
+ * `undefined` (the key is absent) means an unconditional write, `null` means
+ * "I read no row", and a string is the `updatedAt` the client read.
+ */
+export function validateIfUpdatedAt(body: Record<string, unknown>): string | null | undefined {
+  if (!('ifUpdatedAt' in body) || body.ifUpdatedAt === undefined) return undefined;
+  const raw = body.ifUpdatedAt;
+  if (raw === null) return null;
+  if (typeof raw !== 'string' || raw.length > 40 || Number.isNaN(Date.parse(raw))) {
+    throw new HttpError(400, 'invalid_precondition', 'ifUpdatedAt must be an ISO timestamp or null');
+  }
+  return raw;
 }
 
 const DAY_MS = 86_400_000;

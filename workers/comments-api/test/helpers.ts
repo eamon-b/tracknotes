@@ -120,7 +120,7 @@ export async function putDescription(
   device: Device,
   trailId: string,
   waypointId: string,
-  body: { description?: unknown }
+  body: { description?: unknown; source?: unknown; ifUpdatedAt?: unknown }
 ): Promise<Response> {
   return SELF.fetch(url(`/v1/admin/trails/${trailId}/descriptions/${waypointId}`), {
     method: 'PUT',

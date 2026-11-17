@@ -1,0 +1,26 @@
+-- Tracknotes comments API — where a synced waypoint description came from.
+--
+-- Two things write `waypoint_descriptions`: `scripts/upload-descriptions.ts`,
+-- which makes the table match each trail's committed descriptions.json, and
+-- the live description editor on the deployed site
+-- (`src/web/admin-descriptions.html`), where an admin corrects one text
+-- directly. Until now a row did not say which wrote it, so neither the page
+-- nor the upload's plan could tell an admin's uncommitted live edit (which the
+-- next upload would overwrite) from text an earlier upload sent (which a
+-- newer descriptions.json is simply about to replace).
+--
+-- `source` is that marker, set on every write that changes a row's text:
+--   'live'   — written from the live editor page;
+--   'upload' — written by the upload script;
+--   NULL     — every row from before this migration, and a write that names no
+--              source. Served as 'upload': the live editor did not exist
+--              before this column did, so every earlier row was uploaded.
+--
+-- It records which tool wrote the text, never who: no account or token is
+-- stored with a description.
+--
+-- Additive: one nullable column, no backfill. The worker still serving
+-- between this migration and its deploy never names the column, so its writes
+-- leave it NULL.
+
+ALTER TABLE waypoint_descriptions ADD COLUMN source TEXT CHECK (source IN ('live', 'upload'));
