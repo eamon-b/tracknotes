@@ -12,13 +12,16 @@ form that posts something publicly (`contributionPrivacyLine`). Still
 outstanding before store submission: link the URL from the App Store / Play
 Store listings (issue #31). Reviewed by the owner (2026-10-31); it has had no
 legal read.
+
+Where Cloudflare actually holds the data, and how that is checked, is in
+`docs/data-residency.md`.
 -->
 
-**Last updated: 2026-11-11**
+**Last updated: 2026-11-17**
 
 Tracknotes is a hiking guide app for long-distance trails, mostly in
-Australia, with built-in guides for New Zealand, the United States and Japan,
-and the option to import routes from anywhere. It is designed to work
+Australia, with built-in guides for New Zealand, the United States, Japan and
+Nepal, and the option to import routes from anywhere. It is designed to work
 offline-first and to collect as little personal information as possible.
 
 In the app you can share information with other users, such as adding new
@@ -77,13 +80,13 @@ them: a shared waypoint placed with "Use my location" is stored at that
 position; a community route you share is a track you may have walked and
 recorded, and its original GPX file, if you include it, can hold the times you
 walked it; and a synced plan names the places you plan to stop at and how far
-along the trail they are. Background location tracking is off by default and only runs
-if you turn it on in Settings. Check-in sharing composes a message with your
+along the trail they are. The app does not track your location in the
+background. Check-in sharing composes a message with your
 position that is sent only through apps *you* choose in the system share sheet.
 
 **Plans.** Once the app has a device identity (however it was created,
 including by filing a report), the day plans you make for the built-in trails
-are copied to our servers so they survive a reinstall and can
+and for community routes are copied to our servers so they survive a reinstall and can
 be opened in a linked browser. A plan holds its name, direction, start date
 (and any zero days you plan before setting off), the stops you chose with their nights, notes and "booked" ticks, the resupply
 points you picked (and any zero days you plan at them), the alternate routes
@@ -91,8 +94,8 @@ you picked, and when it was last changed. A stop
 carries the place's name and its distance along the trail, and that includes a
 private waypoint of your own if you choose it as a stop. A plan is private to
 your account unless you share it (below). Your walking pace and hours per day are not part of
-it and stay on the device. Plans for trails you imported yourself, and for
-community routes, stay on your device.
+it and stay on the device. Plans for trails you imported yourself stay on your
+device.
 
 **Shared plan links (optional).** If you share a plan, we create a link with a
 long random address. Anyone who has the link can see the plan and your display
@@ -157,7 +160,7 @@ is checked by an automated safety filter (the Llama Guard model, run by
 Cloudflare, which already stores our data). When that filter flags a post, or
 when an established user reports it, the post is sent to Anthropic's API (the
 Claude model) for a review: for a comment, its text, its water status and the
-time you say you saw the water, how many photos it has and the place it is on;
+day you say you saw the water, how many photos it has and the place it is on;
 for a shared waypoint, its name, type, description and position; and, for
 either, the reasons and notes of the reports filed against it. Your display
 name, your account and your photos are not sent. A post the review finds
@@ -214,10 +217,9 @@ beyond Cloudflare's own request handling.
   records, moderation reports, the short-lived network-address records above,
   and any community routes you share (with their original GPX file, when you
   include it). These are stored with Cloudflare (D1 database and R2
-  object storage). We request the Oceania location hint for the database;
-  Cloudflare treats this as best-effort, so data may be stored or replicated
-  in other regions (see `docs/data-residency.md` for the verification
-  procedure and current status).
+  object storage). We request Oceania placement and it is where our storage
+  currently runs, but Cloudflare treats placement as best-effort, so data may
+  be stored or replicated in other regions.
 
 ## Moderation and reporting
 
@@ -285,9 +287,10 @@ immediate and irreversible.
 A community route you shared can be deleted at any time from its page
 (**Delete**); this removes it from the public list and deletes the stored route
 and GPX file. We keep a record of the route, marked removed: its name,
-description, credit line, the display name it was shared under, its summary
-statistics and a fingerprint of its track, which lets moderation stop a removed
-route from being shared again. Because shared routes are released as CC0, copies others have
+description, credit line and country/region, the display name it was shared
+under, its summary statistics, its bounding box and exact start and end points,
+the results of its automated checks and review, and a fingerprint of its track,
+which lets moderation stop a removed route from being shared again. Because shared routes are released as CC0, copies others have
 already downloaded or saved may remain on their devices. Deleting your account
 leaves the routes you shared public but removes your display name from them:
 the stored route is rewritten without it and the earlier copies that named you
