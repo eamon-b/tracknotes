@@ -17,7 +17,7 @@
  * container, which survives — the same idiom as the Stops and Resupply tabs.
  */
 
-import { buildTimeIndex, placeWalk, stopWalk, type PlanTrail } from '@lib/day-calculator';
+import { buildTimeIndex, placeWalk, stopWalk, trailEndName, type PlanTrail } from '@lib/day-calculator';
 import { haversineDistance } from '@lib/distance';
 import {
   MAX_SUGGEST_DAYS,
@@ -172,12 +172,11 @@ export function applyNextDaysPlan(
 }
 
 function wholeTrailSection(trail: NextDaysTrail): SectionConfig {
-  const waypoints = trail.waypoints ?? [];
   return {
     startKm: 0,
     endKm: trail.track.totalDistance,
-    startName: waypoints[0]?.name ?? `${trail.config.name} start`,
-    endName: waypoints[waypoints.length - 1]?.name ?? `${trail.config.name} end`,
+    startName: trailEndName(trail, 'start'),
+    endName: trailEndName(trail, 'end'),
   };
 }
 

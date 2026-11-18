@@ -10,7 +10,8 @@
  * to print a map and three scrolling panels.
  */
 
-import { escapeHtml } from '@lib/escape';
+import { addDays } from '@lib/plan-editor';
+import { escapeHtml } from '../web-utils';
 import {
   ICS_REEXPORT_NOTE,
   canExportIcs,
@@ -56,12 +57,6 @@ function formatDate(iso: string): string {
     year: 'numeric',
     timeZone: 'UTC',
   });
-}
-
-function addDays(iso: string, days: number): string {
-  const date = new Date(`${iso}T12:00:00Z`);
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
 }
 
 /** Hand `text` to the browser as a file download. */

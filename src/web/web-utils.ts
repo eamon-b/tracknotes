@@ -1,11 +1,10 @@
 /**
- * Small pure helpers shared by the top-level web pages (index, upload,
- * my-trail, my-plan).
+ * Small pure helpers shared by every web page and the trail, plan and resupply
+ * viewers: the one `escapeHtml` they all use, query parameters, the site-root
+ * and data URLs.
  *
- * Deliberately DOM-free so they can be unit-tested directly: the trail and plan
- * viewers each carry their own `escapeHtml` built on `document.createElement`,
- * which is fine inside those modules but untestable in isolation and unusable
- * before the document exists.
+ * Deliberately DOM-free so they can be unit-tested directly and used before the
+ * document exists.
  */
 
 const HTML_ESCAPES: Record<string, string> = {
@@ -41,16 +40,6 @@ export function getQueryParam(search: string, name: string): string | null {
   const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search);
   const value = params.get(name);
   return value === null || value === '' ? null : value;
-}
-
-/**
- * True for an id minted by the runtime GPX importer (`u_` + content hash).
- *
- * Used to sanity-check `?id=` before hitting IndexedDB, so a hand-edited URL
- * lands on the friendly "trail not found" state instead of an odd lookup.
- */
-export function isImportedTrailId(id: string): boolean {
-  return /^u_[a-z0-9]{1,32}$/.test(id);
 }
 
 /** Format a distance in km for display (one decimal place). */

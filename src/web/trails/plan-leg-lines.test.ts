@@ -105,7 +105,18 @@ function installLeafletStub(): void {
     divIcon: (opts: object) => opts,
     marker: () => {
       const handle: Record<string, unknown> = {};
-      for (const key of ['on', 'addTo', 'remove', 'setOpacity', 'bindPopup', 'openPopup', 'bindTooltip']) {
+      for (const key of [
+        'on',
+        'addTo',
+        'remove',
+        'setOpacity',
+        'setIcon',
+        'isPopupOpen',
+        'closePopup',
+        'bindPopup',
+        'openPopup',
+        'bindTooltip',
+      ]) {
         handle[key] = () => handle;
       }
       return handle;

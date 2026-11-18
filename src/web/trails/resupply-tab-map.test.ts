@@ -77,6 +77,12 @@ function installLeafletStub(): void {
         addTo: () => undefined,
         remove: () => void markers.splice(markers.indexOf(marker), 1),
         setOpacity: (value: number) => void (marker.opacity = value),
+        setIcon: (icon: { html: string }) => {
+          marker.html = icon.html;
+          return handle;
+        },
+        isPopupOpen: () => false,
+        closePopup: () => handle,
         bindPopup: (content: HTMLElement) => {
           marker.popup = content;
           return handle;
@@ -140,12 +146,12 @@ function makeTrail() {
   };
 }
 
-async function boot(): Promise<void> {
+async function boot(options: { readOnly?: boolean; preloadedPlan?: unknown } = {}): Promise<void> {
   const html = bundledPlanPageHtml();
   document.documentElement.innerHTML = html.replace(/<!DOCTYPE html>/i, '').replace(/<\/?html[^>]*>/gi, '');
   vi.resetModules();
   const { initPlanViewer } = await import('./plan-viewer');
-  await initPlanViewer(TRAIL_ID, makeTrail() as never);
+  await initPlanViewer(TRAIL_ID, makeTrail() as never, options as never);
 }
 
 beforeEach(() => {
@@ -245,6 +251,109 @@ describe('clicking a waypoint marker', () => {
     expect(savedPlan().stops).toHaveLength(1);
     expect(check('w_alpha').checked).toBe(true);
     expect(check('w_bravo').checked).toBe(true);
+  });
+});
+
+describe('a shared (read-only) plan', () => {
+  const shared = {
+    id: 'plan-shared',
+    trailId: TRAIL_ID,
+    name: 'Their plan',
+    direction: 'NOBO',
+    startDate: null,
+    stops: [],
+    resupplyStops: ['w_alpha'],
+    updatedAt: '2026-07-01T10:00:00.000Z',
+    version: 1,
+  };
+
+  it('opens the popup for a resupply option on the Resupply tab, since nothing can be ticked', async () => {
+    await boot({ readOnly: true, preloadedPlan: shared });
+    tabButton('resupply').click();
+
+    marker('Bravo').handlers.click();
+
+    const popup = marker('Bravo').popup;
+    expect(popup?.querySelector('.wp-popup-name')?.textContent).toBe('Bravo');
+    // A reader has nothing to press in it, and the plan is untouched.
+    expect(popup?.querySelector('.wp-popup-btn')).toBeNull();
+    expect(marker('Bravo').opacity).toBe(0.4);
+    expect(localStorage.getItem(`trail-plan-doc-${TRAIL_ID}`)).toBeNull();
+  });
+});
+
+describe('preferences another tab changed', () => {
+  it('show in the header inputs and the Stops switch, not only in the numbers', async () => {
+    await boot();
+    const input = (id: string) => document.getElementById(id) as HTMLInputElement;
+    expect(input('stops-show-all').checked).toBe(false);
+
+    // The resupply page (or this planner in a second tab) saves new prefs.
+    const prefs = {
+      showAllWaypoints: true,
+      pace: 'fast',
+      dailyHours: 10,
+      dryStretchKm: 35,
+      foodGramsPerDay: 900,
+      longCarryDays: 6,
+    };
+    localStorage.setItem(`trail-plan-ui-${TRAIL_ID}`, JSON.stringify(prefs));
+    window.dispatchEvent(new StorageEvent('storage', { key: `trail-plan-ui-${TRAIL_ID}` }));
+
+    expect((document.getElementById('plan-pace') as HTMLSelectElement).value).toBe('fast');
+    expect(input('plan-daily-hours').value).toBe('10');
+    expect(input('plan-dry-stretch').value).toBe('35');
+    expect(input('plan-food-grams').value).toBe('900');
+    expect(input('plan-long-carry').value).toBe('6');
+    expect(input('stops-show-all').checked).toBe(true);
+  });
+});
+
+describe('the waypoint markers across renders', () => {
+  it('are restyled in place when only the plan changes', async () => {
+    await boot();
+    const alpha = marker('Alpha');
+    const made = markers.length;
+    expect(alpha.html).not.toContain('is-stop');
+
+    pressPopupButton('Alpha');
+
+    expect(marker('Alpha')).toBe(alpha);
+    expect(alpha.html).toContain('is-stop');
+    // Only the ⛺ flag dropped on the new stop was made.
+    expect(markers.length).toBe(made + 1);
+
+    pressPopupButton('Alpha');
+    expect(marker('Alpha')).toBe(alpha);
+    expect(alpha.html).not.toContain('is-stop');
+  });
+
+  it('fade and restore in place on the Resupply tab', async () => {
+    await boot();
+    tabButton('resupply').click();
+    const bravo = marker('Bravo');
+    check('w_bravo').click();
+    expect(marker('Bravo')).toBe(bravo);
+    expect(bravo.opacity).toBe(0.4);
+  });
+
+  it('are made again when the tab or the direction changes', async () => {
+    await boot();
+    const alpha = marker('Alpha');
+
+    tabButton('resupply').click();
+    const onResupply = marker('Alpha');
+    expect(onResupply).not.toBe(alpha);
+    // The old ones are gone from the map, not left beneath the new ones.
+    expect(markers.filter(m => m.html.includes('title="Alpha"'))).toHaveLength(1);
+
+    tabButton('days').click();
+    const onDays = marker('Alpha');
+    expect(onDays).not.toBe(onResupply);
+
+    document.getElementById('direction-toggle')!.click();
+    expect(marker('Alpha')).not.toBe(onDays);
+    expect(markers.filter(m => m.html.includes('title="Alpha"'))).toHaveLength(1);
   });
 });
 

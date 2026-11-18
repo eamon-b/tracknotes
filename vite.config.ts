@@ -1,9 +1,10 @@
 import { defineConfig, type Plugin } from 'vite';
-import { resolve } from 'path';
+import { dirname, relative, resolve, sep } from 'path';
 import { readdirSync, existsSync, statSync, readFileSync } from 'fs';
 import { Marked, type Tokens } from 'marked';
 import { IMPORTED_PLAN_FILLS, SHARED_PLAN_FILLS, inlinePlanShell } from './scripts/lib/plan-shell';
 import { waypointEditorPlugin } from './scripts/lib/waypoint-editor/vite-plugin';
+import { inlineThemeHead } from './src/web/theme-head';
 
 // Dynamically find all trail page directories (index.html and climate.html)
 function getTrailInputs(): Record<string, string> {
@@ -103,6 +104,24 @@ function planShellPlugin(): Plugin {
   };
 }
 
+// Puts the saved-theme pre-paint script and the theme.ts module into every
+// page that carries a `<!-- @theme-head -->` marker line in its <head> (the
+// hand-written top-level pages), from the one copy in src/web/theme-head.ts.
+// The theme.ts path is worked out from the page's own location.
+function themeHeadPlugin(): Plugin {
+  const themeModule = resolve(__dirname, 'src/web/theme.ts');
+  return {
+    name: 'theme-head',
+    transformIndexHtml: {
+      order: 'pre',
+      handler(html, ctx) {
+        const fromPage = relative(dirname(ctx.filename), themeModule).split(sep).join('/');
+        return inlineThemeHead(html, fromPage.startsWith('.') ? fromPage : `./${fromPage}`);
+      },
+    },
+  };
+}
+
 export default defineConfig({
   root: 'src/web',
   base: './',
@@ -116,7 +135,7 @@ export default defineConfig({
   // waypointEditorPlugin is dev-only (`apply: 'serve'`): the local waypoint
   // editor's API at /__waypoint-editor, which writes data/trails. Its page,
   // admin-waypoints.html, is deliberately not a build input below.
-  plugins: [gpxImportDocPlugin(), planShellPlugin(), waypointEditorPlugin(__dirname)],
+  plugins: [gpxImportDocPlugin(), planShellPlugin(), themeHeadPlugin(), waypointEditorPlugin(__dirname)],
   build: {
     outDir: '../../dist',
     emptyOutDir: true,

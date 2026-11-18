@@ -144,6 +144,12 @@ function installLeafletStub(): void {
         addTo: () => undefined,
         remove: () => void markers.splice(markers.indexOf(marker), 1),
         setOpacity: () => undefined,
+        setIcon: (icon: { html: string }) => {
+          marker.html = icon.html;
+          return handle;
+        },
+        isPopupOpen: () => false,
+        closePopup: () => handle,
         bindPopup: (content: HTMLElement) => {
           marker.popup = content;
           return handle;

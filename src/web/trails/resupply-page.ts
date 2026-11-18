@@ -76,7 +76,8 @@ import { initPlanSync, type PlanSyncController, type PlanSyncHost } from './plan
 import { PlanEditQueue, type PlanEdit } from './plan-edit-queue';
 import { mountPlanSyncDialogs } from './plan-sync-markup';
 import { buildResupplyView, renderResupplySummary, renderResupplyTable } from './resupply-view';
-import { SITE_ROOT, escapeHtml, generatedDataUrl } from '../web-utils';
+import { escapeHtml } from '../web-utils';
+import { loadGeneratedTrail } from './viewer-utils';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -624,16 +625,6 @@ function onStorage(event: StorageEvent): void {
 // Boot
 // ---------------------------------------------------------------------------
 
-async function loadTrailData(id: string): Promise<ResupplyPageTrail | null> {
-  try {
-    const response = await fetch(generatedDataUrl(`${id}.json`, SITE_ROOT.trailPage, document.baseURI));
-    if (!response.ok) return null;
-    return (await response.json()) as ResupplyPageTrail;
-  } catch {
-    return null;
-  }
-}
-
 /**
  * Boot the resupply page into `#resupply-app`.
  *
@@ -652,7 +643,7 @@ export async function initResupplyPage(
   if (!root) throw new Error('initResupplyPage: no #resupply-app');
   bootRoot = root;
 
-  const data = preloadedTrail ?? (await loadTrailData(id));
+  const data = preloadedTrail ?? (await loadGeneratedTrail<ResupplyPageTrail>(id));
   if (!data) {
     root.innerHTML = '<p class="rs-empty-note">Trail data not found.</p>';
     return;

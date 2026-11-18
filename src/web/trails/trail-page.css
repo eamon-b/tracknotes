@@ -209,20 +209,6 @@
 .waypoint-type.type-endpoint {
   background: #ef9a9a;
 }
-.waypoints-list {
-  list-style: none;
-  padding: 0;
-}
-.waypoints-list li {
-  padding: 0.75rem;
-  border-bottom: 1px solid var(--border-color);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.waypoints-list li:last-child {
-  border-bottom: none;
-}
 /* Inline variant rows in waypoints table */
 .variant-row {
   background: var(--bg-secondary);

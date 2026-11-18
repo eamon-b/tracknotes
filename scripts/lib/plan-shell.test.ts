@@ -54,7 +54,7 @@ describe('plan shell', () => {
     const html = inlinePlanShell(myPlan(), shell(), IMPORTED_PLAN_FILLS);
     expect(html).toContain('<a id="back-link" href="./" class="back-link">');
     expect(html).toContain('<span class="trail-title" id="trail-title">Imported trail</span>');
-    // No theme.ts on this page, so no toggle — and no blank line left behind
+    // No theme toggle in this header — and no blank line left behind
     // where the placeholder was: the header ends at the last shell control.
     expect(html).not.toContain('data-theme-toggle');
     expect(html).toContain('hidden>Share</button>\n    </div>');

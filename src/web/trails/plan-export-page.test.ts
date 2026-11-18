@@ -21,7 +21,7 @@ const TRAIL_ID = 'export-fixture';
 const TOTAL_KM = 60;
 
 vi.mock('./plan-sync', () => ({
-  initPlanSync: () => ({ onLocalSave() {}, destroy() {} }),
+  initPlanSync: () => ({ onLocalSave() {} }),
 }));
 
 function bundledPlanPageHtml(): string {

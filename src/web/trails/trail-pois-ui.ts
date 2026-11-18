@@ -5,7 +5,7 @@
  * ordering, the filter state, the route key — lives in `@lib/poi-display` so
  * the phone and the page cannot drift apart, and is re-exported below so this
  * module stays the one import the viewer needs. What is left here is what only
- * a browser has: emoji glyphs, HTML builders, `localStorage`.
+ * a browser has: the glyph SVG, HTML builders, `localStorage`.
  *
  * **Every string in a POI is untrusted.** Names, tag keys and tag values all go
  * through `escapeHtml` before they reach markup, and URLs are scheme-checked
@@ -39,39 +39,19 @@ import {
 import { escapeHtml } from '../web-utils';
 import { poiIcon } from './waypoint-icons';
 
-// The shared half, re-exported so `trail-viewer.ts` and the imported-trail page
-// keep importing POI behaviour from one place.
+// The parts of the shared half the viewer uses, re-exported so `trail-viewer.ts`
+// keeps importing POI behaviour from one place.
 export {
-  countPoisByCategory,
   defaultPoiFilterState,
-  duplicatePoisFor,
-  findPoiByRouteKey,
-  formatOffTrail,
   interleavePoisByDistance,
   isPoiCategory,
-  mergedPoiTags,
   mirrorPoiDistances,
-  normalisePoiFilterState,
-  parsePoiRouteKey,
-  poiCategoryLabel,
   poiDisplayName,
-  poiOsmUrl,
-  poiRouteKey,
-  safeHttpUrl,
-  safeTelUrl,
   selfDuplicatesOf,
-  slimPoi,
-  summarisePoiTags,
   visiblePois,
   OSM_ATTRIBUTION,
-  POI_CATEGORIES,
-  POI_CATEGORY_LABELS,
-  POI_DISPLAY_TAG_KEYS,
-  PRIMARY_TAG_KEYS,
 } from '@lib/poi-display';
-export type { InterleavedEntry, PoiFilterState, PoiTagLine } from '@lib/poi-display';
-
-/** The credit line, shown wherever POI data is. */
+export type { PoiFilterState } from '@lib/poi-display';
 
 /**
  * Marker/badge glyph for a category (inline SVG), tolerating an unknown one.

@@ -138,7 +138,8 @@ import {
 // Escapes quotes as well as angle brackets, unlike a `textContent` round trip
 // through a detached div — this file interpolates waypoint names and types into
 // `title="…"` and `class="…"`, and an imported GPX supplies both.
-import { SITE_ROOT, escapeHtml, generatedDataUrl, getQueryParam } from '../web-utils';
+import { escapeHtml, getQueryParam } from '../web-utils';
+import { debounce, loadGeneratedTrail, niceAxisTicks } from './viewer-utils';
 import { onThemeChange, themeColor } from '../theme';
 
 // ---------------------------------------------------------------------------
@@ -295,7 +296,23 @@ let popupAccessPath: L.LayerGroup | null = null;
  * day colours, because the walk is part of the day, not a day of its own.
  */
 const ACCESS_PATH_COLOR = '#37474f';
-let waypointMarkers: Array<{ marker: L.Marker; waypoint: PlanWaypoint }> = [];
+/**
+ * One waypoint marker and what it was last drawn as, so a render that changes
+ * only the plan restyles it in place (`drawWaypointMarkers`).
+ */
+interface WaypointMarkerEntry {
+  marker: L.Marker;
+  waypoint: PlanWaypoint;
+  /** The marker's class list as drawn. */
+  className: string;
+  /** Faded: a resupply option the plan does not take, on the Resupply tab. */
+  faded: boolean;
+  /** A resupply option on the Resupply tab, where a click ticks it. */
+  isOption: boolean;
+}
+let waypointMarkers: WaypointMarkerEntry[] = [];
+/** What the markers were built for: rebuilt when the route, direction or tab changes. */
+let waypointMarkersBuiltFor: { trail: Trail; showingResupply: boolean } | null = null;
 
 // Elevation
 const PAD = { top: 20, right: 20, bottom: 28, left: 50 };
@@ -319,33 +336,6 @@ function servicesAt(km: number): StopServices | undefined {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function niceAxisTicks(min: number, max: number, maxTicks: number): number[] {
-  const range = max - min;
-  if (range <= 0) return [min];
-  const roughStep = range / maxTicks;
-  const magnitude = Math.pow(10, Math.floor(Math.log10(roughStep)));
-  const normalized = roughStep / magnitude;
-  let niceStep: number;
-  if (normalized <= 1) niceStep = 1 * magnitude;
-  else if (normalized <= 2) niceStep = 2 * magnitude;
-  else if (normalized <= 5) niceStep = 5 * magnitude;
-  else niceStep = 10 * magnitude;
-  const start = Math.ceil(min / niceStep) * niceStep;
-  const ticks: number[] = [];
-  for (let v = start; v <= max; v += niceStep) {
-    ticks.push(Math.round(v * 1e6) / 1e6);
-  }
-  return ticks;
-}
-
-function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): (...args: Parameters<T>) => void {
-  let t: ReturnType<typeof setTimeout>;
-  return (...args) => {
-    clearTimeout(t);
-    t = setTimeout(() => fn(...args), ms);
-  };
-}
 
 function formatDate(iso: string): string {
   const [y, m, d] = iso.split('-').map(Number);
@@ -705,22 +695,6 @@ function resupplyLegs(): ResupplyLeg[] {
 }
 
 // ---------------------------------------------------------------------------
-// Data loading
-// ---------------------------------------------------------------------------
-
-async function loadTrailData(trailId: string): Promise<Trail | null> {
-  try {
-    // Relative to the page (`trails/<id>/plan.html`), as index.html's fetch is,
-    // so a site served from a sub-path still finds its data.
-    const response = await fetch(generatedDataUrl(`${trailId}.json`, SITE_ROOT.trailPage, document.baseURI));
-    if (!response.ok) throw new Error('Trail data not found');
-    return await response.json();
-  } catch {
-    return null;
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Map
 // ---------------------------------------------------------------------------
 
@@ -775,7 +749,7 @@ function initMap(): void {
   }
 
   // Waypoint markers (clickable to add/remove stop)
-  drawWaypointMarkers();
+  drawWaypointMarkers({ rebuild: true });
 }
 
 /**
@@ -837,25 +811,37 @@ function redrawRouteLine(): void {
   }
 }
 
-function drawWaypointMarkers(): void {
+/**
+ * The waypoint markers. Built once per route, direction and tab — the set of
+ * places and what a click on one does — and otherwise restyled in place on
+ * each render (stop, planned-resupply and faded-option styling), rather than
+ * every marker being removed and made again whenever the plan changes.
+ *
+ * @param rebuild make them anew whatever they were built for (a new map).
+ */
+function drawWaypointMarkers({ rebuild = false }: { rebuild?: boolean } = {}): void {
   if (!map) return;
-  // Remove existing
-  waypointMarkers.forEach(({ marker }) => marker.remove());
-  waypointMarkers = [];
   hidePopupAccessPath();
 
   // On the Resupply tab the map answers the question that tab asks: which of the
   // resupply options am I taking? Ticked ones borrow the camp-stop emphasis and
-  // the rest fade back. Every other tab redraws these markers plain.
+  // the rest fade back. Every other tab draws these markers plain.
   const showingResupply = activeTab === 'resupply';
   const optionIds = showingResupply ? new Set(allResupplyOptionIds(resupplyGroups())) : null;
   const pickedIds = showingResupply ? selectedResupplyIds() : null;
+  const shown = activeTrail();
 
-  const waypoints = activeTrail().waypoints ?? [];
-  waypoints.forEach(wp => {
+  const built = waypointMarkersBuiltFor;
+  if (rebuild || !built || built.trail !== shown || built.showingResupply !== showingResupply) {
+    waypointMarkers.forEach(({ marker }) => marker.remove());
+    waypointMarkers = (shown.waypoints ?? []).map(wp => createWaypointMarker(wp));
+    waypointMarkersBuiltFor = { trail: shown, showingResupply };
+  }
+
+  for (const entry of waypointMarkers) {
+    const wp = entry.waypoint;
     const km = wp.totalDistance ?? 0; // active-direction km
     const type = wp.type ?? 'waypoint';
-    const icon = waypointIcon(type);
     // Id first, km only for a stop saved without one — the Stops tab's rule, so
     // the marker and the tab agree after a rebuild nudges the waypoint's km.
     const isSelected = isStopSelected(plan, stopKeyFor({ id: wp.id, km }));
@@ -869,36 +855,61 @@ function drawWaypointMarkers(): void {
       `waypoint-marker ${type} ${waypointFamilyClass(type)}` +
       `${isSelected || isPicked ? ' is-stop' : ''}` +
       `${isPlanned ? ' planned-resupply' : ''}`;
-    const divIcon = L.divIcon({
-      className: '',
-      html: `<div class="${escapeHtml(className)}" title="${escapeHtml(wp.name)}">${icon}</div>`,
-      iconSize: [22, 22],
-      iconAnchor: [11, 11],
-    });
-    const marker = L.marker([wp.lat ?? 0, wp.lon ?? 0], { icon: divIcon });
-    if (isOption && !isPicked) marker.setOpacity(0.4);
-    // A click means what the tab means: on the Resupply tab the highlighted
-    // markers are the ticked options, so clicking one ticks or unticks it.
-    // Everywhere else it opens the waypoint's popup — a stop is never toggled
-    // by the click itself, because a mis-aimed click on a 22 px marker used to
-    // silently rewrite the day plan.
-    marker.on('click', () => {
-      if (isOption) {
-        toggleResupply(wp.id!);
-        return;
-      }
-      marker.bindPopup(waypointPopupContent(wp, km), { className: 'plan-wp-popup' }).openPopup();
-    });
-    // The trail viewer's rule: the way walked in to an off-route place is
-    // dotted while its popup is open.
-    const path = wp.offTrailPath;
-    if (hasAccessPath(path)) {
-      marker.on('popupopen', () => showPopupAccessPath(path));
-      marker.on('popupclose', hidePopupAccessPath);
+    // A render the plan changed under leaves no popup showing the plan as it
+    // was (the rebuild this replaced closed them by removing the marker).
+    if (entry.marker.isPopupOpen()) entry.marker.closePopup();
+    if (className !== entry.className) {
+      entry.marker.setIcon(waypointDivIcon(wp, className));
+      entry.className = className;
     }
-    marker.addTo(map!);
-    waypointMarkers.push({ marker, waypoint: wp });
+    const faded = isOption && !isPicked;
+    if (faded !== entry.faded) {
+      entry.marker.setOpacity(faded ? 0.4 : 1);
+      entry.faded = faded;
+    }
+    entry.isOption = isOption;
+  }
+}
+
+/** A waypoint marker's icon: its glyph in a ring carrying `className`. */
+function waypointDivIcon(wp: PlanWaypoint, className: string): L.DivIcon {
+  return L.divIcon({
+    className: '',
+    html: `<div class="${escapeHtml(className)}" title="${escapeHtml(wp.name)}">${waypointIcon(wp.type ?? 'waypoint')}</div>`,
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
   });
+}
+
+/** A waypoint's marker, plain; `drawWaypointMarkers` styles it. */
+function createWaypointMarker(wp: PlanWaypoint): WaypointMarkerEntry {
+  const km = wp.totalDistance ?? 0; // active-direction km
+  const type = wp.type ?? 'waypoint';
+  const className = `waypoint-marker ${type} ${waypointFamilyClass(type)}`;
+  const marker = L.marker([wp.lat ?? 0, wp.lon ?? 0], { icon: waypointDivIcon(wp, className) });
+  const entry: WaypointMarkerEntry = { marker, waypoint: wp, className, faded: false, isOption: false };
+  // A click means what the tab means: on the Resupply tab the highlighted
+  // markers are the ticked options, so clicking one ticks or unticks it — on
+  // the hiker's own plan; a shared plan cannot be ticked, so there it opens
+  // the popup like any other. Everywhere else it opens the waypoint's popup —
+  // a stop is never toggled by the click itself, because a mis-aimed click on
+  // a 22 px marker used to silently rewrite the day plan.
+  marker.on('click', () => {
+    if (entry.isOption && !readOnly) {
+      toggleResupply(wp.id!);
+      return;
+    }
+    marker.bindPopup(waypointPopupContent(wp, km), { className: 'plan-wp-popup' }).openPopup();
+  });
+  // The trail viewer's rule: the way walked in to an off-route place is
+  // dotted while its popup is open.
+  const path = wp.offTrailPath;
+  if (hasAccessPath(path)) {
+    marker.on('popupopen', () => showPopupAccessPath(path));
+    marker.on('popupclose', hidePopupAccessPath);
+  }
+  marker.addTo(map!);
+  return entry;
 }
 
 function showPopupAccessPath(path: Array<[number, number]>): void {
@@ -1132,7 +1143,7 @@ function redrawMapLayers(): void {
     }
   });
 
-  // Re-draw waypoint markers to update is-stop styling
+  // Restyle the waypoint markers (is-stop, planned resupply, faded options)
   drawWaypointMarkers();
 }
 
@@ -2502,10 +2513,6 @@ function onPageHide(): void {
 }
 
 /**
- * Show why an edit was refused, on the line the save status uses. Warn-coloured
- * like an unsaved plan, because that is what it is: the change never happened.
- */
-/**
  * Write this page's edits to `localStorage` — on top of the stored copy, when
  * another tab (the resupply page) saved since they were made, so its changes
  * are kept (`plan-edit-queue.ts`).
@@ -2542,6 +2549,7 @@ function onStorage(event: StorageEvent): void {
   } else if (kind === 'prefs') {
     uiPrefs = loadPlanUiPrefs(trail.config.id);
     refreshHeaderInputs();
+    refreshPrefInputs();
     renderAll();
   }
 }
@@ -2552,6 +2560,10 @@ function refreshAfterOutsideChange(): void {
   renderAll();
 }
 
+/**
+ * Show why an edit was refused, on the line the save status uses. Warn-coloured
+ * like an unsaved plan, because that is what it is: the change never happened.
+ */
 function setEditError(err: unknown): void {
   const el = document.getElementById('save-status');
   if (!el) return;
@@ -2790,6 +2802,29 @@ function refreshHeaderInputs(): void {
   const zeroInput = document.getElementById('plan-start-zero-days') as HTMLInputElement | null;
   if (zeroInput) zeroInput.value = startZeroDaysInputValue();
   updateDirectionButton();
+}
+
+/**
+ * Put the preference inputs — pace, hours/day, the three thresholds and the
+ * Stops tab's "show all" switch — back in step with `uiPrefs`, after another
+ * tab (the resupply page) changed them. As the resupply page's `fillInputs`.
+ */
+function refreshPrefInputs(): void {
+  const paceSelect = document.getElementById('plan-pace') as HTMLSelectElement | null;
+  if (paceSelect) paceSelect.value = pace();
+  const hoursInput = document.getElementById('plan-daily-hours') as HTMLInputElement | null;
+  if (hoursInput) hoursInput.value = String(dailyHours());
+  const thresholdInputs: Array<[string, keyof PlanThresholds]> = [
+    ['plan-dry-stretch', 'dryStretchKm'],
+    ['plan-food-grams', 'foodGramsPerDay'],
+    ['plan-long-carry', 'longCarryDays'],
+  ];
+  for (const [id, key] of thresholdInputs) {
+    const input = document.getElementById(id) as HTMLInputElement | null;
+    if (input) input.value = String(threshold(key));
+  }
+  const showAll = document.getElementById('stops-show-all') as HTMLInputElement | null;
+  if (showAll) showAll.checked = uiPrefs.showAllWaypoints;
 }
 
 /**
@@ -3078,7 +3113,7 @@ export async function initPlanViewer(
   if (booted) throw new Error('initPlanViewer: the planner is already booted on this page');
   booted = true;
   bootShell = document.getElementById('plan-shell');
-  const data = preloadedTrail ?? (await loadTrailData(trailId));
+  const data = preloadedTrail ?? (await loadGeneratedTrail<Trail>(trailId));
   if (!data) {
     document.body.innerHTML = `<div style="padding:2rem;text-align:center">
       <h2>Trail data not found</h2>

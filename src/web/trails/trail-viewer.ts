@@ -27,7 +27,8 @@ import {
 // in an attribute value as in a text node. That matters here: `linkifyText`
 // puts a description's links inside `href="…"`, and imported GPX supplies
 // every waypoint name, type and description on this page.
-import { SITE_ROOT, escapeHtml, generatedDataUrl } from '../web-utils';
+import { escapeHtml } from '../web-utils';
+import { debounce, loadGeneratedTrail, niceAxisTicks } from './viewer-utils';
 import { linkifyText } from '../linkify-text';
 import { buildGpx, csvQuote } from './trail-export';
 import { waypointFamilyClass, waypointIcon } from './waypoint-icons';
@@ -948,35 +949,6 @@ function getMinMax(arr: number[]): { min: number; max: number } {
   return { min, max };
 }
 
-// Calculate nice round-number axis ticks for chart axes
-function niceAxisTicks(min: number, max: number, maxTicks: number): number[] {
-  const range = max - min;
-  if (range <= 0) return [min];
-  const roughStep = range / maxTicks;
-  const magnitude = Math.pow(10, Math.floor(Math.log10(roughStep)));
-  const normalized = roughStep / magnitude;
-  let niceStep: number;
-  if (normalized <= 1) niceStep = 1 * magnitude;
-  else if (normalized <= 2) niceStep = 2 * magnitude;
-  else if (normalized <= 5) niceStep = 5 * magnitude;
-  else niceStep = 10 * magnitude;
-  const start = Math.ceil(min / niceStep) * niceStep;
-  const ticks: number[] = [];
-  for (let v = start; v <= max; v += niceStep) {
-    ticks.push(Math.round(v * 1e6) / 1e6); // avoid floating point drift
-  }
-  return ticks;
-}
-
-// Debounce helper for resize events
-function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): (...args: Parameters<T>) => void {
-  let timeout: ReturnType<typeof setTimeout>;
-  return (...args: Parameters<T>) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => fn(...args), ms);
-  };
-}
-
 function initMap(trail: Trail): void {
   if (typeof L === 'undefined') {
     const mapContainer = document.getElementById('trail-map');
@@ -1250,7 +1222,7 @@ function createWaypointIcon(type?: string): L.DivIcon {
 function waypointPopupHtml(wp: Waypoint, index: number): string {
   return `
       <strong>${escapeHtml(wp.name || 'Waypoint')}</strong><br>
-      ${escapeHtml(wp.type || 'waypoint')}<br>
+      ${escapeHtml(waypointTypeLabel(wp.type))}<br>
       ${(wp.totalDistance || 0).toFixed(1)} km along trail
       ${wp.elevation ? `<br>${Math.round(wp.elevation)}m elevation` : ''}
       ${walkInLine(wp)}
@@ -1330,7 +1302,7 @@ function drawOffTrailWaypointMarkers(waypoints: OffTrailWaypoint[]): void {
       .bindPopup(
         () => `
       <strong>${escapeHtml(wp.name || 'Waypoint')}</strong><br>
-      ${escapeHtml(wp.type || 'waypoint')}<br>
+      ${escapeHtml(waypointTypeLabel(wp.type))}<br>
       ${(wp.distanceFromTrail / 1000).toFixed(1)} km from trail
       ${waypointOsmDetailsHtml(trailState.currentTrail, wp.id)}
     `
@@ -1363,8 +1335,8 @@ function handleMapHover(e: L.LeafletMouseEvent): void {
   if (!displayPoints.length) return;
 
   const latlng = e.latlng;
-  // Same nearest point the old full scan returned (degree-space distance,
-  // earliest point on a tie) — just found through the grid index instead.
+  // The nearest display point (degree-space distance, earliest point on a
+  // tie), found through the grid index rather than a scan of every point.
   const nearestPoint = displayPointIndex.nearest(latlng.lat, latlng.lng);
 
   if (nearestPoint) {
@@ -1973,19 +1945,6 @@ function setupElevationHover(): void {
   });
 
   canvas.style.cursor = 'pointer';
-}
-
-async function loadTrailData(trailId: string): Promise<Trail | null> {
-  try {
-    // Relative to the page (`trails/<id>/index.html`), as index.html's fetch
-    // is, so a site served from a sub-path still finds its data.
-    const response = await fetch(generatedDataUrl(`${trailId}.json`, SITE_ROOT.trailPage, document.baseURI));
-    if (!response.ok) throw new Error('Trail data not found');
-    return await response.json();
-  } catch (error) {
-    console.error('Failed to load trail data:', error);
-    return null;
-  }
 }
 
 function updateStats(trail: Trail): void {
@@ -2699,7 +2658,7 @@ export async function initTrailViewer(
   if (trailViewerBooted) throw new Error('initTrailViewer: the trail viewer is already booted on this page');
   trailViewerBooted = true;
   viewerOptions = options ?? {};
-  const trail = preloadedTrail ?? (await loadTrailData(trailId));
+  const trail = preloadedTrail ?? (await loadGeneratedTrail<Trail>(trailId));
   if (!trail) {
     const panel = document.querySelector('.panel');
     if (panel) panel.innerHTML = '<p>Failed to load trail data.</p>';

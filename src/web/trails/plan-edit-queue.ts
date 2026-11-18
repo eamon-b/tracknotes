@@ -53,10 +53,6 @@ export class PlanEditQueue {
     this.edits.push(edit);
   }
 
-  get hasPending(): boolean {
-    return this.edits.length > 0;
-  }
-
   /** True when `stored` is the copy this page's edits were made against. */
   isBase(stored: PlanDocument | null): boolean {
     return fingerprint(stored) === this.base;

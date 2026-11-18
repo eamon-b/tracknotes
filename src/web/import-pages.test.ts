@@ -46,11 +46,12 @@ const fixture = (rel: string): string => fs.readFileSync(path.join(ROOT, rel), '
 
 /** Hand a File to the page's file input the way a picker would. */
 function chooseFile(name: string, text: string): void {
+  pickFile(new File([text], name, { type: 'application/gpx+xml' }));
+}
+
+function pickFile(file: File): void {
   const input = document.getElementById('file-input') as HTMLInputElement;
-  Object.defineProperty(input, 'files', {
-    value: [new File([text], name, { type: 'application/gpx+xml' })],
-    configurable: true,
-  });
+  Object.defineProperty(input, 'files', { value: [file], configurable: true });
   input.dispatchEvent(new Event('change'));
 }
 
@@ -153,6 +154,35 @@ describe('upload.html', () => {
     // And the warning explains what that costs the plan.
     expect($('report-warnings').hidden).toBe(false);
     expect($('report-warning-list').textContent).toMatch(/distance-only/);
+  });
+
+  it('keeps the file picked last when an earlier one finishes reading after it', async () => {
+    loadPage('upload.html');
+    await import('./upload');
+
+    // Two files still being read when a third is picked: one that will read,
+    // one that will fail.
+    let finishOld: (text: string) => void = () => {};
+    const slow = new File([''], 'slow.gpx');
+    slow.text = () => new Promise<string>(resolve => (finishOld = resolve));
+    pickFile(slow);
+    let failOld: (err: Error) => void = () => {};
+    const broken = new File([''], 'broken.gpx');
+    broken.text = () => new Promise<string>((_resolve, reject) => (failOld = reject));
+    pickFile(broken);
+
+    chooseFile('Cape_to_Cape_Track.gpx', fixture('data/trails/cape_to_cape/Cape_to_Cape_Track.gpx'));
+    await flush();
+    expect(($('trail-name') as HTMLInputElement).value).toBe('Cape to Cape Track');
+
+    finishOld(fixture('tests/fixtures/gpx/no-elevation.gpx'));
+    failOld(new Error('disk gone'));
+    await flush();
+
+    expect(($('trail-name') as HTMLInputElement).value).toBe('Cape to Cape Track');
+    expect($('report-stats').textContent).toContain('Elevation data: present');
+    expect($('elevation-backfill').hidden).toBe(true);
+    expect($('error').hidden).toBe(true);
   });
 
   it('rejects a file with unparseable coordinates instead of plotting 0°N 0°E', async () => {
