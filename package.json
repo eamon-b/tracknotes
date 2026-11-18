@@ -20,11 +20,9 @@
     "build:trails": "tsx scripts/build-trails.ts",
     "sync:te-araroa": "tsx scripts/sync-te-araroa.ts",
     "fetch:climate": "tsx scripts/fetch-climate.ts",
-    "fetch:elevation": "tsx scripts/fetch-elevation.ts",
     "fetch:pois": "tsx scripts/fetch-pois.ts",
     "fetch:access": "tsx scripts/fetch-access.ts",
     "build:tiles": "tsx scripts/build-tiles.ts",
-    "build:tiles:bibbulmun": "tsx scripts/build-tiles.ts --trail bibbulmun",
     "experiment:contours": "tsx contours/scripts/contour-experiment.ts",
     "sync:style": "cp scripts/topo-style.json mobile/assets/topo-style.json && cp scripts/topo-style-dark.json mobile/assets/topo-style-dark.json",
     "fetch:fonts": "tsx scripts/fetch-font-glyphs.ts",
@@ -48,9 +46,6 @@
     "build:region-shapes": "tsx scripts/build-region-shapes.ts",
     "trace:mark-contours": "tsx scripts/trace-mark-contours.ts"
   },
-  "dependencies": {
-    "papaparse": "^5.7.1"
-  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.65.0",
@@ -69,6 +64,7 @@
     "jsdom": "^31.0.1",
     "leaflet": "1.9.4",
     "marked": "^18.2.0",
+    "papaparse": "^5.7.1",
     "prettier": "3.10.1",
     "te-araroa-data": "github:eamon-b/te-araroa-data#main",
     "tsx": "^4.23.15",

@@ -4,7 +4,10 @@ name: Offline tile packs
 # pack on the tile host. Runs when the bundled trail list changes (a new trail
 # fails here until its pack is built and uploaded: build:tiles, upload:tiles)
 # and weekly, to catch a pack that goes missing or bad on the server. The weekly
-# run also checks the published over-the-air trail data matches main.
+# (and manual) run is every check in e2e-tile-check.mjs: also the contour
+# Worker's /health (sources.world.ok, maxZoom 15), tile decode, z14/z15 tiles
+# and the contours alias, all read-only GETs to the public hosts. It also checks
+# the published over-the-air trail data matches main.
 
 on:
   pull_request:
@@ -28,6 +31,10 @@ on:
     - cron: '17 6 * * 1'
   workflow_dispatch:
 
+# Read-only: both jobs read public hosts and the checkout, nothing else.
+permissions:
+  contents: read
+
 jobs:
   tile-packs:
     runs-on: ubuntu-latest
@@ -39,6 +46,10 @@ jobs:
           node-version: 22
       # No npm ci: the check uses only Node built-ins.
       - run: npm run check:tile-packs
+        if: github.event_name == 'pull_request' || github.event_name == 'push'
+      - name: Every tile check (weekly)
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: node scripts/e2e-tile-check.mjs
 
   # Did a trail data change reach main without `npm run publish:trail-data`? Not run on
   # pull requests or pushes, which change the data before it is published.

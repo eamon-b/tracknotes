@@ -36,9 +36,13 @@ keep this file in step with the code it describes.
   The Australia archive (`contours/australia.pmtiles`, Geoscience Australia 1" SRTM DEM-S, ~24 h build by the now-deleted `build-contours-australia.ts`) was retired in #228: the same z14 tiles at seven Australian trails were near-identical to the world archive's (elevations within 10–30 m, world 3–15% more line length because DEM-S is hydrologically smoothed, no visible canopy artefacts).
   It stays in R2 as a frozen public download (last built 2026-10-23, 13.5 GB, CC BY 4.0) and is no longer served or rebuilt
 - `build-contours-world.ts` - Builds world contour shards from Copernicus GLO-30 DEM, `--join` converts the shard mbtiles to `.pmtiles` in parallel (tile-join integrity-checks mbtiles inputs on one core, hours at world size, but not pmtiles ones), tile-joins them to world.mbtiles and converts that to a validated world.pmtiles;
-  `--batches-only --batch I,J` tiles only those batches of a shard (0-based), so separate processes can tile one shard's batches in parallel and the shard's own merge reuses them (spec: `plans/world-contour-tiles.md`).
+  `--join` takes only the real shards' `world_<shard>.mbtiles` (`isWorldShardFile`), never the `world_custom.mbtiles` a `--bbox` or `--cell` test build leaves in the same dir.
+  `--batches-only --batch I,J` tiles only those batches of a shard (0-based), so separate processes can tile one shard's batches in parallel and the shard's own merge reuses them (design decisions: the runbook, `contours/docs/world-contours-remote-build.md`).
+  Each batch is tiled under a per-process temp name and renamed into place before its `.done` marker is written, so a killed or concurrent run never leaves a half-written batch under the real name.
+  `--batches-only` writes `batches.json` (the batch count, each batch's `.done` label and the settings) once every batch of the shard is built, by whichever `--batch` process finishes last;
+  `--join-batches` refuses to run without it, and refuses a missing or extra batch, a marker that differs from the manifest, or other settings (`joinBatchesProblems`).
   `main()` is guarded so the module imports without building;
-  `build-contours-world.test.ts` covers the pure parts — argument parsing (`--batch`, `--cells-only`, `--batches-only`), byte-capped batching, the batch `.done` labels and when a batch is reused, and `--join` reusing a shard conversion only when it is newer than its shard
+  `build-contours-world.test.ts` covers the pure parts — argument parsing (`--batch`, `--cells-only`, `--batches-only`), byte-capped batching, the batch `.done` labels and when a batch is reused, the `--join-batches` manifest check, the shard names `--join` takes, and `--join` reusing a shard conversion only when it is newer than its shard
 - `fetch-dem-copernicus.ts` - Downloads Copernicus GLO-30 DEM tiles (global, anonymous, per bbox/cells/shard)
 - `contour-experiment.ts` - Contour quality experiment harness: settings-matrix builds + side-by-side compare viewer (`npm run experiment:contours`).
   `baseline` is built from `CONTOUR_TIPPECANOE_DEFAULTS`, so it cannot drift from the builds;
@@ -51,11 +55,13 @@ keep this file in step with the code it describes.
 - `sync-te-araroa.ts` - `npm run sync:te-araroa`: copies the published Te Araroa route out of the `te-araroa-data` package into `data/trails/te_araroa/` (never hand-edit it; fix it upstream).
   It copies the file `trail.json` names as `gpxFile` from the package's `out/`.
   `lib/te-araroa-package.ts` holds the checks, and each failure names its fix: the package must be in this checkout's own `node_modules` at the commit `package-lock.json` pins (`npm ci`) — Node's resolution walks up, so a worktree under `.claude/worktrees/` without it used to copy the main checkout's copy, another commit, and exit 0 — and `build:trails` refuses a synced GPX that is missing or differs from the installed package's (`npm run sync:te-araroa`), since the gitignored copy outlives the install it came from
-- `build-region-shapes.ts` - `npm run build:region-shapes`: regenerates `src/lib/region-shapes.ts` (coarse Natural Earth outlines for `@lib/region-detect`) from the regions in `src/lib/trail-regions.ts`
-- `fetch-climate.ts` - Fetches historical climate data for trail locations
+- `build-region-shapes.ts` - `npm run build:region-shapes`: regenerates `src/lib/region-shapes.ts` (coarse Natural Earth outlines for `@lib/region-detect`) from the regions in `src/lib/trail-regions.ts`.
+  It reads Natural Earth's `master` branch, unpinned (the commit behind the committed file was not recorded), so pin one when you next regenerate
+- `fetch-climate.ts` - `npm run fetch:climate`: fetches historical climate data for trail locations (Open-Meteo) into each trail's `climate.json`.
+  `npm run build` (Vercel's) runs it in its default mode, which skips every trail that already has a `climate.json`, so a build fetches nothing while the committed files are complete.
+  It exits 1 when a location's fetch fails (the trail's file is left unchanged) and when a trail's own files cannot be read or written (a malformed `trail.json`), and carries on with the other trails either way.
   `--check` fetches nothing and exits 1 when a trail's `climate.json` is missing or does not answer every `climateLocations` entry (`staleClimateLocations`: one added, moved or re-elevated, or data for one no longer configured), which `build` does not catch since it only fills trails with no file;
   CI's `trail-data` job runs it, and the fix is `npm run fetch:climate -- --changed`.
-- `fetch-elevation.ts` - Fetches elevation data
 - `fetch-pois.ts` - Fetches OSM POIs along each trail corridor (`npm run fetch:pois [trail-id]`) through `@lib/osm-poi`, `@lib/overpass-client` and `@lib/poi-enrichment` — the `src/lib` port of the `gpx-tools` search, which the phone runs too, held to that library byte for byte by `scripts/osm-poi-parity.test.ts`.
   Reads track geometry from `public/data/generated/{id}.json` (so `build:trails` must have run) and writes the results to `data/trails/<dir>/pois.json` — in the repo, where a rebuild cannot wipe them.
   `--endpoint <url>` / `OVERPASS_ENDPOINT` and `--timeout <seconds>` pick the Overpass instance;
@@ -88,8 +94,9 @@ keep this file in step with the code it describes.
   Writes `data/trails/<dir>/access.json` and prints each place's km before → after;
   a failed query keeps the place's previous entry and exits 1, so re-run until it exits 0.
   Same mirror caveats as `fetch-pois.ts`: on 2026-10-11 `overpass.private.coffee` 500'd most queries and `maps.mail.ru` (`--timeout 55`) served them
-- `fetch-font-glyphs.ts` - Fetches font glyphs for map label rendering
-- `build-tiles.ts` - Builds map tiles for offline use: a Protomaps vector base map plus contour lines from the Copernicus GLO-30 DEM — everywhere, Australia included, so a pack draws the same lines as the online `world` source (Australian packs were cut from SRTM until #228).
+- `fetch-font-glyphs.ts` - `npm run fetch:fonts`: downloads the map label font glyphs (`.pbf` ranges) the offline style uses, skipping files already on disk;
+  it exits 1 when any file failed, so re-run it until it exits 0.
+- `build-tiles.ts` - `npm run build:tiles [-- --trail <id>]`: builds map tiles for offline use: a Protomaps vector base map plus contour lines from the Copernicus GLO-30 DEM — everywhere, Australia included, so a pack draws the same lines as the online `world` source (Australian packs were cut from SRTM until #228).
   Fetch the DEM first with `fetch-dem-copernicus.ts --bbox …`;
   a build with tiles missing fails and prints the exact command.
   Composited by a custom MapLibre style.
@@ -105,7 +112,8 @@ keep this file in step with the code it describes.
 - `e2e-tile-check.mjs` - Probes the deployed tile infrastructure through the URLs the app uses (`mobile/eas.json`): contour worker health and tiles, and an offline pack for **every trail in `mobile/assets/trails/index.json`** (manifest lists `base.mbtiles` and `contours.mbtiles`, each object present at the manifest size).
   `--base` (every full run, and `check:tile-packs`) reads `sources.base` from the app tile worker's `/health` (`https://tiles.tracknotes.info`, `BASEMAP_TILE_URL` to override): the archive must be there, reach z15 and span the world (`BASEMAP_UPLOADED` in the script is true since the planet upload of 2026-11-06; set false, a missing worker or archive only warns).
   `npm run check:tile-packs` runs the pack and tier checks and that one;
-  the `tile-packs` workflow runs it when the bundled trail list changes and weekly, so a new trail fails CI until its pack is built (`build:tiles --trail <id>`) and uploaded (`upload:tiles <id>`).
+  the `tile-packs` workflow runs it when the bundled trail list (or the script) changes, so a new trail fails CI until its pack is built (`build:tiles --trail <id>`) and uploaded (`upload:tiles <id>`).
+  Weekly (and on a manual run) the workflow runs every check instead (`node scripts/e2e-tile-check.mjs`), so the contour Worker's `/health`, tile decode, the z14/z15 tiles and the alias are watched too; all of it is read-only GETs to the public hosts, with no credentials.
   `--tiered` (`npm run check:tiered`, and every full run) checks the contour tiers are live: the worker's Mt Sonder z9 tile (`world` and `contours`, 9/444/290) holds only 100 m lines at ~1,500 features, and every z9 tile of every pack's `contours.mbtiles` holds only 100 m lines, with at least one contour feature per pack (a pack whose tiers were never folded into `contour` draws nothing).
   `--alias` (`npm run check:contours-alias`, and every full run; not part of `--tiered`, because the `tile-packs` workflow runs that on pull requests, before a worker change is deployed) checks that `contours` really is the alias of `world` (#228), which the density check cannot tell, since the retired Australia archive was tiered too: `/health`'s `sources.contours.archive.key` must be `contours/world.pmtiles` (the alias deploy is live), and `/contours/…` and `/world/…` must serve byte-identical tiles through the edge for Mt Sonder z9 and a Kosciuszko z12 (the purge of the edge-cached `/contours/*` URLs took effect).
   The pack z9 tiles are read four packs at a time with HTTP Range requests through `scripts/lib/http-mbtiles.mjs`, a read-only SQLite walker for every mbtiles layout (plain `tiles`; `map`/`images` with `images` keyed by `tile_id` as tippecanoe writes it or by `(zoom_level, tile_id)` as tile-join does, which every tiered pack is) that waits out the data domain's 429s and retries a 200 for up to 75 s (the edge now and then ignores the Range on the packs too big for its cache, CDT and Te Araroa — the tile-packs failure of 2026-10-30), closing each such body unread, and decoded by `scripts/lib/mvt-contours.mjs`, both Node built-ins only.
@@ -126,10 +134,8 @@ keep this file in step with the code it describes.
   `--trail-data` does it over `trails/v1/` (`planTrailDataCleanup`): the trail files the live `catalog.json` does not list by `key`, once the catalog is past the grace, refusing a catalog it cannot read or that lists no trails;
   with `--delete` it re-reads the live catalog before each trail file (`listedTrailKeys`) and keeps one a publish has listed again meanwhile.
   The *R2 cleanup* workflow dry-runs both weekly; deleting is a manual run (`docs/deploys.md`)
-- `download-dem.sh` - Downloads SRTM 1-arc-second DEM tiles for one trail from NASA EarthData (an EarthData account is required) into `data/dem/` (the SRTM cache `tile-pipeline.ts` reads as `DEM_CACHE_DIR`, and `contour-experiment.ts`'s default).
-  Since #228 the online `world` archive and the offline packs' contours come from Copernicus GLO-30 instead
 - `tile-pipeline.ts` - Orchestrates the full tile generation pipeline
-- `process-heysen-waypoints.ts` - Trail-specific waypoint data processing
+- `trace-mark-contours.ts` - `npm run trace:mark-contours`: traces the contour lines in the Tracknotes mark (app icon, splash, favicons) from Copernicus GLO-30 around Mt Sonder and writes `mobile/scripts/data/mark-contours.json`, which `mobile/scripts/build-app-icons.mjs` draws offline (`NODE_USE_ENV_PROXY=1` behind a proxy)
 - `process-shikoku-caltopo.ts` - Builds `data/trails/shikoku/shikoku-t1-t23.gpx` (Shikoku Henro, Temples 1-23) from a CalTopo GeoJSON export of the whole island: keeps the purple "88 Temple Pilgrimage" line and every marker within 3 km, types each by its folder, and adds Temples 3-9 and the Shosanji Okunoin from OpenStreetMap.
   The export itself is not committed — a GeoJSON in the trail directory would be read as a category source keyed by folder names the classifier does not know.
   The Okunoin out-and-back is lifted off the route by `extractSpurs`, and `waypointMaxDistance` is 3000 m so pilgrim lodgings a short walk off the line stay on the datasheet and plan page.
@@ -185,3 +191,13 @@ keep this file in step with the code it describes.
   Run by *Deploy comments API* after each deploy, and by hand before a build (`docs/mobile-test-build.md`).
 - `measure-community-poi-cpu.ts` - `npx tsx scripts/measure-community-poi-cpu.ts [trail-id...]` (after `build:trails`): times each CPU step of the comments API's community-route POI enrichment on bundled trails standing in for community routes, with their real POIs and a synthetic answer at the enrichment's cap — the numbers to weigh against the Workers plan's CPU limit (`workers.md`, "community route POIs").
   Makes no request
+
+## npm scripts with no script of their own
+
+- `dev` - the Vite dev server (port 5173); `preview` - `vite preview` over the last `vite build`.
+- `build` - Vercel's production build: `sync:te-araroa`, `fetch:climate` (fetches nothing while every trail's `climate.json` is committed), `build:trails`, `tsc`, `vite build`.
+  It copies `public/` whole, local tile packs included, so build locally with `build:app` (above) instead.
+- `test` - Vitest once over `src/lib`, `src/web`, `scripts` and `contours/scripts` (`vitest.config.ts`); `test:watch` - the same in watch mode; `test:e2e` - the Playwright smoke suite in `e2e/` against `dist-app/` (`build:app` first).
+- `lint` - ESLint over `src`, `scripts`, `contours/scripts`, `e2e` and `playwright.config.ts`; `format` / `format:check` - Prettier over the whole repo (Markdown is ignored).
+- `phone` - Metro for the Tracknotes app (`npm --prefix mobile start`); `phone:android:usb` - the same over USB, after `adb reverse tcp:8081 tcp:8081`, with `--localhost`.
+- `sync:style` - copies `scripts/topo-style.json` and `topo-style-dark.json` to `mobile/assets/`.

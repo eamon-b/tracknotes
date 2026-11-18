@@ -877,8 +877,8 @@ async function main() {
 
   const packs = process.argv.includes('--packs');
   const tiered = process.argv.includes('--tiered');
-  // Opt-in, not part of --tiered: it can only pass once #228 is deployed and
-  // the edge purged, and the tile-packs workflow runs --tiered on the PR.
+  // Its own flag, not part of --tiered (it was added before #228 was deployed);
+  // every full run includes it, and the weekly tile-packs job is a full run.
   const alias = process.argv.includes('--alias');
   const basemap = process.argv.includes('--base');
   if (packs || tiered || alias || basemap) {

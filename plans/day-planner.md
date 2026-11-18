@@ -24,65 +24,6 @@ with nights, notes and a booked flag per stop, dates that account for rest days,
 candidate stop from the OSM data already bundled, synced through the comments API, and readable
 by anyone you send a link to.
 
-## What exists today (findings)
-
-- **Shared calculator** (`src/lib/day-calculator.ts`): `computeDays(trail, stops, startDate,
-  section, baseKmh)` :277 already yields per-day start/end, distance, ascent, descent, Naismith
-  hours, water count and an ISO date when `startDate` is set. Dates are `startDate + i` days
-  :325-331 — no rest days. `addStop`/`removeStop` :239/:253 exist but neither UI calls them.
-  `PlanStopInput.customLocation` :39-44 is declared and never produced.
-- **Plan types** (`src/lib/plan-types.ts`): `PlanState {name, startDate, stops: StopData[],
-  direction?, resupplyStops?}` :42 is the only persisted shape; `StopData {km, waypointName}`
-  :13 is km-keyed, NOBO-absolute (`src/lib/plan-direction.ts:1-19` is the km-space contract).
-  The header :1-7 says the shape is kept JSON-safe so it can one day travel by URL or QR.
-- **Web plan page** (`src/web/trails/plan-viewer.ts`, `plan-template.html`, duplicated by hand
-  as `src/web/my-plan.html`): Days / Stops / Resupply tabs, map with one polyline per day
-  :487-537, elevation canvas with stop dashes :543-666, day cards :706, datasheet :941. The
-  Stops tab (`renderStopList` :815-854) lists every waypoint; `toggleStop` :1090 splices
-  `planState.stops` and calls `scheduleSave` :1164 (800 ms debounce to `localStorage`
-  `trail-plan-<trailId>`, `plan-state.ts:10`). One plan per trail, no ids on stops, no POIs
-  (the page's local `Trail` interface :49-69 does not even declare `pois`, though the JSON it
-  fetches :379-387 carries them). Desktop only: `plan-template.html:28-31` gates at 900 px. Works
-  for imported GPX via `my-plan.ts:46-68`.
-- **Mobile Plan screen** (`mobile/app/guide/[trailId]/plan.tsx`, `mobile/src/features/plan/`):
-  section steppers, daily hours, pace; `generateDayStops` (`plan-adapters.ts:233-290`) splits
-  in hours space and snaps to `overnightWaypoints` :138-149 — camp/shelter category tokens,
-  turn-offs excluded (`elevation/waypoint-category.ts:23-56`: `campsite`, `camp`, `campground`,
-  `shelter`, `hut`, `accommodation`, `caravan-park`). No dates, no map on the screen, no
-  override of any boundary. Only `{dailyHours, pace}` persist (`plan-inputs-store.ts`,
-  `tracknotes:plan-inputs`, `version: 1`). The header "Plan" action is
-  `guide/[trailId]/_layout.tsx:59-63`; waypoint detail
-  (`guide/[trailId]/waypoint/[waypointId].tsx`) has the favorite heart :279-281 as the model for
-  a per-waypoint toggle.
-- **Server** (`workers/comments-api/`): Cloudflare Worker at `api.contour-map-tiles.net`, D1
-  (binding `DB`) + R2 photos, hand-rolled router `src/index.ts`, migrations `0001`-`0003`.
-  Identity is an anonymous device token: `POST /v1/devices` mints it, `users.token_hash` stores
-  its SHA-256, one token per user (`src/auth.ts:41-91`). Every comment *read* is public; writes
-  are bearer-authed. Delta sync is `?since=` + keyset cursor + tombstones + `syncedAt`
-  (`src/comments.ts:280-349`). `ALLOWED_TRAILS` (`src/validation.ts:20-29`) is held equal to the
-  bundled trail list by `scripts/server-trail-allowlist.test.ts`. Admin is a DB flag.
-- **Mobile sync** (`mobile/src/sync/comment-sync.ts`): generic pieces are `api/client.ts`
-  (`apiRequest`, `NetworkError` vs `ApiError`), `api/auth.ts` (session in `expo-secure-store`),
-  `db/outbox-repo.ts` (`kind`, `payload_json`, backoff, `OutboxKind` union :19), `sync-events.ts`,
-  `connectivity.ts` (`runSync` = drain then pull, on mount / reconnect / foreground). The drain
-  itself :311-467 is a hard-coded `if kind === …` chain behind a module-global single-flight
-  guard :289-290 — a second entity must go through the same drain. `pullTrail` :201-263 passes
-  no token (comments are public). Account deletion purges local rows in
-  `features/settings/account-deletion.ts:29-32`. `sync_state` is keyed by `trail_id` with one
-  high-water column per channel (`db/schema.ts:67-71`, :132-134).
-- **Web identity**: none. `src/web` never calls the API; no `VITE_*` env, no token storage. CORS
-  on the worker is already `*` with `Authorization` allowed (`src/http.ts:18-23`), so a browser
-  can talk to it today.
-- **POIs**: `ProcessedTrail.pois` (`src/lib/trail-types.ts:291-341`) with `distanceAlongTrail`
-  on the waypoint km scale; `@lib/poi-display` has `visiblePois`, `interleavePoisByDistance`,
-  `summarisePoiTags`, `OSM_ATTRIBUTION`. Present for AAWT, Hume & Hovell, Bibbulmun, Cape to
-  Cape, Heysen, Larapinta; **absent for CDT and Te Araroa** (no `pois.json` yet). Mobile reads
-  them through `features/guide/use-visible-pois.ts`.
-- **Recorded wishes**: selecting campsites for the next few days and moving points one at a
-  time with live stats; zero days, days off and stop markers on the profile (out of scope in the
-  earlier resupply-selection plan, which also called carrying the plan across "a later feature" —
-  this plan supersedes that).
-
 ## Decisions
 
 - **[decided] Both platforms together, one shared editor.** The stop-toggle, night, date and
@@ -167,37 +108,9 @@ by anyone you send a link to.
 ## Data contract — the plan document
 
 One JSON document is the wire shape, the SQLite row's `document_json`, the `localStorage` value
-and the share payload. It supersedes `PlanState`; `plan-types.ts` keeps `PlanState` only for the
-one-off `localStorage` migration.
-
-```ts
-// src/lib/plan-types.ts
-export interface PlanStop {
-  waypointId?: string;   // registry id (`data/waypoint-ids.json`) or `uw_…` for an import;
-                         // absent only for a legacy km-only stop that matched nothing
-  km: number;            // NOBO-absolute km, the key when waypointId is absent and the
-                         // display position always (plan-direction.ts contract unchanged)
-  name: string;          // 1..200 chars after trimming (`PLAN_LIMITS.stopNameMax`);
-                         // `toggleStop` trims and caps a waypoint's name to fit
-  nights: number;        // >= 1; 2 = one rest day here
-  note?: string;         // <= 500 chars
-  booked?: boolean;
-}
-
-export interface PlanDocument {
-  id: string;            // client-minted uuid v4 = idempotency key, as for comments
-  trailId: string;
-  name: string;          // <= 80
-  direction: PlanDirection;
-  startDate: string | null;   // ISO date
-  stops: PlanStop[];          // sorted by km, trail start/end implicit, <= 500
-  resupplyStops?: string[];   // unchanged from resupply-selection; <= 500
-  updatedAt: string;          // server clock on the copy that came from the server; an edit
-                              // stamps max(now, previous + 1 ms) so a clock behind the
-                              // server never loses last-writer-wins to the copy it edited
-  version: 1;
-}
-```
+and the share payload.
+Its fields and limits are `PlanDocument`, `PlanStop` and `PLAN_LIMITS` in `src/lib/plan-types.ts`, described in `docs/architecture/core-library.md` (`plan-types.ts`); the shape grew after this plan (alternates, zero days), so it is not repeated here.
+The rules below are the ones the code cites.
 
 Rules:
 - Two stops never share a `waypointId`; two stops never share a km within `KM_EPSILON`.
@@ -413,9 +326,7 @@ Files: `mobile/app/guide/[trailId]/plan.tsx`, `mobile/src/features/plan/*`, `db/
 ### Plan screen
 
 - Top: plan name (inline editor, the `DisplayNameSection` idiom), start date, direction is the
-  guide's. Date input: `@react-native-community/datetimepicker` via `npx expo install` — native,
-  so a new dev build; the Plan screen must degrade to a "YYYY-MM-DD" text field if the module
-  is absent so the Jest suite and the web-less path stay green.
+  guide's.
 - Days: `DaySplitList` re-fed from `computePlanDays`; card gains the date and a "rest day" line.
 - Stops: a section listing `overnightCandidates` with the `accessibilityRole="checkbox"` rows
   planned for the resupply list, an "All waypoints" switch, and a services strip from
@@ -450,8 +361,7 @@ show the days read-only, "Save as my plan" copies it into `plans` (new id, this 
 Tests: `plans-repo.test.ts`, `plans-store.test.ts` (reference stability as `plan-inputs-store`),
 drain branches in `comment-sync.test.ts` (a `plan` item is PUT with the token, a `NetworkError`
 stops the drain, `plan_exists` adopts the id), `DaySplitList` with rest days, the stops section
-with `react-test-renderer`, the "Stop here" toggle. Maestro: `plan-stops.yaml` (guide → Plan →
-tick two stops → two day cards).
+with `react-test-renderer`, the "Stop here" toggle.
 
 ## Alternates (added 2026-10)
 

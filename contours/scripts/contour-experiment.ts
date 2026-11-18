@@ -50,6 +50,7 @@ import {
   formatBytes,
   type ContourTier,
 } from '../../scripts/tile-pipeline.js';
+import { CELL_BUFFER_DEG } from '../../scripts/lib/world-grid.js';
 
 // --- Constants ---
 
@@ -57,9 +58,6 @@ const EXPERIMENTS_DIR = path.join(PROJECT_ROOT, 'data/experiments');
 
 /** Mt Sonder, NT — steep relief in a 0.15° box; test tile z15 28450/18593. */
 const DEFAULT_BBOX: Bbox = [132.5, -23.65, 132.65, -23.5];
-
-/** Same warp buffer as the Australia cell pipeline (~1.1 km). */
-const CELL_BUFFER_DEG = 0.01;
 
 /**
  * Native 1 arc-second DEM spacing; warpScale multiplies this density, so
@@ -120,14 +118,14 @@ const VARIANTS: Variant[] = [
   {
     name: 'untiered',
     description:
-      'Tier minzooms ignored, as every archive built before 2026-10 (world.pmtiles as deployed): every zoom carries every 10 m contour',
+      'Tier minzooms ignored, as every archive built before 2026-10 (the world.pmtiles served until the 2026-10 re-tier): every zoom carries every 10 m contour',
     ...BASELINE,
     tiered: false,
   },
   {
     name: 'legacy-simp-14',
     description:
-      'Pre-2026-08-22 production settings (australia.pmtiles as deployed): polygonal at z12–14, tiers ignored',
+      'Pre-2026-08-22 production settings (australia.pmtiles as built then; retired in #228): polygonal at z12–14, tiers ignored',
     ...BASELINE,
     simplification: 14,
     minimumDetail: 4,
@@ -310,7 +308,10 @@ function printUsage(): void {
   console.log('Usage: npx tsx contours/scripts/contour-experiment.ts [options]');
   console.log('  --bbox W S E N     Area to build (default: Mt Sonder, ' + DEFAULT_BBOX.join(' ') + ')');
   console.log('  --run <name>       Output dir name under data/experiments (default: date-based)');
-  console.log('  --dem-dir <dir>    DEM cache for variants that do not override it (default: data/dem)');
+  console.log(
+    '  --dem-dir <dir>    DEM cache for variants that do not override it (default: data/dem, an SRTM cache' +
+      ' nothing in the repo fills any more; data/dem-glo30 is the Copernicus cache fetch-dem-copernicus.ts fills)'
+  );
   console.log('  --variants a,b,c   Only build these variants');
   console.log('  --list             Print the variant matrix and exit');
   console.log('  --keep-work        Keep per-variant intermediates');

@@ -26,9 +26,8 @@ bucket_name = "aus-map-data"
 # The settings above deploy the public contour dataset (`wrangler deploy`). Its
 # sources are the defaults in src/sources.ts.
 
-# Optionally lock CORS down in production:
-# [vars]
-# ALLOWED_ORIGIN = "https://tracknotes.info"
+# ALLOWED_ORIGIN stays unset in production: the endpoint is public, and one
+# origin would break every other client (README.md, "CORS").
 
 # --- The app's own tile Worker ------------------------------------------------
 # The same code, deployed with `wrangler deploy --env app`, at tiles.tracknotes.info

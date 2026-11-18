@@ -6,9 +6,11 @@ import {
   batchDoneLabel,
   batchDoneMarker,
   batchFileName,
-  batchMatchesSettings,
+  batchTempPath,
   canReuseBatch,
   canReuseConversion,
+  isWorldShardFile,
+  joinBatchesProblems,
   mergeModeFor,
   outOfRangeBatches,
   parseArgs,
@@ -214,19 +216,55 @@ describe('batch files and labels', () => {
     });
   });
 
-  describe('batchMatchesSettings (--join-batches)', () => {
+  describe('joinBatchesProblems (--join-batches)', () => {
     const settings = 'tippecanoe v2.79.0 settings abc';
+    const labels = [
+      batchDoneLabel(batchCellsLabel(['S26E132'], 10), settings),
+      batchDoneLabel(batchCellsLabel(['S26E134'], 10), settings),
+    ];
+    const manifest = { count: 2, labels, settings };
+    const files = ['batch-00.mbtiles', 'batch-01.mbtiles'];
+    const markers = (texts: (string | null)[]) => new Map(texts.map((t, i) => [batchFileName(i), t]));
 
-    it('accepts a marker written with this run’s settings, whatever its cells', () => {
-      expect(batchMatchesSettings(batchDoneLabel(batchCellsLabel(['S26E132'], 10), settings), settings)).toBe(true);
+    it('accepts exactly batches 0..N-1 with the recorded markers', () => {
+      expect(joinBatchesProblems(manifest, files, markers(labels), settings)).toEqual([]);
     });
 
-    it('rejects a marker from another release, other settings, or before settings were recorded', () => {
-      const cells = batchCellsLabel(['S26E132'], 10);
-      expect(batchMatchesSettings(batchDoneLabel(cells, 'tippecanoe v2.78.0 settings abc'), settings)).toBe(false);
-      expect(batchMatchesSettings(batchDoneLabel(cells, 'tippecanoe v2.79.0 settings abcd'), settings)).toBe(false);
-      expect(batchMatchesSettings(cells, settings)).toBe(false);
+    it('refuses a missing batch', () => {
+      const problems = joinBatchesProblems(manifest, ['batch-00.mbtiles'], markers([labels[0]]), settings);
+      expect(problems).toEqual(['missing batch-01.mbtiles of 2 batches']);
     });
+
+    it('refuses an extra batch left by another run', () => {
+      const problems = joinBatchesProblems(
+        manifest,
+        [...files, 'batch-02.mbtiles'],
+        markers([...labels, labels[0]]),
+        settings
+      );
+      expect(problems).toEqual(['unexpected batch-02.mbtiles (the manifest lists 2 batches)']);
+    });
+
+    it('refuses a batch with no marker or a marker the manifest did not record', () => {
+      expect(joinBatchesProblems(manifest, files, markers([labels[0], null]), settings)).toHaveLength(1);
+      expect(joinBatchesProblems(manifest, files, markers([labels[1], labels[1]]), settings)).toHaveLength(1);
+    });
+
+    it('refuses batches tiled with another release or settings', () => {
+      const problems = joinBatchesProblems(manifest, files, markers(labels), 'tippecanoe v2.80.0 settings abc');
+      expect(problems).toHaveLength(1);
+      expect(problems[0]).toContain('v2.80.0');
+    });
+
+    it('refuses a malformed manifest', () => {
+      expect(joinBatchesProblems({ count: 3, labels, settings }, files, markers(labels), settings)).toHaveLength(1);
+      expect(joinBatchesProblems({ count: 0, labels: [], settings }, [], new Map(), settings)).toHaveLength(1);
+    });
+  });
+
+  it('tiles a batch under a per-process temp name that is never taken for a batch', () => {
+    expect(batchTempPath('/w/batch-03.mbtiles', 4242)).toBe('/w/batch-03.4242.partial.mbtiles');
+    expect(/^batch-\d{2}\.mbtiles$/.test(path.basename(batchTempPath('/w/batch-03.mbtiles', 1)))).toBe(false);
   });
 
   describe('outOfRangeBatches (--batch I,J)', () => {
@@ -239,6 +277,19 @@ describe('batch files and labels', () => {
       expect(outOfRangeBatches([1, 3, 4], 3)).toEqual([3, 4]);
       expect(outOfRangeBatches([0], 0)).toEqual([0]);
     });
+  });
+});
+
+describe('isWorldShardFile (--join)', () => {
+  it('takes only the real shards', () => {
+    expect(isWorldShardFile('world_oceania.mbtiles')).toBe(true);
+    expect(isWorldShardFile('world_asia-east.mbtiles')).toBe(true);
+  });
+
+  it('never takes a --bbox/--cell test build, the joined world or a stray name', () => {
+    expect(isWorldShardFile('world_custom.mbtiles')).toBe(false);
+    expect(isWorldShardFile('world.mbtiles')).toBe(false);
+    expect(isWorldShardFile('world_oceania-test.mbtiles')).toBe(false);
   });
 });
 

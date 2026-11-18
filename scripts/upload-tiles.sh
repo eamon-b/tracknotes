@@ -340,16 +340,6 @@ upload_trail() {
   echo "Done: $trail_id"
 }
 
-# Upload root manifest if it exists
-upload_root_manifest() {
-  if [ -f "$TILES_DIR/manifest.json" ]; then
-    echo "Uploading root manifest..."
-    upload_file "$TILES_DIR/manifest.json" "manifest.json" \
-      "application/json" \
-      "public, max-age=3600"
-  fi
-}
-
 # --- Main dispatch ---
 
 # --no-purge may sit anywhere in the arguments.
@@ -373,11 +363,8 @@ else
   for trail_dir in "$TILES_DIR"/*/; do
     [ -d "$trail_dir" ] || continue
     trail_id=$(basename "$trail_dir")
-    # Not a trail: output of the deleted grid pipeline, if an old build left it
-    [ "$trail_id" = "grid" ] && continue
     upload_trail "$trail_id"
   done
-  upload_root_manifest
 fi
 
 echo ""

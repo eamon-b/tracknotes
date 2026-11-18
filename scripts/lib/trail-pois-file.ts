@@ -225,15 +225,6 @@ export function readTrailPOIFile(trailDir: string, io: PoiFileIO = NODE_IO): Tra
 }
 
 /**
- * The POIs `build-trails` should attach to a trail, or null when the trail has
- * no POI file (in which case the generated JSON gets no `pois` key at all).
- */
-export function readTrailPOIsForBuild(trailDir: string, io: PoiFileIO = NODE_IO): TrailPOI[] | null {
-  const file = readTrailPOIFile(trailDir, io);
-  return file === null ? null : poisForBuild(file);
-}
-
-/**
  * A trail's POIs with noise dropped and duplicates flagged — by
  * `@lib/poi-dedup`'s rules, then by the file's hand-edited `duplicates` — ready
  * for city thinning. `pois` is undefined when the trail has no POI file.

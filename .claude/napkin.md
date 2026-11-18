@@ -34,11 +34,11 @@
 0. **[2026-11-11] The te-araroa build no longer fails silently (`sync:te-araroa` refuses a missing/wrong-commit package, `build:trails` a missing/stale synced GPX, `build:mobile-trails` incomplete input — all exit 1 naming `npm ci` or `npm run sync:te-araroa`); what remains is that the sibling generator checkouts under `/mnt/data/projects/GPX/` can be behind their GitHub `main`**
    Do instead: before building, `npm run check:install` (or `node scripts/check-install.mjs .`) flags a missing or wrong-commit `te-araroa-data` — fix with `npm ci`, then `npm run sync:te-araroa`; `git fetch origin` in GPX/CDT and GPX/nz before reading their state, and compare `git show HEAD:data/trails/cdt/cdt.gpx` against the generator's committed `out/` before regenerating — a newer generator commit brings a data refresh (new ids) that is not your feature. Never pipe a build through `| tail` when you need its exit code.
 1. **[2026-07-29] Waypoint IDs are registry-pinned — never regenerate them ad hoc**
-   Do instead: `data/waypoint-ids.json` is append-only and committed with every trail-data change; IDs flow from `scripts/build-trails.ts` → generated JSON → `build-mobile-trails` automatically. A rebuild must produce zero registry diff; ambiguity throws on purpose.
+   Do instead: `data/waypoint-ids.json` is append-only (an entry the build no longer matches is marked `retired`, never removed) and committed with every trail-data change; IDs flow from `scripts/build-trails.ts` → generated JSON → `build-mobile-trails` automatically. A rebuild must produce zero registry diff; ambiguity throws on purpose.
 2. **[2026-07-29] Tracknotes has no `trails` SQLite table**
    Do instead: trail content comes from `src/services/trail-loader.ts` (`listTrails`/`getTrailJson`); the `guides` table holds only per-guide state (direction, tiles_downloaded, comment sync).
 3. **[2026-07-29] comments-api trail allowlist must match bundled trails**
-   Do instead: when adding a trail, update `ALLOWED_TRAILS` in `workers/comments-api/src/validation.ts`.
+   Do instead: when adding a trail, update `ALLOWED_TRAILS` in `workers/comments-api/src/validation.ts`; `scripts/server-trail-allowlist.test.ts` fails until it matches `mobile/assets/trails/index.json`.
 4. **[2026-07-29] Resolve MapLibre style objects before mounting the map**
    Do instead: await `getOnlineMapStyle()` / `tileManager.getOfflineStyle()` and pass the object; don't hand MapLibre a URL then swap.
 5. **[2026-07-29] Design tokens are lint-enforced**

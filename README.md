@@ -132,8 +132,10 @@ npm run dev              # http://localhost:5173
 ```bash
 npm test                 # Vitest
 npm run lint
-npm run build            # full production build
+npm run build:app && npm run test:e2e   # production build to dist-app/ (no tiles), then Playwright smoke tests
 ```
+
+(`npm run build` is Vercel's: it fetches climate data and copies all of `public/`, local tile packs included.)
 
 The app:
 

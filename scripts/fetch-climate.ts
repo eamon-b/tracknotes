@@ -469,7 +469,12 @@ async function main() {
       const updated = await processTrail(trailDir, mode);
       if (updated) updatedCount++;
     } catch (error) {
+      // Not the network: a failed fetch is handled per location in
+      // processTrail (and already sets exitCode). What lands here is the
+      // trail's own data — an unreadable trail.json or climate.json, or a
+      // write that failed — which a build must not carry on past.
       console.error(`  Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      process.exitCode = 1;
     }
 
     // Delay between trails to be nice to Open-Meteo

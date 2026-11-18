@@ -26,7 +26,9 @@
 #   BUILD_EXTRA_ARGS   extra args appended to build-contours-world.ts
 #
 # Resuming after a crash/OOM: just re-run the same command. Cells that finished
-# wrote a `.done` marker and are skipped; the merge is redone from scratch.
+# wrote a `.done` marker and are skipped. A batched merge reuses every batch
+# whose `.done` marker records the same cells and tippecanoe settings and
+# re-tiles the rest; a one-batch shard's merge is redone from scratch.
 
 set -euo pipefail
 

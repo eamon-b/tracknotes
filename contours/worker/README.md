@@ -268,10 +268,9 @@ pmtiles JS client cannot validate ranges and the demo map renders nothing.
 
 Offline tile downloads (`EXPO_PUBLIC_TILE_BASE_URL`) used to point at the
 `pub-….r2.dev` public bucket URL, which is rate-limited and explicitly not
-meant for production traffic. Since 2026-08-19 they go through
-`data.contour-map-tiles.net` — same bucket, same object keys, but with a real
-CDN cache in front. The `r2.dev` URL still works and is unchanged; nothing has
-to be migrated off it in a hurry.
+meant for production traffic. From 2026-08-19 they went through
+`data.contour-map-tiles.net`, and they now come from the app's own bucket at
+`data.tracknotes.info` (`mobile/eas.json`), which is not part of this dataset.
 
 `mobile/.env.local` is untracked, so it keeps whatever it had: update it by hand
 to match `eas.json`. Metro inlines `EXPO_PUBLIC_*` at bundle time, so restart

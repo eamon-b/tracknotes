@@ -145,7 +145,9 @@ function findGeojsonFile(trailDir: string, explicitFile?: string): string | null
 
   // Auto-detect: find JSON files that look like GeoJSON (have features array)
   const files = fs.readdirSync(trailDir);
-  const jsonFiles = files.filter(f => f.toLowerCase().endsWith('.json') && f !== 'trail.json' && f !== 'climate.json');
+  // The trail's own data files are never the CalTopo export, and pois.json runs to megabytes.
+  const OWN_FILES = new Set(['trail.json', 'climate.json', 'pois.json', 'access.json', 'descriptions.json']);
+  const jsonFiles = files.filter(f => f.toLowerCase().endsWith('.json') && !OWN_FILES.has(f));
 
   for (const file of jsonFiles) {
     try {
@@ -197,7 +199,6 @@ function generateTrailConfig(
     states: [],
     lengthKm: Math.round(totalDistance * 10) / 10,
     gpxFile,
-    description: `Trail data auto-generated from ${gpxFile}. Edit trail.json to customize.`,
   };
 }
 

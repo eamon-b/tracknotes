@@ -19,6 +19,7 @@ const SCRIPTS_DIR = path.dirname(
     : new URL(import.meta.url).pathname
 );
 export const PROJECT_ROOT = path.resolve(SCRIPTS_DIR, '..');
+/** The old SRTM cache; only contour-experiment.ts still defaults to it, and nothing fills it any more. */
 export const DEM_CACHE_DIR = path.join(PROJECT_ROOT, 'data/dem');
 
 // --- Constants ---
@@ -557,32 +558,11 @@ export function clipDem(
   regionPath: string,
   demOutputPath: string,
   verbose: boolean,
-  /**
-   * Absolute paths of the DEM tiles to mosaic. Omitted, every tile in the
-   * SRTM cache (data/dem) is used — the grid builds' behaviour.
-   */
-  demFilePaths?: string[]
+  /** Absolute paths of the DEM tiles to mosaic. */
+  demPathList: string[]
 ): void {
   console.log('  Clipping DEM to region...');
 
-  let demPathList = demFilePaths;
-  if (!demPathList) {
-    // Check for cached DEM tiles
-    if (!fs.existsSync(DEM_CACHE_DIR)) {
-      console.error(`    ✗ DEM cache directory not found: ${DEM_CACHE_DIR}`);
-      console.error('    Download SRTM DEM tiles first.');
-      throw new Error('DEM tiles not found');
-    }
-
-    const demExtensions = ['.tif', '.tiff', '.hgt'];
-    demPathList = fs
-      .readdirSync(DEM_CACHE_DIR)
-      .filter(f => demExtensions.some(ext => f.toLowerCase().endsWith(ext)))
-      .map(f => path.join(DEM_CACHE_DIR, f));
-    if (demPathList.length === 0) {
-      throw new Error(`No DEM files (.tif, .hgt) found in ${DEM_CACHE_DIR}`);
-    }
-  }
   if (demPathList.length === 0) {
     throw new Error('No DEM tiles given to clip');
   }
