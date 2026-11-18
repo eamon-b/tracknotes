@@ -8,6 +8,8 @@ name: Upload waypoint descriptions
 # is in its summary, and `upload` runs once someone approves `production-data`.
 # A line marked `!` in the plan, and its warning, is a live edit made on
 # admin-descriptions.html that the file does not match: docs/waypoint-editor.md.
+# `upload` undoes only the live edits that plan showed, and no write replaces a
+# row that changed after it was read: a run that was refused a row is red.
 # Setup: docs/deploys.md.
 
 on:
@@ -39,6 +41,8 @@ jobs:
     outputs:
       upload: ${{ steps.plan.outputs.upload }}
       sha: ${{ steps.head.outputs.sha }}
+      # The live edits and clears the plan showed (its `!` lines), for `upload`.
+      acknowledged: ${{ steps.plan.outputs.acknowledged }}
     defaults:
       run:
         shell: bash
@@ -69,7 +73,8 @@ jobs:
           SHA: ${{ steps.head.outputs.sha }}
         run: |
           out="$RUNNER_TEMP/plan.txt"
-          npm run -s upload:descriptions -- --dry-run 2>&1 | tee "$out"
+          shown="$RUNNER_TEMP/live-shown.json"
+          npm run -s upload:descriptions -- --dry-run --record-live "$shown" 2>&1 | tee "$out"
           { echo "### Upload plan for ${SHA:0:7}"; echo '```'; cat "$out"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           # Nothing to send, withdraw or mark (a committed live edit is re-sent to
           # mark it uploaded): the script's summary line, kept in step with it.
@@ -78,6 +83,17 @@ jobs:
           else
             echo "upload=true" >> "$GITHUB_OUTPUT"
           fi
+          # What the plan showed of live edits: per trail, the waypoint id and the
+          # row's timestamp, as one line of JSON the script wrote from values it
+          # checked. `upload` is given it back, so it undoes those and no other.
+          # Nothing else may reach a job output: one line, ids and timestamps
+          # only, and far under the 1 MB an output holds (about 45 bytes a row).
+          if [ "$(wc -l < "$shown")" -ne 1 ] || [ "$(wc -c < "$shown")" -gt 500000 ] ||
+            ! grep -Eqx '[{}":,.0-9A-Za-z_-]+' "$shown"; then
+            echo "::error::The plan's list of live edits is not one line of ids and timestamps under 500 kB, so it was not passed on."
+            exit 1
+          fi
+          echo "acknowledged=$(cat "$shown")" >> "$GITHUB_OUTPUT"
 
   upload:
     needs: plan
@@ -95,8 +111,18 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      # Re-reads the live set, so it sends the difference as it is now
+      # Re-reads the live set, so it sends the difference as it is now, except
+      # over a live edit the plan did not show (made since, or changed since):
+      # that row is left as it is, the rest are sent, and the step fails (exit
+      # 2). Each write also names the row it read, so the API refuses one over a
+      # row that changed meanwhile. The plan's list reaches the shell only as an
+      # environment variable, never as text in this script.
       - name: Upload
+        shell: bash
         env:
           TRACKNOTES_ADMIN_TOKEN: ${{ secrets.TRACKNOTES_ADMIN_TOKEN }}
-        run: npm run -s upload:descriptions
+          ACKNOWLEDGED_LIVE: ${{ needs.plan.outputs.acknowledged }}
+        run: |
+          shown="$RUNNER_TEMP/live-shown.json"
+          printf '%s\n' "$ACKNOWLEDGED_LIVE" > "$shown"
+          npm run -s upload:descriptions -- --acknowledged-live "$shown"

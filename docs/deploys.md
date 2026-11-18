@@ -28,6 +28,13 @@ Approve under the run's *Review deployments*, which the GitHub mobile app shows 
 Before approving an *Upload descriptions* run, read its plan for lines marked `!` (`! replaces a live edit`, `! undoes a live clear`) and the warning that ends it: each is a live edit made on `admin-descriptions.html` that `descriptions.json` does not match (`docs/waypoint-editor.md`), which the upload overwrites — commit it to the file first, or reject the run.
 A `replaces uploaded text` line is the ordinary case, a newer `descriptions.json` replacing what the last upload sent, and needs nothing: a routine edit raises no warning.
 A `mark as uploaded` line re-sends a committed live edit's text unchanged, so that the API records it as uploaded; no phone downloads it again, and a run with nothing else to send still asks for approval for it.
+Approving sends what that plan showed and nothing it did not.
+The `plan` job hands `upload` the live edits it marked `!` (per trail, the waypoint id and the row's timestamp, as a job output), and `upload` undoes those and no other (`--acknowledged-live`).
+A live edit made or changed after the plan was read, while the run waited for approval, is left as it is: that row is not written, every other row is sent, and the run fails (the script exits 2) with an error naming the waypoint.
+The same holds in the seconds between the upload's read of the live set and each write: every PUT names the version of the row it read (`ifUpdatedAt`), the API refuses one over a row that has changed since (409), and the script reports what the row now holds without retrying.
+So a failed *Upload descriptions* run means some descriptions were not sent, never that a live edit was overwritten unseen.
+To finish it, commit the live edit to `descriptions.json`, or *Re-run all jobs* so a new plan shows it, and approve that.
+*Re-run failed jobs* re-runs `upload` with the old plan's list, so it refuses the same rows again.
 A warning that live edits could not be checked means the comments API does not report where its synced text came from: the worker that does (migration `0012`) is not deployed, so let *Deploy comments API* finish and re-run this workflow before approving.
 
 A run deploys `main` as it is when the run starts, not the commit that triggered it.

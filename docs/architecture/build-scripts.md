@@ -178,10 +178,20 @@ keep this file in step with the code it describes.
   Every PUT says `source: 'upload'`, and the plan (`planDescriptionSync`, one function for the dry run and the real one) reads each synced row's `source` to say what a PUT or withdrawal replaces:
   text an earlier upload sent is listed plainly (`replaces uploaded text`), which is every routine edit;
   a live edit from `admin-descriptions.html` that the file does not match, or a live clear of an id the file lists, is marked `!` and ends the run with a warning (a `::warning::` annotation in Actions; the exit code is unchanged).
+  The run itself is `runDescriptionUpload` in `lib/description-upload.ts`, with the network and the output passed in (its tests run it against the worker's PUT semantics in memory);
+  the script reads the arguments and the files.
+  A real run never replaces what the reader of its plan was not shown.
+  A dry run writes the live edits and clears it marked `!` with `--record-live <file>` (one line of JSON, `{"version":1,"live":{"<trailId>":{"<waypointId>":"<updatedAt>"}}}`, ids and timestamps that passed their patterns only), and a real run undoes a live edit or clear only when `--acknowledged-live <file>` names it at the version the API still holds;
+  any other is not sent (its line is marked `✗`), so a run given no file undoes none.
+  Every PUT carries the `updatedAt` the run read for the row as `ifUpdatedAt` (`null` for no row), a "mark as uploaded" one included, so the API answers 409 `description_conflict` to a write over a row that changed between the read and the PUT, and the script reports what the row now holds and does not retry.
+  After either refusal the other rows are still sent and the run exits 2, with an `::error::` annotation in Actions;
+  exit 1 is a run that failed and stopped (arguments, a malformed file or acknowledged set, any other API error), and 0 is everything sent, warnings or not.
+  Text from the API is printed quoted, on a line the script starts, so it cannot forge an annotation.
   A live edit the file already matches is re-sent unchanged to mark it uploaded (`adoptions`; the API leaves `updated_at` alone), so a later change to that entry is an ordinary edit;
   the summary line counts those, and the workflow's "nothing to upload" check greps that line, so the two change together.
   Against a worker that reports no `source` nothing is called a live edit, and a separate warning says the replaced text could not be checked
-  The *Upload waypoint descriptions* workflow runs it after a merge that changes a `descriptions.json`, once approved (`docs/deploys.md`), as *Publish trail data* runs `publish-trail-data.ts`.
+  The *Upload waypoint descriptions* workflow runs it after a merge that changes a `descriptions.json`, once approved (`docs/deploys.md`), as *Publish trail data* runs `publish-trail-data.ts`:
+  its `plan` job runs the dry run with `--record-live` and passes the line on as a job output (after checking it is one line of that alphabet, under 500 kB), and its `upload` job writes it to a file from an environment variable and passes `--acknowledged-live`.
 - `dependency-audit.ts` - `npm run audit:deps`: `npm audit` over the root, `mobile/`, `workers/comments-api` and `contours/worker` lockfiles as one report (`severeFindings`), failing only on a high or critical advisory `npm audit fix` can fix without a breaking change.
   Run monthly by *Dependency audit* (`docs/deploys.md`)
 - `moderation-queue.ts` - Counts the reported or flagged comments and shared waypoints waiting for an admin (`needsAttention`, `@lib/moderation-attention`, the moderation page's own rule) from the admin listings, with `$TRACKNOTES_ADMIN_TOKEN`; prints counts only, never post content.
