@@ -138,6 +138,10 @@ Before writing, a save that moves, renames or retypes a waypoint, one with an id
 
 A waypoint whose registry entry no longer matches its `<wpt>` (an entry edited by hand, or left behind by a hand edit to the sources) fails the last check whatever the edit, and the refusal says so: put the entry or the `<wpt>` right by hand, or rebuild.
 
+These checks use the editor's own reading of the sources, not the build's code.
+`scripts/lib/waypoint-editor/build-parity.test.ts` holds the two together: over every committed trail, the editor's list of `<wpt>`s (name, type, position, in order) must be the build's, and the build's id matching over it must leave the registry unchanged.
+When that test fails after a change to the build, the editor's prediction is wrong for real trails: fix `resolveSourceType` or `listGpxWaypoints` before trusting an edit made here.
+
 ### Adding a waypoint
 
 "New waypoint" (under the map) opens a form: click the map or an OSM POI to place it (drag the marker to adjust), then give it a name, a type and, optionally, a description.

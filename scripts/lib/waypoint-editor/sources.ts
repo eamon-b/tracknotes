@@ -564,7 +564,7 @@ export interface CaltopoMarkerRef {
 /**
  * The CalTopo marker the build takes a waypoint's type (and source description)
  * from: of the markers whose cleaned title is the waypoint's name, the nearest
- * (`resolveTrailWaypoints` in `build-trails.ts`).
+ * (`resolveTrailWaypoints` in `trail-waypoint-sources.ts`).
  */
 export function findCaltopoMarker(
   geojsonText: string,
@@ -784,7 +784,7 @@ export function editCaltopoMarker(
 // CalTopo folders: where a marker's type comes from
 // ---------------------------------------------------------------------------
 
-/** A marker as the build reads it (`parseCaltopoGeojson` in `build-trails.ts`). */
+/** A marker as the build reads it (`parseCaltopoGeojson` in `trail-waypoint-sources.ts`). */
 export interface CaltopoMarkerInfo extends CaltopoMarkerRef {
   /** The cleaned title the build keys markers by. */
   cleanedName: string;
