@@ -50,6 +50,8 @@ const mockDirs: Record<string, boolean> = {};
 const mockRemote: Record<string, string> = {};
 /** Where each download was written, captured at call time (the File is renamed after). */
 const mockDownloadTargets: string[] = [];
+/** Make `File.digest` reject, as the native one does for a file it cannot read. */
+let mockDigestRejects = false;
 
 jest.mock('expo-file-system', () => {
   const { createHash: hash } = jest.requireActual('crypto') as typeof import('crypto');
@@ -118,14 +120,20 @@ jest.mock('expo-file-system', () => {
       this.uri = target;
     }
 
-    info(options?: { md5?: boolean }): { exists: boolean; size?: number; md5?: string } {
+    info(): { exists: boolean; size?: number } {
       const data = mockFiles[this.uri];
       if (data === undefined) return { exists: false };
-      return {
-        exists: true,
-        size: Buffer.byteLength(data),
-        ...(options?.md5 ? { md5: hash('md5').update(data).digest('hex') } : {}),
-      };
+      return { exists: true, size: Buffer.byteLength(data) };
+    }
+
+    /** Native semantics: lowercase hex, and a rejection for a file it cannot read. */
+    async digest(algorithm: string): Promise<string> {
+      if (algorithm !== 'MD5') throw new Error(`digest: unexpected algorithm ${algorithm}`);
+      const data = mockFiles[this.uri];
+      if (data === undefined || mockDigestRejects) {
+        throw new Error('digest: cannot read file');
+      }
+      return hash('md5').update(data).digest('hex');
     }
 
     static downloadFileAsync = jest.fn(async (url: string, destination: MockFile) => {
@@ -310,6 +318,7 @@ beforeEach(() => {
   for (const k of Object.keys(mockDirs)) delete mockDirs[k];
   for (const k of Object.keys(mockRemote)) delete mockRemote[k];
   mockDownloadTargets.length = 0;
+  mockDigestRejects = false;
   mockDirs['file:///mock/document'] = true;
   jest.clearAllMocks();
   fetchMock.mockReset();
@@ -581,6 +590,16 @@ describe('a download that fails its checks', () => {
 
     await expect(ensureTrailDownloaded('gamma')).rejects.toThrow('Checksum mismatch');
     expect(filesInRoot()).toEqual([v2.key, 'state.json'].sort());
+    expect(activeDownload('gamma')).toBeNull();
+  });
+
+  it('refuses a download whose digest cannot be read, as a checksum mismatch', async () => {
+    serveCatalog([publish('gamma', '2026-10-01T00:00:00.000Z')]);
+    await checkForTrailDataUpdates({ force: true, now: T0 + HOUR });
+    mockDigestRejects = true;
+
+    await expect(ensureTrailDownloaded('gamma')).rejects.toThrow('Checksum mismatch');
+    expect(filesInRoot().filter((name) => name.endsWith('.part'))).toEqual([]);
     expect(activeDownload('gamma')).toBeNull();
   });
 });

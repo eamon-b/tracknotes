@@ -376,13 +376,16 @@ async function doDownload(entry: CatalogEntry): Promise<void> {
   try {
     await File.downloadFileAsync(`${baseUrl}/${entry.key}`, part, { idempotent: true });
 
-    const info = part.info({ md5: true });
+    const info = part.info();
     if (info.size !== entry.bytes) {
       throw new TrailDataIntegrityError(
         `Size mismatch: expected ${entry.bytes} bytes, got ${info.size ?? 0}`,
       );
     }
-    if ((info.md5 ?? '').toLowerCase() !== entry.md5) {
+    // `File.digest` replaced the deprecated `info({ md5: true })` (#348). It
+    // rejects where that returned no md5; either way the copy is not trusted.
+    const md5 = await part.digest('MD5').catch(() => '');
+    if (md5.toLowerCase() !== entry.md5) {
       throw new TrailDataIntegrityError('Checksum mismatch');
     }
     let json: unknown;
