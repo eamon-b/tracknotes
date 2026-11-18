@@ -22,7 +22,7 @@ A waypoint added since the last build has only a temporary key there (`id=new:�
   A reload keeps the selection, the map view, the list's place and every unsaved edit;
   only opening another trail starts afresh.
   Then the review progress, "Changed files", "Rebuild trail data" and "Keys".
-  The Changed files drawer names the source files a save on the open trail may write (the GPX, the CalTopo export, `descriptions.json`, the registry, and `trail.json` for a rename of a revisited place) above the files git reports as changed;
+  The Changed files drawer names the source files a save on the open trail may write (the GPX, the CalTopo export, `descriptions.json`, the registry, and `trail.json` for a rename or a delete of a revisited place) above the files git reports as changed;
   on a read-only trail it names none.
   A trail that cannot be read (a GPX the build cannot read, a trail not built yet) leaves the list and the map empty with the reason in the banner: pick another trail, or put it right and press "Reload trail", which asks for it again.
 - **List** (left): every `<wpt>` the trail has, in km order (off-route ones by the km of the nearest route point), with its type glyph and badges: `unsaved` (edits held in the page), `saved` (written since the last build), `pending rebuild` (added since the last build: no id yet, so it is edited in the GPX alone; `pending rebuild → <id>` when the next build hands it an id the registry already holds), `deleted` (its `<wpt>` is gone since the last build), `not built` (it has an id in the registry but the last build on this machine does not list it: locked until a rebuild), `merged` (a near-duplicate the build merged into another waypoint: it has an id but no row in the app), `+N merged` (the waypoint those were merged into), `no text` (no curated description) and ✓ (reviewed).
@@ -134,6 +134,7 @@ Before writing, a save that moves, renames or retypes a waypoint, one with an id
 - **no marker comes to be shared:** a CalTopo marker that types another `<wpt>` too is never moved, retitled or refoldered for this one, and an edit after which the waypoint would be typed by a marker that types another `<wpt>` (a rename to that marker's name, say) is refused;
 - **every id holds:** the build's id matching (`assignWaypointIds`, on a copy of the registry) is run over every `<wpt>` before and after, and each must come out with the id it had, this waypoint's included.
   A pending waypoint has no id to keep, and the notes name the one the next build gives it.
+  The check covers the other pending waypoints too, and runs on an add and a delete as well: an edit after which the build would hand a pending waypoint a built one's id is refused, in those words, until a rebuild has given the pending one its own.
 
 A waypoint whose registry entry no longer matches its `<wpt>` (an entry edited by hand, or left behind by a hand edit to the sources) fails the last check whatever the edit, and the refusal says so: put the entry or the `<wpt>` right by hand, or rebuild.
 
@@ -218,6 +219,10 @@ Until that build the entry is not retired, and the build would hand the id to a 
 Until the rebuild the waypoint stays in the list as `deleted`, locked.
 That holds when another waypoint's `<wpt>` stands on the same coordinates (the CDT's towns hitched from one pass): a `<wpt>` is joined to an id only by its coordinates, name and type together, so the deleted waypoint is never shown as its neighbour.
 A revisited place's later pass (`<id>_2`) cannot be deleted on its own, since it is built from the first pass's `<wpt>`: deleting the first pass deletes every pass and the place's description.
+It also takes the place's name out of trail.json's `revisitedWaypoints` in the same save (the notes say so), since the build warns on every run about a name listed there that the route no longer passes twice;
+the name stays listed, with a note, while another `<wpt>` still goes by it.
+A delete is refused while a waypoint of the same type that is not built yet stands within 100 m: with this waypoint gone, the build would read the pending one as this one moved or renamed, and give it this id with its comments and description.
+The pending waypoint has nothing of its own to lose, and the refusal says what clears it: rebuild, so that it has its own id, then delete.
 An `access.json` entry for the place is left for `npm run fetch:access` (the notes say so).
 Deleting a pending waypoint just takes its `<wpt>` out again (a CalTopo marker with its name stays).
 Deleting a waypoint that near-duplicates were merged into leaves those `<wpt>`s where they are, so the next build lists them again as rows of their own, under their own ids (the confirm and the notes name them): comments keyed to the deleted id do not move to them.
@@ -340,7 +345,7 @@ They are in `.gitignore`, so one is never committed or listed among the changed 
 - **Pending waypoint** (added since the last build): its `<wpt>` alone, whatever is edited: `lat`/`lon` (and its `<ele>`, as for any move), `<name>`, `<type>` and `<desc>`;
   and the CalTopo marker with its name, when that marker types no other waypoint.
   Never the registry or `descriptions.json`: it has no id.
-- **Delete:** the `<wpt>` (with the spacing before it), the CalTopo marker feature (with the comma that joined it) and the `descriptions.json` entries of every pass.
+- **Delete:** the `<wpt>` (with the spacing before it), the CalTopo marker feature (with the comma that joined it), the `descriptions.json` entries of every pass, and the place's name in trail.json's `revisitedWaypoints` (with the separator that joined it; `[]` when it was the only one), when it is listed there and no other `<wpt>` has the name.
 - **Merged duplicate:** a delete as above, or a rename (its `<wpt>`'s `<name>`, its CalTopo marker's title and its registry entry's name);
   nothing else.
 
