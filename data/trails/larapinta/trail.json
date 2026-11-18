@@ -8,7 +8,6 @@
   "lengthKm": 215.8,
   "gpxFile": "Larapinta_Trail.gpx",
   "geojsonFile": "Larapinta_Trail.json",
-  "description": "Trail data auto-generated from Larapinta_Trail.gpx. Edit trail.json to customize.",
   "dataSource": {
     "text": "Track and waypoints use the GPX files from The Adventure Gene's Larapinta Track guide.",
     "url": "https://theadventuregene.com/larapinta-track-guide/",

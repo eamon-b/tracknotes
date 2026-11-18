@@ -16,6 +16,12 @@
 # objects it already has, --join-batches only removes batches after success,
 # and a shard that already has world_<shard>.mbtiles is not re-joined.
 #
+# A shard's batches are joined only once its batches.json has arrived: the
+# build box's --batches-only writes it when every batch is built, and it is
+# uploaded last, after every batch and .done marker. --join-batches then
+# refuses a missing or extra batch, so a shard caught mid-upload is skipped
+# here and the run stops before the world join.
+#
 # Usage (from the repo root, ideally under `setsid nohup ... &`):
 #   ./contours/scripts/remote/join-on-nvme.sh              # pull + join + convert + validate + upload
 #   ./contours/scripts/remote/join-on-nvme.sh --pull-only  # just sync from R2 (run it early, overlaps the build box)
@@ -87,6 +93,7 @@ fi
 
 # --- 3. Join each shard's batches ------------------------------------------
 # A shard both joined upstream and batched here keeps the upstream join.
+incomplete=()
 for dir in "$STAGE_DIR"/batches/*/; do
   [ -d "$dir" ] || continue
   shard=$(basename "$dir")
@@ -96,9 +103,18 @@ for dir in "$STAGE_DIR"/batches/*/; do
   fi
   n=$(ls "$dir"/batch-*.mbtiles 2>/dev/null | wc -l)
   [ "$n" -gt 0 ] || { log "shard $shard: no batches, skipping"; continue; }
+  if [ ! -s "$dir/batches.json" ]; then
+    log "shard $shard: $n batches but no batches.json yet (still uploading?), not joining"
+    incomplete+=("$shard")
+    continue
+  fi
   log "shard $shard: joining $n batches ($(du -sh "$dir" | cut -f1))"
   $BUILD --shard "$shard" --join-batches --work-dir "$dir" --output-dir "$OUTPUT_DIR"
 done
+if [ "${#incomplete[@]}" -gt 0 ]; then
+  echo "Error: shards without batches.json: ${incomplete[*]} — re-run once the build box has uploaded them" >&2
+  exit 1
+fi
 
 # --- 4. World join + PMTiles ------------------------------------------------
 log "joining shards -> world.mbtiles -> world.pmtiles"

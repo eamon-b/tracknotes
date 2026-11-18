@@ -35,8 +35,10 @@ user data.
 ## What the app relies on
 
 These are the dataset's public interface. Changing one changes the app, so
-`scripts/e2e-tile-check.mjs` (the `tile-packs` CI job, weekly and on its own
-changes) checks each through the URLs in `mobile/eas.json`:
+`scripts/e2e-tile-check.mjs` checks each through the URLs in `mobile/eas.json`.
+The weekly `tile-packs` CI job runs every check; on a change to the script or
+the bundled trail list it runs only `npm run check:tile-packs` (the packs, the
+tiers and the app's basemap):
 
 - `GET /health` answers 200 or 503 with `sources.world.ok`, the archive's size
   and `tiles.maxZoom` 15 (the maxzoom the app's style declares).

@@ -7,7 +7,6 @@
   "states": ["SA"],
   "lengthKm": 39.6,
   "gpxFile": "Heysen.gpx",
-  "description": "Trail data auto-generated from Heysen.gpx.",
   "dataSource": {
     "text": "Track and waypoints from the official Heysen Trail website.",
     "url": "https://heysentrail.asn.au/",

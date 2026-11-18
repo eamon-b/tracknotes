@@ -59,16 +59,21 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
-          cache: npm
-      # wrangler is a root devDependency
-      - run: npm ci
+      # Only wrangler, not the whole root install: the exact version the root
+      # lockfile resolves (a root devDependency), installed outside the checkout
+      # with no install scripts, as staging-comments-api.yml does.
+      - name: Install wrangler
+        run: |
+          version=$(node -p "require('./package-lock.json').packages['node_modules/wrangler'].version")
+          npm install --prefix "$RUNNER_TEMP/wrangler" --ignore-scripts --no-audit --no-fund --no-save "wrangler@$version"
+          echo "$RUNNER_TEMP/wrangler/node_modules/.bin" >> "$GITHUB_PATH"
       - name: Deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           SHA: ${{ needs.head.outputs.sha }}
         # `main` is the project's production branch
-        run: npx wrangler pages deploy contours/site --project-name aus-contour-tiles --branch main --commit-hash "$SHA"
+        run: wrangler pages deploy contours/site --project-name aus-contour-tiles --branch main --commit-hash "$SHA"
       - name: Check the page answers
         run: |
           for i in 1 2 3 4 5 6; do

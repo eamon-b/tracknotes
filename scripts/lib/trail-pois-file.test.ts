@@ -8,7 +8,6 @@ import {
   parseTrailPOIFile,
   poisForBuild,
   readTrailPOIFile,
-  readTrailPOIsForBuild,
   sortTrailPOIs,
   staleRejectedKeys,
   stringifyTrailPOIFile,
@@ -183,23 +182,24 @@ describe('staleRejectedKeys', () => {
   });
 });
 
-describe('readTrailPOIsForBuild', () => {
+describe('readTrailPOIFile', () => {
   const trailDir = '/repo/data/trails/heysen';
 
   it('returns null when the trail has no pois.json, so no `pois` key is emitted', () => {
-    expect(readTrailPOIsForBuild(trailDir, fakeIO({}))).toBeNull();
+    expect(readTrailPOIFile(trailDir, fakeIO({}))).toBeNull();
   });
 
-  it('reads and filters the file beside the trail config', () => {
+  it('reads the file beside the trail config', () => {
     const io = fakeIO({
       [trailPOIPath(trailDir)]: stringifyTrailPOIFile(file({ pois: [poi(2, 20), poi(1, 10)], rejected: ['node/2'] })),
     });
-    expect(readTrailPOIsForBuild(trailDir, io)?.map(p => p.id)).toEqual([1]);
+    const read = readTrailPOIFile(trailDir, io);
+    expect(read && poisForBuild(read).map(p => p.id)).toEqual([1]);
   });
 
   it('propagates the naming error for a malformed file', () => {
     const io = fakeIO({ [trailPOIPath(trailDir)]: 'oops' });
-    expect(() => readTrailPOIsForBuild(trailDir, io)).toThrow(/heysen\/pois\.json/);
+    expect(() => readTrailPOIFile(trailDir, io)).toThrow(/heysen\/pois\.json/);
   });
 });
 

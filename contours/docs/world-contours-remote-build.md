@@ -1,8 +1,8 @@
 # World Contour Tiles — Remote Build Runbook
 
 How to build `contours/world.pmtiles` (issue #34) on a rented machine and get
-it live behind the contour Worker. The design decisions behind this live in
-`plans/world-contour-tiles.md`; this document is the operational side — what to
+it live behind the contour Worker. The design decisions behind it are in the
+next section; the rest of this document is the operational side — what to
 rent, what to run, what breaks, and what it costs.
 
 Build from `main`. The `feat/world-contour-tiles` branch the first build ran
@@ -24,6 +24,29 @@ The tooling:
 | Unattended fetch + cells + merges | `contours/scripts/remote/drive-world.sh` |
 | Unattended cleanup + join + validate + upload | `contours/scripts/remote/finish-world.sh` |
 | Worker | `contours/worker/` |
+
+## Design decisions
+
+These held through the September 2026 build and the October re-tier (#135), and are what a change to the tooling should keep.
+
+- **DEM: Copernicus GLO-30 everywhere, Australia included.**
+  SRTM covers only 60°N–56°S and needs an EarthData account; GLO-30 is global, 1 arc-second, float32 metres, and anonymous on AWS Open Data.
+  Ocean tiles are simply absent from its `tileList.txt` (cached at `data/dem-glo30/.tileList.txt`), so a missing tile needs no 404 probe.
+  Tiles are stored as `data/dem-glo30/N46E006.tif` (SW-corner short names).
+  Its longitude spacing widens above 50° latitude; gdalwarp resamples to the target grid regardless.
+  Before the Australia archive was retired (#228), the same z14 tiles from both were compared at seven Australian trails: near-identical geometry, elevations within 10–30 m, and no visible canopy artefacts from GLO-30 being a surface model.
+- **Grid: 2°×2° cells with SW corners on even degrees** (lon −180..178, lat −90..88), each id lat-first from its SW corner: `N46E006`, `S26E132`, `S02W080` (`^[NS]\d{2}[EW]\d{3}$`).
+  Cells are warped with a small buffer (`CELL_BUFFER_DEG`) and clipped disjoint, so neighbouring cells never duplicate a line.
+  The grid and the shards are defined in `scripts/lib/world-grid.ts`.
+- **Shards: continent-scale partitions, built and merged independently.**
+  One tippecanoe run over the world would be days long and unresumable, so each shard merges to `world_<shard>.mbtiles` and `--join` unions them with `tile-join --no-tile-size-limit` (only tiles on a shard border are re-encoded, and without the flag the larger ones would be dropped), then `pmtiles convert`s the result to `world.pmtiles`.
+  `WORLD_SHARDS` is an ordered list of bboxes: a cell belongs to the first containing its centre, and the catch-all `rest` comes last, so the partition is total and disjoint although the boxes overlap.
+  `antarctica` and `greenland` are separate so they can be skipped (ice-sheet contours are enormous and near-useless); `iceland` precedes `greenland` because it sits inside its box.
+- **Tiers: 100 m lines from z9, 50 m from z10, 20 m from z12, 10 m from z13** (`CONTOUR_TIERS` in `scripts/tile-pipeline.ts`).
+  Each tier is tiled as its own layer gated by a `-j` `$zoom` filter and folded into the served `contour` layer by `tile-join -R`; tippecanoe's `-L` object has no `minzoom`, which is why every archive before 2026-10 was untiered.
+  The offline packs (`scripts/build-tiles.ts`) use the same tiers and tippecanoe settings, so a pack draws the same lines as the online tiles.
+- **The served schema is a public API** (`contours/README.md`): layer `contour`, attributes `elevation` and `is_index`, z9–15, and 204 for an empty tile.
+- **Settings were chosen by experiment** (`contours/scripts/contour-experiment.ts`, decision gate 2026-08-22): the bundle is `CONTOUR_TIPPECANOE_DEFAULTS`, and a batch's `.done` marker records its hash so a batch tiled with other settings is never reused.
 
 ---
 
@@ -423,7 +446,8 @@ On the build box, tile each shard into batches and stop before the join:
 
 ```bash
 npx tsx contours/scripts/build-contours-world.ts --shard asia-east --merge-only --batches-only --clean-work
-# leaves data/tiles/contours-world/asia-east/batch-NN.mbtiles + batch-NN.mbtiles.done
+# leaves data/tiles/contours-world/asia-east/batch-NN.mbtiles + batch-NN.mbtiles.done,
+# and batches.json once every batch is built
 # (--clean-work removes only the tiers here; a re-run reuses finished batches)
 ```
 
@@ -433,7 +457,8 @@ Stream finished batches (and any shard already joined) to R2 as they appear:
 rclone copyto --s3-no-check-bucket --s3-chunk-size 128M \
   data/tiles/contours-world/asia-east/batch-00.mbtiles \
   r2:aus-map-data/contours/world-build/batches/asia-east/batch-00.mbtiles
-# ...and the .done marker next to it; shards go under contours/world-build/shards/
+# ...and the .done marker next to it; batches.json goes last, after every batch and marker;
+# shards go under contours/world-build/shards/
 ```
 
 Then on a box with ≥ 3 TB of NVMe (core count barely matters — tile-join and
@@ -474,12 +499,16 @@ Things that bit us on this run, in addition to section 8:
   Joined shard files (plain `tiles` table + unique index) check slower than
   tippecanoe's dedup batches. `--join` now sidesteps it by joining the
   shards as `.pmtiles` (section 6).
-- **Never run `join-on-nvme.sh` while a shard is only partly uploaded.** Its
-  per-shard step joins whatever batches are present, and once
-  `world_<shard>.mbtiles` exists the shard is skipped forever. Gate each join
-  on a completeness marker written by the build box after its last batch and
-  `.done` marker are uploaded (we used `batches/<shard>/COMPLETE` holding the
-  batch count and compared it with the local batch and marker counts).
+- **A shard joined while only partly uploaded is skipped forever after**, since
+  once `world_<shard>.mbtiles` exists `join-on-nvme.sh` never re-joins it.
+  In September we gated each join on a hand-made `batches/<shard>/COMPLETE`
+  marker.
+  That is now built in: `--batches-only` writes `batches.json` (the batch
+  count, each batch's `.done` label and the settings) once every batch is
+  built, `--join-batches` refuses to run without it and refuses a missing or
+  extra batch, and `join-on-nvme.sh` skips a shard whose `batches.json` has
+  not arrived and stops before the world join.
+  Upload `batches.json` last.
 - **Disk during the final phase:** shard files (~760 GB) + `world.mbtiles`
   (~810 GB) + the convert's temp file (~690 GB, in `$TMPDIR` — point it at the
   NVMe, the root disk is tiny) + `world.pmtiles` (~640 GB) does not fit in
@@ -514,7 +543,7 @@ rebuild and all 20 offline packs. Times are UTC, 2026-10-23 unless noted.
 | Shards to `.pmtiles`, as each merge landed | Oct 24 07:45 → 10:41 (asia-east, 193 GB, took 40 min once merged) |
 | Free DEM + tiers | 10:42 (2.65 TB freed in 30 s) |
 | World `tile-join` of the pmtiles shards | 10:42 → 14:29 (3 h 47; 680 GB `world.mbtiles`) |
-| `pmtiles convert` | 14:29 → 18:20 (3 h 51; **572 GB `world.pmtiles`**, 642 GB before the tier fix) |
+| `pmtiles convert` | 14:29 → 18:20 (3 h 51; **572 GiB (613 GB) `world.pmtiles`**, 642 GB before the tier fix) |
 | Validate (verify, zooms, three tiles, Mt Sonder z9 = 1,488 features, all 100 m) | 18:21 (1.5 min) |
 | Upload to R2 at 32 × 256 MB parts | 18:21 → 19:05 (44 min, 613 GB at ~230 MB/s) |
 | Worker serving it, `check:tiered` passing | 19:08 |
@@ -536,9 +565,10 @@ What we learned, beyond section 8:
 - **Batches of a shard merge in sequence**, so the biggest shard sets the end
   of the merge phase. `--batch` (with `--batches-only`) lets other processes
   pre-tile its last batches when cores free up; a merge in progress reuses
-  any batch whose `.done` marker matches when it reaches it. If the two do
-  meet on one batch, the sequential run deletes the half-built file and
-  re-tiles it: wasted work, never a wrong archive. The next step is a
+  any batch whose `.done` marker matches when it reaches it. Each process
+  tiles a batch under its own temp name and renames it into place before
+  writing the marker, so if the two do meet on one batch both finish it:
+  wasted work, never a half-written batch reused. The next step is a
   driver that schedules batches, not shards.
 - **Tier files are ~7× the old estimate**: 2.3 TB for the world.
 - **Nothing should come from the laptop.** Its uplink (~0.9 MB/s) would have
@@ -757,8 +787,10 @@ month; retiring it saved the 24 h build and the second pipeline, not storage.
 - Check the tiers are live: `npm run check:tiered` (the Mt Sonder z9 tile on
   both worker sources, which now read the same archive, and every pack's z9),
   and `npm run check:contours-alias` (the `contours` alias in `/health` and
-  identical tiles under both sources, see section 7). `check:tile-packs` includes it
-  since the October 2026 rebuild, so the weekly workflow keeps checking it.
+  identical tiles under both sources, see section 7).
+  The weekly `tile-packs` workflow runs every check in `e2e-tile-check.mjs`,
+  these, `/health` and the z14/z15 tiles included; `check:tile-packs`, which it
+  runs on pull requests, covers only the packs, the tiers and the basemap.
 - Delete `contours/world-build/` (`npm run cleanup:tiles -- --world-build
   --delete`) and, once every live pack manifest points at the rebuilt packs and
   a week has passed, the superseded pack objects (`npm run cleanup:tiles`, then

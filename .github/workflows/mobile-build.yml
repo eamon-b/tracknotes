@@ -19,6 +19,10 @@ concurrency:
   group: mobile-build-${{ github.ref }}
   cancel-in-progress: false
 
+# Read-only: EAS authenticates with the EXPO_TOKEN secret, not the GitHub token.
+permissions:
+  contents: read
+
 jobs:
   eas-build:
     runs-on: ubuntu-latest

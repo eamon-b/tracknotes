@@ -73,6 +73,7 @@ async function main(): Promise<void> {
 
   let totalFiles = 0;
   let totalBytes = 0;
+  let failedFiles = 0;
 
   for (const fontStack of FONT_STACKS) {
     const fontDir = path.join(FONTS_OUTPUT_DIR, fontStack);
@@ -104,12 +105,17 @@ async function main(): Promise<void> {
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         console.error(`  ✗ ${range}.pbf: ${message}`);
+        failedFiles++;
       }
     }
   }
 
   console.log(`\nDone: ${totalFiles} files, ${(totalBytes / 1024).toFixed(1)} KB total`);
   console.log(`Output: ${FONTS_OUTPUT_DIR}`);
+  if (failedFiles > 0) {
+    console.error(`${failedFiles} glyph file(s) failed to download; re-run to fetch them (cached ones are skipped).`);
+    process.exitCode = 1;
+  }
 }
 
 main().catch(error => {

@@ -449,14 +449,6 @@ async function main(): Promise<void> {
 
   console.log(`Processing ${trailDirs.length} trail(s)\n`);
 
-  // Copy shared style.json to output
-  const styleSrcPath = path.join(PROJECT_ROOT, 'scripts/topo-style.json');
-  const styleDestPath = path.join(TILES_OUTPUT_DIR, 'style.json');
-  if (fs.existsSync(styleSrcPath)) {
-    fs.copyFileSync(styleSrcPath, styleDestPath);
-    console.log(`Style copied to ${styleDestPath}\n`);
-  }
-
   // Process each trail
   const results: { trailId: string; success: boolean; error?: string }[] = [];
 

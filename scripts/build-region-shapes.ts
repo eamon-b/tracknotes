@@ -36,6 +36,9 @@ import { fileURLToPath } from 'node:url';
 import { COUNTRIES } from '../src/lib/trail-regions';
 
 const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'lib', 'region-shapes.ts');
+// Unpinned: reads Natural Earth's `master`, and which commit produced the
+// committed region-shapes.ts was not recorded, so a re-run can differ for
+// reasons outside trail-regions.ts. Pin a commit here when you next regenerate.
 const BASE = 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson';
 const COUNTRY_FILE = 'ne_50m_admin_0_countries.geojson';
 const STATE_FILE = 'ne_50m_admin_1_states_provinces.geojson';

@@ -38,7 +38,20 @@ jobs:
       - run: npm run sync:te-araroa
       - run: npm run build:trails
       - run: npm run build:app
+      - name: Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      # The browser download is keyed on the Playwright release that wants it;
+      # the system libraries (--with-deps) are not cached and install every run.
+      - uses: actions/cache@v5
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
       - run: npx playwright install --with-deps chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+      - run: npx playwright install-deps chromium
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v7
         if: failure()
@@ -98,8 +111,20 @@ jobs:
           cache: npm
       - run: npm ci
         if: steps.secret.outputs.present == 'true'
-      - run: npx playwright install --with-deps chromium
+      - name: Playwright version
+        id: playwright
         if: steps.secret.outputs.present == 'true'
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v5
+        id: playwright-cache
+        if: steps.secret.outputs.present == 'true'
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - run: npx playwright install --with-deps chromium
+        if: steps.secret.outputs.present == 'true' && steps.playwright-cache.outputs.cache-hit != 'true'
+      - run: npx playwright install-deps chromium
+        if: steps.secret.outputs.present == 'true' && steps.playwright-cache.outputs.cache-hit == 'true'
       - name: Smoke-test ${{ env.BASE_URL }}
         if: steps.secret.outputs.present == 'true'
         run: npm run test:e2e

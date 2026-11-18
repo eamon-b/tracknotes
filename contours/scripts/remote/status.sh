@@ -166,10 +166,10 @@ hr
 echo "Artifacts"
 found_artifact=false
 shopt -s nullglob
+# Shard and world files are written to the output dir; the work dir holds
+# only cells, tiers and batches.
 artifacts=(
-  "$WORK_DIR"/world_*.mbtiles
   "$OUTPUT_DIR"/world_*.mbtiles
-  "$WORK_DIR"/world.mbtiles
   "$OUTPUT_DIR"/world.mbtiles
   "$OUTPUT_DIR"/world.pmtiles
 )

@@ -1,21 +1,21 @@
 # CLAUDE.md
 
-**Tracknotes** ([tracknotes.info](https://tracknotes.info)) is a static TypeScript web app (Vite, Leaflet) for long-distance hiking trails — Australia, plus Te Araroa (NZ), the CDT (US), Shikoku (Japan) and the Everest Three Passes (Nepal) — with maps, elevation profiles, waypoints and trip planning. `mobile/` is the Tracknotes app, its Expo/React Native companion (its own notes: `mobile/CLAUDE.md`). Both are called Tracknotes in anything a user sees; "Trail Maps" is the retired name. Trail data is processed at build time into JSON; the only servers are optional Cloudflare Workers (the comments API in `workers/`, the contour tiles in `contours/worker/`). `contours/` is the public world-contours dataset the app uses like any other client (its own notes: `contours/README.md`). `@lib` maps to `src/lib/`.
+**Tracknotes** ([tracknotes.info](https://tracknotes.info)) is a static TypeScript web app (Vite, Leaflet) for long-distance hiking trails — Australia, plus Te Araroa (NZ), the CDT (US), Shikoku (Japan) and the Everest Three Passes (Nepal) — with maps, elevation profiles, waypoints and trip planning. `mobile/` is the Tracknotes app, its Expo/React Native companion (its own notes: `mobile/CLAUDE.md`). Both are called Tracknotes in anything a user sees; "Trail Maps" is the retired name. Trail data is processed at build time into JSON; the only servers are optional Cloudflare Workers (the comments API in `workers/`, and `contours/worker/`, which serves the contour tiles and, as a second deployment, the app's basemap). `contours/` is the public world-contours dataset the app uses like any other client (its own notes: `contours/README.md`). `@lib` maps to `src/lib/`.
 
 ## Commands
 
 ```bash
 npm run dev            # Vite dev server (port 5173)
-npm test               # Vitest (web, scripts, src/lib)
+npm test               # Vitest (web, src/lib, scripts, contours/scripts)
 npm run build:app && npm run test:e2e   # Production build to dist-app/ (no tiles), then Playwright smoke tests in Chromium
-npm run lint           # ESLint (src/ and scripts/)
+npm run lint           # ESLint (src/, scripts/, contours/scripts/, e2e/)
 npm run format         # Prettier over code and JSON, whole repo (CI runs format:check)
 npm run check          # Installs match the lockfiles, then web, workers and mobile suites (not CI's trail-data job: `npm run check:data-unchanged` is its local equivalent)
 npx tsc --noEmit       # Typecheck (CI runs it)
 npm run sync:te-araroa && npm run build:trails && npm run build:mobile-trails   # Rebuild trail data (CI checks it is committed)
 ```
 
-Every other script (`fetch:*`, `build:tiles`, `upload:*`, `publish:trail-data`, …) is in `package.json` and documented in `docs/architecture/build-scripts.md`. Scripts that publish (`upload:*`, `publish:trail-data`) write to production R2 or the live API — don't run them unless asked.
+Every other script (`fetch:*`, `build:tiles`, `upload:*`, `publish:trail-data`, …) is in `package.json` and documented in `docs/architecture/build-scripts.md`. Scripts that publish (`upload:*`, `publish:trail-data`, `cleanup:tiles -- --delete`) write to production R2 or the live API — don't run them unless asked.
 
 ## Git and PRs
 

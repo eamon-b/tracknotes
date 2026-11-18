@@ -9,7 +9,7 @@
  * usually npm proposing an older Expo SDK (an advisory in `@expo/cli`), which
  * only the next SDK upgrade can resolve. Moderates and lows are counted.
  *
- * Usage: npx tsx scripts/dependency-audit.ts [--markdown]
+ * Usage: npx tsx scripts/dependency-audit.ts (no options)
  * Reads each package-lock.json only (`--package-lock-only`), so no install is needed.
  */
 

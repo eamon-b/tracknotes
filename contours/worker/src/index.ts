@@ -136,6 +136,13 @@ function getPMTiles(bucket: R2Bucket, key: string): PMTiles {
     // Cloudflare Workers cannot reuse pending I/O promises across requests.
     // ResolvedValueCache stores only completed values and is the cache PMTiles
     // provides specifically for runtimes with that restriction.
+    //
+    // Its default of 100 entries is deliberately not raised. An entry is the
+    // header or one decoded directory, and the leaf directories are large:
+    // world.pmtiles (2026-10) has 231.6 M tile entries in 2,917 leaves, about
+    // 79,000 entries and 140 KB gzipped each, which decode to roughly 5-7 MB of
+    // Entry objects per leaf. An isolate has 128 MB, so the count is not what
+    // bounds this cache; memory is, after a dozen or so distinct leaves.
     instance = new PMTiles(r2Source, new ResolvedValueCache());
     pmtilesInstances.set(key, instance);
   }
@@ -156,15 +163,27 @@ interface SourceHealth {
   };
 }
 
-/** Probe one source's archive. Never throws. */
-async function sourceHealth(env: Env, source: string, key: string): Promise<SourceHealth> {
+/**
+ * Probe one archive. Never throws. `sources` are the source names that serve
+ * it, for the log line.
+ *
+ * The size and etag come from a fresh R2 head(); the zoom range and bounds from
+ * the isolate's cached PMTiles header. When the archive has been re-uploaded
+ * since that header was read, the two would describe different archives, so a
+ * header whose etag differs from the object's is dropped and read again.
+ */
+async function archiveHealth(env: Env, key: string, sources: string[]): Promise<SourceHealth> {
   try {
     const object = await env.TILES_BUCKET.head(key);
     if (!object) {
       return { ok: false, error: 'Archive not found' };
     }
 
-    const header = await getPMTiles(env.TILES_BUCKET, key).getHeader();
+    let header = await getPMTiles(env.TILES_BUCKET, key).getHeader();
+    if (header.etag && header.etag !== object.etag) {
+      pmtilesInstances.delete(key);
+      header = await getPMTiles(env.TILES_BUCKET, key).getHeader();
+    }
     return {
       ok: true,
       archive: {
@@ -184,7 +203,7 @@ async function sourceHealth(env: Env, source: string, key: string): Promise<Sour
   } catch (error) {
     pmtilesInstances.delete(key);
     const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error(`Health check failed for ${source}: ${message}`);
+    console.error(`Health check failed for ${sources.join(', ')}: ${message}`);
     return { ok: false, error: message };
   }
 }
@@ -205,12 +224,19 @@ async function healthResponse(env: Env, config: SourceConfig): Promise<Response>
     'Cache-Control': 'no-store',
   };
 
-  const names = Object.keys(config.sources);
-  const results = await Promise.all(names.map((name) => sourceHealth(env, name, config.sources[name])));
+  // Aliases share an archive (`contours` and `world`): probe each key once and
+  // give every source that serves it the same answer.
+  const namesByKey = new Map<string, string[]>();
+  for (const [name, key] of Object.entries(config.sources)) {
+    namesByKey.set(key, [...(namesByKey.get(key) ?? []), name]);
+  }
+  const healthByKey = new Map(
+    await Promise.all([...namesByKey].map(async ([key, names]) => [key, await archiveHealth(env, key, names)] as const))
+  );
   const sources: Record<string, SourceHealth> = {};
-  names.forEach((name, i) => {
-    sources[name] = results[i];
-  });
+  for (const [name, key] of Object.entries(config.sources)) {
+    sources[name] = healthByKey.get(key)!;
+  }
 
   const { status, body } = healthSummary(config, sources);
   return new Response(JSON.stringify(body), { status, headers });

@@ -2,7 +2,7 @@
 #
 # Upload the world contour PMTiles archive to Cloudflare R2 (issue #34).
 #
-#   local:  public/data/tiles/world.pmtiles   (150-350 GB, estimated)
+#   local:  public/data/tiles/world.pmtiles   (~613 GB / 572 GiB, 2026-10)
 #   remote: aus-map-data / contours/world.pmtiles
 #
 # wrangler `r2 object put` caps out around 300 MiB, so this goes through

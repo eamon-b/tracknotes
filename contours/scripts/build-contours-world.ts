@@ -110,6 +110,8 @@ const CLASSIFIED_LAYER = CONTOUR_LAYER;
 /** Tier filename pattern, e.g. `S26E132_z12.fgb`. */
 const TIER_FILE_PATTERN = /^([NS]\d{2}[EW]\d{3})_(z\d+)\.fgb$/;
 const BATCH_FILE_PATTERN = /^batch-\d{2}\.mbtiles$/;
+/** Written by --batches-only once every batch of the shard is built; --join-batches requires it. */
+const BATCHES_MANIFEST = 'batches.json';
 
 const FETCH_SCRIPT = path.join(PROJECT_ROOT, 'scripts/fetch-dem-copernicus.ts');
 
@@ -388,9 +390,66 @@ export function canReuseBatch(batchExists: boolean, markerText: string | null, l
   return batchExists && markerText === label;
 }
 
-/** Whether a kept batch's marker was written with this run's tippecanoe release and settings (--join-batches). */
-export function batchMatchesSettings(markerText: string, settings: string): boolean {
-  return markerText.endsWith(`, ${settings}`);
+/** What a complete --batches-only run tiled: --join-batches joins exactly these and nothing else. */
+export interface BatchesManifest {
+  count: number;
+  /** labels[i] is batch i's `.done` label. */
+  labels: string[];
+  /** batchSettingsLabel() of the run that tiled them. */
+  settings: string;
+}
+
+/**
+ * Why the kept batches cannot be joined, or [] when they can. The batch files
+ * present must be exactly `batch-00`…`batch-(count-1)`, none missing and none
+ * extra (a stray batch from another run would be joined silently), each with
+ * the `.done` label the manifest recorded, all tiled with this run's settings.
+ * `markers` maps a batch file name to its marker text (null when absent).
+ */
+export function joinBatchesProblems(
+  manifest: BatchesManifest,
+  presentFiles: string[],
+  markers: Map<string, string | null>,
+  settings: string
+): string[] {
+  const problems: string[] = [];
+  if (
+    !Number.isInteger(manifest.count) ||
+    manifest.count < 1 ||
+    !Array.isArray(manifest.labels) ||
+    manifest.labels.length !== manifest.count
+  ) {
+    return [`${BATCHES_MANIFEST} is malformed (count ${manifest.count}, ${manifest.labels?.length ?? 0} labels)`];
+  }
+  if (manifest.settings !== settings) {
+    problems.push(
+      `the batches were tiled with ${manifest.settings}, not this run's ${settings}; ` +
+        're-run --merge-only --batches-only from the tiers'
+    );
+  }
+  const expected = Array.from({ length: manifest.count }, (_, i) => batchFileName(i));
+  const present = new Set(presentFiles);
+  const missing = expected.filter(f => !present.has(f));
+  const extra = presentFiles.filter(f => !expected.includes(f));
+  if (missing.length > 0) problems.push(`missing ${missing.join(', ')} of ${manifest.count} batches`);
+  if (extra.length > 0) problems.push(`unexpected ${extra.join(', ')} (the manifest lists ${manifest.count} batches)`);
+  expected.forEach((f, i) => {
+    if (!present.has(f)) return;
+    const marker = markers.get(f) ?? null;
+    if (marker === null) problems.push(`${f} has no .done marker (tippecanoe was killed mid-write?)`);
+    else if (marker !== manifest.labels[i]) problems.push(`${f}'s .done marker does not match ${BATCHES_MANIFEST}`);
+  });
+  return problems;
+}
+
+/**
+ * Temp output for a batch being tiled: renamed to the batch's real name only
+ * once tippecanoe has exited 0, so the real name never holds a half-written
+ * file. Per process, so two --batch runs tiling the same batch never share one.
+ * Never matches BATCH_FILE_PATTERN.
+ */
+export function batchTempPath(batchPath: string, pid: number): string {
+  return batchPath.replace(/\.mbtiles$/, `.${pid}.partial.mbtiles`);
 }
 
 /**
@@ -888,6 +947,11 @@ function mergeToMbtiles(
     return;
   }
 
+  const manifestPath = path.join(workDir, BATCHES_MANIFEST);
+  // The batch set is about to change; a manifest is rewritten below only once
+  // every batch is built again.
+  if (fs.existsSync(manifestPath)) fs.unlinkSync(manifestPath);
+  const labels: string[] = [];
   const batchPaths: string[] = [];
   try {
     batches.forEach((cells, i) => {
@@ -895,6 +959,7 @@ function mergeToMbtiles(
       const batchBytes = cells.reduce((a, id) => a + (bytesByCell.get(id) ?? 0), 0);
       const cellsLabel = batchCellsLabel(cells, batchBytes);
       const label = batchDoneLabel(cellsLabel, batchSettingsLabel());
+      labels.push(label);
       if (onlyBatches && !onlyBatches.includes(i)) return;
       console.log(`    batch ${i + 1}/${batches.length}: ${cellsLabel}`);
       // A batch is hours of single-threaded tippecanoe. Its marker records what
@@ -909,28 +974,36 @@ function mergeToMbtiles(
         batchPaths.push(batchPath);
         return;
       }
-      // A killed batch leaves a headerless file that tile-join would happily
-      // consume; never inherit one from a previous attempt.
-      if (fs.existsSync(batchPath)) fs.unlinkSync(batchPath);
+      // Never inherit a batch (or marker) whose label does not match this run.
       if (fs.existsSync(marker)) fs.unlinkSync(marker);
-      // Its own temp dir, so batches of one shard tiled by separate --batch
-      // processes never share tippecanoe's spill directory.
-      const batchTmpDir = path.join(tmpDir, `batch-${String(i).padStart(2, '0')}`);
+      if (fs.existsSync(batchPath)) fs.unlinkSync(batchPath);
+      // Tiled under a per-process temp name and renamed into place only once
+      // tippecanoe has exited 0, then marked: a killed or concurrent run never
+      // leaves a half-written file under the batch's real name for a later run
+      // (or --join-batches) to reuse. Its own spill dir for the same reason.
+      const tempPath = batchTempPath(batchPath, process.pid);
+      const batchTmpDir = path.join(tmpDir, `batch-${String(i).padStart(2, '0')}-${process.pid}`);
       ensureDir(batchTmpDir);
-      tippecanoeMerge(
-        cells.flatMap(id => layerArgsByCell.get(id)!),
-        batchPath,
-        batchTmpDir,
-        verbose
-      );
-      fs.rmSync(batchTmpDir, { recursive: true, force: true });
+      try {
+        tippecanoeMerge(
+          cells.flatMap(id => layerArgsByCell.get(id)!),
+          tempPath,
+          batchTmpDir,
+          verbose
+        );
+        fs.renameSync(tempPath, batchPath);
+      } finally {
+        if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+        fs.rmSync(batchTmpDir, { recursive: true, force: true });
+      }
       fs.writeFileSync(marker, label);
       console.log(`      ✓ ${path.basename(batchPath)} (${formatBytes(fileSizeBytes(batchPath))})`);
       batchPaths.push(batchPath);
     });
 
     if (mode === 'batches-only') {
-      console.log(`  ✓ ${batchPaths.length} batch mbtiles kept in ${workDir} (join them with --join-batches)`);
+      console.log(`  ✓ ${batchPaths.length} batch mbtiles kept in ${workDir}`);
+      writeManifestIfComplete(workDir, labels);
       return;
     }
     joinBatchFiles(batchPaths, outputPath, verbose);
@@ -958,6 +1031,38 @@ function removeBatchFiles(batchPaths: string[]): void {
     const marker = batchDoneMarker(batchPath);
     if (fs.existsSync(marker)) fs.unlinkSync(marker);
   }
+  const manifestPath = path.join(path.dirname(batchPaths[0] ?? ''), BATCHES_MANIFEST);
+  if (batchPaths.length > 0 && fs.existsSync(manifestPath)) fs.unlinkSync(manifestPath);
+}
+
+/**
+ * After a --batches-only run (or one --batch process of several): when every
+ * batch of the shard is on disk with the marker this run would write, record
+ * the set in batches.json for --join-batches. The last of several parallel
+ * --batch processes to finish is the one that writes it.
+ */
+function writeManifestIfComplete(workDir: string, labels: string[]): void {
+  const pending = labels
+    .map((label, i) => ({ label, file: batchFileName(i) }))
+    .filter(({ label, file }) => {
+      const batchPath = path.join(workDir, file);
+      const marker = batchDoneMarker(batchPath);
+      const markerText = fs.existsSync(marker) ? fs.readFileSync(marker, 'utf8') : null;
+      return !canReuseBatch(fs.existsSync(batchPath), markerText, label);
+    })
+    .map(({ file }) => file);
+  if (pending.length > 0) {
+    console.log(
+      `  ${pending.length} of ${labels.length} batches still to build (${pending.join(', ')}); no ${BATCHES_MANIFEST} yet`
+    );
+    return;
+  }
+  const manifest: BatchesManifest = { count: labels.length, labels, settings: batchSettingsLabel() };
+  const manifestPath = path.join(workDir, BATCHES_MANIFEST);
+  const tmp = `${manifestPath}.${process.pid}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(manifest, null, 2) + '\n');
+  fs.renameSync(tmp, manifestPath);
+  console.log(`  ✓ all ${labels.length} batches built; wrote ${BATCHES_MANIFEST} (join them with --join-batches)`);
 }
 
 /**
@@ -967,32 +1072,36 @@ function removeBatchFiles(batchPaths: string[]): void {
  * on its own; the batches are only removed once it has succeeded.
  */
 function joinKeptBatches(workDir: string, outputPath: string, verbose: boolean): void {
-  const batchPaths = fs.existsSync(workDir)
-    ? fs
-        .readdirSync(workDir)
-        .filter(f => BATCH_FILE_PATTERN.test(f))
-        .sort()
-        .map(f => path.join(workDir, f))
-    : [];
-  if (batchPaths.length === 0) {
-    throw new Error(`--join-batches: no batch-NN.mbtiles in ${workDir} (run --merge-only --batches-only first)`);
-  }
-  const unfinished = batchPaths.filter(p => !fs.existsSync(batchDoneMarker(p)));
-  if (unfinished.length > 0) {
+  const manifestPath = path.join(workDir, BATCHES_MANIFEST);
+  if (!fs.existsSync(manifestPath)) {
     throw new Error(
-      `--join-batches: ${unfinished.map(p => path.basename(p)).join(', ')} ` +
-        'have no .done marker (tippecanoe was killed mid-write?); re-run --merge-only --batches-only'
+      `--join-batches: no ${BATCHES_MANIFEST} in ${workDir} — the batch set is incomplete or was never tiled ` +
+        '(run --merge-only --batches-only until it reports every batch built)'
     );
   }
-  const settings = batchSettingsLabel();
-  const stale = batchPaths.filter(p => !batchMatchesSettings(fs.readFileSync(batchDoneMarker(p), 'utf8'), settings));
-  if (stale.length > 0) {
-    throw new Error(
-      `--join-batches: ${stale.map(p => path.basename(p)).join(', ')} ` +
-        `were tiled with another tippecanoe release or settings than this run's (${settings}); ` +
-        'delete them and re-run --merge-only --batches-only from the tiers'
-    );
+  let manifest: BatchesManifest;
+  try {
+    manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as BatchesManifest;
+  } catch (error) {
+    throw new Error(`--join-batches: ${manifestPath} is not valid JSON (${(error as Error).message})`, {
+      cause: error,
+    });
   }
+  const presentFiles = fs
+    .readdirSync(workDir)
+    .filter(f => BATCH_FILE_PATTERN.test(f))
+    .sort();
+  const markers = new Map(
+    presentFiles.map(f => {
+      const marker = batchDoneMarker(path.join(workDir, f));
+      return [f, fs.existsSync(marker) ? fs.readFileSync(marker, 'utf8') : null] as const;
+    })
+  );
+  const problems = joinBatchesProblems(manifest, presentFiles, markers, batchSettingsLabel());
+  if (problems.length > 0) {
+    throw new Error(`--join-batches refused (${workDir}):\n  - ${problems.join('\n  - ')}`);
+  }
+  const batchPaths = Array.from({ length: manifest.count }, (_, i) => path.join(workDir, batchFileName(i)));
   const totalBytes = batchPaths.reduce((a, p) => a + fileSizeBytes(p), 0);
   console.log(`  Joining ${batchPaths.length} kept batches (${formatBytes(totalBytes)}) from ${workDir}`);
   joinBatchFiles(batchPaths, outputPath, verbose);
@@ -1093,7 +1202,16 @@ function validateWorldPmtiles(pmtilesPath: string): void {
 }
 
 /**
- * Union every `world_*.mbtiles` in the output dir into `world.mbtiles` and
+ * Whether a file in the output dir is a real shard's mbtiles (`world_<shard>.mbtiles`
+ * for a shard in worldShardNames()). A `--bbox` or `--cell` test build writes
+ * `world_custom.mbtiles` to the same dir, and it must never be joined into the world.
+ */
+export function isWorldShardFile(fileName: string): boolean {
+  return worldShardNames().some(name => fileName === shardMbtilesName({ shard: name }));
+}
+
+/**
+ * Union every shard's `world_<shard>.mbtiles` in the output dir into `world.mbtiles` and
  * convert it to `world.pmtiles`.
  *
  * Cells are clipped disjoint, so tile-join only has to re-encode tiles that
@@ -1110,7 +1228,7 @@ function validateWorldPmtiles(pmtilesPath: string): void {
 async function joinShards(outputDir: string, verbose: boolean): Promise<void> {
   const shardFiles = fs
     .readdirSync(outputDir)
-    .filter(f => /^world_.+\.mbtiles$/.test(f))
+    .filter(isWorldShardFile)
     .sort()
     .map(f => path.join(outputDir, f));
 
