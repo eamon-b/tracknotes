@@ -39,7 +39,31 @@ const RATE_LIMIT_RETRIES = 6;
  */
 const RANGE_IGNORED_RETRIES = 4;
 
+/**
+ * Network errors (fetch rejects: a bare "fetch failed", a reset) and 5xx
+ * answers retried before giving up, 5 s doubling (75 s in all): the weekly
+ * tile-packs run failed every other week on "fetch failed" for a few packs at
+ * once (#368). Any other 4xx (a 404) is an answer and is never retried.
+ */
+const TRANSIENT_RETRIES = 4;
+
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+/** `host path bytes a-b` of a range request, for an error message. */
+function describeRange(url, start, end) {
+  try {
+    const { host, pathname } = new URL(url);
+    return `${host} ${pathname} bytes ${start}-${end}`;
+  } catch {
+    return `${url} bytes ${start}-${end}`;
+  }
+}
+
+/** An error's message with its cause's: Node's fetch puts the reason there. */
+function errorText(error) {
+  const cause = error?.cause?.message ?? error?.cause?.code;
+  return cause ? `${error.message} (${cause})` : String(error?.message ?? error);
+}
 
 /**
  * Close a response without reading it: a 200 to a Range request is the whole
@@ -84,16 +108,31 @@ export async function readPrefix(res, n) {
  * after waiting out a 429 (Retry-After, else 5 s doubling) a few times: a
  * pack read is hundreds of small requests, enough to trip the zone's
  * rate limit when several packs are read at once. A 200 (the edge ignored
- * the Range) is retried a few times too, without reading its body.
+ * the Range) is retried a few times too, without reading its body, and so is
+ * a network error or a 5xx (Retry-After, else 5 s doubling); a 404 is not.
+ * Each kind has its own budget. The final error names the host, path and bytes.
  */
 export function httpRangeReader(url, fetchFn = fetch, sleep = delay) {
   return async (start, end) => {
+    const where = () => describeRange(url, start, end);
     let res;
-    for (let limited = 0, ignored = 0; ;) {
-      res = await fetchFn(url, { headers: { Range: `bytes=${start}-${end}` } });
-      if (res.status === 429 && limited < RATE_LIMIT_RETRIES) {
+    for (let limited = 0, ignored = 0, transient = 0; ;) {
+      try {
+        res = await fetchFn(url, { headers: { Range: `bytes=${start}-${end}` } });
+      } catch (e) {
+        if (transient >= TRANSIENT_RETRIES) {
+          throw new Error(`range request to ${where()} failed after ${transient + 1} attempts: ${errorText(e)}`, {
+            cause: e,
+          });
+        }
+        await sleep(5000 * 2 ** transient++);
+        continue;
+      }
+      const retryable5xx = res.status >= 500 && transient < TRANSIENT_RETRIES;
+      if ((res.status === 429 && limited < RATE_LIMIT_RETRIES) || retryable5xx) {
         const retryAfter = Number(res.headers?.get?.('retry-after'));
-        const backoff = 5000 * 2 ** limited++;
+        const backoff = res.status === 429 ? 5000 * 2 ** limited++ : 5000 * 2 ** transient++;
+        if (res.status !== 429) await discardBody(res);
         await sleep(retryAfter > 0 ? retryAfter * 1000 : backoff);
       } else if (res.status === 200 && ignored < RANGE_IGNORED_RETRIES) {
         await discardBody(res);
@@ -104,11 +143,11 @@ export function httpRangeReader(url, fetchFn = fetch, sleep = delay) {
     }
     if (res.status !== 206) {
       await discardBody(res);
-      throw new Error(`range request for ${url} → HTTP ${res.status} (expected 206)`);
+      throw new Error(`range request to ${where()} → HTTP ${res.status} (expected 206)`);
     }
     const bytes = new Uint8Array(await res.arrayBuffer());
     if (bytes.length !== end - start + 1) {
-      throw new Error(`range request for ${url} returned ${bytes.length} bytes, expected ${end - start + 1}`);
+      throw new Error(`range request to ${where()} returned ${bytes.length} bytes, expected ${end - start + 1}`);
     }
     return bytes;
   };
@@ -451,21 +490,37 @@ const ZOOM_INDEX = ['zoom_level', 'tile_column', 'tile_row'];
 
 /**
  * Every tile of one zoom level: `{ x, y (TMS row), data }`, where `data` is
- * the tile blob as stored (tippecanoe gzips it).
+ * the tile blob as stored (tippecanoe gzips it). An error says what was being
+ * read when it struck: the schema, the zoom's index, or tile `z/x/y (TMS)`.
  */
 export async function readZoomTiles(read, zoom) {
+  const at = { part: 'the schema' };
+  try {
+    return await readZoomTilesAt(read, zoom, at);
+  } catch (e) {
+    throw new Error(`${at.part}: ${e.message}`, { cause: e });
+  }
+}
+
+/** readZoomTiles, keeping `at.part` on what it is reading. */
+async function readZoomTilesAt(read, zoom, at) {
   const db = await new RemoteSqlite(read).open();
   const tiles = [];
+  const index = `the z${zoom} index`;
+  const tile = key => `tile ${zoom}/${key[1]}/${key[2]} (TMS)`;
 
   const plain = db.table('tiles');
   if (plain) {
-    const index = db.index('tiles', ZOOM_INDEX);
-    if (!index) throw new Error('the tiles table has no (zoom_level, tile_column, tile_row) index');
-    for await (const key of db.scanIndex(index.rootPage, [zoom])) {
+    const zoomIndex = db.index('tiles', ZOOM_INDEX);
+    if (!zoomIndex) throw new Error('the tiles table has no (zoom_level, tile_column, tile_row) index');
+    at.part = index;
+    for await (const key of db.scanIndex(zoomIndex.rootPage, [zoom])) {
+      at.part = tile(key);
       const rowid = key[key.length - 1];
       const row = await db.findRow(plain.rootPage, rowid);
       if (!row) throw new Error(`tiles row ${rowid} named by the index is missing`);
       tiles.push({ x: key[1], y: key[2], data: column(row, plain, 'tile_data', rowid) });
+      at.part = index;
     }
     return tiles;
   }
@@ -479,7 +534,9 @@ export async function readZoomTiles(read, zoom) {
   const imagesById = db.index('images', ['tile_id']);
   const imagesIndex = imagesById ?? db.index('images', ['zoom_level', 'tile_id']);
   if (!mapIndex || !imagesIndex) throw new Error('map/images are missing their indexes');
+  at.part = index;
   for await (const key of db.scanIndex(mapIndex.rootPage, [zoom])) {
+    at.part = tile(key);
     const mapRowid = key[key.length - 1];
     const mapRow = await db.findRow(map.rootPage, mapRowid);
     if (!mapRow) throw new Error(`map row ${mapRowid} named by the index is missing`);
@@ -492,8 +549,9 @@ export async function readZoomTiles(read, zoom) {
       if (imageRow) data = column(imageRow, images, 'tile_data', imageRowid);
       break;
     }
-    if (data === null) throw new Error(`no image for tile ${zoom}/${key[1]}/${key[2]}`);
+    if (data === null) throw new Error(`no image for tile_id ${tileId}`);
     tiles.push({ x: key[1], y: key[2], data });
+    at.part = index;
   }
   return tiles;
 }
