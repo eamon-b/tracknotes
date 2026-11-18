@@ -24,7 +24,7 @@
  * alternatives.
  */
 
-import { haversineDistance2D } from './distance';
+import { haversineDistance } from './distance';
 import { poiKey } from './trail-pois';
 import type { TrailPOI, TrailPOICategory } from './trail-types';
 
@@ -438,7 +438,7 @@ export function markDuplicatePois(
       if (Math.abs(poi.lat - waypoint.lat) > MAX_DUPLICATE_LAT_DEGREES) continue;
       if (nameTokens(waypoint.name).length === 0) continue;
 
-      const metres = haversineDistance2D(poi.lat, poi.lon, waypoint.lat, waypoint.lon);
+      const metres = haversineDistance(poi.lat, poi.lon, waypoint.lat, waypoint.lon);
       if (metres > MAX_DUPLICATE_DISTANCE_M) continue;
 
       const score = nameScore(poi.name, waypoint.name);
@@ -532,7 +532,7 @@ function nearestUnnamedCampingHost(
   const near: { waypoint: DedupWaypointLike; metres: number }[] = [];
   for (const waypoint of waypoints) {
     if (!waypoint.id || !isCompatibleType(poi.category, waypoint.type)) continue;
-    const metres = haversineDistance2D(poi.lat, poi.lon, waypoint.lat, waypoint.lon);
+    const metres = haversineDistance(poi.lat, poi.lon, waypoint.lat, waypoint.lon);
     if (metres <= UNNAMED_CAMPING_DUPLICATE_M + UNNAMED_CAMPING_AMBIGUOUS_MARGIN_M) {
       near.push({ waypoint, metres });
     }
@@ -601,7 +601,7 @@ export function applyDuplicateOverrides(
     return {
       ...poi,
       duplicateOf: waypoint.id,
-      duplicateDistanceM: Math.round(haversineDistance2D(poi.lat, poi.lon, waypoint.lat, waypoint.lon)),
+      duplicateDistanceM: Math.round(haversineDistance(poi.lat, poi.lon, waypoint.lat, waypoint.lon)),
     };
   });
   return { pois: out, unmatched: Object.keys(overrides).filter(key => !seen.has(key)), replaced };
@@ -832,7 +832,7 @@ export function markSelfDuplicatePois(pois: readonly TrailPOI[] | undefined): Tr
       if (Math.abs(entry.poi.lat - survivor.poi.lat) > SELF_DUPLICATE_LAT_DEGREES) continue;
       if (!compatible.includes(survivor.poi.category)) continue;
       if (!sameEmergencyService(entry.poi, survivor.poi)) continue;
-      const metres = haversineDistance2D(entry.poi.lat, entry.poi.lon, survivor.poi.lat, survivor.poi.lon);
+      const metres = haversineDistance(entry.poi.lat, entry.poi.lon, survivor.poi.lat, survivor.poi.lon);
       if (metres > SELF_DUPLICATE_CAMPING_M) continue;
       if (!selfNamesMatch(entry, survivor, metres)) continue;
       if (
@@ -860,12 +860,6 @@ export function markSelfDuplicatePois(pois: readonly TrailPOI[] | undefined): Tr
  */
 export function isDuplicatePoi(poi: Pick<TrailPOI, 'duplicateOf' | 'duplicateOfPoi'>): boolean {
   return Boolean(poi.duplicateOf || poi.duplicateOfPoi);
-}
-
-/** POIs that are not hidden as duplicates of a waypoint or of another POI. */
-export function nonDuplicatePois(pois: readonly TrailPOI[] | undefined): TrailPOI[] {
-  if (!pois) return [];
-  return pois.filter(poi => !isDuplicatePoi(poi));
 }
 
 /** How many of these POIs were flagged as duplicating another POI. For build output. */

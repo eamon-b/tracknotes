@@ -121,7 +121,10 @@ this happened; distances are unaffected in practice.
   Small ups and downs inside that band are left out however many there are,
   while a long gentle climb is counted in full however small each step of it
   is. The trail's totals and each waypoint's climb from the one before are
-  measured the same way, so they add up. Barometric recordings routinely
+  measured the same way, so they add up, and every track point keeps that
+  running count, so a planned day (or any stretch) climbs exactly its share of
+  the totals rather than every metre of noise in between. Fetched elevation is
+  counted the same way. Barometric recordings routinely
   inflate ascent 2–3× without this; if the raw total was more than 1.5× the
   cleaned one the report says the elevation "looks noisy".
 
@@ -373,7 +376,6 @@ from the import button) and the phone shows the same review screen a GPX gets.
   **Replace**, **Keep mine** (the trail is saved, its plan is not) or
   **Cancel**.
 - A plan the app cannot read (a hand-edited or damaged file) is left out and
-  the review screen says so; the trail still imports.- A plan the app cannot read (a hand-edited or damaged file) is left out and
   the review screen says so; the trail still imports.
 - A plan whose stops the trail does not explain — a km past the end of the
   trail, a place the trail no longer has, an alternate it does not offer (a
@@ -387,6 +389,13 @@ from the import button) and the phone shows the same review screen a GPX gets.
   version opens.
 - Exporting the same trail again — with or without the plan, or after editing
   the plan — imports as the same guide, not a second one.
+- The file is checked as it is read, as a GPX is. A malformed number,
+  coordinate or point list refuses the file. Lesser oddities are dropped or
+  put right quietly: a waypoint never arrives marked as another hiker's
+  report, merged-duplicate ids are kept only when they are the file's own,
+  a point of interest keeps only its text tags, direction labels and the
+  climate block are kept only when well formed, and a waypoint's point on the
+  track that is past the end of it is re-read from its km.
 
 ## Points of interest (optional)
 

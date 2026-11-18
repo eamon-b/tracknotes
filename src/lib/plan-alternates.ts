@@ -44,7 +44,7 @@ import { poiVariantFinder } from './poi-display';
 import { allResupplyOptionIds, listResupplyOptions, resupplyCandidates, type ResupplyTrail } from './resupply-plan';
 import type { PlanDocument, PlanStop } from './plan-types';
 import { PLAN_LIMITS } from './plan-types';
-import { stamp } from './plan-editor';
+import { omitKey, stamp } from './plan-editor';
 import { routeBreakStarts } from './route-breaks';
 import { calculateElevationBetween, findNearestByDistance } from './track-geometry';
 
@@ -699,12 +699,6 @@ function routePois<T extends PlannableTrail>(trail: T, route: PlannedRoute): T['
 // The document in route km
 // ---------------------------------------------------------------------------
 
-function omitKey<T extends object>(value: T, key: string): T {
-  const next = { ...value } as Record<string, unknown>;
-  delete next[key];
-  return next as T;
-}
-
 function omitAlternate(stop: PlanStop): PlanStop {
   return stop.alternate === undefined ? stop : omitKey(stop, 'alternate');
 }
@@ -839,11 +833,6 @@ function partitionDuplicates<E>(
 
 function dedupeStops(stops: PlanStop[], lineOf: (stop: PlanStop) => string): PlanStop[] {
   return partitionDuplicates(stops, stop => stop, lineOf).kept;
-}
-
-/** The names of the alternates a plan takes (as stored; unknown names included). */
-export function planAlternateNames(plan: PlanDocument): string[] {
-  return plan.alternates ?? [];
 }
 
 /** A cache of built routes per trail object, keyed by the alternates taken. */

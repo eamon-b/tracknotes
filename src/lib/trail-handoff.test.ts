@@ -334,6 +334,28 @@ describe('parseHandoffJson', () => {
       expect(wp).toMatchObject(good);
     });
 
+    it("never keeps a hiker-waypoint mark or a server id among a waypoint's merged ids", () => {
+      const [wp] = parseHandoffJson(
+        withWaypoint({
+          ...good,
+          userWaypoint: { id: 'hw_x', mine: false, by: 'Mallory' },
+          mergedIds: ['uw_deadbeef02', 'w_registry9', 7],
+        })
+      ).waypoints;
+      expect(wp).not.toHaveProperty('userWaypoint');
+      expect(wp.mergedIds).toEqual(['uw_deadbeef02']);
+      const [none] = parseHandoffJson(withWaypoint({ ...good, mergedIds: 'w_registry9' })).waypoints;
+      expect(none).not.toHaveProperty('mergedIds');
+    });
+
+    it('re-reads a trackIndex past the end of the track as the point at its km', () => {
+      expect(parseHandoffJson(withWaypoint({ ...good, trackIndex: 99 })).waypoints[0].trackIndex).toBe(1);
+      expect(parseHandoffJson(withWaypoint({ ...good, trackIndex: -1 })).waypoints[0].trackIndex).toBe(1);
+      expect(
+        parseHandoffJson(withWaypoint({ ...good, totalDistance: 0.8, trackIndex: 3 })).waypoints[0].trackIndex
+      ).toBe(2);
+    });
+
     it('rejects a non-numeric latitude rather than plotting NaN', () => {
       expect(() => parseHandoffJson(withWaypoint({ ...good, lat: 'north' }))).toThrow(
         /non-numeric waypoints\[0\]\.lat/
@@ -447,6 +469,51 @@ describe('parseHandoffJson', () => {
   });
 });
 
+describe('parseHandoffJson: direction and climate', () => {
+  const climate = {
+    generatedAt: '2026-10-18T03:05:25.692Z',
+    locations: [
+      {
+        name: 'Cape Jervis',
+        lat: -35.6,
+        lon: 138.1,
+        elevation: 34,
+        monthly: [{ month: 1, avgTempMin: 16.6, avgTempMax: 22.7, avgPrecipitation: 22.1, avgRainyDays: null }],
+      },
+    ],
+  };
+  const climateLocations = [{ name: 'Cape Jervis', lat: -35.6, lon: 138.1 }];
+
+  it('carries well-formed labels and climate through unchanged', () => {
+    const trail = makeTrail({
+      climate,
+      climateLocations,
+      config: { ...makeTrail().config, direction: { default: 'NOBO', reversed: 'SOBO' }, climateLocations },
+    });
+    const parsed = roundTrip(trail);
+    expect(parsed.direction).toEqual(trail.direction);
+    expect(parsed.climate).toEqual(climate);
+    expect(parsed.climateLocations).toEqual(climateLocations);
+    expect(parsed.config.direction).toEqual({ default: 'NOBO', reversed: 'SOBO' });
+    expect(parsed.config.climateLocations).toEqual(climateLocations);
+  });
+
+  it('drops a malformed direction or climate rather than handing it to a reader', () => {
+    const parsed = roundTrip({
+      ...makeTrail(),
+      direction: { default: 1, reversed: 'SOBO' },
+      climate: { locations: [{ ...climate.locations[0], monthly: [{ month: 'Jan' }] }] },
+      climateLocations: [{ name: 'Nowhere', lat: 'x', lon: 0 }],
+      config: { ...makeTrail().config, direction: 'NOBO', climateLocations: 'Cape Jervis' },
+    } as unknown as ProcessedTrail);
+    expect(parsed.direction).toBeNull();
+    expect(parsed.climate).toBeNull();
+    expect(parsed.climateLocations).toBeNull();
+    expect(parsed.config).not.toHaveProperty('direction');
+    expect(parsed.config).not.toHaveProperty('climateLocations');
+  });
+});
+
 describe('parseHandoffJson: variants and off-trail waypoints', () => {
   const variantWaypoint = {
     id: 'w_registry1',
@@ -491,6 +558,25 @@ describe('parseHandoffJson: variants and off-trail waypoints', () => {
   function file(trail: Record<string, unknown>): string {
     return JSON.stringify({ format: HANDOFF_FORMAT, version: 1, trail: { ...makeTrail(), ...trail } });
   }
+
+  it('keeps every track index inside the line it indexes', () => {
+    const parsed = parseHandoffJson(
+      file({
+        alternates: [
+          {
+            ...variant,
+            startTrackIndex: -4,
+            endTrackIndex: 999,
+            waypoints: [{ ...variantWaypoint, variantTrackIndex: 50 }],
+          },
+        ],
+      })
+    );
+    const [alt] = parsed.alternates;
+    expect(alt.startTrackIndex).toBe(0);
+    expect(alt.endTrackIndex).toBe(2);
+    expect(alt.waypoints![0].variantTrackIndex).toBe(2);
+  });
 
   it('carries well-formed variants and off-trail waypoints through', () => {
     const parsed = parseHandoffJson(file({ alternates: [variant], sideTrips: [], offTrailWaypoints: [offTrail] }));
@@ -592,6 +678,11 @@ describe('parseHandoffJson: points of interest', () => {
 
   it('carries POIs through the envelope', () => {
     expect(withPois([poi]).pois).toEqual([poi]);
+  });
+
+  it('keeps only string tag values', () => {
+    const [kept] = withPois([{ ...poi, tags: { name: 'Tap', opening_hours: { evil: true }, fee: 3 } }]).pois!;
+    expect(kept.tags).toEqual({ name: 'Tap' });
   });
 
   it('leaves pois absent when the file has none', () => {

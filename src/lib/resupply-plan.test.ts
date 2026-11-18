@@ -1066,6 +1066,11 @@ describe('nextResupplyStop', () => {
     expect(nextResupplyStop(stops, 10)?.name).toBe('B');
     expect(nextResupplyStop(stops, 50)).toBeNull();
   });
+
+  it('keeps a stop just ahead and drops one just behind, with no slack', () => {
+    expect(nextResupplyStop(stops, 9.97)?.name).toBe('A');
+    expect(nextResupplyStop(stops, 10.03)?.name).toBe('B');
+  });
 });
 
 describe('the built side trips', () => {

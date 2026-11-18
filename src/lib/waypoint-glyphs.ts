@@ -11,7 +11,7 @@
  */
 
 import { MAP_GLYPHS, type MapGlyphName } from './map-glyphs';
-import { baseWaypointType } from './waypoint-taxonomy';
+import { baseWaypointType, RESUPPLY_TYPE_ALIASES, WATER_TYPE_ALIASES } from './waypoint-taxonomy';
 
 /**
  * The six colour families a marker ring can carry. `neutral` is the
@@ -27,7 +27,9 @@ export const FALLBACK_GLYPH: MapGlyphName = 'poi';
  * `type` strings → glyph. Covers every type the bundled trails use plus the
  * waypoint classifier's vocabulary and the aliases real-world GPX carries,
  * grouped onto the nearest glyph so a data update never falls all the way
- * through to the generic dot.
+ * through to the generic dot. A water or resupply alias of the taxonomy's
+ * (`WATER_TYPE_ALIASES`, `RESUPPLY_TYPE_ALIASES`) that is not listed here
+ * still gets the water drop or the shop: see {@link waypointGlyph}.
  */
 const TYPE_TO_GLYPH: Record<string, MapGlyphName> = {
   // Water sources
@@ -155,10 +157,26 @@ function own<T>(table: Readonly<Record<string, T>>, key: string): T | undefined 
   return Object.prototype.hasOwnProperty.call(table, key) ? table[key] : undefined;
 }
 
+/**
+ * The glyph for a type the table does not list but the taxonomy counts as
+ * water or resupply (`well`, `kiosk`, …), so a marker never shows the neutral
+ * dot for a place the water carry or the resupply plan counts. Read from the
+ * taxonomy's own alias tables, so the two cannot drift.
+ */
+function familyGlyph(base: string): MapGlyphName | undefined {
+  if (WATER_TYPE_ALIASES.has(base)) return 'water';
+  if (RESUPPLY_TYPE_ALIASES.has(base)) return 'resupply';
+  return undefined;
+}
+
 /** The glyph for a waypoint type (generic point-of-interest for unknowns). */
 export function waypointGlyph(type: string | undefined): MapGlyphName {
-  // A turn-off shows the glyph of the place it serves: `hut-access` is the hut.
-  return own(TYPE_TO_GLYPH, type ?? '') ?? own(TYPE_TO_GLYPH, baseWaypointType(type)) ?? FALLBACK_GLYPH;
+  // A turn-off shows the glyph of the place it serves: `hut-access` is the hut,
+  // `well-access` the water drop. That is only the marker: whether a turn-off
+  // counts as water or resupply is the taxonomy's call (a `water-access` never
+  // counts as water), not the glyph's.
+  const base = baseWaypointType(type);
+  return own(TYPE_TO_GLYPH, type ?? '') ?? own(TYPE_TO_GLYPH, base) ?? familyGlyph(base) ?? FALLBACK_GLYPH;
 }
 
 /**
@@ -206,10 +224,6 @@ const GLYPH_FAMILY: Readonly<Record<MapGlyphName, GlyphFamily>> = {
   transport: 'neutral',
   poi: 'neutral',
 };
-
-export function glyphFamily(glyph: MapGlyphName): GlyphFamily {
-  return GLYPH_FAMILY[glyph];
-}
 
 /** The colour family of a waypoint type (a turn-off takes its served type's). */
 export function waypointFamily(type: string | undefined): GlyphFamily {

@@ -56,7 +56,7 @@ export interface ImportGpxOptions {
   id?: string;
   /** Match radius (m) between waypoints and the route (default 500). */
   waypointMaxDistance?: number;
-  /** Parser size/point caps (defaults come from GPX_OPTIMIZER_DEFAULTS). */
+  /** Parser size/point caps (defaults: `GPX_MAX_FILE_SIZE`, `GPX_MAX_POINT_COUNT`, `GPX_MAX_WAYPOINT_COUNT` in `gpx-parser`). */
   limits?: GpxParseLimits;
   /** Turn off spike removal / smoothing / thresholded ascent (default: on). */
   cleanElevation?: boolean;

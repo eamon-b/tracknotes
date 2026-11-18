@@ -12,7 +12,6 @@ import {
   nameScore,
   namesDistinguished,
   nameTokens,
-  nonDuplicatePois,
   type DedupWaypointLike,
 } from './poi-dedup';
 import type { TrailPOI, TrailPOICategory } from './trail-types';
@@ -419,14 +418,12 @@ describe('markDuplicatePois', () => {
   });
 });
 
-describe('nonDuplicatePois / countDuplicatePois', () => {
+describe('countDuplicatePois', () => {
   const pois = [poi({ name: 'a', duplicateOf: 'w_1' }), poi({ name: 'b' }), poi({ name: 'c', duplicateOf: 'w_2' })];
 
-  it('filters and counts the flagged ones', () => {
-    expect(nonDuplicatePois(pois)).toHaveLength(1);
+  it('counts the flagged ones', () => {
     expect(countDuplicatePois(pois)).toBe(2);
     expect(countDuplicatePois(undefined)).toBe(0);
-    expect(nonDuplicatePois(undefined)).toEqual([]);
   });
 });
 
@@ -789,7 +786,6 @@ describe('markSelfDuplicatePois (OSM mapping one place twice)', () => {
       poi({ id: 2, name: 'b', duplicateOf: 'w_1' }),
       poi({ id: 3, name: 'c', duplicateOfPoi: 'node/1' }),
     ];
-    expect(nonDuplicatePois(pois).map(p => p.id)).toEqual([1]);
     expect(countDuplicatePois(pois)).toBe(1);
     expect(countSelfDuplicatePois(pois)).toBe(1);
     expect(pois.map(isDuplicatePoi)).toEqual([false, true, true]);

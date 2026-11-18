@@ -9,7 +9,7 @@ import { resolve } from 'path';
 import { importGpx } from './gpx-import';
 import { gpxMovingSpeedKmh, hasFailures, runCommunityChecks, sanitiseCommunityTrail } from './community-checks';
 import { haversineDistance } from './distance';
-import { douglasPeuckerIndices } from './gpx-optimizer';
+import { cumulativeElevationChange, douglasPeuckerIndices } from './gpx-optimizer';
 import { calculateAdaptiveTolerance, DEFAULT_TARGET_DISPLAY_POINTS } from './trail-ingest';
 import type { CommunityCheck } from './community-types';
 import type { ProcessedTrail, RouteVariant, TrackPoint } from './trail-types';
@@ -411,7 +411,7 @@ describe('elevation', () => {
     ];
     expect(runCommunityChecks(t, META).trail!.track.totalAscent).toBeGreaterThan(before + 900);
   });
-  it('drops cumAscent/cumDescent from every point', () => {
+  it("rebuilds every point's cumAscent/cumDescent from its own climb, never the client's", () => {
     const t = thorsborne();
     t.track.points.forEach((p, i) => {
       p.cumAscent = i * 1000;
@@ -422,10 +422,13 @@ describe('elevation', () => {
     t.alternates = [variant];
     const result = runCommunityChecks(t, META);
     expect(result.ok).toBe(true);
-    for (const p of result.trail!.track.points) {
-      expect('cumAscent' in p).toBe(false);
-      expect('cumDescent' in p).toBe(false);
-    }
+    const points = result.trail!.track.points;
+    const climb = cumulativeElevationChange(points, 3);
+    points.forEach((p, i) => {
+      expect(p.cumAscent).toBe(Math.round(climb.ascent[i]));
+      expect(p.cumDescent).toBe(Math.round(climb.descent[i]));
+    });
+    expect(points[points.length - 1].cumAscent).toBe(Math.round(result.trail!.track.totalAscent));
     for (const p of result.trail!.alternates[0].points) expect('cumAscent' in p).toBe(false);
   });
 });

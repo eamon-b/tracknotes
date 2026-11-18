@@ -7,6 +7,7 @@ import {
   kmAtHours,
   countWaterSources,
   computeDays,
+  trailEndName,
   placeWalk,
   stopWalk,
   addPlaceWalks,
@@ -329,6 +330,29 @@ describe('computeDays', () => {
     const days = computeDays(trail, [], null, null, 4);
     expect(days[0].startName).toBe('Trailhead');
     expect(days[0].endName).toBe('Summit');
+  });
+
+  it("names an end by the trail when its first or last waypoint is not at it (AAWT's O'Sheas Mill Site, km 13.2)", () => {
+    const waypoints: PlanWaypoint[] = [
+      { name: "O'Sheas Mill Site", type: 'campsite', totalDistance: 13.2 },
+      { name: 'Summit', type: 'mountain', totalDistance: 30 },
+      { name: 'Just short of the end', type: 'hut', totalDistance: 49.6 },
+    ];
+    const days = computeDays(makeFlatTrail(50, waypoints), [], null, null, 4);
+    expect(days[0].startName).toBe('Test Trail Start');
+    expect(days[0].endName).toBe('Just short of the end'); // 0.4 km from the end
+    const noEnd = computeDays(makeFlatTrail(51, waypoints), [], null, null, 4);
+    expect(noEnd[0].endName).toBe('Test Trail End');
+  });
+
+  it('names an end by the waypoint nearest it within 0.5 km, wherever it is in the list', () => {
+    const waypoints: PlanWaypoint[] = [
+      { name: 'Car park', type: 'road', totalDistance: 0.3 },
+      { name: 'Summit', type: 'mountain', totalDistance: 25 },
+      { name: 'Trailhead', type: 'endpoint', totalDistance: 0 },
+    ];
+    expect(trailEndName(makeFlatTrail(50, waypoints), 'start')).toBe('Trailhead');
+    expect(trailEndName(makeFlatTrail(50, waypoints), 'end')).toBe('Test Trail End');
   });
 
   it('handles unsorted stops by producing correct day distances', () => {

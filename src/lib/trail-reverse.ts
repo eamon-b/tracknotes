@@ -260,7 +260,7 @@ export function createReversedTrail<T extends ReversibleTrail>(trail: T): T {
     },
     waypoints: reverseWaypoints(trail.waypoints ?? [], totalDist, trackLength, trail.track),
     alternates: reverseAlternates(trail.alternates ?? [], totalDist),
-    sideTrips: transformSideTrips(trail.sideTrips ?? [], totalDist),
+    sideTrips: transformSideTrips(trail.sideTrips ?? [], totalDist, trail.alternates),
     // Only when the trail has POIs: an absent `pois` means "never enriched",
     // which is not the same as "enriched and found nothing".
     // Variants go along so a POI on a side trip or alternate mirrors with it.

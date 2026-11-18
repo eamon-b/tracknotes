@@ -952,7 +952,12 @@ function rideOf(access: StopAccess, end: LegRide['end']): LegRide {
 
 /**
  * The resupply stop the hiker reaches next from `currentKm` (direction-applied),
- * or null past the last one. A stop within 50 m behind counts as reached.
+ * or null past the last one: the nearest stop strictly ahead. A stop at
+ * `currentKm` counts as reached, and there is no slack either way — the
+ * phone's distance strip shows it beside the next water and camp, which count
+ * the same way (`calculateDistancesToWaypoints`), so a town 30 m ahead reads as
+ * 30 m rather than vanishing in favour of the one after it, and all three
+ * entries agree about where the hiker is.
  */
 export function nextResupplyStop(stops: readonly ResupplyStop[], currentKm: number): ResupplyStop | null {
   let next: ResupplyStop | null = null;

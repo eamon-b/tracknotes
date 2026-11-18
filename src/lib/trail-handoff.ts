@@ -34,6 +34,7 @@
 import { hashString, type ImportReport } from './gpx-import';
 import { assertPlanDocumentWithinLimits, isPlanDocument } from './plan-editor';
 import { importedPlanStopsWarning } from './plan-stop-issues';
+import { findNearestByDistance } from './track-geometry';
 import type { PlanDocument, PlanStop } from './plan-types';
 import { isAccessMode, isStoreKind, type WaypointAccess } from './types';
 import type {
@@ -292,12 +293,20 @@ export function parseHandoff(text: string): ParsedHandoff {
     gpxFile: typeof config.gpxFile === 'string' ? config.gpxFile : '',
     source: 'imported',
   };
+  // The config is spread like a waypoint is, so the two fields a reader
+  // dereferences are re-checked: kept when well formed, dropped when not.
+  delete resolvedConfig.direction;
+  delete resolvedConfig.climateLocations;
+  const configDirection = readDirection(config.direction);
+  if (configDirection) resolvedConfig.direction = configDirection;
+  const configClimateLocations = readClimateLocations(config.climateLocations);
+  if (configClimateLocations) resolvedConfig.climateLocations = configClimateLocations;
 
   // A waypoint is one source object seen from several lists - the main route,
   // a variant, off-trail - and keeps one id across them, so a re-minted id is
   // re-minted the same way everywhere it appears.
   const remintedIds = new Map<string, string>();
-  const waypoints = trail.waypoints.map((w, i) => readWaypoint(w, i, trailId, remintedIds));
+  const waypoints = trail.waypoints.map((w, i) => readWaypoint(w, i, trailId, remintedIds, points));
   // Every source id that came out as a different local id, from any list —
   // what the plan's waypoint ids are translated through. Seeded with the main
   // route's, which is where a stop or resupply option almost always is.
@@ -318,16 +327,14 @@ export function parseHandoff(text: string): ParsedHandoff {
     offTrailWaypoints: readList(trail.offTrailWaypoints, 'offTrailWaypoints', (w, where) =>
       readOffTrailWaypoint(w, where, ids)
     ),
-    alternates: readList(trail.alternates, 'alternates', (v, where) => readVariant(v, where, ids)),
+    alternates: readList(trail.alternates, 'alternates', (v, where) => readVariant(v, where, ids, points.length)),
     // Side trips and alternative termini share this array (told apart by
     // `type`), so a handoff written by a newer web build carries its termini
     // across untouched and an older one simply has none.
-    sideTrips: readList(trail.sideTrips, 'sideTrips', (v, where) => readVariant(v, where, ids)),
-    climate: isRecord(trail.climate) ? (trail.climate as Record<string, unknown>) : null,
-    climateLocations: Array.isArray(trail.climateLocations)
-      ? (trail.climateLocations as ClimateLocationConfig[])
-      : null,
-    direction: isRecord(trail.direction) ? (trail.direction as unknown as DirectionConfig) : null,
+    sideTrips: readList(trail.sideTrips, 'sideTrips', (v, where) => readVariant(v, where, ids, points.length)),
+    climate: readClimate(trail.climate),
+    climateLocations: readClimateLocations(trail.climateLocations),
+    direction: readDirection(trail.direction),
     ...(pois ? { pois } : {}),
   };
 
@@ -630,7 +637,7 @@ function readPOIs(value: unknown): TrailPOI[] | undefined {
       lat,
       lon,
       name: typeof entry.name === 'string' ? entry.name : null,
-      tags: isRecord(entry.tags) ? (entry.tags as Record<string, string>) : {},
+      tags: readTags(entry.tags),
       distanceAlongTrail: finiteOr(distanceAlongTrail, 0),
       distanceFromTrail: finiteOr(distanceFromTrail, 0),
       // Carried through so an exported trail keeps hiding the POIs its own
@@ -702,7 +709,13 @@ function readRouteBreak(value: unknown, where: string): RouteBreak {
  * contains nothing the server has ever heard of. Re-minting is deterministic on
  * (trail id, index, name, position), so re-importing the same file is idempotent.
  */
-function readWaypoint(value: unknown, index: number, trailId: string, reminted: Map<string, string>): EnrichedWaypoint {
+function readWaypoint(
+  value: unknown,
+  index: number,
+  trailId: string,
+  reminted: Map<string, string>,
+  points: readonly TrackPoint[]
+): EnrichedWaypoint {
   const where = `waypoints[${index}]`;
   if (!isRecord(value)) fail(`This Tracknotes trail file has a malformed ${where}.`);
 
@@ -732,9 +745,17 @@ function readWaypoint(value: unknown, index: number, trailId: string, reminted: 
     descent: finiteOr(value.descent, 0),
     totalAscent: finiteOr(value.totalAscent, 0),
     totalDescent: finiteOr(value.totalDescent, 0),
-    trackIndex: Number.isInteger(value.trackIndex) ? (value.trackIndex as number) : 0,
+    trackIndex: 0,
   };
-  dropNonStringDescription(waypoint);
+  // The point it sits at: indexes `points` in the elevation backfill and the
+  // stop editors, so one past the end is re-read as the point at its km.
+  waypoint.trackIndex =
+    Number.isInteger(value.trackIndex) &&
+    (value.trackIndex as number) >= 0 &&
+    (value.trackIndex as number) < points.length
+      ? (value.trackIndex as number)
+      : findNearestByDistance(points as TrackPoint[], waypoint.totalDistance);
+  dropUntrustedFields(waypoint);
   applyAccessFields(waypoint, value);
   return waypoint;
 }
@@ -850,22 +871,98 @@ function readOffTrailWaypoint(value: unknown, where: string, ids: WaypointIdCont
     type: typeof value.type === 'string' ? value.type : 'other',
     distanceFromTrail: finiteOr(value.distanceFromTrail, 0),
   };
-  dropNonStringDescription(waypoint);
+  dropUntrustedFields(waypoint);
   applyAccessFields(waypoint, value);
   return waypoint;
 }
 
 /**
  * The readers spread the file's own object, so a field they do not re-check
- * arrives as written. `description` is read as text by the water calculator and
- * the link splitter, which throw on anything else.
+ * arrives as written. These are the ones something reads:
+ * - `description` is read as text by the water calculator and the link
+ *   splitter, which throw on anything else;
+ * - `userWaypoint` marks a hiker's own pin (`placeUserWaypoints` adds it on the
+ *   phone at run time, and the phone's list and waypoint screen say who
+ *   reported it): a file's waypoint is never one, so it never keeps the mark;
+ * - `mergedIds` names the near-duplicates folded into a waypoint: kept only as
+ *   local `uw_` ids (what an import mints), since a `u_` trail carries no id
+ *   the server has heard of.
  */
-function dropNonStringDescription(waypoint: { description?: unknown }): void {
+function dropUntrustedFields(waypoint: { description?: unknown; mergedIds?: unknown }): void {
   if (waypoint.description !== undefined && typeof waypoint.description !== 'string') delete waypoint.description;
+  delete (waypoint as { userWaypoint?: unknown }).userWaypoint;
+  if (waypoint.mergedIds !== undefined) {
+    const kept = Array.isArray(waypoint.mergedIds) ? waypoint.mergedIds.filter(isImportedWaypointId) : [];
+    if (kept.length > 0) waypoint.mergedIds = kept;
+    else delete waypoint.mergedIds;
+  }
+}
+
+/** A POI's tags, keeping only string values: every reader formats them as text. */
+function readTags(value: unknown): Record<string, string> {
+  const tags: Record<string, string> = {};
+  if (!isRecord(value)) return tags;
+  for (const [key, tag] of Object.entries(value)) {
+    if (typeof tag === 'string') tags[key] = tag;
+  }
+  return tags;
+}
+
+/** Direction labels, or null unless both are strings. */
+function readDirection(value: unknown): DirectionConfig | null {
+  if (!isRecord(value) || typeof value.default !== 'string' || typeof value.reversed !== 'string') return null;
+  return { default: value.default, reversed: value.reversed };
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function isClimateLocation(value: unknown): value is ClimateLocationConfig {
+  return (
+    isRecord(value) &&
+    typeof value.name === 'string' &&
+    isFiniteNumber(value.lat) &&
+    isFiniteNumber(value.lon) &&
+    Math.abs(value.lat) <= 90 &&
+    Math.abs(value.lon) <= 180 &&
+    (value.waypointName === undefined || typeof value.waypointName === 'string')
+  );
+}
+
+/** The climate places, or null unless every entry is a named, real position. */
+function readClimateLocations(value: unknown): ClimateLocationConfig[] | null {
+  if (!Array.isArray(value) || !value.every(isClimateLocation)) return null;
+  return value as ClimateLocationConfig[];
+}
+
+/**
+ * The climate block (`fetch-climate.ts`'s shape: `locations`, each a named
+ * position with twelve-ish `monthly` rows of numbers), or null when it is not
+ * that shape — a hand-edited one is dropped whole rather than half read.
+ */
+function readClimate(value: unknown): Record<string, unknown> | null {
+  if (!isRecord(value) || !Array.isArray(value.locations)) return null;
+  const ok = value.locations.every((location: unknown) => {
+    if (!isClimateLocation(location)) return false;
+    const monthly: unknown = (location as unknown as Record<string, unknown>).monthly;
+    return (
+      Array.isArray(monthly) &&
+      monthly.every(
+        (row: unknown) => isRecord(row) && Object.values(row).every(field => field === null || isFiniteNumber(field))
+      )
+    );
+  });
+  return ok ? value : null;
 }
 
 /** Validate one waypoint on an alternate, side trip or terminus. */
-function readVariantWaypoint(value: unknown, where: string, ids: WaypointIdContext): VariantWaypoint {
+function readVariantWaypoint(
+  value: unknown,
+  where: string,
+  ids: WaypointIdContext,
+  pointCount: number
+): VariantWaypoint {
   if (!isRecord(value)) fail(`This Tracknotes trail file has a malformed ${where}.`);
   const { lat, lon } = readLatLon(value, where);
   const name = readName(value.name) ?? 'Waypoint';
@@ -883,9 +980,9 @@ function readVariantWaypoint(value: unknown, where: string, ids: WaypointIdConte
     descent: finiteOr(value.descent, 0),
     totalAscent: finiteOr(value.totalAscent, 0),
     totalDescent: finiteOr(value.totalDescent, 0),
-    variantTrackIndex: Number.isInteger(value.variantTrackIndex) ? (value.variantTrackIndex as number) : 0,
+    variantTrackIndex: indexWithin(value.variantTrackIndex, pointCount),
   };
-  dropNonStringDescription(waypoint);
+  dropUntrustedFields(waypoint);
   applyAccessFields(waypoint, value);
   return waypoint;
 }
@@ -901,7 +998,7 @@ const VARIANT_TYPES: readonly RouteVariant['type'][] = ['alternate', 'side-trip'
  * count from, and a NaN one would put every waypoint on it at NaN. Absent, it
  * stays absent (a variant that never reached the route).
  */
-function readVariant(value: unknown, where: string, ids: WaypointIdContext): RouteVariant {
+function readVariant(value: unknown, where: string, ids: WaypointIdContext, mainPointCount: number): RouteVariant {
   if (!isRecord(value)) fail(`This Tracknotes trail file has a malformed ${where}.`);
   if (!VARIANT_TYPES.includes(value.type as RouteVariant['type'])) {
     fail(`This Tracknotes trail file has an unknown ${where}.type (${describe(value.type)}).`);
@@ -939,7 +1036,9 @@ function readVariant(value: unknown, where: string, ids: WaypointIdContext): Rou
     if (!Number.isInteger(value[key])) {
       fail(`This Tracknotes trail file has a non-integer ${where}.${key} (${describe(value[key])}).`);
     }
-    variant[key] = value[key] as number;
+    // Kept (its presence says the junction is on the main route, which the
+    // direction reversal reads), but inside the main track.
+    variant[key] = indexWithin(value[key], mainPointCount);
   }
   if (value.parent !== undefined) {
     const parent = value.parent;
@@ -949,9 +1048,17 @@ function readVariant(value: unknown, where: string, ids: WaypointIdContext): Rou
     variant.parent = { name: parent.name, index: parent.index as number };
   }
   if (value.waypoints !== undefined) {
-    variant.waypoints = readList(value.waypoints, `${where}.waypoints`, (w, at) => readVariantWaypoint(w, at, ids));
+    variant.waypoints = readList(value.waypoints, `${where}.waypoints`, (w, at) =>
+      readVariantWaypoint(w, at, ids, points.length)
+    );
   }
   return variant;
+}
+
+/** An integer index into a list of `length`, clamped into it (0 for a non-integer or an empty list). */
+function indexWithin(value: unknown, length: number): number {
+  if (!Number.isInteger(value) || length === 0) return 0;
+  return Math.min(Math.max(value as number, 0), length - 1);
 }
 
 function requireFinite(value: unknown, where: string): number {

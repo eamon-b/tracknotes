@@ -4,10 +4,8 @@ import { parseCoordinate } from './parse-coordinate';
 import { defaultXmlAdapter, type XmlAdapter, type XmlNode } from './xml-adapter';
 
 /**
- * Maximum number of track/route points accepted from a single GPX file.
- * Also the `maxPointCount` default in `GPX_OPTIMIZER_DEFAULTS` (which imports
- * these constants from here — gpx-optimizer already depends on this module, so
- * keeping the limits here avoids an import cycle).
+ * Maximum number of track/route points accepted from a single GPX file: the
+ * default `maxPointCount` of {@link parseGpx}'s limits.
  */
 export const GPX_MAX_POINT_COUNT = 100000;
 
@@ -16,9 +14,10 @@ export const GPX_MAX_FILE_SIZE = 50 * 1024 * 1024;
 
 /**
  * Maximum number of `<wpt>`s accepted from a single GPX file. Every waypoint
- * is matched against every track point while the trail is built, so they need
- * a ceiling as much as the points do. The largest curated trail (the CDT) has
- * under 600; a file with more than this is not a trail guide.
+ * is matched against the track while the trail is built (`findWaypointVisits`,
+ * the off-trail distances), so they need a ceiling as much as the points do. The
+ * largest curated trail (the CDT) has under 600; a file with more than this is
+ * not a trail guide.
  */
 export const GPX_MAX_WAYPOINT_COUNT = 20000;
 
@@ -246,7 +245,7 @@ export function generateGpx(
   extraTracks: { name: string; points: GpxPoint[] }[] = []
 ): string {
   let xml = `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="GPX Tools"
+<gpx version="1.1" creator="Tracknotes"
   xmlns="http://www.topografix.com/GPX/1/1"
   xmlns:tn="${TN_WAYPOINT_NAMESPACE}"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -302,7 +301,7 @@ function trackXml(name: string, points: GpxPoint[]): string {
 `;
     }
     if (pt.time) {
-      xml += `        <time>${pt.time}</time>
+      xml += `        <time>${escapeXml(pt.time)}</time>
 `;
     }
     xml += `      </trkpt>

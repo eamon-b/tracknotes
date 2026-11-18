@@ -21,9 +21,7 @@ export type CommunityRouteStatus = 'unverified' | 'verified' | 'hidden' | 'remov
 /** Statuses anyone can see. */
 export const PUBLIC_COMMUNITY_STATUSES: readonly CommunityRouteStatus[] = ['unverified', 'verified'];
 
-/** Prefix of every community route id (`c_` + 16 url-safe random chars). */
-export const COMMUNITY_ID_PREFIX = 'c_';
-
+/** Whether `id` is a community route id: `c_` + 16 url-safe random chars. */
 export function isCommunityRouteId(id: string): boolean {
   return /^c_[A-Za-z0-9_-]{16}$/.test(id);
 }

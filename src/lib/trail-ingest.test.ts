@@ -12,12 +12,14 @@ import { parseGpx } from './gpx-parser';
 import {
   buildTrail,
   calculateAdaptiveTolerance,
+  findWaypointVisits,
   flattenGpx,
   recomputeTrailElevation,
   type BuildTrailDiagnostics,
   type ParsedGpxResult,
 } from './trail-ingest';
-import type { TrailConfig } from './trail-types';
+import type { TrailConfig, TrailWaypoint, WaypointVisit } from './trail-types';
+import { haversineDistance } from './distance';
 
 const FIXTURES = resolve(__dirname, '../../tests/fixtures/gpx');
 const load = (name: string): ParsedGpxResult =>
@@ -1170,5 +1172,82 @@ describe('calculateAdaptiveTolerance', () => {
 
   it('still returns zero when the track is already under target', () => {
     expect(calculateAdaptiveTolerance(densePoints(100, 10), 3000, 1)).toBe(0);
+  });
+});
+
+describe('findWaypointVisits spatial prefilter', () => {
+  /** The full scan `findWaypointVisits` replaced: every point against every waypoint. */
+  function scanVisits(
+    waypoints: TrailWaypoint[],
+    trackPoints: { lat: number; lon: number; ele: number }[],
+    maxDistanceMeters: number
+  ): WaypointVisit[] {
+    const visits: WaypointVisit[] = [];
+    const exitThreshold = maxDistanceMeters * 3.0;
+    const active = new Map<number, { bestDistance: number; bestTrackIndex: number }>();
+    for (let t = 0; t < trackPoints.length; t++) {
+      for (let w = 0; w < waypoints.length; w++) {
+        const d = haversineDistance(waypoints[w].lat, waypoints[w].lon, trackPoints[t].lat, trackPoints[t].lon);
+        const existing = active.get(w);
+        if (existing) {
+          if (d < existing.bestDistance) {
+            existing.bestDistance = d;
+            existing.bestTrackIndex = t;
+          }
+          if (d > exitThreshold) {
+            visits.push({
+              waypoint: waypoints[w],
+              trackIndex: existing.bestTrackIndex,
+              distanceFromTrack: existing.bestDistance,
+            });
+            active.delete(w);
+          }
+        } else if (d <= maxDistanceMeters) {
+          active.set(w, { bestDistance: d, bestTrackIndex: t });
+        }
+      }
+    }
+    for (const [w, data] of active.entries()) {
+      visits.push({ waypoint: waypoints[w], trackIndex: data.bestTrackIndex, distanceFromTrack: data.bestDistance });
+    }
+    visits.sort((a, b) => a.trackIndex - b.trackIndex);
+    return visits;
+  }
+
+  /** A deterministic wandering track and waypoints scattered round it. */
+  function scene(seed: number, lat0: number, lon0: number, n: number) {
+    let x = seed;
+    const rand = () => {
+      x = (x * 1103515245 + 12345) % 2147483648;
+      return x / 2147483648;
+    };
+    const track: { lat: number; lon: number; ele: number }[] = [];
+    let lat = lat0;
+    let lon = lon0;
+    for (let i = 0; i < n; i++) {
+      lat += (rand() - 0.3) * 0.002;
+      lon += (rand() - 0.5) * 0.002;
+      if (lon > 180) lon -= 360;
+      if (lon < -180) lon += 360;
+      track.push({ lat: Math.max(-90, Math.min(90, lat)), lon, ele: 0 });
+    }
+    const waypoints: TrailWaypoint[] = Array.from({ length: 300 }, (_, i) => {
+      const p = track[Math.floor(rand() * n)];
+      return { name: `W${i}`, type: 'water', lat: p.lat + (rand() - 0.5) * 0.02, lon: p.lon + (rand() - 0.5) * 0.02 };
+    });
+    // Twins at one spot, and an unreadable one.
+    waypoints.push({ ...waypoints[0], name: 'Twin' }, { name: 'Nowhere', type: 'water', lat: NaN, lon: 0 });
+    return { track, waypoints };
+  }
+
+  it.each([
+    ['mid-latitudes', 1, -37, 146],
+    ['across the antimeridian', 2, -41, 179.6],
+    ['near a pole', 3, 89.2, 10],
+  ])('finds exactly the visits, in exactly the order, of the full scan (%s)', (_label, seed, lat, lon) => {
+    const { track, waypoints } = scene(seed, lat, lon, 1500);
+    for (const max of [200, 500, 2000]) {
+      expect(findWaypointVisits(waypoints, track, max)).toEqual(scanVisits(waypoints, track, max));
+    }
   });
 });
