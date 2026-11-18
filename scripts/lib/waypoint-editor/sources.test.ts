@@ -21,6 +21,7 @@ import {
   readCaltopoExport,
   removeCaltopoFeature,
   removeGpxWaypoint,
+  removeJsonArrayString,
   renameJsonArrayString,
   renameKeepingPrefix,
   setCaltopoMarkerFolder,
@@ -590,5 +591,34 @@ describe('a string in a JSON array', () => {
     expect(rename('revisitedWaypoints', 'Lobuche', 'Namche Bazaar')).toBe(TRAIL.replace('"Lobuche",\n    ', ''));
     expect(rename('revisitedWaypoints', 'Namche Bazaar', 'Lobuche')).toBe(TRAIL.replace(',\n    "Namche Bazaar"', ''));
     expect(rename('revisitedWaypoints', 'Lobuche', 'Namche Bazaar', true)).toBeNull();
+  });
+
+  it('takes a name out with the separator that joined it, wherever it stood', () => {
+    const LONG = TRAIL.replace('"Namche Bazaar"', '"Namche Bazaar",\n    "Monjo"');
+    const remove = (text: string, key: string, value: string) => removeJsonArrayString(text, 'trail.json', key, value);
+    // First, middle and last of a list laid out over lines.
+    expect(remove(LONG, 'revisitedWaypoints', 'Lobuche')).toBe(LONG.replace('"Lobuche",\n    ', ''));
+    expect(remove(LONG, 'revisitedWaypoints', 'Namche Bazaar')).toBe(LONG.replace('"Namche Bazaar",\n    ', ''));
+    expect(remove(LONG, 'revisitedWaypoints', 'Monjo')).toBe(LONG.replace(',\n    "Monjo"', ''));
+    // And of one on a single line.
+    expect(remove(TRAIL, 'states', 'A')).toBe(TRAIL.replace('["A", "B"]', '["B"]'));
+    expect(remove(TRAIL, 'states', 'B')).toBe(TRAIL.replace('["A", "B"]', '["A"]'));
+    for (const text of [remove(LONG, 'revisitedWaypoints', 'Monjo')!, remove(TRAIL, 'states', 'A')!]) {
+      expect(() => JSON.parse(text)).not.toThrow();
+    }
+  });
+
+  it('leaves [] when the name was the only one, on one line or several', () => {
+    const one = TRAIL.replace('["A", "B"]', '["A"]').replace('"Lobuche",\n    ', '');
+    expect(removeJsonArrayString(one, 'trail.json', 'states', 'A')).toBe(one.replace('["A"]', '[]'));
+    expect(removeJsonArrayString(one, 'trail.json', 'revisitedWaypoints', 'Namche Bazaar')).toBe(
+      one.replace('[\n    "Namche Bazaar"\n  ]', '[]')
+    );
+  });
+
+  it('changes nothing for a name or a list that is not there, and refuses a list it cannot read', () => {
+    expect(removeJsonArrayString(TRAIL, 'trail.json', 'revisitedWaypoints', 'Gokyo')).toBeNull();
+    expect(removeJsonArrayString(TRAIL, 'trail.json', 'nothing', 'Lobuche')).toBeNull();
+    expect(() => removeJsonArrayString(TRAIL, 'trail.json', 'id', 'demo')).toThrow(/"id" is not a list of names/);
   });
 });

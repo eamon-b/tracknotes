@@ -717,6 +717,35 @@ export function renameJsonArrayString(
   return text.slice(0, span.start) + text.slice(span.end);
 }
 
+/**
+ * A JSON object's text with the string `value` taken out of the array of
+ * strings at its top-level `key`, along with the separator that joined it to
+ * a neighbour; every other byte is left as it was. An array it was the only
+ * entry of is left as `[]`, whatever lines it was laid out over.
+ *
+ * Null when the object has no such array or the array has no `value`. Throws
+ * when `key` is there but is not an array of strings.
+ */
+export function removeJsonArrayString(text: string, source: string, key: string, value: string): string | null {
+  const parsed = JSON.parse(text) as Record<string, unknown>;
+  const list = parsed[key];
+  if (list === undefined) return null;
+  if (!Array.isArray(list) || list.some(item => typeof item !== 'string')) {
+    throw new Error(`${source}: "${key}" is not a list of names, so the editor cannot change it`);
+  }
+  const index = list.indexOf(value);
+  if (index === -1) return null;
+  const span = jsonValueSpan(text, [key, index]);
+  if (!span) throw new Error(`${source}: could not find "${value}" in "${key}"`);
+  const next = index + 1 < list.length ? jsonValueSpan(text, [key, index + 1]) : null;
+  if (next) return text.slice(0, span.start) + text.slice(next.start);
+  const previous = index > 0 ? jsonValueSpan(text, [key, index - 1]) : null;
+  if (previous) return text.slice(0, previous.end) + text.slice(span.end);
+  const whole = jsonValueSpan(text, [key]);
+  if (!whole) throw new Error(`${source}: could not find "${key}"`);
+  return `${text.slice(0, whole.start)}[]${text.slice(whole.end)}`;
+}
+
 /** The export with one marker moved and/or retitled; every other byte is left as it was. */
 export function editCaltopoMarker(
   geojsonText: string,

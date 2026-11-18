@@ -22,7 +22,8 @@
  *  - name: the `<wpt>`'s `<name>` and the CalTopo marker's title, both keeping
  *    their type prefix, the registry entry's name, `descriptions.json`'s
  *    `name` aid, and the name in trail.json's `revisitedWaypoints`.
- * Nothing else is touched; `build:trails` then turns the sources into data.
+ * A delete takes the place's name out of that list, when no other `<wpt>` has
+ * it. Nothing else is touched; `build:trails` then turns the sources into data.
  *
  * Every move, rename and type change is checked as the build will see it
  * before anything is written: the type the build resolves for the edited
@@ -103,6 +104,7 @@ import {
   readCaltopoExport,
   removeCaltopoFeature,
   removeGpxWaypoint,
+  removeJsonArrayString,
   renameJsonArrayString,
   renameKeepingPrefix,
   setCaltopoMarkerFolder,
@@ -1562,7 +1564,8 @@ function assertIdsKept(
   trailId: string,
   before: IdRun,
   after: IdRun,
-  pairs: readonly [number, number][]
+  pairs: readonly [number, number][],
+  doing: { after: string; retry: string } = { after: 'after this edit', retry: 'make this edit again' }
 ): { ids: string[]; beforeIds: string[]; warnings: string[] } {
   let beforeIds: string[];
   try {
@@ -1581,14 +1584,28 @@ function assertIdsKept(
   } catch (error) {
     throw new EditorError(`That would stop the next build: ${error instanceof Error ? error.message : String(error)}`);
   }
-  const lost = pairs
-    .filter(([a, b]) => ids[a] !== beforeIds[b])
+  const changed = pairs.filter(([a, b]) => ids[a] !== beforeIds[b]);
+  // An id the before-run minted belongs to a <wpt> that is not built yet: it
+  // has no id, comments or description to lose. What it can do is take a built
+  // waypoint's.
+  const entries = new Map((before.registry[trailId] ?? []).map(e => [e.id, e]));
+  const lost = changed
+    .filter(([, b]) => entries.has(beforeIds[b]))
     .map(([a, b]) => `“${after.inputs[a].name}” (${beforeIds[b]} would become ${ids[a]})`);
   if (lost.length) {
     throw new EditorError(
       `That would change the id of ${lost.join(', ')}, orphaning the comments and description keyed to it; the editor will not do that.`
     );
   }
+  const unbuilt = changed.map(([a, b]) => {
+    const name = `“${after.inputs[a].name}”`;
+    const taken = entries.get(ids[a]);
+    const would = taken
+      ? `read it as “${taken.name}” moved or renamed and give it ${taken.id}, with the comments and description keyed to that id`
+      : `mint it ${ids[a]} instead`;
+    return `${name} is not built yet, so it has no id of its own (the next build would mint it ${beforeIds[b]}): ${doing.after}, the build would ${would}. Rebuild first, so that ${name} has its own id (${beforeIds[b]}), then ${doing.retry}.`;
+  });
+  if (unbuilt.length) throw new EditorError(`${unbuilt.join(' ')} Nothing was written.`);
   return { ids, beforeIds, warnings };
 }
 
@@ -2345,12 +2362,41 @@ export function deleteWaypoint(
     const text = withoutDescriptionsText(sources.descriptions, removed);
     if (text !== null) writes.push({ file: context.descriptionsPath, text });
   }
+  const after = parseSources(context, { ...sources, gpx, geojson });
   assertIdsKept(
     context.trailId,
     { registry: sources.registryEntries, inputs: idInputs(sources) },
-    { registry: sources.registryEntries, inputs: idInputs(parseSources(context, { ...sources, gpx, geojson })) },
-    sources.spans.flatMap((_, i) => (i === spanIndex ? [] : [[i < spanIndex ? i : i - 1, i] as [number, number]]))
+    { registry: sources.registryEntries, inputs: idInputs(after) },
+    sources.spans.flatMap((_, i) => (i === spanIndex ? [] : [[i < spanIndex ? i : i - 1, i] as [number, number]])),
+    { after: `with “${current.name}” gone`, retry: `delete “${current.name}”` }
   );
+
+  // A revisited place is listed in trail.json by name: once no <wpt> has the
+  // name, the build warns on every run that the route no longer passes it twice.
+  const listedName = sources.typed[spanIndex].cleanedName;
+  if (after.typed.some(t => t.cleanedName === listedName)) {
+    const listed = (JSON.parse(context.configText) as Record<string, unknown>)[REVISITED_KEY];
+    if (Array.isArray(listed) && listed.includes(listedName)) {
+      notes.push(
+        `trail.json still lists “${listedName}” in ${REVISITED_KEY}: another waypoint has that name. Take it out by hand if the route no longer passes that one twice.`
+      );
+    }
+  } else {
+    let config: string | null;
+    try {
+      config = removeJsonArrayString(context.configText, 'trail.json', REVISITED_KEY, listedName);
+    } catch (error) {
+      throw new EditorError(
+        `${error instanceof Error ? error.message : String(error)}: the build reads it to tell which waypoints the route passes twice, by name, so a delete may need a name taken out. Fix it by hand first.`
+      );
+    }
+    if (config !== null) {
+      writes.push({ file: context.configPath, text: config });
+      notes.push(
+        `Took “${listedName}” out of ${REVISITED_KEY} in trail.json (the route passed it more than once), so the next build does not warn that it is listed but no longer passed twice.`
+      );
+    }
+  }
 
   commitWrites(writes);
   const changed = writes.map(w => relative(paths, w.file));

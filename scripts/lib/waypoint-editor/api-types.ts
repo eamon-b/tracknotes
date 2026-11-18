@@ -163,8 +163,8 @@ export interface EditorTrail {
   readOnlyReason?: string;
   /**
    * Repo-relative paths of the files a save may write. `config` is the
-   * trail's trail.json, written only when a rename changes a name listed in
-   * its `revisitedWaypoints`.
+   * trail's trail.json, written only when a rename changes, or a delete takes
+   * out, a name listed in its `revisitedWaypoints`.
    */
   files: { gpx: string; geojson?: string; descriptions: string; registry: string; config?: string };
   /** Route geometry from the last build, enough to draw and snap to. */

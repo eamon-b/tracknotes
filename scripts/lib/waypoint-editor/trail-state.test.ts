@@ -1776,6 +1776,90 @@ describe('a revisited place', () => {
     const before = snapshot();
     expect(() => request('demo', 'w_cccc3333', { name: 'Saddle Campsite' })).toThrow(/revisitedWaypoints/);
     expect(snapshot()).toEqual(before);
+    expect(() => deleteWaypoint(paths, 'demo', 'w_cccc3333', SADDLE_ROW)).toThrow(/revisitedWaypoints/);
+    expect(snapshot()).toEqual(before);
+  });
+
+  const SADDLE_ROW = { expected: { name: 'Saddle Camp', lat: -36.55, lon: 148.35, description: 'A flat saddle.' } };
+
+  it('takes a deleted place out of trail.json’s revisitedWaypoints, in the same save', () => {
+    writeRevisit();
+    const result = deleteWaypoint(paths, 'demo', 'w_cccc3333', SADDLE_ROW);
+    expect(result.removed).toEqual(['w_cccc3333', 'w_cccc3333_2']);
+    // Only the name and the separator that joined it go: every other byte of trail.json stays.
+    expect(read('data/trails/demo/trail.json')).toBe(REVISIT_TRAIL_JSON.replace(', "Saddle Camp"', ''));
+    expect(result.changedFiles).toContain('data/trails/demo/trail.json');
+    expect(result.notes.join('\n')).toMatch(/Took “Saddle Camp” out of revisitedWaypoints in trail\.json/);
+    // What the build would otherwise warn about on every run.
+    const config = JSON.parse(read('data/trails/demo/trail.json')) as { revisitedWaypoints: string[] };
+    expect(config.revisitedWaypoints).toEqual(['Elsewhere']);
+  });
+
+  it('leaves an empty list, as Prettier writes one, when the place was its only entry', () => {
+    writeRevisit();
+    const only = REVISIT_TRAIL_JSON.replace('["Elsewhere", "Saddle Camp"]', '[\n    "Saddle Camp"\n  ]');
+    write('data/trails/demo/trail.json', only);
+    deleteWaypoint(paths, 'demo', 'w_cccc3333', SADDLE_ROW);
+    expect(read('data/trails/demo/trail.json')).toBe(only.replace('[\n    "Saddle Camp"\n  ]', '[]'));
+  });
+
+  it('keeps the name listed while another waypoint still goes by it', () => {
+    writeRevisit();
+    // A second Saddle Camp, 2 km on: the list is by name, so it may be the one meant.
+    write(
+      'data/trails/demo/demo.gpx',
+      GPX.replace(
+        '  <trk>',
+        '  <wpt lat="-36.57" lon="148.37"><name>Saddle Camp</name><type>campsite</type></wpt>\n  <trk>'
+      )
+    );
+    const result = deleteWaypoint(paths, 'demo', 'w_cccc3333', SADDLE_ROW);
+    expect(read('data/trails/demo/trail.json')).toBe(REVISIT_TRAIL_JSON);
+    expect(result.changedFiles).not.toContain('data/trails/demo/trail.json');
+    expect(result.notes.join('\n')).toMatch(/still lists “Saddle Camp” in revisitedWaypoints.*another waypoint/);
+  });
+});
+
+describe('a delete beside a waypoint that is not built yet', () => {
+  const SADDLE_ROW = { expected: { name: 'Saddle Camp', lat: -36.55, lon: 148.35, description: 'A flat saddle.' } };
+
+  it('is refused for what is true: the pending waypoint would be read as the deleted one, until a rebuild', () => {
+    // 33 m from Saddle Camp, and a campsite too.
+    const probe = addWaypoint(paths, 'demo', { name: 'Probe Camp', type: 'campsite', lat: -36.5503, lon: 148.35 });
+    expect(probe.waypoint.pending).toBe(true);
+    const before = snapshot();
+
+    let message = '';
+    try {
+      deleteWaypoint(paths, 'demo', 'w_cccc3333', SADDLE_ROW);
+    } catch (error) {
+      message = (error as Error).message;
+    }
+    expect(snapshot()).toEqual(before);
+    // Probe Camp has no id, comments or description to orphan: the message does not claim it has.
+    expect(message).not.toMatch(/would change the id of “Probe Camp”/);
+    expect(message).not.toMatch(/orphaning/);
+    expect(message).toMatch(/“Probe Camp” is not built yet, so it has no id of its own/);
+    // What the build would do, and with whose comments.
+    expect(message).toMatch(/read it as “Saddle Camp” moved or renamed and give it w_cccc3333/);
+    // What unblocks it.
+    expect(message).toMatch(
+      /Rebuild first, so that “Probe Camp” has its own id \(w_[0-9a-f]{8}\), then delete “Saddle Camp”/
+    );
+  });
+
+  it('goes through once the neighbour is out of reach', () => {
+    addWaypoint(paths, 'demo', { name: 'Probe Camp', type: 'campsite', lat: -36.56, lon: 148.36 });
+    expect(deleteWaypoint(paths, 'demo', 'w_cccc3333', SADDLE_ROW).removed).toEqual(['w_cccc3333']);
+  });
+
+  it('leaves a move, a rename and a retype of the built neighbour alone: its registry entry follows it', () => {
+    addWaypoint(paths, 'demo', { name: 'Probe Camp', type: 'campsite', lat: -36.5503, lon: 148.35 });
+    expect(request('demo', 'w_cccc3333', { lat: -36.5504, lon: 148.35 }).notes.join('\n')).toMatch(
+      /keeps id w_cccc3333/
+    );
+    expect(request('demo', 'w_cccc3333', { name: 'Saddle Flat' }).waypoint.name).toBe('Saddle Flat');
+    expect(request('demo', 'w_cccc3333', { type: 'hut' }).notes.join('\n')).toMatch(/keeps id w_cccc3333/);
   });
 });
 
