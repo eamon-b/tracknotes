@@ -153,7 +153,7 @@ describe('pullTrail', () => {
   });
 });
 
-async function seedLocal(d: SqlDatabase, id: string) {
+async function seedLocal(d: SqlDatabase, id: string, createdAt = '2026-01-01T00:00:00Z') {
   await commentsRepo.insertLocalComment(d, {
     id,
     trailId: 'aawt',
@@ -163,7 +163,7 @@ async function seedLocal(d: SqlDatabase, id: string) {
     body: 'hi',
     waterStatus: null,
     observedAt: null,
-    createdAt: '2026-01-01T00:00:00Z',
+    createdAt,
   });
   await outboxRepo.enqueue(d, {
     id,
@@ -171,7 +171,7 @@ async function seedLocal(d: SqlDatabase, id: string) {
     trailId: 'aawt',
     waypointId: 'w_1',
     payload: { trailId: 'aawt', waypointId: 'w_1', text: 'hi' },
-    createdAt: '2026-01-01T00:00:00Z',
+    createdAt,
   });
 }
 
@@ -673,5 +673,229 @@ describe('drain concurrency', () => {
     const row = await commentsRepo.getById(d, 'conc');
     expect(row?.photoUrls).toEqual(['https://cdn/a.jpg']);
     expect(await outboxRepo.count(d)).toBe(0);
+  });
+});
+
+describe('queued deletes and pulls', () => {
+  async function seedServer(d: SqlDatabase, id: string) {
+    await commentsRepo.upsertServerComment(d, {
+      id,
+      trailId: 'aawt',
+      waypointId: 'w_1',
+      displayName: 'Me',
+      text: 'hi',
+      waterStatus: null,
+      observedAt: null,
+      createdAt: '2026-01-01T00:00:00Z',
+    });
+  }
+
+  it('does not let a pull undo a delete that has not been sent yet', async () => {
+    const d = await db();
+    await seedServer(d, 'S');
+    // Offline: the delete is queued, the row is gone from the screen.
+    await deleteOwnComment(
+      { id: 'S', source: 'server' },
+      { db: d, baseUrl: BASE, fetchImpl: scriptedFetch([{ throw: true }]), getSessionFn },
+    );
+    expect(await outboxRepo.getById(d, 'S')).toMatchObject({ kind: 'delete' });
+
+    // The server still answers it as live until the delete drains.
+    const res = await pullTrail('aawt', {
+      db: d,
+      baseUrl: BASE,
+      fetchImpl: scriptedFetch([
+        {
+          body: {
+            comments: [feedComment('S'), feedComment('T')],
+            nextCursor: null,
+            syncedAt: 'T1',
+          },
+        },
+      ]),
+      getSessionFn,
+    });
+
+    expect(res).toMatchObject({ outcome: 'pulled', applied: 1 });
+    expect(await commentsRepo.getById(d, 'S')).toBeNull();
+    expect(await commentsRepo.getById(d, 'T')).not.toBeNull();
+    expect(await readSince(d, 'aawt')).toBe('T1');
+  });
+
+  it('applies a pull and its cursor all or nothing', async () => {
+    const d = await db();
+    const pull = pullTrail('aawt', {
+      db: d,
+      baseUrl: BASE,
+      fetchImpl: scriptedFetch([
+        {
+          body: {
+            // The second row violates NOT NULL created_at.
+            comments: [feedComment('a'), feedComment('b', { createdAt: null })],
+            nextCursor: null,
+            syncedAt: 'T1',
+          },
+        },
+      ]),
+      getSessionFn,
+    });
+    let threw = false;
+    try {
+      await pull;
+    } catch {
+      threw = true;
+    }
+
+    expect(threw).toBe(true);
+    expect(await commentsRepo.getById(d, 'a')).toBeNull();
+    expect(await readSince(d, 'aawt')).toBeNull();
+  });
+});
+
+describe('cancelling a comment while a drain is running', () => {
+  /** A fetch whose first call waits for `release`; later calls answer at once. */
+  function gatedFetch(first: Step, rest: Step[]) {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    let reached!: () => void;
+    const firstCalled = new Promise<void>((resolve) => (reached = resolve));
+    let i = 0;
+    const respond = (step: Step) => {
+      const status = step.status ?? 200;
+      const raw = status === 204 ? '' : JSON.stringify(step.body ?? {});
+      return { ok: status >= 200 && status < 300, status, statusText: '', text: async () => raw };
+    };
+    const fn = jest.fn(async (..._args: unknown[]) => {
+      const call = i;
+      i += 1;
+      if (call === 0) {
+        reached();
+        await gate;
+        return respond(first);
+      }
+      return respond(rest[Math.min(call - 1, rest.length - 1)]);
+    });
+    return {
+      fetchImpl: fn as unknown as typeof fetch,
+      release,
+      firstCalled,
+      mock: fn as jest.Mock,
+    };
+  }
+
+  const calls = (mock: jest.Mock) =>
+    mock.mock.calls.map(([url, init]: [string, RequestInit]) => `${init.method} ${url}`);
+
+  it('deletes a comment whose create was already in flight', async () => {
+    const d = await db();
+    await seedLocal(d, 'L');
+    const net = gatedFetch({ status: 201, body: feedComment('L') }, [{ status: 204 }]);
+    const deps = { db: d, baseUrl: BASE, fetchImpl: net.fetchImpl, getSessionFn };
+
+    const drain = drainOutbox(deps);
+    await net.firstCalled; // the PUT is on the wire; the row reads `sending`
+    const cancel = deleteOwnComment({ id: 'L', source: 'local' }, deps);
+    // The cancel commits before the PUT answers: the row is gone from screen.
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(await commentsRepo.getById(d, 'L')).toBeNull();
+    net.release();
+    await drain;
+    await cancel;
+
+    expect(calls(net.mock)).toEqual([`PUT ${BASE}/v1/comments/L`, `DELETE ${BASE}/v1/comments/L`]);
+    expect(await outboxRepo.count(d)).toBe(0);
+    expect(await commentsRepo.getById(d, 'L')).toBeNull();
+  });
+
+  it('a delete queued mid-send settles when the create never reached the server', async () => {
+    const d = await db();
+    await seedLocal(d, 'L');
+    // PUT fails offline; the follow-up DELETE gets a 404 (never created).
+    const net = gatedFetch({ status: 201 }, [
+      { status: 404, body: { error: { code: 'not_found', message: 'gone' } } },
+    ]);
+    net.fetchImpl = jest.fn(async (...args: Parameters<typeof fetch>) => {
+      if (net.mock.mock.calls.length === 0) {
+        await net.mock(...args);
+        throw new Error('offline');
+      }
+      return net.mock(...args);
+    }) as unknown as typeof fetch;
+    const deps = { db: d, baseUrl: BASE, fetchImpl: net.fetchImpl, getSessionFn };
+
+    const drain = drainOutbox(deps);
+    await net.firstCalled;
+    const cancel = deleteOwnComment({ id: 'L', source: 'local' }, deps);
+    await new Promise((resolve) => setImmediate(resolve));
+    net.release();
+    await drain;
+    await cancel;
+    // The offline drain stopped before the follow-up could send; drain again.
+    await drainOutbox(deps);
+
+    expect(calls(net.mock)).toEqual([`PUT ${BASE}/v1/comments/L`, `DELETE ${BASE}/v1/comments/L`]);
+    expect(await outboxRepo.count(d)).toBe(0);
+  });
+
+  it('never sends a comment cancelled after the drain listed it', async () => {
+    const d = await db();
+    await seedLocal(d, 'X');
+    await seedLocal(d, 'L', '2026-01-01T00:00:01Z');
+    const net = gatedFetch({ status: 201, body: feedComment('X') }, [
+      { status: 201, body: feedComment('L') },
+    ]);
+    const deps = { db: d, baseUrl: BASE, fetchImpl: net.fetchImpl, getSessionFn };
+
+    const drain = drainOutbox(deps);
+    await net.firstCalled; // X is in flight; L is listed but still pending
+    expect((await outboxRepo.getById(d, 'L'))?.status).toBe('pending');
+    await expect(deleteOwnComment({ id: 'L', source: 'local' }, deps)).resolves.toBeUndefined();
+    net.release();
+    await drain;
+
+    expect(calls(net.mock)).toEqual([`PUT ${BASE}/v1/comments/X`]);
+    expect(await outboxRepo.count(d)).toBe(0);
+  });
+});
+
+describe('compose and delete are atomic', () => {
+  it('leaves no comment behind when its outbox write fails', async () => {
+    const d = await db();
+    const spy = jest.spyOn(outboxRepo, 'enqueue').mockRejectedValueOnce(new Error('disk full'));
+    try {
+      await expect(
+        submitComment(
+          { trailId: 'aawt', waypointId: 'w_1', text: 'note', session: SESSION },
+          { db: d, baseUrl: BASE, fetchImpl: scriptedFetch([{ throw: true }]) },
+        ),
+      ).rejects.toThrow('disk full');
+    } finally {
+      spy.mockRestore();
+    }
+    const rows = await d.getAllAsync<{ n: number }>('SELECT COUNT(*) AS n FROM comments');
+    expect(rows[0].n).toBe(0);
+  });
+
+  it('keeps a server comment when its delete cannot be queued', async () => {
+    const d = await db();
+    await commentsRepo.upsertServerComment(d, {
+      id: 'S',
+      trailId: 'aawt',
+      waypointId: 'w_1',
+      displayName: 'Me',
+      text: 'hi',
+      waterStatus: null,
+      observedAt: null,
+      createdAt: '2026-01-01T00:00:00Z',
+    });
+    const spy = jest.spyOn(outboxRepo, 'enqueue').mockRejectedValueOnce(new Error('disk full'));
+    try {
+      await expect(deleteOwnComment({ id: 'S', source: 'server' }, { db: d })).rejects.toThrow(
+        'disk full',
+      );
+    } finally {
+      spy.mockRestore();
+    }
+    expect(await commentsRepo.getById(d, 'S')).not.toBeNull();
   });
 });

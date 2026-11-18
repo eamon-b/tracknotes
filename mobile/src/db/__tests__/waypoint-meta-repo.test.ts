@@ -1,4 +1,4 @@
-import { createMigratedTestDb } from './test-helpers';
+import { createMigratedTestDb, expectDbRejection } from './test-helpers';
 import type { SqlDatabase } from '../sql-database';
 import * as metaRepo from '../waypoint-meta-repo';
 
@@ -17,10 +17,8 @@ describe('waypoint-meta-repo', () => {
       { waypointId: 'w_1', description: 'Different trail.', updatedAt: 'T1' },
     ]);
 
-    const map = await metaRepo.getDescriptions(d, 'aawt');
-    expect(map.get('w_1')).toBe('Tank on the west side.');
-    expect(map.get('w_2')).toBe('Locked hut.');
-    expect(map.size).toBe(2);
+    expect(await metaRepo.getDescription(d, 'aawt', 'w_1')).toBe('Tank on the west side.');
+    expect(await metaRepo.getDescription(d, 'aawt', 'w_2')).toBe('Locked hut.');
     expect(await metaRepo.getDescription(d, 'larapinta', 'w_1')).toBe('Different trail.');
   });
 
@@ -50,10 +48,21 @@ describe('waypoint-meta-repo', () => {
     ]);
 
     expect(await metaRepo.getDescription(d, 'aawt', 'w_1')).toBeNull();
-    expect((await metaRepo.getDescriptions(d, 'aawt')).size).toBe(0);
     // The row itself survives, so a later re-fill upserts onto the same key.
     const row = await d.getFirstAsync<{ n: number }>('SELECT COUNT(*) AS n FROM waypoint_meta');
     expect(row?.n).toBe(1);
+  });
+
+  it('writes a batch atomically: a failing row rolls the whole batch back', async () => {
+    const d = await db();
+    await expectDbRejection(() =>
+      metaRepo.upsertDescriptions(d, 'aawt', [
+        { waypointId: 'w_1', description: 'first', updatedAt: 'T1' },
+        // NOT NULL violation on the second row.
+        { waypointId: 'w_2', description: null as unknown as string, updatedAt: 'T1' },
+      ]),
+    );
+    expect(await metaRepo.getDescription(d, 'aawt', 'w_1')).toBeNull();
   });
 
   it('returns null for an unknown waypoint', async () => {

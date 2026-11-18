@@ -3,6 +3,15 @@ import type { SqlDatabase } from '../sql-database';
 import * as routesRepo from '../routes-repo';
 import type { NewRoute } from '../routes-repo';
 
+/** One stored route, read back through the listing the app uses. */
+async function storedRoute(d: SqlDatabase, id: string): Promise<routesRepo.Route | null> {
+  for (const trailId of [TRAIL, 'heysen']) {
+    const found = (await routesRepo.listRoutes(d, trailId)).find((r) => r.id === id);
+    if (found) return found;
+  }
+  return null;
+}
+
 async function db(): Promise<SqlDatabase> {
   return (await createMigratedTestDb()) as unknown as SqlDatabase;
 }
@@ -34,7 +43,7 @@ describe('routes-repo', () => {
     expect(route.totalKm).toBe(12.5);
     expect(route.ascentM).toBe(480);
 
-    const stored = await routesRepo.getRoute(d, route.id);
+    const stored = await storedRoute(d, route.id);
     expect(stored?.name).toBe('Day 1');
     expect(stored?.descentM).toBe(260);
 
@@ -49,9 +58,9 @@ describe('routes-repo', () => {
     const d = await db();
     const unknown = await routesRepo.createRoute(d, sampleRoute());
     const keyed = await routesRepo.createRoute(d, sampleRoute({ trackKey: '7:abc' }));
-    expect((await routesRepo.getRoute(d, unknown.id))?.trackKey).toBeNull();
-    expect((await routesRepo.getRoute(d, keyed.id))?.trackKey).toBe('7:abc');
-    expect((await routesRepo.getRoute(d, keyed.id))?.offTrailPoints).toBe(0);
+    expect((await storedRoute(d, unknown.id))?.trackKey).toBeNull();
+    expect((await storedRoute(d, keyed.id))?.trackKey).toBe('7:abc');
+    expect((await storedRoute(d, keyed.id))?.offTrailPoints).toBe(0);
   });
 
   it('replaces a route’s points and stats after a re-snap, keeping the rest', async () => {
@@ -69,7 +78,7 @@ describe('routes-repo', () => {
       ],
     });
 
-    const stored = await routesRepo.getRoute(d, route.id);
+    const stored = await storedRoute(d, route.id);
     expect(stored).toMatchObject({
       name: 'Day 1',
       totalKm: 7.5,
@@ -120,7 +129,7 @@ describe('routes-repo', () => {
 
     await routesRepo.deleteRoute(d, route.id);
 
-    expect(await routesRepo.getRoute(d, route.id)).toBeNull();
+    expect(await storedRoute(d, route.id)).toBeNull();
     expect(await routesRepo.getRoutePoints(d, route.id)).toEqual([]);
     expect(await routesRepo.listRoutes(d, TRAIL)).toEqual([]);
   });

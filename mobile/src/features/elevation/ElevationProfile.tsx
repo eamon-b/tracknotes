@@ -17,7 +17,8 @@
  *    the parent can route a POI to its own screen),
  *  - day-boundary ticks for the hiker's plan (`stopKms`),
  *  - tap-to-scrub crosshair snapped to the nearest track point,
- *  - a `currentKm` GPS marker (plumbing only).
+ *  - a `currentKm` GPS marker: the hiker's position on the trace, when it is in
+ *    the visible window.
  *
  * The component is controlled: the parent owns the visible `window` and
  * `eleWindow`, and the profile reports changes via `onWindowChange` and

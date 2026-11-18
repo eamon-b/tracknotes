@@ -20,8 +20,3 @@ export function directionLabel(names: DirectionNames | undefined, direction: Dir
   if (direction === 'reversed') return names?.reversed || 'Reversed';
   return names?.default || 'Forward';
 }
-
-/** The other direction (for a toggle's "switch to …" affordance). */
-export function otherDirection(direction: Direction): Direction {
-  return direction === 'default' ? 'reversed' : 'default';
-}

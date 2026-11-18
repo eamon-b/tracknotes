@@ -13,12 +13,11 @@
 import React from 'react';
 import TestRenderer, { act, type ReactTestRenderer } from 'react-test-renderer';
 import { setResupplyStops } from '@lib/plan-editor';
-import { allResupplyOptionIds } from '@lib/resupply-plan';
+import { allResupplyOptionIds, plannedResupplyIds } from '@lib/resupply-plan';
 import type { PlanDocument } from '@lib/plan-types';
 import { DEFAULT_PREFS, usePlanInputsStore } from '../plan-inputs-store';
 import { usePlansStore, type PlanDefaults } from '../../../state/plans-store';
 import {
-  plannedIdsFor,
   resupplyGroupsFor,
   usePlannedResupplyIds,
   useWaypointResupplyPlan,
@@ -103,7 +102,10 @@ const trail: PlannedResupplyTrail = {
   ],
 };
 
-describe('plannedIdsFor', () => {
+describe("plannedResupplyIds over the trail's groups", () => {
+  const plannedIdsFor = (t: PlannedResupplyTrail, selected: ReadonlySet<string> | null) =>
+    plannedResupplyIds(resupplyGroupsFor(t), selected);
+
   it('is null when nothing has been chosen', () => {
     expect(plannedIdsFor(trail, null)).toBeNull();
   });

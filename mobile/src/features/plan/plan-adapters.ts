@@ -1,60 +1,44 @@
 /**
  * Plan adapters — turn a direction-applied guide trail + the hiker's inputs
- * into the shapes the shared @lib calculators consume, then collect their
- * outputs into one read-only "plan" result.
+ * into the shapes the shared @lib calculators consume.
  *
- * The whole point of Phase 8: reuse the shared calculators, don't reimplement
- * them. The guide's `TrailJson` is already structurally compatible with the
- * calculators' `PlanTrail` / `PlanWaypoint` / `PlanTrackPoint` params
- * (config.name, track.points{lat,lon,ele,dist}, track.totalDistance,
- * waypoints{name,type,totalDistance,description}), so conversion is near-zero
- * — this module is mostly the day-boundary generation the calculators do NOT
- * do (computeDays splits at explicit stops; it has no auto-splitter) plus the
- * camp-snapping the guide adds on top.
+ * Reuse the shared calculators, don't reimplement them. The guide's
+ * `TrailJson` is already structurally compatible with the calculators'
+ * `PlanTrail` / `PlanWaypoint` / `PlanTrackPoint` params (config.name,
+ * track.points{lat,lon,ele,dist}, track.totalDistance,
+ * waypoints{name,type,totalDistance,description}), so conversion is near-zero.
+ * Nothing here generates day boundaries: the day planner's days come from the
+ * stops the hiker chose (`computePlanDays`).
  *
- * Resupply is the one place this module composes rather than passes through:
- * the trail's options are listed and grouped, the hiker's ticked ids resolved
- * into stops, and the legs between those stops measured — all in
- * `@lib/resupply-plan`, driven by the hiker's own pace and hours.
+ * What is here: the day card's shape (`PlanDay`), the section steppers' pick
+ * options, and the two cards the Plan screen shows beside its days — resupply
+ * and water (`computePlanExtras`). Resupply is the one place this module
+ * composes rather than passes through: the trail's options are listed and
+ * grouped, the hiker's ticked ids resolved into stops, and the legs between
+ * those stops measured — all in `@lib/resupply-plan`, driven by the hiker's
+ * own pace and hours.
  *
  * Pure + React-free so every derivation is unit-testable.
  */
 
-import {
-  computeDays,
-  buildTimeIndex,
-  hoursBetweenIndexed,
-  kmAtHours,
-  type PlanTrail,
-  type PlanStopInput,
-  type TimeIndex,
-} from '@lib/day-calculator';
+import type { PlanTrail } from '@lib/day-calculator';
 import {
   computeResupplyLegs,
   listResupplyOptions,
   resupplyCandidates,
   resolveResupplyStops,
-  summariseResupplyLegs,
   summariseResupplyPlan,
   type ResupplyLeg,
   type ResupplyOptionGroup,
   type ResupplyPlanSummary,
   type ResupplyStop,
-  type ResupplySummary,
 } from '@lib/resupply-plan';
 import { analyzeWaterCarryForSection, type WaterCarryAnalysis } from '@lib/water-carry-calculator';
-import {
-  PACE_KMH,
-  type ComputedDay,
-  type Pace,
-  type PlanThresholds,
-  type SectionConfig,
-  type WaterGap,
-} from '@lib/plan-types';
+import type { ComputedDay, PlanThresholds, SectionConfig, WaterGap } from '@lib/plan-types';
 import type { TrailJson } from '../../services/trail-assets';
+import { KM_EPSILON } from '@lib/plan-direction';
 import { overnightCandidates } from '@lib/plan-editor';
 import { planFloorHours, planWindowHours } from '@lib/plan-suggest';
-import { routeBreakStarts } from '@lib/route-breaks';
 
 /**
  * Pace preset and its flat-ground base speed, shared with the web through
@@ -63,86 +47,39 @@ import { routeBreakStarts } from '@lib/route-breaks';
  */
 export { PACE_KMH, type Pace } from '@lib/plan-types';
 
-/** The hiker's live inputs for the plan screen. */
-export interface PlanInputs {
-  /** Section start position (km, direction-applied space). */
-  startKm: number;
-  /** Section end position (km, direction-applied space). */
-  endKm: number;
-  /** Target daily hiking hours. */
-  dailyHours: number;
-  /** Pace preset. */
-  pace: Pace;
-  /** The hiker's dry-stretch, food-per-day and long-carry figures. */
-  thresholds: PlanThresholds;
-  /**
-   * Optional display name for the section start. When set, it is preferred over
-   * `nameAtKm(startKm)` — this lets the caller resolve duplicate-km waypoints by
-   * its own choice (the screen picks a specific WaypointOption, which nameAtKm
-   * cannot reproduce because it resolves by array order). Falls back to nameAtKm.
-   */
-  startName?: string;
-  /** Optional display name for the section end (see `startName`). */
-  endName?: string;
-  /**
-   * The resupply option ids the hiker ticked. `undefined` means they have not
-   * chosen yet, which resolves to every option — see `resolveResupplyStops`.
-   */
-  resupplyStops?: readonly string[];
-}
-
 /**
- * How a day's end boundary was resolved:
- *  - `camp`   — a real campsite/shelter waypoint (interior day).
+ * How a day's end boundary was resolved, for the day card's glyph:
+ *  - `camp`   — a campsite/shelter waypoint.
  *  - `stop`   — a stop the hiker chose that is NOT a camp or hut: a town, a
- *    road crossing, a river. Only the day planner produces these; the
- *    generator below never does, since it only ever snaps to camps.
- *  - `wild`   — no camp in range; a wild camp at the naive target km. The
- *    generator's fallback; a hand-picked plan has no such thing, because every
- *    stop in it is a place.
- *  - `finish` — the section end itself (the last day). Neither camp nor wild:
- *    it lands on whatever the section ends at (town, hut, trailhead, …).
+ *    road crossing, a river.
+ *  - `finish` — the section end itself (the last day): it lands on whatever
+ *    the section ends at (town, hut, trailhead, …).
  */
-export type DayEndKind = 'camp' | 'stop' | 'wild' | 'finish';
+export type DayEndKind = 'camp' | 'stop' | 'finish';
 
 /** A day card: the calculator's ComputedDay plus how its end boundary resolved. */
 export interface PlanDay extends ComputedDay {
-  /**
-   * True when the day boundary landed on a real campsite/shelter waypoint.
-   * Retained for compatibility; prefer `endKind` for display (it distinguishes
-   * the section finish from a wild camp).
-   */
-  snappedToCamp: boolean;
-  /** Three-state end resolution — the UI should key off this, not the boolean. */
   endKind: DayEndKind;
 }
 
-/** The full read-only plan derived from inputs. */
-export interface PlanResult {
-  section: SectionConfig;
-  /** The hiker's daily hiking-hours target (used raw by the splitter). */
-  targetHours: number;
-  /**
-   * Realized average km/day of the computed split (`sectionKm / days.length`).
-   * The "Avg/day" summary stat and nothing else: the resupply legs take their
-   * days from the hiker's pace and hours over the leg's own terrain. Falls back
-   * to `baseKmh × dailyHours` for a degenerate section that produced no days.
-   */
-  effectiveDailyKm: number;
-  days: PlanDay[];
-  /** Every resupply the trail offers, clustered by turn-off — the picker's list. */
-  resupplyGroups: ResupplyOptionGroup[];
-  /** What the hiker's selection resolves to (one stop per ticked group). */
-  resupplyStops: ResupplyStop[];
-  /** The carries between those stops, scoped to the section. */
-  resupplyLegs: ResupplyLeg[];
-  /** The one-line version of the legs, for the section subtitle. */
-  resupplySummary: ResupplySummary;
-  /** The resupply planner's headline figures (the Plan screen's Resupply row). */
-  resupplyPlanSummary: ResupplyPlanSummary;
-  water: WaterCarryAnalysis;
-  /** Longest water carries in the section, biggest first (top N). */
-  topWaterCarries: WaterGap[];
+/** The km of every bed on the trail (`overnightWaypoints`), for `toPlanDay`. */
+export function campKmsOf(trail: TrailJson): Set<number> {
+  return new Set(overnightWaypoints(trail).map((c) => c.km));
+}
+
+/**
+ * A computed day as a day card: a day ending at `finishKm` (the section's or
+ * the route's end) is the finish, one ending at a bed (`campKmsOf`) a camp,
+ * anything else a stop. The Plan screen and a shared plan both draw theirs so.
+ */
+export function toPlanDay(
+  day: ComputedDay,
+  finishKm: number,
+  campKms: ReadonlySet<number>,
+): PlanDay {
+  const endKind: DayEndKind =
+    day.endKm >= finishKm - KM_EPSILON ? 'finish' : campKms.has(day.endKm) ? 'camp' : 'stop';
+  return { ...day, endKind };
 }
 
 /** A pickable section boundary (a waypoint). */
@@ -154,21 +91,15 @@ export interface WaypointOption {
 }
 
 /**
- * Waypoints suitable as an overnight day-end: the camp + shelter families
- * (campsite/hut/etc.), in km order. Used only for snapping day boundaries —
- * the guide's own semantic grouping, wider than the resupply/water calculators'
- * narrow type sets.
+ * Waypoints that are a bed: the camp + shelter families (campsite/hut/etc.),
+ * in km order. The Plan screen reads it to give a day that ends at one the
+ * camp glyph.
  *
  * The membership rule itself is `@lib/plan-editor`'s `overnightCandidates`, so
- * the phone's snapper and the shared day planner agree on what a bed is (it
- * also does the turn-off exclusion: `hut-access` colours as a hut but is a
- * roadside, and the hut is somewhere off the route).
- *
- * `includeTowns: false` keeps *this* caller's behaviour. The shared default
- * counts a town as an overnight candidate — for a Stops list you tap, a town
- * is the commonest place to spend a night — but this function's job is to land
- * a *generated* day boundary on a camp or a hut, and widening it to towns
- * would silently move boundaries the splitter's tests pin.
+ * the phone and the shared day planner agree on what a bed is (it also does
+ * the turn-off exclusion: `hut-access` colours as a hut but is a roadside, and
+ * the hut is somewhere off the route). `includeTowns: false`: a town stop is a
+ * stop, not a campsite.
  */
 export function overnightWaypoints(trail: TrailJson): WaypointOption[] {
   return overnightCandidates(trail.waypoints, { includeTowns: false })
@@ -190,203 +121,31 @@ function toOption(wp: TrailJson['waypoints'][number], i: number): WaypointOption
   };
 }
 
-/** The default full-trail section (first → last, whole track). */
-export function fullTrailSection(trail: TrailJson): SectionConfig {
-  const opts = waypointOptions(trail);
-  const startName = opts[0]?.name ?? `${trail.config.name} Start`;
-  const endName = opts[opts.length - 1]?.name ?? `${trail.config.name} End`;
-  return { startKm: 0, endKm: trail.track.totalDistance, startName, endName };
-}
-
-/** Build a SectionConfig from two chosen waypoint options. */
-export function sectionFromWaypoints(start: WaypointOption, end: WaypointOption): SectionConfig {
-  return { startKm: start.km, endKm: end.km, startName: start.name, endName: end.name };
-}
-
 /**
- * The camp-snap window (± hours around the target) and the final-day
- * allowance. They live in `@lib/plan-suggest` now, because the web plan page
- * and the suggestion search judge days against the same bands; re-exported so
- * the splitter, the over-target hint and their tests keep one import.
+ * The day-length bands (± hours around the target, and the final-day
+ * allowance). They live in `@lib/plan-suggest`, because the web plan page and
+ * the suggestion search judge days against the same bands; re-exported for the
+ * day cards' over-target hint.
  */
 export { planFloorHours, planWindowHours };
 
-/**
- * Generate the interior overnight-stop boundaries for a section, greedily
- * walking `targetHours` of terrain-aware Naismith time at a time and snapping
- * each boundary to the nearest camp/shelter waypoint within a time window.
- *
- * The shared `computeDays` does NOT auto-split — it only splits at the explicit
- * stops it is handed. This function IS that auto-splitter, plus the snapping
- * the calculator has no concept of. It is the Phase-8 km-space splitter with the
- * exact same shape, translated 1:1 into hours-space (Decision 5): the three
- * knobs are unit-converted (the km values 3/10/3 at 4 km/h ≈ 0.75/2.5/0.75 h)
- * and every `remaining`/`target`/`window`/`floor` comparison is now in hours.
- *
- *  - `windowH` = clamp(targetH * 0.35, 0.75, 2.5): how far in time either side of
- *                the naive target a boundary may snap to a camp/shelter.
- *  - `floorH`  = max(0.75, 0.25 * targetH): a day may run up to `targetH + floorH`
- *                and no final day is left shorter than `floorH`.
- *
- *  Time is always measured over whole segments (`hoursBetweenIndexed`), never
- *  summed across increments, because Naismith's descent allowance is per-day
- *  scoped — so this matches exactly what `computeDays` will later report.
- *
- *  Each iteration looks at the hours still remaining to the section end:
- *   1. If `remainingH <= targetH + floorH`, the rest is one acceptable final day
- *      — stop. 2. Else if `remainingH <= 2 * targetH`, place ONE balanced
- *      boundary at the time-midpoint. 3. Else take a full `targetH`-length day.
- *
- *  The boundary km comes from `kmAtHours(lastKm, boundaryTargetH)`. It then snaps
- *  to the camp/shelter nearest in time (|hoursRaw(lastKm→camp) − boundaryTargetH|
- *  ≤ windowH), rejecting any camp whose hoursRaw(camp→end) < floorH (would leave a
- *  sliver / sits at the end). When no camp qualifies the boundary is a "Wild camp"
- *  at the naive km rounded to 0.1 km. `snappedKms`/`endKind` semantics unchanged:
- *  exact camp kms go into the set, wild kms do not.
- */
-export function generateDayStops(
-  trail: TrailJson,
-  section: SectionConfig,
-  targetHours: number,
-  baseKmh: number,
-  index: TimeIndex,
-): { stops: PlanStopInput[]; snappedKms: Set<number> } {
-  const stops: PlanStopInput[] = [];
-  const snappedKms = new Set<number>();
-  const targetH = Math.max(0.1, targetHours);
-  const windowH = planWindowHours(targetH);
-  const floorH = planFloorHours(targetH);
-  const camps = overnightWaypoints(trail).filter(
-    (c) => c.km > section.startKm && c.km < section.endKm,
-  );
-
-  let lastKm = section.startKm;
-  // Guard against pathological inputs: at most one boundary per ~min day.
-  const maxStops = 500;
-
-  for (let i = 0; i < maxStops; i++) {
-    const remainingH = hoursBetweenIndexed(index, lastKm, section.endKm, baseKmh);
-    // The rest is a reasonable final day — stop (no boundary): case 1.
-    if (remainingH <= targetH + floorH) break;
-
-    // Case 2: balance the final two days (time-midpoint). Case 3: a full day.
-    const boundaryTargetH = remainingH <= 2 * targetH ? remainingH / 2 : targetH;
-    const naiveKm = kmAtHours(index, lastKm, boundaryTargetH, baseKmh);
-
-    // Nearest-in-time qualifying camp: strictly ahead, inside the time window,
-    // and not so close to the end (in time) that the final day drops below floor.
-    let best: WaypointOption | null = null;
-    let bestDelta = Infinity;
-    for (const c of camps) {
-      if (c.km <= lastKm) continue;
-      // Would leave a sub-floor sliver / sits effectively at the end.
-      if (hoursBetweenIndexed(index, c.km, section.endKm, baseKmh) < floorH) continue;
-      const campH = hoursBetweenIndexed(index, lastKm, c.km, baseKmh);
-      const delta = Math.abs(campH - boundaryTargetH);
-      if (delta <= windowH && delta < bestDelta) {
-        best = c;
-        bestDelta = delta;
-      }
-    }
-
-    if (best) {
-      stops.push({ km: best.km, waypointName: best.name });
-      snappedKms.add(best.km);
-      lastKm = best.km;
-    } else {
-      const km = Math.round(naiveKm * 10) / 10;
-      stops.push({ km, waypointName: 'Wild camp' });
-      lastKm = km;
-    }
-  }
-
-  return { stops, snappedKms };
+/** The Plan screen's resupply and water cards for a section. */
+export interface PlanExtras {
+  /** Every resupply the trail offers, clustered by turn-off — the picker's list. */
+  resupplyGroups: ResupplyOptionGroup[];
+  /** The resupply planner's headline figures (the Plan screen's Resupply row). */
+  resupplyPlanSummary: ResupplyPlanSummary;
+  water: WaterCarryAnalysis;
+  /** Longest water carries in the section, biggest first (top N). */
+  topWaterCarries: WaterGap[];
 }
 
-/**
- * The full read-only plan for a section + inputs. Ties every derived number to
- * the shared calculators; the only guide-added logic is day-boundary generation
- * (above) and camp-snap tagging.
- */
-export function computePlan(trail: TrailJson, inputs: PlanInputs): PlanResult {
-  const section: SectionConfig = {
-    startKm: inputs.startKm,
-    endKm: inputs.endKm,
-    // Prefer caller-supplied names (they resolve duplicate-km waypoints by the
-    // exact option the user picked); fall back to a km lookup, then a generic.
-    startName: inputs.startName ?? nameAtKm(trail, inputs.startKm) ?? `${trail.config.name} Start`,
-    endName: inputs.endName ?? nameAtKm(trail, inputs.endKm) ?? `${trail.config.name} End`,
-  };
-
-  const baseKmh = PACE_KMH[inputs.pace];
-  const targetH = inputs.dailyHours;
-
-  // TrailJson is structurally a PlanTrail — pass it straight through. Build the
-  // Naismith time index once (O(n)); the splitter reuses it for O(log n) queries.
-  const planTrail = trail as unknown as PlanTrail;
-  // The same break set computeDays derives, so the splitter's hours and the
-  // reported day agree across a ferry.
-  const index = buildTimeIndex(
-    planTrail.track.points,
-    routeBreakStarts(planTrail.track.breaks, 'points'),
-  );
-  const { stops, snappedKms } = generateDayStops(trail, section, targetH, baseKmh, index);
-
-  const computed = computeDays(planTrail, stops, null, section, baseKmh);
-  const days: PlanDay[] = computed.map((d, i) => {
-    const isLast = i === computed.length - 1;
-    // Last computed day ends at the section end (a "finish" — could be a town,
-    // hut or trailhead, never a snapped wild camp). Interior days are a real
-    // camp when their end km matched a snapped waypoint, else a wild camp.
-    const endKind: DayEndKind = isLast ? 'finish' : snappedKms.has(d.endKm) ? 'camp' : 'wild';
-    return { ...d, endKind, snappedToCamp: endKind === 'camp' };
-  });
-
-  // computeDays always yields ≥1 day, so the fallback is an unreachable
-  // safeguard for a degenerate (zero-length) section.
-  const sectionKm = section.endKm - section.startKm;
-  const effectiveDailyKm = days.length > 0 ? sectionKm / days.length : baseKmh * inputs.dailyHours;
-
-  return {
-    section,
-    targetHours: targetH,
-    effectiveDailyKm,
-    days,
-    ...computePlanExtras(trail, section, {
-      dailyHours: targetH,
-      baseKmh,
-      thresholds: inputs.thresholds,
-      days,
-      resupplyStops: inputs.resupplyStops,
-    }),
-  };
-}
-
-/** The parts of a plan that do not come from WHERE the day boundaries fall. */
-export type PlanExtras = Pick<
-  PlanResult,
-  | 'resupplyGroups'
-  | 'resupplyStops'
-  | 'resupplyLegs'
-  | 'resupplySummary'
-  | 'resupplyPlanSummary'
-  | 'water'
-  | 'topWaterCarries'
->;
-
-/** What the cards need beyond the section: the hiker's pace, hours, thresholds, days and ticks. */
+/** What the cards need beyond the section: the hiker's pace, hours, thresholds and ticks. */
 export interface PlanExtrasInputs {
   dailyHours: number;
   baseKmh: number;
   /** Dry stretch, food per day and long carry — the hiker's, from `plan-inputs-store`. */
   thresholds: PlanThresholds;
-  /**
-   * The day boundaries the legs report arrival days against. Optional: the
-   * Plan screen leaves it out — no surface shows a leg's arrival day any more,
-   * and a camp plan's rest days next to the resupply zero days would count
-   * the same days twice.
-   */
-  days?: ComputedDay[];
   /** The ticked resupply option ids; `undefined` resolves to every option. */
   resupplyStops?: readonly string[];
   /** The hiker's zero days per resupply option id (`PlanDocument.resupplyZeroDays`). */
@@ -396,28 +155,33 @@ export interface PlanExtrasInputs {
 }
 
 /**
- * Resupply legs and water carries for a section.
+ * Resupply headline and water carries for a section. No arrival days: no
+ * surface shows a leg's arrival day, and a camp plan's rest days next to the
+ * resupply zero days would count the same days twice.
  *
- * Split out of `computePlan` because the day planner does not generate days at
- * all — its splits come from the stops the hiker ticked (`computePlanDays`) —
- * but it still wants these two cards, and running the generator to get them
- * would be exactly the automatic split the planner exists to remove.
+ * `groups` may be passed in by a caller that memoises them on the trail alone
+ * (`resupplyGroupsFor`), as `computeResupplyPlan` takes them.
  */
 export function computePlanExtras(
   trail: TrailJson,
   section: SectionConfig,
   inputs: PlanExtrasInputs,
+  groups?: ResupplyOptionGroup[],
 ): PlanExtras {
-  const resupply = computeResupplyPlan(trail, section, {
-    dailyHours: inputs.dailyHours,
-    baseKmh: inputs.baseKmh,
-    longCarryDays: inputs.thresholds.longCarryDays,
-    foodGramsPerDay: inputs.thresholds.foodGramsPerDay,
-    resupplyStops: inputs.resupplyStops,
-    zeroDays: inputs.zeroDays,
-    startZeroDays: inputs.startZeroDays,
-    days: inputs.days,
-  });
+  const resupply = computeResupplyPlan(
+    trail,
+    section,
+    {
+      dailyHours: inputs.dailyHours,
+      baseKmh: inputs.baseKmh,
+      longCarryDays: inputs.thresholds.longCarryDays,
+      foodGramsPerDay: inputs.thresholds.foodGramsPerDay,
+      resupplyStops: inputs.resupplyStops,
+      zeroDays: inputs.zeroDays,
+      startZeroDays: inputs.startZeroDays,
+    },
+    groups,
+  );
 
   const water = analyzeWaterCarryForSection(
     trail.waypoints,
@@ -429,9 +193,6 @@ export function computePlanExtras(
 
   return {
     resupplyGroups: resupply.groups,
-    resupplyStops: resupply.stops,
-    resupplyLegs: resupply.legs,
-    resupplySummary: summariseResupplyLegs(resupply.legs),
     resupplyPlanSummary: resupply.summary,
     water,
     topWaterCarries,
@@ -450,7 +211,10 @@ export interface ResupplyPlanInputs {
   zeroDays?: Readonly<Record<string, number>>;
   /** Zero days before day 1, counted in the summary's total days. */
   startZeroDays?: number;
-  /** Only for `computePlan`'s legacy arrival days; the resupply screen never passes one. */
+  /**
+   * The day cards the legs report arrival days against (the Plan screen's
+   * export); the resupply screen never passes one.
+   */
   days?: ComputedDay[];
 }
 
@@ -496,10 +260,4 @@ export function computeResupplyPlan(
     startZeroDays: inputs.startZeroDays,
   });
   return { groups, stops, legs, summary };
-}
-
-/** Resolve a display name for an exact km (a waypoint at that km, else null). */
-function nameAtKm(trail: TrailJson, km: number): string | null {
-  const wp = trail.waypoints.find((w) => (w.totalDistance ?? 0) === km);
-  return wp?.name ?? null;
 }

@@ -424,10 +424,10 @@ async function pullTrailWaypoints(
   }
   // One read of what is queued, and one transaction for the rows: a first pull
   // of a busy trail is thousands of entries.
-  return withTransaction(db, async () => {
+  return withTransaction(db, async (tx) => {
     const queued = new Set(
       (
-        await db.getAllAsync<{ waypoint_id: string }>(
+        await tx.getAllAsync<{ waypoint_id: string }>(
           "SELECT DISTINCT waypoint_id FROM outbox WHERE kind IN ('waypoint', 'waypoint-delete') AND waypoint_id IS NOT NULL",
         )
       ).map((row) => row.waypoint_id),
@@ -436,15 +436,15 @@ async function pullTrailWaypoints(
     for (const entry of result.waypoints) {
       if (queued.has(entry.id)) continue;
       if (isSharedWaypointTombstone(entry)) {
-        await userWaypointsRepo.applyTombstone(db, entry.id);
+        await userWaypointsRepo.applyTombstone(tx, entry.id);
       } else if (entry.trailId === trailId) {
-        await userWaypointsRepo.applyServer(db, entry);
+        await userWaypointsRepo.applyServer(tx, entry);
       } else {
         continue;
       }
       applied += 1;
     }
-    await userWaypointsRepo.writeSyncedAt(db, trailId, result.syncedAt);
+    await userWaypointsRepo.writeSyncedAt(tx, trailId, result.syncedAt);
     return applied;
   });
 }
@@ -504,33 +504,44 @@ export async function pullTrail(trailId: string, deps: SyncDeps = {}): Promise<P
     return { outcome: 'error', applied: 0, syncedAt: null };
   }
 
-  let applied = 0;
+  // One transaction for the rows and the high-water mark: a first pull of a
+  // busy trail is thousands of entries (one commit each was the cost), and the
+  // mark must never land without the rows it covers.
   const changedWaypoints = new Set<string>();
-  for (const entry of result.entries) {
-    if (isSyncTombstone(entry)) {
-      await commentsRepo.applyTombstone(db, entry.id);
-      // Its queued photos can never attach now; left behind they are re-gated
-      // on every drain, never sent and never failed.
-      await outboxRepo.removePhotosFor(db, entry.id);
-    } else {
-      await commentsRepo.upsertServerComment(db, {
-        id: entry.id,
-        trailId,
-        waypointId: entry.waypointId,
-        displayName: entry.displayName,
-        text: entry.text,
-        waterStatus: entry.waterStatus,
-        observedAt: entry.observedAt,
-        createdAt: entry.createdAt,
-        photoUrls: entry.photoUrls,
-        mineAuthorId: entry.mine === true ? session?.userId : undefined,
-      });
-      if (entry.waypointId) changedWaypoints.add(entry.waypointId);
+  const applied = await withTransaction(db, async (tx) => {
+    // A comment of ours with a delete still queued stays deleted: the server
+    // keeps answering it as live until that delete drains, and re-inserting it
+    // would undo the hiker's delete on screen (shared waypoints do the same).
+    const queuedDeletes = await outboxRepo.queuedCommentDeletes(tx);
+    let count = 0;
+    for (const entry of result.entries) {
+      if (isSyncTombstone(entry)) {
+        await commentsRepo.applyTombstone(tx, entry.id);
+        // Its queued photos can never attach now; left behind they are re-gated
+        // on every drain, never sent and never failed.
+        await outboxRepo.removePhotosFor(tx, entry.id);
+      } else if (queuedDeletes.has(entry.id)) {
+        continue;
+      } else {
+        await commentsRepo.upsertServerComment(tx, {
+          id: entry.id,
+          trailId,
+          waypointId: entry.waypointId,
+          displayName: entry.displayName,
+          text: entry.text,
+          waterStatus: entry.waterStatus,
+          observedAt: entry.observedAt,
+          createdAt: entry.createdAt,
+          photoUrls: entry.photoUrls,
+          mineAuthorId: entry.mine === true ? session?.userId : undefined,
+        });
+        if (entry.waypointId) changedWaypoints.add(entry.waypointId);
+      }
+      count += 1;
     }
-    applied += 1;
-  }
-
-  await writeSince(db, trailId, result.syncedAt);
+    await writeSince(tx, trailId, result.syncedAt);
+    return count;
+  });
 
   // Descriptions ride the same trigger but are a SEPARATE channel: a failure
   // here (offline mid-pull, endpoint not deployed yet) must not turn a
@@ -773,6 +784,21 @@ export function drainOutbox(deps: SyncDeps = {}): Promise<DrainResult> {
   return activeDrain;
 }
 
+/**
+ * The comment a `delete` row deletes: its payload's `id`, which is the row's
+ * own id except for a delete queued while the comment's create was in flight
+ * (see `deleteOwnComment`).
+ */
+function deleteTarget(item: outboxRepo.OutboxItem): string {
+  try {
+    const { id } = JSON.parse(item.payloadJson) as { id?: unknown };
+    if (typeof id === 'string' && id) return id;
+  } catch {
+    // An unreadable payload falls back to the row id, as before payloads mattered.
+  }
+  return item.id;
+}
+
 async function drainOutboxNow(deps: SyncDeps = {}): Promise<DrainResult> {
   const baseUrl = deps.baseUrl ?? getBaseUrl();
   if (!baseUrl) return { outcome: 'unconfigured', sent: 0, failed: 0 };
@@ -922,11 +948,15 @@ async function drainOutboxNow(deps: SyncDeps = {}): Promise<DrainResult> {
           continue;
         }
 
-        await outboxRepo.markSending(db, item.id);
+        // Gone since the list was read (a comment cancelled, a plan edit
+        // superseded): nothing to send. Atomic with the cancel, which queues a
+        // delete instead once the row reads `sending`.
+        if (!(await outboxRepo.markSending(db, item.id))) continue;
 
         if (item.kind === 'delete') {
-          await commentsApi.deleteComment(ctx, item.id);
-          await commentsRepo.deleteById(db, item.id);
+          const commentId = deleteTarget(item);
+          await commentsApi.deleteComment(ctx, commentId);
+          await commentsRepo.deleteById(db, commentId);
         } else if (item.kind === 'photo') {
           const payload = JSON.parse(item.payloadJson) as PhotoOutboxPayload;
           const bytes = await readBytes(payload.localUri);
@@ -1000,8 +1030,9 @@ async function drainOutboxNow(deps: SyncDeps = {}): Promise<DrainResult> {
           return finish('unauthorized');
         }
         if (e instanceof ApiError && e.status === 404 && item.kind === 'delete') {
-          // Already gone server-side — the delete is a no-op success.
-          await commentsRepo.deleteById(db, item.id);
+          // Already gone server-side (or never got there) — the delete is a
+          // no-op success.
+          await commentsRepo.deleteById(db, deleteTarget(item));
           await outboxRepo.remove(db, item.id);
           noteChange(item);
           sent += 1;
@@ -1269,56 +1300,61 @@ export async function submitComment(
 
   const photo = input.photo ?? null;
 
-  await commentsRepo.insertLocalComment(db, {
-    id,
-    trailId: input.trailId,
-    waypointId: input.waypointId,
-    authorId: input.session.userId,
-    authorName: input.session.displayName,
-    body: text,
-    waterStatus,
-    observedAt,
-    createdAt,
-    // Optimistic local preview: show the picked image immediately; the upload
-    // replaces this with the server URL on success.
-    photoUrls: photo ? [photo.uri] : undefined,
-  });
-
-  const payload: PutCommentRequest = {
-    trailId: input.trailId,
-    waypointId: input.waypointId,
-    text,
-    waterStatus,
-    observedAt,
-  };
-  await outboxRepo.enqueue(db, {
-    id,
-    kind: 'comment',
-    trailId: input.trailId,
-    waypointId: input.waypointId,
-    payload,
-    createdAt,
-  });
-
-  if (photo) {
-    // Same createdAt as the comment: the drain's photo gate + its second pass
-    // guarantee comment-then-photo within one drain, so no clock-tick ordering
-    // hack is needed (a +1ms timestamp made the row ineligible when the drain
-    // ran within the same millisecond).
-    const photoPayload: PhotoOutboxPayload = {
-      commentId: id,
-      localUri: photo.uri,
-      contentType: photo.contentType,
-    };
-    await outboxRepo.enqueue(db, {
-      id: uuidv4(),
-      kind: 'photo',
+  // One transaction: the row, its outbox write and its photo's are one
+  // compose. Apart, a crash between them left a comment on screen that was
+  // never queued to send (or a photo queued for a comment that never was).
+  await withTransaction(db, async (tx) => {
+    await commentsRepo.insertLocalComment(tx, {
+      id,
       trailId: input.trailId,
       waypointId: input.waypointId,
-      payload: photoPayload,
+      authorId: input.session.userId,
+      authorName: input.session.displayName,
+      body: text,
+      waterStatus,
+      observedAt,
+      createdAt,
+      // Optimistic local preview: show the picked image immediately; the upload
+      // replaces this with the server URL on success.
+      photoUrls: photo ? [photo.uri] : undefined,
+    });
+
+    const payload: PutCommentRequest = {
+      trailId: input.trailId,
+      waypointId: input.waypointId,
+      text,
+      waterStatus,
+      observedAt,
+    };
+    await outboxRepo.enqueue(tx, {
+      id,
+      kind: 'comment',
+      trailId: input.trailId,
+      waypointId: input.waypointId,
+      payload,
       createdAt,
     });
-  }
+
+    if (photo) {
+      // Same createdAt as the comment: the drain's photo gate + its second pass
+      // guarantee comment-then-photo within one drain, so no clock-tick ordering
+      // hack is needed (a +1ms timestamp made the row ineligible when the drain
+      // ran within the same millisecond).
+      const photoPayload: PhotoOutboxPayload = {
+        commentId: id,
+        localUri: photo.uri,
+        contentType: photo.contentType,
+      };
+      await outboxRepo.enqueue(tx, {
+        id: uuidv4(),
+        kind: 'photo',
+        trailId: input.trailId,
+        waypointId: input.waypointId,
+        payload: photoPayload,
+        createdAt,
+      });
+    }
+  });
 
   const drain = await drainOutbox({
     ...deps,
@@ -1391,34 +1427,58 @@ export async function submitReport(
  * Delete one of the current user's comments. A never-synced local comment is
  * simply cancelled (its optimistic row + pending outbox item are removed); a
  * server-confirmed comment is optimistically removed locally and a `delete`
- * write is enqueued + drained.
+ * write is enqueued + drained. So is a local comment whose create is in flight
+ * (outbox row `sending`): the PUT may land, so it gets a `delete` too.
+ *
+ * Each branch is one transaction, so a crash cannot leave half of it (a row
+ * gone with its delete never queued).
  */
 export async function deleteOwnComment(
   input: { id: string; source: CommentSource },
   deps: SyncDeps = {},
 ): Promise<DrainResult | undefined> {
   const db = await resolveDb(deps);
+  const createdAt = new Date((deps.now ?? Date.now)()).toISOString();
 
-  if (input.source === 'local') {
-    await outboxRepo.remove(db, input.id);
-    // The photo rows are keyed by their own ids: removing the comment's row
-    // alone left them gated forever on a comment that will never confirm.
-    await outboxRepo.removePhotosFor(db, input.id);
-    await commentsRepo.deleteById(db, input.id);
-    return undefined;
-  }
+  const queuedDelete = await withTransaction(db, async (tx) => {
+    // A photo still queued (or failed) for a comment being deleted can only
+    // fail against a comment the server no longer has; for a cancelled one,
+    // the photo rows are keyed by their own ids, so removing the comment's
+    // row alone left them gated forever on a comment that will never confirm.
+    await outboxRepo.removePhotosFor(tx, input.id);
+    await commentsRepo.deleteById(tx, input.id);
 
-  await commentsRepo.deleteById(db, input.id);
-  // A photo still queued (or failed) for a comment being deleted can only
-  // fail against a comment the server no longer has.
-  await outboxRepo.removePhotosFor(db, input.id);
-  await outboxRepo.enqueue(db, {
-    id: input.id,
-    kind: 'delete',
-    payload: { id: input.id },
-    createdAt: new Date((deps.now ?? Date.now)()).toISOString(),
+    if (input.source === 'local') {
+      const create = await outboxRepo.getById(tx, input.id);
+      // Removing the row is what stops a drain that has not reached it yet
+      // (its `markSending` finds nothing). One already sending cannot be
+      // recalled.
+      await outboxRepo.remove(tx, input.id);
+      if (create?.status !== 'sending') return false;
+      // The create may land, so the comment is deleted after it. Its own id:
+      // the in-flight create still settles under the comment's id, and its
+      // `remove` on success would otherwise take this row with it.
+      await outboxRepo.enqueue(tx, {
+        id: uuidv4(),
+        kind: 'delete',
+        trailId: create.trailId,
+        waypointId: create.waypointId,
+        payload: { id: input.id },
+        createdAt,
+      });
+      return true;
+    }
+
+    await outboxRepo.enqueue(tx, {
+      id: input.id,
+      kind: 'delete',
+      payload: { id: input.id },
+      createdAt,
+    });
+    return true;
   });
-  return drainOutbox({ ...deps, db });
+
+  return queuedDelete ? drainOutbox({ ...deps, db }) : undefined;
 }
 
 /** Manual "retry" — drain ignoring backoff so failed items are attempted now. */

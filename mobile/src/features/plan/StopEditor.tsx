@@ -21,6 +21,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { PLAN_LIMITS, type PlanStop } from '@lib/plan-types';
 import { useTheme } from '../../theme';
 import { glyphSizes, radii, spacing, touchTarget, typography } from '../../tokens';
+import { StepButton } from './PlanInputsCard';
 import { useDraftField } from './use-draft-field';
 
 export interface StopEditorProps {
@@ -143,39 +144,6 @@ export function BookedToggle({
   );
 }
 
-function StepButton({
-  label,
-  accessibilityLabel,
-  disabled,
-  onPress,
-}: {
-  label: string;
-  accessibilityLabel: string;
-  disabled?: boolean;
-  onPress: () => void;
-}) {
-  const { colors } = useTheme();
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-      accessibilityState={{ disabled: !!disabled }}
-      style={({ pressed }) => [
-        styles.stepButton,
-        { backgroundColor: colors.background, borderColor: colors.border },
-        pressed && styles.pressed,
-        disabled && styles.disabled,
-      ]}
-    >
-      <Text style={[styles.stepGlyph, { color: disabled ? colors.textSecondary : colors.accent }]}>
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
   root: { gap: spacing.sm },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -206,15 +174,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tickGlyph: { fontSize: glyphSizes.sm, fontWeight: '700' },
-  stepButton: {
-    width: touchTarget.min,
-    height: touchTarget.min,
-    borderRadius: radii.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepGlyph: { fontSize: glyphSizes.md, fontWeight: '700' },
   pressed: { opacity: 0.6 },
-  disabled: { opacity: 0.35 },
 });

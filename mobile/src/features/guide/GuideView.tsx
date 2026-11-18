@@ -1,9 +1,11 @@
 /**
  * The guide three-pane shell: a segmented control switches Map | Elevation |
  * List, with a direction toggle beside it and a shared GPS "what's next" strip
- * above the panes. All three panes stay mounted; inactive panes are frozen with
- * `display: 'none'` and `pointerEvents="none"` so switching is instant and no
- * pane loses its scroll position or re-runs expensive work.
+ * above the panes. All three panes stay mounted; inactive panes are hidden with
+ * `display: 'none'` and `pointerEvents="none"`, so switching is instant and no
+ * pane loses its scroll position or its state. Hidden is not frozen: a hidden
+ * pane still re-renders when a context it reads changes (a GPS fix, say), so
+ * each pane keeps its own heavy work memoised.
  *
  * A single `GuidePositionProvider` (hoisted to the guide navigator's `_layout`)
  * feeds the distance strip, the map puck, the elevation marker, the list

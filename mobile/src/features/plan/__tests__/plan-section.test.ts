@@ -3,7 +3,13 @@
  * section is always the whole track and both trail ends are reachable.
  */
 
-import { kmRangeFromParams, sectionOptions, TERMINUS_EPSILON_KM } from '../plan-section';
+import {
+  kmRangeFromParams,
+  sectionOptions,
+  TERMINUS_EPSILON_KM,
+  trailEndName,
+  wholeTrailSection,
+} from '../plan-section';
 import type { TrailJson } from '../../../services/trail-assets';
 
 function makeTrail(waypointKms: number[], totalDistance: number): TrailJson {
@@ -75,6 +81,24 @@ describe('sectionOptions', () => {
     expect(opts).toHaveLength(2);
     expect(opts[0].km).toBe(0);
     expect(opts[1].km).toBe(42);
+  });
+});
+
+describe('trailEndName / wholeTrailSection', () => {
+  it('names an end after the waypoint within 0.5 km of it, the nearest first', () => {
+    const trail = makeTrail([0.4, 0.1, 50, 99.7], 100);
+    expect(trailEndName(trail, 'start')).toBe('WP 0.1');
+    expect(trailEndName(trail, 'end')).toBe('WP 99.7');
+  });
+
+  it('falls back to the trail name when no waypoint is that close', () => {
+    const trail = makeTrail([13.2, 350, 680.1], 688.3);
+    expect(wholeTrailSection(trail)).toEqual({
+      startKm: 0,
+      endKm: 688.3,
+      startName: 'Test Trail Start',
+      endName: 'Test Trail End',
+    });
   });
 });
 

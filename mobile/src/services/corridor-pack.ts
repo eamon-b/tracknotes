@@ -149,15 +149,6 @@ export interface CorridorPlan {
   bounds: [number, number, number, number] | null;
 }
 
-/**
- * The fingerprint a pack built from this route now would record (see
- * `corridorFingerprint`). Null for a route with no points.
- */
-export function corridorSourceVersion(trail: CorridorTrailInput | null | undefined): string | null {
-  const lines = corridorLines(trail);
-  return lines.length > 0 ? corridorFingerprint(lines) : null;
-}
-
 /** Plan a corridor `bufferKm` either side of a route. Null for a route with no points. */
 export function planCorridor(
   trail: CorridorTrailInput | null | undefined,

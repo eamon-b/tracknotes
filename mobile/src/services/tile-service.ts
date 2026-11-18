@@ -629,20 +629,14 @@ function deletePart(dir: Directory, name: TileFileName): void {
  * @param baseUrl  - Base URL where tiles are hosted, e.g. "https://cdn.example.com/tiles"
  *                   Files are fetched from {baseUrl}/{trailId}/{key ?? fileName}
  *                   and always stored on device under {fileName}
- * @param optionsOrCallback - DownloadOptions, or legacy ProgressCallback for compat
+ * @param options  - Progress callback and cancellation signal
  */
 export async function downloadTrailTiles(
   trailId: string,
   baseUrl: string,
-  optionsOrCallback?: DownloadOptions | ProgressCallback,
+  options: DownloadOptions = {},
 ): Promise<void> {
-  // Support both new options object and legacy callback signature
-  const opts: DownloadOptions =
-    typeof optionsOrCallback === 'function'
-      ? { onProgress: optionsOrCallback }
-      : (optionsOrCallback ?? {});
-
-  const { onProgress, signal } = opts;
+  const { onProgress, signal } = options;
 
   // Ensure directory hierarchy
   const root = tilesRoot();

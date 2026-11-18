@@ -12,10 +12,17 @@ import { toggleStop } from '@lib/plan-editor';
 import type { AlternateMarker, PlanAlternate } from '@lib/plan-alternates';
 import { StopsSection, alternateCardSlots } from '../StopsSection';
 import type { StopCandidate } from '../plan-stops';
+import { OffTrailBadge } from '../../guide/OffTrailBadge';
 
 jest.mock('../../../theme', () => ({
   useTheme: () => ({ colors: new Proxy({}, { get: () => '#123456' }) }),
 }));
+
+// Wrapped (not replaced), so each row's renders can be counted.
+jest.mock('../../guide/OffTrailBadge', () => {
+  const actual = jest.requireActual('../../guide/OffTrailBadge');
+  return { ...actual, OffTrailBadge: jest.fn(actual.OffTrailBadge) };
+});
 
 function collectText(node: unknown, out: string[]): void {
   if (typeof node === 'string') out.push(node);
@@ -286,6 +293,33 @@ describe('StopsSection', () => {
         )
         .map((n) => n.props.accessibilityLabel as string);
     }
+
+    it('a fix that leaves the divider where it is re-renders no row', () => {
+      const props: React.ComponentProps<typeof StopsSection> = {
+        candidates,
+        plan: undefined,
+        pois: undefined,
+        units: 'km',
+        legs: new Map(),
+        showClimb: true,
+        showAll: false,
+        onShowAll: noop,
+        onToggle: noop,
+        onNights: noop,
+        onNote: noop,
+        onBooked: noop,
+        currentKm: 20,
+      };
+      let tree!: ReactTestRenderer;
+      act(() => {
+        tree = TestRenderer.create(<StopsSection {...props} />);
+      });
+      const badge = OffTrailBadge as unknown as jest.Mock;
+      badge.mockClear();
+      act(() => tree.update(<StopsSection {...props} currentKm={21} />));
+      expect(badge).not.toHaveBeenCalled();
+      expect(order(tree)).toEqual(['Ellery Creek', 'You are here', 'Serpentine Chalet']);
+    });
 
     it('sits before the first place at or past the current km', () => {
       expect(order(render({ currentKm: 20 }))).toEqual([

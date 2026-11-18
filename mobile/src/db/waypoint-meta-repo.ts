@@ -5,14 +5,14 @@
  * Rows are stored exactly as the server sends them, including the empty-string
  * "cleared" tombstone: keeping the row (rather than deleting it) means the
  * high-water-mark delta stays correct and a later re-fill upserts onto the same
- * key. Readers never see a cleared row — `getDescriptions` / `getDescription`
- * filter empties so callers can fall back to the bundled trail description.
+ * key. Readers never see a cleared row — `getDescription` filters empties so callers can fall back to the bundled trail description.
  *
  * The description high-water mark lives in `sync_state.meta_synced_at`,
  * independent of the comment cursor (`last_synced_at`).
  */
 
 import type { SqlDatabase } from './sql-database';
+import { withTransaction } from './transaction';
 
 /** One curated description row as pulled from the server. */
 export interface DescriptionInput {
@@ -22,42 +22,31 @@ export interface DescriptionInput {
   updatedAt: string;
 }
 
-interface MetaRow {
-  waypoint_id: string;
-  description: string;
-}
-
 /**
  * Insert or update curated descriptions for a trail. Empty descriptions are
  * stored verbatim (they are the server's tombstone) and filtered on read.
+ * One transaction for the batch: a first pull of a trail is hundreds of rows,
+ * and one commit each was the cost. Opens its own, so it must not be called
+ * from inside another transaction.
  */
 export async function upsertDescriptions(
   db: SqlDatabase,
   trailId: string,
   rows: DescriptionInput[],
 ): Promise<void> {
-  for (const row of rows) {
-    await db.runAsync(
-      `INSERT INTO waypoint_meta (trail_id, waypoint_id, description, updated_at)
+  if (rows.length === 0) return;
+  await withTransaction(db, async (tx) => {
+    for (const row of rows) {
+      await tx.runAsync(
+        `INSERT INTO waypoint_meta (trail_id, waypoint_id, description, updated_at)
        VALUES (?, ?, ?, ?)
        ON CONFLICT(trail_id, waypoint_id) DO UPDATE SET
          description = excluded.description,
          updated_at = excluded.updated_at`,
-      [trailId, row.waypointId, row.description, row.updatedAt],
-    );
-  }
-}
-
-/** Every non-cleared description for a trail, keyed by waypoint id. */
-export async function getDescriptions(
-  db: SqlDatabase,
-  trailId: string,
-): Promise<Map<string, string>> {
-  const rows = await db.getAllAsync<MetaRow>(
-    "SELECT waypoint_id, description FROM waypoint_meta WHERE trail_id = ? AND description <> ''",
-    [trailId],
-  );
-  return new Map(rows.map((row) => [row.waypoint_id, row.description]));
+        [trailId, row.waypointId, row.description, row.updatedAt],
+      );
+    }
+  });
 }
 
 /** One waypoint's synced description, or null when absent or cleared. */

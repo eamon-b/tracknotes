@@ -41,9 +41,9 @@ import { tileManager } from './tile-manager';
 
 export async function deleteLocalTrailData(db: SqlDatabase, trailId: string): Promise<void> {
   if (!isLocalOnlyTrailId(trailId)) return;
-  await withTransaction(db, async () => {
-    await deleteTrailScopedRows(db, trailId);
-    await plansRepo.deleteForTrail(db, trailId);
+  await withTransaction(db, async (tx) => {
+    await deleteTrailScopedRows(tx, trailId);
+    await plansRepo.deleteForTrail(tx, trailId);
   });
 
   usePlansStore.getState().clear(trailId);

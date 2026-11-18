@@ -63,8 +63,18 @@ export interface RequestConfig {
   token?: string;
   /** Test seam — defaults to the global `fetch`. */
   fetchImpl?: FetchLike;
-  /** Abort signal. */
+  /**
+   * Abort signal. When given, the caller owns the request's lifetime and no
+   * timeout is applied; when omitted, the request is aborted after
+   * `timeoutMs` and fails as a `NetworkError`.
+   */
   signal?: AbortSignal;
+  /**
+   * How long a request may take, body included, before it is aborted (only
+   * when no `signal` is passed). Defaults to {@link DEFAULT_TIMEOUT_MS}; the
+   * raw (photo upload) path defaults to {@link UPLOAD_TIMEOUT_MS}.
+   */
+  timeoutMs?: number;
   /**
    * Fetch cache mode. `'no-store'` for reads whose answer decides something
    * destructive or user-visible right now (the community list and its
@@ -79,6 +89,17 @@ export interface RequestOptions extends RequestConfig {
   /** JSON request body; serialized with `JSON.stringify`. */
   body?: unknown;
 }
+
+/**
+ * Default request timeout. Without one, a request the network swallows (a
+ * captive portal, a dead NAT mapping) never settles, and the single-flight
+ * guards it runs under (`activeDrain`, `activePlansPull`, `activeSync`) stay
+ * held until the app restarts.
+ */
+export const DEFAULT_TIMEOUT_MS = 30_000;
+
+/** Photo uploads carry megabytes over trail-side connections: give them longer. */
+export const UPLOAD_TIMEOUT_MS = 120_000;
 
 /** The configured API base URL, or `undefined` when unset. */
 export function getBaseUrl(): string | undefined {
@@ -103,13 +124,18 @@ type ResponseLike = {
 /**
  * Decode a response body as JSON, mapping non-2xx statuses to `ApiError`.
  * Shared by the JSON and raw-bytes request paths. Returns `undefined` for 204s.
+ * `readBody` reads the text (under the request's timeout); its failure is
+ * thrown as it comes, for the caller to map.
  */
-async function decodeResponse<T>(response: ResponseLike): Promise<T> {
+async function decodeResponse<T>(
+  response: ResponseLike,
+  readBody: () => Promise<string>,
+): Promise<T> {
   if (response.status === 204) {
     return undefined as T;
   }
 
-  const raw = await response.text();
+  const raw = await readBody();
   let parsed: unknown;
   if (raw.length > 0) {
     try {
@@ -134,31 +160,104 @@ async function decodeResponse<T>(response: ResponseLike): Promise<T> {
 }
 
 /**
+ * `promise`, or a rejection as soon as `signal` aborts — whichever comes first.
+ * The race makes the timeout hold even for a fetch (or a body read) that does
+ * not itself honour the signal.
+ */
+function untilAborted<T>(promise: Promise<T>, signal: AbortSignal | undefined): Promise<T> {
+  if (!signal) return promise;
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(new Error('Request aborted'));
+    if (signal.aborted) {
+      onAbort();
+      return;
+    }
+    signal.addEventListener('abort', onAbort);
+    promise.then(
+      (value) => {
+        signal.removeEventListener('abort', onAbort);
+        resolve(value);
+      },
+      (error: unknown) => {
+        signal.removeEventListener('abort', onAbort);
+        reject(error);
+      },
+    );
+  });
+}
+
+/**
+ * Fetch `url` and decode the response, under the caller's `signal` or, when
+ * there is none, a timeout of `timeoutMs` that covers the response body too.
+ * A transport failure, an abort or the timeout is a `NetworkError` — the sync
+ * layer's "stop and retry later" — and an HTTP error status an `ApiError`.
+ *
+ * An `AbortController` + `setTimeout` rather than `AbortSignal.timeout`, which
+ * Hermes does not reliably provide.
+ */
+async function send<T>(
+  path: string,
+  url: string,
+  fetchImpl: FetchLike | undefined,
+  callerSignal: AbortSignal | undefined,
+  timeoutMs: number,
+  init: RequestInit,
+): Promise<T> {
+  const doFetch = fetchImpl ?? fetch;
+  // The caller's own signal wins: it decides when the request is abandoned.
+  const controller = callerSignal ? undefined : new AbortController();
+  const signal = callerSignal ?? controller?.signal;
+  let timedOut = false;
+  const timer = controller
+    ? setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+      }, timeoutMs)
+    : undefined;
+  const failure = (cause: unknown) =>
+    new NetworkError(
+      timedOut
+        ? `Request to ${path} timed out after ${timeoutMs} ms`
+        : `Request to ${path} failed to reach the server`,
+      cause,
+    );
+
+  try {
+    let response: Response;
+    try {
+      response = await untilAborted(doFetch(url, { ...init, signal }), signal);
+    } catch (cause) {
+      throw failure(cause);
+    }
+    return await decodeResponse<T>(response, async () => {
+      try {
+        return await untilAborted(response.text(), signal);
+      } catch (cause) {
+        throw failure(cause);
+      }
+    });
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
+
+/**
  * Issue a request and decode JSON. Throws `NetworkError` on transport failure
- * and `ApiError` on any non-2xx response. Returns `undefined` for 204s.
+ * or timeout and `ApiError` on any non-2xx response. Returns `undefined` for 204s.
  */
 export async function apiRequest<T>(path: string, options: RequestOptions): Promise<T> {
-  const { baseUrl, token, fetchImpl, signal, cache, method = 'GET', body } = options;
-  const doFetch = fetchImpl ?? fetch;
+  const { baseUrl, token, fetchImpl, signal, cache, timeoutMs, method = 'GET', body } = options;
 
   const headers: Record<string, string> = { Accept: 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
   if (body !== undefined) headers['Content-Type'] = 'application/json';
 
-  let response: Response;
-  try {
-    response = await doFetch(`${baseUrl}${path}`, {
-      method,
-      headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
-      signal,
-      ...(cache ? { cache } : {}),
-    });
-  } catch (cause) {
-    throw new NetworkError(`Request to ${path} failed to reach the server`, cause);
-  }
-
-  return decodeResponse<T>(response);
+  return send<T>(path, `${baseUrl}${path}`, fetchImpl, signal, timeoutMs ?? DEFAULT_TIMEOUT_MS, {
+    method,
+    headers,
+    body: body === undefined ? undefined : JSON.stringify(body),
+    ...(cache ? { cache } : {}),
+  });
 }
 
 export interface RawRequestOptions extends RequestConfig {
@@ -172,11 +271,20 @@ export interface RawRequestOptions extends RequestConfig {
 /**
  * Issue a request whose body is raw bytes (not JSON) under an explicit
  * `Content-Type`, decoding a JSON response. Used by the photo-upload endpoint,
- * which takes the image bytes directly. Same error contract as `apiRequest`.
+ * which takes the image bytes directly. Same error contract as `apiRequest`,
+ * with the longer {@link UPLOAD_TIMEOUT_MS} by default.
  */
 export async function apiRequestRaw<T>(path: string, options: RawRequestOptions): Promise<T> {
-  const { baseUrl, token, fetchImpl, signal, method = 'POST', body, contentType } = options;
-  const doFetch = fetchImpl ?? fetch;
+  const {
+    baseUrl,
+    token,
+    fetchImpl,
+    signal,
+    timeoutMs,
+    method = 'POST',
+    body,
+    contentType,
+  } = options;
 
   const headers: Record<string, string> = {
     Accept: 'application/json',
@@ -184,18 +292,10 @@ export async function apiRequestRaw<T>(path: string, options: RawRequestOptions)
   };
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  let response: Response;
-  try {
-    response = await doFetch(`${baseUrl}${path}`, {
-      method,
-      headers,
-      // RN's fetch accepts a typed-array/ArrayBuffer body; cast for the DOM types.
-      body: body as unknown as BodyInit,
-      signal,
-    });
-  } catch (cause) {
-    throw new NetworkError(`Request to ${path} failed to reach the server`, cause);
-  }
-
-  return decodeResponse<T>(response);
+  return send<T>(path, `${baseUrl}${path}`, fetchImpl, signal, timeoutMs ?? UPLOAD_TIMEOUT_MS, {
+    method,
+    headers,
+    // RN's fetch accepts a typed-array/ArrayBuffer body; cast for the DOM types.
+    body: body as unknown as BodyInit,
+  });
 }

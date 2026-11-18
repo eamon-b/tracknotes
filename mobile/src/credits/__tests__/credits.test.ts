@@ -1,5 +1,5 @@
 import { appCredits, mapCreditLabel, mapCredits, trailDataCredit } from '../credits';
-import { TRAIL_DATA } from '../../services/trail-assets';
+import { bundledTrailIds, getBundledTrail } from '../../services/trail-assets';
 
 describe('trailDataCredit', () => {
   it('reads a dataSource with its link', () => {
@@ -69,7 +69,8 @@ it('app credits include Open-Meteo for the climate data', () => {
 });
 
 it('every bundled trail credits its track data', () => {
-  for (const [id, trail] of Object.entries(TRAIL_DATA)) {
+  for (const id of bundledTrailIds()) {
+    const trail = getBundledTrail(id)!;
     expect([id, trailDataCredit(trail.config.dataSource) !== null]).toEqual([id, true]);
   }
 });

@@ -8,7 +8,7 @@
  * route); this screen only manages the saved set.
  */
 
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { formatDistance, formatElevation } from '@lib/format-distance';
@@ -32,19 +32,64 @@ export default function RoutesScreen() {
   const activate = useRoutesStore((s) => s.activate);
   const remove = useRoutesStore((s) => s.remove);
 
-  useEffect(() => {
-    void hydrate(trailId);
+  // A failed load keeps the screen from sitting empty forever; a failed
+  // show/hide/delete says so instead of doing nothing.
+  // Tagged with the trail it is about, so another guide's failure never shows.
+  const [failedTrail, setFailedTrail] = useState<string | null>(null);
+  const loadError = failedTrail === trailId;
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    hydrate(trailId).catch(() => setFailedTrail(trailId));
   }, [hydrate, trailId]);
+
+  useEffect(load, [load]);
+
+  const retryLoad = () => {
+    setFailedTrail(null);
+    load();
+  };
+
+  const runAction = (action: Promise<void>, failure: string) => {
+    setActionError(null);
+    action.catch(() => setActionError(failure));
+  };
 
   const confirmDelete = (route: Route) => {
     Alert.alert('Delete route', `Delete “${route.name}”? This can’t be undone.`, [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => void remove(trailId, route.id) },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () =>
+          runAction(remove(trailId, route.id), `Couldn’t delete “${route.name}”. Try again.`),
+      },
     ]);
   };
 
   if (routes === undefined) {
-    return <View style={[styles.root, { backgroundColor: colors.background }]} />;
+    return (
+      <View style={[styles.root, { backgroundColor: colors.background }]}>
+        {loadError && (
+          <View style={styles.empty}>
+            <Text style={[styles.emptyHint, { color: colors.danger }]}>
+              Couldn’t load your routes.
+            </Text>
+            <Pressable
+              onPress={retryLoad}
+              accessibilityRole="button"
+              style={({ pressed }) => [
+                styles.emptyButton,
+                { backgroundColor: colors.accent },
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={[styles.emptyButtonText, { color: colors.accentText }]}>Retry</Text>
+            </Pressable>
+          </View>
+        )}
+      </View>
+    );
   }
 
   return (
@@ -52,6 +97,11 @@ export default function RoutesScreen() {
       style={[styles.root, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.content}
     >
+      {actionError && (
+        <Text accessibilityRole="alert" style={[styles.notice, { color: colors.danger }]}>
+          {actionError}
+        </Text>
+      )}
       {routes.length === 0 ? (
         <View style={styles.empty}>
           <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>No routes yet</Text>
@@ -86,7 +136,14 @@ export default function RoutesScreen() {
               ]}
             >
               <Pressable
-                onPress={() => void activate(trailId, active ? null : route.id)}
+                onPress={() =>
+                  runAction(
+                    activate(trailId, active ? null : route.id),
+                    active
+                      ? `Couldn’t hide “${route.name}”. Try again.`
+                      : `Couldn’t show “${route.name}” on the map. Try again.`,
+                  )
+                }
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
                 accessibilityLabel={active ? `Hide ${route.name}` : `Show ${route.name} on map`}
@@ -98,7 +155,7 @@ export default function RoutesScreen() {
                   </Text>
                   {active && (
                     <View style={[styles.activeBadge, { backgroundColor: colors.warning }]}>
-                      <Text style={[styles.activeBadgeText, { color: colors.accentText }]}>
+                      <Text style={[styles.activeBadgeText, { color: colors.warningText }]}>
                         On map
                       </Text>
                     </View>

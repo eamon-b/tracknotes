@@ -26,7 +26,6 @@
  *                                                    (Android 13 themed icons)
  *   mobile/assets/images/splash-icon.png             1024, a disc on transparent: Android 12+
  *                                                    draws the splash icon in a circle
- *   mobile/assets/images/favicon.png                 48, Expo web
  *   public/favicon.svg, public/favicon-32.png, public/apple-touch-icon.png   the website
  *
  * Rasteriser: @resvg/resvg-js, found the same way as build-map-icons.mjs:
@@ -146,15 +145,6 @@ const FULL = {
   dot: 24,
   gap: 20,
 };
-const MID = {
-  every: 2,
-  ringWidth: 24,
-  minArea: 9000,
-  trailWidth: 45,
-  dash: [42, 93],
-  dot: 31,
-  gap: 26,
-};
 const SMALL = {
   every: 3,
   ringWidth: 48,
@@ -237,7 +227,6 @@ const OUTPUTS = [
   [join(IMAGES, 'android-icon-foreground.png'), svg(scaled(mark(FULL), 0.9)), 1024],
   [join(IMAGES, 'android-icon-monochrome.png'), svg(scaled(mark(MONO), 0.9)), 1024],
   [join(IMAGES, 'splash-icon.png'), svg(clipped(FULL_ART, DISC, 'disc')), 1024],
-  [join(IMAGES, 'favicon.png'), svg(clipped(`${BACKGROUND}${mark(MID)}`, TILE, 'tile-mid')), 48],
   [join(PUBLIC, 'favicon-32.png'), svg(SMALL_TILE), 32],
   [join(PUBLIC, 'apple-touch-icon.png'), svg(FULL_ART), 180],
 ];

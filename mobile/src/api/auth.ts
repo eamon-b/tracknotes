@@ -55,7 +55,7 @@ export async function saveSession(session: Session): Promise<void> {
 }
 
 /** Forget the stored identity (e.g. after a 401 that can't be recovered). */
-export async function clearSession(): Promise<void> {
+async function clearSession(): Promise<void> {
   await SecureStore.deleteItemAsync(SESSION_KEY);
 }
 

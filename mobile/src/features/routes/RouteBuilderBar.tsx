@@ -13,7 +13,7 @@ import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-nativ
 import { formatDistance, type DistanceUnit } from '@lib/format-distance';
 import { useTheme } from '../../theme';
 import { KeyboardAvoidingModalContent } from '../../navigation/KeyboardAwareScrollView';
-import { radii, spacing, typography } from '../../tokens';
+import { radii, spacing, touchTarget, typography } from '../../tokens';
 
 export interface RouteBuilderBarProps {
   totalKm: number;
@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: radii.full,
-    minHeight: 36,
+    minHeight: touchTarget.min,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.sm,
     padding: spacing.md,
-    minHeight: 44,
+    minHeight: touchTarget.min,
     ...typography.body,
   },
   modalActions: {
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.sm,
   },
   modalSave: {
-    minWidth: 44,
+    minWidth: touchTarget.min,
     alignItems: 'center',
   },
   link: {

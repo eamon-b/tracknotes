@@ -8,7 +8,6 @@ import { gunzipSync } from 'fflate';
 import {
   CorridorCancelledError,
   MAX_CORRIDOR_TILES,
-  corridorSourceVersion,
   downloadCorridorPack,
   hasCorridorProgress,
   planCorridor,
@@ -124,7 +123,7 @@ describe('planCorridor', () => {
     expect(plan.baseTiles).toBeGreaterThan(plan.contourTiles);
     expect(plan.totalTiles).toBe(plan.baseTiles + plan.contourTiles);
     expect(plan.tooLarge).toBe(false);
-    expect(plan.sourceVersion).toBe(corridorSourceVersion(TRAIL));
+    expect(plan.sourceVersion).toEqual(expect.any(String));
   });
 
   it('refuses a corridor over the tile cap', () => {
@@ -212,7 +211,7 @@ describe('downloadCorridorPack', () => {
     });
     expect(manifest.corridor).toEqual({
       bufferKm: 1,
-      sourceVersion: corridorSourceVersion(TRAIL),
+      sourceVersion: planCorridor(TRAIL, 1)!.sourceVersion,
       builtAt: '2026-10-30T00:00:00.000Z',
       contours: true,
       tileCount: plan.totalTiles,
@@ -379,7 +378,7 @@ describe('downloadCorridorPack', () => {
     ).rejects.toThrow();
     expect(readCorridorProgress(TRAIL_ID)).toEqual({
       bufferKm: 2,
-      sourceVersion: corridorSourceVersion(TRAIL),
+      sourceVersion: planCorridor(TRAIL, 1)!.sourceVersion,
     });
 
     respondWith(() => ({ status: 200, body: PBF }));

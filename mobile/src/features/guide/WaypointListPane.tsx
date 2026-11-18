@@ -148,6 +148,45 @@ export function WaypointListPane({ trail }: { trail: TrailJson }) {
 
   const hasPoiRows = useMemo(() => data.some((row) => row.kind === 'poi'), [data]);
 
+  // --- scrollToIndex, and its retry ------------------------------------------
+  // scrollToIndex can fire before variable-height rows are measured. The retry
+  // re-issues the request as it was made (the same `viewPosition` and
+  // `animated`), against the rows on screen when it runs — not those of the
+  // render that scheduled it — and is cancelled on unmount.
+  const scrollRequestRef = useRef<{ index: number; viewPosition: number; animated: boolean }>(null);
+  const dataLengthRef = useRef(data.length);
+  useEffect(() => {
+    dataLengthRef.current = data.length;
+  }, [data.length]);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    },
+    [],
+  );
+  const scrollToRow = useCallback((index: number, viewPosition: number, animated: boolean) => {
+    scrollRequestRef.current = { index, viewPosition, animated };
+    listRef.current?.scrollToIndex({ index, viewPosition, animated });
+  }, []);
+  const onScrollToIndexFailed = useCallback(
+    (info: { index: number; averageItemLength: number }) => {
+      const request = scrollRequestRef.current;
+      const { viewPosition, animated } =
+        request?.index === info.index ? request : { viewPosition: 0.3, animated: true };
+      // Nudge to an offset estimate, then retry once layout settles.
+      listRef.current?.scrollToOffset({ offset: info.averageItemLength * info.index, animated });
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = setTimeout(() => {
+        retryTimerRef.current = null;
+        if (dataLengthRef.current > info.index) {
+          listRef.current?.scrollToIndex({ index: info.index, viewPosition, animated });
+        }
+      }, 120);
+    },
+    [],
+  );
+
   const openWaypoint = useCallback(
     (id: string) => {
       router.push({
@@ -177,8 +216,8 @@ export function WaypointListPane({ trail }: { trail: TrailJson }) {
 
   const scrollToMe = useCallback(() => {
     if (currentIndex < 0) return;
-    listRef.current?.scrollToIndex({ index: currentIndex, viewPosition: 0.3, animated: true });
-  }, [currentIndex]);
+    scrollToRow(currentIndex, 0.3, true);
+  }, [currentIndex, scrollToRow]);
 
   // --- Pane focus ----------------------------------------------------------
   // The rows currently on screen, tracked through FlatList's viewability
@@ -201,13 +240,16 @@ export function WaypointListPane({ trail }: { trail: TrailJson }) {
     };
   });
 
-  const scrollToFocus = useCallback((rows: readonly ListRow[], focus: FocusWindow) => {
-    const index = firstIndexInFocus(rows, focus, rowKm);
-    if (index < 0) return;
-    // Not animated: this lands while the pane is being revealed, and an
-    // animated scroll from the old offset would be a distracting fly-past.
-    listRef.current?.scrollToIndex({ index, viewPosition: 0, animated: false });
-  }, []);
+  const scrollToFocus = useCallback(
+    (rows: readonly ListRow[], focus: FocusWindow) => {
+      const index = firstIndexInFocus(rows, focus, rowKm);
+      if (index < 0) return;
+      // Not animated: this lands while the pane is being revealed, and an
+      // animated scroll from the old offset would be a distracting fly-past.
+      scrollToRow(index, 0, false);
+    },
+    [scrollToRow],
+  );
 
   // A focus that reaches back into the folded rows (the hiker was looking
   // behind themselves on the map or profile) unfolds them first, then scrolls
@@ -378,19 +420,7 @@ export function WaypointListPane({ trail }: { trail: TrailJson }) {
             </Text>
           ) : undefined
         }
-        // scrollToIndex can fire before variable-height rows are measured; nudge
-        // to an offset estimate, then retry once layout settles.
-        onScrollToIndexFailed={(info) => {
-          listRef.current?.scrollToOffset({
-            offset: info.averageItemLength * info.index,
-            animated: true,
-          });
-          setTimeout(() => {
-            if (data.length > info.index) {
-              listRef.current?.scrollToIndex({ index: info.index, viewPosition: 0.3 });
-            }
-          }, 120);
-        }}
+        onScrollToIndexFailed={onScrollToIndexFailed}
       />
 
       {/* Scroll to my position */}

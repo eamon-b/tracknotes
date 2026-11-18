@@ -6,7 +6,7 @@
  * This module is the single place that knows every source of that JSON:
  *
  * - **bundled** (`source: 'bundled'`): the shipped trails, resolved
- *   synchronously from the Metro `require()` map in `trail-assets` — unless a
+ *   synchronously from the lazy Metro `require()` map in `trail-assets` — unless a
  *   newer copy has been downloaded from the R2 catalog
  *   (`services/trail-data-updates`), which is then read from disk instead.
  *   The bundle is the seed and the offline fallback, never stale for long.
@@ -33,7 +33,7 @@
  * never be sent.
  */
 
-import { TRAIL_DATA, type TrailJson } from './trail-assets';
+import { getBundledTrail, isBundledTrailId, type TrailJson } from './trail-assets';
 import { getDatabase } from '../db/database';
 import { getImportedTrail, listImportedTrails } from '../db/imported-trails-repo';
 import { readImportedTrail } from './imported-trail-store';
@@ -173,7 +173,7 @@ export function getTrailIndexEntry(id: string): TrailIndexEntry | null {
 
 /** Whether a bundled trail with this id exists (downloaded updates aside). */
 export function hasTrail(id: string): boolean {
-  return Object.prototype.hasOwnProperty.call(TRAIL_DATA, id);
+  return isBundledTrailId(id);
 }
 
 /**
@@ -192,7 +192,7 @@ export { isServerKnown } from './server-trails';
  */
 export function getTrailJson(id: string): TrailJson | null {
   if (activeDownload(id)) return null;
-  return TRAIL_DATA[id] ?? null;
+  return getBundledTrail(id);
 }
 
 /**
@@ -201,7 +201,7 @@ export function getTrailJson(id: string): TrailJson | null {
  * coverage table only needs each trail's rough bounds.
  */
 export function getBundledTrailJson(id: string): TrailJson | null {
-  return TRAIL_DATA[id] ?? null;
+  return getBundledTrail(id);
 }
 
 /**
@@ -218,7 +218,7 @@ export function getBundledTrailJson(id: string): TrailJson | null {
 export async function loadTrail(id: string): Promise<TrailJson | null> {
   const downloaded = await readDownloadedTrail(id);
   if (downloaded) return downloaded;
-  const bundled = TRAIL_DATA[id];
+  const bundled = getBundledTrail(id);
   if (bundled) return bundled;
   if (id.startsWith('c_')) return readCommunityTrail(id);
   return readImportedTrail(id);

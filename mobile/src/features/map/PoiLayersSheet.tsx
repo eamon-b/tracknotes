@@ -87,6 +87,8 @@ export function PoiLayersSheet({
   // Nothing to switch on yet (never searched, or searched and found nothing):
   // the search is the whole point of opening the sheet.
   const empty = pois.length === 0;
+  // Titled for what it holds: the POI layers alone, or more than them.
+  const poiOnly = showPoiControls && !resupplyLegs;
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -109,9 +111,9 @@ export function PoiLayersSheet({
           <View style={styles.header}>
             <View style={styles.headings}>
               <Text style={[styles.title, { color: colors.textPrimary }]}>
-                {showPoiControls ? 'Points of interest' : 'Map layers'}
+                {poiOnly ? 'Points of interest' : 'Map layers'}
               </Text>
-              {showPoiControls ? (
+              {poiOnly ? (
                 <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
                   OpenStreetMap
                 </Text>

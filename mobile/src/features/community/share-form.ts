@@ -95,10 +95,6 @@ export function validateShareForm(form: ShareForm): ShareFormErrors {
   return errors;
 }
 
-export function isShareFormValid(form: ShareForm): boolean {
-  return Object.keys(validateShareForm(form)).length === 0;
-}
-
 /** The submit body. Call only on a valid form. */
 export function buildSubmitRequest(form: ShareForm, trail: unknown): CommunitySubmitRequest {
   const credit = form.credit.trim();

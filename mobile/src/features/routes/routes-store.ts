@@ -55,6 +55,9 @@ export interface RoutesState {
   forgetTrail: (trailId: string) => void;
 }
 
+/** trailId → sequence number of the latest `activate` call. */
+const activateSeq: Record<string, number> = {};
+
 export const useRoutesStore = create<RoutesState>((set, get) => ({
   byTrail: {},
   activeIdByTrail: {},
@@ -152,6 +155,10 @@ export const useRoutesStore = create<RoutesState>((set, get) => ({
   },
 
   activate: async (trailId, id) => {
+    // Only the latest call for a trail may land: a quick second tap (or a
+    // hide) supersedes a load still in flight.
+    const token = (activateSeq[trailId] ?? 0) + 1;
+    activateSeq[trailId] = token;
     if (id == null) {
       set((s) => ({
         activeIdByTrail: { ...s.activeIdByTrail, [trailId]: null },
@@ -161,6 +168,11 @@ export const useRoutesStore = create<RoutesState>((set, get) => ({
     }
     const db = await getDatabase();
     const points = await routesRepo.getRoutePoints(db, id);
+    if (activateSeq[trailId] !== token) return;
+    // A `remove` that finished while the points loaded: never put a deleted
+    // route on the map.
+    const listed = get().byTrail[trailId];
+    if (listed && !listed.some((r) => r.id === id)) return;
     set((s) => ({
       activeIdByTrail: { ...s.activeIdByTrail, [trailId]: id },
       activePointsByTrail: { ...s.activePointsByTrail, [trailId]: points },
@@ -180,8 +192,3 @@ export const useRoutesStore = create<RoutesState>((set, get) => ({
       return { byTrail, activeIdByTrail, activePointsByTrail, trackKeyByTrail };
     }),
 }));
-
-/** Reactive selector for a trail's active route id. */
-export function selectActiveRouteId(trailId: string) {
-  return (s: RoutesState): string | null => s.activeIdByTrail[trailId] ?? null;
-}

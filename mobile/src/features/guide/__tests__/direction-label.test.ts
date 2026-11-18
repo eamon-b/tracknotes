@@ -1,4 +1,4 @@
-import { directionLabel, otherDirection } from '../direction-label';
+import { directionLabel } from '../direction-label';
 
 describe('directionLabel', () => {
   const names = { default: 'Northbound', reversed: 'Southbound' };
@@ -13,12 +13,5 @@ describe('directionLabel', () => {
     expect(directionLabel(undefined, 'reversed')).toBe('Reversed');
     expect(directionLabel({}, 'default')).toBe('Forward');
     expect(directionLabel({ default: '' }, 'default')).toBe('Forward');
-  });
-});
-
-describe('otherDirection', () => {
-  it('flips the direction', () => {
-    expect(otherDirection('default')).toBe('reversed');
-    expect(otherDirection('reversed')).toBe('default');
   });
 });

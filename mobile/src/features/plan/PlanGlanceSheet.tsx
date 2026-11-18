@@ -20,7 +20,7 @@ import { useTheme } from '../../theme';
 import { radii, spacing, touchTarget, typography } from '../../tokens';
 import type { Units } from '../../state/settings-store';
 import { formatHours } from './plan-format';
-import type { PlanGlance } from './plan-glance';
+import { plannedWalkedKm, type PlanGlance } from './plan-glance';
 
 export interface PlanGlanceSheetProps {
   visible: boolean;
@@ -41,7 +41,7 @@ export function PlanGlanceSheet({
   const { colors } = useTheme();
   const { bottom } = useSafeAreaInsets();
   const { days, unplanned } = glance;
-  const plannedKm = days.reduce((sum, d) => sum + d.distanceKm, 0);
+  const plannedKm = plannedWalkedKm(days);
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>

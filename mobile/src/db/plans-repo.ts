@@ -102,16 +102,16 @@ export async function getById(db: SqlDatabase, id: string): Promise<StoredPlan |
 async function write(db: SqlDatabase, doc: PlanDocument, source: PlanSource): Promise<void> {
   // Serialised with every other transaction on the connection: a sync ack and
   // a tap's edit routinely overlap, and a nested BEGIN would throw one away.
-  await withTransaction(db, async () => {
+  await withTransaction(db, async (tx) => {
     // Any other LIVE plan for this trail loses: the unique index allows only
     // one, and an id change (server `plan_exists` adoption) is the case that
     // produces a second. Tombstones for other ids are left alone — they are
     // deletes still waiting to drain.
-    await db.runAsync('DELETE FROM plans WHERE trail_id = ? AND id <> ? AND deleted_at IS NULL', [
+    await tx.runAsync('DELETE FROM plans WHERE trail_id = ? AND id <> ? AND deleted_at IS NULL', [
       doc.trailId,
       doc.id,
     ]);
-    await db.runAsync(
+    await tx.runAsync(
       `INSERT INTO plans (id, trail_id, document_json, updated_at, source, deleted_at)
        VALUES (?, ?, ?, ?, ?, NULL)
        ON CONFLICT(id) DO UPDATE SET

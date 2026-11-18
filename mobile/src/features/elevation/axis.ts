@@ -1,8 +1,8 @@
 /**
  * Axis math for the elevation profile — pure, React-free, unit-testable.
  *
- * Ported from the old app's `trail-utils` (`getMinMax` + `niceAxisTicks`) so
- * the new Skia profile reuses the exact tick logic the previous app shipped.
+ * `niceAxisTicks` is ported from the old app's `trail-utils`, so the Skia
+ * profile reuses the exact tick logic the previous app shipped.
  *
  * The unit-aware helpers (`distanceAxisTicks`, `elevationAxis`) compute ticks
  * that are "nice" in the *display* unit — a mi axis reads 0/10/20 mi, a ft axis
@@ -12,18 +12,6 @@
  */
 
 import { convertDistance, convertElevation, type DistanceUnit } from '@lib/format-distance';
-
-/** Min and max of a numeric array (0/0 for an empty array). */
-export function getMinMax(values: number[]): { min: number; max: number } {
-  if (values.length === 0) return { min: 0, max: 0 };
-  let min = Infinity;
-  let max = -Infinity;
-  for (const v of values) {
-    if (v < min) min = v;
-    if (v > max) max = v;
-  }
-  return { min, max };
-}
 
 /**
  * Produce "nice" round tick values (…1, 2, 5, 10, 20, 50…) covering roughly

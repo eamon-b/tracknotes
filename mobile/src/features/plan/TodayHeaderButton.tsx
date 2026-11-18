@@ -7,12 +7,14 @@
 import React from 'react';
 import { useRouter } from 'expo-router';
 import { HeaderIconButton } from '../../navigation/HeaderIconButton';
-import { useTodayPlan } from './use-today-plan';
+import { useHasPlanToday } from './use-today-plan';
 
 export function TodayHeaderButton({ trailId }: { trailId: string }) {
   const router = useRouter();
-  const { today } = useTodayPlan();
-  if (!today) return null;
+  // The light check: the button needs only "is there a day today", not the
+  // day's rows and POIs the Today screen lists.
+  const hasToday = useHasPlanToday();
+  if (!hasToday) return null;
   return (
     <HeaderIconButton
       name="calendar-today"

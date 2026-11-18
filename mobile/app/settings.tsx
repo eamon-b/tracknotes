@@ -47,8 +47,9 @@ export default function SettingsScreen() {
       <SharedRoutesSection />
       <CommentExportSection />
       <DeleteAccountSection />
-      {/* Last: About is always visible, while the two account sections above
-          hide themselves on a device with no identity. */}
+      {/* Last: About is always visible, while the account sections above
+          hide themselves when they have nothing to offer (no server
+          configured, or for some, no registered identity yet). */}
       <AboutSection />
     </KeyboardAwareScrollView>
   );

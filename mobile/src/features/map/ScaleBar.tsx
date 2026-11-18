@@ -19,7 +19,7 @@ import { radii, spacing, typography } from '../../tokens';
 import { scaleBarFor } from './map-scale';
 
 /** The longest the bar may grow, in points. */
-export const SCALE_BAR_MAX_WIDTH = 100;
+const SCALE_BAR_MAX_WIDTH = 100;
 
 export interface ScaleBarHandle {
   /** Feed the current camera: zoom level and the latitude at its centre. */

@@ -3,7 +3,6 @@ import {
   RIGHTS_TEXT,
   buildSubmitRequest,
   initialShareForm,
-  isShareFormValid,
   shareFailure,
   utf8ByteLength,
   validateShareForm,
@@ -23,7 +22,6 @@ const VALID: ShareForm = {
 describe('validateShareForm', () => {
   it('accepts a complete form', () => {
     expect(validateShareForm(VALID)).toEqual({});
-    expect(isShareFormValid(VALID)).toBe(true);
   });
 
   it('starts invalid: the rights box is unticked and no country is chosen', () => {

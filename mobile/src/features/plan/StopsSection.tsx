@@ -224,15 +224,11 @@ export function StopsSection(props: StopsSectionProps) {
               }
               showClimb={props.showClimb}
               units={units}
-              onToggle={() => props.onToggle(candidate)}
-              onNights={(nights) => props.onNights(candidate, nights)}
-              onNote={(note) => props.onNote(candidate, note)}
-              onBooked={(booked) => props.onBooked(candidate, booked)}
-              onShowOnMap={
-                props.onShowOnMap && candidate.point
-                  ? () => props.onShowOnMap!(candidate.point!)
-                  : undefined
-              }
+              onToggle={props.onToggle}
+              onNights={props.onNights}
+              onNote={props.onNote}
+              onBooked={props.onBooked}
+              onShowOnMap={candidate.point ? props.onShowOnMap : undefined}
             />
           </React.Fragment>
         ))
@@ -283,7 +279,7 @@ const HereMarker = React.forwardRef<HostInstance, { onLayout: () => void }>(func
 });
 
 /** Where an alternate leaves the line walked, or comes back to it. */
-function AlternateCard({
+const AlternateCard = React.memo(function AlternateCard({
   marker,
   units,
   showClimb,
@@ -345,9 +341,15 @@ function AlternateCard({
       )}
     </View>
   );
-}
+});
 
-function StopRow({
+/**
+ * One place. Memoised, and handed the screen's callbacks unbound (each takes
+ * the candidate), so a GPS fix that re-renders the list for its "You are here"
+ * divider re-renders no row whose place, stop and leg are unchanged — the
+ * screen keeps the callbacks stable for the same reason.
+ */
+const StopRow = React.memo(function StopRow({
   candidate,
   stop,
   services,
@@ -368,11 +370,12 @@ function StopRow({
   offTrailM: number | null | undefined;
   showClimb: boolean;
   units: Units;
-  onToggle: () => void;
-  onNights: (nights: number) => void;
-  onNote: (note: string) => void;
-  onBooked: (booked: boolean) => void;
-  onShowOnMap?: () => void;
+  onToggle: (candidate: StopCandidate) => void;
+  onNights: (candidate: StopCandidate, nights: number) => void;
+  onNote: (candidate: StopCandidate, note: string) => void;
+  onBooked: (candidate: StopCandidate, booked: boolean) => void;
+  /** Absent for a place with no point, or when the screen has no map to show. */
+  onShowOnMap?: (point: MapPoint) => void;
 }) {
   const { colors } = useTheme();
   const checked = stop !== undefined;
@@ -388,7 +391,7 @@ function StopRow({
     >
       <View style={styles.rowLine}>
         <Pressable
-          onPress={onToggle}
+          onPress={() => onToggle(candidate)}
           accessibilityRole="checkbox"
           accessibilityState={{ checked }}
           accessibilityLabel={`${candidate.name}${offTrailA11y(offTrailM, units)}`}
@@ -418,17 +421,27 @@ function StopRow({
         </Pressable>
         {/* Beside the checkbox, not in it: an accessible parent would hide it
             from a screen reader. */}
-        {onShowOnMap && <ShowOnMapIconButton name={candidate.name} onPress={onShowOnMap} />}
+        {onShowOnMap && candidate.point && (
+          <ShowOnMapIconButton
+            name={candidate.name}
+            onPress={() => onShowOnMap(candidate.point!)}
+          />
+        )}
       </View>
 
       {stop && (
         <View style={[styles.editor, { borderTopColor: colors.border }]}>
-          <StopEditor stop={stop} onNights={onNights} onNote={onNote} onBooked={onBooked} />
+          <StopEditor
+            stop={stop}
+            onNights={(nights) => onNights(candidate, nights)}
+            onNote={(note) => onNote(candidate, note)}
+            onBooked={(booked) => onBooked(candidate, booked)}
+          />
         </View>
       )}
     </View>
   );
-}
+});
 
 /** "12.4 km · ↑ 540 m · ↓ 320 m" — the day so far, from the previous stop. */
 function legText(leg: StopLeg, units: Units, showClimb: boolean): string {

@@ -86,6 +86,50 @@ describe('routes-store', () => {
     expect(getRoutePoints).toHaveBeenCalledWith(expect.anything(), 'r1');
   });
 
+  it('keeps the latest of two quick activations', async () => {
+    useRoutesStore.setState({ byTrail: { [TRAIL]: [route('r1'), route('r2')] } });
+    let releaseFirst: (points: RoutePoint[]) => void = () => {};
+    getRoutePoints
+      .mockImplementationOnce(() => new Promise<RoutePoint[]>((r) => (releaseFirst = r)))
+      .mockResolvedValueOnce(POINTS);
+
+    const first = useRoutesStore.getState().activate(TRAIL, 'r1');
+    await useRoutesStore.getState().activate(TRAIL, 'r2');
+    releaseFirst([]);
+    await first;
+
+    expect(useRoutesStore.getState().activeIdByTrail[TRAIL]).toBe('r2');
+    expect(useRoutesStore.getState().activePointsByTrail[TRAIL]).toEqual(POINTS);
+  });
+
+  it('a hide supersedes an activation still loading', async () => {
+    useRoutesStore.setState({ byTrail: { [TRAIL]: [route('r1')] } });
+    let release: (points: RoutePoint[]) => void = () => {};
+    getRoutePoints.mockImplementationOnce(() => new Promise<RoutePoint[]>((r) => (release = r)));
+
+    const pending = useRoutesStore.getState().activate(TRAIL, 'r1');
+    await useRoutesStore.getState().activate(TRAIL, null);
+    release(POINTS);
+    await pending;
+
+    expect(useRoutesStore.getState().activeIdByTrail[TRAIL]).toBeNull();
+  });
+
+  it('never activates a route removed while its points loaded', async () => {
+    useRoutesStore.setState({ byTrail: { [TRAIL]: [route('r1'), route('r2')] } });
+    let release: (points: RoutePoint[]) => void = () => {};
+    getRoutePoints.mockImplementationOnce(() => new Promise<RoutePoint[]>((r) => (release = r)));
+    deleteRoute.mockResolvedValue(undefined);
+
+    const pending = useRoutesStore.getState().activate(TRAIL, 'r1');
+    await useRoutesStore.getState().remove(TRAIL, 'r1');
+    release(POINTS);
+    await pending;
+
+    expect(useRoutesStore.getState().activeIdByTrail[TRAIL] ?? null).toBeNull();
+    expect(useRoutesStore.getState().activePointsByTrail[TRAIL]).toBeUndefined();
+  });
+
   it('clears the active route without touching the DB', async () => {
     useRoutesStore.setState({
       activeIdByTrail: { [TRAIL]: 'r1' },

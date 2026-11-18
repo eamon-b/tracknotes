@@ -106,38 +106,6 @@ describe('TileManager', () => {
     expect(mockGetStatus).toHaveBeenCalledWith('bibbulmun');
   });
 
-  it('getDownloadedTrails returns empty when no tiles directory exists', () => {
-    mockDirExists.mockReturnValue(false);
-
-    expect(manager.getDownloadedTrails()).toEqual([]);
-  });
-
-  it('getDownloadedTrails filters to complete trails when directory exists', () => {
-    mockDirExists.mockReturnValue(true);
-
-    // eslint-disable-next-line @typescript-eslint/no-require-imports -- construct the hoisted filesystem mock
-    const { Directory } = require('expo-file-system');
-    const dir1 = new Directory();
-    Object.defineProperty(dir1, 'name', { value: 'trail-1' });
-    const dir2 = new Directory();
-    Object.defineProperty(dir2, 'name', { value: 'trail-2' });
-    const dir3 = new Directory();
-    Object.defineProperty(dir3, 'name', { value: 'trail-3' });
-
-    mockDirList.mockReturnValue([dir1, dir2, dir3]);
-
-    mockGetStatus.mockImplementation((id: string) => ({
-      trailId: id,
-      files: [],
-      complete: id === 'trail-1' || id === 'trail-3',
-      state: (id === 'trail-1' || id === 'trail-3' ? 'complete' : 'absent') as
-        'complete' | 'absent',
-      totalSizeBytes: id === 'trail-1' ? 5000 : id === 'trail-3' ? 8000 : 0,
-    }));
-
-    expect(manager.getDownloadedTrails()).toEqual(['trail-1', 'trail-3']);
-  });
-
   it('getOfflineStyle returns null when trail is not downloaded', async () => {
     mockGetStatus.mockReturnValue({
       trailId: 'heysen',
@@ -291,28 +259,5 @@ describe('TileManager', () => {
     manager.deleteTrail('bibbulmun');
 
     expect(mockDelete).toHaveBeenCalledWith('bibbulmun');
-  });
-
-  it('getTotalStorageUsed sums sizes across all downloaded trails', () => {
-    mockDirExists.mockReturnValue(true);
-
-    // eslint-disable-next-line @typescript-eslint/no-require-imports -- construct the hoisted filesystem mock
-    const { Directory } = require('expo-file-system');
-    const dir1 = new Directory();
-    Object.defineProperty(dir1, 'name', { value: 'trail-a' });
-    const dir2 = new Directory();
-    Object.defineProperty(dir2, 'name', { value: 'trail-b' });
-
-    mockDirList.mockReturnValue([dir1, dir2]);
-
-    mockGetStatus.mockImplementation((id: string) => ({
-      trailId: id,
-      files: [],
-      complete: true,
-      state: 'complete' as const,
-      totalSizeBytes: id === 'trail-a' ? 4000 : 6000,
-    }));
-
-    expect(manager.getTotalStorageUsed()).toBe(10000);
   });
 });

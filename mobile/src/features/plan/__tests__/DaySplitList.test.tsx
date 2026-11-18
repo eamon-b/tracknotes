@@ -8,7 +8,6 @@
 import React from 'react';
 import TestRenderer, { act, type ReactTestRenderer } from 'react-test-renderer';
 import { DaySplitList, dayPoiSummary } from '../DaySplitList';
-import { planFloorHours, planWindowHours } from '../plan-adapters';
 import type { PlanDay } from '../plan-adapters';
 import type { ComputedDay } from '@lib/plan-types';
 import type { TrailPOI } from '@lib/trail-types';
@@ -41,7 +40,6 @@ function day(overrides: Partial<PlanDay>): PlanDay {
     descentM: 100,
     estimatedHours: 8,
     waterSources: 2,
-    snappedToCamp: true,
     endKind: 'camp',
     ...overrides,
   };
@@ -49,7 +47,6 @@ function day(overrides: Partial<PlanDay>): PlanDay {
 
 function render(
   days: PlanDay[],
-  targetHours: number,
   unplanned?: ComputedDay | null,
   pois?: TrailPOI[],
   onDayPress?: (day: PlanDay) => void,
@@ -60,7 +57,6 @@ function render(
       <DaySplitList
         days={days}
         unplanned={unplanned}
-        targetHours={targetHours}
         units="km"
         pois={pois}
         onDayPress={onDayPress}
@@ -72,94 +68,64 @@ function render(
 
 describe('DaySplitList', () => {
   it('renders a card per day with its route and est. time', () => {
-    const tree = render([day({ dayNumber: 1 }), day({ dayNumber: 2, endName: 'Town' })], 8);
+    const tree = render([day({ dayNumber: 1 }), day({ dayNumber: 2, endName: 'Town' })]);
     const text = allText(tree);
     expect(text).toContain('Day 1');
     expect(text).toContain('Day 2');
     expect(text).toContain('8.0 h');
   });
 
-  it('shows the over-target hint when a day exceeds target + window', () => {
-    // targetHours 8 -> window = clamp(0.35*8, .75, 2.5) = 2.5; threshold = 10.5.
-    expect(planWindowHours(8)).toBeCloseTo(2.5, 5);
-    const tree = render([day({ estimatedHours: 11.2 })], 8);
-    expect(allText(tree)).toContain('+3.2 h over target');
-  });
-
-  it('omits the hint when every day is within the snap window', () => {
-    // 10.4 h < threshold 10.5 h — no hint.
-    const tree = render([day({ estimatedHours: 10.4 })], 8);
-    expect(allText(tree)).not.toContain('over target');
-  });
-
-  it('grants the final day the splitter floor allowance at high hour targets', () => {
-    // targetHours 16 -> window caps at 2.5 but floor = 0.25*16 = 4: the splitter
-    // legitimately lets the final day run to 20 h, so no hint at 19.5 h...
-    expect(planFloorHours(16)).toBeCloseTo(4, 5);
-    const finish = day({ endKind: 'finish', snappedToCamp: false, estimatedHours: 19.5 });
-    expect(allText(render([finish], 16))).not.toContain('over target');
-    // ...while an interior day at the same hours is over its window and flags.
-    const interior = day({ endKind: 'camp', estimatedHours: 19.5 });
-    expect(allText(render([interior], 16))).toContain('+3.5 h over target');
-  });
-
   it('shows the date when the plan has a start date', () => {
-    const tree = render(
-      [day({ date: '2026-10-01' }), day({ dayNumber: 2, date: '2026-10-02' })],
-      8,
-    );
+    const tree = render([day({ date: '2026-10-01' }), day({ dayNumber: 2, date: '2026-10-02' })]);
     const text = allText(tree);
     expect(text).toContain('2026-10-01');
     expect(text).toContain('2026-10-02');
     // No start date, no date line.
-    expect(allText(render([day({})], 8))).not.toContain('2026-');
+    expect(allText(render([day({})]))).not.toContain('2026-');
   });
 
   it('states the daylight beside the date, in the estimate\u2019s own form, and a walk longer than it', () => {
     // Melbourne's latitude at midwinter: 9.5 h of daylight.
     const short = allText(
-      render([day({ date: '2026-06-21', latitude: -37.81, estimatedHours: 8 })], 8),
+      render([day({ date: '2026-06-21', latitude: -37.81, estimatedHours: 8 })]),
     );
     expect(short).toContain('2026-06-21 · 9.5 h daylight');
     expect(short).not.toContain('more walking than daylight');
 
     const long = allText(
-      render([day({ date: '2026-06-21', latitude: -37.81, estimatedHours: 11 })], 8),
+      render([day({ date: '2026-06-21', latitude: -37.81, estimatedHours: 11 })]),
     );
     expect(long).toContain('About 1.5 h more walking than daylight');
     // The difference of the two figures on the card, never finer than they are.
     expect(
-      allText(render([day({ date: '2026-06-21', latitude: -37.81, estimatedHours: 9.6 })], 8)),
+      allText(render([day({ date: '2026-06-21', latitude: -37.81, estimatedHours: 9.6 })])),
     ).toContain('About 0.1 h more walking than daylight');
 
     // No start date: no daylight, whatever the latitude.
-    const undated = allText(render([day({ latitude: -37.81, estimatedHours: 11 })], 8));
+    const undated = allText(render([day({ latitude: -37.81, estimatedHours: 11 })]));
     expect(undated).not.toContain('daylight');
     // A date without a latitude shows the date alone.
-    expect(allText(render([day({ date: '2026-06-21' })], 8))).not.toContain('daylight');
+    expect(allText(render([day({ date: '2026-06-21' })]))).not.toContain('daylight');
   });
 
   it('calls out the rest days taken at a day\u2019s end stop', () => {
-    expect(allText(render([day({ endName: 'Salida', restDays: 1 })], 8))).toContain(
+    expect(allText(render([day({ endName: 'Salida', restDays: 1 })]))).toContain(
       '+1 rest day at Salida',
     );
-    expect(allText(render([day({ endName: 'Salida', restDays: 3 })], 8))).toContain(
+    expect(allText(render([day({ endName: 'Salida', restDays: 3 })]))).toContain(
       '+3 rest days at Salida',
     );
-    expect(allText(render([day({ restDays: 0 })], 8))).not.toContain('rest day');
+    expect(allText(render([day({ restDays: 0 })]))).not.toContain('rest day');
   });
 
-  it('renders a hand-picked stop plainly — no campsite claim, no wild camp', () => {
-    const text = allText(
-      render([day({ endKind: 'stop', endName: 'Ghost Town', snappedToCamp: false })], 8),
-    );
+  it('renders a hand-picked stop plainly — no campsite claim', () => {
+    const text = allText(render([day({ endKind: 'stop', endName: 'Ghost Town' })]));
     expect(text).toContain('Ghost Town');
     expect(text).not.toContain('⛺');
-    expect(text).not.toContain('wild camp');
   });
 
   it('renders the empty state for no days', () => {
-    const tree = render([], 8);
+    const tree = render([]);
     expect(allText(tree)).toContain('Choose a section');
   });
 
@@ -186,28 +152,27 @@ describe('DaySplitList', () => {
     }
 
     it('renders a muted card after the planned days', () => {
-      const tree = render([day({})], 8, tail());
+      const tree = render([day({})], tail());
       expect(unplannedCards(tree)).toHaveLength(1);
       const text = allText(tree);
       expect(text).toContain('Day 1');
       expect(text).toContain('Not planned yet: Serpentine Chalet → Redbank Gorge');
       expect(text).toContain('85.0 km');
       expect(text).toContain('29.0 h of walking');
-      // Not a day card, so no day number and no over-target hint for it.
+      // Not a day card, so no day number.
       expect(text).not.toContain('Day 3');
-      expect(text).not.toContain('over target');
     });
 
     it('shows the card instead of the empty state when no day is planned', () => {
-      const tree = render([], 8, tail());
+      const tree = render([], tail());
       expect(unplannedCards(tree)).toHaveLength(1);
       expect(allText(tree)).not.toContain('Choose a section');
     });
 
     it('is absent by default and for null', () => {
-      expect(unplannedCards(render([day({})], 8))).toHaveLength(0);
-      expect(unplannedCards(render([day({})], 8, null))).toHaveLength(0);
-      expect(allText(render([], 8, null))).toContain('Choose a section');
+      expect(unplannedCards(render([day({})]))).toHaveLength(0);
+      expect(unplannedCards(render([day({})], null))).toHaveLength(0);
+      expect(allText(render([], null))).toContain('Choose a section');
     });
   });
 
@@ -249,11 +214,11 @@ describe('DaySplitList', () => {
     });
 
     it('puts the line on the card when POIs are given', () => {
-      expect(allText(render([day({})], 8, null, pois))).toContain(
+      expect(allText(render([day({})], null, pois))).toContain(
         'Along the way (OSM): 🛒 1 · 🍽 2 · 💧 1',
       );
-      expect(allText(render([day({})], 8, null))).not.toContain('Along the way');
-      expect(allText(render([day({ startKm: 40, endKm: 60 })], 8, null, pois))).not.toContain(
+      expect(allText(render([day({})], null))).not.toContain('Along the way');
+      expect(allText(render([day({ startKm: 40, endKm: 60 })], null, pois))).not.toContain(
         'Along the way',
       );
     });
@@ -269,7 +234,7 @@ describe('opening a day', () => {
   it('opens the pressed day', () => {
     const onDayPress = jest.fn();
     const days = [day({ dayNumber: 1 }), day({ dayNumber: 2, endName: 'Town' })];
-    const tree = render(days, 8, null, undefined, onDayPress);
+    const tree = render(days, null, undefined, onDayPress);
     const cards = buttons(tree);
     expect(cards).toHaveLength(2);
     act(() => (cards[1].props.onPress as () => void)());
@@ -277,8 +242,8 @@ describe('opening a day', () => {
   });
 
   it('is not pressable without a handler, and the unplanned tail never is', () => {
-    expect(buttons(render([day({})], 8))).toHaveLength(0);
+    expect(buttons(render([day({})]))).toHaveLength(0);
     const tail: ComputedDay = { ...day({ dayNumber: 2, startKm: 20, endKm: 90 }) };
-    expect(buttons(render([day({})], 8, tail, undefined, jest.fn()))).toHaveLength(1);
+    expect(buttons(render([day({})], tail, undefined, jest.fn()))).toHaveLength(1);
   });
 });

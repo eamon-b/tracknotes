@@ -225,6 +225,13 @@ describe('PoiLayersSheet — the resupply legs switch', () => {
     expect(onChange).toHaveBeenCalledWith(true);
   });
 
+  it('is titled for what the sheet holds', () => {
+    expect(texts(renderWith({}))).toContain('Points of interest');
+    const both = texts(renderWith({ resupplyLegs: { value: false, onChange: jest.fn() } }));
+    expect(both).toContain('Map layers');
+    expect(both).not.toContain('Points of interest');
+  });
+
   it('stands alone for a trail with no points of interest to offer', () => {
     const tree = renderWith({
       pois: [],

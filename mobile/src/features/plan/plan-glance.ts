@@ -24,6 +24,7 @@ import { computePlanDays, splitUnplannedTail, toggleStop } from '@lib/plan-edito
 import { finalDayMaxHours } from '@lib/plan-suggest';
 import type { ComputedDay, PlanDocument, SectionConfig } from '@lib/plan-types';
 import type { TrailJson } from '../../services/trail-assets';
+import { wholeTrailSection } from './plan-section';
 import type { StopCandidate } from './plan-stops';
 import { toggleTargetOf } from './plan-stops';
 
@@ -77,18 +78,22 @@ export function planGlance(
   const doc = plan.direction === opts.direction ? plan : { ...plan, direction: opts.direction };
   const total = trail.track.totalDistance;
   if (!(total > 0)) return { days: [], unplanned: null };
-  const scope = section ?? {
-    startKm: 0,
-    endKm: total,
-    startName: `${trail.config.name} Start`,
-    endName: `${trail.config.name} End`,
-  };
+  const scope = section ?? wholeTrailSection(trail);
   if (!(scope.endKm > scope.startKm)) return { days: [], unplanned: null };
   const days = computePlanDays(trail as unknown as PlanTrail, doc, {
     baseKmh: opts.baseKmh,
     section: scope,
   });
   return splitUnplannedTail(days, finalDayMaxHours(opts.dailyHours));
+}
+
+/**
+ * The km the planned days walk: each day's `distanceKm`, so the walks out to
+ * and back from off-route stops count. The Plan screen's "Planned" and the
+ * glance sheet's "km planned" both read this, so they show one figure.
+ */
+export function plannedWalkedKm(days: readonly Pick<ComputedDay, 'distanceKm'>[]): number {
+  return days.reduce((sum, day) => sum + day.distanceKm, 0);
 }
 
 /** Where one place sits among the plan's days. */

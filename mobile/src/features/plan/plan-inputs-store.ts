@@ -85,9 +85,10 @@ export interface PlanInputsState {
    */
   clearResupplyStops: (trailId: string) => void;
   /**
-   * Forget a trail's prefs entirely. Called when an imported trail is deleted
-   * (`services/imported-trail-store`) so the persisted blob doesn't accumulate
-   * entries for trails that no longer exist. No-op for an unknown id.
+   * Forget a trail's prefs entirely. Called when an imported trail or a
+   * community route is removed (`services/local-trail-data`
+   * `deleteLocalTrailData`) so the persisted blob doesn't accumulate entries
+   * for trails that no longer exist. No-op for an unknown id.
    */
   clearTrail: (trailId: string) => void;
 }

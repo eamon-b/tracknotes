@@ -29,7 +29,8 @@ import {
   type TodayPlan,
   type TodayRow,
 } from './today-plan';
-import { usePlanGlance } from './use-plan-glance';
+import { planGlance } from './plan-glance';
+import { usePlanBasis, usePlanGlance } from './use-plan-glance';
 
 export interface TodayPlanState {
   /** Today's day of the plan, or null when the plan has none for today. */
@@ -116,4 +117,21 @@ export function useTodayPlan(): TodayPlanState {
       hasStops: glance.hasStops,
     };
   }, [today, rows, entries, pois, date, glance]);
+}
+
+/**
+ * Whether the plan has a day (walking or rest) dated today — `useTodayPlan`'s
+ * `today !== null` without the day's rows, POIs and filter, for the guide
+ * header's button. Before the start date, or with none, it answers without
+ * working out the days at all.
+ */
+export function useHasPlanToday(): boolean {
+  const { plan, options, trail } = usePlanBasis();
+  const date = useLocalDate();
+  return useMemo(() => {
+    const start = plan.startDate;
+    // Every day is dated from the start date on, so nothing is today before it.
+    if (!start || date < start) return false;
+    return todayPlan(planGlance(trail, plan, options), date, start) !== null;
+  }, [plan, options, trail, date]);
 }

@@ -8,6 +8,7 @@ Expo SDK 58 / React Native 0.88 (exact pins in `package.json`), New Architecture
 - Screens use the `navigation/` scroll containers; raw palette tokens are import-restricted. Both are lint-enforced.
 - After changing `app.json` plugins or native deps, run `npx expo prebuild --clean`, and for native deps confirm the dev build compiles (see Device check below).
 - **No OTA updates:** `expo-updates` isn't installed, so every change, JS included, ships as a new build.
+- **Inside `withTransaction(db, (tx) => …)` write through `tx` only.** `getDatabase()`'s handle queues writes behind an open transaction, so a write on it from inside the callback waits for itself forever (`src/db/transaction.ts`).
 
 ## Commands (from mobile/)
 

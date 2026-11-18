@@ -82,11 +82,13 @@ export function waterStatusMeta(status: WaterStatus): WaterStatusMeta {
 }
 
 /**
- * Whether a waypoint type belongs to the water family — the composer only
- * offers flow chips for these.
+ * Whether a waypoint is water — the composer only offers flow chips, and the
+ * list a water-status chip, for these. A `water-access` turn-off is drawn in
+ * the water colour (it is coloured as the place it serves) but is never water:
+ * reports about the water belong on the source itself.
  */
 export function isWaterFamily(type: string): boolean {
-  return categoryToken(type) === 'waypointWater';
+  return !type.endsWith('-access') && categoryToken(type) === 'waypointWater';
 }
 
 // ---------------------------------------------------------------------------

@@ -119,11 +119,14 @@ export default function DownloadsScreen() {
   );
 
   // --- Corridor packs -------------------------------------------------------
-  // What is on disk now: re-read whenever a build starts, ends or is deleted.
+  // What is on disk now: re-read whenever a build starts or ends (`downloading`
+  // flips; a rebuild over a complete pack leaves `state` as it was) or the pack
+  // is deleted (`state` goes to absent) — not on every progress tick, which
+  // would read the manifest from disk a few times a second.
   const record = useMemo(
     () => (plan.corridor && packTrailId ? readCorridorRecord(packTrailId) : null),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- download moves the disk
-    [plan.corridor, packTrailId, download],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- these move the disk
+    [plan.corridor, packTrailId, download.state, download.downloading],
   );
   const interrupted = useMemo(
     () =>

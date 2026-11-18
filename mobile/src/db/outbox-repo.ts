@@ -141,9 +141,31 @@ export async function getById(db: SqlDatabase, id: string): Promise<OutboxItem |
   return row ? toItem(row) : null;
 }
 
-/** Mark an item as in-flight. */
-export async function markSending(db: SqlDatabase, id: string): Promise<void> {
-  await db.runAsync("UPDATE outbox SET status = 'sending' WHERE id = ?", [id]);
+/**
+ * Mark an item as in-flight. Returns false when the row is gone — cancelled or
+ * superseded after the drain listed it — so the drain does not send it.
+ */
+export async function markSending(db: SqlDatabase, id: string): Promise<boolean> {
+  const { changes } = await db.runAsync("UPDATE outbox SET status = 'sending' WHERE id = ?", [id]);
+  return changes > 0;
+}
+
+/**
+ * The comment ids with a queued `delete`. A delete row's id is usually the
+ * comment's own, but one queued while the comment's create was in flight has a
+ * fresh id (the create's row still holds the comment id), so the target is
+ * read from the payload too.
+ */
+export async function queuedCommentDeletes(db: SqlDatabase): Promise<Set<string>> {
+  const rows = await db.getAllAsync<{ id: string; target: string | null }>(
+    "SELECT id, json_extract(payload_json, '$.id') AS target FROM outbox WHERE kind = 'delete'",
+  );
+  const ids = new Set<string>();
+  for (const row of rows) {
+    ids.add(row.id);
+    if (typeof row.target === 'string') ids.add(row.target);
+  }
+  return ids;
 }
 
 /** Revert an item to pending (drain interrupted; no attempt charged). */

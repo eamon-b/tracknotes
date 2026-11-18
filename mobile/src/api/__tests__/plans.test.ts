@@ -9,15 +9,7 @@
 
 import type { PlansSyncResponse } from '@lib/comments-api-types';
 import { PLAN_SCHEMA, type PlanDocument } from '@lib/plan-types';
-import {
-  deletePlan,
-  fetchSharedPlan,
-  listPlans,
-  planExistsId,
-  putPlan,
-  sharePlan,
-  unsharePlan,
-} from '../plans';
+import { deletePlan, fetchSharedPlan, listPlans, planExistsId, putPlan } from '../plans';
 import { ApiError } from '../client';
 
 interface Step {
@@ -149,24 +141,11 @@ describe('putPlan', () => {
 });
 
 describe('the rest of the surface', () => {
-  it('deletes, shares and unshares by id', async () => {
+  it('deletes by id', async () => {
     const del = scriptedFetch([{ status: 204 }]);
     await deletePlan(CTX(del), 'p1');
     expect(calls(del)[0][1].method).toBe('DELETE');
     expect(calls(del)[0][0]).toBe(`${BASE}/v1/plans/p1`);
-
-    const share = scriptedFetch([
-      { body: { shareId: 'abc', url: 'https://site/shared-plan.html?s=abc' } },
-    ]);
-    const res = await sharePlan(CTX(share), 'p1');
-    expect(res.shareId).toBe('abc');
-    expect(calls(share)[0][0]).toBe(`${BASE}/v1/plans/p1/share`);
-    expect(calls(share)[0][1].method).toBe('POST');
-
-    const unshare = scriptedFetch([{ status: 204 }]);
-    await unsharePlan(CTX(unshare), 'p1');
-    expect(calls(unshare)[0][1].method).toBe('DELETE');
-    expect(calls(unshare)[0][0]).toBe(`${BASE}/v1/plans/p1/share`);
   });
 
   it('reads a shared plan WITHOUT a token — the link is the whole credential', async () => {

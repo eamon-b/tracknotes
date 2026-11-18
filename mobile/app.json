@@ -11,9 +11,6 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.tracknotes.app",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Tracknotes uses your location to show your position on the trail and calculate distances to waypoints.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Background location keeps tracking your hike when the screen is locked.",
-        "UIBackgroundModes": ["location"],
         "LSSupportsOpeningDocumentsInPlace": true,
         "CFBundleDocumentTypes": [
           {
@@ -63,16 +60,8 @@
       "package": "com.tracknotes.app",
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION",
-        "ACCESS_BACKGROUND_LOCATION",
-        "FOREGROUND_SERVICE",
-        "FOREGROUND_SERVICE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.ACCESS_BACKGROUND_LOCATION",
-        "android.permission.FOREGROUND_SERVICE",
-        "android.permission.FOREGROUND_SERVICE_LOCATION"
+        "android.permission.ACCESS_FINE_LOCATION"
       ],
       "intentFilters": [
         {
@@ -172,9 +161,8 @@
         "expo-location",
         {
           "locationWhenInUsePermission": "Show your position on the trail map and calculate distances to waypoints.",
-          "locationAlwaysAndWhenInUsePermission": "Background location keeps tracking your hike when the screen is locked.",
-          "isAndroidBackgroundLocationEnabled": true,
-          "isIosBackgroundLocationEnabled": true
+          "locationAlwaysAndWhenInUsePermission": false,
+          "locationAlwaysPermission": false
         }
       ],
       "expo-sqlite",

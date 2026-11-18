@@ -15,9 +15,6 @@
  * `javascript:`). The screen opens `line.href` and nothing else.
  */
 
-import { summarisePoiTags, type PoiTagLine } from '@lib/poi-display';
-import type { TrailPOI } from '@lib/trail-types';
-
 /**
  * A URL that opens the platform's maps app at a point, with a label.
  *
@@ -54,17 +51,6 @@ export function mapsUrlFor(
  */
 export function googleMapsUrl(lat: number, lon: number): string {
   return `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
-}
-
-/**
- * The tag lines the detail screen lists, in display order.
- *
- * A one-line wrapper over the shared summariser so the screen has a single
- * import for "what do I render", and so a future screen-only line (nothing
- * needs one yet) has an obvious home that is still unit-testable.
- */
-export function poiDetailLines(poi: Pick<TrailPOI, 'tags'>): PoiTagLine[] {
-  return summarisePoiTags(poi.tags);
 }
 
 /**
