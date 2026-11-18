@@ -40,7 +40,6 @@ import {
   typeOptionsHtml,
   typePrefixProblem,
   variantLabel,
-  voiceHints,
   type ReviewMarks,
   type WaypointFilter,
 } from './admin-waypoints-view';
@@ -235,21 +234,6 @@ describe('editedCoordinate', () => {
     );
     // Rounded without that, the same typing reads as a move of a few centimetres.
     expect(isDirty(w, { lat: -35.64685, lon: 138.192417 })).toBe(true);
-  });
-});
-
-describe('voiceHints', () => {
-  it('flags addressing and instructing the walker', () => {
-    const matches = voiceHints('You should treat the water. Treat it.').map(h => h.match);
-    expect(matches).toEqual(expect.arrayContaining(['You', 'should', 'Treat']));
-  });
-
-  it('leaves the house voice alone', () => {
-    expect(voiceHints('A tank beside the hut, filled from the roof. The creek below is untreated.')).toEqual([]);
-  });
-
-  it('notices a missing full stop and doubled spaces', () => {
-    expect(voiceHints('A hut.  With a tank').map(h => h.match)).toEqual(['double space', 'ending']);
   });
 });
 
@@ -505,6 +489,44 @@ describe('drafts, filters and review marks', () => {
     const marks = { [w.id]: reviewFingerprint(w) };
     expect(isReviewed(marks, w)).toBe(true);
     expect(isReviewed(marks, { ...w, description: 'Edited elsewhere.' })).toBe(false);
+    expect(isReviewed(marks, { ...w, name: 'Upper Hut (old)' })).toBe(false);
+    expect(isReviewed(marks, { ...w, lat: w.lat + 0.0001 })).toBe(false);
+    // What the build shows beside the source, or where it sits on the route, is not what was reviewed.
+    expect(isReviewed(marks, { ...w, builtType: 'campsite', sortKm: 9 })).toBe(true);
+  });
+
+  it('lets a mark made now lapse on a type change too', () => {
+    // Retyped by a pulled commit: whether it counts as water or resupply has changed.
+    const w = waypoint({ type: 'water-tank' });
+    const marks = { [w.id]: reviewFingerprint(w) };
+    expect(isReviewed(marks, w)).toBe(true);
+    expect(isReviewed(marks, { ...w, type: 'water-access' })).toBe(false);
+    expect(reviewFingerprint(w)).not.toBe(reviewFingerprint({ ...w, type: 'water-access' }));
+  });
+
+  it('keeps a mark made before type was covered, until the name, position or description changes', () => {
+    // The marks already in reviewers' localStorage: a bare hash of name, position and description.
+    const bare = waypoint();
+    const described = waypoint({ id: 'w_2', description: 'A hut with a tank.' });
+    const marks: ReviewMarks = { [bare.id]: 'bbyeh9', [described.id]: '7pie4m' };
+    expect(isReviewed(marks, bare)).toBe(true);
+    expect(isReviewed(marks, described)).toBe(true);
+    // Such a mark never said anything about the type, so a type change does not lapse it...
+    expect(isReviewed(marks, { ...bare, type: 'campsite' })).toBe(true);
+    // ...and it lapses on what it always did.
+    expect(isReviewed(marks, { ...bare, name: 'Upper Hut (old)' })).toBe(false);
+    expect(isReviewed(marks, { ...bare, lon: bare.lon + 0.0001 })).toBe(false);
+    expect(isReviewed(marks, { ...described, description: 'A hut.' })).toBe(false);
+    // A mark made now is told from one of those by its form.
+    expect(reviewFingerprint(bare)).toMatch(/^t:[0-9a-z]+$/);
+    expect(reviewFingerprint(bare)).not.toBe('bbyeh9');
+  });
+
+  it('reads anything else in the stored marks as not reviewed', () => {
+    const w = waypoint();
+    for (const stored of [undefined, null, 7, true, {}, '', 't:', 'x:bbyeh9']) {
+      expect(isReviewed({ [w.id]: stored } as unknown as ReviewMarks, w), JSON.stringify(stored)).toBe(false);
+    }
   });
 });
 

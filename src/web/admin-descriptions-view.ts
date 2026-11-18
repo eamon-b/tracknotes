@@ -33,7 +33,7 @@ import { routeBreakStarts } from '@lib/route-breaks';
 import type { ProcessedTrail } from '@lib/trail-types';
 import { MAX_DESCRIPTION_LENGTH } from '@lib/waypoint-description-limits';
 import { waypointTypeLabel } from '@lib/waypoint-taxonomy';
-import { voiceHints, type VoiceHint } from './admin-waypoints-view';
+import { voiceHints, type VoiceHint } from './description-voice';
 import { escapeHtml } from './web-utils';
 
 export { MAX_DESCRIPTION_LENGTH };
