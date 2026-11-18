@@ -97,7 +97,6 @@ import {
   typeCounts,
   typeOptionsHtml,
   typePrefixProblem,
-  voiceHints,
   waypointGlyphHtml,
   type ReviewMarks,
   type RouteLine,
@@ -107,6 +106,7 @@ import {
   type WaypointFields,
   type WaypointFilter,
 } from './admin-waypoints-view';
+import { voiceHints } from './description-voice';
 import { loadLeaflet } from './landing-map';
 import { themeColor } from './theme';
 import { escapeHtml } from './web-utils';

@@ -289,7 +289,10 @@ The editor never writes to the comments API: moderation stays on `admin-moderati
 ### Reviewing
 
 "Reviewed" (`Alt+R`) is a per-browser mark held in `localStorage`, shown as ✓ and counted in the header's progress bar.
-A mark lapses when the waypoint's name, position or description changes, so a correction pulled from git puts the waypoint back in the unreviewed pile.
+A mark covers four things, as the sources have them: the waypoint's name, its position (to six decimals), its description and its type.
+It lapses when any of them changes, so a correction pulled from git puts the waypoint back in the unreviewed pile, and so does a retype, which changes whether the waypoint counts as water or resupply.
+Nothing else is covered: not its elevation, its km or the lists the build puts it in, hikers' comments, or its `access.json` entry.
+A mark made before the type was covered is kept as it was made: it still lapses on a change of name, position or description, and not on a retype, until the waypoint is marked again.
 A pending waypoint cannot be marked: a mark is kept under the waypoint's id, and it has none yet.
 Nor can a `not built` one, which is locked until a rebuild.
 Neither counts in the progress bar's total.

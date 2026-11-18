@@ -309,13 +309,9 @@ export function stepTarget<T extends { id: string }>(
 // Review marks (per browser)
 // ---------------------------------------------------------------------------
 
-/**
- * A short fingerprint of what was reviewed. A mark holds while the waypoint
- * still has this content, so an edit pulled from git (or made by anyone else)
- * puts it back in the unreviewed pile.
- */
-export function reviewFingerprint(w: Pick<EditorWaypoint, 'name' | 'lat' | 'lon' | 'description'>): string {
-  const text = `${w.name}|${w.lat.toFixed(6)}|${w.lon.toFixed(6)}|${w.description}`;
+type ReviewedContent = Pick<EditorWaypoint, 'name' | 'lat' | 'lon' | 'description' | 'type'>;
+
+function fingerprint(text: string): string {
   let hash = 0x811c9dc5;
   for (let i = 0; i < text.length; i++) {
     hash ^= text.charCodeAt(i);
@@ -324,10 +320,41 @@ export function reviewFingerprint(w: Pick<EditorWaypoint, 'name' | 'lat' | 'lon'
   return hash.toString(36);
 }
 
+/** The name, position and description: all that a mark made before type was covered says. */
+function contentText(w: ReviewedContent): string {
+  return `${w.name}|${w.lat.toFixed(6)}|${w.lon.toFixed(6)}|${w.description}`;
+}
+
+/** What marks a fingerprint as covering the type too; a bare hash (base 36, so never with a colon) does not. */
+const TYPED_MARK_PREFIX = 't:';
+
+/**
+ * A short fingerprint of what was reviewed: the waypoint's name, position,
+ * description and type (as the sources have them, not as the last build
+ * does). A mark holds while the waypoint still has this content, so an edit
+ * pulled from git (or made by anyone else) puts it back in the unreviewed
+ * pile; a retype does too, since it changes whether the waypoint counts as
+ * water or resupply.
+ */
+export function reviewFingerprint(w: ReviewedContent): string {
+  return `${TYPED_MARK_PREFIX}${fingerprint(`${contentText(w)}|${w.type}`)}`;
+}
+
+/** Waypoint id → the fingerprint stored when it was marked reviewed. */
 export type ReviewMarks = Record<string, string>;
 
+/**
+ * Whether a waypoint's mark still holds. Marks live in each reviewer's
+ * `localStorage`, and those made before the type was covered are a bare hash
+ * of name, position and description: such a mark is still read as what it
+ * was, so it holds until one of those three changes and says nothing about
+ * the type. It is replaced by a typed one only when the waypoint is marked
+ * again.
+ */
 export function isReviewed(marks: ReviewMarks, w: EditorWaypoint): boolean {
-  return marks[w.id] === reviewFingerprint(w);
+  const mark: unknown = marks[w.id];
+  if (typeof mark !== 'string' || mark === '') return false;
+  return mark.includes(':') ? mark === reviewFingerprint(w) : mark === fingerprint(contentText(w));
 }
 
 export function reviewStorageKey(trailId: string): string {
@@ -566,46 +593,6 @@ export function nearestLineSnap(
     if (!nearest || snap.offM < nearest.offM) nearest = snap;
   }
   return { main, nearest };
-}
-
-// ---------------------------------------------------------------------------
-// Voice hints
-// ---------------------------------------------------------------------------
-
-export interface VoiceHint {
-  /** The words that tripped it, as written. */
-  match: string;
-  message: string;
-}
-
-/**
- * Soft checks against the house voice (`scripts/lib/waypoint-descriptions.ts`):
- * descriptions state what is there and never instruct the walker or address
- * them as "you". Hints only; nothing is blocked.
- */
-export function voiceHints(text: string): VoiceHint[] {
-  const hints: VoiceHint[] = [];
-  const seen = new Set<string>();
-  const add = (match: string, message: string) => {
-    const key = `${match.toLowerCase()}|${message}`;
-    if (seen.has(key)) return;
-    seen.add(key);
-    hints.push({ match, message });
-  };
-  for (const m of text.matchAll(/\b(you|your|you're|you'll|yourself|yours)\b/gi)) {
-    add(m[0], 'Addresses the walker: describe the place instead.');
-  }
-  for (const m of text.matchAll(/\b(should|must|need to|needs to|be sure|make sure|recommended?|advisable)\b/gi)) {
-    add(m[0], 'Tells the walker what to do: say what is there and let them decide.');
-  }
-  const imperative =
-    /(?:^|[.!?]\s+)(Treat|Fill|Carry|Check|Bring|Ensure|Avoid|Remember|Plan|Consider|Allow|Expect|Take|Don't|Do not|Beware|Stock up|Top up|Head)\b/g;
-  for (const m of text.matchAll(imperative)) {
-    add(m[1], 'Starts an instruction: describe the facility or the water instead.');
-  }
-  if (/\s{2,}/.test(text.trim())) add('double space', 'Has a double space or a blank line.');
-  if (text.trim() && !/[.!?)"”]$/.test(text.trim())) add('ending', 'Does not end with a full stop.');
-  return hints;
 }
 
 // ---------------------------------------------------------------------------
