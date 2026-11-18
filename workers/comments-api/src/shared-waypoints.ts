@@ -27,7 +27,7 @@ import { HttpError, json, noContent, readJson } from './http';
 import type { Env } from './http';
 import { getUser, requireAdmin, requireUser } from './auth';
 import { appendSinceFilter, decodeCursor, encodeCursor } from './cursor';
-import { RATE_BUCKETS, consumeRateLimit } from './rate-limit';
+import { RATE_BUCKETS, consumeRateLimit, refundRateLimit } from './rate-limit';
 import { REPORTER_MIN_ACCOUNT_AGE_MS } from './community';
 import { parseLimit, validateReportDetail, validateReportReason } from './validation';
 import { resolveTrail } from './trails';
@@ -314,7 +314,7 @@ export async function reportSharedWaypoint(
   if (existing) return json({ reportId: existing.id }, 200);
 
   const nowMs = Date.now();
-  await consumeRateLimit(
+  const rateEvent = await consumeRateLimit(
     env,
     RATE_BUCKETS.sharedWaypointReport,
     user.id,
@@ -333,6 +333,9 @@ export async function reportSharedWaypoint(
     .bind(reportId, id, user.id, reason, detail, nowIso)
     .first<{ id: string }>();
   if (!inserted) {
+    // Lost a race with a parallel report from the same account: a repeat is
+    // free, so the allowance goes back.
+    await refundRateLimit(env, rateEvent);
     const again = await env.DB.prepare(`SELECT id FROM shared_waypoint_reports WHERE waypoint_id = ? AND user_id = ?`)
       .bind(id, user.id)
       .first<{ id: string }>();
@@ -432,19 +435,29 @@ export async function adminListSharedWaypoints(request: Request, env: Env, ctx: 
   await requireAdmin(request, env, ctx);
   const url = new URL(request.url);
   const limit = parseLimit(url.searchParams.get('limit'), ADMIN_DEFAULT_LIMIT, ADMIN_MAX_LIMIT);
+  // The order needs every row's report count, so the counts come from one
+  // grouped pass over the reports' index rather than a probe per row; the
+  // reports themselves are gathered only for the page, after the LIMIT. The
+  // outer query repeats the order, which a subquery's does not carry.
+  const order = (a: string, count: string) =>
+    `(${a}.deleted_by IS 'reports') DESC, ${reviewFlaggedSql(a)} DESC, ${count} DESC, ${a}.created_at DESC, ${a}.id DESC`;
   const { results } = await env.DB.prepare(
-    `SELECT w.*, u.display_name AS display_name, u.is_banned AS user_banned,
-            u.is_admin AS user_admin, u.deleted_at AS user_deleted_at,
-            (SELECT COUNT(*) FROM shared_waypoint_reports r WHERE r.waypoint_id = w.id) AS report_count,
+    `SELECT p.*,
             (SELECT json_group_array(json_object(
                       'id', r.id, 'reporterUserId', r.user_id,
                       'reporterDisplayName', ru.display_name, 'reason', r.reason,
                       'detail', r.detail, 'createdAt', r.created_at))
                FROM shared_waypoint_reports r JOIN users ru ON ru.id = r.user_id
-              WHERE r.waypoint_id = w.id) AS reports_json
-       FROM shared_waypoints w JOIN users u ON u.id = w.user_id
-      ORDER BY (w.deleted_by IS 'reports') DESC, ${reviewFlaggedSql('w')} DESC, report_count DESC, w.created_at DESC
-      LIMIT ?`
+              WHERE r.waypoint_id = p.id) AS reports_json
+       FROM (SELECT w.*, u.display_name AS display_name, u.is_banned AS user_banned,
+                    u.is_admin AS user_admin, u.deleted_at AS user_deleted_at,
+                    COALESCE(rc.n, 0) AS report_count
+               FROM shared_waypoints w JOIN users u ON u.id = w.user_id
+               LEFT JOIN (SELECT waypoint_id, COUNT(*) AS n FROM shared_waypoint_reports GROUP BY waypoint_id) rc
+                 ON rc.waypoint_id = w.id
+              ORDER BY ${order('w', 'report_count')}
+              LIMIT ?) p
+      ORDER BY ${order('p', 'p.report_count')}`
   )
     .bind(limit)
     .all<

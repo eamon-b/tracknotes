@@ -217,13 +217,16 @@ export async function linkDevice(request: Request, env: Env, ctx: ExecutionConte
 export async function listDevices(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const user = await requireUser(request, env, ctx);
 
+  // A lapsed linked token no longer signs anything in (`auth.ts` refuses it),
+  // so it is not listed as signed in either. `expires_at` is an ISO string,
+  // so it compares as text.
   const { results } = await env.DB.prepare(
     `SELECT token_hash, kind, label, created_at, last_seen_at, expires_at
        FROM device_tokens
-      WHERE user_id = ? AND revoked_at IS NULL
+      WHERE user_id = ? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > ?)
       ORDER BY created_at ASC, token_hash ASC`
   )
-    .bind(user.id)
+    .bind(user.id, new Date().toISOString())
     .all<DeviceTokenRow>();
 
   const devices: DeviceTokenSummary[] = results.map((row) => ({

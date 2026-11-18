@@ -49,7 +49,7 @@ import { CORS_HEADERS, HttpError, json, noContent } from './http';
 import type { Env } from './http';
 import { getUser, requireAdmin, requireUser, sha256Hex } from './auth';
 import type { AuthUser } from './auth';
-import { RATE_BUCKETS, consumeRateLimit } from './rate-limit';
+import { RATE_BUCKETS, consumeRateLimit, refundRateLimit } from './rate-limit';
 import { isUniqueConstraintError } from './plans';
 import { decodeCursor, encodeCursor } from './cursor';
 import { reviewHides, runAiReview } from './community-review';
@@ -1310,8 +1310,9 @@ export async function reportCommunityRoute(
   ctx: ExecutionContext,
   id: string
 ): Promise<Response> {
+  // No ban check: reporting is a safety action, which a banned account may
+  // still take (as for comments and shared waypoints).
   const user = await requireUser(request, env, ctx);
-  assertNotBanned(user, 'report routes');
   const body = await readSmallJson(request);
   const reason = body.reason;
   if (typeof reason !== 'string' || !(COMMUNITY_REPORT_REASONS as readonly string[]).includes(reason)) {
@@ -1334,7 +1335,7 @@ export async function reportCommunityRoute(
   if (already) return json({ ok: true }, 200);
 
   const nowMs = Date.now();
-  await consumeRateLimit(
+  const rateEvent = await consumeRateLimit(
     env,
     RATE_BUCKETS.communityReport,
     user.id,
@@ -1368,7 +1369,13 @@ export async function reportCommunityRoute(
     ).bind(REPORTS_HIDE_NOTE, stampAfter(row.updated_at), id, REPORTER_MIN_ACCOUNT_AGE_MS, COMMUNITY_REPORTS_TO_HIDE),
   ]);
   if (hidden.meta.changes > 0) await unpublish(env, id);
-  return json({ ok: true }, inserted.meta.changes > 0 ? 201 : 200);
+  if (inserted.meta.changes === 0) {
+    // Lost a race with a parallel report from the same account: a repeat is
+    // free, so the allowance goes back.
+    await refundRateLimit(env, rateEvent);
+    return json({ ok: true }, 200);
+  }
+  return json({ ok: true }, 201);
 }
 
 // ---------------------------------------------------------------------------
@@ -1777,12 +1784,13 @@ export async function rerunStaleReviews(
 // ---------------------------------------------------------------------------
 
 /**
- * Per scheduled run. Workers Free caps an invocation's external subrequests
- * (50), and the stale-review re-run before this may spend 10 on the model;
- * the wall time spent waiting on Overpass is not CPU, but the run must end
- * well inside the Cron Trigger's limit. CPU is the other limit: see
- * `docs/architecture/workers.md` ("community route POIs") before turning this
- * on for a Worker on the Free plan.
+ * Per scheduled run. On Workers Paid the platform's subrequest cap is far
+ * above what a run makes, so the query budget is ours: it keeps one run's load
+ * on the volunteer-run Overpass instances small, and with `wallMs` keeps the
+ * run (whose wait on Overpass is wall time, not CPU) well inside the Cron
+ * Trigger's 15-minute wall-clock limit. CPU is the other limit: see
+ * `docs/architecture/workers.md` ("community route POIs") before running this
+ * on a Worker on the Free plan (10 ms CPU, 50 external subrequests).
  */
 export const POI_RUN_LIMITS = {
   /** Overpass requests per run, across every route and endpoint (≥ `POI_LIMITS.maxQueriesPerRoute`). */
@@ -1853,11 +1861,6 @@ async function poiCandidates(env: Env, nowMs: number, limit: number): Promise<Co
     .bind(new Date(nowMs).toISOString(), new Date(nowMs - POI_RUN_LIMITS.settleMs).toISOString(), limit)
     .all<CommunityRouteRow>();
   return results;
-}
-
-/** D1's answer to a query naming a column migration 0009 adds, when it has not been applied. */
-function isMissingPoiMigration(err: unknown): boolean {
-  return /no such column:?\s*"?pois?_/i.test(err instanceof Error ? err.message : String(err));
 }
 
 type PoiMiss = { kind: 'skip'; reason: string } | { kind: 'fail'; reason: string; failure: PoiFailure };
@@ -2152,9 +2155,9 @@ async function enrichRoutePois(
 /**
  * The scheduled POI enrichment: up to `POI_RUN_LIMITS.routes` live routes due
  * for POIs, longest-waiting first, within one Overpass budget for the run.
- * Off when `OVERPASS_ENDPOINTS` is empty (the default). Never on a request's
- * path: a submit stores the route without POIs and this adds them within a
- * run or two. Before migration 0009 is applied it logs and does nothing.
+ * Off when `OVERPASS_ENDPOINTS` is empty (as on staging; production lists
+ * three instances). Never on a request's path: a submit stores the route
+ * without POIs and this adds them within a run or two.
  */
 export async function enrichCommunityRoutePois(env: Env, deps: PoiEnrichDeps = {}): Promise<void> {
   const endpoints = deps.endpoints ?? parseOverpassEndpoints(env.OVERPASS_ENDPOINTS);
@@ -2162,16 +2165,7 @@ export async function enrichCommunityRoutePois(env: Env, deps: PoiEnrichDeps = {
   const nowMs = deps.nowMs ?? Date.now();
   const now = deps.now ?? Date.now;
   const budget = newOverpassBudget(endpoints.length, POI_RUN_LIMITS.queries, now() + POI_RUN_LIMITS.wallMs);
-  let rows: CommunityRouteRow[];
-  try {
-    rows = await poiCandidates(env, nowMs, POI_RUN_LIMITS.routes);
-  } catch (err) {
-    if (isMissingPoiMigration(err)) {
-      console.error('POI enrichment skipped: migration 0009 (community route POIs) is not applied');
-      return;
-    }
-    throw err;
-  }
+  const rows = await poiCandidates(env, nowMs, POI_RUN_LIMITS.routes);
   for (const row of rows) {
     if (budget.queriesLeft <= 0 || now() + WORST_REQUEST_MS > budget.deadline) return;
     try {

@@ -5,6 +5,8 @@ Moved out of `CLAUDE.md` (issue #160) so the per-module detail is read on demand
 keep this file in step with the code it describes.
 Both workers deploy from GitHub Actions on a merge to `main` that changes them (`docs/deploys.md`).
 Comments API migrations must be additive (expand, then contract in a later release): the deploy applies them while the previous worker is still serving, and refuses one that drops or renames anything, which is then applied by hand (`docs/deploys.md`, "Migrations are additive").
+A migration that adds routes adds a line to `scripts/probe-comments-api.sh`, which the deploy runs against the live API;
+its probes are unauthenticated GETs, so a POST-only route is probed for its 405 (the router answers 405 for a known path with the wrong method, 404 for an unknown one), and `workers/comments-api/test/probes.test.ts` runs every line against the worker so a wrong expectation fails CI rather than a deploy.
 
 ## Comments API Worker: staging (`workers/comments-api/`, `[env.staging]`)
 
@@ -94,7 +96,8 @@ Deleting an account de-attributes its routes (CC0) rather than removing them;
 `deattribute_pending` keeps that durable, and a Cron Trigger (`*/15 * * * *`, `runCommunityMaintenance` in `src/index.ts`'s `scheduled`) retries pending de-attributions, re-runs AI reviews left `pending` over 10 minutes, and adds OSM POIs to routes that have none (see "community route POIs" below; on while `OVERPASS_ENDPOINTS` lists instances).
 A submit also adds the `region` check (`checkCommunityRegion`: a warning when the coordinates are in another country or state, never a change to the hiker's choice), and a PATCH that changes the region re-runs it.
 A PATCH re-runs the `metadata` check.
-Reports spend the `communityReport` bucket (20 a day) through `consumeRateLimit`.
+Reports spend the `communityReport` bucket (20 a day) through `consumeRateLimit`, and a report that loses its insert race to a parallel repeat hands the unit back (`refundRateLimit`).
+A banned account may still report a route (reporting is a safety action, as for comments and shared waypoints).
 The public list and "my routes" are keyset-paged (`?cursor=` / `nextCursor`).
 A route an admin removed (or its owner deleted while an admin had it hidden) sets `blocks_resubmit`, refusing the same track again.
 Comments, plan sync and shared hiker waypoints take a community route's id as well as `ALLOWED_TRAILS` (next section).
@@ -134,13 +137,11 @@ The migration adds no route, so `scripts/probe-comments-api.sh` has no probe for
 **On (Workers Paid).**
 `OVERPASS_ENDPOINTS` in `wrangler.toml` `[vars]` lists the instances;
 empty switches the enrichment off (routes are shared without POIs).
-It was shipped off and switched on once the account moved to Workers Paid (2026-10-20): its CPU (below) is far over Workers Free's 10 ms per invocation but well inside Paid's 15-minute cron limit, so a move back to Free means emptying it again.
+It was shipped off and switched on once the account moved to Workers Paid (2026-10-20): its CPU (below) is far over Workers Free's 10 ms per invocation but well inside Paid's default 30 s of CPU per invocation (`wrangler.toml` sets no `[limits] cpu_ms`; the 15 minutes often quoted is a Cron Trigger's wall-clock limit, which the run's own `wallMs` of 6 minutes stays inside), so a move back to Free means emptying it again.
 How it was turned on: apply migration `0009` (`npm run migrate:remote`), then set `OVERPASS_ENDPOINTS` to comma-separated https URLs — the list `wrangler.toml` suggests is `overpass-api.de`, `overpass.private.coffee`, `overpass.kumi.systems`, the three `INTERACTIVE_OVERPASS_ENDPOINTS` the phone uses — and `npm run deploy`.
 Every instance listed receives each live route's outline, so `docs/privacy-policy.md` and `public/privacy.html` name their operators;
 add an instance there before adding it here (`maps.mail.ru`, which `fetch-pois` sometimes needs, is deliberately not listed).
-Deploy order: migration first.
-Deployed without it, the enrichment logs `migration 0009 … is not applied` each run and does nothing (`isMissingPoiMigration`);
-nothing else reads the new columns.
+Migrations `0009` and `0011` are applied in production, so the enrichment assumes their columns exist.
 
 **CPU on Workers Free.**
 Free allows 10 ms of CPU per invocation, cron included;
@@ -151,7 +152,7 @@ Larapinta (1.2 MB) ~60 ms;
 the Heysen and the Bibbulmun (5-6 MB, more than the 4 MB a community route may be, so an upper bound) ~350-400 ms — parsing the stored JSON ~35 ms, planning the corridor ~200-270 ms (almost all `buildCorridorChunks`' Douglas-Peucker, the build's own), placing and finishing the real answer ~20-25 ms, re-encoding with its md5 ~65-80 ms.
 A synthetic answer at the enrichment's own cap (12,000 elements, ~1.8 MB) adds ~15 ms to parse and 140-260 ms to finish (mostly the duplicate and city-thinning passes; the placement itself goes through `createRouteIndex`, without which it alone took seconds).
 On Free the platform may stop the run at any of these points (the limit is enforced with some leniency, not reliably);
-on the Paid plan (30 s CPU by default) it fits with room to spare.
+on the Paid plan (30 s CPU per invocation by default, the cron included) it fits with room to spare.
 What a stopped run costs is bounded: the claim is written before any work, so the attempt counts and the route is given up on after 4 (`failed`: shown without POIs, tried afresh 14 days later) rather than retried every hour;
 one stopped after writing its R2 objects but before its D1 write leaves a private JSON (and possibly a public copy) the row does not name — the private one is swept the next time the route is answered or given up on (`sweepPoiLeftovers`: everything under its private prefix the row does not name, older than the purge grace), and a public copy, content-addressed and listed nowhere, goes at the route's next republish (`purgeSuperseded`), hide or removal.
 
@@ -183,7 +184,7 @@ Whatever changes a route's geometry in future must set `pois_due_at = ''` and `p
 nothing does yet (replacing the GPX is a new submission).
 
 **Budget and failure.**
-At most 20 Overpass requests a run across every route and endpoint (`POI_RUN_LIMITS`; Free allows 50 external subrequests an invocation, and the stale-review re-run may spend 10), 25 s Overpass `[timeout:]` with the request abandoned 5 s later, 1 s between requests — so one request takes at most `WORST_REQUEST_MS` (31 s), and every request must be able to finish within 6 minutes of the run's start.
+At most 20 Overpass requests a run across every route and endpoint (`POI_RUN_LIMITS`; on Paid the platform's subrequest cap is far above that, so the budget is ours, to keep a run's load on the volunteer-run instances small; Free would allow 50 external subrequests an invocation, of which the stale-review re-run may spend 10), 25 s Overpass `[timeout:]` with the request abandoned 5 s later, 1 s between requests — so one request takes at most `WORST_REQUEST_MS` (31 s), and every request must be able to finish within 6 minutes of the run's start.
 A route needing more than 10 corridor queries (`POI_LIMITS.maxQueriesPerRoute`, roughly 3,000-6,000 km; the Heysen takes 2) is `skipped`, never fetched in part;
 10 × 31 s fits the 6 minutes, so any route that is fetched fits a fresh run however slow each answer is.
 A route is claimed (attempt counted, retry time set) before any work;
@@ -219,8 +220,11 @@ A comment's optional `observedAt` (when the hiker saw the water) is kept **to th
 The UTC date, not the hiker's local one: clients send `toISOString()`, so the offset is unknown, and flooring only ever makes a report look older (under a day), never fresher.
 Every read that returns it (the PUT response and replay, the per-waypoint feed, the bulk/delta feed, the admin listing) passes the stored value through `publishedObservedAt`, which floors it again, so a row written to the second before migration `0010` (which coarsens stored rows and bumps a live row's `updated_at` so phones re-sync it) never publishes the time.
 `created_at` stays exact.
-Every rate limit, the comment post (60 a day) and comment report (20 a day) limits included, goes through `consumeRateLimit` in `src/rate-limit.ts`;
+Every rate limit, the comment post (60 a day), comment report (20 a day) and photo upload (`photoUpload`, 40 a day) limits included, goes through `consumeRateLimit` in `src/rate-limit.ts`;
 never count a table's rows and insert after, which a parallel burst gets past.
+A photo upload spends its unit once, after the replay and "comment full" checks and before the R2 put, and hands it back (`refundRateLimit`) unless the photo ends up attached (a later round that finds a replay, a full comment or a conflict), so a delete-and-repost still counts.
+Each spent unit prunes its own subject's rows outside the window (indexed by `(bucket, key, created_at)`);
+rows of every subject past the longest window go in the `*/15` cron's `pruneStaleRateEvents`, a full-table delete that is deliberately not on the request path.
 
 ## Comments API Worker: reading comments, and the personal export (`workers/comments-api/`)
 
@@ -240,7 +244,7 @@ one an admin or reports hid answers 410;
 every write stamps `updated_at` just before the statement that commits it, so a concurrent delta read cannot get ahead of it;
 `sharedWaypointCreate` (20 a day) and `sharedWaypointEdit` (60) rate buckets.
 `DELETE` is owner or admin.
-`POST /v1/waypoints/:id/report` is one per reporter (`sharedWaypointReport`, 20 a day; not your own), the first qualifying one starts the automated review ("comment and waypoint review" below), which may tombstone it at once, and `USER_WAYPOINT_LIMITS.reportsToHide` (3) distinct reporters tombstone it whatever the review said (`deleted_by = 'reports'`), counting only accounts at least 24 h old when they reported (`REPORTER_MIN_ACCOUNT_AGE_MS`) and only reports filed after the last admin restore (`restored_at`).
+`POST /v1/waypoints/:id/report` is one per reporter (`sharedWaypointReport`, 20 a day, handed back when the insert loses a race to a parallel repeat; not your own), the first qualifying one starts the automated review ("comment and waypoint review" below), which may tombstone it at once, and `USER_WAYPOINT_LIMITS.reportsToHide` (3) distinct reporters tombstone it whatever the review said (`deleted_by = 'reports'`), counting only accounts at least 24 h old when they reported (`REPORTER_MIN_ACCOUNT_AGE_MS`) and only reports filed after the last admin restore (`restored_at`).
 `POST /v1/admin/waypoints/:id/restore` undoes an admin or report hide (not an owner's delete).
 `GET /v1/trails/:trailId/waypoints?since=` is the public full/delta read (tombstones in delta mode, 2,000 rows a page, keyset-paged by `(updated_at, id)` through `nextCursor` like the comments feed);
 a token, when sent, adds `mine`.
@@ -252,11 +256,16 @@ Deleting an account tombstones its shared waypoints, as it does its comments.
 
 `src/reports.ts`, `src/comments.ts`, `src/moderation.ts` (migration `0008`, which rebuilds `comments` and `comment_reports` because SQLite cannot widen a CHECK — dropping a referenced table fails D1's foreign-key check even deferred, so the pair is rebuilt together).
 Comments are moderated like shared waypoints: the first qualifying report starts the automated review (next section), which may hide one at once, and `COMMENT_REPORTS_TO_HIDE` (3) distinct reporters tombstone one whatever it said (`deleted_by = 'reports'`), counting only accounts at least 24 h old when they reported (`REPORTER_MIN_ACCOUNT_AGE_MS`), never the author, and only reports filed after the last admin restore (`restored_at`).
-A report hide keeps the photos;
+A comment's author cannot report it (400 `own_comment`, as for routes and waypoints).
+A report hide keeps the photos, but moves them off the URLs clients already hold (`hideCommentPhotos` in `src/photos.ts`, from `waitUntil` after a report hide and awaited after a review hide): each object is copied to a fresh uuid key under the same `comments/<id>/` prefix, `photo_urls_json` is swapped to the new URLs by compare-and-swap on the row still being report-hidden (leaving `updated_at` alone, since a tombstone carries no photos), and only then are the old objects deleted;
+a restore or final delete meanwhile makes the swap miss and the copies are deleted instead, and an R2 failure leaves the hide standing with the photos at their old URLs (logged, not retried).
+An edge-cached copy of an old URL can outlive the delete until its cache expires.
+The new URLs are what the admin listing and the author's export show, and an admin restore needs nothing more: its `updated_at` bump delivers them to phones in the next delta, where the client upserts the row and its photo URLs.
 `POST /v1/admin/comments/:id/restore` undoes it (the restore reaches the author's phone through the public `GET /v1/trails/:trailId/comments?since=` feed, which, like the waypoints feed, adds `mine` to live rows when a token is sent — a bad or expired token reads as anonymous, and a token-bearing response is `Cache-Control: private, no-store`), and an owner's or admin's `DELETE` (or account deletion) makes it final and purges them (from R2 and from `photo_urls_json`) — an owner or admin delete cannot be restored.
 `GET /v1/admin/comments?reported=1` and `GET /v1/admin/waypoints` carry every report (reason, detail, reporter) and whether the author is banned.
 `POST /v1/admin/users/:id/ban` `{ banned, removeContent? }` bans or unbans (never an admin);
-`removeContent` admin-deletes the account's comments and shared waypoints.
+`removeContent` admin-deletes the account's comments and shared waypoints, and revokes its plans' share links in the same batch (`share_id = NULL`, `updated_at` and the document's own `updatedAt` stamped, as `stampDocument` does, so the owner's devices learn it on their next pull; the plans stay the account's).
+A ban without `removeContent` leaves share links up, as it leaves posts up.
 A ban sets `users.banned_at`;
 account deletion sets `is_banned` and `users.deleted_at`, and a deleted account can never be unbanned (the migration backfills both columns: deleted accounts by their fixed display name and revoked tokens, every other banned account as banned).
 The admin listings carry `userBanned`, `userAdmin` and `userDeleted`, so the page offers only the ban actions the server will take.
@@ -297,6 +306,9 @@ The `*/15` cron runs `rerunStaleContentReviews`: up to `STALE_CONTENT_REVIEW_BAT
 
 Admin: `GET /v1/admin/comments?reported=1` lists reported **or reviewed** comments (a screen-flagged one may have no report; the partial index `idx_comments_review` serves that arm), hidden first, then those the review would `remove` or wants a human for and no admin has restored or kept (`reviewFlaggedSql`), then by report count;
 `GET /v1/admin/waypoints` orders the same way.
+Both listings gather each row's reports (`reports_json`) only for the page, in an outer query over the LIMITed rows, which repeats the order;
+the waypoint listing takes its report counts from one grouped pass over `shared_waypoint_reports` rather than a probe per row (its order still reads every waypoint).
+The unfiltered `GET /v1/admin/comments` (newest first) walks `idx_comments_created` on `(created_at, id)` (migration `0012`) and stops at the LIMIT.
 Both carry `review` (`ContentReview` in `@lib/comments-api-types`), which `src/web/admin-moderation.ts` shows ("Hidden by the automated review", the verdict, confidence, categories, summary and trigger).
 
 Without `ANTHROPIC_API_KEY` nothing is screened or reviewed and comments and waypoints are hidden by three reporters only.
@@ -317,6 +329,13 @@ the review tests inject a fake client and a fake `AI`.
    It scans images served through Cloudflare's cache, so check in the dashboard that it covers the R2 custom domain.
 3. **Workers AI** needs no setup on Workers Paid;
    Llama Guard is billed per request (one per new comment with text, and per waypoint create or edit).
+
+## Comments API Worker: accounts and linked browsers (`workers/comments-api/`)
+
+`GET /v1/me/devices` (`listDevices` in `src/link.ts`) lists the account's tokens that still sign in: neither revoked nor past `expires_at` (a linked browser's token lapses 180 days after its last use).
+Activity is tracked per token (`device_tokens.last_seen_at`, rolled by `getUser`);
+`users.last_seen_at` is written once, at registration, and never updated.
+`users.token_hash` is still written, and read only by `healMissingPrimaryToken` (`src/auth.ts`), which adopts an account the `0004` backfill could not have seen.
 
 ## Comments API Worker: plan documents (`workers/comments-api/`)
 

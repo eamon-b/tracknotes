@@ -963,33 +963,40 @@ describe('isUniqueConstraintError', () => {
 });
 
 describe('rate event housekeeping', () => {
-  it('sweeps events older than the longest window, whatever bucket they are in', async () => {
+  it("prunes the subject's own expired events per request and leaves other subjects to the cron", async () => {
     const device = await registerDevice('Housekeeper');
     const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
     const stale = `stale-${crypto.randomUUID()}`;
-    await env.DB.prepare(`INSERT INTO rate_events (bucket, key, created_at) VALUES (?, ?, ?)`)
-      .bind('device_link', stale, twoDaysAgo)
-      .run();
+    await env.DB.batch([
+      env.DB.prepare(`INSERT INTO rate_events (bucket, key, created_at) VALUES (?, ?, ?)`).bind(
+        'device_link',
+        stale,
+        twoDaysAgo
+      ),
+      env.DB.prepare(`INSERT INTO rate_events (bucket, key, created_at) VALUES (?, ?, ?)`).bind(
+        'plan_put',
+        device.userId,
+        twoDaysAgo
+      ),
+    ]);
 
-    // Any recorded event triggers the sweep; a plan PUT is the cheapest one.
+    // Any recorded event triggers the per-subject prune; a plan PUT is the cheapest one.
     const { res } = await createPlan(device);
     expect(res.status).toBe(201);
 
-    // The sweep runs in ctx.waitUntil — poll briefly for it to land.
-    let remaining = 1;
-    for (let i = 0; i < 20 && remaining > 0; i++) {
-      const row = await env.DB.prepare(`SELECT COUNT(*) AS n FROM rate_events WHERE key = ?`)
-        .bind(stale)
-        .first<{ n: number }>();
-      remaining = row?.n ?? 0;
-      if (remaining > 0) await new Promise((r) => setTimeout(r, 25));
+    // The prune runs in ctx.waitUntil — poll briefly for it to land.
+    const countFor = async (key: string) =>
+      (await env.DB.prepare(`SELECT COUNT(*) AS n FROM rate_events WHERE key = ?`).bind(key).first<{ n: number }>())
+        ?.n ?? 0;
+    let mine = await countFor(device.userId);
+    for (let i = 0; i < 20 && mine > 1; i++) {
+      await new Promise((r) => setTimeout(r, 25));
+      mine = await countFor(device.userId);
     }
-    expect(remaining).toBe(0);
-
-    // The event this request logged is inside its window and stays.
-    const mine = await env.DB.prepare(`SELECT COUNT(*) AS n FROM rate_events WHERE key = ?`)
-      .bind(device.userId)
-      .first<{ n: number }>();
-    expect(mine?.n).toBe(1);
+    // Only the event this request logged, inside its window, is left.
+    expect(mine).toBe(1);
+    // No full-table sweep on the request path: another subject's stale row
+    // waits for the cron's pruneStaleRateEvents (see devices.test.ts).
+    expect(await countFor(stale)).toBe(1);
   });
 });

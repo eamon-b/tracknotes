@@ -20,6 +20,12 @@ import { USER_WAYPOINT_LIMITS } from '../../../src/lib/user-waypoints';
 export const RATE_BUCKETS = {
   /** New comments per user per day; an idempotent replay of a stored one is free. */
   commentPost: { bucket: 'comment_post', limit: 60, windowMs: 24 * 60 * 60 * 1000 },
+  /**
+   * Photo uploads per user per day. Spent just before the bytes go to R2, and
+   * handed back when the upload turns out to be a replay or loses its race,
+   * so a delete-and-repost or a parallel burst still counts.
+   */
+  photoUpload: { bucket: 'photo_upload', limit: 40, windowMs: 24 * 60 * 60 * 1000 },
   /** Comment reports per user per day; a repeat of one already filed is free. */
   commentReport: { bucket: 'comment_report', limit: 20, windowMs: 24 * 60 * 60 * 1000 },
   /** Plan PUTs per user per day — each toggle is a debounced PUT, not a keystroke. */
@@ -141,10 +147,11 @@ export function ipRateKey(raw: string | null): string {
 /**
  * Delete every row older than the longest window, whatever its bucket or key.
  *
- * Run by the Cron Trigger as well as after each spent allowance: the rows keyed
- * by address are personal data, and the privacy policy promises they go soon
- * after 24 hours, which a quiet spell with no rate-limited requests would
- * otherwise break.
+ * Run by the Cron Trigger (every 15 minutes), not per request: `created_at`
+ * alone has no index, so this is a full-table scan. It is what removes the
+ * rows of a subject that never comes back (an IP that tried once), and the
+ * rows keyed by address are personal data the privacy policy promises go soon
+ * after 24 hours.
  */
 export async function pruneStaleRateEvents(env: Env, nowMs: number): Promise<void> {
   const staleEverywhere = new Date(nowMs - MAX_RATE_WINDOW_MS).toISOString();
@@ -152,26 +159,20 @@ export async function pruneStaleRateEvents(env: Env, nowMs: number): Promise<voi
 }
 
 /**
- * Prune expired rows off the response path.
+ * Prune this subject's own rows outside its window, off the response path.
  *
- * Two sweeps, both cheap: this subject's own rows outside its window (the
- * common case, straight down the `(bucket, key, created_at)` index), and every
- * row anywhere older than the longest window — otherwise a subject that never
- * comes back, an IP that tried once, leaves its rows in the table for good.
+ * Straight down the `(bucket, key, created_at)` index, so cheap per request.
+ * Rows of subjects that never come back are left to the cron's
+ * `pruneStaleRateEvents`.
  */
 function pruneRateEvents(env: Env, spec: RateBucket, key: string, nowMs: number, ctx?: ExecutionContext): void {
   const windowStart = new Date(nowMs - spec.windowMs).toISOString();
-  const staleEverywhere = new Date(nowMs - MAX_RATE_WINDOW_MS).toISOString();
-  const prune = env.DB.batch([
-    env.DB.prepare(`DELETE FROM rate_events WHERE bucket = ? AND key = ? AND created_at < ?`).bind(
-      spec.bucket,
-      key,
-      windowStart
-    ),
-    env.DB.prepare(`DELETE FROM rate_events WHERE created_at < ?`).bind(staleEverywhere),
-  ]).catch(() => {
-    /* pruning is housekeeping; never fail a request over it */
-  });
+  const prune = env.DB.prepare(`DELETE FROM rate_events WHERE bucket = ? AND key = ? AND created_at < ?`)
+    .bind(spec.bucket, key, windowStart)
+    .run()
+    .catch(() => {
+      /* pruning is housekeeping; never fail a request over it */
+    });
   if (ctx) ctx.waitUntil(prune);
 }
 

@@ -4,7 +4,9 @@ import {
   authHeaders,
   banUser,
   createComment,
+  createPlan,
   deleteMe,
+  listPlans,
   makeAdmin,
   registerDevice,
   reportComment,
@@ -17,6 +19,7 @@ import type {
   AdminSharedWaypointsResponse,
   BanUserResponse,
   BulkSyncResponse,
+  SharePlanResponse,
 } from '../../../src/lib/comments-api-types';
 
 async function commentState(id: string) {
@@ -255,6 +258,38 @@ describe('POST /v1/admin/users/:id/ban', () => {
       .bind(wp)
       .first<{ deleted_by: string }>();
     expect(row?.deleted_by).toBe('admin');
+  });
+
+  it("with removeContent revokes the account's plan share links, stamping the document", async () => {
+    const admin = await newAdmin();
+    const owner = await registerDevice();
+    const { id: planId, res: created } = await createPlan(owner);
+    expect(created.status).toBe(201);
+    const shared = await SELF.fetch(url(`/v1/plans/${planId}/share`), { method: 'POST', headers: authHeaders(owner) });
+    const { shareId } = (await shared.json()) as SharePlanResponse;
+    expect((await SELF.fetch(url(`/v1/shared/plans/${shareId}`))).status).toBe(200);
+
+    expect((await ban(admin, owner.userId, { banned: true, removeContent: true })).status).toBe(200);
+    expect((await SELF.fetch(url(`/v1/shared/plans/${shareId}`))).status).toBe(404);
+    const row = await env.DB.prepare(`SELECT share_id, updated_at, document_json FROM plans WHERE id = ?`)
+      .bind(planId)
+      .first<{ share_id: string | null; updated_at: string; document_json: string }>();
+    expect(row?.share_id).toBeNull();
+    expect((JSON.parse(row!.document_json) as { updatedAt: string }).updatedAt).toBe(row?.updated_at);
+
+    // The owner's devices learn it on their next pull: the plan is still theirs.
+    const list = (await (await listPlans(owner)).json()) as { plans: { id: string; shareId: string | null }[] };
+    expect(list.plans.find((p) => p.id === planId)?.shareId).toBeNull();
+  });
+
+  it('without removeContent leaves share links up', async () => {
+    const admin = await newAdmin();
+    const owner = await registerDevice();
+    const { id: planId } = await createPlan(owner);
+    const shared = await SELF.fetch(url(`/v1/plans/${planId}/share`), { method: 'POST', headers: authHeaders(owner) });
+    const { shareId } = (await shared.json()) as SharePlanResponse;
+    expect((await ban(admin, owner.userId, { banned: true })).status).toBe(200);
+    expect((await SELF.fetch(url(`/v1/shared/plans/${shareId}`))).status).toBe(200);
   });
 
   it('lifts, and removes the posts of, an account banned by hand in D1', async () => {

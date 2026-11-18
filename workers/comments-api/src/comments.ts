@@ -460,27 +460,33 @@ export async function getAdminComments(request: Request, env: Env, ctx: Executio
 
   // Driven from the reports' own index and the reviewed rows' partial index
   // (a post the screen flagged may have no report), so it scales with what
-  // was reported or reviewed.
+  // was reported or reviewed. Unfiltered, it walks `idx_comments_created`
+  // (migration 0012) backwards and stops at the LIMIT. Either way the reports
+  // themselves are gathered only for the page, outside the LIMIT; the outer
+  // query repeats the order, which a subquery's does not carry.
   const where = reportedOnly
     ? 'WHERE c.id IN (SELECT comment_id FROM comment_reports) OR c.review_status IS NOT NULL'
     : '';
-  const order = reportedOnly
-    ? `(c.deleted_by IS 'reports') DESC, ${reviewFlaggedSql('c')} DESC, report_count DESC, c.created_at DESC, c.id DESC`
-    : 'c.created_at DESC, c.id DESC';
+  const order = (a: string, count: string) =>
+    reportedOnly
+      ? `(${a}.deleted_by IS 'reports') DESC, ${reviewFlaggedSql(a)} DESC, ${count} DESC, ${a}.created_at DESC, ${a}.id DESC`
+      : `${a}.created_at DESC, ${a}.id DESC`;
   const { results } = await env.DB.prepare(
-    `SELECT c.*, u.display_name AS display_name, u.is_banned AS user_banned,
-            u.is_admin AS user_admin, u.deleted_at AS user_deleted_at,
-            (SELECT COUNT(*) FROM comment_reports r WHERE r.comment_id = c.id) AS report_count,
+    `SELECT p.*,
             (SELECT json_group_array(json_object(
                       'id', r.id, 'reporterUserId', r.user_id,
                       'reporterDisplayName', ru.display_name, 'reason', r.reason,
                       'detail', r.detail, 'createdAt', r.created_at))
                FROM comment_reports r JOIN users ru ON ru.id = r.user_id
-              WHERE r.comment_id = c.id) AS reports_json
-       FROM comments c JOIN users u ON u.id = c.user_id
-      ${where}
-      ORDER BY ${order}
-      LIMIT ?`
+              WHERE r.comment_id = p.id) AS reports_json
+       FROM (SELECT c.*, u.display_name AS display_name, u.is_banned AS user_banned,
+                    u.is_admin AS user_admin, u.deleted_at AS user_deleted_at,
+                    (SELECT COUNT(*) FROM comment_reports r WHERE r.comment_id = c.id) AS report_count
+               FROM comments c JOIN users u ON u.id = c.user_id
+              ${where}
+              ORDER BY ${order('c', 'report_count')}
+              LIMIT ?) p
+      ORDER BY ${order('p', 'p.report_count')}`
   )
     .bind(limit)
     .all<

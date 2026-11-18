@@ -193,7 +193,8 @@ display name the hiker chooses. There is no email, password or sign-up.
        deleted text stays in our copy, marked deleted, as the policy says.
      - An erasure asked for by email is manual. No admin route does what
        `DELETE /v1/me` does (it needs the account's own token): a ban with
-       `removeContent` takes down comments and shared waypoints only. The
+       `removeContent` takes down comments, shared waypoints and the account's
+       shared plan links only. The
        simple answer is the account's own Settings → Delete account; if that
        is lost, the same result is reached by hand in D1 and R2.
 

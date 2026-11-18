@@ -97,11 +97,16 @@ describe('POST /v1/comments/:id/report — happy path', () => {
     expect(res.status).toBe(201);
   });
 
-  it('lets an author report their own comment', async () => {
+  it('refuses an author reporting their own comment (400 own_comment)', async () => {
     const author = await registerDevice('Author');
     const { id } = await createComment(author, { waypointId: wpId('report-self-wp') });
     const res = await reportComment(author, id, { reason: 'other' });
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: { code: string } }).error.code).toBe('own_comment');
+    const n = await env.DB.prepare(`SELECT COUNT(*) AS n FROM rate_events WHERE bucket = 'comment_report' AND key = ?`)
+      .bind(author.userId)
+      .first<{ n: number }>();
+    expect(n?.n).toBe(0);
   });
 });
 
