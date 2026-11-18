@@ -35,7 +35,9 @@ describe('PlanEditQueue', () => {
     queue.record(rename('Mine'));
     expect(queue.resolveForSave(ours, base)).toBe(ours);
     queue.saved(ours);
-    expect(queue.hasPending).toBe(false);
+    // Nothing is left to replay on the next copy another page saves.
+    const theirs = rename('Theirs')(ours);
+    expect(queue.rebase(theirs)).toEqual(theirs);
   });
 
   it('keeps its edits through a failed write, so a later save from another page cannot drop them', () => {
@@ -45,7 +47,6 @@ describe('PlanEditQueue', () => {
     const ours = pickStops(['w_1'])(base);
     // The write of `ours` fails (storage full): `saved` is never called.
     expect(queue.resolveForSave(ours, base)).toBe(ours);
-    expect(queue.hasPending).toBe(true);
     // The other page saves; this one takes it with its edits on top.
     const theirs = rename('Theirs')(base);
     expect(queue.rebase(theirs)).toEqual({ ...theirs, resupplyStops: ['w_1'] });

@@ -79,11 +79,6 @@ export function getApiBase(): string | undefined {
   return trimmed === '' ? undefined : trimmed;
 }
 
-/** True when the API is configured and requests can be issued. */
-export function isApiConfigured(): boolean {
-  return getApiBase() !== undefined;
-}
-
 /** A `fetch`-shaped response — what both the global and a test double return. */
 interface ResponseLike {
   ok: boolean;

@@ -44,7 +44,9 @@ export const BUNDLED_PLAN_FILLS: PlanShellFills = {
 /**
  * `my-plan.html`. The name and the back href are only known once `my-plan.ts`
  * has read the imported trail out of IndexedDB, so both elements carry ids and
- * static placeholder text. No theme toggle: the page does not load `theme.ts`.
+ * static placeholder text. No theme toggle in the header: the page applies the
+ * saved theme (the `theme-head` plugin in `vite.config.ts` puts the pre-paint
+ * script and `theme.ts` in its `<head>`) but offers no control to change it.
  */
 export const IMPORTED_PLAN_FILLS: PlanShellFills = {
   headerTrail:

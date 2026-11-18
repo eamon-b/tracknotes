@@ -15,7 +15,7 @@ import { escapeHtml } from './web-utils';
 export const UNVERIFIED_EXPLANATION =
   'Unverified: shared by a hiker and passed automatic checks; not yet checked by a person.';
 export const VERIFIED_EXPLANATION = 'Verified: checked and approved by a Tracknotes admin.';
-export const HIDDEN_EXPLANATION = 'Hidden: not listed publicly; only its owner and admins can see it.';
+const HIDDEN_EXPLANATION = 'Hidden: not listed publicly; only its owner and admins can see it.';
 
 const STATUS_LABELS: Record<CommunityRouteStatus, string> = {
   unverified: 'Unverified',

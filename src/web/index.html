@@ -11,21 +11,7 @@
   <link rel="stylesheet" href="./my-trails.css">
   <link rel="stylesheet" href="./trail-list.css">
   <link rel="stylesheet" href="./community.css">
-  <!-- Applies the saved theme before first paint so the page never flashes. See theme.ts. -->
-  <script>
-    (function () {
-      var root = document.documentElement;
-      root.classList.add('js');
-      var pref = 'system';
-      try { pref = localStorage.getItem('tracknotes-theme') || 'system'; } catch (e) { /* storage disabled */ }
-      if (pref !== 'light' && pref !== 'dark') pref = 'system';
-      root.dataset.themePref = pref;
-      root.dataset.theme = pref === 'system'
-        ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-        : pref;
-    })();
-  </script>
-  <script type="module" src="./theme.ts"></script>
+  <!-- @theme-head -->
 </head>
 <body>
   <div class="container landing">

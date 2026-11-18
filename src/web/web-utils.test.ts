@@ -7,7 +7,6 @@ import {
   formatKm,
   generatedDataUrl,
   getQueryParam,
-  isImportedTrailId,
   overpassEndpointOverride,
 } from './web-utils';
 
@@ -60,20 +59,6 @@ describe('getQueryParam', () => {
     expect(getQueryParam('?id=', 'id')).toBeNull();
     expect(getQueryParam('', 'id')).toBeNull();
     expect(getQueryParam('?', 'id')).toBeNull();
-  });
-});
-
-describe('isImportedTrailId', () => {
-  it('accepts importer-minted ids', () => {
-    expect(isImportedTrailId('u_1a2b3c4d5e6f')).toBe(true);
-  });
-
-  it('rejects bundled trail ids and junk', () => {
-    expect(isImportedTrailId('heysen')).toBe(false);
-    expect(isImportedTrailId('u_')).toBe(false);
-    expect(isImportedTrailId('u_ABC')).toBe(false);
-    expect(isImportedTrailId('../../etc/passwd')).toBe(false);
-    expect(isImportedTrailId('u_abc/../x')).toBe(false);
   });
 });
 

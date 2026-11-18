@@ -19,7 +19,6 @@ import { multilineHtml } from './community-labels';
 import { escapeHtml } from './web-utils';
 
 export {
-  HIDDEN_EXPLANATION,
   UNVERIFIED_EXPLANATION,
   VERIFIED_EXPLANATION,
   hiddenReasonText,
@@ -50,7 +49,6 @@ export function checksListHtml(checks: readonly CommunityCheck[]): string {
     .join('')}</ul>`;
 }
 
-/** Value of the country `<select>` that reveals the free two-letter field. */
 /**
  * The licence and privacy lines under a form that publishes something (the
  * upload page's share step, the route page's owner Edit form), in the words
@@ -73,6 +71,7 @@ export function renderContributionLicence(el: HTMLElement, verb: 'posting' | 'sh
   );
 }
 
+/** Value of the country `<select>` that reveals the free two-letter field. */
 export const OTHER_COUNTRY = '__other';
 
 export interface RegionPicker {

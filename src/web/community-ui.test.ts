@@ -10,7 +10,6 @@ import {
   utf8ToBase64,
   OTHER_COUNTRY,
 } from './community-ui';
-import { isImportedTrailId } from './web-utils';
 
 describe('community-ui', () => {
   it('escapes check messages and lists fails first', () => {
@@ -53,7 +52,8 @@ describe('community-ui', () => {
 
   it('a saved copy gets a stable import-shaped id', () => {
     const id = localCopyId('c_abcdefghijklmnop');
-    expect(isImportedTrailId(id)).toBe(true);
+    // `u_` + the base36 hash: the shape an importer-minted id has.
+    expect(id).toMatch(/^u_[a-z0-9]+$/);
     expect(localCopyId('c_abcdefghijklmnop')).toBe(id);
     expect(localCopyId('c_bbcdefghijklmnop')).not.toBe(id);
   });

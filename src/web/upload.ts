@@ -320,7 +320,17 @@ function fail(ui: Elements, message: string): void {
   show(ui.error, true);
 }
 
+/**
+ * Bumped by every `handleFile` call. A file picked while an earlier one is
+ * still being read or processed makes the earlier call stale: it checks its
+ * token after each await and stops, so its result (or its error) never lands
+ * over the newer file's — the rule the elevation fetch follows with `pending`.
+ */
+let fileToken = 0;
+
 async function handleFile(ui: Elements, file: File): Promise<void> {
+  const token = ++fileToken;
+  const isStale = (): boolean => token !== fileToken;
   resetOutput(ui);
 
   if (file.size > MAX_FILE_BYTES) {
@@ -335,12 +345,14 @@ async function handleFile(ui: Elements, file: File): Promise<void> {
   try {
     text = await file.text();
   } catch (err) {
-    fail(ui, `Could not read the file: ${messageOf(err)}`);
+    if (!isStale()) fail(ui, `Could not read the file: ${messageOf(err)}`);
     return;
   }
+  if (isStale()) return;
 
   ui.status.textContent = 'Processing track…';
   await nextFrame();
+  if (isStale()) return;
 
   let result: ImportGpxResult;
   try {

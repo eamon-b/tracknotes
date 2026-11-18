@@ -6,9 +6,12 @@ keep this file in step with the code it describes.
 
 **Name and address.**
 The site and the app are both **Tracknotes**, and the site is served at `https://tracknotes.info` (the Vercel project; `trail-maps.vercel.app` is retired and nothing keeps it working).
-Every page title ends ` - Tracknotes`.
+Every page title ends ` - Tracknotes`, except the landing page's (`Tracknotes - Long-Distance Hiking Trail Guides`) and the two standalone policy pages in `public/` (`Tracknotes Privacy Policy`, `Tracknotes Terms of Service`).
 The origin is written down in two places that must move together: `SITE_ORIGIN` in `src/lib/contribution-licence.ts` (the privacy and terms links the app and store listings use) and `SITE_BASE` in `workers/comments-api/wrangler.toml` (shared-plan links).
-Browser storage keys are `tracknotes-*` (theme, list filter, POI filter; the theme key is also read by the pre-paint script in every page's `<head>`).
+Browser storage keys are `tracknotes-*` (theme, list filter, POI filter).
+The theme key is also read by a pre-paint script in the `<head>` of every page built from `src/web/` (not the standalone `public/privacy.html` and `terms.html`, which follow the system setting only).
+The hand-written top-level pages carry a `<!-- @theme-head -->` marker that the `theme-head` Vite plugin replaces with that script and the `theme.ts` module, from the one copy in `theme-head.ts`;
+the four trail templates carry the same script inline, because `build-trails.ts` writes their pages before Vite sees them, and `theme-head.test.ts` holds them to it and every top-level page to the marker.
 "Trail Maps", the old name, survives only in history (migration notes, dated log entries);
 the GitHub repo is `eamon-b/tracknotes`.
 The app's own hosts are on the same domain: the comments API at `api.tracknotes.info` trail data, offline packs and photos at `data.tracknotes.info` (R2 bucket `tracknotes-data`), and the basemap tiles imported and community routes' corridor packs are built from at `tiles.tracknotes.info` (the `--env app` deployment of `contours/worker/`, issue #269).
@@ -27,10 +30,12 @@ Raising the floor is a deliberate change to that list, not a side effect of a Vi
   styles in `trail-list.css`
 - `styles.css` - Global styles and the light/dark theme tokens
 - `theme.ts` - Light/dark/system theme: applies `data-theme` to `<html>`, renders the toggle, and exposes `onThemeChange()`/`themeColor()` so canvas and Chart.js code can follow the theme
+- `theme-head.ts` - The pre-paint theme script and the `@theme-head` marker inliner (see **Name and address** above)
 - `trails/trail-template.html` - Template for individual trail pages
 - `trails/trail-viewer.ts` - Interactive trail viewer (map, elevation profile, waypoints).
   The main route is one Leaflet polyline per stretch on the default SVG renderer: Polyline's `smoothFactor` already runs Douglas-Peucker in screen pixels per reprojection, so a 20,000-point line costs the browser no more vertices than the zoom can resolve.
   Map hover goes through `@lib/point-index` — set `displayPoints` only via `setDisplayPoints`, which rebuilds that index.
+  Waypoint marker popups (main-route and off-trail) name the type with `waypointTypeLabel`, as the datasheet and the planner do, never the raw slug.
   The waypoints table ("datasheet") filters to the water or food/resupply family via `@lib/waypoint-taxonomy`;
   when filtered, the leg columns are recomputed between *visible* rows so resupply-leg distances read directly off the table.
   Row interaction is delegated from `#waypoints-container`, not the tbody, because every re-render replaces the tbody.
@@ -41,6 +46,9 @@ Raising the floor is a deliberate change to that list, not a side effect of a Vi
   the trail page binds its waypoint popups as functions, so they are built on open and pick up POIs the imported-trail page's enrichment adds later.
   A POI flagged `duplicateOfPoi` (OSM mapping the place twice) is likewise never drawn or listed;
   the POI it points at carries its tags (`mergedPoiTags`: gaps only) and an "Also in OpenStreetMap as" link in its popup (`poiPopupHtml(poi, selfDuplicatesOf(pois, poi))`)
+- `trails/waypoint-icons.ts` - The glyph each waypoint type and POI category is drawn with (inline SVG from `@lib/map-glyphs`, the phone's shapes) and its `wp-fam-<family>` colour class, for both viewers and the POI UI
+- `trails/access-path.ts` - An off-route place's walk in from the route (`offTrailPath`) as a dotted Leaflet line, shared by both viewers; drawing only
+- `linkify-text.ts` - Waypoint descriptions as escaped HTML with their URLs, email addresses and phone numbers made links (`@lib/text-links`, hrefs through `safeHttpUrl`/`safeTelUrl`); kept out of `web-utils.ts` so the landing page does not load `@lib/poi-display`
 - `trails/trail-export.ts` - The text of the trail page's two downloads (datasheet CSV and GPX), kept out of the viewer so the formats are testable without a map;
   guards CSV cells against spreadsheet formula injection
 - `trails/climate-template.html` - Template for climate data pages
@@ -68,7 +76,9 @@ Raising the floor is a deliberate change to that list, not a side effect of a Vi
   Each datasheet row carries a swatch of its line's colour and `data-leg`;
   hovering a line or its row emphasises both (`highlightLeg`, a style change with no re-render, listeners delegated from `#datasheet-body`), clicking a line scrolls to its row and clicking a row fits the map to its leg.
   Opened with `?focus=<optionId>` (the resupply page's "show on map"), it starts on the Resupply tab with the map centred on that option (its turn-off on the route when the map has no marker for it) and the row outlined, then drops `focus` from the address (`history.replaceState`) so a reload keeps the hiker's tab.
-  It follows the resupply page's saves (`storage` event) and writes through `plan-edit-queue.ts`
+  The waypoint markers are made once per route, direction and tab (what a click on one does depends on the tab) and restyled in place on every other render (`drawWaypointMarkers`: stop, planned-resupply and faded-option styling);
+  on the Resupply tab a click on an option ticks it, except on a read-only (shared) plan, where it opens the place's popup like any other marker.
+  It follows the resupply page's saves (`storage` event: a document is rebased onto this page's unsaved edits, and changed preferences refill the pace, hours/day and threshold inputs and the Stops tab's "show all" switch, `refreshPrefInputs`) and writes through `plan-edit-queue.ts`
 - `trails/plan-export-ui.ts` - The plan page's Export menu (`#plan-export` in `plan-shell.html`, so the bundled plan pages, `my-plan.html` and `shared-plan.html` all have it): GPX and Calendar (.ics) downloads written by `@lib/plan-export` from `plan-viewer`'s `planExportInput()` (the route-km plan, `activeTrail()`, the day cards and unplanned tail, and only an explicit resupply selection — the every-option default plans nothing — with the plan's `resupplyZeroDays`);
   the calendar button is disabled with a note until the plan has a start date (`refresh` from `renderAll`).
   "Print / Save as PDF" fills `#plan-print` (`planPrintHtml`: heading with the hiker's pace and hours, days with rest-day rows and stop notes, resupply legs; all escaped) and calls `window.print()`;
@@ -108,7 +118,8 @@ Raising the floor is a deliberate change to that list, not a side effect of a Vi
   Pace and hours are per browser, not part of the document (the phone keeps its own in `plan-inputs-store`), and the migration carries a legacy save's values into the prefs.
   `loadPlanState` rejects a record whose *shape* is wrong, but drops only an unusable `pace`/`dailyHours`.
   The inputs' initial values and parsing (`INITIAL_PACE`, `INITIAL_DAILY_HOURS`, `DAILY_HOURS_RANGE`, `prefPace`/`prefDailyHours`/`prefThreshold`, `parseDailyHours`/`parseThreshold`) live here so the planner and the resupply page read the same figures
-- `upload.html` / `upload.ts` - User GPX import: drag-drop → `importGpx` → report (+ optional elevation backfill) → IndexedDB
+- `upload.html` / `upload.ts` - User GPX import: drag-drop → `importGpx` → report (+ optional elevation backfill) → IndexedDB.
+  A file picked while an earlier one is still being read makes the earlier one stale (`handleFile`'s token, checked after each await), so its report or error never lands over the newer file's, as the elevation fetch already did
 - `how-import-works.html` - "How your file is processed" page;
   the article body is `docs/gpx-import.md`, rendered at build time by the `gpx-import-doc` Vite plugin (GitHub-style heading ids, so `#anchors` against the doc keep working)
 - `my-trail.html` / `my-plan.html` (+ `.ts`) - Trail/plan pages for imported trails, booted from `?id=` via `imported-trails-db.ts` and the viewers' `preloadedTrail` argument;
@@ -185,9 +196,11 @@ Raising the floor is a deliberate change to that list, not a side effect of a Vi
   the admin listing (`GET /v1/admin/comments`) has no trail filter or cursor and stops at 500 rows, so it is read twice (newest first, and `?reported=1`) and the section's note says how far that reaches (`AdminCoverage`: complete, recent, or partial when a read came back full);
   a waypoint's comments are paged (`COMMENTS_PAGE_SIZE` newest, "Show more" / "Show all" through `data-comments-show`, the orphaned-id note likewise through `data-orphans-show`): the module renders the first `shown` and leaves the rest out of the markup, and `admin-waypoints.ts` keeps what is revealed per selected waypoint (`revealFor`) and moves focus to the first item revealed;
   the section's body is re-rendered whole and is not a live region: `renderComments` hands focus from one render's reload control (`data-comments-reload`, `aria-disabled` while loading) to the next's, and announces one line (`commentsStatusText`) in a `role="status"` element
+- `poi-enrich.ts` - In-browser OpenStreetMap POI enrichment for an imported trail (loaded lazily by `my-trail.ts`): the browser half of `fetch-pois.ts`, the same `@lib/osm-poi` corridor query and `@lib/trail-pois` km mapping, sent straight to a public Overpass instance (the next endpoint is tried only when every query fails)
 - `imported-trails-db.ts` - IndexedDB store (`tracknotes-imports`) for imported `ProcessedTrail`s;
   `index.html` lists them under "My trails"
-- `web-utils.ts` - `escapeHtml`, `getQueryParam` — every user-supplied string (trail names) must go through `escapeHtml`
+- `web-utils.ts` - `escapeHtml` (the one every web module uses, the plan page's print summary included), `getQueryParam`, `formatKm`, `SITE_ROOT`/`generatedDataUrl` and the dev-only `overpassEndpointOverride` — every user-supplied string (trail names) must go through `escapeHtml`
+- `trails/viewer-utils.ts` - What the trail, plan and resupply pages share: `niceAxisTicks` (the elevation profiles' axes), `debounce`, and `loadGeneratedTrail` (a bundled trail's `data/generated/<id>.json`, relative to the page)
 
 ## Testing
 

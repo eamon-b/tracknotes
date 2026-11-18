@@ -847,29 +847,6 @@ describe('unlinking with a PUT in the air', () => {
   });
 });
 
-describe('the sync arm’s own teardown', () => {
-  it('drops its button handlers on destroy, not only the window ones', async () => {
-    await boot();
-    // Fresh copies of the controls, free of the viewer's own sync arm.
-    for (const id of ['sync-btn', 'share-btn']) {
-      const el = $(id);
-      el.replaceWith(el.cloneNode(true));
-    }
-    const { initPlanSync } = await import('./plan-sync');
-    const controller = initPlanSync({
-      trailId: TRAIL_ID,
-      getPlan: () => storedPlan(),
-      adoptServerPlan() {},
-      stampPlan() {},
-      flushPendingSave: () => false,
-    });
-    controller.destroy();
-
-    $('sync-btn').click();
-    expect(($('link-dialog') as HTMLDialogElement).hasAttribute('open')).toBe(false);
-  });
-});
-
 // ---------------------------------------------------------------------------
 // What comes off the wire
 // ---------------------------------------------------------------------------

@@ -77,11 +77,9 @@ export interface PlanSyncHost {
 export interface PlanSyncController {
   /** Called by `commitSave` once the local write has happened. */
   onLocalSave(): void;
-  /** Drop every listener and stop answering; nothing this arm started lands after. */
-  destroy(): void;
 }
 
-const NO_OP: PlanSyncController = { onLocalSave() {}, destroy() {} };
+const NO_OP: PlanSyncController = { onLocalSave() {} };
 
 /** True for an id minted by the GPX importer: its plan never leaves this browser. */
 function isImportedTrail(trailId: string): boolean {
@@ -189,10 +187,6 @@ export function initPlanSync(host: PlanSyncHost): PlanSyncController {
    */
   let retryAttempt = 0;
   let retryTimer: ReturnType<typeof setTimeout> | null = null;
-  let destroyed = false;
-  /** One signal for every listener this arm adds, so `destroy()` drops them all. */
-  const listeners = new AbortController();
-  const { signal } = listeners;
 
   // -------------------------------------------------------------------------
   // Status line
@@ -244,7 +238,7 @@ export function initPlanSync(host: PlanSyncHost): PlanSyncController {
    * behind the phone when there is a reason for it to be.
    */
   async function pull(): Promise<void> {
-    if (!session || destroyed) return;
+    if (!session) return;
     // A `PUT` in the air is about to report the server's stamp anyway, and a
     // second read alongside it would reconcile against a copy that is already
     // out of date by the time it lands.
@@ -257,7 +251,7 @@ export function initPlanSync(host: PlanSyncHost): PlanSyncController {
       pulling = false;
       // Unlinked (or relinked) while the read was in the air: its answer is
       // about a session this page no longer holds.
-      if (destroyed || session !== readWith) return;
+      if (session !== readWith) return;
       lastPullAt = Date.now();
       if (entry && !isPlanDocument(entry.document)) {
         // Everything off the wire is data, not instructions: a document this
@@ -377,7 +371,7 @@ export function initPlanSync(host: PlanSyncHost): PlanSyncController {
    * asks for a link to it.
    */
   function push(): Promise<void> {
-    if (!session || destroyed) return Promise.resolve();
+    if (!session) return Promise.resolve();
     if (currentPush) {
       dirty = true;
       return currentPush;
@@ -397,7 +391,7 @@ export function initPlanSync(host: PlanSyncHost): PlanSyncController {
    */
   async function pushLoop(): Promise<void> {
     for (;;) {
-      if (!session || destroyed) return;
+      if (!session) return;
       const sent = host.getPlan();
       if (syncedUpdatedAt !== null && sent.updatedAt === syncedUpdatedAt) {
         // The server already holds this exact version: nothing here is unsynced.
@@ -415,7 +409,7 @@ export function initPlanSync(host: PlanSyncHost): PlanSyncController {
         // Unlinked (or relinked) while the PUT was in the air: its reply must
         // not stamp a document or say "Synced" on a page that is no longer
         // linked to that account.
-        if (destroyed || session !== sentWith) return;
+        if (session !== sentWith) return;
         ownStamps.add(entry.updatedAt);
         adoptedExistingId = false;
         retryAttempt = 0;
@@ -432,7 +426,7 @@ export function initPlanSync(host: PlanSyncHost): PlanSyncController {
         dirty = false;
       } catch (err) {
         inFlight = false;
-        if (destroyed || session !== sentWith) return;
+        if (session !== sentWith) return;
         // The server already holds a plan for this trail under another id, and
         // has just said which: send the same document again under that id.
         if (adoptExistingId(err)) continue;
@@ -459,7 +453,6 @@ export function initPlanSync(host: PlanSyncHost): PlanSyncController {
 
   /** A failure with no document in flight (a read). */
   function handleFailure(err: unknown): void {
-    if (destroyed) return;
     if (err instanceof NetworkError) {
       // `onOnline` re-reads the server and reconciles, so a boot read that
       // failed here never turns into a blind `PUT` of a stale document.
@@ -498,7 +491,6 @@ export function initPlanSync(host: PlanSyncHost): PlanSyncController {
   }
 
   function handlePushFailure(err: unknown): void {
-    if (destroyed) return;
     // Whatever went wrong, the next 409 may adopt again: leaving the flag set
     // for the life of the page would strand the plan under an id the server
     // refuses.
@@ -697,59 +689,43 @@ export function initPlanSync(host: PlanSyncHost): PlanSyncController {
    * keep, so nothing is lost either way.
    */
   const onOnline = (): void => {
-    if (!session || destroyed) return;
+    if (!session) return;
     void pull();
   };
 
   /** Coming back to the tab is the other moment a stale plan is worth a read. */
   const onVisibilityChange = (): void => {
-    if (!session || destroyed) return;
+    if (!session) return;
     if (document.visibilityState !== 'visible') return;
     void pull();
   };
 
-  syncBtn.addEventListener('click', openDialog, { signal });
-  byId('link-cancel')?.addEventListener('click', closeDialog, { signal });
-  byId('link-unlink')?.addEventListener('click', () => void unlink(), { signal });
-  byId<HTMLFormElement>('link-form')?.addEventListener(
-    'submit',
-    event => {
-      event.preventDefault();
-      void submitCode();
-    },
-    { signal }
-  );
-  submitBtn?.addEventListener(
-    'click',
-    event => {
-      // The button is a submit, but a dialog in a browser without form
-      // submission (and jsdom) needs the direct path too.
-      event.preventDefault();
-      void submitCode();
-    },
-    { signal }
-  );
-  codeInput?.addEventListener(
-    'input',
-    () => {
-      if (codeInput.value !== codeInput.value.toUpperCase()) {
-        codeInput.value = codeInput.value.toUpperCase();
-      }
-    },
-    { signal }
-  );
-  shareBtn?.addEventListener('click', () => void share(), { signal });
-  shareCopyBtn?.addEventListener('click', () => void copyShareUrl(), { signal });
-  byId('share-unshare')?.addEventListener('click', () => void stopSharing(), { signal });
-  byId('share-close')?.addEventListener(
-    'click',
-    () => {
-      if (sharePanel) sharePanel.hidden = true;
-    },
-    { signal }
-  );
-  window.addEventListener('online', onOnline, { signal });
-  document.addEventListener('visibilitychange', onVisibilityChange, { signal });
+  syncBtn.addEventListener('click', openDialog);
+  byId('link-cancel')?.addEventListener('click', closeDialog);
+  byId('link-unlink')?.addEventListener('click', () => void unlink());
+  byId<HTMLFormElement>('link-form')?.addEventListener('submit', event => {
+    event.preventDefault();
+    void submitCode();
+  });
+  submitBtn?.addEventListener('click', event => {
+    // The button is a submit, but a dialog in a browser without form
+    // submission (and jsdom) needs the direct path too.
+    event.preventDefault();
+    void submitCode();
+  });
+  codeInput?.addEventListener('input', () => {
+    if (codeInput.value !== codeInput.value.toUpperCase()) {
+      codeInput.value = codeInput.value.toUpperCase();
+    }
+  });
+  shareBtn?.addEventListener('click', () => void share());
+  shareCopyBtn?.addEventListener('click', () => void copyShareUrl());
+  byId('share-unshare')?.addEventListener('click', () => void stopSharing());
+  byId('share-close')?.addEventListener('click', () => {
+    if (sharePanel) sharePanel.hidden = true;
+  });
+  window.addEventListener('online', onOnline);
+  document.addEventListener('visibilitychange', onVisibilityChange);
 
   renderChrome();
   // Boot: ask the server what it holds for this trail, and reconcile.
@@ -757,7 +733,7 @@ export function initPlanSync(host: PlanSyncHost): PlanSyncController {
 
   return {
     onLocalSave(): void {
-      if (!session || destroyed) return;
+      if (!session) return;
       localEdits = true;
       // The reader has moved on; whatever the last conflict was, it is no
       // longer what the status line should be saying.
@@ -772,12 +748,6 @@ export function initPlanSync(host: PlanSyncHost): PlanSyncController {
       // run alongside a request, and this edit would go nowhere.
       if (currentPush === null && !pulling && readIsStale()) void pull();
       else void push();
-    },
-    destroy(): void {
-      destroyed = true;
-      clearRetry();
-      // The buttons and the dialog as well as the window/document listeners.
-      listeners.abort();
     },
   };
 }
