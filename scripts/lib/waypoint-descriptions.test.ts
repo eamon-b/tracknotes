@@ -180,6 +180,17 @@ describe('planDescriptionSync', () => {
     expect(plan.overwrites).toEqual(liveEditsOverwritten(plan));
   });
 
+  it('names each replaced row by the version it read, so a live edit is known by more than its id', () => {
+    const plan = planDescriptionSync(authored, [
+      { waypointId: 'w_aaaa0002', description: 'Edited live.', source: 'live', updatedAt: '2026-11-05T00:00:00.000Z' },
+      { waypointId: 'w_zzzz0009', description: 'Dropped.', source: 'upload', updatedAt: '2026-11-06T00:00:00.000Z' },
+    ]);
+    expect(plan.overwrites).toEqual([
+      { waypointId: 'w_aaaa0002', live: 'Edited live.', origin: 'live', updatedAt: '2026-11-05T00:00:00.000Z' },
+      { waypointId: 'w_zzzz0009', live: 'Dropped.', origin: 'upload', updatedAt: '2026-11-06T00:00:00.000Z' },
+    ]);
+  });
+
   it('calls replaced text of an older worker unknown, and never a live edit', () => {
     const plan = planDescriptionSync(authored, [
       { waypointId: 'w_aaaa0002', description: 'Who wrote this?' },

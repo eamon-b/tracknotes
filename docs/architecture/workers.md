@@ -132,10 +132,11 @@ the phone ignores it.
 It names the tool, never the account or the token: the table has no column about who wrote a description, and curated descriptions are editorial text, not a hiker's data, so `docs/privacy-policy.md` and `docs/data-residency.md` need no line for it.
 A PUT of the text a row already holds changes nothing, `updated_at` included, with one exception: an `upload` of the text a `live` row holds sets `source` to `upload` and leaves `updated_at` alone.
 That is how a live edit that has been committed to `descriptions.json` stops counting as one (`upload-descriptions` re-sends it for that) without any phone downloading it again.
-`ifUpdatedAt` in the body is the editor's optimistic check: the `updatedAt` it last read for the row, or `null` for "no row" (anything else is 400 `invalid_precondition`).
+`ifUpdatedAt` in the body is the writer's optimistic check: the `updatedAt` it last read for the row, or `null` for "no row" (anything else is 400 `invalid_precondition`).
 When the row has changed since and does not already hold the text sent, nothing is written and the answer is 409 `description_conflict`, with `current` (the row as stored, or `null`) beside the error envelope;
 each conditional write is one statement, so two editors cannot both pass the check.
-A PUT without `ifUpdatedAt` is unconditional, as before: that is what the upload sends (the file is the source of truth) and what an older client sends.
+Both writers send it: the editor, so that two admins do not overwrite each other, and `upload-descriptions`, so that it never replaces a row edited after it read the live set (the file is the source of truth only over what its plan showed; `docs/architecture/build-scripts.md`).
+A PUT without `ifUpdatedAt` is unconditional, as before: that is what an older client sends.
 The migration adds no route, so `scripts/probe-comments-api.sh` has no probe for it.
 
 ## Comments API Worker: community route POIs (`workers/comments-api/`)

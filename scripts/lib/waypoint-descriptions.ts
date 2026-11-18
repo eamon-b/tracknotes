@@ -41,7 +41,7 @@ export const DESCRIPTIONS_FILENAME = 'descriptions.json';
 export { MAX_DESCRIPTION_LENGTH };
 
 /** Same id shape the registry mints and the comments API validates. */
-const WAYPOINT_ID_PATTERN = /^[a-z0-9_-]{4,64}$/;
+export const WAYPOINT_ID_PATTERN = /^[a-z0-9_-]{4,64}$/;
 
 /** One authored description. `name` is an editing aid; the build ignores it. */
 export interface CuratedDescription {
@@ -200,6 +200,12 @@ export interface LiveDescription {
    * Absent from a worker that predates the marker (migration 0012).
    */
   source?: DescriptionSource;
+  /**
+   * The row's version: the API stamps it whenever the text changes. The upload
+   * sends it back with its PUT (`ifUpdatedAt`), and names a live edit by it
+   * (`description-upload.ts`).
+   */
+  updatedAt?: string;
 }
 
 /**
@@ -214,6 +220,8 @@ export interface DescriptionOverwrite {
   /** The synced text it replaces; `''` for a live clear the PUT undoes. */
   live: string;
   origin: OverwriteOrigin;
+  /** The replaced row's `updatedAt` as read, when the live set carried one. */
+  updatedAt?: string;
 }
 
 /** What `upload-descriptions` has to send to make the API match the file. */
@@ -271,7 +279,14 @@ export function planDescriptionSync(
     const row = liveById.get(waypointId);
     // No row, or a tombstone nobody cleared live: the request replaces nothing.
     if (!row || (row.description === '' && row.source !== 'live')) return [];
-    return [{ waypointId, live: row.description, origin: row.source ?? ('unknown' as const) }];
+    return [
+      {
+        waypointId,
+        live: row.description,
+        origin: row.source ?? ('unknown' as const),
+        ...(row.updatedAt === undefined ? {} : { updatedAt: row.updatedAt }),
+      },
+    ];
   });
   const adoptions = [...liveById.values()]
     .filter(row => row.source === 'live' && row.description === (authoredById.get(row.waypointId)?.description ?? ''))

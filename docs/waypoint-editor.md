@@ -446,7 +446,7 @@ A row from before that marker existed counts as uploaded, since this page did no
 The page knows the file as the site was last deployed, and classes a synced row that differs from it by that marker:
 
 - **drift**: a live edit the file does not match, or a live clear of a waypoint the file lists (*drift: cleared live*).
-  The next upload of that trail replaces the live edit with the file's text (or withdraws it), and re-sends the file's text over the clear.
+  The next upload of that trail replaces the live edit with the file's text (or withdraws it), and re-sends the file's text over the clear, once its plan has shown it (below).
   Drift is counted in the banner over the list.
 - **awaiting upload**: a row an upload wrote that the file has since moved past, because a change to `descriptions.json` (or a deleted entry) has merged and its *Upload descriptions* run has not been approved or run yet.
   The site redeploys within minutes of a merge while the upload waits for approval, so this is the ordinary state between the two.
@@ -468,6 +468,10 @@ A live edit committed in other words stays *drift*, and stays marked in the uplo
 The upload's dry run lists every synced text it would replace.
 Text an earlier upload sent is listed plainly (`replaces uploaded text`): that is every routine edit, and raises no warning.
 A live edit the file does not match is marked `!` (`! replaces a live edit`, `! undoes a live clear`) and the run ends with a warning, so the approver sees drift that was missed before approving (`docs/deploys.md`).
+The upload then undoes exactly the live edits that plan marked, and no other.
+A live edit made or changed after the plan was read (while the run waited for approval, or in the seconds before a write) is not replaced: its row is left as it is, the rest of the upload goes ahead, and the run fails with an error naming the waypoint.
+Nothing is lost by that: commit the edit and merge, or re-run the workflow (*Re-run all jobs*) so that its new plan shows the edit, and approve it to send the file's text.
+So an urgent live edit is safe from an upload that is already waiting, but not from the next one that is planned after it: it still has to reach the file.
 
 What the export leaves out:
 

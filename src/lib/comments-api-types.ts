@@ -148,11 +148,12 @@ export interface UpsertDescriptionRequest {
    */
   source?: DescriptionSource;
   /**
-   * Optimistic check, sent by the live editor only: the `updatedAt` the client
-   * last read for this waypoint's row, or `null` when it read no row. When the
-   * row has changed since (and does not already hold this text) nothing is
-   * written and the answer is 409 `description_conflict`
-   * (`DescriptionConflictResponse`). Left out, the write is unconditional.
+   * Optimistic check, sent by the live editor and by `upload-descriptions`:
+   * the `updatedAt` the client last read for this waypoint's row, or `null`
+   * when it read no row. When the row has changed since (and does not already
+   * hold this text) nothing is written and the answer is 409
+   * `description_conflict` (`DescriptionConflictResponse`). Left out, the
+   * write is unconditional.
    */
   ifUpdatedAt?: string | null;
 }
