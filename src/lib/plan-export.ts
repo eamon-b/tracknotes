@@ -21,8 +21,9 @@
 
 import { dayDaylight } from './daylight';
 import { hashString } from './gpx-import';
+import { escapeXml } from './gpx-parser';
 import { KM_EPSILON, stopsToActive, type PlanDirection } from './plan-direction';
-import { startZeroDateOffset, startZeroDaysOf } from './plan-editor';
+import { addDays, startZeroDateOffset, startZeroDaysOf } from './plan-editor';
 import type { ComputedDay, PlanStop } from './plan-types';
 import { legsArrivingAtStops, type ResupplyLeg, type ResupplyStop } from './resupply-plan';
 import { routeBreakStarts, sliceAcrossRouteBreaks } from './route-breaks';
@@ -110,17 +111,15 @@ function isXmlChar(char: string): boolean {
   return code !== 0xfffe && code !== 0xffff;
 }
 
-/** Text for an XML element or attribute: escaped, and stripped of what XML cannot carry. */
+/**
+ * Text for an XML element or attribute: stripped of what XML cannot carry,
+ * then escaped by `gpx-parser`'s `escapeXml`.
+ */
 export function xmlText(value: unknown): string {
   if (value == null) return '';
   let clean = '';
   for (const char of String(value)) if (isXmlChar(char)) clean += char;
-  return clean
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
+  return escapeXml(clean);
 }
 
 /** A stop of the plan in the active direction, matched to the day it ends. */
@@ -132,7 +131,7 @@ function activeStops(input: PlanExportInput): PlanStop[] {
   return stopsToActive([...input.plan.stops], input.plan.direction, input.trail.track.totalDistance);
 }
 
-/** The point of the route at `km` (the nearest track point at or after it). */
+/** The point of the route at `km`: the track point nearest it (`findNearestByDistance`), either side. */
 function pointAtKm(points: readonly PlanExportPoint[], km: number): PlanExportPoint | undefined {
   if (points.length === 0) return undefined;
   return points[findNearestByDistance(points as PlanExportPoint[], km)];
@@ -376,12 +375,6 @@ export function foldIcsLine(line: string): string {
 
 function icsDate(iso: string): string {
   return iso.slice(0, 10).replace(/-/g, '');
-}
-
-function addDays(iso: string, days: number): string {
-  const date = new Date(`${iso.slice(0, 10)}T12:00:00Z`);
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
 }
 
 function icsStamp(value: Date | string): string {

@@ -33,12 +33,6 @@ export interface ApiError {
 // Devices / identity
 // ---------------------------------------------------------------------------
 
-/** POST /v1/devices request body. */
-export interface RegisterDeviceRequest {
-  /** 1–40 chars after trimming, non-empty. */
-  displayName: string;
-}
-
 /** POST /v1/devices 201 response. The raw token is returned exactly once. */
 export interface RegisterDeviceResponse {
   userId: string;
@@ -254,17 +248,6 @@ export interface AdminSharedWaypointsResponse {
   waypoints: AdminSharedWaypoint[];
 }
 
-/** POST /v1/admin/users/:id/ban request body. */
-export interface BanUserRequest {
-  /** true bans, false lifts the ban. */
-  banned: boolean;
-  /**
-   * With a ban: also take down every live comment and shared waypoint of the
-   * account, as an admin delete. Ignored when lifting a ban.
-   */
-  removeContent?: boolean;
-}
-
 /** POST /v1/admin/users/:id/ban response. */
 export interface BanUserResponse {
   userId: string;
@@ -354,7 +337,7 @@ export interface FeedResponse {
  * A live comment as returned by the trail-wide bulk/delta endpoint. Carries
  * `updatedAt` so the client can persist a high-water mark for the next `since`.
  */
-export interface SyncComment {
+interface SyncComment {
   id: string;
   waypointId: string;
   displayName: string;
@@ -553,9 +536,6 @@ export interface PlansSyncResponse {
  */
 export type PutPlanRequest = Omit<PlanDocument, 'updatedAt'> & { planSchema?: number };
 
-/** PUT /v1/plans/:id response (201 on create, 200 on replace/replay). */
-export type PutPlanResponse = PlanSyncEntry;
-
 /** POST /v1/plans/:id/share response. Idempotent: a re-share replays the id. */
 export interface SharePlanResponse {
   shareId: string;
@@ -579,13 +559,6 @@ export interface LinkCodeResponse {
   /** 8 chars from an alphabet without 0/O/1/I. Single use. */
   code: string;
   expiresAt: string;
-}
-
-/** POST /v1/devices/link request body (no auth: the browser being linked). */
-export interface LinkDeviceRequest {
-  code: string;
-  /** Optional human label for the device list, <= 60 chars. */
-  label?: string | null;
 }
 
 /**

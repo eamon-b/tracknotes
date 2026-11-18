@@ -1,6 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { extractResupplyPoints, computeResupplyGaps } from './resupply-calculator';
+import { computeResupplyGaps, type ResupplyPoint } from './resupply-calculator';
 import type { PlanWaypoint } from './plan-types';
+import { isResupplyWaypoint } from './waypoint-taxonomy';
+
+/** The resupply family's waypoints as `computeResupplyGaps` points, by km. */
+function extractResupplyPoints(waypoints: PlanWaypoint[]): ResupplyPoint[] {
+  return waypoints
+    .filter(wp => isResupplyWaypoint(wp.type))
+    .map(wp => ({ name: wp.name ?? 'Resupply', km: wp.totalDistance ?? 0, type: wp.type ?? 'food' }))
+    .sort((a, b) => a.km - b.km);
+}
 
 const waypoints: PlanWaypoint[] = [
   { name: 'Springfield', type: 'town', totalDistance: 50 },
@@ -8,50 +17,6 @@ const waypoints: PlanWaypoint[] = [
   { name: 'Shelby Creek', type: 'water', totalDistance: 80 }, // not a resupply
   { name: 'Capitol City', type: 'town', totalDistance: 200 },
 ];
-
-describe('extractResupplyPoints', () => {
-  it('includes town and food waypoints only', () => {
-    const points = extractResupplyPoints(waypoints);
-    expect(points).toHaveLength(3);
-    expect(points.map(p => p.name)).toEqual(['Springfield', 'Shelbyville', 'Capitol City']);
-  });
-
-  it('sorts by km', () => {
-    const shuffled: PlanWaypoint[] = [
-      { name: 'Far', type: 'town', totalDistance: 200 },
-      { name: 'Near', type: 'town', totalDistance: 50 },
-    ];
-    const points = extractResupplyPoints(shuffled);
-    expect(points[0].km).toBe(50);
-    expect(points[1].km).toBe(200);
-  });
-
-  it('returns empty array when no resupply waypoints', () => {
-    const noResupply: PlanWaypoint[] = [{ name: 'Creek', type: 'water', totalDistance: 30 }];
-    expect(extractResupplyPoints(noResupply)).toHaveLength(0);
-  });
-
-  it('includes standalone resupply-type caches', () => {
-    const points = extractResupplyPoints([
-      { name: 'Cache', type: 'resupply', totalDistance: 90 },
-      { name: 'Creek', type: 'water', totalDistance: 30 },
-    ]);
-    expect(points).toHaveLength(1);
-    expect(points[0].name).toBe('Cache');
-    expect(points[0].type).toBe('resupply');
-  });
-
-  it('mixes and sorts town, food and resupply types by km', () => {
-    const points = extractResupplyPoints([
-      { name: 'Town', type: 'town', totalDistance: 50 },
-      { name: 'Cache', type: 'resupply', totalDistance: 90 },
-      { name: 'Kiosk', type: 'food', totalDistance: 10 },
-      { name: 'Hut', type: 'hut', totalDistance: 70 }, // not a resupply
-    ]);
-    expect(points.map(p => p.name)).toEqual(['Kiosk', 'Town', 'Cache']);
-    expect(points.map(p => p.type)).toEqual(['food', 'town', 'resupply']);
-  });
-});
 
 describe('computeResupplyGaps', () => {
   it('computes gaps between resupply points', () => {

@@ -11,8 +11,9 @@
  * Platform-neutral: no Node or DOM imports.
  */
 
-import { haversineDistance as haversineDistanceMeters } from './distance';
+import { EARTH_RADIUS_METERS, haversineDistance as haversineDistanceMeters } from './distance';
 import { snapToTrail } from './position-on-trail';
+import { NO_BREAK_STARTS } from './track-geometry';
 import {
   douglasPeuckerIndices,
   removeElevationSpikes,
@@ -414,14 +415,92 @@ function calculateRouteStats(points: { lat: number; lon: number; ele: number }[]
   return { distance, ascent, descent };
 }
 
+/** Metres a great-circle distance is at least, for a latitude difference in degrees. */
+const METERS_PER_DEGREE_OF_ARC = (Math.PI / 180) * EARTH_RADIUS_METERS;
+
+type NearestTrackPoint = { trackIndex: number; distanceFromTrack: number };
+
+/**
+ * A nearest-track-point lookup over one track, for code that asks many times
+ * (every variant end, every off-trail waypoint): the answer is exactly a scan
+ * of every point's — the first index at the least distance — found without
+ * one. The points are sorted by latitude once, on the first call; each lookup
+ * searches outwards from the query's latitude and stops once the latitude
+ * difference alone (a great-circle distance is never shorter than its
+ * north-south part) is further than the best found. On a north-south trail
+ * that is a handful of points; on an east-west one it degrades towards the
+ * full scan, never past it.
+ *
+ * The track must not change while the lookup is in use: create one per call
+ * of the code that asks, never cache it on the array.
+ */
+function nearestTrackPointFinder(
+  trackPoints: readonly { lat: number; lon: number }[]
+): (point: { lat: number; lon: number }) => NearestTrackPoint {
+  let order: Int32Array | null = null;
+  let lats: Float64Array | null = null;
+
+  return point => {
+    if (!Number.isFinite(point.lat) || !Number.isFinite(point.lon)) return findNearestTrackPoint(point, trackPoints);
+    if (!order || !lats) {
+      // Unreadable latitudes are left out: their distance is NaN, which never wins.
+      const indices: number[] = [];
+      for (let i = 0; i < trackPoints.length; i++) if (Number.isFinite(trackPoints[i].lat)) indices.push(i);
+      indices.sort((a, b) => trackPoints[a].lat - trackPoints[b].lat || a - b);
+      order = Int32Array.from(indices);
+      lats = Float64Array.from(indices, i => trackPoints[i].lat);
+    }
+
+    // First position at or north of the query.
+    let lo = 0;
+    let hi = lats.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (lats[mid] < point.lat) lo = mid + 1;
+      else hi = mid;
+    }
+
+    let bestIndex = 0;
+    let bestDistance = Infinity;
+    const consider = (i: number): void => {
+      const trackPoint = trackPoints[i];
+      const distance = haversineDistanceMeters(point.lat, point.lon, trackPoint.lat, trackPoint.lon);
+      if (distance < bestDistance || (distance === bestDistance && i < bestIndex)) {
+        bestDistance = distance;
+        bestIndex = i;
+      }
+    };
+    // Beyond this a point cannot be as near as the best (with a margin for
+    // rounding: a tie must still be looked at, since the lower index wins it).
+    const outOfReach = (lat: number): boolean =>
+      Math.abs(lat - point.lat) * METERS_PER_DEGREE_OF_ARC > bestDistance * (1 + 1e-9) + 1e-6;
+
+    let north = lo;
+    let south = lo - 1;
+    while (north < lats.length || south >= 0) {
+      const northDone = north >= lats.length || outOfReach(lats[north]);
+      const southDone = south < 0 || outOfReach(lats[south]);
+      if (northDone && southDone) break;
+      if (!northDone) consider(order[north++]);
+      if (!southDone) consider(order[south--]);
+    }
+
+    // No point had a numeric distance (every latitude or longitude
+    // unreadable): the scan's answer.
+    if (bestDistance === Infinity) return findNearestTrackPoint(point, trackPoints);
+    return { trackIndex: bestIndex, distanceFromTrack: bestDistance };
+  };
+}
+
 /**
  * Find the nearest point on the main track to a given point.
- * Returns the track index and distance from track.
+ * Returns the track index and distance from track. For many lookups against
+ * one track use {@link nearestTrackPointFinder}, which answers the same.
  */
 function findNearestTrackPoint(
   point: { lat: number; lon: number },
-  trackPoints: { lat: number; lon: number; ele: number; dist?: number }[]
-): { trackIndex: number; distanceFromTrack: number } {
+  trackPoints: readonly { lat: number; lon: number }[]
+): NearestTrackPoint {
   let bestIndex = 0;
   let bestDistance = Infinity;
 
@@ -544,10 +623,11 @@ function reverseVariantPoints(variant: RouteVariant): RouteVariant {
 function findTerminusJunction(
   variant: RouteVariant,
   trackPoints: TrackPoint[],
-  maxJunctionDistance: number
+  maxJunctionDistance: number,
+  nearestOnTrack: (point: { lat: number; lon: number }) => NearestTrackPoint
 ): RouteVariant {
-  const firstJunction = findNearestTrackPoint(variant.points[0], trackPoints);
-  const lastJunction = findNearestTrackPoint(variant.points[variant.points.length - 1], trackPoints);
+  const firstJunction = nearestOnTrack(variant.points[0]);
+  const lastJunction = nearestOnTrack(variant.points[variant.points.length - 1]);
   const junctionIsAtEnd = lastJunction.distanceFromTrack < firstJunction.distanceFromTrack;
   const junction = junctionIsAtEnd ? lastJunction : firstJunction;
 
@@ -574,22 +654,23 @@ export function findVariantJunctions(
   trackPoints: TrackPoint[],
   maxJunctionDistance: number = DEFAULT_MAX_JUNCTION_DISTANCE_METERS
 ): RouteVariant[] {
+  const nearestOnTrack = nearestTrackPointFinder(trackPoints);
   return variants.map(variant => {
     if (variant.points.length === 0) {
       return variant;
     }
 
     if (variant.type === 'terminus') {
-      return findTerminusJunction(variant, trackPoints, maxJunctionDistance);
+      return findTerminusJunction(variant, trackPoints, maxJunctionDistance, nearestOnTrack);
     }
 
     // Find where variant starts (branches from main track)
     const startPoint = variant.points[0];
-    const startJunction = findNearestTrackPoint(startPoint, trackPoints);
+    const startJunction = nearestOnTrack(startPoint);
 
     // Find where variant ends (rejoins main track for alternates)
     const endPoint = variant.points[variant.points.length - 1];
-    const endJunction = findNearestTrackPoint(endPoint, trackPoints);
+    const endJunction = nearestOnTrack(endPoint);
 
     // Only set junction data if within reasonable distance of track
     const enriched: RouteVariant = { ...variant };
@@ -667,6 +748,18 @@ export function attachVariantsToParents(
   });
   const latMargin = maxJunctionDistance / METERS_PER_DEGREE_LAT;
 
+  // One lookup per parent line. Keyed by the array, which is replaced (never
+  // edited) whenever a variant is turned round, so a turned line gets its own.
+  const finders = new Map<RouteVariant['points'], ReturnType<typeof nearestTrackPointFinder>>();
+  const nearestOn = (points: RouteVariant['points']): ReturnType<typeof nearestTrackPointFinder> => {
+    let finder = finders.get(points);
+    if (!finder) {
+      finder = nearestTrackPointFinder(points);
+      finders.set(points, finder);
+    }
+    return finder;
+  };
+
   // Which alternate each end of a variant attached to, by index into `all`;
   // undefined for an end on the main route or not yet attached. Kept per end
   // rather than per variant because the ends attach in separate rounds and can
@@ -705,7 +798,7 @@ export function attachVariantsToParents(
       ) {
         continue;
       }
-      const near = findNearestTrackPoint(point, parent.points);
+      const near = nearestOn(parent.points)(point);
       if (near.distanceFromTrack > maxJunctionDistance) continue;
       if (best === null || near.distanceFromTrack < best.distance) {
         best = { parentIndex: p, pointIndex: near.trackIndex, distance: near.distanceFromTrack };
@@ -806,6 +899,70 @@ export function attachVariantsToParents(
 }
 
 /**
+ * A lookup of the waypoints that may be within `maxDistanceMeters` of a point:
+ * it adds to `out` (unsorted) every waypoint index whose great-circle distance
+ * from the point could be that or less, and possibly some further off — never
+ * fewer. Positions are binned on the unit sphere (x, y, z) in cubes at least as
+ * wide as the chord the threshold subtends, so the 27 cubes round a point hold
+ * everything in range, at the poles and across the antimeridian alike. A
+ * waypoint with an unreadable position is never in range (its distance is
+ * NaN) and is left out. With a threshold too wide to bin, every waypoint is a
+ * candidate.
+ */
+function nearbyWaypoints(
+  waypoints: readonly { lat: number; lon: number }[],
+  maxDistanceMeters: number
+): (point: { lat: number; lon: number }, out: number[]) => void {
+  // A generous margin: the bins only narrow the candidates, the caller's own
+  // haversine still decides.
+  const angle = (maxDistanceMeters * 1.01 + 1) / EARTH_RADIUS_METERS;
+  if (!(angle < Math.PI / 4)) {
+    return (_point, out) => {
+      for (let i = 0; i < waypoints.length; i++) out.push(i);
+    };
+  }
+  // Cube side: the chord of `angle`, but no finer than 1/50,000 of the sphere's
+  // radius (~130 m), which keeps every cell key an exact integer.
+  const side = Math.max(2 * Math.sin(angle / 2), 2e-5);
+  const span = Math.ceil(2 / side) + 3;
+  const cellOf = (lat: number, lon: number): [number, number, number] | null => {
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+    const phi = (lat * Math.PI) / 180;
+    const lambda = (lon * Math.PI) / 180;
+    const cosPhi = Math.cos(phi);
+    return [
+      Math.floor((cosPhi * Math.cos(lambda) + 1) / side) + 1,
+      Math.floor((cosPhi * Math.sin(lambda) + 1) / side) + 1,
+      Math.floor((Math.sin(phi) + 1) / side) + 1,
+    ];
+  };
+  const key = (x: number, y: number, z: number): number => (x * span + y) * span + z;
+
+  const cells = new Map<number, number[]>();
+  waypoints.forEach((waypoint, i) => {
+    const cell = cellOf(waypoint.lat, waypoint.lon);
+    if (!cell) return;
+    const k = key(cell[0], cell[1], cell[2]);
+    const list = cells.get(k);
+    if (list) list.push(i);
+    else cells.set(k, [i]);
+  });
+
+  return (point, out) => {
+    const cell = cellOf(point.lat, point.lon);
+    if (!cell) return;
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dz = -1; dz <= 1; dz++) {
+          const list = cells.get(key(cell[0] + dx, cell[1] + dy, cell[2] + dz));
+          if (list) for (const i of list) out.push(i);
+        }
+      }
+    }
+  };
+}
+
+/**
  * Find all waypoint visits along the route.
  * Walks through track points and records a "visit" when the route passes near a waypoint.
  *
@@ -845,10 +1002,25 @@ export function findWaypointVisits(
 
   const activeProximity: Map<number, { bestDistance: number; bestTrackIndex: number }> = new Map();
 
+  // Only a waypoint already being tracked, or one in range of this point, can
+  // change anything at it: the others are beyond the entry threshold. So each
+  // point is checked against those two sets rather than every waypoint, in
+  // waypoint order as the full scan did, which keeps the visits and their
+  // order exactly the scan's (see `nearbyWaypoints`).
+  const nearby = nearbyWaypoints(waypoints, maxDistanceMeters);
+  const candidates: number[] = [];
+
   for (let trackIdx = 0; trackIdx < trackPoints.length; trackIdx++) {
     const trackPoint = trackPoints[trackIdx];
 
-    for (let wpIdx = 0; wpIdx < waypoints.length; wpIdx++) {
+    candidates.length = 0;
+    nearby(trackPoint, candidates);
+    for (const wpIdx of activeProximity.keys()) candidates.push(wpIdx);
+    candidates.sort((a, b) => a - b);
+
+    for (let c = 0; c < candidates.length; c++) {
+      const wpIdx = candidates[c];
+      if (c > 0 && wpIdx === candidates[c - 1]) continue;
       const waypoint = waypoints[wpIdx];
       const distance = haversineDistanceMeters(waypoint.lat, waypoint.lon, trackPoint.lat, trackPoint.lon);
 
@@ -974,9 +1146,6 @@ export function calculateSegmentStats(
 
   return { distance, ascent, descent };
 }
-
-/** Shared empty set, so the common no-breaks call allocates nothing. */
-const NO_BREAK_STARTS: ReadonlySet<number> = new Set<number>();
 
 /**
  * Enrich waypoints with distance and elevation data by matching to track
@@ -1119,10 +1288,11 @@ export function matchAtJunctions(
   // The junction is measured to the route *line*, as fetch-access found it:
   // where the route runs straight its vertices can be a kilometre apart.
   const line = trackPoints.map(p => ({ lat: p.lat, lon: p.lon, dist: 0 }));
+  const nearestOnTrack = nearestTrackPointFinder(trackPoints);
   return waypoints.map(wp => {
     const placement = wp.id === undefined ? undefined : placements.get(wp.id);
     if (!placement) return wp;
-    const place = findNearestTrackPoint(wp, trackPoints);
+    const place = nearestOnTrack(wp);
     // Beyond the match radius, only an entry whose own walk reaches the place
     // counts: a place now further from its junction than the walk in has
     // moved since the entry was written, and stays off the route.
@@ -1738,6 +1908,7 @@ export function buildTrail(gpx: ParsedGpxResult, options: BuildTrailOptions): Pr
   if (climb) {
     totalAscent = climb.ascent[climb.ascent.length - 1] ?? 0;
     totalDescent = climb.descent[climb.descent.length - 1] ?? 0;
+    annotateClimb(points, climb);
   }
 
   // Simplify for map display (target ~3000 points for smooth rendering)
@@ -2060,12 +2231,13 @@ export function buildTrail(gpx: ParsedGpxResult, options: BuildTrailOptions): Pr
       terminusWaypointKeys.add(`${wp.name}|${wp.lat}|${wp.lon}`);
     }
   }
+  const nearestOnRoute = nearestTrackPointFinder(points);
   const offTrailCandidates: OffTrailWaypoint[] = waypoints
     .filter(wp => !matchedNames.has(`${wp.name}|${wp.lat}|${wp.lon}`))
     .filter(wp => !terminusWaypointKeys.has(`${wp.name}|${wp.lat}|${wp.lon}`))
     .filter(wp => !(wp.id !== undefined && mainMergedAwayIds.has(wp.id)))
     .map(wp => {
-      const { distanceFromTrack } = findNearestTrackPoint(wp, points);
+      const { distanceFromTrack } = nearestOnRoute(wp);
       return { ...wp, distanceFromTrail: Math.round(distanceFromTrack) };
     });
   // Off-trail pairs are duplicates in the same way (the AAWT marks "Macalister
@@ -2180,6 +2352,7 @@ export function recomputeTrailElevation(trail: ProcessedTrail, options?: Elevati
   if (climb) {
     totalAscent = climb.ascent[climb.ascent.length - 1] ?? 0;
     totalDescent = climb.descent[climb.descent.length - 1] ?? 0;
+    annotateClimb(points, climb);
   }
 
   // Every display point is a copy of one track point, so its coordinates AND
@@ -2196,7 +2369,17 @@ export function recomputeTrailElevation(trail: ProcessedTrail, options?: Elevati
   }
   const displayPoints = trail.track.displayPoints.map(dp => {
     const i = byPlace.get(placeKey(dp));
-    return i === undefined ? dp : { ...dp, ele: points[i].ele };
+    if (i === undefined) return dp;
+    // The climb fields follow the point too, or go: a stale pair from before
+    // the new elevations would outvote them.
+    const copy: TrackPoint = { ...dp, ele: points[i].ele };
+    delete copy.cumAscent;
+    delete copy.cumDescent;
+    if (points[i].cumAscent !== undefined && points[i].cumDescent !== undefined) {
+      copy.cumAscent = points[i].cumAscent;
+      copy.cumDescent = points[i].cumDescent;
+    }
+    return copy;
   });
 
   let prevTrackIndex = 0;
@@ -2222,6 +2405,23 @@ export function recomputeTrailElevation(trail: ProcessedTrail, options?: Elevati
     track: { ...trail.track, points, displayPoints, totalAscent, totalDescent },
     waypoints,
   };
+}
+
+/**
+ * Write a thresholded climb ladder onto the track points as
+ * `cumAscent`/`cumDescent` (whole metres, as `truncatePoint` stores them).
+ * Every reader of a track's climb between two km — `calculateElevationBetween`,
+ * the day calculator, the reversed first leg — prefers those fields to a sum of
+ * the raw steps, so with them an imported trail's days add up to its header
+ * total instead of counting every metre of GPS noise the threshold dropped.
+ * Only runs when a caller asked for `ascentThreshold` (imports and elevation
+ * backfill), so the curated build's output is untouched.
+ */
+function annotateClimb(points: TrackPoint[], climb: ClimbLadder): void {
+  points.forEach((point, i) => {
+    point.cumAscent = Math.round(climb.ascent[i]);
+    point.cumDescent = Math.round(climb.descent[i]);
+  });
 }
 
 /** A track point's place on the trail: where it is, and which pass this is. */

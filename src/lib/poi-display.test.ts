@@ -521,6 +521,29 @@ describe('reversing a trail', () => {
       expect(m.distanceAlongTrail).toBe(35);
     });
 
+    it('moves a POI on an alternate off an alternate with the junction on its parent', () => {
+      // A child leaves the main route at km 32 and runs 3 km west onto the
+      // alternate, which it joins 9 km along (absolute 39, no endTrackIndex).
+      // Walked the other way it leaves the alternate 12 - 9 km after the
+      // alternate's own start (62 - 40 = 22), at 25 — not at 62 - 39 = 23.
+      const kmLon = 1 / (111.32 * Math.cos((42 * Math.PI) / 180));
+      const lat = -42 + 9 * 0.009;
+      const child = {
+        startDistance: 32,
+        startTrackIndex: 320,
+        endDistance: 39,
+        distance: 3,
+        parent: { name: 'Alt', index: 0 },
+        points: [3, 2, 1, 0].map(k => ({ lat, lon: 140 + k * kmLon })),
+      };
+      const [m] = mirrorPoiDistances(
+        [poi({ distanceAlongTrail: 33, lat, lon: 140 + 2 * kmLon, distanceFromTrail: 0 })],
+        62,
+        { alternates: [variants.alternates[0], child] }
+      )!;
+      expect(m.distanceAlongTrail).toBeCloseTo(27, 5); // 25 + (3 - 1)
+    });
+
     it("mirrors a main-route POI in a variant's span about the main line", () => {
       const [m] = mirrorPoiDistances(
         [poi({ distanceAlongTrail: 22, lat: -35, lon: 138, distanceFromTrail: 0.05 })],

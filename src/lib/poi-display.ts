@@ -24,6 +24,7 @@
  */
 
 import { isDuplicatePoi } from './poi-dedup';
+import { createJunctionMapper } from './variant-reverse';
 import { poiKey } from './trail-pois';
 import type { TrailPOI, TrailPOICategory } from './trail-types';
 
@@ -429,6 +430,7 @@ export function mirrorPoiDistances<P extends MirrorablePoi>(
     ...(variants.sideTrips ?? []).map(v => ({ v, alternate: false })),
   ].filter(({ v }) => hasPoiLine(v));
   const mainLine = variants.mainLine ?? [];
+  const junctions = createJunctionMapper(variants.alternates, totalDistance);
 
   return pois
     .map(poi => {
@@ -438,13 +440,15 @@ export function mirrorPoiDistances<P extends MirrorablePoi>(
         km = totalDistance - poi.distanceAlongTrail;
       } else {
         // The same mapping `variant-reverse` gives the variant's own waypoints:
-        // a side trip (or terminus) is walked out from its mirrored junction,
-        // an alternate is entered from what was its far end.
+        // a side trip (or terminus) is walked out from its reversed junction,
+        // an alternate is entered from what was its far end. The junction is
+        // `createJunctionMapper`'s, so one on a parent alternate moves along
+        // that alternate rather than about the main line.
         const start = on.v.startDistance as number;
         const along = Math.max(0, poi.distanceAlongTrail - start);
         km = on.alternate
-          ? totalDistance - (on.v.endDistance ?? start) + Math.max(0, (on.v.distance ?? 0) - along)
-          : totalDistance - start + along;
+          ? junctions.junctionKm(on.v, 'end', true) + Math.max(0, (on.v.distance ?? 0) - along)
+          : junctions.junctionKm(on.v, 'start', true) + along;
       }
       return { ...poi, distanceAlongTrail: Math.max(0, km) };
     })

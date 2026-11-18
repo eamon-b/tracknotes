@@ -5,7 +5,7 @@ Moved out of `CLAUDE.md` (issue #160) so the per-module detail is read on demand
 keep this file in step with the code it describes.
 
 Shared processing modules (used by both web and mobile):
-- `distance.ts` - Haversine distance calculations
+- `distance.ts` - `haversineDistance` and `EARTH_RADIUS_METERS`, the one copy of each
 - `gpx-parser.ts` - Parse GPX XML into structured data;
   `parseGpx(xml, adapter?, limits?)` is platform-neutral (see XML adapters below) and parses coordinates strictly (throws instead of plotting 0,0)
 - `xml-adapter.ts` - Minimal XML node interface (`querySelectorAll`/`querySelector`/`childElement`/`getAttribute`/`textContent`, tag selectors only) + the DOMParser adapter.
@@ -14,16 +14,22 @@ Shared processing modules (used by both web and mobile):
 - `parse-coordinate.ts` - Whole-string decimal parsing for coordinates (`parseFloat` alone accepts `-37.1abc` and `Infinity`)
 - `track-spurs.ts` - Detects and extracts self-retraces ("spurs") folded into the main-route segment, e.g. the Larapinta's Mt Sonder summit return, which name-based classification cannot see
 - `waypoint-dedupe.ts` - Merges near-duplicate waypoints (same cleaned name and type a few tens of metres apart) in built trail data
-- `trail-reverse.ts`, `variant-reverse.ts` - Direction reversal for a whole trail and for its variants (alternates, side trips), shared by web and mobile
+- `trail-reverse.ts`, `variant-reverse.ts` - Direction reversal for a whole trail and for its variants (alternates, side trips), shared by web and mobile.
+  A junction on a parent alternate (`parent`; the end has no `startTrackIndex`/`endTrackIndex`, which only a main-route junction carries) is carried along that alternate, not mirrored about the main route: `createJunctionMapper` gives `parentNew.startDistance + parent.distance - (km - parentOld.startDistance)` for a turned-round parent, `parentNew.startDistance + (km - parentOld.startDistance)` for a one-junction one, through any chain of parents.
+  An end is taken to be on the named parent when its km is within the parent's length and its point beside the parent's line, else on whichever other alternate fits (the CDT's Lake Solitude cross-country rejoins a different alternate from the one it leaves), else it mirrors as before.
+  Mirroring a child about the main route put the CDT's Storm Lake Creek Road about 150 km off and two Te Araroa bypasses about 15 km off;
+  `trail-reverse.test.ts` holds every nested junction in the CDT and Te Araroa assets beside its km on its alternate in both directions.
+  `transformSideTrips` takes the stored alternates for the same reason, and `mirrorPoiDistances` uses the same mapper
 - `plan-direction.ts` - The only sanctioned conversion between stored NOBO-absolute plan km and the active direction's km
 - `format-distance.ts` - Unit-aware distance formatting, the single choke point for km → display string
-- `climate-aggregate.ts` - Aggregates Open-Meteo daily series into monthly averages (shared by `fetch-climate.ts` and the app for imported trails)
+- `climate-aggregate.ts` - Aggregates Open-Meteo daily series into monthly averages for `fetch-climate.ts` (the app has no climate for imported trails)
 - `escape.ts` - `escapeHtml` (see the hard rule in `CLAUDE.md`)
 - `comments-api-types.ts` - Wire types for the comments API, imported by the app and the worker.
   Plain types only: no runtime imports, no DOM or Node globals
 - `moderation-attention.ts` - `needsAttention`: which reported or reviewed comments and shared waypoints still need an admin, shared by the moderation page and the daily moderation check (`scripts/moderation-queue.ts`)
-- `gpx-optimizer.ts` - Track simplification (Douglas-Peucker), elevation spike removal/smoothing, elevation stats
-- `track-simplify.ts` - Target-point-count simplification + coordinate truncation (the mobile point budget)
+- `gpx-optimizer.ts` - `douglasPeuckerIndices` (the one Douglas-Peucker; `community-checks` keeps a budgeted copy of its own), elevation spike removal and smoothing, `calculateElevationStats`/`cumulativeElevationChange` (the hysteresis climb) and `GPX_OPTIMIZER_DEFAULTS` (spike threshold, smoothing window).
+  The gpx-tools optimise/batch/serialise pipeline it was ported with is gone: nothing called it
+- `track-simplify.ts` - Target-point-count simplification + coordinate truncation (the mobile point budget); `simplifyTrack` is `douglasPeuckerIndices` mapped back to the points
 - `track-classification.ts` - Classify main/alternate/side-trip/**terminus** tracks.
   A `terminus` (`terminusPatterns`, default `['^Terminus:', '\\bTerminus\\b']`, collected into `terminusTracks`) is an *alternative trail end*: it branches off the main line at one end and its other end is deliberately free, 10-31 km off the route (the CDT's Chief Mountain, Columbus and Antelope Wells).
   It is matched **after** alternate and side trip, so a track a trail already names `Alternate: …` keeps that class.
@@ -45,6 +51,8 @@ Shared processing modules (used by both web and mobile):
   `map-glyphs.ts` holds the shapes (`MAP_GLYPHS`: 96x96 SVG bodies inked with `currentColor`; no imports and erasable TypeScript only, because `mobile/scripts/build-map-icons.mjs` loads it straight through Node's type stripping to rasterise `mobile/assets/map-icons/*.png`).
   `waypoint-glyphs.ts` maps a waypoint type (`waypointGlyph`, turn-offs via `baseWaypointType`) or OSM POI category (`poiGlyph`) to a glyph, and the glyph to one of six colour families (`waypointFamily`/`poiFamily`: water, camp, town, shelter, hazard, neutral).
   The family is derived from the glyph, never listed per type, so an alias cannot get the water drop on a grey ring.
+  A type the table does not list but the taxonomy counts as water or resupply (`WATER_TYPE_ALIASES`/`RESUPPLY_TYPE_ALIASES`: `well`, `soak`, `kiosk`, `roadhouse`, …) draws the water drop or the shop, read from those tables, so a place the calculators count never shows as the neutral dot;
+  a turn-off draws as the place it serves, which is only the marker — whether it counts is the taxonomy's call (a `water-access` is never water).
   Mobile resolves a family to its `waypoint*` theme tokens (`elevation/waypoint-category.ts`, which also drives the list filter chips);
   the web inlines `glyphSvg` (`src/web/trails/waypoint-icons.ts`) and colours it with the `--wp-*` custom properties in `styles.css`.
   No emoji anywhere a waypoint type is drawn
@@ -62,6 +70,11 @@ Shared processing modules (used by both web and mobile):
   `track.displayPoints` aims at `DEFAULT_TARGET_DISPLAY_POINTS` (3,000) but `calculateAdaptiveTolerance` is capped at `MAX_TOLERANCE_METERS` (25 m), so a long trail overshoots that target rather than losing the shape of its line — the CDT keeps ~21,000 display points instead of drawing as straight chords beside its full-resolution alternates.
   A route break adds neither distance nor climb, is simplified around rather than across, and is published as `track.breaks`.
   **Waypoint km must stay on the track's own scale**: `enrichWaypoints`/`calculateSegmentStats` take the break indices and skip the same legs, or waypoints drift past the end of the trail they are measured along.
+  With `elevation.ascentThreshold` (imports; `recomputeTrailElevation` for the elevation backfill) the hysteresis climb is also written onto every track point as `cumAscent`/`cumDescent` (whole metres), so `calculateElevationBetween`, the day calculator and the reversed first leg, which all prefer those fields, climb what the header total says rather than the raw steps;
+  the curated build sets no threshold, so its output carries none.
+  **Matching is not every point against every waypoint**: `findWaypointVisits` checks each track point only against the waypoints already being tracked and those a unit-sphere grid (`nearbyWaypoints`) says may be in range, in waypoint order, so its visits and their order are exactly the full scan's (`trail-ingest.test.ts` holds it to one);
+  nearest-point lookups go through `nearestTrackPointFinder` (points sorted by latitude, searched outwards until the latitude difference alone is further than the best), which answers exactly as the scan, lowest index on a tie.
+  Make one per call over a track that is not changing, never cache one on the array.
   **Variants read forwards**: `findVariantJunctions`/`attachVariantsToParents` turn a variant round (points reversed, ascent/descent swapped) when its source track was drawn against the trail, so `points[0]` is always the branch point at `startDistance`.
   Variant waypoint km and a child alternate's km along its parent both count from `points[0]`, so never swap the junction pair without reversing the points.
   **Off-route places**: a waypoint is attached to the route point nearest it in a straight line, unless `options.waypointAccess` (the build's `data/trails/<dir>/access.json`, by waypoint id) gives a junction found over OSM — then it is attached there, keeps its own position, and gets the walk in as `offTrailKm`, `offTrailAscentM`/`offTrailDescentM` (climb walking in), `accessMode: 'foot'` and, for an `osm` entry, the way itself as `offTrailPath` (`[lat, lon]` junction → place, only ever drawn: the web viewer and plan page dot it while the place's popup is open — the plan page also for as long as the place is a stop — through `src/web/trails/access-path.ts`; the phone's map after a marker tap or a "Show on map" from the waypoint screen or a Today, Day or Stops row (`features/guide/ShowOnMap.tsx`).
@@ -108,7 +121,8 @@ Shared processing modules (used by both web and mobile):
   a `trackIndex` whose point is beyond `buildTrail`'s match radius of the waypoint (500 m route, 200 m variant) is re-placed as an import would place it (nearest point in range, else off-trail).
   Everything derived is rebuilt from that geometry the way `buildTrail` builds an import: point `dist`, length, `displayPoints` (Douglas-Peucker, budgeted, stride fallback), climb (3 m hysteresis), waypoint km/legs/climb, off-trail `distanceFromTrail`, and variant length, climb, junctions and `parent`.
   A variant must start within 500 m of the route or an attached alternate.
-  Route breaks, POIs, `cumAscent`/`cumDescent`, timestamps, climate and the client's direction labels are dropped.
+  Route breaks, POIs, the client's `cumAscent`/`cumDescent`, timestamps, climate and the client's direction labels are dropped;
+  every main-route point's `cumAscent`/`cumDescent` is rewritten from the rebuilt 3 m climb, as `buildTrail` writes them on an import.
   The client's own km survive only for `distance-consistency`.
   The result is returned as `trail`, with `stats` for the row (`waypointCount` counts main, off-trail and variant waypoints).
   `speed` reads the raw GPX through `gpxMovingSpeedKmh` (a string scan, null under 10 timed points) and passes with a note when there is none.
@@ -128,6 +142,8 @@ Shared processing modules (used by both web and mobile):
   a failing plan is dropped with `HANDOFF_PLAN_UNREADABLE` in `warnings` and the trail still imports.
   A readable plan whose stops the trail does not explain (`@lib/plan-stop-issues` `planStopIssues` against the imported trail: past an end, a place or alternate it lacks) is kept whole and named in one `warnings` line (`importedPlanStopsWarning`, up to five stops by name), so the import report says what the planner's stop-issues list will show (#285);
   the shared-plan views on both platforms already run `planStopIssues` on the plan they show.
+  The trail is untrusted too: the readers spread each object and then re-check what something reads — a non-string waypoint `description` and any `userWaypoint` mark are dropped, `mergedIds` keeps only `uw_` ids, POI tags keep only string values, `direction` (trail and config) and `climate`/`climateLocations` are kept only when well formed (else null or absent), a waypoint `trackIndex` outside the points is re-read from its km (`findNearestByDistance`) and `variantTrackIndex`/`startTrackIndex`/`endTrackIndex` are clamped into their lines.
+  `docs/gpx-import.md` says so.
   Only `PlanDocument` fields travel, both ways (`planDocumentOnly` drops anything else a record carries — never per-device prefs; its field lists are exhaustive records over `PlanDocument`/`PlanStop`, so a field added to either type fails to compile until it is listed there, rather than being dropped from every handoff).
   A usable plan is re-keyed to the trail's resolved id and its waypoint ids (stops, `resupplyStops`, `resupplyZeroDays` keys) are translated through whatever ids the parse re-minted.
   A version-2 file's re-minted trail id hashes the trail-only envelope of the same trail, so with/without/edited-plan exports of one trail land on one id;
@@ -185,7 +201,8 @@ Shared processing modules (used by both web and mobile):
   Absent means the data does not say
 - `plan-types.ts` - Plan data types shared with mobile.
   `PlanDocument` (id-keyed stops with `nights`, `note`, `booked`; `resupplyStops`; `resupplyZeroDays`, zero days per resupply stop by option id — half-day steps in 0.5..14, `isStoredZeroDays`, absent rather than empty; `startZeroDays`, zero days before day 1 on the same steps, absent when none; `PLAN_LIMITS`) is the one plan shape: the wire body of `PUT /v1/plans/:id`, mobile's `plans.document_json`, the web `localStorage` value and the shared-plan payload.
-  `PlanState` is legacy, read only by the web migration `PLAN_SCHEMA` (the plan-field revision this build's clients send as `planSchema` on every `PUT /v1/plans/:id`) and `PLAN_FIELD_SCHEMA` (the revision each optional field is known from: `dataUpdatedAt`, `resupplyZeroDays`, `startZeroDays` are 1) let the worker keep a field an older client leaves out rather than read its absence as a clear (#283);
+  `PlanState` is legacy, read only by the web migration (`migratePlanState`).
+  `PLAN_SCHEMA` (the plan-field revision this build's clients send as `planSchema` on every `PUT /v1/plans/:id`) and `PLAN_FIELD_SCHEMA` (the revision each optional field is known from: `dataUpdatedAt`, `resupplyZeroDays`, `startZeroDays` are 1) let the worker keep a field an older client leaves out rather than read its absence as a clear (#283);
   a new optional field takes the next revision and raises `PLAN_SCHEMA` in the change that teaches the clients it.
 - `plan-editor.ts` - The pure plan editor both platforms drive (spec: `plans/day-planner.md`): `toggleStop`,
   `replaceStopsInRange` (applying a suggestion),
@@ -252,6 +269,7 @@ Shared processing modules (used by both web and mobile):
   When the points carry `cumAscent`/`cumDescent` (`annotateCumulativeElevation`, written into the mobile assets before thinning) both read the difference of the two ends instead of walking the steps between them, and `breakStarts` is not consulted — the break step was already left out of the sums.
   Summing a thinned track's own steps reported 65-86% of its real climb
 - `day-calculator.ts` - Hiking time estimation and day splitting;
+  with no section, `computeDays` names day 1's start and the last day's end by `trailEndName`: the waypoint nearest the trail end within `END_NAME_KM` (0.5 km), else "<trail> Start"/"<trail> End" (the AAWT's first waypoint, O'Sheas Mill Site, is 13.2 km in) — the rule the phone's `plan-section` `trailEndName` applies;
   `buildTimeIndex` reads the points' `cumAscent`/`cumDescent` when they carry them, so it keeps matching `calculateElevationBetween` to the metre on thinned and full-resolution tracks alike.
   **Stops off the route are walked to**: `placeWalk(waypoint)` is the walk to a place (`offTrailKm` with its climb in, `offTrailAscentM`/`offTrailDescentM`) or null — on the route, a turn-off, or a ride (`hitch`/`shuttle`/`boat`, or an unsaid distance over `WALKED_WHEN_UNSAID_MAX_KM`, 5 km; `resupply-plan` re-exports it).
   A `PlanStopInput` carrying `walk` adds the walk in to the day that ends there and the walk back out (climb and descent swapped) to the next: `distanceKm`, `ascentM`, `descentM` and `estimatedHours` include it, and the day carries `offTrailKm` and `walkIn`/`walkOut` (absent when it stays on the route; `startKm`/`endKm` stay route km).

@@ -14,6 +14,13 @@ type TestWaypoint = VariantWaypointKmFields & {
   elevation?: number;
 };
 
+type ParentedVariant = ReversibleVariant & {
+  name?: string;
+  startTrackIndex?: number;
+  endTrackIndex?: number;
+  parent?: { name: string; index: number };
+};
+
 function makeWaypoint(overrides: Partial<TestWaypoint> = {}): TestWaypoint {
   return {
     name: 'WP',
@@ -110,24 +117,166 @@ describe('reverseAlternates', () => {
     expect(reversed[0].waypoints![1].distance).toBe(6);
   });
 
-  it('flips a parent-attached alternate like any other, keeping the parent', () => {
-    // An alternate off an alternate carries absolute trail km (the parent's
-    // junction plus the walk along it), so there is nothing special to do —
-    // the regression this guards is someone deciding there is.
-    const child: ReversibleVariant & { parent?: { name: string; index: number } } = {
-      distance: 3,
+  it('moves a junction on a parent alternate along the parent, not about the main route', () => {
+    // Parent: branches at main km 10, rejoins at 40, 25 km long. The child
+    // leaves it 7.8 km along (absolute 17.8, no startTrackIndex: not on the
+    // main route) and rejoins the main route at km 40.
+    const parent: ParentedVariant = { name: 'Parent', startDistance: 10, endDistance: 40, distance: 25 };
+    const child: ParentedVariant = {
+      name: 'Child',
+      distance: 5,
       startDistance: 17.8,
-      endDistance: 20,
-      parent: { name: 'Parent Alternate', index: 0 },
+      endDistance: 40,
+      endTrackIndex: 400,
+      parent: { name: 'Parent', index: 0 },
       points: [{}, {}],
       waypoints: [makeWaypoint({ distance: 1.2, totalDistance: 19 })],
     };
-    const reversed = reverseAlternates([child], 100);
+    const [rParent, rChild] = reverseAlternates([parent, child], 100);
 
-    expect(reversed[0].startDistance).toBe(80);
-    expect(reversed[0].endDistance).toBe(82.2);
-    expect(reversed[0].parent).toEqual({ name: 'Parent Alternate', index: 0 });
-    expect(reversed[0].waypoints![0].totalDistance).toBe(81.8); // 80 + (3 - 1.2)
+    expect(rParent.startDistance).toBe(60);
+    expect(rParent.endDistance).toBe(90);
+    // Walked the other way the child leaves the main route at 100 - 40 and
+    // rejoins the parent 25 - 7.8 km along its reversed walk.
+    expect(rChild.startDistance).toBe(60);
+    expect(rChild.endDistance).toBe(77.2);
+    expect(rChild.parent).toEqual({ name: 'Parent', index: 0 });
+    expect(rChild.waypoints![0].totalDistance).toBe(63.8); // 60 + (5 - 1.2)
+  });
+
+  it('moves a rejoin on a parent along it while a main-route branch mirrors', () => {
+    const parent: ParentedVariant = { name: 'Parent', startDistance: 100, endDistance: 300, distance: 350 };
+    const child: ParentedVariant = {
+      name: 'Child',
+      distance: 60,
+      startDistance: 250,
+      startTrackIndex: 2500,
+      endDistance: 290, // 190 km along the parent
+      parent: { name: 'Parent', index: 0 },
+    };
+    const [rParent, rChild] = reverseAlternates([parent, child], 1000);
+    expect(rParent.startDistance).toBe(700);
+    expect(rChild.startDistance).toBe(860); // 700 + 350 - 190
+    expect(rChild.endDistance).toBe(750);
+  });
+
+  it('mirrors an end that is on the main route even when its km falls inside the parent', () => {
+    const parent: ParentedVariant = { name: 'Parent', startDistance: 10, endDistance: 40, distance: 25 };
+    const child: ParentedVariant = {
+      name: 'Child',
+      distance: 5,
+      startDistance: 20,
+      startTrackIndex: 200,
+      endDistance: 30,
+      endTrackIndex: 300,
+      parent: { name: 'Parent', index: 0 },
+    };
+    const [, rChild] = reverseAlternates([parent, child], 100);
+    expect(rChild.startDistance).toBe(70);
+    expect(rChild.endDistance).toBe(80);
+  });
+
+  it('carries a chain of nested alternates through every parent', () => {
+    const grand: ParentedVariant = { name: 'G', startDistance: 10, endDistance: 50, distance: 30 };
+    const parent: ParentedVariant = {
+      name: 'P',
+      startDistance: 20, // 10 km along G
+      endDistance: 50,
+      endTrackIndex: 500,
+      distance: 15,
+      parent: { name: 'G', index: 0 },
+    };
+    const child: ParentedVariant = {
+      name: 'C',
+      startDistance: 25, // 5 km along P
+      endDistance: 50,
+      endTrackIndex: 500,
+      distance: 4,
+      parent: { name: 'P', index: 1 },
+    };
+    const [rGrand, rParent, rChild] = reverseAlternates([grand, parent, child], 100);
+    expect(rGrand.startDistance).toBe(50);
+    expect(rParent.startDistance).toBe(50);
+    expect(rParent.endDistance).toBe(70); // 50 + 30 - 10
+    expect(rChild.startDistance).toBe(50);
+    expect(rChild.endDistance).toBe(60); // 50 + 15 - 5
+  });
+
+  it('takes the other alternate an end fits when it is past the named parent', () => {
+    // The CDT's Lake Solitude cross-country: named for the alternate its branch
+    // is on, rejoining a different one.
+    const big: ParentedVariant = { name: 'Big', startDistance: 100, endDistance: 300, distance: 350 };
+    const parent: ParentedVariant = {
+      name: 'Parent',
+      startDistance: 180, // on Big
+      endDistance: 290,
+      endTrackIndex: 2900,
+      distance: 60,
+      parent: { name: 'Big', index: 0 },
+    };
+    const child: ParentedVariant = {
+      name: 'Child',
+      startDistance: 239.9, // 59.9 km along Parent
+      endDistance: 241.5, // past Parent's end: 141.5 km along Big
+      distance: 5,
+      parent: { name: 'Parent', index: 1 },
+    };
+    const [rBig, rParent, rChild] = reverseAlternates([big, parent, child], 1000);
+    expect(rBig.startDistance).toBe(700);
+    expect(rParent.startDistance).toBe(710);
+    expect(rChild.startDistance).toBe(908.5); // 700 + 350 - 141.5
+    expect(rChild.endDistance).toBe(710.1); // 710 + 60 - 59.9
+  });
+
+  it('mirrors an end whose point is nowhere near the parent line', () => {
+    const line = (lat: number) => [
+      { lat, lon: 140 },
+      { lat, lon: 140.3 },
+    ];
+    const parent: ParentedVariant = {
+      name: 'Parent',
+      startDistance: 10,
+      endDistance: 40,
+      distance: 25,
+      points: line(-30),
+    };
+    const child: ParentedVariant = {
+      name: 'Child',
+      startDistance: 17.8,
+      endDistance: 40,
+      endTrackIndex: 400,
+      distance: 5,
+      parent: { name: 'Parent', index: 0 },
+      points: line(-31), // 110 km away
+    };
+    const [, rChild] = reverseAlternates([parent, child], 100);
+    expect(rChild.endDistance).toBe(82.2);
+  });
+
+  it('does not loop on alternates that name each other as parent', () => {
+    // The CDT's Stoney Indian Pass and Ptarmigan Tunnel bypass: one rejoins
+    // where the other branches.
+    const a: ParentedVariant = {
+      name: 'A',
+      startDistance: 14.89,
+      startTrackIndex: 282,
+      endDistance: 38.97,
+      distance: 24.1,
+      parent: { name: 'B', index: 1 },
+    };
+    const b: ParentedVariant = {
+      name: 'B',
+      startDistance: 38.97,
+      endDistance: 54.31,
+      endTrackIndex: 877,
+      distance: 21.9,
+      parent: { name: 'A', index: 0 },
+    };
+    const [rA, rB] = reverseAlternates([a, b], 100);
+    expect(rB.startDistance).toBe(45.69);
+    expect(rA.startDistance).toBe(67.59); // 45.69 + 21.9 - 0
+    expect(rA.endDistance).toBe(85.11);
+    expect(rB.endDistance).toBeCloseTo(67.61, 2); // 67.59 + 24.1 - 24.08
   });
 
   it('moves a junction residual to the end it now belongs to', () => {
@@ -264,18 +413,30 @@ describe('transformSideTrips', () => {
     expect(transformed.waypoints![0].totalDistance).toBe(299.99);
   });
 
-  it('mirrors a parent-attached side trip the same way', () => {
-    const spur: ReversibleVariant & { parent?: { name: string } } = {
+  it('moves a side trip hanging off an alternate along that alternate', () => {
+    const parent: ParentedVariant = { name: 'Parent', startDistance: 10, endDistance: 40, distance: 25 };
+    const spur: ParentedVariant = {
       distance: 2,
-      startDistance: 17.8,
-      parent: { name: 'Parent Alternate' },
+      startDistance: 17.8, // 7.8 km along the parent
+      parent: { name: 'Parent', index: 0 },
       waypoints: [makeWaypoint({ distance: 1, totalDistance: 18.8 })],
     };
-    const transformed = transformSideTrips([spur], 100);
+    const [transformed] = transformSideTrips([spur], 100, [parent]);
 
-    expect(transformed[0].startDistance).toBe(82.2);
-    expect(transformed[0].parent).toEqual({ name: 'Parent Alternate' });
-    expect(transformed[0].waypoints![0].totalDistance).toBe(83.2);
+    expect(transformed.startDistance).toBe(77.2); // 60 + 25 - 7.8
+    expect(transformed.parent).toEqual({ name: 'Parent', index: 0 });
+    expect(transformed.waypoints![0].totalDistance).toBe(78.2);
+  });
+
+  it('moves a side trip off a one-junction alternate out along it', () => {
+    const parent: ParentedVariant = { name: 'Parent', startDistance: 10, distance: 20 };
+    const spur: ParentedVariant = { distance: 2, startDistance: 15, parent: { name: 'Parent', index: 0 } };
+    expect(transformSideTrips([spur], 100, [parent])[0].startDistance).toBe(95); // 90 + 5
+  });
+
+  it('mirrors a parent-attached side trip about the main route when the alternates are not passed', () => {
+    const spur: ParentedVariant = { distance: 2, startDistance: 17.8, parent: { name: 'Parent', index: 0 } };
+    expect(transformSideTrips([spur], 100)[0].startDistance).toBe(82.2);
   });
 
   it('leaves unattached side trips untouched (regression: AAWT spurs >500m off-track)', () => {

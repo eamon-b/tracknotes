@@ -8,6 +8,7 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { hashString, importGpx, mintImportedWaypointIds } from './gpx-import';
 import { fxpXmlAdapter } from './xml-adapter-fxp';
+import { calculateElevationBetween } from './track-geometry';
 import { isResupplyWaypoint, isWaterWaypoint } from './waypoint-taxonomy';
 
 const FIXTURES = resolve(__dirname, '../../tests/fixtures/gpx');
@@ -109,6 +110,25 @@ describe('importGpx', () => {
     const rawAscent = importGpx(syntheticGpx(eles), { cleanElevation: false }).trail.track.totalAscent;
     expect(rawAscent).toBeGreaterThan(10000);
     expect(trail.track.totalAscent).toBeLessThan(rawAscent / 5);
+  });
+
+  it('writes the thresholded climb onto the points, so a km range climbs what the header says', () => {
+    // Slow swings under the 3 m band, which smoothing keeps and the band drops
+    // but a raw step sum would count.
+    const eles = Array.from({ length: 400 }, (_, i) => 500 + 1.4 * Math.sin((2 * Math.PI * i) / 20));
+    const { trail } = importGpx(syntheticGpx(eles), { targetPoints: 0 });
+    const points = trail.track.points;
+    expect(points.every(p => typeof p.cumAscent === 'number' && typeof p.cumDescent === 'number')).toBe(true);
+    const whole = calculateElevationBetween(0, trail.track.totalDistance, points);
+    expect(whole.gain).toBe(Math.round(trail.track.totalAscent));
+    expect(whole.loss).toBe(Math.round(trail.track.totalDescent));
+    // The raw steps would have made it several times that.
+    const raw = calculateElevationBetween(
+      0,
+      trail.track.totalDistance,
+      points.map(({ cumAscent: _a, cumDescent: _d, ...p }) => p)
+    );
+    expect(raw.gain).toBeGreaterThan(whole.gain + 20);
   });
 
   it('keeps the climb of a dense, smooth track instead of filtering every step out', () => {

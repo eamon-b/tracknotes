@@ -274,9 +274,9 @@ export function setDirection(plan: PlanDocument, direction: PlanDirection, opts?
  *
  * A place at either end of the trail (km 0, or `opts.totalKm`) is never
  * *added*: the toggle throws. Its nights could move no date — there is nothing
- * to walk before the start (zero days before day 1 are out of scope,
- * `plans/day-planner.md`) or after the end — so a stop there would only hold
- * nights that silently count for nothing. Removing one is still allowed, and a
+ * to walk before the start (rest before day 1 is the plan's `startZeroDays`,
+ * `setStartZeroDays`, not a stop at km 0) or after the end — so a stop there
+ * would only hold nights that silently count for nothing. Removing one is still allowed, and a
  * UI can keep the toggle off such a place with `isTrailEnd`.
  *
  * The name is trimmed and capped at `PLAN_LIMITS.stopNameMax` (a blank one
@@ -371,7 +371,7 @@ export function removeStoredStop(
  * 5 KB of nothing. Written as a copy-and-delete rather than a rest-destructure
  * so it needs no unused binding.
  */
-function omitKey<T extends object>(value: T, key: string): T {
+export function omitKey<T extends object>(value: T, key: string): T {
   const next = { ...value } as Record<string, unknown>;
   delete next[key];
   return next as T;
@@ -709,34 +709,6 @@ export function chooseResupplyOption(
 // ---------------------------------------------------------------------------
 
 /**
- * Turn a `localStorage` `PlanState` into a `PlanDocument`.
- *
- * `StopData` is km-keyed and carries no id, so each legacy km is resolved
- * against the trail's waypoints by `KM_EPSILON` — the same tolerance the stop
- * was matched with when it was saved, since it was saved *from* a waypoint's
- * already-rounded build-time km. Within that tolerance the *nearest* waypoint
- * wins, not the first one the array happens to hold: two waypoints 6 m apart
- * are both inside `KM_EPSILON`, and array order is the build's, not the
- * hiker's. A stop that matches a waypoint takes that waypoint's id and km
- * (canonical from here on); one that matches nothing keeps its km and stays
- * id-less, which `findStop` handles.
- *
- * Every stop gets `nights: 1` — the legacy shape had no notion of a rest day.
- * Name, start date, direction and the resupply selection carry over unchanged.
- *
- * **The result always passes `assertPlanDocumentWithinLimits`.** A migration
- * that produced a document the save path rejects would lose the plan it was
- * meant to rescue, so the two document-level stop rules are applied here:
- * near-duplicates are dropped (same id, or km within `KM_EPSILON` — the
- * uniqueness rule the assert enforces, not the looser `sameStop` lookup), and
- * a legacy save holding more than `PLAN_LIMITS.stopsMax` stops keeps the first
- * `stopsMax` in km order and drops the tail. A legacy stop whose km is not a
- * finite number is skipped outright — there is no position to rescue it to.
- *
- * Runs once on the web, when a `trail-plan-<id>` key is found and no document
- * exists.
- */
-/**
  * The waypoint nearest `km` within `KM_EPSILON`, or `undefined`.
  *
  * Nearest, not first: `KM_EPSILON` is 10 m of slack, and real trails carry
@@ -768,6 +740,34 @@ function collidesWith(a: PlanStop, b: PlanStop): boolean {
   return Math.abs(a.km - b.km) < KM_EPSILON;
 }
 
+/**
+ * Turn a `localStorage` `PlanState` into a `PlanDocument`.
+ *
+ * `StopData` is km-keyed and carries no id, so each legacy km is resolved
+ * against the trail's waypoints by `KM_EPSILON` — the same tolerance the stop
+ * was matched with when it was saved, since it was saved *from* a waypoint's
+ * already-rounded build-time km. Within that tolerance the *nearest* waypoint
+ * wins, not the first one the array happens to hold: two waypoints 6 m apart
+ * are both inside `KM_EPSILON`, and array order is the build's, not the
+ * hiker's. A stop that matches a waypoint takes that waypoint's id and km
+ * (canonical from here on); one that matches nothing keeps its km and stays
+ * id-less, which `findStop` handles.
+ *
+ * Every stop gets `nights: 1` — the legacy shape had no notion of a rest day.
+ * Name, start date, direction and the resupply selection carry over unchanged.
+ *
+ * **The result always passes `assertPlanDocumentWithinLimits`.** A migration
+ * that produced a document the save path rejects would lose the plan it was
+ * meant to rescue, so the two document-level stop rules are applied here:
+ * near-duplicates are dropped (same id, or km within `KM_EPSILON` — the
+ * uniqueness rule the assert enforces, not the looser `sameStop` lookup), and
+ * a legacy save holding more than `PLAN_LIMITS.stopsMax` stops keeps the first
+ * `stopsMax` in km order and drops the tail. A legacy stop whose km is not a
+ * finite number is skipped outright — there is no position to rescue it to.
+ *
+ * Runs once on the web, when a `trail-plan-<id>` key is found and no document
+ * exists.
+ */
 export function migratePlanState(
   state: PlanState,
   trailId: string,
@@ -881,9 +881,12 @@ export interface ComputePlanDaysOptions {
   section?: SectionConfig | null;
 }
 
-/** Add `days` whole days to a `YYYY-MM-DD` date, in UTC (as `computeDays` does). */
-function addDays(startDate: string, days: number): string {
-  const date = new Date(`${startDate}T12:00:00Z`);
+/**
+ * Add `days` whole days to a `YYYY-MM-DD` date (anything after the first ten
+ * characters is ignored), in UTC (as `computeDays` does).
+ */
+export function addDays(startDate: string, days: number): string {
+  const date = new Date(`${startDate.slice(0, 10)}T12:00:00Z`);
   date.setUTCDate(date.getUTCDate() + days);
   return date.toISOString().slice(0, 10);
 }

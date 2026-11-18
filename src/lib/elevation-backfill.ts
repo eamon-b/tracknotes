@@ -9,7 +9,7 @@
  * to plan on, and marks the trail `elevationSource: 'backfilled'` so the UI can
  * say where the numbers came from.
  *
- * Shape of the request loop is lifted from `scripts/fetch-elevation.ts`: POST
+ * The request loop POSTs
  * batches of 100 locations to Open-Elevation, sleep between batches so the free
  * public instance stays friendly.
  *

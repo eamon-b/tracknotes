@@ -7,7 +7,8 @@
  * for mobile via `@lib`, where that package is not installed. The library's
  * result shape is accepted structurally (`RouteProximityLike`).
  *
- * The route handed to the enrichment library is the main track first, then
+ * The route handed to the enrichment library is the main track first (one
+ * polyline per stretch between route breaks), then
  * every alternate and side trip, so POIs beside a variant are found too. The
  * library reports `segmentIndex` into the *flattened* route, so the km scale
  * is flattened the same way. Points are pre-filtered here exactly as the
@@ -17,6 +18,7 @@
 
 import { haversineDistance } from './distance';
 import { buildPointIndex, type PointIndex } from './point-index';
+import { routeBreakStarts } from './route-breaks';
 import type { ProcessedTrail, RouteVariant, TrackPoint, TrailPOI, TrailPOICategory } from './trail-types';
 
 export interface LatLon {
@@ -71,7 +73,9 @@ export function cumulativeKm(points: LatLon[]): number[] {
 /**
  * Build the search route and its km scale.
  *
- * Main-track points carry their own cumulative `dist`. A variant has no km of
+ * Main-track points carry their own cumulative `dist`, one polyline per
+ * stretch between route breaks (`routeBreakStarts`), so the corridor and a
+ * POI's placement never cross one. A variant has no km of
  * its own, so its points are placed at `startDistance + km along the variant` —
  * the same convention `VariantWaypoint.totalDistance` already uses.
  *
@@ -101,11 +105,20 @@ export function buildRouteScale(trail: Pick<ProcessedTrail, 'track' | 'alternate
     for (const value of km) kmScale.push(value);
   };
 
-  const trackPoints: TrackPoint[] = (trail.track?.points ?? []).filter(isFinitePoint);
-  addPolyline(
-    trackPoints.map(p => ({ lat: p.lat, lon: p.lon })),
-    trackPoints.map(p => (Number.isFinite(p.dist) ? p.dist : NaN))
-  );
+  // One polyline per stretch of the main track: a route break (a ferry, an
+  // unbridged river) is not walked, so neither the corridor nor a POI's
+  // placement may run across it.
+  const allTrackPoints: TrackPoint[] = trail.track?.points ?? [];
+  const stretchStarts = [0, ...[...routeBreakStarts(trail.track?.breaks, 'points')].sort((a, b) => a - b)];
+  for (let s = 0; s < stretchStarts.length; s++) {
+    const stretch = allTrackPoints.slice(stretchStarts[s], stretchStarts[s + 1] ?? allTrackPoints.length);
+    const finite = stretch.filter(isFinitePoint);
+    addPolyline(
+      finite.map(p => ({ lat: p.lat, lon: p.lon })),
+      finite.map(p => (Number.isFinite(p.dist) ? p.dist : NaN))
+    );
+  }
+  const trackPoints = allTrackPoints.filter(isFinitePoint);
 
   // Built only if some variant needs it: the index is not free on a 100k-point track.
   let mainIndex: PointIndex<TrackPoint> | null = null;

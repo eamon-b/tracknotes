@@ -15,7 +15,7 @@
  * trail total. Values are compared with `KM_EPSILON`, which only needs to
  * absorb floating-point noise from the mirror (see its doc comment).
  *
- * Shared by the web plan viewer and (in future) the mobile app via `@lib`.
+ * Shared by both planners: the web plan viewer and the phone (via `@lib`).
  */
 
 /**

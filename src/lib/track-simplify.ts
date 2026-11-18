@@ -5,14 +5,13 @@
  * now imports it back. The runtime GPX importer uses the same budgets so an
  * imported trail costs the same on a phone as a bundled one.
  *
- * Kept separate from `gpx-optimizer.ts` because these operate on built track
- * points (`{lat, lon, ele, dist}`) rather than raw `GpxPoint`s, and because the
- * mobile bundle wants this without the optimizer's parse/serialize surface.
+ * The simplification itself is `gpx-optimizer`'s `douglasPeuckerIndices`;
+ * this module adds the point budget and the truncation for built track points
+ * (`{lat, lon, ele, dist}`).
  */
 
+import { douglasPeuckerIndices } from './gpx-optimizer';
 import type { TrackPoint } from './trail-types';
-
-const EARTH_RADIUS_METERS = 6371000;
 
 /** The minimum a point needs for simplification: a position. */
 export interface LatLonPoint {
@@ -21,73 +20,12 @@ export interface LatLonPoint {
 }
 
 /**
- * Perpendicular distance from a point to a line segment (equirectangular
- * approximation). Same approach as `gpx-optimizer.ts`.
- */
-function perpendicularDistance(point: LatLonPoint, lineStart: LatLonPoint, lineEnd: LatLonPoint): number {
-  const toRadians = (deg: number) => (deg * Math.PI) / 180;
-
-  const lat1 = toRadians(lineStart.lat);
-  const lat2 = toRadians(lineEnd.lat);
-  const latP = toRadians(point.lat);
-  const lon1 = toRadians(lineStart.lon);
-  const lon2 = toRadians(lineEnd.lon);
-  const lonP = toRadians(point.lon);
-
-  const cosAvg = Math.cos((lat1 + lat2) / 2);
-  const x1 = lon1 * cosAvg * EARTH_RADIUS_METERS;
-  const y1 = lat1 * EARTH_RADIUS_METERS;
-  const x2 = lon2 * cosAvg * EARTH_RADIUS_METERS;
-  const y2 = lat2 * EARTH_RADIUS_METERS;
-  const xP = lonP * cosAvg * EARTH_RADIUS_METERS;
-  const yP = latP * EARTH_RADIUS_METERS;
-
-  const lineLengthSquared = (x2 - x1) ** 2 + (y2 - y1) ** 2;
-  if (lineLengthSquared === 0) {
-    return Math.sqrt((xP - x1) ** 2 + (yP - y1) ** 2);
-  }
-
-  const t = Math.max(0, Math.min(1, ((xP - x1) * (x2 - x1) + (yP - y1) * (y2 - y1)) / lineLengthSquared));
-  const projX = x1 + t * (x2 - x1);
-  const projY = y1 + t * (y2 - y1);
-
-  return Math.sqrt((xP - projX) ** 2 + (yP - projY) ** 2);
-}
-
-/**
- * Iterative Douglas-Peucker simplification. Returns references to the original
- * point objects (never copies), so callers can key off identity.
+ * Douglas-Peucker simplification (`douglasPeuckerIndices`). Returns references
+ * to the original point objects (never copies), so callers can key off identity.
  */
 export function simplifyTrack<T extends LatLonPoint>(points: T[], tolerance: number): T[] {
   if (points.length <= 2) return points;
-
-  const keep = new Array(points.length).fill(false);
-  keep[0] = true;
-  keep[points.length - 1] = true;
-
-  const stack: [number, number][] = [[0, points.length - 1]];
-
-  while (stack.length > 0) {
-    const [start, end] = stack.pop()!;
-    let maxDist = 0;
-    let maxIndex = start;
-
-    for (let i = start + 1; i < end; i++) {
-      const dist = perpendicularDistance(points[i], points[start], points[end]);
-      if (dist > maxDist) {
-        maxDist = dist;
-        maxIndex = i;
-      }
-    }
-
-    if (maxDist > tolerance) {
-      keep[maxIndex] = true;
-      stack.push([start, maxIndex]);
-      stack.push([maxIndex, end]);
-    }
-  }
-
-  return points.filter((_, i) => keep[i]);
+  return douglasPeuckerIndices(points, tolerance).map(i => points[i]);
 }
 
 /**

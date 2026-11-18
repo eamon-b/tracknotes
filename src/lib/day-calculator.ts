@@ -327,24 +327,29 @@ export function countWaterSources(startKm: number, endKm: number, waypoints: Pla
 }
 
 /**
- * Insert a stop in km-sorted order. Returns a new array.
+ * How close (km) a waypoint must be to a trail end to name it. Further off, a
+ * first or last waypoint is somewhere else (the AAWT's first is O'Sheas Mill
+ * Site, 13.2 km in), and the end goes by the trail's name instead.
  */
-export function addStop<T extends { km: number }>(stops: T[], newStop: T): T[] {
-  const result = [...stops];
-  const idx = result.findIndex(s => s.km > newStop.km);
-  if (idx === -1) {
-    result.push(newStop);
-  } else {
-    result.splice(idx, 0, newStop);
-  }
-  return result;
-}
+export const END_NAME_KM = 0.5;
 
 /**
- * Remove a stop by index. Returns a new array.
+ * The name a trail end goes by in a plan with no section: the waypoint nearest
+ * it when one is within {@link END_NAME_KM}, else "<trail> Start" / "<trail> End".
+ * `trail` is as walked (direction applied), so `'start'` is km 0.
  */
-export function removeStop<T>(stops: T[], index: number): T[] {
-  return stops.filter((_, i) => i !== index);
+export function trailEndName(
+  trail: Pick<PlanTrail, 'config' | 'waypoints'> & { track: Pick<PlanTrail['track'], 'totalDistance'> },
+  end: 'start' | 'end'
+): string {
+  const km = end === 'start' ? 0 : trail.track.totalDistance;
+  let best: { name: string; off: number } | null = null;
+  for (const wp of trail.waypoints ?? []) {
+    if (typeof wp.totalDistance !== 'number' || !wp.name) continue;
+    const off = Math.abs(wp.totalDistance - km);
+    if (off <= END_NAME_KM && (best === null || off < best.off)) best = { name: wp.name, off };
+  }
+  return best?.name ?? `${trail.config.name} ${end === 'start' ? 'Start' : 'End'}`;
 }
 
 /** Resolve a stop's display name. */
@@ -357,6 +362,7 @@ function stopDisplayName(stop: PlanStopInput): string {
  *
  * Day 1 starts at trail km 0 (or section start), last day ends at trail total
  * distance (or section end). Each stop boundary creates a day transition.
+ * Without a section the two ends are named by {@link trailEndName}.
  * Stops are sorted by km and clamped to the computed range, so out-of-order
  * or out-of-range stops never produce negative day distances.
  *
@@ -379,10 +385,8 @@ export function computeDays(
 
   const rangeStartKm = section ? section.startKm : 0;
   const rangeEndKm = section ? section.endKm : trail.track.totalDistance;
-  const rangeStartName: string = section ? section.startName : (waypoints[0]?.name ?? trail.config.name + ' Start');
-  const rangeEndName: string = section
-    ? section.endName
-    : (waypoints[waypoints.length - 1]?.name ?? trail.config.name + ' End');
+  const rangeStartName: string = section ? section.startName : trailEndName(trail, 'start');
+  const rangeEndName: string = section ? section.endName : trailEndName(trail, 'end');
 
   interface Boundary {
     name: string;

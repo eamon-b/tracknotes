@@ -7,7 +7,11 @@
  * keeps running against its re-exports as integration insurance.
  */
 
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
 import { describe, it, expect } from 'vitest';
+import { haversineDistance } from './distance';
+import type { VariantWaypointKmFields } from './variant-reverse';
 import {
   reverseRouteBreaks,
   reverseTrackPoints,
@@ -496,5 +500,110 @@ describe('reverseTrackPoints with pre-computed cumulative climb', () => {
     const reversed = reverseTrackPoints(plain, 50);
     expect(reversed[0]).not.toHaveProperty('cumAscent');
     expect(reversed[0]).not.toHaveProperty('cumDescent');
+  });
+});
+
+describe('createReversedTrail on real nested alternates', () => {
+  interface RealVariant {
+    name: string;
+    startDistance?: number;
+    endDistance?: number;
+    startTrackIndex?: number;
+    endTrackIndex?: number;
+    distance: number;
+    parent?: { name: string; index: number };
+    points: { lat: number; lon: number }[];
+    waypoints?: (VariantWaypointKmFields & { id?: string })[];
+  }
+  interface RealTrail extends ReversibleTrail {
+    alternates: RealVariant[];
+  }
+
+  const load = (id: string): RealTrail =>
+    JSON.parse(readFileSync(resolve(__dirname, `../../mobile/assets/trails/${id}.json`), 'utf-8')) as RealTrail;
+
+  /**
+   * The point a fraction of the way along a line. By fraction, not km: the
+   * phone's lines are thinned, so a winding one (the CDT's Tetons and Gros
+   * Ventre: 336 km drawn of 352 km walked) is shorter than its recorded length.
+   */
+  const pointAlong = (points: { lat: number; lon: number }[], fraction: number) => {
+    const steps = points.slice(1).map((p, i) => haversineDistance(points[i].lat, points[i].lon, p.lat, p.lon));
+    const target = fraction * steps.reduce((a, b) => a + b, 0);
+    let walked = 0;
+    for (let i = 0; i < steps.length; i++) {
+      walked += steps[i];
+      if (walked >= target) return points[i + 1];
+    }
+    return points[points.length - 1];
+  };
+
+  /**
+   * How far a variant's end point is from where its km says it is on the
+   * alternate it hangs off (the one whose span holds the km and whose point
+   * there is nearest).
+   */
+  const gapToAlternateKm = (trail: RealTrail, self: RealVariant, at: { lat: number; lon: number }, km: number) => {
+    let best = Infinity;
+    for (const line of trail.alternates) {
+      if (line === self || line.startDistance == null) continue;
+      const along = km - line.startDistance;
+      if (along < -0.05 || along > line.distance + 0.05) continue;
+      const p = pointAlong(line.points, Math.min(1, Math.max(0, along / line.distance)));
+      best = Math.min(best, haversineDistance(at.lat, at.lon, p.lat, p.lon) / 1000);
+    }
+    return best;
+  };
+
+  // The thinned lines put a point up to ~1.2 km from where a fraction of the
+  // way along says; mirroring about the main route was 15-150 km off.
+  const GAP_KM = 2;
+
+  it.each(['cdt', 'te_araroa'])(
+    '%s: every junction on an alternate stays beside its km on that alternate, walked either way',
+    id => {
+      const trail = load(id);
+      const reversed = createReversedTrail(trail);
+      let checked = 0;
+      trail.alternates.forEach((alt, i) => {
+        if (!alt.parent || alt.startDistance == null || alt.endDistance == null) return;
+        const rAlt = reversed.alternates[i];
+        const first = alt.points[0];
+        const last = alt.points[alt.points.length - 1];
+        // Turned round: the old rejoin is the new branch (`points[0]`).
+        if (alt.startTrackIndex === undefined) {
+          expect(gapToAlternateKm(trail, alt, first, alt.startDistance)).toBeLessThan(GAP_KM);
+          expect(gapToAlternateKm(reversed, rAlt, first, rAlt.endDistance!)).toBeLessThan(GAP_KM);
+          checked++;
+        }
+        if (alt.endTrackIndex === undefined) {
+          expect(gapToAlternateKm(trail, alt, last, alt.endDistance)).toBeLessThan(GAP_KM);
+          expect(gapToAlternateKm(reversed, rAlt, last, rAlt.startDistance!)).toBeLessThan(GAP_KM);
+          checked++;
+        }
+      });
+      expect(checked).toBeGreaterThan(0);
+    }
+  );
+
+  it("puts the CDT's Storm Lake Creek Road on the Anaconda Cutoff, not 150 km away", () => {
+    const trail = load('cdt');
+    const total = trail.track.totalDistance;
+    const index = trail.alternates.findIndex(a => a.name === 'Alternate: Storm Lake Creek Road');
+    const child = trail.alternates[index];
+    const parent = trail.alternates[child.parent!.index];
+    expect(parent.name).toBe('Alternate: Anaconda Cutoff');
+
+    const reversed = createReversedTrail(trail);
+    const rChild = reversed.alternates[index];
+    const rParent = reversed.alternates[child.parent!.index];
+    const expected = rParent.startDistance! + parent.distance - (child.startDistance! - parent.startDistance!);
+    expect(rChild.endDistance).toBeCloseTo(expected, 2);
+    // What mirroring about the main route gave.
+    expect(Math.abs(rChild.endDistance! - (total - child.startDistance!))).toBeGreaterThan(100);
+    // Its branch waypoint (on the parent) is at the rejoin end of the reversed walk.
+    const branch = rChild.waypoints!.find(w => w.id === child.waypoints![0].id)!;
+    // (Within the 0.3 km the child's own length differs from the parent's rest.)
+    expect(Math.abs(branch.totalDistance - rChild.endDistance!)).toBeLessThan(0.5);
   });
 });

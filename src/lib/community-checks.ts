@@ -34,8 +34,10 @@
  *   `track.totalDistance` and `config.lengthKm`;
  * - `track.displayPoints` (Douglas-Peucker at `buildTrail`'s adaptive
  *   tolerance, taken back by index so their `dist` ladder is the points');
- * - `track.totalAscent`/`totalDescent` (3 m hysteresis), and no point keeps a
- *   `cumAscent`/`cumDescent`, which `track-geometry` would otherwise prefer;
+ * - `track.totalAscent`/`totalDescent` (3 m hysteresis), and every point's
+ *   `cumAscent`/`cumDescent` from that same count (whole metres, as
+ *   `buildTrail` writes them on an import), never the client's — which
+ *   `track-geometry` would otherwise prefer;
  * - each waypoint's km, leg, climb and elevation, from its (checked)
  *   `trackIndex`;
  * - each off-trail waypoint's `distanceFromTrail`;
@@ -60,7 +62,7 @@
  * English and say what to do where there is something to do.
  */
 
-import { haversineDistance } from './distance';
+import { EARTH_RADIUS_METERS, haversineDistance } from './distance';
 import { cumulativeElevationChange } from './gpx-optimizer';
 import {
   calculateAdaptiveTolerance,
@@ -695,7 +697,7 @@ function perpendicularDistanceM(
   a: { lat: number; lon: number },
   b: { lat: number; lon: number }
 ): number {
-  const R = 6371000;
+  const R = EARTH_RADIUS_METERS;
   const rad = Math.PI / 180;
   const lat1 = a.lat * rad;
   const lat2 = b.lat * rad;
@@ -1600,6 +1602,10 @@ export function sanitiseCommunityTrail(
     ];
 
     const climb = cumulativeElevationChange(points, COMMUNITY_CHECK_THRESHOLDS.ascentThresholdM);
+    points.forEach((point, i) => {
+      point.cumAscent = Math.round(climb.ascent[i]);
+      point.cumDescent = Math.round(climb.descent[i]);
+    });
     const kept = displayIndices(points, totalDistance);
     const mainIndex = new NearestPoints(points);
     attachVariants(drafts, alternates.length, points, mainIndex);

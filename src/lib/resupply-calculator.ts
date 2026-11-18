@@ -7,8 +7,7 @@
  * Shared between the web planner and the mobile app.
  */
 
-import type { PlanWaypoint, ResupplyGap, ComputedDay } from './plan-types';
-import { isResupplyWaypoint } from './waypoint-taxonomy';
+import type { ResupplyGap, ComputedDay } from './plan-types';
 
 export type { ResupplyGap };
 
@@ -30,24 +29,6 @@ export interface FoodCarryEstimate {
 // The food per day is the hiker's (`PlanThresholds` in plan-types), so
 // `calculateFoodWeight` requires it rather than defaulting. Days and the
 // long-carry flag depend on pace and hours too, so they are `computeResupplyLegs`'.
-
-/**
- * Extract resupply points from trail waypoints, sorted by km.
- *
- * Membership is the resupply family in `waypoint-taxonomy`, which is where the
- * reasoning about what counts (and why 'accommodation'/'caravan-park' do not)
- * now lives.
- */
-export function extractResupplyPoints(waypoints: PlanWaypoint[]): ResupplyPoint[] {
-  return waypoints
-    .filter(wp => isResupplyWaypoint(wp.type))
-    .map(wp => ({
-      name: wp.name ?? 'Resupply',
-      km: wp.totalDistance ?? 0,
-      type: wp.type ?? 'food',
-    }))
-    .sort((a, b) => a.km - b.km);
-}
 
 /**
  * Calculate food carry weight for a given number of days.
@@ -152,15 +133,6 @@ export function correlateResupplyWithDays(points: ResupplyPoint[], days: Compute
       arrivalDate: day?.date,
     };
   });
-}
-
-/**
- * Find the next resupply point from a given position on the trail.
- * Useful for "I need to resupply by day X, which town?" queries.
- */
-export function findNextResupply(waypoints: PlanWaypoint[], currentKm: number): ResupplyPoint | null {
-  const points = extractResupplyPoints(waypoints);
-  return points.find(p => p.km > currentKm) ?? null;
 }
 
 /**
