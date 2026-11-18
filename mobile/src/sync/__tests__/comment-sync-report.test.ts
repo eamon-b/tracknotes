@@ -111,7 +111,6 @@ describe('drainOutbox — reports', () => {
   });
 
   it.each([
-    [429, 'rate_limited'],
     [400, 'invalid_reason'],
     [400, 'invalid_detail'],
   ])('marks the report failed on %s and keeps it queued', async (status, code) => {
@@ -128,6 +127,23 @@ describe('drainOutbox — reports', () => {
     expect(item?.status).toBe('failed');
     expect(item?.attempts).toBe(1);
     expect(item?.lastError).toContain(code);
+  });
+
+  it('leaves the report pending on a 429, to be asked again later', async () => {
+    const d = await db();
+    await seedReport(d);
+    const res = await drainOutbox({
+      db: d,
+      baseUrl: BASE,
+      fetchImpl: scriptedFetch([
+        { status: 429, body: { error: { code: 'rate_limited', message: 'no' } } },
+      ]),
+      getSessionFn,
+    });
+    expect(res).toMatchObject({ sent: 0, failed: 0 });
+    const item = await outboxRepo.getById(d, 'r1');
+    expect(item?.status).toBe('pending');
+    expect(item?.attempts).toBe(1);
   });
 
   it('stops the drain and leaves the report pending when offline', async () => {

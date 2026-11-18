@@ -119,6 +119,19 @@ describe('parseHandoffJson', () => {
     expect(parsed.direction).toEqual({ default: 'Start → End', reversed: 'End → Start' });
   });
 
+  it('drops a waypoint description that is not text', () => {
+    // The water calculator and the link splitter read it as a string.
+    const trail = makeTrail();
+    const waypoints = [
+      { id: 'w_1', name: 'Tank', type: 'water-tank', lat: -35, lon: 148, totalDistance: 1, description: 5 },
+      { id: 'w_2', name: 'Hut', type: 'hut', lat: -35.01, lon: 148, totalDistance: 2, description: 'Sleeps six.' },
+    ];
+    const parsed = parseHandoffJson(
+      JSON.stringify({ format: HANDOFF_FORMAT, version: 1, trail: { ...trail, waypoints } })
+    );
+    expect(parsed.waypoints.map(w => w.description)).toEqual([undefined, 'Sleeps six.']);
+  });
+
   it('always marks the result as imported', () => {
     const parsed = roundTrip(makeTrail());
     expect(parsed.config.source).toBe('imported');

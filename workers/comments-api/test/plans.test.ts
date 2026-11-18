@@ -11,7 +11,7 @@ import {
   registerDevice,
   url,
 } from './helpers';
-import { isUniqueConstraintError, putPlan as putPlanHandler } from '../src/plans';
+import { isUniqueConstraintError, putPlan as putPlanHandler, unsharePlan as unsharePlanHandler } from '../src/plans';
 import type { Env } from '../src/http';
 import type { Device } from './helpers';
 import type {
@@ -828,6 +828,60 @@ describe('plan sharing', () => {
     expect(entry.shareId).toBe(shareId);
     // Row and document agree on the clock after a share.
     expect(entry.document.updatedAt).toBe(entry.updatedAt);
+  });
+
+  it('does not overwrite an edit that lands while a share is being revoked', async () => {
+    // The race: another device's PUT commits between the unshare's read and
+    // its write. Drive the handler with a DB that slips that edit in just
+    // before the first revoking UPDATE, as the index-race test above does.
+    const device = await registerDevice('Edits while revoking');
+    const { id } = await createPlan(device);
+    await share(device, id);
+
+    let injected = false;
+    const racingDb = {
+      prepare(query: string) {
+        const statement = env.DB.prepare(query);
+        if (injected || !/UPDATE plans SET share_id = NULL/.test(query)) return statement;
+        injected = true;
+        const bind = statement.bind.bind(statement);
+        return {
+          bind: (...args: unknown[]) => {
+            const bound = bind(...args);
+            return {
+              run: async () => {
+                await env.DB.prepare(
+                  `UPDATE plans SET document_json = json_set(document_json, '$.name', 'Edited elsewhere'),
+                          updated_at = '2999-01-01T00:00:00.000Z'
+                    WHERE id = ?`
+                )
+                  .bind(id)
+                  .run();
+                return bound.run();
+              },
+            };
+          },
+        };
+      },
+      batch: (statements: unknown[]) => env.DB.batch(statements as never),
+    };
+
+    const request = new Request(url(`/v1/plans/${id}/share`), {
+      method: 'DELETE',
+      headers: authHeaders(device),
+    });
+    const ctx = createExecutionContext();
+    const racingEnv = { ...env, DB: racingDb } as unknown as Env;
+    const res = await unsharePlanHandler(request, racingEnv, ctx, id);
+    await waitOnExecutionContext(ctx);
+
+    expect(injected).toBe(true);
+    expect(res.status).toBe(204);
+    const row = await env.DB.prepare(`SELECT share_id, document_json FROM plans WHERE id = ?`)
+      .bind(id)
+      .first<{ share_id: string | null; document_json: string }>();
+    expect(row?.share_id).toBeNull();
+    expect((JSON.parse(row!.document_json) as { name: string }).name).toBe('Edited elsewhere');
   });
 
   it('404s after the share is revoked', async () => {
