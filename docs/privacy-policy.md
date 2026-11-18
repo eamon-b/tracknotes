@@ -17,7 +17,7 @@ Where Cloudflare actually holds the data, and how that is checked, is in
 `docs/data-residency.md`.
 -->
 
-**Last updated: 2026-11-17**
+**Last updated: 2026-11-18**
 
 Tracknotes is a hiking guide app for long-distance trails, mostly in
 Australia, with built-in guides for New Zealand, the United States, Japan and
@@ -207,6 +207,13 @@ never include the route file, its name or your account, but taken together
 they outline where the route goes. We do not log or keep them
 beyond Cloudflare's own request handling.
 
+**Online maps.** When you are online, the background map comes from third
+parties, not from us: the app loads it from OpenFreeMap (tiles.openfreemap.org)
+and the website from OpenTopoMap (tile.opentopomap.org), and the website loads
+its map software from unpkg.com. As with any website, each sees the network
+address the request came from and, for the map, which area you are looking at.
+We send them nothing else: not your account, your route or your plan.
+
 ## Where data is stored
 
 - **On your device:** downloaded maps, trail guides, your settings, favorites,
@@ -230,7 +237,8 @@ is sent to the automated review above, and hidden at once if the review finds
 it clearly abusive, spam or harmful; one that several established users report
 is hidden whatever the review found, as is an unverified community route that
 several established users report. Hidden content stays hidden until an admin
-looks at it. Repeat abuse may result in a device being blocked from posting.
+looks at it. Repeat abuse may result in a device being blocked from posting, sharing and
+saving plans to our servers.
 
 To tell our admins when reported or flagged posts are waiting, a daily
 scheduled job on GitHub Actions (build servers run by GitHub, Inc., in the

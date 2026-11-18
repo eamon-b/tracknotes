@@ -14,7 +14,7 @@ the owner (2026-10-31); it has had no legal read (issue #148). Still
 outstanding: link it from the App Store / Play Store listings (#31).
 -->
 
-**Last updated: 2026-10-31**
+**Last updated: 2026-11-18**
 
 These terms cover the Tracknotes app and the Tracknotes website, tracknotes.info (together,
 "Tracknotes"). By using Tracknotes, or by posting anything to it, you agree to
@@ -80,7 +80,8 @@ access other people's accounts or data.
 
 Anyone can report a comment, shared waypoint or community route with the
 **Report** action. We may review, hide, remove or decline to publish any
-content, and may block a device or account from posting, at our discretion and
+content, and may block a device or account from posting, sharing and saving plans to our
+servers, at our discretion and
 without notice — including content hidden automatically after several reports
 or by the automated review of comments, shared waypoints and community routes.
 
@@ -93,7 +94,7 @@ from land managers are honoured by default.
 
 Tracknotes has no sign-up: posting registers an anonymous device identity with
 the display name you choose. You can delete it at any time from Settings →
-**Delete account** (shown once you have posted); what that removes is described in the
+**Delete account** (shown once you have posted, reported or shared); what that removes is described in the
 [privacy policy](https://tracknotes.info/privacy.html). Content already
 released under CC0 may remain in copies others have made.
 
