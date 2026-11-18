@@ -530,13 +530,16 @@ async function doDownload(summary: CommunityRouteSummary, removal: number): Prom
 
   try {
     await File.downloadFileAsync(summary.trailUrl, part, { idempotent: true });
-    const info = part.info({ md5: true });
+    const info = part.info();
     if (info.size !== summary.bytes) {
       throw new CommunityIntegrityError(
         `Size mismatch: expected ${summary.bytes} bytes, got ${info.size ?? 0}`,
       );
     }
-    if ((info.md5 ?? '').toLowerCase() !== summary.md5) {
+    // `File.digest` replaced the deprecated `info({ md5: true })` (#348). It
+    // rejects where that returned no md5; either way the copy is not trusted.
+    const md5 = await part.digest('MD5').catch(() => '');
+    if (md5.toLowerCase() !== summary.md5) {
       throw new CommunityIntegrityError('Checksum mismatch');
     }
     let json: unknown;

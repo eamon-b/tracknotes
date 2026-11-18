@@ -52,6 +52,8 @@ const mockDirs: Record<string, boolean> = {};
 const mockRemote: Record<string, string> = {};
 /** Where each download was written, captured at call time (the File is renamed after). */
 const mockDownloadTargets: string[] = [];
+/** Make `File.digest` reject, as the native one does for a file it cannot read. */
+let mockDigestRejects = false;
 
 jest.mock('expo-file-system', () => {
   const { createHash: hash } = jest.requireActual('crypto') as typeof import('crypto');
@@ -120,14 +122,20 @@ jest.mock('expo-file-system', () => {
       this.uri = target;
     }
 
-    info(options?: { md5?: boolean }): { exists: boolean; size?: number; md5?: string } {
+    info(): { exists: boolean; size?: number } {
       const data = mockFiles[this.uri];
       if (data === undefined) return { exists: false };
-      return {
-        exists: true,
-        size: Buffer.byteLength(data),
-        ...(options?.md5 ? { md5: hash('md5').update(data).digest('hex') } : {}),
-      };
+      return { exists: true, size: Buffer.byteLength(data) };
+    }
+
+    /** Native semantics: lowercase hex, and a rejection for a file it cannot read. */
+    async digest(algorithm: string): Promise<string> {
+      if (algorithm !== 'MD5') throw new Error(`digest: unexpected algorithm ${algorithm}`);
+      const data = mockFiles[this.uri];
+      if (data === undefined || mockDigestRejects) {
+        throw new Error('digest: cannot read file');
+      }
+      return hash('md5').update(data).digest('hex');
     }
 
     static downloadFileAsync = jest.fn(async (url: string, destination: MockFile) => {
@@ -279,6 +287,7 @@ beforeEach(() => {
   for (const k of Object.keys(mockDirs)) delete mockDirs[k];
   for (const k of Object.keys(mockRemote)) delete mockRemote[k];
   mockDownloadTargets.length = 0;
+  mockDigestRejects = false;
   mockDirs['file:///mock/document'] = true;
   // Failed background updates are logged; the assertions say what happened.
   jest.spyOn(console, 'warn').mockImplementation(() => {});
@@ -580,6 +589,18 @@ describe('downloading on open', () => {
     expect(
       Object.keys(mockFiles).filter((k) => k.startsWith(ROOT) && !k.endsWith('state.json')),
     ).toEqual([]);
+    expect(await readCommunityTrail(ID)).toBeNull();
+  });
+
+  it('refuses a download whose digest cannot be read, as a checksum mismatch', async () => {
+    const row = publish(ID);
+    await refreshCommunityRoutes({ now: T0, fetchImpl: listFetch([row]) });
+    mockDigestRejects = true;
+
+    await expect(
+      ensureCommunityRouteDownloaded(ID, { fetchImpl: listFetch([row], { [ID]: row }) }),
+    ).rejects.toThrow(/Checksum/);
+    expect(Object.keys(mockFiles).filter((k) => k.endsWith('.part'))).toEqual([]);
     expect(await readCommunityTrail(ID)).toBeNull();
   });
 
