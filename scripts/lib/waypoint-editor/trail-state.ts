@@ -228,12 +228,14 @@ function gpxFileName(paths: EditorPaths, dir: string, config: TrailConfigFile): 
   return found;
 }
 
-/** The CalTopo export the build reads (`findGeojsonFile` in `build-trails.ts`), if any. */
+/** The CalTopo export the build reads (`findGeojsonFile` in `trail-waypoint-sources.ts`), if any. */
 function geojsonFileName(paths: EditorPaths, dir: string, config: TrailConfigFile): string | undefined {
   const trailDir = path.join(paths.trailsDir, dir);
   if (config.geojsonFile && fs.existsSync(path.join(trailDir, config.geojsonFile))) return config.geojsonFile;
+  // The trail's own data files are never the CalTopo export: the same list as the build's.
+  const ownFiles = new Set(['trail.json', 'climate.json', 'pois.json', 'access.json', 'descriptions.json']);
   for (const file of fs.readdirSync(trailDir)) {
-    if (!file.toLowerCase().endsWith('.json') || file === 'trail.json' || file === 'climate.json') continue;
+    if (!file.toLowerCase().endsWith('.json') || ownFiles.has(file)) continue;
     try {
       if (Array.isArray(readJson<{ features?: unknown }>(path.join(trailDir, file)).features)) return file;
     } catch {
@@ -477,10 +479,25 @@ function readSourceTexts(paths: EditorPaths, context: TrailContext): SourceTexts
   };
 }
 
+/**
+ * A GPX's `<wpt>`s, each typed as the build will type it from the trail's
+ * CalTopo export (`geojson`, null when it has none). The one place the editor
+ * predicts the build's reading of the sources: every check of an edit, and
+ * `sourceIdInputs`, go through it.
+ */
+function typeWaypoints(
+  gpx: string,
+  geojson: string | null
+): { spans: GpxWaypointSpan[]; typed: TypeSource[]; caltopo: CaltopoExport | null } {
+  const spans = listGpxWaypoints(gpx);
+  const caltopo = geojson === null ? null : readCaltopoExport(geojson);
+  return { spans, typed: spans.map(span => resolveSourceType(span, caltopo)), caltopo };
+}
+
 function parseSources(context: TrailContext, texts: SourceTexts): Sources {
-  let spans: GpxWaypointSpan[];
+  let waypoints: ReturnType<typeof typeWaypoints>;
   try {
-    spans = listGpxWaypoints(texts.gpx);
+    waypoints = typeWaypoints(texts.gpx, texts.geojson);
   } catch (error) {
     // The editor reads the GPX as the build does, and refuses what stops the build.
     throw new EditorError(
@@ -488,12 +505,9 @@ function parseSources(context: TrailContext, texts: SourceTexts): Sources {
       422
     );
   }
-  const caltopo = texts.geojson === null ? null : readCaltopoExport(texts.geojson);
   return {
     ...texts,
-    spans,
-    typed: spans.map(span => resolveSourceType(span, caltopo)),
-    caltopo,
+    ...waypoints,
     registryEntries: JSON.parse(texts.registry) as WaypointRegistry,
     curated:
       texts.descriptions === null
@@ -1051,6 +1065,39 @@ function idInputs(sources: Pick<Sources, 'spans' | 'typed'>): WaypointForId[] {
     lat: span.lat,
     lon: span.lon,
   }));
+}
+
+/**
+ * What the editor takes the next build to hand `assignWaypointIds` for a trail
+ * directory, from its committed sources alone (no built data is read): the
+ * files it reads, and every `<wpt>` in file order with the name and type it
+ * expects the build to give it.
+ *
+ * This is the prediction every "ids kept" check rests on, made with the
+ * editor's own reading of the GPX and the CalTopo export rather than the
+ * build's. `build-parity.test.ts` runs it beside the build's functions over
+ * every committed trail, so a change to how the build names or types a
+ * waypoint cannot leave the editor passing an edit the build would re-key.
+ */
+export function sourceIdInputs(
+  paths: EditorPaths,
+  dirParam: string
+): { trailId: string; gpxFile: string; geojsonFile?: string; inputs: WaypointForId[] } {
+  const dir = resolveTrailDir(paths, dirParam);
+  const trailDir = path.join(paths.trailsDir, dir);
+  const config = trailConfig(paths, dir);
+  const gpxFile = gpxFileName(paths, dir, config);
+  const geojsonFile = geojsonFileName(paths, dir, config);
+  const waypoints = typeWaypoints(
+    fs.readFileSync(path.join(trailDir, gpxFile), 'utf-8'),
+    geojsonFile ? fs.readFileSync(path.join(trailDir, geojsonFile), 'utf-8') : null
+  );
+  return {
+    trailId: config.id ?? dir.toLowerCase(),
+    gpxFile,
+    ...(geojsonFile ? { geojsonFile } : {}),
+    inputs: idInputs(waypoints),
+  };
 }
 
 /** The editor's rows for a trail, and which `<wpt>` each stands for. */
