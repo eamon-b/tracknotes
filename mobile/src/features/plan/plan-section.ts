@@ -22,6 +22,8 @@
  * correctly rather than mis-restoring a stale boundary.
  */
 
+import { END_NAME_KM, trailEndName } from '@lib/day-calculator';
+import type { SectionConfig } from '@lib/plan-types';
 import { waypointOptions, type WaypointOption } from './plan-adapters';
 import type { TrailJson } from '../../services/trail-assets';
 
@@ -54,6 +56,21 @@ export function sectionOptions(trail: TrailJson): WaypointOption[] {
   }
 
   return result;
+}
+
+// A trail end is named by the shared rule (`@lib/day-calculator`): the waypoint
+// nearest it when one is within `END_NAME_KM`, else "<trail> Start" / "<trail> End".
+// Day 1 of a whole-trail plan starts here on every surface, so all name it alike.
+export { END_NAME_KM, trailEndName };
+
+/** The whole (direction-applied) trail as a section, its ends named by `trailEndName`. */
+export function wholeTrailSection(trail: TrailJson): SectionConfig {
+  return {
+    startKm: 0,
+    endKm: trail.track.totalDistance,
+    startName: trailEndName(trail, 'start'),
+    endName: trailEndName(trail, 'end'),
+  };
 }
 
 /**

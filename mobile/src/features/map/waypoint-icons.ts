@@ -20,15 +20,12 @@
  */
 
 import { MAP_GLYPH_NAMES, type MapGlyphName } from '@lib/map-glyphs';
-import { FALLBACK_GLYPH, poiGlyph, waypointGlyph } from '@lib/waypoint-glyphs';
+import { poiGlyph, waypointGlyph } from '@lib/waypoint-glyphs';
 
 /** The shipped glyph set. Each name maps 1:1 to `assets/map-icons/<name>.png`. */
 export const WAYPOINT_ICON_NAMES = MAP_GLYPH_NAMES;
 
 export type WaypointIconName = MapGlyphName;
-
-/** Glyph used for any type the shared table does not list (and for `poi` itself). */
-export const FALLBACK_WAYPOINT_ICON: WaypointIconName = FALLBACK_GLYPH;
 
 /** The glyph for a waypoint type (generic point-of-interest for unknowns). */
 export function waypointIconName(type: string): WaypointIconName {

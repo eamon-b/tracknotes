@@ -4,8 +4,9 @@
  * The share link is read-only by design (plans/day-planner.md) — two hikers
  * walking together each keep their own plan, and merging concurrent edits is
  * explicitly out of scope — so this screen shows the days and offers one
- * action: take a COPY. The copy is a new document with a new id under this
- * device's account, which is what keeps "save" from meaning "join their plan".
+ * action: take a COPY. The copy is a document under this device's account —
+ * a new id, or the id of the hiker's own plan for the trail it replaces, never
+ * the sharer's — which is what keeps "save" from meaning "join their plan".
  *
  * Deep linking needs no manifest work: `app.json` already declares the
  * `tracknotes` scheme (the dev client uses it), and Expo Router maps the path
@@ -50,7 +51,12 @@ import { plannedRouteFor, planToRoute } from '@lib/plan-alternates';
 import { useSettingsStore } from '../../src/state/settings-store';
 import { usePlansStore } from '../../src/state/plans-store';
 import { selectPrefs, usePlanInputsStore } from '../../src/features/plan/plan-inputs-store';
-import { PACE_KMH, type PlanDay } from '../../src/features/plan/plan-adapters';
+import {
+  campKmsOf,
+  PACE_KMH,
+  toPlanDay,
+  type PlanDay,
+} from '../../src/features/plan/plan-adapters';
 import { DaySplitList } from '../../src/features/plan/DaySplitList';
 import { StopIssuesCard } from '../../src/features/plan/StopIssuesCard';
 import { dayEndWarning, stopIssueRows } from '../../src/features/plan/stop-issues';
@@ -201,15 +207,14 @@ export default function SharedPlanScreen() {
       baseKmh: PACE_KMH[prefs.pace],
     });
     const split = splitUnplannedTail(computed, finalDayMaxHours(prefs.dailyHours));
+    // The day cards as the Plan screen draws them: the camp glyph for a day
+    // that ends at a campsite or hut, the flag for the finish.
     const total = trail.track.totalDistance;
-    const toPlanDay = (day: (typeof computed)[number]): PlanDay => ({
-      ...day,
-      endKind: day.endKm >= total - 0.01 ? 'finish' : 'stop',
-      snappedToCamp: false,
-    });
+    const camps = campKmsOf(trail);
+    const card = (day: (typeof computed)[number]) => toPlanDay(day, total, camps);
     return {
-      days: split.days.map(toPlanDay),
-      unplanned: split.unplanned ? toPlanDay(split.unplanned) : null,
+      days: split.days.map(card),
+      unplanned: split.unplanned ? card(split.unplanned) : null,
     };
   }, [shared, routed, trail, prefs.pace, prefs.dailyHours]);
 
@@ -233,16 +238,19 @@ export default function SharedPlanScreen() {
   );
 
   const save = useCallback(
-    async (doc: PlanDocument, trailId: string) => {
+    async (doc: PlanDocument, trailId: string, replacingId?: string) => {
       setSaving(true);
       setSaveError(null);
       try {
-        // A NEW id: this is a copy under this account, not a second device on
-        // someone else's document. `apply` persists it and the store's sync
+        // Never the sharer's id: this is a copy under this account, not a
+        // second device on someone else's document. Replacing the hiker's own
+        // plan keeps ITS id — one plan per trail, and the server holds that
+        // one under it, so a new id would only be refused (`plan_exists`) and
+        // re-sent under the old one. `apply` persists it and the store's sync
         // hook queues the write (or keeps it local, for an imported trail).
         const copy: PlanDocument = {
           ...doc,
-          id: uuidv4(),
+          id: replacingId ?? uuidv4(),
           trailId,
           updatedAt: new Date().toISOString(),
         };
@@ -284,7 +292,11 @@ export default function SharedPlanScreen() {
       `You already have a plan for ${getTrailIndexEntry(trailId)?.name ?? 'this trail'}. Saving this one replaces it.`,
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Replace', style: 'destructive', onPress: () => void save(document, trailId) },
+        {
+          text: 'Replace',
+          style: 'destructive',
+          onPress: () => void save(document, trailId, existing.id),
+        },
       ],
     );
   }, [shared, trail, shownDocument, rawTrail, saving, save, hydratePlan]);
@@ -340,7 +352,6 @@ export default function SharedPlanScreen() {
           days={days}
           unplanned={unplanned}
           startZeroDays={startZeroDaysOf(shared.document)}
-          targetHours={prefs.dailyHours}
           units={units}
           endWarning={endWarning}
         />

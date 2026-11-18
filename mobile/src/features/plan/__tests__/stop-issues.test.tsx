@@ -59,7 +59,6 @@ function day(overrides: Partial<PlanDay>): PlanDay {
     descentM: 0,
     estimatedHours: 5,
     waterSources: 0,
-    snappedToCamp: false,
     endKind: 'stop',
     ...overrides,
   };
@@ -163,18 +162,13 @@ describe('DaySplitList with stops that need checking', () => {
     let tree!: ReactTestRenderer;
     act(() => {
       tree = TestRenderer.create(
-        <DaySplitList
-          days={DAYS}
-          targetHours={8}
-          units="km"
-          endWarning={dayEndWarning(ISSUES, 'NOBO', TOTAL)}
-        />,
+        <DaySplitList days={DAYS} units="km" endWarning={dayEndWarning(ISSUES, 'NOBO', TOTAL)} />,
       );
     });
     expect(allText(tree)).toContain('⚠ This place is no longer in the trail data');
     // Without the warnings the cards say nothing of it.
     act(() => {
-      tree.update(<DaySplitList days={DAYS} targetHours={8} units="km" />);
+      tree.update(<DaySplitList days={DAYS} units="km" />);
     });
     expect(allText(tree)).not.toContain('⚠');
   });

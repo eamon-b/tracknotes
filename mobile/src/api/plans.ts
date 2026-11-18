@@ -25,7 +25,6 @@ import type {
   PlanSyncEntryUnion,
   PlansSyncResponse,
   PutPlanRequest,
-  SharePlanResponse,
   SharedPlanResponse,
 } from '@lib/comments-api-types';
 import { PLAN_SCHEMA, type PlanDocument } from '@lib/plan-types';
@@ -123,26 +122,6 @@ export function planExistsId(err: unknown): string | undefined {
 /** Soft-delete a plan (tombstone). 204 on success; idempotent, 404 when unknown. */
 export async function deletePlan(ctx: ApiContext, id: string): Promise<void> {
   await apiRequest<void>(`/v1/plans/${encodeURIComponent(id)}`, {
-    baseUrl: ctx.baseUrl,
-    fetchImpl: ctx.fetchImpl,
-    token: ctx.token,
-    method: 'DELETE',
-  });
-}
-
-/** Mint (or replay) the public read-only share link for a plan. */
-export async function sharePlan(ctx: ApiContext, id: string): Promise<SharePlanResponse> {
-  return apiRequest<SharePlanResponse>(`/v1/plans/${encodeURIComponent(id)}/share`, {
-    baseUrl: ctx.baseUrl,
-    fetchImpl: ctx.fetchImpl,
-    token: ctx.token,
-    method: 'POST',
-  });
-}
-
-/** Revoke a plan's share link. 204; idempotent when nothing was shared. */
-export async function unsharePlan(ctx: ApiContext, id: string): Promise<void> {
-  await apiRequest<void>(`/v1/plans/${encodeURIComponent(id)}/share`, {
     baseUrl: ctx.baseUrl,
     fetchImpl: ctx.fetchImpl,
     token: ctx.token,

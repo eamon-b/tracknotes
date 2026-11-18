@@ -10,10 +10,10 @@
       "NSW",
       "ACT"
     ],
-    "dataVersion": "2026-11-12",
-    "updatedAt": "2026-11-12T20:21:28.614Z",
-    "md5": "d0f5e3cea4d2b01641e2b844aaf57ff3",
-    "bytes": 1166789
+    "dataVersion": "2026-11-18",
+    "updatedAt": "2026-11-18T10:11:59.344Z",
+    "md5": "73baa2ff12d5f019ec09a16abc4e57a9",
+    "bytes": 1166728
   },
   {
     "id": "hume-and-hovell",
@@ -38,10 +38,10 @@
     "states": [
       "WA"
     ],
-    "dataVersion": "2026-11-05",
-    "updatedAt": "2026-11-05T21:14:21.656Z",
-    "md5": "62b34ac0eefbfe100fe17b5a6bc3a3ad",
-    "bytes": 1088787
+    "dataVersion": "2026-11-18",
+    "updatedAt": "2026-11-18T10:11:59.344Z",
+    "md5": "617bdd16c143547279982a61637d424e",
+    "bytes": 1088689
   },
   {
     "id": "cape_to_cape",
@@ -52,10 +52,10 @@
     "states": [
       "WA"
     ],
-    "dataVersion": "2026-11-11",
-    "updatedAt": "2026-11-11T21:18:07.547Z",
-    "md5": "17de23f3ca397e579464d00cf279ab90",
-    "bytes": 572449
+    "dataVersion": "2026-11-18",
+    "updatedAt": "2026-11-18T10:11:59.344Z",
+    "md5": "aba53e9311d08efa72462079d6ab80d4",
+    "bytes": 572348
   },
   {
     "id": "cdt",
@@ -92,10 +92,10 @@
     "states": [
       "NSW"
     ],
-    "dataVersion": "2026-11-05",
-    "updatedAt": "2026-11-05T21:14:21.656Z",
-    "md5": "12e30328ec1d1aa7c57a5a14311d7637",
-    "bytes": 778444
+    "dataVersion": "2026-11-18",
+    "updatedAt": "2026-11-18T10:11:59.344Z",
+    "md5": "85647fbd37a1a54142bf6562ffc8799f",
+    "bytes": 777988
   },
   {
     "id": "great_ocean_walk",
@@ -134,10 +134,10 @@
     "states": [
       "SA"
     ],
-    "dataVersion": "2026-11-11",
-    "updatedAt": "2026-11-11T21:16:56.142Z",
-    "md5": "a275de16ac24d59b504e0a5a2295830a",
-    "bytes": 1248654
+    "dataVersion": "2026-11-18",
+    "updatedAt": "2026-11-18T10:11:59.344Z",
+    "md5": "0634c9a1f1692a10aba5d359294de43b",
+    "bytes": 1248595
   },
   {
     "id": "kep_track",
@@ -162,10 +162,10 @@
     "states": [
       "NT"
     ],
-    "dataVersion": "2026-10-25",
-    "updatedAt": "2026-10-25T01:13:57.095Z",
-    "md5": "9b91bda2a4ea2883c6be28c645dfc1d1",
-    "bytes": 777108
+    "dataVersion": "2026-11-18",
+    "updatedAt": "2026-11-18T10:11:59.344Z",
+    "md5": "c19b530bfd8961ef3324c3f84fd1b760",
+    "bytes": 777010
   },
   {
     "id": "overland",
@@ -245,10 +245,10 @@
       "NI",
       "SI"
     ],
-    "dataVersion": "2026-11-06",
-    "updatedAt": "2026-11-06T04:29:54.689Z",
-    "md5": "999e07527b9115c52f2fffb2c075748d",
-    "bytes": 1932597
+    "dataVersion": "2026-11-18",
+    "updatedAt": "2026-11-18T10:11:59.344Z",
+    "md5": "3bbb35203006a75eb638fa418413b501",
+    "bytes": 1921252
   },
   {
     "id": "thorsborne",

@@ -8,8 +8,8 @@
  *
  * The heavy geometry lives in `snapToTrail`; this hook only owns the tracking
  * lifecycle, the permission state, and a small hint-index cache that keeps the
- * per-fix snap cheap. Background tracking is intentionally absent — it stays
- * opt-in and lives in the location service.
+ * per-fix snap cheap. Tracking is foreground only: the app has no background
+ * location.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';

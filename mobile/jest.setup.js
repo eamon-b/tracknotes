@@ -174,7 +174,6 @@ jest.mock('expo-location', () => ({
     }),
   ),
   requestForegroundPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
-  requestBackgroundPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
   watchPositionAsync: jest.fn(() => Promise.resolve({ remove: jest.fn() })),
   Accuracy: {
     Lowest: 1,
@@ -184,12 +183,6 @@ jest.mock('expo-location', () => ({
     Highest: 5,
     BestForNavigation: 6,
   },
-}));
-
-jest.mock('expo-task-manager', () => ({
-  defineTask: jest.fn(),
-  isTaskRegisteredAsync: jest.fn(() => Promise.resolve(false)),
-  unregisterTaskAsync: jest.fn(() => Promise.resolve()),
 }));
 
 jest.mock('expo-battery', () => ({

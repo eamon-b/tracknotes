@@ -271,6 +271,36 @@ describe('the POIs along today', () => {
     expect(new Set(entries.map((e) => e.key)).size).toBe(entries.length);
   });
 
+  it('counts the walk out from an off-route start, as the waypoint rows do', () => {
+    const walked: TrailJson = {
+      ...t,
+      waypoints: t.waypoints.map((w, i) =>
+        i === 0
+          ? {
+              ...w,
+              offTrailKm: 2,
+              accessMode: 'foot' as const,
+              offTrailAscentM: 30,
+              offTrailDescentM: 10,
+            }
+          : w,
+      ),
+    };
+    const day = todayPlan(
+      planGlance(walked, plan(walked, ['c1', 'c2', 'c3'], '2026-10-10'), OPTS),
+      '2026-10-11',
+    )!.day;
+    const entries = todayEntries(
+      todayRows(walked, day),
+      todayPois(walked, day).filter((p) => !p.duplicateOf),
+      day,
+    );
+    const km = entries.map((e) => (e.kind === 'row' ? e.row.fromStartKm : e.fromStartKm));
+    // Camp A 0, poi 2 at 25 → 5 + 2, Creek 12, poi 3 12, Junction 37, poi 4 41.9, Camp B 44.
+    expect(km.slice(0, 6)).toEqual([0, 7, 12, 12, 37, expect.closeTo(41.9, 5)]);
+    expect(km.every((v, i) => i === 0 || v >= km[i - 1])).toBe(true);
+  });
+
   it('leaves the waypoint legs alone', () => {
     const rows = todayRows(t, today.day);
     const entries = todayEntries(rows, todayPois(t, today.day), today.day);

@@ -25,7 +25,7 @@ import * as ImagePicker from 'expo-image-picker';
 import type { WaterStatus } from '@lib/comments-api-types';
 import { useTheme } from '../../theme';
 import { KeyboardAvoidingModalContent } from '../../navigation/KeyboardAwareScrollView';
-import { radii, spacing, typography } from '../../tokens';
+import { glyphSizes, radii, spacing, touchTarget, typography } from '../../tokens';
 import { apiErrorMessage } from '../../api/error-message';
 import { WATER_STATUS_OPTIONS, isWaterFamily, waterStatusMeta } from '../guide/waypoint-detail';
 import { hasComposerContent, selectedPhotoFromResult, type SelectedPhoto } from './photo-upload';
@@ -385,20 +385,20 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -spacing.xs,
     right: -spacing.xs,
-    width: 24,
-    height: 24,
+    width: glyphSizes.xl,
+    height: glyphSizes.xl,
     borderRadius: radii.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  photoChipRemoveIcon: { ...typography.titleSmall, lineHeight: 20 },
+  photoChipRemoveIcon: { ...typography.titleSmall, lineHeight: glyphSizes.md },
 
   submit: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: spacing.md,
     borderRadius: radii.sm,
-    minHeight: 44,
+    minHeight: touchTarget.min,
   },
   submitText: { ...typography.titleSmall },
   actionLink: { ...typography.titleSmall },
@@ -413,5 +413,5 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderRadius: radii.sm,
   },
-  modalSave: { minWidth: 44, alignItems: 'center' },
+  modalSave: { minWidth: touchTarget.min, alignItems: 'center' },
 });

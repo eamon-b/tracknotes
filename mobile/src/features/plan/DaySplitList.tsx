@@ -3,8 +3,7 @@
  * shared day-calculator (`computeDays` → distance, ascent/descent, est. hours,
  * water-source count). The end indicator is keyed off the day's `endKind`: a
  * campsite/shelter (`camp`), any other place the hiker chose to stop (`stop`),
- * a wild camp the generator invented (`wild`), or the section finish (`finish`
- * — a town/hut/trailhead at the end).
+ * or the section finish (`finish` — a town/hut/trailhead at the end).
  *
  * With a plan behind it each card also carries the day's date and, when the
  * hiker is staying more than one night at its end, the rest days that push
@@ -31,7 +30,7 @@ import { useTheme } from '../../theme';
 import { radii, spacing, typography } from '../../tokens';
 import type { ThemeColors } from '../../tokens/themes';
 import type { Units } from '../../state/settings-store';
-import { planFloorHours, planWindowHours, type PlanDay } from './plan-adapters';
+import { type PlanDay } from './plan-adapters';
 import { formatHours } from './plan-format';
 import { formatZeroDays } from './resupply-planner';
 
@@ -82,12 +81,10 @@ function endLabel(day: PlanDay): string {
       return `⛺ ${day.endName}`;
     case 'stop':
       return day.endName;
-    default:
-      return 'No campsite nearby — wild camp';
   }
 }
 
-/** Footer end-of-day color: finish reads positive, camp branded, wild muted. */
+/** Footer end-of-day color: finish reads positive, camp branded, a stop plain. */
 function endColor(day: PlanDay, colors: ThemeColors): string {
   switch (day.endKind) {
     case 'finish':
@@ -96,15 +93,12 @@ function endColor(day: PlanDay, colors: ThemeColors): string {
       return colors.waypointCamp;
     case 'stop':
       return colors.textPrimary;
-    default:
-      return colors.textSecondary;
   }
 }
 
 export function DaySplitList({
   days,
   unplanned = null,
-  targetHours,
   units,
   pois,
   onDayPress,
@@ -136,7 +130,6 @@ export function DaySplitList({
    * than a day card: a plan made a few days at a time has not decided it yet.
    */
   unplanned?: ComputedDay | null;
-  targetHours: number;
   units: Units;
 }) {
   const { colors } = useTheme();
@@ -149,17 +142,6 @@ export function DaySplitList({
         : days.map((day, i) => dayPoiSummary(pois, day, { includeStart: i === 0 })),
     [pois, days],
   );
-
-  // A snapped camp can (rarely, by construction) push a day past the window the
-  // splitter allows around the target. Surface that overshoot subtly so the card
-  // stays honest about the terrain the hiker asked for. Each day is judged
-  // against the allowance the splitter actually grants IT (Decision 8): interior
-  // days may snap up to the window; the final day absorbs the remainder up to
-  // the floor, which exceeds the window once the target passes 10 h.
-  const windowH = planWindowHours(targetHours);
-  const finishAllowanceH = Math.max(windowH, planFloorHours(targetHours));
-  const allowanceFor = (day: PlanDay) =>
-    targetHours + (day.endKind === 'finish' ? finishAllowanceH : windowH);
 
   if (days.length === 0 && unplanned === null) {
     return (
@@ -262,12 +244,6 @@ export function DaySplitList({
             {light !== null && light.shortfallHours > 0 && (
               <Text style={[styles.overHint, { color: colors.textSecondary }]}>
                 {`About ${formatHours(light.shortfallHours)} more walking than daylight`}
-              </Text>
-            )}
-
-            {day.estimatedHours > allowanceFor(day) && (
-              <Text style={[styles.overHint, { color: colors.warning }]}>
-                {`+${formatHours(day.estimatedHours - targetHours)} over target`}
               </Text>
             )}
           </Pressable>

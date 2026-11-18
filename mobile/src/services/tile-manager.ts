@@ -2,10 +2,10 @@
  * High-level tile management service.
  *
  * Wraps the lower-level tile-service functions with convenience methods
- * for checking download status, available space, and listing downloaded trails.
+ * for checking download status, downloading, updating and deleting packs, and
+ * building the offline style.
  */
 
-import { Directory, Paths } from 'expo-file-system';
 import {
   getTrailTileStatus,
   downloadTrailTiles,
@@ -18,9 +18,7 @@ import {
   packHasContours,
   type TrailTileStatus,
   type DownloadOptions,
-  type ProgressCallback,
 } from './tile-service';
-import { tilesRoot } from './tile-paths';
 import type { MapTheme } from '../features/map/map-style';
 
 /**
@@ -52,40 +50,9 @@ export class TileManager {
     return getTrailTileStatus(trailId);
   }
 
-  /** Get available device storage in bytes */
-  getAvailableSpace(): number {
-    return Paths.availableDiskSpace;
-  }
-
-  /** List trail IDs that have downloaded tile sets */
-  getDownloadedTrails(): string[] {
-    const root = tilesRoot();
-    if (!root.exists) return [];
-    try {
-      // Each subdirectory in tiles/ is a trail ID
-      return root
-        .list()
-        .filter((entry): entry is Directory => entry instanceof Directory)
-        .map((dir) => dir.name)
-        .filter((id) => getTrailTileStatus(id).complete);
-    } catch {
-      return [];
-    }
-  }
-
-  /** Get total bytes used by all downloaded tiles */
-  getTotalStorageUsed(): number {
-    const trailIds = this.getDownloadedTrails();
-    return trailIds.reduce((sum, id) => sum + getTrailTileStatus(id).totalSizeBytes, 0);
-  }
-
-  /** Download tiles for a trail (supports options object or legacy callback) */
-  async downloadTrail(
-    trailId: string,
-    baseUrl: string,
-    optionsOrCallback?: DownloadOptions | ProgressCallback,
-  ): Promise<void> {
-    return downloadTrailTiles(trailId, baseUrl, optionsOrCallback);
+  /** Download tiles for a trail */
+  async downloadTrail(trailId: string, baseUrl: string, options?: DownloadOptions): Promise<void> {
+    return downloadTrailTiles(trailId, baseUrl, options);
   }
 
   /** Check if newer tiles are available on the server */

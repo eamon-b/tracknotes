@@ -55,17 +55,6 @@ export function resupplyGroupsFor(trail: PlannedResupplyTrail): ResupplyOptionGr
 }
 
 /**
- * Pure half of the hook: resolve a stored selection against a trail's options.
- * Direction does not matter — a flip mirrors km, not ids.
- */
-export function plannedIdsFor(
-  trail: PlannedResupplyTrail,
-  selected: ReadonlySet<string> | null,
-): ReadonlySet<string> | null {
-  return plannedResupplyIds(resupplyGroupsFor(trail), selected);
-}
-
-/**
  * The trail's stored selection: the plan document's, or — only while the
  * document has none — the device-local one a pre-sync build left behind.
  *

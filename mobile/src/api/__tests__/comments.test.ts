@@ -1,10 +1,5 @@
 import type { BulkSyncResponse } from '@lib/comments-api-types';
-import {
-  listTrailComments,
-  listWaypointComments,
-  putComment,
-  uploadCommentPhoto,
-} from '../comments';
+import { listTrailComments, putComment, uploadCommentPhoto } from '../comments';
 import { ApiError } from '../client';
 
 function jsonFetch(pages: unknown[]) {
@@ -60,18 +55,6 @@ describe('comments API', () => {
     expect((fetchImpl as jest.Mock).mock.calls[0][0]).toContain('since=');
     expect(result.entries.map((e) => e.id)).toEqual(['a', 'b']);
     expect(result.syncedAt).toBe('2026-01-05T00:00:00Z'); // first page
-  });
-
-  it('lists a single waypoint feed page', async () => {
-    const fetchImpl = jsonFetch([{ comments: [], nextCursor: null }]);
-    const res = await listWaypointComments(
-      { baseUrl: BASE, fetchImpl },
-      { trailId: 'aawt', waypointId: 'w_1', limit: 20 },
-    );
-    expect(res.nextCursor).toBeNull();
-    expect((fetchImpl as jest.Mock).mock.calls[0][0]).toContain(
-      '/v1/trails/aawt/waypoints/w_1/comments?limit=20',
-    );
   });
 
   it('PUTs a comment to the id endpoint with the token', async () => {

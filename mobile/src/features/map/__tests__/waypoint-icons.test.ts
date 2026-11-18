@@ -5,12 +5,8 @@
  * important one.
  */
 
-import {
-  FALLBACK_WAYPOINT_ICON,
-  WAYPOINT_ICON_NAMES,
-  poiIconName,
-  waypointIconName,
-} from '../waypoint-icons';
+import { FALLBACK_GLYPH as FALLBACK_WAYPOINT_ICON } from '@lib/waypoint-glyphs';
+import { WAYPOINT_ICON_NAMES, poiIconName, waypointIconName } from '../waypoint-icons';
 import { WAYPOINT_ICON_IMAGES } from '../waypoint-icon-images';
 
 /**

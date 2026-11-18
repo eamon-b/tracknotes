@@ -12,9 +12,8 @@
  * `isCuratedTrailId`.)
  *
  * The reuse is an alias, not a copy. Directory names stay equal to the bundled
- * trail id (`tileManager.getDownloadedTrails()` enumerates dir names, so a
- * second name for the same bytes would double-count storage and desync the
- * badges), and downloading "for" an import is literally downloading the
+ * trail id (a second name for the same bytes would double-count storage and
+ * desync the badges), and downloading "for" an import is literally downloading the
  * bundled pack — with the same progress, the same update check, and one
  * shared delete.
  *

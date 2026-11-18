@@ -717,7 +717,11 @@ export function MapPane() {
               pressed && styles.pressed,
             ]}
           >
-            <MaterialCommunityIcons name="map-marker-plus" size={22} color={colors.accent} />
+            <MaterialCommunityIcons
+              name="map-marker-plus"
+              size={glyphSizes.lg}
+              color={colors.accent}
+            />
           </Pressable>
 
           {/* Draw route: enter the tap-to-add-point builder */}
@@ -791,7 +795,11 @@ export function MapPane() {
           pressed && styles.pressed,
         ]}
       >
-        <MaterialCommunityIcons name="information-outline" size={12} color={colors.textSecondary} />
+        <MaterialCommunityIcons
+          name="information-outline"
+          size={typography.caption.fontSize}
+          color={colors.textSecondary}
+        />
         <Text style={[styles.creditsText, { color: colors.textSecondary }]} numberOfLines={1}>
           {mapCreditLabel(creditBasemap)}
         </Text>
@@ -868,7 +876,7 @@ function DegradedMapBanner({
 
 /** The `bottom` of the FAB in `slot` (0 = the recenter button at the foot of the stack). */
 function fabBottom(slot: number): number {
-  return spacing.xl + (44 + spacing.sm) * slot;
+  return spacing.xl + (touchTarget.min + spacing.sm) * slot;
 }
 
 const styles = StyleSheet.create({
@@ -944,8 +952,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: spacing.xl,
     right: spacing.lg,
-    width: 44,
-    height: 44,
+    width: touchTarget.min,
+    height: touchTarget.min,
     borderRadius: radii.full,
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
@@ -953,10 +961,10 @@ const styles = StyleSheet.create({
   },
   centerOnMe: {
     position: 'absolute',
-    bottom: spacing.xl + 44 + spacing.sm,
+    bottom: spacing.xl + touchTarget.min + spacing.sm,
     right: spacing.lg,
-    width: 44,
-    height: 44,
+    width: touchTarget.min,
+    height: touchTarget.min,
     borderRadius: radii.full,
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
@@ -965,8 +973,8 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: spacing.lg,
-    width: 44,
-    height: 44,
+    width: touchTarget.min,
+    height: touchTarget.min,
     borderRadius: radii.full,
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
@@ -974,10 +982,10 @@ const styles = StyleSheet.create({
   },
   drawRoute: {
     position: 'absolute',
-    bottom: spacing.xl + (44 + spacing.sm) * 2,
+    bottom: spacing.xl + (touchTarget.min + spacing.sm) * 2,
     right: spacing.lg,
-    width: 44,
-    height: 44,
+    width: touchTarget.min,
+    height: touchTarget.min,
     borderRadius: radii.full,
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',

@@ -1,38 +1,26 @@
 /**
- * Plan adapter tests. Covers the guide-added logic (hours-space day-boundary
- * generation + camp snapping, section scoping, direction-flip recompute) and
- * confirms the shared @lib calculators are driven with the right inputs over a
- * real bundled trail (cape_to_cape — the smallest, 126.9 km; aawt — the steep
- * regression anchor).
+ * Plan adapter tests. Covers the pick options and the resupply and water cards
+ * (section scoping, the hiker's selection, pace, hours and thresholds), and
+ * confirms the shared @lib calculators are driven with the right inputs over
+ * real bundled trails (cape_to_cape — the smallest, 126.9 km; the CDT).
  */
 
 import {
   PACE_KMH,
-  computePlan,
   computePlanExtras,
   computeResupplyPlan,
-  fullTrailSection,
-  generateDayStops,
   overnightWaypoints,
   planWindowHours,
-  sectionFromWaypoints,
+  toPlanDay,
   waypointOptions,
-  type PlanInputs,
+  type ResupplyPlanInputs,
 } from '../plan-adapters';
-import { DEFAULT_PLAN_THRESHOLDS } from '@lib/plan-types';
-import { buildTimeIndex, hoursBetweenIndexed, type TimeIndex } from '@lib/day-calculator';
-import { resolveGuideTrail } from '../../guide/guide-trail';
+import { DEFAULT_PLAN_THRESHOLDS, type Pace, type SectionConfig } from '@lib/plan-types';
 import type { TrailJson } from '../../../services/trail-assets';
 
 // Real bundled fixtures: work in Jest via the require() map.
 const cape = require('../../../../assets/trails/cape_to_cape.json') as TrailJson;
-const aawt = require('../../../../assets/trails/aawt.json') as TrailJson;
 const cdt = require('../../../../assets/trails/cdt.json') as TrailJson;
-
-/** Build the Naismith time index the splitter consumes. */
-function indexOf(trail: TrailJson): TimeIndex {
-  return buildTimeIndex(trail.track.points);
-}
 
 /** Small synthetic trail with predictable camps for boundary tests. */
 function syntheticTrail(): TrailJson {
@@ -76,37 +64,6 @@ function syntheticTrail(): TrailJson {
   };
 }
 
-/** A flat camp-free trail so wild-camp boundaries land at exact km. */
-function flatTrail(lengthKm: number): TrailJson {
-  const points = Array.from({ length: lengthKm + 1 }, (_, i) => ({
-    lat: 0,
-    lon: i * 0.001,
-    ele: 100,
-    dist: i,
-  }));
-  return {
-    config: {
-      id: 'flat',
-      name: 'Flat',
-      shortName: 'FLT',
-      region: 'Test',
-      lengthKm,
-      direction: { default: 'Northbound', reversed: 'Southbound' },
-    },
-    waypoints: [
-      { id: 'w0', name: 'Start', lat: 0, lon: 0, type: 'trailhead', totalDistance: 0 },
-      { id: 'end', name: 'Finish', lat: 0, lon: 0, type: 'trailhead', totalDistance: lengthKm },
-    ],
-    track: {
-      points,
-      displayPoints: points,
-      totalDistance: lengthKm,
-      totalAscent: 0,
-      totalDescent: 0,
-    },
-  };
-}
-
 describe('waypoint selectors', () => {
   it('overnightWaypoints returns only camp/shelter family, km-ordered', () => {
     const camps = overnightWaypoints(syntheticTrail());
@@ -125,11 +82,16 @@ describe('waypoint selectors', () => {
     expect(opts.length).toBe(cape.waypoints.length);
     expect(opts[0].km).toBeLessThanOrEqual(opts[opts.length - 1].km);
   });
+});
 
-  it('fullTrailSection spans the whole track', () => {
-    const s = fullTrailSection(cape);
-    expect(s.startKm).toBe(0);
-    expect(s.endKm).toBe(cape.track.totalDistance);
+describe('toPlanDay', () => {
+  const day = (endKm: number) =>
+    ({ dayNumber: 1, startKm: 0, endKm, startName: 'A', endName: 'B' }) as never;
+  it('marks the finish, a bed, and any other stop', () => {
+    const camps = new Set([20]);
+    expect(toPlanDay(day(100), 100, camps).endKind).toBe('finish');
+    expect(toPlanDay(day(20), 100, camps).endKind).toBe('camp');
+    expect(toPlanDay(day(40), 100, camps).endKind).toBe('stop');
   });
 });
 
@@ -141,327 +103,81 @@ describe('planWindowHours', () => {
   });
 });
 
-describe('generateDayStops (hours-space)', () => {
-  // On the flat synthetic trail hoursRaw == distance / baseKmh, so a targetH of
-  // 5 h at 4 km/h reproduces the old 20 km/day target exactly (windowH 1.75 h =
-  // 7 km, floorH 1.25 h = 5 km — the same tuning, unit-converted).
-  it('snaps boundaries to nearby camps and wild-camps otherwise', () => {
-    const trail = syntheticTrail();
-    const section = fullTrailSection(trail);
-    const { stops } = generateDayStops(trail, section, 5, 4, indexOf(trail));
-    const names = stops.map((s) => s.waypointName);
-    expect(stops[0]).toMatchObject({ km: 20, waypointName: 'Camp A' });
-    expect(names).toContain('Wild camp');
-    // Camp B at 60 should be snapped somewhere in the list.
-    expect(stops.some((s) => s.waypointName === 'Camp B')).toBe(true);
-  });
+/** The whole synthetic section, 0 → `endKm`. */
+function sectionOf(endKm: number): SectionConfig {
+  return { startKm: 0, endKm, startName: 'Start', endName: 'Finish' };
+}
 
-  it('produces strictly increasing boundaries and leaves a final day to the end', () => {
-    const trail = syntheticTrail();
-    const section = fullTrailSection(trail);
-    // 6.25 h @ 4 km/h == the old 25 km/day target.
-    const { stops } = generateDayStops(trail, section, 6.25, 4, indexOf(trail));
-    const kms = stops.map((s) => s.km);
-    for (let i = 1; i < kms.length; i++) expect(kms[i]).toBeGreaterThan(kms[i - 1]);
-    // No boundary within one window of the end (last day runs to 100).
-    expect(kms[kms.length - 1]).toBeLessThan(section.endKm);
-  });
-
-  it('makes a single day when the section is shorter than a day', () => {
-    const trail = syntheticTrail();
-    const { stops } = generateDayStops(
-      trail,
-      { startKm: 0, endKm: 15, startName: 'a', endName: 'b' },
-      5,
-      4,
-      indexOf(trail),
-    );
-    expect(stops).toEqual([]);
-  });
-
-  it('splits a section only slightly longer than the target into two bounded days (Fix 2)', () => {
-    // targetH 5 h → windowH 1.75 h (7 km), floorH 1.25 h (5 km); a day may run to
-    // targetH+floorH = 6.25 h (25 km). A 26.9 km camp-free stretch is 6.725 h — in
-    // the (target+floor, target+window] band that used to collapse into ONE
-    // oversized day. It must now split into a balanced pair.
-    const trail = syntheticTrail();
-    const section = { startKm: 62, endKm: 88.9, startName: 'a', endName: 'b' };
-    const idx = indexOf(trail);
-    const { stops } = generateDayStops(trail, section, 5, 4, idx);
-    expect(stops.length).toBe(1); // one interior boundary → two days
-    // Neither resulting day exceeds targetH + floorH (in time), and none is a sliver.
-    const boundaries = [section.startKm, ...stops.map((s) => s.km), section.endKm];
-    for (let i = 1; i < boundaries.length; i++) {
-      const h = hoursBetweenIndexed(idx, boundaries[i - 1], boundaries[i], 4);
-      expect(h).toBeGreaterThan(0);
-      expect(h).toBeLessThanOrEqual(5 + 1.25 + 0.05);
-    }
-  });
-
-  it('never places a boundary that leaves a sub-floor sliver final day (Fix 3)', () => {
-    // A camp sits 2 km (0.5 h) from the end on a 0..40 section. Snapping to it
-    // would leave a final day below floorH — so it must be rejected in time terms.
-    const trail: TrailJson = {
-      ...syntheticTrail(),
-      waypoints: [
-        { id: 'w0', name: 'Start', lat: 0, lon: 0, type: 'trailhead', totalDistance: 0 },
-        { id: 'cx', name: 'Mid Camp', lat: 0, lon: 0, type: 'campsite', totalDistance: 18 },
-        { id: 'cend', name: 'Near End Camp', lat: 0, lon: 0, type: 'campsite', totalDistance: 38 },
-        { id: 'end', name: 'Finish', lat: 0, lon: 0, type: 'trailhead', totalDistance: 100 },
-      ],
-    };
-    const section = { startKm: 0, endKm: 40, startName: 'a', endName: 'b' };
-    const idx = indexOf(trail);
-    const { stops } = generateDayStops(trail, section, 5, 4, idx);
-    const floorH = Math.max(0.75, 5 * 0.25); // 1.25 h
-    // Every boundary leaves at least floorH (in time) to the section end.
-    for (const s of stops) {
-      expect(hoursBetweenIndexed(idx, s.km, section.endKm, 4)).toBeGreaterThanOrEqual(floorH);
-    }
-    expect(stops.some((s) => s.waypointName === 'Near End Camp')).toBe(false);
-  });
-
-  it('snaps to the camp nearest in time within the window', () => {
-    const trail = syntheticTrail();
-    const section = fullTrailSection(trail);
-    const idx = indexOf(trail);
-    const { stops } = generateDayStops(trail, section, 5, 4, idx);
-    // Camp A (20 km / 5 h) is dead on the first day's 5 h target → snapped.
-    expect(stops[0]).toMatchObject({ waypointName: 'Camp A' });
-    const campH = hoursBetweenIndexed(idx, section.startKm, stops[0].km, 4);
-    const windowH = Math.min(2.5, Math.max(0.75, 5 * 0.35));
-    expect(Math.abs(campH - 5)).toBeLessThanOrEqual(windowH);
-  });
-
-  it('flat-trail splits match the old km-mode boundaries within 0.1 km', () => {
-    // Regression anchor: on flat ground the hours splitter must reproduce the old
-    // km behavior. 5 h @ 4 km/h == 20 km/day → boundaries at 20/40/60/80.
-    const trail = flatTrail(100);
-    const section = fullTrailSection(trail);
-    const { stops } = generateDayStops(trail, section, 5, 4, indexOf(trail));
-    const kms = stops.map((s) => s.km);
-    expect(kms.length).toBe(4);
-    [20, 40, 60, 80].forEach((expected, i) => {
-      expect(Math.abs(kms[i] - expected)).toBeLessThanOrEqual(0.1);
-    });
-  });
-});
-
-describe('computePlan over the real trail', () => {
-  const inputs: PlanInputs = {
-    startKm: 0,
-    endKm: cape.track.totalDistance,
+/** The resupply inputs at 8 h, average pace and the default thresholds, overridden. */
+function inputsFor(
+  over: Partial<ResupplyPlanInputs> & { pace?: Pace; thresholds?: typeof DEFAULT_PLAN_THRESHOLDS },
+): ResupplyPlanInputs {
+  const { pace = 'average', thresholds = DEFAULT_PLAN_THRESHOLDS, ...rest } = over;
+  return {
     dailyHours: 8,
-    pace: 'average',
-    thresholds: DEFAULT_PLAN_THRESHOLDS,
+    baseKmh: PACE_KMH[pace],
+    longCarryDays: thresholds.longCarryDays,
+    foodGramsPerDay: thresholds.foodGramsPerDay,
+    ...rest,
   };
+}
 
-  it('splits into multiple days that cover the whole distance', () => {
-    const plan = computePlan(cape, inputs);
-    expect(plan.days.length).toBeGreaterThan(1);
-    const summed = plan.days.reduce((s, d) => s + d.distanceKm, 0);
-    expect(summed).toBeCloseTo(cape.track.totalDistance, 0);
-    // Day 1 starts at the section start; last day ends at the section end.
-    expect(plan.days[0].startKm).toBe(0);
-    expect(plan.days[plan.days.length - 1].endKm).toBe(cape.track.totalDistance);
-  });
-
-  it('reports the hours target and the realized effective km/day', () => {
-    const plan = computePlan(cape, inputs);
-    expect(plan.targetHours).toBe(8);
-    const sectionKm = cape.track.totalDistance;
-    expect(plan.effectiveDailyKm).toBeCloseTo(sectionKm / plan.days.length, 6);
-  });
-
-  it('surfaces resupply legs (cape_to_cape has 3 towns)', () => {
-    const plan = computePlan(cape, inputs);
-    expect(plan.resupplyGroups.length).toBe(3);
-    expect(plan.resupplyLegs.length).toBeGreaterThan(0);
-    // Each leg carries the calculator's own food-weight estimate.
-    expect(plan.resupplyLegs[0].food.weightKg).toBeGreaterThan(0);
-    expect(plan.resupplySummary.hasData).toBe(true);
-  });
-
-  it('reports no water data when the trail has no water-type waypoints', () => {
-    const plan = computePlan(cape, inputs);
-    expect(plan.water.hasWaterData).toBe(false);
-    expect(plan.topWaterCarries).toEqual([]);
-  });
-
-  it('flags the last computed day as a non-snapped (section-end) boundary', () => {
-    const plan = computePlan(cape, inputs);
-    expect(plan.days[plan.days.length - 1].snappedToCamp).toBe(false);
-  });
-
-  it('marks the final day as a finish, not a wild camp (Fix 1)', () => {
-    // Synthetic trail so we get deterministic camp snaps + a clear finish.
-    const trail = syntheticTrail();
-    const plan = computePlan(trail, {
-      startKm: 0,
-      endKm: 100,
-      dailyHours: 5,
-      pace: 'average',
-      thresholds: DEFAULT_PLAN_THRESHOLDS,
-    });
-    const last = plan.days[plan.days.length - 1];
-    // The last day ends at the section end (a trailhead) — a finish, never wild.
-    expect(last.endKind).toBe('finish');
-    expect(last.snappedToCamp).toBe(false);
-    // Interior days carry the camp/wild distinction; every endKind is one of three.
-    for (const d of plan.days) expect(['camp', 'wild', 'finish']).toContain(d.endKind);
-    // At least one interior day snapped to a real camp (Camp A / Camp B).
-    const interior = plan.days.slice(0, -1);
-    expect(interior.some((d) => d.endKind === 'camp')).toBe(true);
-    // snappedToCamp stays consistent with endKind === 'camp'.
-    for (const d of plan.days) expect(d.snappedToCamp).toBe(d.endKind === 'camp');
-  });
-
-  it('prefers caller-supplied start/end names over km lookup (Fix 5)', () => {
-    // Two waypoints share the end km; nameAtKm resolves by array order and would
-    // pick the first. A caller-supplied endName must win (duplicate-km disambig).
-    const base = syntheticTrail();
-    const trail: TrailJson = {
-      ...base,
-      waypoints: [
-        ...base.waypoints,
-        { id: 'dup', name: 'First At 100', lat: 0, lon: 0, type: 'trailhead', totalDistance: 100 },
-      ],
-    };
-    const preferred = computePlan(trail, {
-      startKm: 0,
-      endKm: 100,
-      dailyHours: 5,
-      pace: 'average',
-      thresholds: DEFAULT_PLAN_THRESHOLDS,
-      startName: 'Chosen Start',
-      endName: 'Chosen End',
-    });
-    expect(preferred.days[0].startName).toBe('Chosen Start');
-    expect(preferred.days[preferred.days.length - 1].endName).toBe('Chosen End');
-
-    // Fallback: without names, it resolves via nameAtKm (the trail's waypoints).
-    const fallback = computePlan(trail, {
-      startKm: 0,
-      endKm: 100,
-      dailyHours: 5,
-      pace: 'average',
-      thresholds: DEFAULT_PLAN_THRESHOLDS,
-    });
-    expect(fallback.days[0].startName).toBe('Start');
-    expect(fallback.days[fallback.days.length - 1].endName).toBe('Finish');
-  });
-
-  it('surfaces water carries and the dry-stretch flag on a watered trail', () => {
-    const trail = syntheticTrail(); // has a water-tank at 55 km
-    const plan = computePlan(trail, {
-      startKm: 0,
-      endKm: 100,
-      dailyHours: 8,
-      pace: 'average',
-      thresholds: DEFAULT_PLAN_THRESHOLDS,
-    });
-    expect(plan.water.hasWaterData).toBe(true);
-    expect(plan.topWaterCarries.length).toBeGreaterThan(0);
-    // Biggest carry first.
-    const dists = plan.topWaterCarries.map((g) => g.distanceKm);
-    expect(dists).toEqual([...dists].sort((a, b) => b - a));
-    // A > 15 km gap must be flagged dry.
-    expect(plan.topWaterCarries.some((g) => g.isDryStretch)).toBe(true);
-  });
-});
-
-describe('hours-based regression (the point of the change)', () => {
-  it('keeps every AAWT day near the hours target on steep terrain', () => {
-    // The whole reason for this change: at 8 h / average over the real steep
-    // AAWT, the OLD km-mode splitter produced 13–14 h days. In hours-mode every
-    // day must land at or below targetH + windowH (+ a 0.1 h rounding slack).
-    const plan = computePlan(aawt, {
-      startKm: 0,
-      endKm: aawt.track.totalDistance,
-      dailyHours: 8,
-      pace: 'average',
-      thresholds: DEFAULT_PLAN_THRESHOLDS,
-    });
-    const windowH = Math.min(2.5, Math.max(0.75, 8 * 0.35)); // 2.5
-    for (const d of plan.days) {
-      expect(d.estimatedHours).toBeLessThanOrEqual(8 + windowH + 0.1);
-    }
-    // Terrain-aware splitting yields more, shorter days than the old km packing
-    // (which fit ~22 oversized days into the same trail).
-    expect(plan.days.length).toBeGreaterThan(22);
-  });
-
-  it('a slower pace yields more days than a faster pace at the same hours', () => {
-    const base = { startKm: 0, endKm: aawt.track.totalDistance, dailyHours: 8 };
-    const slow = computePlan(aawt, { ...base, pace: 'slow', thresholds: DEFAULT_PLAN_THRESHOLDS });
-    const fast = computePlan(aawt, { ...base, pace: 'fast', thresholds: DEFAULT_PLAN_THRESHOLDS });
-    // Slow base speed (3 km/h) covers fewer km per 8 h → more days than fast (5).
-    expect(slow.days.length).toBeGreaterThan(fast.days.length);
-    // Pace only scales the base speed constant.
-    expect(PACE_KMH.slow).toBeLessThan(PACE_KMH.fast);
-  });
-});
+const extrasInputs = {
+  dailyHours: 8,
+  baseKmh: PACE_KMH.average,
+  thresholds: DEFAULT_PLAN_THRESHOLDS,
+};
 
 describe('section scoping', () => {
-  it('restricts days and resupply to the chosen waypoint boundaries', () => {
+  it('keeps the legs inside the chosen section, the option list trail-wide', () => {
     const opts = waypointOptions(cape);
     const prevelly = opts.find((o) => o.name === 'Prevelly')!;
     const yallingup = opts.find((o) => o.name === 'Yallingup')!;
-    const section = sectionFromWaypoints(prevelly, yallingup);
-    const plan = computePlan(cape, {
-      startKm: section.startKm,
-      endKm: section.endKm,
-      dailyHours: 8,
-      pace: 'average',
-      thresholds: DEFAULT_PLAN_THRESHOLDS,
-    });
-    expect(plan.days[0].startKm).toBe(prevelly.km);
-    expect(plan.days[plan.days.length - 1].endKm).toBe(yallingup.km);
-    // Every leg lies inside the section, though the option list is trail-wide.
-    for (const leg of plan.resupplyLegs) {
+    const plan = computeResupplyPlan(
+      cape,
+      { startKm: prevelly.km, endKm: yallingup.km, startName: 'Prevelly', endName: 'Yallingup' },
+      inputsFor({}),
+    );
+    for (const leg of plan.legs) {
       expect(leg.fromKm).toBeGreaterThanOrEqual(prevelly.km);
       expect(leg.toKm).toBeLessThanOrEqual(yallingup.km);
     }
-    expect(plan.resupplyGroups.length).toBe(3);
+    expect(plan.groups.length).toBe(3);
+  });
+
+  it('surfaces resupply legs over the real trail (cape_to_cape has 3 towns)', () => {
+    const plan = computeResupplyPlan(cape, null, inputsFor({}));
+    expect(plan.groups.length).toBe(3);
+    expect(plan.legs.length).toBeGreaterThan(0);
+    // Each leg carries the calculator's own food-weight estimate.
+    expect(plan.legs[0].food.weightKg).toBeGreaterThan(0);
+    expect(plan.summary.hasData).toBe(true);
   });
 });
 
-describe('direction-flip recompute', () => {
-  it('recomputes the plan from the direction-applied trail', () => {
-    const forward = computePlan(cape, {
-      startKm: 0,
-      endKm: cape.track.totalDistance,
-      dailyHours: 8,
-      pace: 'average',
-      thresholds: DEFAULT_PLAN_THRESHOLDS,
-    });
-    const reversed = resolveGuideTrail(cape, 'reversed');
-    const back = computePlan(reversed, {
-      startKm: 0,
-      endKm: reversed.track.totalDistance,
-      dailyHours: 8,
-      pace: 'average',
-      thresholds: DEFAULT_PLAN_THRESHOLDS,
-    });
+describe('water carries', () => {
+  it('reports no water data when the trail has no water-type waypoints', () => {
+    const extras = computePlanExtras(cape, sectionOf(cape.track.totalDistance), extrasInputs);
+    expect(extras.water.hasWaterData).toBe(false);
+    expect(extras.topWaterCarries).toEqual([]);
+  });
 
-    // Same total distance either way.
-    const fwdDist = forward.days.reduce((s, d) => s + d.distanceKm, 0);
-    const revDist = back.days.reduce((s, d) => s + d.distanceKm, 0);
-    expect(revDist).toBeCloseTo(fwdDist, 0);
-
-    // Endpoints swap: reversed day 1 starts where the forward plan ended.
-    expect(back.days[0].startName).toBe(forward.days[forward.days.length - 1].endName);
+  it('surfaces water carries and the dry-stretch flag on a watered trail', () => {
+    const extras = computePlanExtras(syntheticTrail(), sectionOf(100), extrasInputs); // tank at 55 km
+    expect(extras.water.hasWaterData).toBe(true);
+    expect(extras.topWaterCarries.length).toBeGreaterThan(0);
+    // Biggest carry first.
+    const dists = extras.topWaterCarries.map((g) => g.distanceKm);
+    expect(dists).toEqual([...dists].sort((a, b) => b - a));
+    // A > 15 km gap must be flagged dry.
+    expect(extras.topWaterCarries.some((g) => g.isDryStretch)).toBe(true);
   });
 });
 
 describe('resupply selection', () => {
-  const full: PlanInputs = {
-    startKm: 0,
-    endKm: 100,
-    dailyHours: 8,
-    pace: 'average',
-    thresholds: DEFAULT_PLAN_THRESHOLDS,
-  };
+  /** The resupply half of a plan over 0 → `endKm` with the given inputs. */
+  const resupplyOf = (trail: TrailJson, over: Parameters<typeof inputsFor>[0] = {}, endKm = 100) =>
+    computeResupplyPlan(trail, sectionOf(endKm), inputsFor(over));
 
   /**
    * The synthetic trail on a steady 2 m/km climb plus a second, separate town,
@@ -493,12 +209,12 @@ describe('resupply selection', () => {
   }
 
   it('ticks every option by default: one stop per group, one leg per boundary', () => {
-    const plan = computePlan(syntheticTrail(), full);
+    const plan = resupplyOf(syntheticTrail());
     // The twin towns 50 m apart are one turn-off, so one group and one stop.
-    expect(plan.resupplyGroups.length).toBe(1);
-    expect(plan.resupplyGroups[0].label).toBe('Highway 1');
+    expect(plan.groups.length).toBe(1);
+    expect(plan.groups[0].label).toBe('Highway 1');
     // Poncha is a 5 km hitch: the stop carries it, never walked.
-    expect(plan.resupplyStops).toEqual([
+    expect(plan.stops).toEqual([
       {
         km: 40,
         name: 'Townsville / Poncha',
@@ -513,98 +229,89 @@ describe('resupply selection', () => {
         },
       },
     ]);
-    expect(plan.resupplyLegs.map((l) => [l.fromName, l.toName])).toEqual([
+    expect(plan.legs.map((l) => [l.fromName, l.toName])).toEqual([
       ['Trail Start', 'Townsville / Poncha'],
       ['Townsville / Poncha', 'Trail End'],
     ]);
   });
 
   it('joins two ticks in one group into a single stop', () => {
-    const plan = computePlan(syntheticTrail(), { ...full, resupplyStops: ['t1', 't2'] });
-    expect(plan.resupplyStops.length).toBe(1);
-    expect(plan.resupplyStops[0].name).toBe('Townsville / Poncha');
+    const plan = resupplyOf(syntheticTrail(), { resupplyStops: ['t1', 't2'] });
+    expect(plan.stops.length).toBe(1);
+    expect(plan.stops[0].name).toBe('Townsville / Poncha');
     // One tick in the same group is the same stop, under its own name.
-    const one = computePlan(syntheticTrail(), { ...full, resupplyStops: ['t2'] });
-    expect(one.resupplyStops.map((s) => s.name)).toEqual(['Poncha']);
+    const one = resupplyOf(syntheticTrail(), { resupplyStops: ['t2'] });
+    expect(one.stops.map((s) => s.name)).toEqual(['Poncha']);
   });
 
   it('merges the legs of an unticked stop, summing distance and ascent', () => {
     const trail = twoTownTrail();
-    const every = computePlan(trail, full);
-    expect(every.resupplyLegs.map((l) => l.distanceKm)).toEqual([40, 30, 30]);
-    expect(every.resupplyLegs.map((l) => l.ascentM)).toEqual([80, 60, 60]);
+    const every = resupplyOf(trail);
+    expect(every.legs.map((l) => l.distanceKm)).toEqual([40, 30, 30]);
+    expect(every.legs.map((l) => l.ascentM)).toEqual([80, 60, 60]);
 
     // Untick the first group: its two legs become one.
-    const merged = computePlan(trail, { ...full, resupplyStops: ['t3'] });
-    expect(merged.resupplyLegs.map((l) => [l.fromName, l.toName])).toEqual([
+    const merged = resupplyOf(trail, { resupplyStops: ['t3'] });
+    expect(merged.legs.map((l) => [l.fromName, l.toName])).toEqual([
       ['Trail Start', 'Creede'],
       ['Creede', 'Trail End'],
     ]);
-    expect(merged.resupplyLegs[0].distanceKm).toBe(40 + 30);
-    expect(merged.resupplyLegs[0].ascentM).toBe(80 + 60);
+    expect(merged.legs[0].distanceKm).toBe(40 + 30);
+    expect(merged.legs[0].ascentM).toBe(80 + 60);
   });
 
   it('an explicit empty selection is a plan with no stops, not the default', () => {
-    const plan = computePlan(twoTownTrail(), { ...full, resupplyStops: [] });
-    expect(plan.resupplyStops).toEqual([]);
+    const plan = resupplyOf(twoTownTrail(), { resupplyStops: [] });
+    expect(plan.stops).toEqual([]);
     // No stops is still a carry: the whole trail, start to end, as one leg.
-    expect(plan.resupplyLegs.map((l) => [l.fromName, l.toName])).toEqual([
-      ['Trail Start', 'Trail End'],
-    ]);
-    expect(plan.resupplySummary.hasData).toBe(true);
-    expect(plan.resupplySummary.stops).toBe(0);
+    expect(plan.legs.map((l) => [l.fromName, l.toName])).toEqual([['Trail Start', 'Trail End']]);
+    expect(plan.summary.hasData).toBe(true);
+    expect(plan.summary.stopsChosen).toBe(0);
     // The options themselves are still offered — the list is trail-wide.
-    expect(plan.resupplyGroups.length).toBe(2);
+    expect(plan.groups.length).toBe(2);
   });
 
   it('takes days per leg from the hiker’s hours and pace, not the day split', () => {
     // The first leg is 40 flat km: 10 h at 4 km/h, 13.3 h at 3 km/h.
     const trail = syntheticTrail();
-    const at8 = computePlan(trail, full);
-    expect(at8.resupplyLegs[0].estimatedHours).toBeCloseTo(10, 5);
-    expect(at8.resupplyLegs[0].estimatedDays).toBe(2);
-    expect(computePlan(trail, { ...full, pace: 'slow' }).resupplyLegs[0].estimatedDays).toBe(2);
-    expect(computePlan(trail, { ...full, dailyHours: 16 }).resupplyLegs[0].estimatedDays).toBe(1);
+    const at8 = resupplyOf(trail);
+    expect(at8.legs[0].estimatedHours).toBeCloseTo(10, 5);
+    expect(at8.legs[0].estimatedDays).toBe(2);
+    expect(resupplyOf(trail, { pace: 'slow' }).legs[0].estimatedDays).toBe(2);
+    expect(resupplyOf(trail, { dailyHours: 16 }).legs[0].estimatedDays).toBe(1);
   });
 
   it('weighs food and flags long carries at the hiker’s thresholds', () => {
     const trail = syntheticTrail();
-    const plan = computePlan(trail, {
-      ...full,
+    const plan = resupplyOf(trail, {
       thresholds: { ...DEFAULT_PLAN_THRESHOLDS, foodGramsPerDay: 1000, longCarryDays: 1 },
     });
     // The first leg is two days either way; only its weight and flag move.
-    expect(plan.resupplyLegs[0].estimatedDays).toBe(2);
-    expect(plan.resupplyLegs[0].food.weightGrams).toBe(2000);
-    expect(plan.resupplyLegs[0].isLong).toBe(true);
-    expect(computePlan(trail, full).resupplyLegs[0].isLong).toBe(false);
+    expect(plan.legs[0].estimatedDays).toBe(2);
+    expect(plan.legs[0].food.weightGrams).toBe(2000);
+    expect(plan.legs[0].isLong).toBe(true);
+    expect(resupplyOf(trail).legs[0].isLong).toBe(false);
   });
 
   it('drops a ticked stop outside the section, keeping the list trail-wide', () => {
-    const plan = computePlan(twoTownTrail(), { ...full, endKm: 50 });
+    const plan = resupplyOf(twoTownTrail(), {}, 50);
     // Creede (70 km) is ticked but out of range: no leg reaches it.
-    expect(plan.resupplyLegs.map((l) => l.toName)).toEqual(['Townsville / Poncha', 'Trail End']);
-    for (const leg of plan.resupplyLegs) expect(leg.toKm).toBeLessThanOrEqual(50);
-    expect(plan.resupplyStops.length).toBe(2);
-    expect(plan.resupplyGroups.length).toBe(2);
+    expect(plan.legs.map((l) => l.toName)).toEqual(['Townsville / Poncha', 'Trail End']);
+    for (const leg of plan.legs) expect(leg.toKm).toBeLessThanOrEqual(50);
+    expect(plan.stops.length).toBe(2);
+    expect(plan.groups.length).toBe(2);
   });
 
   it('groups the real CDT asset and resolves Monarch Pass to one stop', () => {
-    const plan = computePlan(cdt, {
-      startKm: 0,
-      endKm: cdt.track.totalDistance,
-      dailyHours: 8,
-      pace: 'average',
-      thresholds: DEFAULT_PLAN_THRESHOLDS,
-    });
-    const options = plan.resupplyGroups.reduce((n, g) => n + g.options.length, 0);
+    const plan = computeResupplyPlan(cdt, null, inputsFor({}));
+    const options = plan.groups.reduce((n, g) => n + g.options.length, 0);
     expect(options).toBeGreaterThanOrEqual(60);
     // Several towns share a turn-off, so there are strictly fewer groups.
-    expect(plan.resupplyGroups.length).toBeLessThan(options);
+    expect(plan.groups.length).toBeLessThan(options);
 
-    const monarch = plan.resupplyGroups.find((g) => g.label?.startsWith('Monarch Pass'))!;
+    const monarch = plan.groups.find((g) => g.label?.startsWith('Monarch Pass'))!;
     expect(monarch.options.length).toBeGreaterThan(1);
-    expect(plan.resupplyStops.filter((s) => s.km === monarch.km).length).toBe(1);
+    expect(plan.stops.filter((s) => s.km === monarch.km).length).toBe(1);
   });
 
   it('computeResupplyPlan counts zero days in the total, never in the food', () => {
@@ -630,7 +337,7 @@ describe('resupply selection', () => {
   });
 
   it('computePlanExtras gives the planner summary the Plan screen row reads', () => {
-    const extras = computePlanExtras(twoTownTrail(), fullTrailSection(twoTownTrail()), {
+    const extras = computePlanExtras(twoTownTrail(), sectionOf(100), {
       dailyHours: 8,
       baseKmh: PACE_KMH.average,
       thresholds: DEFAULT_PLAN_THRESHOLDS,
@@ -639,6 +346,16 @@ describe('resupply selection', () => {
     });
     expect(extras.resupplyPlanSummary.stopsChosen).toBe(1);
     expect(extras.resupplyPlanSummary.zeroDays).toBe(2);
+  });
+
+  it('computePlanExtras takes groups a caller memoised on the trail', () => {
+    const trail = twoTownTrail();
+    const groups = computeResupplyPlan(trail, null, inputsFor({})).groups;
+    const extras = computePlanExtras(trail, sectionOf(100), extrasInputs, groups);
+    expect(extras.resupplyGroups).toBe(groups);
+    expect(extras.resupplyPlanSummary).toEqual(
+      computePlanExtras(trail, sectionOf(100), extrasInputs).resupplyPlanSummary,
+    );
   });
 
   it('counts the zero days before day 1 in the total days, never in the food', () => {
@@ -654,7 +371,7 @@ describe('resupply selection', () => {
     expect(rested.summary.totalDays).toBe(without.summary.totalDays + 1.5);
     expect(rested.legs.map((l) => l.food)).toEqual(without.legs.map((l) => l.food));
 
-    const extras = computePlanExtras(twoTownTrail(), fullTrailSection(twoTownTrail()), {
+    const extras = computePlanExtras(twoTownTrail(), sectionOf(100), {
       dailyHours: 8,
       baseKmh: PACE_KMH.average,
       thresholds: DEFAULT_PLAN_THRESHOLDS,

@@ -10,6 +10,7 @@ import type { TrailJson } from '../../../services/trail-assets';
 import {
   emptyPlan,
   planGlance,
+  plannedWalkedKm,
   stopContext,
   stopContextIfStopped,
   type PlanGlanceOptions,
@@ -87,6 +88,19 @@ describe('planGlance', () => {
     expect(glance.unplanned).toBeNull();
   });
 
+  it('names the ends as the Plan screen does: a waypoint within 0.5 km, else the trail', () => {
+    const t = trail();
+    const glance = planGlance(t, withStops(t, ['c1', 'c2']), OPTS);
+    expect(glance.days[0].startName).toBe('Start');
+    expect(glance.days[glance.days.length - 1].endName).toBe('Finish');
+
+    // The first waypoint 13 km in (the AAWT's shape) does not name day 1.
+    const far = { ...t, waypoints: t.waypoints.filter((w) => w.id !== 'w0' && w.id !== 'end') };
+    const farGlance = planGlance(far, withStops(far, ['c1', 'c2']), OPTS);
+    expect(farGlance.days[0].startName).toBe('Synthetic Start');
+    expect(farGlance.days[farGlance.days.length - 1].endName).toBe('Synthetic End');
+  });
+
   it('measures a reversed guide in its own km', () => {
     const t = resolveGuideTrail(trail(), 'reversed');
     // Camp B (NOBO 60) is km 40 walking southbound.
@@ -94,6 +108,16 @@ describe('planGlance', () => {
     const glance = planGlance(t, plan, { ...OPTS, direction: 'SOBO' });
     expect(span(glance.days[0])).toEqual([0, 40]);
     expect(glance.days[0].endName).toBe('Camp B');
+  });
+});
+
+describe('plannedWalkedKm', () => {
+  it("sums the days' walked km, off-route walks included, not their route km", () => {
+    const days = [
+      { startKm: 0, endKm: 20, distanceKm: 22 },
+      { startKm: 20, endKm: 40, distanceKm: 21.5 },
+    ];
+    expect(plannedWalkedKm(days)).toBe(43.5);
   });
 });
 

@@ -67,6 +67,9 @@ describe('water helpers', () => {
     expect(isWaterFamily('spring')).toBe(true);
     expect(isWaterFamily('water-tank')).toBe(true);
     expect(isWaterFamily('campsite')).toBe(false);
+    // A turn-off is coloured as the water it leads to, but is never water.
+    expect(isWaterFamily('water-access')).toBe(false);
+    expect(isWaterFamily('water-tank-access')).toBe(false);
     expect(isWaterFamily('town')).toBe(false);
   });
 

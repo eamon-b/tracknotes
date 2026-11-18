@@ -1,6 +1,6 @@
 /**
- * Comments API surface: the per-waypoint feed, the trail-wide bulk/delta sync,
- * and the authenticated write endpoints (idempotent PUT create, DELETE).
+ * Comments API surface: the trail-wide bulk/delta sync, the single-comment
+ * read, and the authenticated write endpoints (idempotent PUT create, DELETE).
  *
  * `listTrailComments` auto-paginates: it follows `nextCursor` until exhausted
  * and returns the flattened entries plus the server's `syncedAt` from the first
@@ -12,7 +12,6 @@
 import type {
   BulkSyncResponse,
   FeedComment,
-  FeedResponse,
   PhotoContentType,
   PutCommentRequest,
   ReportCommentRequest,
@@ -27,29 +26,6 @@ export interface ApiContext {
   baseUrl: string;
   fetchImpl?: FetchLike;
   token?: string;
-}
-
-export interface ListWaypointCommentsParams {
-  trailId: string;
-  waypointId: string;
-  limit?: number;
-  cursor?: string;
-}
-
-/** GET one page of a waypoint's public feed (newest-first). */
-export async function listWaypointComments(
-  ctx: ApiContext,
-  params: ListWaypointCommentsParams,
-): Promise<FeedResponse> {
-  const qs = new URLSearchParams();
-  if (params.limit != null) qs.set('limit', String(params.limit));
-  if (params.cursor) qs.set('cursor', params.cursor);
-  const query = qs.toString();
-  const path =
-    `/v1/trails/${encodeURIComponent(params.trailId)}` +
-    `/waypoints/${encodeURIComponent(params.waypointId)}/comments` +
-    (query ? `?${query}` : '');
-  return apiRequest<FeedResponse>(path, { baseUrl: ctx.baseUrl, fetchImpl: ctx.fetchImpl });
 }
 
 export interface ListTrailCommentsParams {

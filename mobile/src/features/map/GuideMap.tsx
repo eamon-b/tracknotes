@@ -10,8 +10,10 @@
  * theme through `mapTheme`: a dark app gets a dark basemap with the overlay
  * palette tuned for it (issue #33). Because light and dark are two different
  * style documents, the theme is part of the remount key; see below.
- * Plan/measure interactions from the old app are intentionally absent — this is
- * the read-only guide view.
+ * The map draws; it decides nothing. What the hiker can do on it — draw a
+ * route (`builderMode`, `routeOverlay`, `onMapPress`), long-press a place,
+ * tap a marker, POI or alternate — comes in as props and goes back out through
+ * callbacks, which the map pane (`MapPane`) turns into edits.
  *
  * Markers are badges: a white disc ringed in the waypoint's
  * category colour with a per-type ink glyph on top (see waypoint-icons). The
@@ -45,9 +47,9 @@
  * native renderer, so the map is remounted (via `mapRemountKey`) whenever the
  * source flips between online and offline, or the theme between light and dark.
  *
- * GPS puck is deliberately out for now (location wiring is a later phase);
- * `currentPosition` is plumbed so that phase has a seam and nothing else needs
- * to change here.
+ * The GPS puck (a dot, with an accuracy circle when the fix is uncertain) draws
+ * from `currentPosition` and `accuracy`, which the map pane reads from the
+ * guide's position context (`GuidePositionContext`).
  */
 
 import React, {
@@ -166,9 +168,9 @@ const ACCURACY_CIRCLE_FILTER = [
 ] as FilterSpecification;
 
 /** Waypoints cluster only at/below this zoom (unreadable overview levels). */
-export const WAYPOINT_CLUSTER_MAX_ZOOM = 10;
+const WAYPOINT_CLUSTER_MAX_ZOOM = 10;
 /** Individual waypoint labels appear at/above this zoom (above the cluster ceiling). */
-export const WAYPOINT_LABEL_MIN_ZOOM = 11;
+const WAYPOINT_LABEL_MIN_ZOOM = 11;
 
 /**
  * POIs draw only at/above this zoom. They are unclustered — a cluster bubble
@@ -176,9 +178,9 @@ export const WAYPOINT_LABEL_MIN_ZOOM = 11;
  * are hardest to tell apart — so "not drawn" is the whole overview strategy for
  * the 459 POIs a trail like Heysen carries.
  */
-export const POI_MIN_ZOOM = 11;
+const POI_MIN_ZOOM = 11;
 /** POI labels appear two zooms later than the markers, once there is room. */
-export const POI_LABEL_MIN_ZOOM = 13;
+const POI_LABEL_MIN_ZOOM = 13;
 
 /**
  * Marker badge geometry, in screen px. The badge grew from the old Ø13 dot to
@@ -311,7 +313,9 @@ export interface GuideMapProps {
   /**
    * OpenStreetMap points of interest to draw, already filtered (duplicates of
    * curated waypoints and switched-off categories are gone by here — see the
-   * guide's `useVisiblePois`). Absent or empty renders no POI source at all.
+   * guide's `useVisiblePois`). Absent or empty draws none: the source stays
+   * mounted with an empty collection, as every overlay source does (see the
+   * module header).
    */
   pois?: MapPoi[];
   /** Current GPS position — draws the user-location puck when present. */
@@ -783,9 +787,13 @@ export const GuideMap = memo(
           : null,
       [currentPosition, accuracy],
     );
+    // Metres-per-pixel varies with cos(latitude), which moves well under 1 %
+    // across a tenth of a degree: rounded, so a walking fix does not rebuild the
+    // circle's style (and restyle the layer) on every update.
+    const accuracyLat = Math.round((currentPosition?.lat ?? -33) * 10) / 10;
     const accuracyRadius = useMemo(
-      () => accuracyCircleRadiusExpression(currentPosition?.lat ?? -33),
-      [currentPosition?.lat],
+      () => accuracyCircleRadiusExpression(accuracyLat),
+      [accuracyLat],
     );
 
     // --- Camera ------------------------------------------------------------
@@ -1323,9 +1331,6 @@ export const GuideMap = memo(
           />
         </GeoJSONSource>
 
-        {/* The main route a taken alternate bypasses: dashed in the trail's
-            red, so the way "Stay on the main route" goes back to stays on the
-            map without reading as the route walked. */}
         {/* Resupply legs, when switched on: a wide band per leg in turn-taking
             colours, under the taken alternates and the main track so the
             trail stays on top and each leg shows either side of it. */}
@@ -1336,6 +1341,9 @@ export const GuideMap = memo(
           <Layer type="symbol" id="guide-resupply-legs-labels" style={resupplyLegLabelStyle} />
         </GeoJSONSource>
 
+        {/* The main route a taken alternate bypasses: dashed in the trail's
+            red, so the way "Stay on the main route" goes back to stays on the
+            map without reading as the route walked. */}
         <GeoJSONSource id="guide-trail-bypassed" data={plannedLines?.bypassed ?? EMPTY_COLLECTION}>
           <Layer type="line" id="guide-trail-bypassed-layer" style={trackStyles.bypassed} />
         </GeoJSONSource>

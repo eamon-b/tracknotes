@@ -198,7 +198,7 @@ describe('SharedPlanScreen', () => {
     expect(renderedText(r)).toContain(LOAD_FAILED_MESSAGE);
   });
 
-  it('saves a COPY under a new id, not the shared document', async () => {
+  it('saves a COPY under a new id, not the shared document’s', async () => {
     const apply = jest.fn(async (_trailId: string, edit: (p: PlanDocument) => PlanDocument) =>
       edit(DOC),
     );
@@ -223,7 +223,9 @@ describe('SharedPlanScreen', () => {
 
   it('warns before replacing a plan the hiker already has', async () => {
     const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-    const apply = jest.fn(async () => DOC);
+    const apply = jest.fn(async (_trailId: string, edit: (p: PlanDocument) => PlanDocument) =>
+      edit({ ...DOC, id: 'mine' }),
+    );
     usePlansStore.setState({
       apply: apply as never,
       byTrail: { heysen: { ...DOC, id: 'mine' } },
@@ -243,7 +245,20 @@ describe('SharedPlanScreen', () => {
       await new Promise((resolve) => setImmediate(resolve));
     });
     expect(apply).toHaveBeenCalledTimes(1);
+    // The replacement keeps the hiker's own plan id: one plan per trail, and a
+    // new id would only be refused by the server as `plan_exists`.
+    await expect(apply.mock.results[0].value).resolves.toMatchObject({
+      id: 'mine',
+      name: 'Their Heysen',
+      stops: DOC.stops,
+    });
     alert.mockRestore();
+  });
+
+  it('marks a day that ends at a hut with the camp glyph', async () => {
+    const r = await mount();
+    const days = r.root.findAllByType(DaySplitList)[0].props.days as { endKind: string }[];
+    expect(days.map((d) => d.endKind)).toEqual(['camp', 'finish']);
   });
 
   it('warns on a cold start too, when only SQLite knows about the plan', async () => {

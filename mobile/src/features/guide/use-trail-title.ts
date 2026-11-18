@@ -1,10 +1,11 @@
 /**
  * The header title for a guide screen, for either trail source.
  *
- * A bundled trail's name is in the bundled index and resolves synchronously —
- * the header must not flash a placeholder for the six shipped trails. An
- * imported trail's name lives in the `imported_trails` registry, which is a
- * SQLite read, so it arrives a tick later and the fallback shows until then.
+ * A bundled, catalog or community trail's name is known in memory
+ * (`getTrailIndexEntry`) and resolves synchronously — the header must not
+ * flash a placeholder for them. An imported trail's name lives in the
+ * `imported_trails` registry, which is a SQLite read, so it arrives a tick
+ * later and the fallback shows until then.
  *
  * Shared by the guide navigator's header and the offline-maps screen so the two
  * can never disagree about what a guide is called.
@@ -18,7 +19,7 @@ import {
 } from '../../services/trail-loader';
 
 /**
- * @param trailId route param — bundled or imported.
+ * @param trailId route param — any trail source.
  * @param fallback shown while an imported name resolves, and for unknown ids.
  */
 export function useTrailTitle(trailId: string, fallback = 'Guide'): string {

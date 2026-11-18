@@ -125,8 +125,8 @@ export async function createRoute(db: SqlDatabase, input: NewRoute): Promise<Rou
   const now = new Date().toISOString();
   const trackKey = input.trackKey ?? null;
 
-  await withTransaction(db, async () => {
-    await db.runAsync(
+  await withTransaction(db, async (tx) => {
+    await tx.runAsync(
       `INSERT INTO routes (id, trail_id, name, total_km, ascent_m, descent_m, track_key, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
@@ -141,7 +141,7 @@ export async function createRoute(db: SqlDatabase, input: NewRoute): Promise<Rou
         now,
       ],
     );
-    await insertPoints(db, id, input.points);
+    await insertPoints(tx, id, input.points);
   });
 
   return {
@@ -169,12 +169,6 @@ export async function listRoutes(db: SqlDatabase, trailId: string): Promise<Rout
   return rows.map(rowToRoute);
 }
 
-/** One route by id, or null. */
-export async function getRoute(db: SqlDatabase, id: string): Promise<Route | null> {
-  const row = await db.getFirstAsync<RouteRow>('SELECT * FROM routes WHERE id = ?', [id]);
-  return row ? rowToRoute(row) : null;
-}
-
 /** Ordered points of a route. */
 export async function getRoutePoints(db: SqlDatabase, routeId: string): Promise<RoutePoint[]> {
   const rows = await db.getAllAsync<RoutePointRow>(
@@ -193,8 +187,8 @@ export async function replaceRouteGeometry(
   id: string,
   geometry: RouteGeometry,
 ): Promise<void> {
-  await withTransaction(db, async () => {
-    const { changes } = await db.runAsync(
+  await withTransaction(db, async (tx) => {
+    const { changes } = await tx.runAsync(
       `UPDATE routes SET total_km = ?, ascent_m = ?, descent_m = ?, track_key = ?, off_trail_points = ?
        WHERE id = ?`,
       [
@@ -208,15 +202,15 @@ export async function replaceRouteGeometry(
     );
     // Deleted meanwhile: writing its points would leave rows with no route.
     if (changes === 0) return;
-    await db.runAsync('DELETE FROM route_points WHERE route_id = ?', [id]);
-    await insertPoints(db, id, geometry.points);
+    await tx.runAsync('DELETE FROM route_points WHERE route_id = ?', [id]);
+    await insertPoints(tx, id, geometry.points);
   });
 }
 
 /** Delete a route and its points (transactional; independent of FK pragma). */
 export async function deleteRoute(db: SqlDatabase, id: string): Promise<void> {
-  await withTransaction(db, async () => {
-    await db.runAsync('DELETE FROM route_points WHERE route_id = ?', [id]);
-    await db.runAsync('DELETE FROM routes WHERE id = ?', [id]);
+  await withTransaction(db, async (tx) => {
+    await tx.runAsync('DELETE FROM route_points WHERE route_id = ?', [id]);
+    await tx.runAsync('DELETE FROM routes WHERE id = ?', [id]);
   });
 }

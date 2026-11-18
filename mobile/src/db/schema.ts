@@ -351,7 +351,7 @@ export async function migrateDatabase(
     // Through the shared write path like every other transaction: the
     // connection is opened and migrated before anything else holds it today,
     // but a bare BEGIN here is one refactor away from nesting.
-    await withTransaction(db, () => db.execAsync(migration));
+    await withTransaction(db, (tx) => tx.execAsync(migration));
   }
 }
 

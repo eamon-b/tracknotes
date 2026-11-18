@@ -88,12 +88,15 @@ const HEYSEN_JSON = {
   track: { points: [], displayPoints: [], totalDistance: 1200000, totalAscent: 0, totalDescent: 0 },
 };
 
-jest.mock('../trail-assets', () => ({
-  TRAIL_DATA: {
-    bibbulmun: BIBBULMUN_JSON,
-    heysen: HEYSEN_JSON,
-  },
-}));
+jest.mock('../trail-assets', () => {
+  const bundled: Record<string, unknown> = { bibbulmun: BIBBULMUN_JSON, heysen: HEYSEN_JSON };
+  const has = (id: string) => Object.prototype.hasOwnProperty.call(bundled, id);
+  return {
+    isBundledTrailId: has,
+    bundledTrailIds: () => Object.keys(bundled),
+    getBundledTrail: (id: string) => (has(id) ? bundled[id] : null),
+  };
+});
 
 jest.mock('../../../assets/trails/index.json', () => INDEX_JSON, { virtual: true });
 

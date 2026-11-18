@@ -139,8 +139,8 @@ export async function upsertImportedTrail(db: SqlDatabase, row: ImportedTrailInp
  * `services/imported-trail-store.deleteImportedTrailEverywhere` composes those.
  */
 export async function deleteImportedTrail(db: SqlDatabase, id: string): Promise<void> {
-  await withTransaction(db, async () => {
-    await deleteTrailScopedRows(db, id);
-    await db.runAsync('DELETE FROM imported_trails WHERE id = ?', [id]);
+  await withTransaction(db, async (tx) => {
+    await deleteTrailScopedRows(tx, id);
+    await tx.runAsync('DELETE FROM imported_trails WHERE id = ?', [id]);
   });
 }

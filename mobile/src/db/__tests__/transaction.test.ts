@@ -10,7 +10,7 @@ import { createMigratedTestDb } from './test-helpers';
 import type { SqlDatabase } from '../sql-database';
 import * as plansRepo from '../plans-repo';
 import * as routesRepo from '../routes-repo';
-import { withTransaction, withWriteLock } from '../transaction';
+import { guardDatabase, withTransaction, withWriteLock } from '../transaction';
 
 async function db(): Promise<SqlDatabase> {
   return (await createMigratedTestDb()) as unknown as SqlDatabase;
@@ -106,5 +106,117 @@ describe('withTransaction', () => {
     await held;
 
     expect(order).toEqual(['b', 'a']);
+  });
+});
+
+describe('guardDatabase', () => {
+  async function favorites(d: SqlDatabase): Promise<string[]> {
+    const rows = await d.getAllAsync<{ waypoint_id: string }>(
+      'SELECT waypoint_id FROM favorites ORDER BY waypoint_id',
+    );
+    return rows.map((r) => r.waypoint_id);
+  }
+
+  /**
+   * A transaction that writes, waits for `gate`, then fails and rolls back.
+   * `written` settles once its own write has landed (the transaction is open).
+   */
+  function failingTransaction(
+    d: SqlDatabase,
+    gate: Promise<void>,
+  ): { done: Promise<void>; written: Promise<void> } {
+    let markWritten!: () => void;
+    const written = new Promise<void>((resolve) => (markWritten = resolve));
+    const done = withTransaction(d, async (tx) => {
+      await tx.runAsync(
+        "INSERT INTO favorites (trail_id, waypoint_id) VALUES ('heysen', 'w_rolled_back')",
+      );
+      markWritten();
+      await gate;
+      throw new Error('boom');
+    });
+    return { done, written };
+  }
+
+  it('reproduces the lost write on the raw connection', async () => {
+    // The bug the guard exists for: a bare write issued while another caller's
+    // transaction is open lands inside it and is rolled back with it.
+    const d = await db();
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const { done: failing, written } = failingTransaction(d, gate);
+    await written;
+    await d.runAsync("INSERT INTO favorites (trail_id, waypoint_id) VALUES ('heysen', 'w_bare')");
+    release();
+    await expect(failing).rejects.toThrow('boom');
+
+    expect(await favorites(d)).toEqual([]);
+  });
+
+  it('keeps a bare write out of another caller’s failed transaction', async () => {
+    const d = guardDatabase(await db());
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const { done: failing, written } = failingTransaction(d, gate);
+    await written;
+    const bare = d.runAsync(
+      "INSERT INTO favorites (trail_id, waypoint_id) VALUES ('heysen', 'w_bare')",
+    );
+    release();
+    await expect(failing).rejects.toThrow('boom');
+    await bare;
+
+    expect(await favorites(d)).toEqual(['w_bare']);
+  });
+
+  it('queues execAsync too, and lets reads through', async () => {
+    const d = guardDatabase(await db());
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const { done: failing, written } = failingTransaction(d, gate);
+    await written;
+    const bare = d.execAsync(
+      "INSERT INTO favorites (trail_id, waypoint_id) VALUES ('heysen', 'w_exec')",
+    );
+    // A read is not queued: it answers while the transaction is still open.
+    expect(await favorites(d)).toEqual(['w_rolled_back']);
+    release();
+    await expect(failing).rejects.toThrow('boom');
+    await bare;
+
+    expect(await favorites(d)).toEqual(['w_exec']);
+  });
+
+  it('runs the callback’s own writes on the transaction without waiting for it', async () => {
+    const d = guardDatabase(await db());
+    await withTransaction(d, async (tx) => {
+      await tx.runAsync("INSERT INTO favorites (trail_id, waypoint_id) VALUES ('heysen', 'w_in')");
+    });
+    // Repo transactions through the guarded handle complete too.
+    await plansRepo.upsertLocal(d, plan('p1', 'heysen', 'Tap'));
+    await routesRepo.deleteRoute(d, 'missing');
+
+    expect(await favorites(d)).toEqual(['w_in']);
+    expect((await plansRepo.getByTrail(d, 'heysen'))?.name).toBe('Tap');
+  });
+
+  it('shares one queue between the guarded view and its raw connection', async () => {
+    const raw = await db();
+    const d = guardDatabase(raw);
+    const order: string[] = [];
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const held = withWriteLock(raw, async () => {
+      await gate;
+      order.push('held');
+    });
+    const write = d
+      .runAsync("INSERT INTO favorites (trail_id, waypoint_id) VALUES ('heysen', 'w_after')")
+      .then(() => order.push('write'));
+    await Promise.resolve();
+    release();
+    await Promise.all([held, write]);
+
+    expect(order).toEqual(['held', 'write']);
   });
 });

@@ -3,7 +3,7 @@
  *
  * Keep this module free of service imports. The trail loader needs the bundled
  * JSON, and keeping the require() map isolated here avoids runtime import cycles
- * through other services.
+ * through other services. Read it through `trail-loader`, not directly.
  */
 
 import type { TrackData, TrailPOI } from '@lib/trail-types';
@@ -63,27 +63,56 @@ export interface TrailJson {
   [key: string]: unknown;
 }
 
-// Metro resolves require() for JSON files to the parsed object at build time.
-export const TRAIL_DATA: Record<string, TrailJson> = {
-  aawt: require('../../assets/trails/aawt.json'),
-  'hume-and-hovell': require('../../assets/trails/hume-and-hovell.json'),
-  bibbulmun: require('../../assets/trails/bibbulmun.json'),
-  cape_to_cape: require('../../assets/trails/cape_to_cape.json'),
-  heysen: require('../../assets/trails/heysen.json'),
-  larapinta: require('../../assets/trails/larapinta.json'),
-  shikoku: require('../../assets/trails/shikoku.json'),
-  cdt: require('../../assets/trails/cdt.json'),
-  te_araroa: require('../../assets/trails/te_araroa.json'),
-  overland: require('../../assets/trails/overland.json'),
-  three_capes: require('../../assets/trails/three_capes.json'),
-  three_passes: require('../../assets/trails/three_passes.json'),
-  south_coast_track: require('../../assets/trails/south_coast_track.json'),
-  great_north_walk: require('../../assets/trails/great_north_walk.json'),
-  six_foot_track: require('../../assets/trails/six_foot_track.json'),
-  royal_coast_track: require('../../assets/trails/royal_coast_track.json'),
-  grampians_peaks: require('../../assets/trails/grampians_peaks.json'),
-  great_ocean_walk: require('../../assets/trails/great_ocean_walk.json'),
-  great_south_west_walk: require('../../assets/trails/great_south_west_walk.json'),
-  kep_track: require('../../assets/trails/kep_track.json'),
-  thorsborne: require('../../assets/trails/thorsborne.json'),
+/**
+ * The bundled trails, as thunks. Metro still bundles every file (a `require()`
+ * of a literal path), but a JSON module is only evaluated when first required,
+ * so a trail's ~1 MB object is built the first time something reads that trail
+ * rather than all 21 (17 MB) on the first import of this module. The trail list
+ * needs none of them: it reads `index.json` (`trail-loader.listTrails`).
+ */
+const TRAIL_LOADERS: Record<string, () => TrailJson> = {
+  aawt: () => require('../../assets/trails/aawt.json'),
+  'hume-and-hovell': () => require('../../assets/trails/hume-and-hovell.json'),
+  bibbulmun: () => require('../../assets/trails/bibbulmun.json'),
+  cape_to_cape: () => require('../../assets/trails/cape_to_cape.json'),
+  heysen: () => require('../../assets/trails/heysen.json'),
+  larapinta: () => require('../../assets/trails/larapinta.json'),
+  shikoku: () => require('../../assets/trails/shikoku.json'),
+  cdt: () => require('../../assets/trails/cdt.json'),
+  te_araroa: () => require('../../assets/trails/te_araroa.json'),
+  overland: () => require('../../assets/trails/overland.json'),
+  three_capes: () => require('../../assets/trails/three_capes.json'),
+  three_passes: () => require('../../assets/trails/three_passes.json'),
+  south_coast_track: () => require('../../assets/trails/south_coast_track.json'),
+  great_north_walk: () => require('../../assets/trails/great_north_walk.json'),
+  six_foot_track: () => require('../../assets/trails/six_foot_track.json'),
+  royal_coast_track: () => require('../../assets/trails/royal_coast_track.json'),
+  grampians_peaks: () => require('../../assets/trails/grampians_peaks.json'),
+  great_ocean_walk: () => require('../../assets/trails/great_ocean_walk.json'),
+  great_south_west_walk: () => require('../../assets/trails/great_south_west_walk.json'),
+  kep_track: () => require('../../assets/trails/kep_track.json'),
+  thorsborne: () => require('../../assets/trails/thorsborne.json'),
 };
+
+const loaded = new Map<string, TrailJson>();
+
+/** Whether this build bundles a trail with this id (without loading it). */
+export function isBundledTrailId(id: string): boolean {
+  return Object.prototype.hasOwnProperty.call(TRAIL_LOADERS, id);
+}
+
+/** Every bundled trail id, in bundle order (without loading any). */
+export function bundledTrailIds(): string[] {
+  return Object.keys(TRAIL_LOADERS);
+}
+
+/** A bundled trail's JSON, evaluated on first call and cached; null when not bundled. */
+export function getBundledTrail(id: string): TrailJson | null {
+  if (!isBundledTrailId(id)) return null;
+  let trail = loaded.get(id);
+  if (!trail) {
+    trail = TRAIL_LOADERS[id]();
+    loaded.set(id, trail);
+  }
+  return trail;
+}

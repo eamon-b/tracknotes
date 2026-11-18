@@ -45,7 +45,7 @@ import { canExportIcs, type PlanExportTrail } from '@lib/plan-export';
 import { poisBetween } from '@lib/poi-display';
 import { routeBreakStarts } from '@lib/route-breaks';
 import { trailElevationIsUsable } from '@lib/elevation-backfill';
-import { getDirectionLabel, KM_EPSILON } from '@lib/plan-direction';
+import { getDirectionLabel } from '@lib/plan-direction';
 import { finalDayMaxHours } from '@lib/plan-suggest';
 import type { PlanTrail } from '@lib/day-calculator';
 import { isSearchable, type SuggestDaysResult, type SuggestedPlan } from '@lib/day-suggest';
@@ -81,10 +81,11 @@ import { selectAuthError, useIdentityStore } from '../../../src/state/identity-s
 import { useGuide } from '../../../src/features/guide/GuideContext';
 import { useGuidePositionContext } from '../../../src/features/guide/GuidePositionContext';
 import {
+  campKmsOf,
   computePlanExtras,
   computeResupplyPlan,
-  overnightWaypoints,
   PACE_KMH,
+  toPlanDay,
   type PlanDay,
 } from '../../../src/features/plan/plan-adapters';
 import {
@@ -93,6 +94,7 @@ import {
   stopKeyOf,
   stopLegs,
   toggleTargetOf,
+  type StopCandidate,
 } from '../../../src/features/plan/plan-stops';
 import {
   applySuggestion,
@@ -108,7 +110,9 @@ import {
   routeKmOfFix,
   usePlanRoute,
 } from '../../../src/features/plan/use-plan-route';
-import { sectionOptions } from '../../../src/features/plan/plan-section';
+import { sectionOptions, trailEndName } from '../../../src/features/plan/plan-section';
+import { plannedWalkedKm } from '../../../src/features/plan/plan-glance';
+import { resupplyGroupsFor } from '../../../src/features/plan/use-planned-resupply';
 import { selectPrefs, usePlanInputsStore } from '../../../src/features/plan/plan-inputs-store';
 import { usePlanSyncError } from '../../../src/features/plan/use-plan-sync-error';
 import { PlanHeaderCard } from '../../../src/features/plan/PlanHeaderCard';
@@ -193,7 +197,9 @@ export default function PlanScreen() {
   // and fall back to the full trail *during render* when it changes — a
   // direction flip changes the km behind every index, and an effect-driven
   // reset would show one render of the old indices against the new options.
-  const optionsKey = `${direction}:${options.length}:${route.alternates.map((a) => a.name).join('|')}`;
+  // A data update can move or rename waypoints without changing their count,
+  // so the data's own stamp is in the key too.
+  const optionsKey = `${direction}:${dataUpdatedAt ?? ''}:${options.length}:${route.alternates.map((a) => a.name).join('|')}`;
   const [section, setSection] = useState({ key: optionsKey, startIdx: 0, endIdx: lastIdx });
   const active =
     section.key === optionsKey ? section : { key: optionsKey, startIdx: 0, endIdx: lastIdx };
@@ -204,11 +210,14 @@ export default function PlanScreen() {
 
   const startOption = options[startIdx];
   const endOption = options[endIdx];
+  // A trail end is named as every other surface names it (`trailEndName`, as
+  // `planGlance` does): the stepper's first option can be a synthetic "Trail
+  // start", or a waypoint a hair from the end that another one is nearer to.
   const sectionConfig: SectionConfig = {
     startKm: startOption?.km ?? 0,
     endKm: endOption?.km ?? trail.track.totalDistance,
-    startName: startOption?.name ?? `${trail.config.name} Start`,
-    endName: endOption?.name ?? `${trail.config.name} End`,
+    startName: startOption && startIdx > 0 ? startOption.name : trailEndName(trail, 'start'),
+    endName: endOption && endIdx < lastIdx ? endOption.name : trailEndName(trail, 'end'),
   };
   const baseKmh = PACE_KMH[prefs.pace];
   const isFullTrail = options.length < 2 || (startIdx === 0 && endIdx === lastIdx);
@@ -257,9 +266,9 @@ export default function PlanScreen() {
 
   const validSection = sectionConfig.endKm > sectionConfig.startKm && options.length >= 2;
 
-  // Camp/hut km (the snapper's narrower set — a town stop is a stop, not a
-  // campsite), used only to pick the day card's end glyph.
-  const campKms = useMemo(() => new Set(overnightWaypoints(trail).map((c) => c.km)), [trail]);
+  // Camp/hut km (a town stop is a stop, not a campsite), used only to pick the
+  // day card's end glyph.
+  const campKms = useMemo(() => campKmsOf(trail), [trail]);
 
   const days = useMemo<PlanDay[]>(() => {
     if (!validSection) return [];
@@ -267,11 +276,7 @@ export default function PlanScreen() {
       baseKmh,
       section: sectionConfig,
     });
-    return computed.map((day) => {
-      const isFinish = day.endKm >= sectionConfig.endKm - KM_EPSILON;
-      const endKind = isFinish ? 'finish' : campKms.has(day.endKm) ? 'camp' : 'stop';
-      return { ...day, endKind, snappedToCamp: endKind === 'camp' };
-    });
+    return computed.map((day) => toPlanDay(day, sectionConfig.endKm, campKms));
     // sectionConfig is rebuilt each render from these four primitives.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -332,32 +337,43 @@ export default function PlanScreen() {
   // How far each place is from the route as planned, for the Stops rows' badges.
   const offTrailById = useMemo(() => placeOffTrailMeters(trail).byId, [trail]);
 
-  const plannedKm = plannedDays.reduce((sum, day) => sum + (day.endKm - day.startKm), 0);
+  // Walked km, off-route walks included — the figure the glance sheet shows.
+  const plannedKm = plannedWalkedKm(plannedDays);
   const effectiveDailyKm = plannedDays.length > 0 ? plannedKm / plannedDays.length : 0;
 
   // The resupply selection is the document's (the web writes the same field);
   // the device-local one is only what a build before that left behind.
   const resupplyStops = displayPlan.resupplyStops ?? prefs.resupplyStops;
 
+  // Grouping the trail's resupply options is not free (the CDT has 60-odd), and
+  // depends on the trail alone: once per trail, not once per input change.
+  const resupplyGroups = useMemo(() => resupplyGroupsFor(trail), [trail]);
+
   const extras = useMemo(
     () =>
-      computePlanExtras(trail, sectionConfig, {
-        dailyHours: prefs.dailyHours,
-        baseKmh,
-        thresholds: {
-          dryStretchKm: prefs.dryStretchKm,
-          foodGramsPerDay: prefs.foodGramsPerDay,
-          longCarryDays: prefs.longCarryDays,
+      computePlanExtras(
+        trail,
+        sectionConfig,
+        {
+          dailyHours: prefs.dailyHours,
+          baseKmh,
+          thresholds: {
+            dryStretchKm: prefs.dryStretchKm,
+            foodGramsPerDay: prefs.foodGramsPerDay,
+            longCarryDays: prefs.longCarryDays,
+          },
+          // No camp plan: nothing reads a leg's arrival day, and the plan's rest
+          // days beside the resupply zero days would count the same days twice.
+          resupplyStops,
+          zeroDays: displayPlan.resupplyZeroDays,
+          startZeroDays: displayPlan.startZeroDays,
         },
-        // No camp plan: nothing reads a leg's arrival day, and the plan's rest
-        // days beside the resupply zero days would count the same days twice.
-        resupplyStops,
-        zeroDays: displayPlan.resupplyZeroDays,
-        startZeroDays: displayPlan.startZeroDays,
-      }),
+        resupplyGroups,
+      ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       trail,
+      resupplyGroups,
       sectionConfig.startKm,
       sectionConfig.endKm,
       sectionConfig.startName,
@@ -470,19 +486,53 @@ export default function PlanScreen() {
   // screen's "Fetch elevation".)
   const distanceOnly = !trailElevationIsUsable(trail);
 
-  const planDefaults = { name: trail.config.name, direction: planDirection };
+  // The editors below are stable across renders that change none of what they
+  // close over — a GPS fix re-renders this screen, and the Stops rows are
+  // memoised on them (`StopsSection`).
+  const trailName = trail.config.name;
+  const planDefaults = useMemo(
+    () => ({ name: trailName, direction: planDirection }),
+    [trailName, planDirection],
+  );
   // Every editor works in route km; the stored document is converted for it
   // and back, from the document the store hands over when the edit runs.
-  const edit = (fn: (p: PlanDocument) => PlanDocument) => {
-    void applyEdit(trailId, (p) => editPlanOnRoute(p, plannableTrail(baseTrail), fn), planDefaults);
-  };
-  const setAlternate = (name: string, take: boolean) => {
-    void applyEdit(
-      trailId,
-      (p) => setPlanAlternate(p, plannableTrail(baseTrail), name, take),
-      planDefaults,
-    );
-  };
+  const edit = useCallback(
+    (fn: (p: PlanDocument) => PlanDocument) => {
+      void applyEdit(
+        trailId,
+        (p) => editPlanOnRoute(p, plannableTrail(baseTrail), fn),
+        planDefaults,
+      );
+    },
+    [applyEdit, trailId, baseTrail, planDefaults],
+  );
+  const setAlternate = useCallback(
+    (name: string, take: boolean) => {
+      void applyEdit(
+        trailId,
+        (p) => setPlanAlternate(p, plannableTrail(baseTrail), name, take),
+        planDefaults,
+      );
+    },
+    [applyEdit, trailId, baseTrail, planDefaults],
+  );
+  const totalKm = trail.track.totalDistance;
+  const onToggleStop = useCallback(
+    (c: StopCandidate) => edit((p) => toggleStop(p, toggleTargetOf(c), { totalKm })),
+    [edit, totalKm],
+  );
+  const onStopNights = useCallback(
+    (c: StopCandidate, nights: number) => edit((p) => setNights(p, stopKeyOf(c), nights)),
+    [edit],
+  );
+  const onStopNote = useCallback(
+    (c: StopCandidate, note: string) => edit((p) => setStopNote(p, stopKeyOf(c), note)),
+    [edit],
+  );
+  const onStopBooked = useCallback(
+    (c: StopCandidate, booked: boolean) => edit((p) => setStopBooked(p, stopKeyOf(c), booked)),
+    [edit],
+  );
   const alternates = useMemo(
     () => alternateMarkers(plannableTrail(baseTrail), route, planDirection),
     [baseTrail, route, planDirection],
@@ -683,7 +733,7 @@ export default function PlanScreen() {
               <SummaryStat label="Avg/day" value={formatDistance(effectiveDailyKm, units)} />
               <SummaryStat
                 label="Not planned"
-                value={formatDistance(unplanned ? unplanned.endKm - unplanned.startKm : 0, units)}
+                value={formatDistance(unplanned ? unplanned.distanceKm : 0, units)}
               />
             </View>
 
@@ -728,7 +778,6 @@ export default function PlanScreen() {
                 days={plannedDays}
                 unplanned={unplanned}
                 startZeroDays={startZeroDaysOf(displayPlan)}
-                targetHours={prefs.dailyHours}
                 units={units}
                 // A trail never enriched with POIs says nothing, rather than
                 // implying OSM found nothing along every day.
@@ -759,14 +808,10 @@ export default function PlanScreen() {
                 showClimb={!distanceOnly}
                 showAll={showAllWaypoints}
                 onShowAll={setShowAllWaypoints}
-                onToggle={(c) =>
-                  edit((p) =>
-                    toggleStop(p, toggleTargetOf(c), { totalKm: trail.track.totalDistance }),
-                  )
-                }
-                onNights={(c, nights) => edit((p) => setNights(p, stopKeyOf(c), nights))}
-                onNote={(c, note) => edit((p) => setStopNote(p, stopKeyOf(c), note))}
-                onBooked={(c, booked) => edit((p) => setStopBooked(p, stopKeyOf(c), booked))}
+                onToggle={onToggleStop}
+                onNights={onStopNights}
+                onNote={onStopNote}
+                onBooked={onStopBooked}
                 currentKm={currentKm}
                 onHereLayout={onHereLayout}
                 onShowOnMap={showOnMap}

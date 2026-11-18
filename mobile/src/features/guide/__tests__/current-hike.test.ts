@@ -1,25 +1,4 @@
-import { launchTrailId, orderWithCurrentFirst } from '../current-hike';
-
-const trails = [{ id: 'aawt' }, { id: 'heysen' }, { id: 'larapinta' }];
-
-describe('orderWithCurrentFirst', () => {
-  it('moves the current trail to the front and keeps the rest in order', () => {
-    expect(orderWithCurrentFirst(trails, 'larapinta').map((t) => t.id)).toEqual([
-      'larapinta',
-      'aawt',
-      'heysen',
-    ]);
-  });
-
-  it('returns the same list when there is no current trail', () => {
-    expect(orderWithCurrentFirst(trails, null)).toBe(trails);
-  });
-
-  it('returns the same list when the current trail is already first or missing', () => {
-    expect(orderWithCurrentFirst(trails, 'aawt')).toBe(trails);
-    expect(orderWithCurrentFirst(trails, 'u_deleted')).toBe(trails);
-  });
-});
+import { launchTrailId } from '../current-hike';
 
 describe('launchTrailId', () => {
   it('opens the current trail when the phone still lists it', () => {

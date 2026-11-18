@@ -264,7 +264,7 @@ export type TodayEntry =
       kind: 'poi';
       key: string;
       poi: TrailPOI;
-      /** km from the day's start. */
+      /** km walked from the day's start, as `TodayRow.fromStartKm` counts it. */
       fromStartKm: number;
     };
 
@@ -287,7 +287,10 @@ export function todayEntries(
           kind: 'poi',
           key: `poi:${entry.poi.type}/${entry.poi.id}:${i}`,
           poi: entry.poi,
-          fromStartKm: Math.max(0, entry.poi.distanceAlongTrail - day.startKm),
+          // As the waypoint rows count it (`todayRows`): past the start, the
+          // walk back out from an off-route start stop is already behind.
+          fromStartKm:
+            Math.max(0, entry.poi.distanceAlongTrail - day.startKm) + (day.walkOut?.km ?? 0),
         },
   );
 }

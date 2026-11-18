@@ -4,7 +4,7 @@
  */
 
 import { summarisePoiTags } from '@lib/poi-display';
-import { googleMapsUrl, mapsUrlFor, openUrlWithFallback, poiDetailLines } from '../poi-detail';
+import { googleMapsUrl, mapsUrlFor, openUrlWithFallback } from '../poi-detail';
 
 describe('mapsUrlFor', () => {
   it('uses the geo: scheme on Android, with a labelled pin', () => {
@@ -45,17 +45,13 @@ describe('mapsUrlFor', () => {
   });
 });
 
-describe('poiDetailLines', () => {
-  it('is the shared summariser, so the screen and the web page agree', () => {
-    const tags = { amenity: 'drinking_water', operator: 'SA Water' };
-    expect(poiDetailLines({ tags })).toEqual(summarisePoiTags(tags));
-  });
-
+// The screen renders the shared summariser's lines and opens only their href.
+describe('the tag lines the screen renders (summarisePoiTags)', () => {
   it('gives a javascript: website no href, so the screen has nothing to open', () => {
-    const lines = poiDetailLines({
+    const lines = summarisePoiTags(
       // The untrusted tag under test: an OSM `website` can hold anything.
-      tags: { amenity: 'cafe', website: 'javascript:alert(1)' },
-    });
+      { amenity: 'cafe', website: 'javascript:alert(1)' },
+    );
     const website = lines.find((line) => line.label === 'Website');
 
     expect(website).toEqual({ label: 'Website', value: 'javascript:alert(1)' });
@@ -63,13 +59,11 @@ describe('poiDetailLines', () => {
   });
 
   it('links only the tags the shared guards cleared', () => {
-    const lines = poiDetailLines({
-      tags: {
-        amenity: 'cafe',
-        website: 'example.com',
-        phone: '+61 8 8555 1234',
-        operator: 'Someone',
-      },
+    const lines = summarisePoiTags({
+      amenity: 'cafe',
+      website: 'example.com',
+      phone: '+61 8 8555 1234',
+      operator: 'Someone',
     });
     const linked = lines.filter((line) => line.href);
 

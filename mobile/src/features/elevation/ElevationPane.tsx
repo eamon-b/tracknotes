@@ -43,7 +43,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useRouter } from 'expo-router';
 import { formatDistance, formatElevation } from '@lib/format-distance';
 import { useTheme } from '../../theme';
-import { radii, spacing, typography } from '../../tokens';
+import { glyphSizes, radii, spacing, typography } from '../../tokens';
 import { useSettingsStore } from '../../state/settings-store';
 import { useFavoritesStore } from '../../state/favorites-store';
 import { usePlannedResupplyIds } from '../plan/use-planned-resupply';
@@ -294,7 +294,11 @@ export function ElevationPane() {
               pressed && styles.pressed,
             ]}
           >
-            <MaterialCommunityIcons name="arrow-expand-vertical" size={18} color={colors.accent} />
+            <MaterialCommunityIcons
+              name="arrow-expand-vertical"
+              size={glyphSizes.sm}
+              color={colors.accent}
+            />
           </Pressable>
           <Pressable
             onPress={flattenElevation}
@@ -309,7 +313,7 @@ export function ElevationPane() {
           >
             <MaterialCommunityIcons
               name="arrow-collapse-vertical"
-              size={18}
+              size={glyphSizes.sm}
               color={colors.accent}
             />
           </Pressable>

@@ -5,14 +5,14 @@
  * promise so concurrent callers share one connection. Keep this minimal — the
  * schema itself lives in `schema.ts`.
  *
- * NOTE (Phase 1): the `guides` table exists for later use, but offline-tile
- * status is derived from the filesystem via the tile manager (see
- * `downloads-store`), which is the source of truth. Nothing in Phase 1 writes
- * to `guides` yet.
+ * The connection is handed out through `guardDatabase`, so a single-statement
+ * write waits for any open `withTransaction` instead of landing inside it (see
+ * `transaction.ts`).
  */
 
 import { openDatabaseAsync, type SQLiteDatabase } from 'expo-sqlite';
 import { migrateDatabase } from './schema';
+import { guardDatabase } from './transaction';
 
 const DB_NAME = 'tracknotes.db';
 
@@ -24,7 +24,7 @@ export function getDatabase(): Promise<SQLiteDatabase> {
     dbPromise = (async () => {
       const db = await openDatabaseAsync(DB_NAME);
       await migrateDatabase(db);
-      return db;
+      return guardDatabase(db);
     })().catch((e: unknown) => {
       // Do not cache a failed open: the next call tries again rather than
       // failing every repo call until the app restarts.

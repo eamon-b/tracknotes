@@ -14,7 +14,6 @@ import { radii, spacing, typography } from '../../tokens';
 
 interface Props {
   children: ReactNode;
-  onRetry?: () => void;
 }
 
 interface State {
@@ -56,9 +55,9 @@ export class MapErrorBoundary extends Component<Props, State> {
     console.error('Map crashed; showing the retry surface:', error, info.componentStack);
   }
 
+  // Remounts the children: a fresh map resolves its style again.
   handleRetry = () => {
     this.setState({ hasError: false });
-    this.props.onRetry?.();
   };
 
   render() {

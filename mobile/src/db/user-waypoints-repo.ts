@@ -205,20 +205,20 @@ export async function rekeyOwnAsPrivate(
   mintId: () => string,
   serverKnown: (trailId: string) => boolean,
 ): Promise<string[]> {
-  return withTransaction(db, async () => {
-    const rows = await db.getAllAsync<{ id: string; trail_id: string }>(
+  return withTransaction(db, async (tx) => {
+    const rows = await tx.getAllAsync<{ id: string; trail_id: string }>(
       'SELECT id, trail_id FROM user_waypoints WHERE mine = 1',
     );
     const trails = new Set<string>();
     for (const row of rows) {
       if (!serverKnown(row.trail_id)) continue;
       const id = mintId();
-      await db.runAsync(
+      await tx.runAsync(
         `UPDATE user_waypoints SET id = ?, visibility = 'private', author_name = NULL, source = 'local'
           WHERE id = ?`,
         [id, row.id],
       );
-      await db.runAsync(
+      await tx.runAsync(
         'UPDATE favorites SET waypoint_id = ? WHERE trail_id = ? AND waypoint_id = ?',
         [id, row.trail_id, row.id],
       );

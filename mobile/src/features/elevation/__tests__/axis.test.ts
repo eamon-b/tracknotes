@@ -1,18 +1,4 @@
-import { distanceAxisTicks, elevationAxis, getMinMax, niceAxisTicks } from '../axis';
-
-describe('getMinMax', () => {
-  it('returns 0/0 for an empty array', () => {
-    expect(getMinMax([])).toEqual({ min: 0, max: 0 });
-  });
-
-  it('finds the extremes', () => {
-    expect(getMinMax([3, -1, 7, 2])).toEqual({ min: -1, max: 7 });
-  });
-
-  it('handles a single value', () => {
-    expect(getMinMax([42])).toEqual({ min: 42, max: 42 });
-  });
-});
+import { distanceAxisTicks, elevationAxis, niceAxisTicks } from '../axis';
 
 describe('niceAxisTicks', () => {
   it('returns [] for a non-positive target count', () => {
