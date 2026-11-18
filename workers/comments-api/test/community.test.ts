@@ -828,15 +828,39 @@ describe('POST /v1/community/routes/:id/report', () => {
     expect(asAdmin.reports?.[0].reason).toBe('spam');
   });
 
-  it('refuses bad reasons, own routes, banned users and missing routes', async () => {
+  it('refuses bad reasons, own routes and missing routes', async () => {
     const owner = await registerDevice();
     const route = await submitOk(owner);
     const reporter = await registerDevice();
     expect((await report(reporter, route.id, { reason: 'boring' })).status).toBe(400);
     expect((await report(owner, route.id)).status).toBe(400);
     expect((await report(reporter, 'c_AAAAAAAAAAAAAAAA')).status).toBe(404);
+  });
+
+  it('lets a banned account report: reporting is a safety action', async () => {
+    const owner = await registerDevice();
+    const route = await submitOk(owner);
+    const reporter = await registerDevice();
     await banUser(reporter.userId);
-    expect((await report(reporter, route.id)).status).toBe(403);
+    expect((await report(reporter, route.id)).status).toBe(201);
+  });
+
+  it('hands the allowance back when parallel reports from one account race', async () => {
+    const owner = await registerDevice();
+    const route = await submitOk(owner);
+    const reporter = await registerDevice();
+    const results = await Promise.all([
+      report(reporter, route.id),
+      report(reporter, route.id),
+      report(reporter, route.id),
+    ]);
+    expect(results.map((r) => r.status).sort()).toEqual([200, 200, 201]);
+    const n = await env.DB.prepare(
+      `SELECT COUNT(*) AS n FROM rate_events WHERE bucket = 'community_report' AND key = ?`
+    )
+      .bind(reporter.userId)
+      .first<{ n: number }>();
+    expect(n?.n).toBe(1);
   });
 });
 

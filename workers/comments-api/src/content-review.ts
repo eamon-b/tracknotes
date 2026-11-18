@@ -15,7 +15,9 @@
  *
  * A confident `remove` ({@link CONTENT_REVIEW_HIDE_CONFIDENCE}) hides the post
  * as `deleted_by = 'reports'`: the provisional hide an admin restores or makes
- * final. Anything else leaves it up, and `needs_human` heads the admin queue.
+ * final; a hidden comment's photos are moved to fresh keys (`hideCommentPhotos`)
+ * so the URLs already handed out stop resolving.
+ * Anything else leaves it up, and `needs_human` heads the admin queue.
  * It **fails open**: no key, an API error or an unusable answer hides nothing,
  * and the three-report hide (`COMMENT_REPORTS_TO_HIDE`, `reportsToHide`) is the
  * backstop either way. Once an admin has restored a post, or kept a live one
@@ -34,6 +36,7 @@ import type { Env } from './http';
 import { REVIEW_MODEL, describeError, reviewClientFor } from './community-review';
 import type { ReviewClient, ReviewEnv } from './community-review';
 import { REPORTER_MIN_ACCOUNT_AGE_MS, stampAfter } from './community';
+import { hideCommentPhotos } from './photos';
 import type { ContentReview, ContentReviewVerdict } from '../../../src/lib/comments-api-types';
 
 /** A confident remove at or above this hides the post. */
@@ -101,7 +104,7 @@ export interface ContentReviewDeps {
   ai?: ScreenAi;
 }
 
-type ContentReviewEnv = Pick<Env, 'DB'> & ReviewEnv;
+type ContentReviewEnv = Pick<Env, 'DB'> & Partial<Pick<Env, 'PHOTOS' | 'PHOTOS_PUBLIC_BASE'>> & ReviewEnv;
 
 const SYSTEM_PROMPT = `You moderate posts in a public hiking-trail app: comments hikers leave on places along a trail (many are water reports: whether a tank or creek is flowing, low or dry), and waypoints hikers share on a trail's map. A post reaches you because another user reported it, or because an automatic safety screen flagged it. A "remove" verdict hides the post at once, so remove only what is clearly bad.
 
@@ -445,7 +448,7 @@ export async function reviewContent(
     // checks `restored_at` and `deleted_by`, which an admin's Keep and an
     // account deletion of a hidden post change without moving `updated_at`.
     const stamp = stampAfter(row.updated_at);
-    await env.DB.batch([
+    const written = await env.DB.batch([
       env.DB.prepare(
         `UPDATE ${table} SET review_status = ?, review_json = ?
           WHERE id = ? AND review_status = 'pending' AND updated_at = ?
@@ -460,6 +463,10 @@ export async function reviewContent(
           ]
         : []),
     ]);
+    // A hidden comment's photos move off the URLs already handed out.
+    if (hide && kind === 'comment' && (written[1]?.meta.changes ?? 0) === 1 && env.PHOTOS && env.PHOTOS_PUBLIC_BASE) {
+      await hideCommentPhotos({ DB: env.DB, PHOTOS: env.PHOTOS, PHOTOS_PUBLIC_BASE: env.PHOTOS_PUBLIC_BASE }, id);
+    }
   } catch (err) {
     console.error(`Content review of ${kind} ${id} failed: ${err instanceof Error ? err.message : String(err)}`);
   }

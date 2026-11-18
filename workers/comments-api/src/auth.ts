@@ -30,6 +30,10 @@ export interface UserRow {
   is_admin: number;
   is_banned: number;
   created_at: string;
+  /**
+   * Written once, at registration, and never touched again: activity is
+   * tracked per token (`device_tokens.last_seen_at`, rolled by `getUser`).
+   */
   last_seen_at: string | null;
 }
 

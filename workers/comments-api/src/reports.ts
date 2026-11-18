@@ -11,7 +11,9 @@
  * review (`content-review.ts`), which hides a clearly bad comment at once.
  * `COMMENT_REPORTS_TO_HIDE` such reporters hide it whatever the review said,
  * as they hide a shared waypoint. Either hide keeps the comment's photos, so
- * an admin can restore it whole; an admin or owner delete of it is final.
+ * an admin can restore it whole, but moves them to fresh keys
+ * (`hideCommentPhotos`) so the URLs already handed out stop resolving; an
+ * admin or owner delete of it is final.
  */
 
 import { HttpError, json, readJson } from './http';
@@ -20,6 +22,7 @@ import { requireAdmin, requireUser } from './auth';
 import { RATE_BUCKETS, consumeRateLimit, refundRateLimit } from './rate-limit';
 import { REPORTER_MIN_ACCOUNT_AGE_MS } from './community';
 import { reviewOnReport } from './content-review';
+import { hideCommentPhotos } from './photos';
 import { assertClientCommentId, parseLimit, validateReportDetail, validateReportReason } from './validation';
 import type {
   AdminReport,
@@ -44,14 +47,17 @@ export async function reportComment(request: Request, env: Env, ctx: ExecutionCo
   const reason = validateReportReason(body.reason);
   const detail = validateReportDetail(body.detail);
 
-  const comment = await env.DB.prepare(`SELECT id, deleted_at FROM comments WHERE id = ?`)
+  const comment = await env.DB.prepare(`SELECT id, user_id, deleted_at FROM comments WHERE id = ?`)
     .bind(id)
-    .first<{ id: string; deleted_at: string | null }>();
+    .first<{ id: string; user_id: string; deleted_at: string | null }>();
   if (!comment) {
     throw new HttpError(404, 'not_found', 'Comment not found');
   }
   if (comment.deleted_at !== null) {
     throw new HttpError(410, 'comment_deleted', 'Comment has been deleted');
+  }
+  if (comment.user_id === user.id) {
+    throw new HttpError(400, 'own_comment', 'You cannot report your own comment');
   }
 
   // Idempotency: replay the original report id rather than stacking duplicates.
@@ -100,7 +106,7 @@ export async function reportComment(request: Request, env: Env, ctx: ExecutionCo
     return json(replay, 200);
   }
 
-  await hideIfReported(env, id);
+  if (await hideIfReported(env, id)) ctx.waitUntil(hideCommentPhotos(env, id));
   ctx.waitUntil(reviewOnReport(env, 'comment', id));
 
   const payload: ReportCommentResponse = { reportId: inserted.id };
@@ -118,13 +124,13 @@ export const COMMENT_REPORTS_TO_HIDE = 3;
  * reports landing together cannot both miss the threshold. Registering is free,
  * so only accounts that were a day old when they reported count; the author
  * reporting their own comment never does; and reports from before an admin's
- * last restore have already been weighed.
+ * last restore have already been weighed. True when this call hid it.
  */
-async function hideIfReported(env: Env, id: string): Promise<void> {
+async function hideIfReported(env: Env, id: string): Promise<boolean> {
   // Stamped just before the statement that commits it, so a concurrent delta
   // read cannot get ahead of it.
   const stamp = new Date().toISOString();
-  await env.DB.prepare(
+  const hidden = await env.DB.prepare(
     `UPDATE comments SET deleted_at = ?, deleted_by = 'reports', updated_at = ?
       WHERE id = ? AND deleted_at IS NULL
         AND (SELECT COUNT(*) FROM comment_reports r
@@ -136,6 +142,7 @@ async function hideIfReported(env: Env, id: string): Promise<void> {
   )
     .bind(stamp, stamp, id, REPORTER_MIN_ACCOUNT_AGE_MS, COMMENT_REPORTS_TO_HIDE)
     .run();
+  return (hidden.meta.changes ?? 0) === 1;
 }
 
 // ---------------------------------------------------------------------------

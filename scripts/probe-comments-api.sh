@@ -11,7 +11,10 @@
 #
 # Run by the Deploy comments API workflow after every deploy, and by hand as
 # step 1 of "Full release" in docs/mobile-test-build.md. When a migration adds
-# routes, add a line to PROBES below.
+# routes, add a line to PROBES below. Probes are unauthenticated GETs, so a
+# POST-only route is probed for its 405 (the router answers 405 for a known
+# path with the wrong method, 404 for an unknown path).
+# workers/comments-api/test/probes.test.ts runs every line against the worker.
 #
 # Retries for a minute, so a probe right after `wrangler deploy` does not fail
 # on a version still rolling out.
@@ -30,6 +33,11 @@ PROBES=(
   "401 /v1/me/comments personal export, needs a token"
   "401 /v1/plans plans, migration 0004, needs a token"
   "401 /v1/admin/community/routes/c_AAAAAAAAAAAAAAAA/trail admin route map #310, needs a token"
+  "200 /v1/trails/heysen/descriptions waypoint descriptions, migration 0003"
+  "401 /v1/admin/reports comment reports admin listing, migration 0003, needs a token"
+  "405 /v1/comments/00000000-0000-4000-8000-000000000000/report comment report, migration 0003, POST only"
+  "405 /v1/admin/users/00000000-0000-4000-8000-000000000000/ban account ban, migration 0008, POST only"
+  "405 /v1/admin/comments/00000000-0000-4000-8000-000000000000/restore comment restore, migration 0008, POST only"
 )
 
 ATTEMPTS=6

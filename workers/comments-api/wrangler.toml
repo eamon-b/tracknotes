@@ -59,9 +59,10 @@ SITE_BASE = "https://tracknotes.info"
 # Overpass instances the community-route POI enrichment asks, in order
 # (comma-separated https URLs; `src/community-pois.ts`). Each query goes to the
 # instance that answered last, then the next one on a failure. EMPTY = OFF.
-# It is on: the account is on Workers Paid (2026-10-20), whose 15-minute cron
-# CPU limit covers the enrichment's tens to hundreds of ms per route; on Workers
-# Free (10 ms) it would have to be switched off again
+# It is on: the account is on Workers Paid (2026-10-20), whose default 30 s CPU
+# per invocation (no [limits] cpu_ms here; a Cron Trigger also has a 15-minute
+# wall-clock limit) covers the enrichment's tens to hundreds of ms per route; on
+# Workers Free (10 ms CPU) it would have to be switched off again
 # (docs/architecture/workers.md, "community route POIs"). Every instance listed receives each live
 # community route's outline: name its operator in docs/privacy-policy.md and
 # public/privacy.html before adding one (both list the three above).

@@ -6,11 +6,16 @@
  * Public reads happen directly against `PHOTOS_PUBLIC_BASE` (the bucket's custom-domain
  * URL); the worker only ever returns full public URLs. The comment row carries a
  * JSON array of those URLs in `photo_urls_json` (NULL = none).
+ *
+ * A comment hidden by reports or the automated review keeps its photos (an
+ * admin may restore it), but `hideCommentPhotos` moves each object to a fresh
+ * key under the same prefix, so the URLs clients already hold stop resolving.
  */
 
 import { HttpError, json } from './http';
 import type { Env } from './http';
 import { requireUser, sha256HexBytes } from './auth';
+import { RATE_BUCKETS, consumeRateLimit, refundRateLimit } from './rate-limit';
 import type { CommentRow } from './comments';
 import type { PhotoContentType, UploadCommentPhotoResponse } from '../../../src/lib/comments-api-types';
 
@@ -18,9 +23,6 @@ import type { PhotoContentType, UploadCommentPhotoResponse } from '../../../src/
 const MAX_PHOTOS_PER_COMMENT = 4;
 /** Max size of a single uploaded image. */
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
-/** Max photo uploads a single user may make in a rolling 24h window. */
-const PHOTO_RATE_LIMIT_PER_DAY = 40;
-const RATE_WINDOW_MS = 24 * 60 * 60 * 1000;
 /**
  * How many times an upload re-reads the row after losing the compare-and-swap
  * to a parallel upload on the same comment. Four photos is the most a comment
@@ -137,6 +139,11 @@ export async function uploadCommentPhoto(
   const ext = CONTENT_TYPE_EXT[contentType];
   const key = `comments/${id}/${crypto.randomUUID()}.${ext}`;
   let stored = false;
+  // The daily allowance, spent once per upload (not per round) just before
+  // the bytes go to R2, and handed back unless the photo ends up attached.
+  let charged = false;
+  let attached = false;
+  let rateEvent: number | undefined;
   const base = env.PHOTOS_PUBLIC_BASE.replace(/\/+$/, '');
   const photoUrl = `${base}/${key}`;
 
@@ -170,19 +177,20 @@ export async function uploadCommentPhoto(
         throw new HttpError(409, 'too_many_photos', `A comment may have at most ${MAX_PHOTOS_PER_COMMENT} photos`);
       }
 
-      // Daily upload cap — mirror the comment rate-limit pattern, summing the
-      // photo counts of comments this user has touched in the last 24h.
+      // Daily upload cap through the event log, so parallel uploads cannot
+      // all read "one below the limit" and a delete-and-repost still counts.
       const nowMs = Date.now();
-      const windowStart = new Date(nowMs - RATE_WINDOW_MS).toISOString();
-      const countRow = await env.DB.prepare(
-        `SELECT COALESCE(SUM(json_array_length(photo_urls_json)), 0) AS n
-           FROM comments
-          WHERE user_id = ? AND photo_urls_json IS NOT NULL AND updated_at >= ?`
-      )
-        .bind(user.id, windowStart)
-        .first<{ n: number }>();
-      if ((countRow?.n ?? 0) >= PHOTO_RATE_LIMIT_PER_DAY) {
-        throw new HttpError(429, 'rate_limited', `Photo upload limit of ${PHOTO_RATE_LIMIT_PER_DAY} per day reached`);
+      if (!charged) {
+        const spec = RATE_BUCKETS.photoUpload;
+        rateEvent = await consumeRateLimit(
+          env,
+          spec,
+          user.id,
+          nowMs,
+          `Photo upload limit of ${spec.limit} per day reached`,
+          ctx
+        );
+        charged = true;
       }
 
       if (!stored) {
@@ -209,6 +217,7 @@ export async function uploadCommentPhoto(
         .run();
       if ((written.meta.changes ?? 0) === 1) {
         stored = false; // attached: no longer ours to clean up
+        attached = true;
         const payload: UploadCommentPhotoResponse = { photoUrl, photoUrls };
         return json(payload, 201);
       }
@@ -216,6 +225,15 @@ export async function uploadCommentPhoto(
     }
     throw new HttpError(409, 'photo_conflict', 'The comment changed during upload; try again');
   } finally {
+    // Ended in a replay, a full comment or a conflict on a later round, or
+    // any other refusal after the charge: nothing new was stored.
+    if (charged && !attached) {
+      ctx.waitUntil(
+        refundRateLimit(env, rateEvent).catch(() => {
+          /* best effort */
+        })
+      );
+    }
     // An object that never made it onto the row (refused, or out of rounds) is
     // unreachable from any comment; remove it rather than leak it.
     if (stored) {
@@ -238,5 +256,85 @@ export async function deleteCommentPhotos(env: Env, commentId: string): Promise<
   const keys = listed.objects.map((o) => o.key);
   if (keys.length > 0) {
     await env.PHOTOS.delete(keys);
+  }
+}
+
+/** The R2 key behind one of our public photo URLs, or null for a URL not under `base`. */
+function keyOfPhotoUrl(base: string, url: string): string | null {
+  const prefix = `${base}/`;
+  return url.startsWith(prefix) ? url.slice(prefix.length) : null;
+}
+
+/**
+ * Make a hidden comment's photos unreachable at the URLs clients already hold,
+ * without losing them: each object is copied to a fresh, unguessable key under
+ * the same `comments/{id}/` prefix (so `deleteCommentPhotos` still finds it),
+ * the row's `photo_urls_json` is swapped to the new URLs, and only then are
+ * the old objects deleted. An admin restore just un-hides the row, whose
+ * `updated_at` bump delivers the new URLs to every phone in its next delta.
+ *
+ * The swap is a compare-and-swap on the row still being hidden by reports
+ * with the list read here: if it was restored or deleted for good meanwhile,
+ * the copies are removed instead and the old URLs left as they were. Called
+ * after the hide has committed and never throws, so a failure in R2 leaves
+ * the comment hidden (with its photos still at their old URLs).
+ */
+export async function hideCommentPhotos(
+  env: Pick<Env, 'DB' | 'PHOTOS' | 'PHOTOS_PUBLIC_BASE'>,
+  commentId: string
+): Promise<void> {
+  const copied: string[] = [];
+  try {
+    const row = await env.DB.prepare(`SELECT photo_urls_json, deleted_by FROM comments WHERE id = ?`)
+      .bind(commentId)
+      .first<{ photo_urls_json: string | null; deleted_by: string | null }>();
+    if (!row || row.deleted_by !== 'reports') return;
+    const urls = parsePhotoUrls(row.photo_urls_json);
+    if (!urls) return;
+    const base = env.PHOTOS_PUBLIC_BASE.replace(/\/+$/, '');
+
+    const moved: string[] = [];
+    const oldKeys: string[] = [];
+    for (const url of urls) {
+      const key = keyOfPhotoUrl(base, url);
+      if (key === null) {
+        moved.push(url); // not ours to move
+        continue;
+      }
+      const obj = await env.PHOTOS.get(key);
+      if (!obj) {
+        moved.push(url); // already gone: nothing to serve at the old URL
+        continue;
+      }
+      const ext = key.includes('.') ? key.slice(key.lastIndexOf('.')) : '';
+      const newKey = `comments/${commentId}/${crypto.randomUUID()}${ext}`;
+      await env.PHOTOS.put(newKey, await obj.arrayBuffer(), { httpMetadata: obj.httpMetadata });
+      copied.push(newKey);
+      oldKeys.push(key);
+      moved.push(`${base}/${newKey}`);
+    }
+    if (copied.length === 0) return;
+
+    // `updated_at` is left alone: a hidden row reaches phones as a tombstone,
+    // which carries no photos, so nothing they see changes.
+    const swapped = await env.DB.prepare(
+      `UPDATE comments SET photo_urls_json = ?
+        WHERE id = ? AND deleted_by = 'reports' AND photo_urls_json IS ?`
+    )
+      .bind(JSON.stringify(moved), commentId, row.photo_urls_json)
+      .run();
+    if ((swapped.meta.changes ?? 0) !== 1) {
+      await env.PHOTOS.delete(copied);
+      return;
+    }
+    copied.length = 0; // on the row now: no longer ours to clean up
+    await env.PHOTOS.delete(oldKeys);
+  } catch (err) {
+    console.error(`Moving hidden photos of ${commentId} failed: ${err instanceof Error ? err.message : String(err)}`);
+    if (copied.length > 0) {
+      await env.PHOTOS.delete(copied).catch(() => {
+        /* best effort */
+      });
+    }
   }
 }

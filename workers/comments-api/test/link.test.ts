@@ -349,6 +349,18 @@ describe('GET /v1/me/devices', () => {
   it('401s without a token', async () => {
     expect((await SELF.fetch(url('/v1/me/devices'))).status).toBe(401);
   });
+
+  it('leaves out a linked token past its expiry, which signs nothing in', async () => {
+    const phone = await registerDevice('Lapsed');
+    await link(phone, 'Old laptop');
+    await env.DB.prepare(`UPDATE device_tokens SET expires_at = ? WHERE user_id = ? AND kind = 'linked'`)
+      .bind(new Date(Date.now() - 60_000).toISOString(), phone.userId)
+      .run();
+    const body = (await (
+      await SELF.fetch(url('/v1/me/devices'), { headers: authHeaders(phone) })
+    ).json()) as DevicesResponse;
+    expect(body.devices.map((d) => d.kind)).toEqual(['primary']);
+  });
 });
 
 describe('DELETE /v1/me/devices/:id', () => {

@@ -323,6 +323,23 @@ describe('POST /v1/waypoints/:id/report', () => {
   });
 });
 
+describe('POST /v1/waypoints/:id/report — parallel repeats', () => {
+  it('spends one unit of the allowance however many parallel repeats race', async () => {
+    const owner = await registerDevice();
+    const id = newId();
+    expect((await put(owner, id, WATER)).status).toBe(201);
+    const reporter = await registerDevice();
+    const results = await Promise.all([report(reporter, id), report(reporter, id), report(reporter, id)]);
+    expect(results.map((r) => r.status).sort()).toEqual([200, 200, 201]);
+    const n = await env.DB.prepare(
+      `SELECT COUNT(*) AS n FROM rate_events WHERE bucket = 'shared_waypoint_report' AND key = ?`
+    )
+      .bind(reporter.userId)
+      .first<{ n: number }>();
+    expect(n?.n).toBe(1);
+  });
+});
+
 describe('POST /v1/admin/waypoints/:id/restore', () => {
   it('undoes a report hide, and only later reports count', async () => {
     const owner = await registerDevice();

@@ -8,8 +8,10 @@
  * shared waypoints, plans or community routes — every write path already
  * refuses `is_banned`. `removeContent` also takes down everything the account
  * has up, as an admin delete: its live comments (photos and all) and shared
- * waypoints, plus any a report hide is holding. Its community routes are left
- * to the community review page, where hiding one is a choice per route.
+ * waypoints, plus any a report hide is holding, and revokes its plans'
+ * public share links (the plans themselves stay the account's). Its community
+ * routes are left to the community review page, where hiding one is a choice
+ * per route.
  *
  * `is_banned` is also what deleting an account sets; `deleted_at` tells the
  * two apart, and a deleted account stays banned. A ban records `banned_at`.
@@ -106,6 +108,17 @@ export async function adminBanUser(
         `UPDATE shared_waypoints
             SET deleted_at = COALESCE(deleted_at, ?), deleted_by = 'admin', updated_at = ?
           WHERE user_id = ? AND (deleted_at IS NULL OR deleted_by = 'reports')`
+      ).bind(now, now, userId),
+      // Revoke every share link, stamping the document's own `updatedAt` as
+      // `stampDocument` (plans.ts) does, so the row and the document agree and
+      // the owner's devices learn the share state on their next delta pull.
+      env.DB.prepare(
+        `UPDATE plans
+            SET share_id = NULL, updated_at = ?,
+                document_json = CASE WHEN json_valid(document_json)
+                                     THEN json_set(document_json, '$.updatedAt', ?)
+                                     ELSE document_json END
+          WHERE user_id = ? AND share_id IS NOT NULL`
       ).bind(now, now, userId)
     );
   }

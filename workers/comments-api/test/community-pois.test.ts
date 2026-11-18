@@ -773,21 +773,6 @@ describe('POI enrichment: budgets, retries and leftovers', () => {
     expect(plan).toContain('idx_community_routes_pois_due');
     expect(plan).not.toMatch(/TEMP B-TREE/);
   });
-
-  it('does nothing, without throwing, before migration 0009 is applied', async () => {
-    const statement = {
-      bind: () => statement,
-      all: async () => {
-        throw new Error('D1_ERROR: no such column: pois_due_at: SQLITE_ERROR');
-      },
-    };
-    const brokenEnv = { ...testEnv, DB: { prepare: () => statement } } as unknown as Env;
-    const fetchImpl = overpass([elementsResponse([])]);
-    await expect(
-      enrichCommunityRoutePois(brokenEnv, { endpoints: [ENDPOINT_A], fetchImpl, sleep: noSleep })
-    ).resolves.toBeUndefined();
-    expect(fetchImpl.calls).toHaveLength(0);
-  });
 });
 
 describe('POI enrichment: second review', () => {

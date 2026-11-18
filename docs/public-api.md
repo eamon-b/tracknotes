@@ -22,7 +22,10 @@ shown as a courtesy, not as an attribution requirement.
 
 - **Drop what is deleted.** Hikers delete comments, moderators hide them and
   accounts are deleted. Poll with `?since=` and remove every id that comes back
-  as a tombstone (`"deleted": true`).
+  as a tombstone (`"deleted": true`). Take a comment's `photoUrls` from its
+  newest copy: when a comment is hidden its photos stop resolving at the URLs
+  already handed out, and if a moderator restores it, it comes back with new
+  ones.
 - **Leave display names out of anything you republish in bulk.** With
   to-the-second times, a name's comments show where and when one person was on
   a trail.

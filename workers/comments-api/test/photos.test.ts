@@ -1,6 +1,7 @@
 import { SELF, env } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
 import { authHeaders, banUser, createComment, registerDevice, uploadPhoto, url, wpId } from './helpers';
+import { RATE_BUCKETS } from '../src/rate-limit';
 import type { BulkSyncResponse, FeedResponse, UploadCommentPhotoResponse } from '../../../src/lib/comments-api-types';
 
 /** A few bytes standing in for a real image — content is never inspected. */
@@ -250,21 +251,95 @@ describe('POST /v1/comments/:id/photos — payload limits', () => {
   });
 });
 
+/** Log `count` spent photo uploads for a user, as `consumeRateLimit` would. */
+async function seedPhotoUploads(userId: string, count: number): Promise<void> {
+  const now = new Date().toISOString();
+  await env.DB.batch(
+    Array.from({ length: count }, () =>
+      env.DB.prepare(`INSERT INTO rate_events (bucket, key, created_at) VALUES ('photo_upload', ?, ?)`).bind(
+        userId,
+        now
+      )
+    )
+  );
+}
+
+async function countPhotoUploads(userId: string): Promise<number> {
+  const row = await env.DB.prepare(`SELECT COUNT(*) AS n FROM rate_events WHERE bucket = 'photo_upload' AND key = ?`)
+    .bind(userId)
+    .first<{ n: number }>();
+  return row?.n ?? 0;
+}
+
+/** Poll for a waitUntil refund to land. */
+async function waitForPhotoUploads(userId: string, want: number): Promise<number> {
+  let n = await countPhotoUploads(userId);
+  for (let i = 0; i < 20 && n !== want; i++) {
+    await new Promise((r) => setTimeout(r, 25));
+    n = await countPhotoUploads(userId);
+  }
+  return n;
+}
+
 describe('POST /v1/comments/:id/photos — rate limit', () => {
   it('429 once 40 photos have been uploaded in the window', async () => {
     const device = await registerDevice();
-    // Seed a comment for this user with 40 photo URLs, updated just now, so the
-    // daily-count query is already at the cap without 40 real HTTP uploads.
-    const { id: seeded } = await createComment(device, { waypointId: wpId('photo-rate-seed') });
-    const fakeUrls = Array.from({ length: 40 }, (_, i) => `https://photos.test/x/${i}.jpg`);
-    await env.DB.prepare(`UPDATE comments SET photo_urls_json = ?, updated_at = ? WHERE id = ?`)
-      .bind(JSON.stringify(fakeUrls), new Date().toISOString(), seeded)
-      .run();
-
+    await seedPhotoUploads(device.userId, RATE_BUCKETS.photoUpload.limit);
     const { id: fresh } = await createComment(device, { waypointId: wpId('photo-rate-fresh') });
     const res = await uploadPhoto(device, fresh, JPEG_BYTES, 'image/jpeg');
     expect(res.status).toBe(429);
     expect(((await res.json()) as { error: { code: string } }).error.code).toBe('rate_limited');
+    // The refused upload stored nothing, in R2 or in the log.
+    expect((await env.PHOTOS.list({ prefix: `comments/${fresh}/` })).objects).toHaveLength(0);
+    expect(await countPhotoUploads(device.userId)).toBe(RATE_BUCKETS.photoUpload.limit);
+  });
+
+  it('still counts photos whose comment was deleted (no delete-and-repost)', async () => {
+    const device = await registerDevice();
+    await seedPhotoUploads(device.userId, RATE_BUCKETS.photoUpload.limit - 1);
+    const { id: first } = await createComment(device, { waypointId: wpId('photo-rate-repost-a') });
+    expect((await uploadPhoto(device, first, distinctJpeg(1))).status).toBe(201);
+    const del = await SELF.fetch(url(`/v1/comments/${first}`), { method: 'DELETE', headers: authHeaders(device) });
+    expect(del.status).toBe(204);
+
+    const { id: second } = await createComment(device, { waypointId: wpId('photo-rate-repost-b') });
+    expect((await uploadPhoto(device, second, distinctJpeg(2))).status).toBe(429);
+  });
+
+  it('lets no more than the allowance through a parallel burst', async () => {
+    const device = await registerDevice();
+    await seedPhotoUploads(device.userId, RATE_BUCKETS.photoUpload.limit - 2);
+    const ids = await Promise.all(
+      [0, 1, 2, 3].map(async (i) => (await createComment(device, { waypointId: wpId(`photo-rate-burst-${i}`) })).id)
+    );
+    const results = await Promise.all(ids.map((id, i) => uploadPhoto(device, id, distinctJpeg(100 + i))));
+    expect(results.map((r) => r.status).sort()).toEqual([201, 201, 429, 429]);
+  });
+
+  it('hands the allowance back for a replay, a full comment and a refused round', async () => {
+    const device = await registerDevice();
+    const { id } = await createComment(device, { waypointId: wpId('photo-rate-refund') });
+    for (let i = 0; i < 4; i++) {
+      expect((await uploadPhoto(device, id, distinctJpeg(40 + i))).status).toBe(201);
+    }
+    expect(await countPhotoUploads(device.userId)).toBe(4);
+    // A replay and a fifth photo are both refused before the charge…
+    expect((await uploadPhoto(device, id, distinctJpeg(43))).status).toBe(200);
+    expect((await uploadPhoto(device, id, distinctJpeg(49))).status).toBe(409);
+    expect(await waitForPhotoUploads(device.userId, 4)).toBe(4);
+
+    // …and a racer that is charged and then finds the comment full on its
+    // retry round gets its unit back.
+    const { id: racy } = await createComment(device, { waypointId: wpId('photo-rate-refund-race') });
+    for (let i = 0; i < 3; i++) {
+      expect((await uploadPhoto(device, racy, distinctJpeg(60 + i))).status).toBe(201);
+    }
+    const raced = await Promise.all([
+      uploadPhoto(device, racy, distinctJpeg(70)),
+      uploadPhoto(device, racy, distinctJpeg(71)),
+    ]);
+    expect(raced.map((r) => r.status).sort()).toEqual([201, 409]);
+    expect(await waitForPhotoUploads(device.userId, 8)).toBe(8);
   });
 });
 
@@ -360,12 +435,8 @@ describe('POST /v1/comments/:id/photos — idempotent replay', () => {
     expect(first.status).toBe(201);
     const photoUrl = ((await first.json()) as UploadCommentPhotoResponse).photoUrl;
 
-    // Seed another comment so the user's 24h photo count is at the cap.
-    const { id: seeded } = await createComment(device, { waypointId: wpId('photo-replay-rate-seed') });
-    const fakeUrls = Array.from({ length: 40 }, (_, i) => `https://photos.test/y/${i}.jpg`);
-    await env.DB.prepare(`UPDATE comments SET photo_urls_json = ?, updated_at = ? WHERE id = ?`)
-      .bind(JSON.stringify(fakeUrls), new Date().toISOString(), seeded)
-      .run();
+    // Put the user's 24h photo allowance at the cap.
+    await seedPhotoUploads(device.userId, RATE_BUCKETS.photoUpload.limit);
 
     // A new photo is rate-limited…
     const blocked = await uploadPhoto(device, id, distinctJpeg(7), 'image/jpeg');
