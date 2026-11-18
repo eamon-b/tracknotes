@@ -23,7 +23,7 @@
  *
  * Usage: tsx scripts/fetch-pois.ts [trail-id] [--dry-run] [--endpoint <url>]
  *          [--timeout <s>] [--max-vertices <n>] [--from-km <km>] [--to-km <km>]
- *          [--force-replace] [--reposition]
+ *          [--force-replace] [--allow-shrink] [--reposition]
  *   - With no trail-id: processes every generated trail
  *   - With trail-id:    processes only that trail
  *   - --dry-run:        builds the corridor and prints query counts, but makes
@@ -34,6 +34,8 @@
  *                       note on MAX_VERTICES_PER_CHUNK before reaching for it
  *   - --force-replace:  replace pois.json even when chunks failed (default:
  *                       merge into it, and exit non-zero)
+ *   - --allow-shrink:   let a clean whole-trail fetch replace pois.json even
+ *                       when it is much shorter (see `shrinkRefusal`)
  *   - --reposition:     no network: re-place the POIs already in pois.json on
  *                       the current track (see `repositionTrailPois`)
  *
@@ -318,6 +320,45 @@ export function guardEmptyAnswers(
   };
 }
 
+/**
+ * How far a clean whole-trail fetch may fall below the stored file before the
+ * write is refused: more than this fraction of the stored POIs, and at least
+ * `MIN_SHRINK_DROP` of them.
+ */
+export const MAX_SHRINK_FRACTION = 0.3;
+export const MIN_SHRINK_DROP = 5;
+
+/**
+ * Why a clean whole-trail fetch should not replace `pois.json`, or null when
+ * it may.
+ *
+ * `guardEmptyAnswers` catches an empty answer, but a mirror can also return a
+ * truncated or timed-out answer that still has some elements: every chunk
+ * "succeeds", the write mode is a replace, and the missing POIs vanish on
+ * commit (Shikoku's 2026-10-06 file lacked Kamiyama's km 56–59). A real OSM
+ * clean-up rarely removes a third of a corridor at once, so a drop that large
+ * is refused unless `--allow-shrink` says it is expected. Rejected keys are
+ * left out of both counts, as in `guardEmptyAnswers`.
+ */
+export function shrinkRefusal(
+  stored: readonly TrailPOI[],
+  fetched: readonly TrailPOI[],
+  rejected: readonly string[] = []
+): string | null {
+  const rejectedKeys = new Set(rejected);
+  const count = (pois: readonly TrailPOI[]) => pois.filter(poi => !rejectedKeys.has(poiKey(poi))).length;
+  const before = count(stored);
+  const after = count(fetched);
+  const drop = before - after;
+  if (drop < MIN_SHRINK_DROP || drop <= before * MAX_SHRINK_FRACTION) return null;
+  return (
+    `the fetch has ${after} POI(s) where pois.json has ${before} ` +
+    `(${Math.round((drop / before) * 100)}% fewer, over the ${Math.round(MAX_SHRINK_FRACTION * 100)}% limit); ` +
+    'a mirror may have truncated its answer. Re-run (try another --endpoint or a smaller --max-vertices), ' +
+    'or pass --allow-shrink if the drop is real'
+  );
+}
+
 const METERS_PER_DEGREE = (Math.PI / 180) * 6_371_000;
 
 /** Is a point inside the area one Overpass query asked for? */
@@ -552,10 +593,14 @@ function dryRunTrail(trailPath: string, trailDir: string, maxVertices: number, k
   console.log('  No requests made, no files written.');
 }
 
-/** What one trail's fetch did: whether it found POIs, and whether any chunk failed. */
+/**
+ * What one trail's fetch did: whether it found POIs, whether any chunk failed,
+ * and whether the write was refused for shrinking the file (`shrinkRefusal`).
+ */
 interface ProcessOutcome {
   updated: boolean;
   incomplete: boolean;
+  shrunk: boolean;
 }
 
 /** Fetch POIs for one trail and write them to its `pois.json`. */
@@ -566,7 +611,8 @@ async function processTrail(
   endpoint: string,
   maxVertices: number,
   kmRange: KmRange | null,
-  forceReplace: boolean
+  forceReplace: boolean,
+  allowShrink: boolean
 ): Promise<ProcessOutcome> {
   const trailId = path.basename(trailPath, '.json');
   console.log(`\nProcessing: ${trailId}`);
@@ -581,7 +627,7 @@ async function processTrail(
 
   if (result.queryChunks === 0) {
     console.log('  No track points found. Skipping.');
-    return { updated: false, incomplete: false };
+    return { updated: false, incomplete: false, shrunk: false };
   }
 
   console.log(`  Queried ${result.queryChunks} corridor chunk(s) in ${(result.queryTimeMs / 1000).toFixed(1)}s`);
@@ -610,6 +656,15 @@ async function processTrail(
     forceReplace,
   });
   const merging = mode === 'merge' && existing !== null;
+  // --force-replace already accepts a partial result, so only the clean
+  // replace (the one that looks complete) is checked.
+  if (mode === 'replace' && existing !== null && !forceReplace && !allowShrink) {
+    const refusal = shrinkRefusal(existing.pois, result.pois, existing.rejected);
+    if (refusal) {
+      console.log(`  NOT WRITTEN: ${refusal}.`);
+      return { updated: false, incomplete: false, shrunk: true };
+    }
+  }
   const merged = merging ? mergeTrailPOIs(existing.pois, result.pois) : null;
   // A windowed fetch places POIs against the clipped route, where a POI near
   // the window's edge (or nearer a line outside it) gets a different km than
@@ -651,12 +706,12 @@ async function processTrail(
     `  Updated ${written}` + (file.rejected.length > 0 ? ` (kept ${file.rejected.length} rejected key(s))` : '')
   );
 
-  return { updated: result.pois.length > 0, incomplete: result.failedChunks.length > 0 };
+  return { updated: result.pois.length > 0, incomplete: result.failedChunks.length > 0, shrunk: false };
 }
 
 function printUsage(): void {
   console.log(
-    'Usage: tsx scripts/fetch-pois.ts [trail-id] [--dry-run] [--endpoint <url>] [--timeout <s>] [--max-vertices <n>] [--from-km <km>] [--to-km <km>] [--force-replace]'
+    'Usage: tsx scripts/fetch-pois.ts [trail-id] [--dry-run] [--endpoint <url>] [--timeout <s>] [--max-vertices <n>] [--from-km <km>] [--to-km <km>] [--force-replace] [--allow-shrink]'
   );
   console.log('');
   console.log('Fetches OSM points of interest along each trail corridor via the');
@@ -674,6 +729,9 @@ function printUsage(): void {
   );
   console.log('  --from-km <km>, --to-km <km>  Fetch only this window and merge it into the file');
   console.log('  --force-replace  Replace pois.json even when chunks failed (default: merge, exit 1)');
+  console.log(
+    `  --allow-shrink   Replace pois.json even when the fetch has over ${Math.round(MAX_SHRINK_FRACTION * 100)}% fewer POIs (default: write nothing, exit 1)`
+  );
   console.log('  --reposition     No network: re-place the POIs in pois.json on the current track');
   console.log('  --help, -h       Show this message');
   console.log('');
@@ -794,6 +852,7 @@ async function main(): Promise<void> {
 
   const dryRun = args.includes('--dry-run');
   const forceReplace = args.includes('--force-replace');
+  const allowShrink = args.includes('--allow-shrink');
   let endpoint: string;
   let timeoutSeconds: number;
   let maxVertices: number;
@@ -907,12 +966,23 @@ async function main(): Promise<void> {
 
   let updatedCount = 0;
   const incomplete: string[] = [];
+  const shrunk: string[] = [];
 
   for (const { trailFile, trailDir } of targets) {
     try {
-      const outcome = await processTrail(trailFile, trailDir, fetchPOIs, endpoint, maxVertices, kmRange, forceReplace);
+      const outcome = await processTrail(
+        trailFile,
+        trailDir,
+        fetchPOIs,
+        endpoint,
+        maxVertices,
+        kmRange,
+        forceReplace,
+        allowShrink
+      );
       if (outcome.updated) updatedCount++;
       if (outcome.incomplete) incomplete.push(path.basename(trailFile, '.json'));
+      if (outcome.shrunk) shrunk.push(path.basename(trailFile, '.json'));
     } catch (error) {
       failedCount++;
       console.error(`  Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -931,6 +1001,13 @@ async function main(): Promise<void> {
     console.log(
       `WARNING: incomplete fetch for ${incomplete.join(', ')} — failed chunks were not refreshed. ` +
         'Re-run (try --from-km 0 or a smaller --max-vertices) until no chunk fails.'
+    );
+    process.exitCode = 1;
+  }
+  if (shrunk.length > 0) {
+    console.log(
+      `WARNING: not written for ${shrunk.join(', ')} — the fetch was much shorter than pois.json. ` +
+        'Re-run, or pass --allow-shrink if the POIs really are gone.'
     );
     process.exitCode = 1;
   }

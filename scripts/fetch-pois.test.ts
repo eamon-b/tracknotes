@@ -17,6 +17,9 @@ import {
   resolveKmRange,
   resolveMaxVertices,
   resolveTimeoutSeconds,
+  shrinkRefusal,
+  MAX_SHRINK_FRACTION,
+  MIN_SHRINK_DROP,
   trailDirsById,
   type TrailDirIO,
 } from './fetch-pois.js';
@@ -637,5 +640,37 @@ describe('guardEmptyAnswers', () => {
     expect(result.failedChunks.length).toBeGreaterThan(0);
     expect(result.failedChunks.length).toBeLessThan(result.queryChunks);
     expect(result.pois.map(poi => poi.id)).toEqual([3]);
+  });
+});
+
+describe('shrinkRefusal', () => {
+  /** Stand-in POIs: only `type` and `id` feed `poiKey`. */
+  function pois(count: number, startId = 1): TrailPOI[] {
+    return Array.from({ length: count }, (_, i) => ({ type: 'node', id: startId + i }) as unknown as TrailPOI);
+  }
+
+  it('allows growth, an equal count and ordinary churn', () => {
+    expect(shrinkRefusal(pois(100), pois(120))).toBeNull();
+    expect(shrinkRefusal(pois(100), pois(100))).toBeNull();
+    expect(shrinkRefusal(pois(100), pois(100 - 100 * MAX_SHRINK_FRACTION))).toBeNull();
+  });
+
+  it('refuses a drop past the limit, naming both counts', () => {
+    expect(shrinkRefusal(pois(1206), pois(600))).toMatch(/600 POI\(s\) where pois\.json has 1206 \(50% fewer/);
+    expect(shrinkRefusal(pois(100), pois(69))).toMatch(/--allow-shrink/);
+  });
+
+  it('ignores small files, where a few POIs are a large fraction', () => {
+    expect(shrinkRefusal(pois(MIN_SHRINK_DROP), pois(1))).toBeNull();
+    expect(shrinkRefusal(pois(MIN_SHRINK_DROP + 1), pois(1))).not.toBeNull();
+  });
+
+  it('leaves rejected keys out of both counts', () => {
+    const stored = pois(20);
+    const rejected = stored.slice(0, 10).map(poi => `node/${poi.id}`);
+    // 10 kept POIs before, 10 after: the rejected half is not a loss.
+    expect(shrinkRefusal(stored, stored.slice(10), rejected)).toBeNull();
+    // A rejected POI returned by the fetch does not pad the new count.
+    expect(shrinkRefusal(stored, [...stored.slice(0, 10), ...stored.slice(10, 13)], rejected)).not.toBeNull();
   });
 });
