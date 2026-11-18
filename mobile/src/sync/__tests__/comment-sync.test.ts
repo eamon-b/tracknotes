@@ -225,6 +225,103 @@ describe('drainOutbox', () => {
     expect(await commentsRepo.getById(d, 'm1')).not.toBeNull();
   });
 
+  it('does not send a failed item again until the hiker retries it', async () => {
+    const d = await db();
+    await seedLocal(d, 'm1');
+    const rejected = scriptedFetch([
+      { status: 400, body: { error: { code: 'invalid_text', message: 'too long' } } },
+    ]);
+    await drainOutbox({ db: d, baseUrl: BASE, fetchImpl: rejected, getSessionFn });
+    expect(rejected).toHaveBeenCalledTimes(1);
+
+    // Days later, long past any backoff: an ordinary drain leaves it alone.
+    const later = () => Date.parse('2026-01-09T00:00:00Z');
+    const untouched = scriptedFetch([{ status: 201, body: feedComment('m1') }]);
+    const res = await drainOutbox({
+      db: d,
+      baseUrl: BASE,
+      fetchImpl: untouched,
+      getSessionFn,
+      now: later,
+    });
+    expect(untouched).not.toHaveBeenCalled();
+    expect(res).toMatchObject({ sent: 0 });
+    expect((await outboxRepo.getById(d, 'm1'))?.status).toBe('failed');
+
+    // A manual retry sends it.
+    const retried = await drainOutbox({
+      db: d,
+      baseUrl: BASE,
+      fetchImpl: untouched,
+      getSessionFn,
+      now: later,
+      force: true,
+    });
+    expect(retried).toMatchObject({ sent: 1 });
+    expect(await outboxRepo.count(d)).toBe(0);
+  });
+
+  it('leaves a rate-limited item pending, to be asked again once the backoff passes', async () => {
+    const d = await db();
+    await seedLocal(d, 'm1');
+    const limited = scriptedFetch([
+      { status: 429, body: { error: { code: 'rate_limited', message: 'slow down' } } },
+    ]);
+    const res = await drainOutbox({ db: d, baseUrl: BASE, fetchImpl: limited, getSessionFn });
+    expect(res).toMatchObject({ sent: 0, failed: 0 });
+    const item = await outboxRepo.getById(d, 'm1');
+    expect(item?.status).toBe('pending');
+    expect(item?.attempts).toBe(1);
+
+    const ok = scriptedFetch([{ status: 201, body: feedComment('m1') }]);
+    const later = await drainOutbox({
+      db: d,
+      baseUrl: BASE,
+      fetchImpl: ok,
+      getSessionFn,
+      now: () => Date.parse('2026-01-09T00:00:00Z'),
+    });
+    expect(later).toMatchObject({ sent: 1 });
+    expect(await outboxRepo.count(d)).toBe(0);
+  });
+
+  it("removes a tombstoned comment's queued photo uploads", async () => {
+    const d = await db();
+    await pullTrail('aawt', {
+      db: d,
+      baseUrl: BASE,
+      fetchImpl: scriptedFetch([
+        { body: { comments: [feedComment('a')], nextCursor: null, syncedAt: 'T1' } },
+      ]),
+    });
+    await outboxRepo.enqueue(d, {
+      id: 'ph1',
+      kind: 'photo',
+      trailId: 'aawt',
+      waypointId: 'w_1',
+      payload: { commentId: 'a', localUri: 'file:///ph1.jpg', contentType: 'image/jpeg' },
+      createdAt: '2026-01-02T00:00:00Z',
+    });
+
+    await pullTrail('aawt', {
+      db: d,
+      baseUrl: BASE,
+      fetchImpl: scriptedFetch([
+        {
+          body: {
+            comments: [
+              { id: 'a', waypointId: 'w_1', deleted: true, updatedAt: '2026-01-03T00:00:00Z' },
+            ],
+            nextCursor: null,
+            syncedAt: 'T2',
+          },
+        },
+      ]),
+    });
+    expect(await commentsRepo.getById(d, 'a')).toBeNull();
+    expect(await outboxRepo.getById(d, 'ph1')).toBeNull();
+  });
+
   it('is idempotent: re-draining a crashed (sending) item replays the PUT', async () => {
     const d = await db();
     await seedLocal(d, 'm1');

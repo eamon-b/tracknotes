@@ -410,7 +410,7 @@ describe('comments on a hiker waypoint', () => {
 
   it('does not wait on a share that failed for good: the comment goes and fails visibly', async () => {
     const d = await db();
-    const { fetchImpl, calls } = sharingServer(() => 429);
+    const { fetchImpl, calls } = sharingServer(() => 403);
     const deps = { db: d, baseUrl: BASE, fetchImpl, getSessionFn };
     const saved = await saveUserWaypoint(
       { trailId: 'heysen', input: INPUT, visibility: 'shared' },

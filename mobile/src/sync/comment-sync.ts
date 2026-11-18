@@ -869,10 +869,13 @@ async function drainOutboxNow(deps: SyncDeps = {}): Promise<DrainResult> {
    * and the caller handles those first.
    */
   const settleFailure = async (item: outboxRepo.OutboxItem, e: unknown): Promise<void> => {
-    if (e instanceof ApiError && e.status >= 400 && e.status < 500) {
+    if (e instanceof ApiError && e.status >= 400 && e.status < 500 && e.status !== 429) {
       await outboxRepo.markFailed(db, item.id, `${e.code}: ${e.message}`);
       failed += 1;
     } else if (e instanceof ApiError) {
+      // 429: the allowance is spent, which says nothing about this item — a
+      // hiker back in signal with more queued than the allowance must not have
+      // the rest parked as failed. Asked again later, like a 5xx.
       // 5xx (or an unreadable 2xx): the server's problem, and likely a passing
       // one. Charged an attempt so the backoff spaces the retries, but left
       // pending — and the drain moves on, so a server that keeps failing one
