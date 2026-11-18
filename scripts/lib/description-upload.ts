@@ -1,4 +1,5 @@
 import type { UpsertDescriptionRequest } from '../../src/lib/comments-api-types.js';
+import { guardsDescriptionWrites } from '../../src/lib/description-write-features.js';
 import {
   planDescriptionSync,
   WAYPOINT_ID_PATTERN,
@@ -31,6 +32,16 @@ import {
  * Either refusal leaves the other rows to go ahead and ends the run with
  * `EXIT_REFUSED`, so it is red and gets looked at. A warning (a live edit that
  * was shown and has now been undone) still never fails a run.
+ *
+ * Both rules lean on the worker: it must say which rows are live edits
+ * (`source`) and refuse a stale write (`ifUpdatedAt`). A worker that predates
+ * them ignores both without an error, so the run asks first: the descriptions
+ * read says whether the worker honours them (`writeFeatures`,
+ * `src/lib/description-write-features.ts`). Against one that does not, a dry
+ * run still prints its plan, with a warning, and a real run sends nothing at
+ * all unless it is told to (`allowUnguarded`, `--allow-unchecked-live`): it
+ * could not tell a live edit from uploaded text, nor keep from replacing a row
+ * edited after it was read.
  */
 
 /** Exit code of a real run that sent what it could and was refused the rest. */
@@ -268,22 +279,29 @@ function checkedLiveRow(raw: unknown, where: string): LiveRow {
   };
 }
 
-/** The descriptions the API serves for a trail now, withdrawn ones included. */
-export async function fetchLiveDescriptions(
-  fetchFn: typeof fetch,
-  apiBase: string,
-  trailId: string
-): Promise<LiveRow[]> {
+/** What a run reads of a trail before it plans. */
+export interface LiveSet {
+  /** The descriptions the API serves for the trail now, withdrawn ones included. */
+  rows: LiveRow[];
+  /** Whether the worker says it records a write's source and honours its precondition. */
+  guardsWrites: boolean;
+}
+
+/** The live set of a trail, and whether the worker that served it guards writes. */
+export async function fetchLiveDescriptions(fetchFn: typeof fetch, apiBase: string, trailId: string): Promise<LiveSet> {
   const url = `${apiBase}/v1/trails/${encodeURIComponent(trailId)}/descriptions`;
   const response = await fetchFn(url);
   if (!response.ok) {
     throw new Error(`GET ${url} failed: ${response.status} ${response.statusText}`);
   }
-  const body = (await response.json()) as { descriptions?: unknown };
+  const body = (await response.json()) as { descriptions?: unknown; writeFeatures?: unknown };
   if (!Array.isArray(body.descriptions)) {
     throw new Error(`GET ${url}: response has no "descriptions" array`);
   }
-  return body.descriptions.map((raw, index) => checkedLiveRow(raw, `GET ${url}: descriptions[${index}]`));
+  return {
+    rows: body.descriptions.map((raw, index) => checkedLiveRow(raw, `GET ${url}: descriptions[${index}]`)),
+    guardsWrites: guardsDescriptionWrites(body),
+  };
 }
 
 /** The row a 409 `description_conflict` body carries, or `null` when the body is not that answer. */
@@ -349,6 +367,12 @@ export interface UploadRun {
   withdraw: boolean;
   /** The live edits a plan showed (`--acknowledged-live`), or `null` when the run was given none. */
   acknowledged: AcknowledgedLive | null;
+  /**
+   * `--allow-unchecked-live`: let a real run write to a worker that does not
+   * say it records the source of a description or honours a precondition.
+   * Without it such a run sends nothing.
+   */
+  allowUnguarded: boolean;
   /** Under GitHub Actions: warnings and refusals are also annotations. */
   githubActions: boolean;
   fetch: typeof fetch;
@@ -374,6 +398,16 @@ function idsByTrail(rows: readonly { trailId: string; waypointId: string }[]): s
     .join('; ');
 }
 
+/** What is wrong with a worker whose read does not say it guards writes. Fixed text: nothing from the API. */
+const UNGUARDED =
+  `This comments API does not say that it records where a synced text came from, or that it refuses a write over a ` +
+  `row that changed after it was read (its worker predates description provenance: the Deploy comments API ` +
+  `workflow has not succeeded with it). So a live edit made on admin-descriptions.html cannot be told from ` +
+  `uploaded text, and a row edited after this run read it would be replaced.`;
+const UNGUARDED_FLAG =
+  `Let that workflow succeed and run again; or, to send regardless, pass --allow-unchecked-live (the upload then ` +
+  `overwrites any live edit unseen).`;
+
 /** Plan each trail, print the plan, and in a real run send it. */
 export async function runDescriptionUpload(run: UploadRun): Promise<UploadRunResult> {
   const { dryRun, log } = run;
@@ -388,6 +422,8 @@ export async function runDescriptionUpload(run: UploadRun): Promise<UploadRunRes
   const liveEditWarnings: string[] = [];
   /** Per trail: replaced text whose origin the API did not report. */
   const unknownOrigin: string[] = [];
+  /** A read came from a worker that does not say it guards writes. */
+  let unguarded = false;
   /** Live edits or clears held back: not in the acknowledged set. */
   const heldBack: { trailId: string; waypointId: string }[] = [];
   /** Rows the API refused: changed after the run read them. */
@@ -396,7 +432,14 @@ export async function runDescriptionUpload(run: UploadRun): Promise<UploadRunRes
   let unchanged = 0;
 
   for (const { trailId, entries } of run.trails) {
-    const live = apiBase ? await fetchLiveDescriptions(run.fetch, apiBase, trailId) : null;
+    const liveSet = apiBase ? await fetchLiveDescriptions(run.fetch, apiBase, trailId) : null;
+    if (liveSet && !liveSet.guardsWrites) {
+      unguarded = true;
+      // Before anything is sent to it: nothing above this line wrote to this trail.
+      if (!dryRun && !run.allowUnguarded)
+        throw new Error(`Nothing was sent for ${trailId}. ${UNGUARDED} ${UNGUARDED_FLAG}`);
+    }
+    const live = liveSet ? liveSet.rows : null;
     const { plan, requests, skippedWithdrawals } = planTrailUpload(entries, live, {
       withdraw: run.withdraw,
       acknowledged: run.acknowledged?.get(trailId),
@@ -478,12 +521,18 @@ export async function runDescriptionUpload(run: UploadRun): Promise<UploadRunRes
           : ` Each was shown in the plan this run was given (--acknowledged-live).`)
     );
   }
-  if (unknownOrigin.length > 0) {
+  if (unguarded) {
     annotate(
       'warning',
       'Live edits not checked',
-      `This API does not say where its synced text came from (its worker predates the marker), so the replaced ` +
-        `text (${unknownOrigin.join(', ')}) could not be checked for live edits made on admin-descriptions.html.`
+      UNGUARDED +
+        (unknownOrigin.length > 0
+          ? ` The replaced text (${unknownOrigin.join(', ')}) ${dryRun ? 'is' : 'was'} not checked for live edits.`
+          : '') +
+        (dryRun
+          ? ` A real run sends nothing to this API: let the Deploy comments API workflow succeed and plan again, ` +
+            `or pass --allow-unchecked-live to a run made by hand.`
+          : ` Sent all the same: --allow-unchecked-live.`)
     );
   }
   if (heldBack.length > 0) {

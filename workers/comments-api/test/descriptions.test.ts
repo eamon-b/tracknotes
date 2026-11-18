@@ -8,6 +8,7 @@ import type {
   TrailDescriptionsResponse,
   WaypointDescription,
 } from '../../../src/lib/comments-api-types';
+import { guardsDescriptionWrites } from '../../../src/lib/description-write-features';
 
 function errorCode(body: unknown): string {
   return (body as { error: { code: string } }).error.code;
@@ -422,7 +423,7 @@ describe('PUT /v1/admin/trails/:trailId/descriptions/:waypointId', () => {
       expect((await res.json()) as WaypointDescription).toEqual(stored);
     });
 
-    it('stays unconditional without one, as the upload and older clients send', async () => {
+    it('stays unconditional without one, as an older client sends', async () => {
       const admin = await adminDevice();
       await putDescription(admin, 'kep_track', 'pre-none-wp', { description: 'v1' });
       const res = await putDescription(admin, 'kep_track', 'pre-none-wp', { description: 'v2', source: 'upload' });
@@ -532,6 +533,42 @@ describe('GET /v1/trails/:trailId/descriptions', () => {
   it('returns an empty list for a trail with no descriptions', async () => {
     const body = await readDescriptions('cape_to_cape');
     expect(body.descriptions).toEqual([]);
+  });
+
+  describe('writeFeatures: what a writer may rely on', () => {
+    it('says the PUT records the source and honours ifUpdatedAt, on every read', async () => {
+      const admin = await adminDevice();
+      await putDescription(admin, 'heysen', 'feat-read-wp', { description: 'x', source: 'live' });
+      // With rows, with none (nothing to infer the worker's version from), and on a delta.
+      for (const body of [
+        await readDescriptions('heysen'),
+        await readDescriptions('cape_to_cape'),
+        await readDescriptions('heysen', '2999-01-01T00:00:00.000Z'),
+      ]) {
+        expect(body.writeFeatures).toEqual(['source', 'ifUpdatedAt']);
+        expect(guardsDescriptionWrites(body)).toBe(true);
+      }
+    });
+
+    it('is true of the PUT: the source is stored and a stale write is refused', async () => {
+      const admin = await adminDevice();
+      const first = await putDescription(admin, 'heysen', 'feat-true-wp', { description: 'v1', source: 'live' });
+      expect(((await first.json()) as WaypointDescription).source).toBe('live');
+      const stale = await putDescription(admin, 'heysen', 'feat-true-wp', {
+        description: 'v2',
+        source: 'upload',
+        ifUpdatedAt: '2000-01-01T00:00:00.000Z',
+      });
+      expect(stale.status).toBe(409);
+      expect(errorCode(await stale.json())).toBe('description_conflict');
+    });
+
+    it('adds nothing a phone has to read: the rows and the clock are where they were', async () => {
+      const body = (await readDescriptions('cape_to_cape')) as unknown as Record<string, unknown>;
+      expect(Object.keys(body).sort()).toEqual(['descriptions', 'syncedAt', 'writeFeatures']);
+      expect(Array.isArray(body.descriptions)).toBe(true);
+      expect(typeof body.syncedAt).toBe('string');
+    });
   });
 
   it('400 for an unknown trail id', async () => {

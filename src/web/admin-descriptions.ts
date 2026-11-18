@@ -16,6 +16,15 @@
  * Reading needs nothing; editing needs a linked browser whose account the
  * worker treats as an admin (`GET /v1/me` says so up front, and the worker
  * re-checks every PUT). Modelled on `admin-moderation.ts`.
+ *
+ * Editing also needs a worker that guards writes. The site deploys on merge
+ * and the worker by its own workflow, so this page can reach a worker that
+ * predates the `source` marker and the `ifUpdatedAt` check: it would take a
+ * save without either, last write winning, and store it with no origin, to be
+ * read as an upload later and replaced by the next one without a warning. The
+ * worker says in every descriptions read whether it honours both
+ * (`writeFeatures`), and without that the page is read-only and says why. It
+ * never finds out by writing.
  */
 
 import type { WaypointDescription } from '@lib/comments-api-types';
@@ -67,6 +76,10 @@ const MAX_ROWS = 300;
 
 const COPY_LABEL = 'Copy the changed entries';
 
+/** Why a save or a clear was not sent, in the row it was asked on. */
+const NOT_SENT =
+  'Not sent: the comments API has not been deployed with description provenance yet (or this browser may not edit), so nothing can be saved or cleared from this page. See the note above the list.';
+
 interface IndexEntry {
   id: string;
   name: string;
@@ -111,6 +124,7 @@ function init(): void {
   const linkBox = $('desc-link');
   const errorEl = $('desc-error');
   const notice = $('desc-notice');
+  const unguarded = $('desc-unguarded');
   const noticeText = $('desc-notice-text');
   const toolbar = $('desc-toolbar');
   const identity = $('desc-identity');
@@ -145,7 +159,14 @@ function init(): void {
   }
 
   let session: WebSession | null = loadSession();
+  /** The linked account is an admin. Editing also needs `guardsWrites`: see `mayWrite`. */
   let canEdit = false;
+  /**
+   * Whether the last descriptions read said the worker records a write's
+   * source and honours its precondition. Until a read says so, nothing is
+   * offered and nothing is sent.
+   */
+  let guardsWrites = false;
   /** Why `GET /v1/me` could not say whether the linked account is an admin ('' when it answered). */
   let adminError = '';
   let trailId = '';
@@ -168,12 +189,6 @@ function init(): void {
   /** The markup last drawn for each row in the list, so a refresh replaces only rows that changed. */
   const drawn = new Map<string, string>();
   let summaryDrawn = '';
-  /**
-   * Texts this page saved to an API that does not record which rows are live
-   * edits (a worker that predates the marker), by `trail/waypoint`: for the
-   * rest of this visit the page still knows they are.
-   */
-  const savedHere = new Map<string, string>();
   /** Bumped per trail load, so an answer that belongs to an earlier list is not drawn into this one. */
   let loadSeq = 0;
   /** Bumped when a PUT is answered, so a refresh that read the rows before it does not put the older row back. */
@@ -186,9 +201,18 @@ function init(): void {
   const rowElement = (id: string): HTMLElement | null =>
     list.querySelector<HTMLElement>(`[data-row="${CSS.escape(id)}"]`);
 
+  /** An admin's browser, talking to a worker that guards writes: the only state a save or a clear is sent in. */
+  const mayWrite = (): boolean => session !== null && canEdit && guardsWrites;
+
+  /** Take in what a descriptions read said about the worker; the read-only banner shows while it does not guard writes. */
+  const setGuardsWrites = (guards: boolean): void => {
+    guardsWrites = guards;
+    unguarded.hidden = guards;
+  };
+
   const htmlFor = (row: DescriptionRow): string =>
     rowHtml(row, {
-      canEdit,
+      canEdit: mayWrite(),
       editing: drafts.has(row.id),
       draft: drafts.get(row.id),
       conflict: conflicts.has(row.id) ? conflicts.get(row.id) : undefined,
@@ -259,12 +283,7 @@ function init(): void {
   /** Rebuild the rows from the trail, the file and the synced set. */
   const recompute = (): void => {
     ctx = fileContext(trailId, trailDir, fileText);
-    const known = synced.map(s =>
-      s.source === undefined && savedHere.get(`${trailId}/${s.waypointId}`) === s.description
-        ? { ...s, source: 'live' as const }
-        : s
-    );
-    rows = buildRows(waypoints, parseCuratedFile(fileText), known);
+    rows = buildRows(waypoints, parseCuratedFile(fileText), synced);
   };
 
   const render = (): void => {
@@ -351,7 +370,8 @@ function init(): void {
       if (seq !== loadSeq) return;
       waypoints = trailWaypoints(trail);
       fileText = text;
-      synced = live;
+      synced = live.descriptions;
+      setGuardsWrites(live.guardsWrites);
     } catch (err) {
       if (seq !== loadSeq) return;
       status.hidden = true;
@@ -369,7 +389,8 @@ function init(): void {
     const writes = writeSeq;
     const live = await fetchSyncedDescriptions(trailId);
     if (seq !== loadSeq || writes !== writeSeq) return;
-    synced = live;
+    synced = live.descriptions;
+    setGuardsWrites(live.guardsWrites);
     recompute();
     renderSummary();
     patchRows();
@@ -399,7 +420,12 @@ function init(): void {
    * to no row here.
    */
   const write = async (id: string, description: string): Promise<void> => {
-    if (!session) return;
+    // The last check before a request: whatever led here, nothing is sent to a
+    // worker that has not said it guards writes.
+    if (!session || !mayWrite()) {
+      showRowError(id, NOT_SENT);
+      return;
+    }
     const seq = loadSeq;
     const trail = trailId;
     const before = rows.find(r => r.id === id);
@@ -460,10 +486,14 @@ function init(): void {
       return;
     }
 
-    if (stored.source === undefined) {
-      savedHere.set(`${trail}/${id}`, stored.description);
+    // Defence in depth: the read said this worker records the source, and its
+    // answer to the PUT names none (it was replaced by an older one between the
+    // two). The text is saved but not as a live edit; stop writing, and say so.
+    const unrecorded = stored.source === undefined;
+    if (unrecorded) {
+      setGuardsWrites(false);
       showNotice(
-        `Saved “${name}”. This API does not record which rows are live edits yet (its worker predates that marker), so once this page is reloaded the row reads “origin unknown” and is left out of the export: commit it to descriptions.json now.`
+        `Saved “${name}” on ${trail}, but the API did not record it as a live edit (it answered as a worker that predates description provenance does). The export will not include it and the next upload replaces it without a warning: commit it to descriptions.json by hand now.`
       );
     }
     if (seq !== loadSeq) {
@@ -471,7 +501,7 @@ function init(): void {
       // from. Another trail's list has no row for it; a reload of this trail
       // may have read the synced set before the write landed, so read again.
       if (trailId !== trail) {
-        if (stored.source !== undefined) showNotice(`Saved “${name}” on ${trail}.`);
+        if (!unrecorded) showNotice(`Saved “${name}” on ${trail}.`);
       } else if (section.hidden) void loadTrail(trail);
       else {
         void refreshSynced().catch(() => {
@@ -490,7 +520,8 @@ function init(): void {
     synced = [...synced.filter(s => s.waypointId !== id), stored];
     recompute();
     renderSummary();
-    redrawRow(id);
+    if (unrecorded) renderList();
+    else redrawRow(id);
     setRowBusy(id, false);
     void refreshSynced().catch(() => {
       /* the PUT's answer is already drawn */
@@ -503,7 +534,15 @@ function init(): void {
     const id = target.dataset.id!;
     const row = rows.find(r => r.id === id);
     if (!row) return;
-    switch (target.dataset.action) {
+    const action = target.dataset.action;
+    // The buttons are not drawn unless the page may write; a click that gets
+    // here anyway (an edit box left open when the worker stopped guarding
+    // writes) opens nothing and sends nothing. Cancel always works.
+    if ((action === 'edit' || action === 'save' || action === 'clear') && !mayWrite()) {
+      showRowError(id, NOT_SENT);
+      return;
+    }
+    switch (action) {
       case 'edit':
         drafts.set(id, row.synced || row.bundled);
         bases.set(id, row.syncedAt ?? null);

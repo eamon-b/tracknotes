@@ -136,7 +136,22 @@ export interface TrailDescriptionsResponse {
   descriptions: WaypointDescription[];
   /** Server clock at query time; the client persists this as the next `since`. */
   syncedAt: string;
+  /**
+   * What this worker's description PUT does with a write beyond storing its
+   * text: `source` (it records which tool wrote it and serves that on every
+   * row) and `ifUpdatedAt` (it refuses a write over a row that changed since
+   * the writer read it). A worker that predates them sends no such field, and
+   * ignores both in a PUT: its writes are last-write-wins and leave no origin.
+   * So a writer that depends on either checks this first
+   * (`guardsDescriptionWrites`, `description-write-features.ts`) instead of
+   * inferring it from the rows, which a trail with no synced text has none of.
+   * The phone reads `descriptions` and `syncedAt` only.
+   */
+  writeFeatures?: DescriptionWriteFeature[];
 }
+
+/** One thing the description PUT honours, as `TrailDescriptionsResponse.writeFeatures` lists it. */
+export type DescriptionWriteFeature = 'source' | 'ifUpdatedAt';
 
 /** PUT /v1/admin/trails/:trailId/descriptions/:waypointId request body. */
 export interface UpsertDescriptionRequest {

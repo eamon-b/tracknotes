@@ -189,7 +189,8 @@ keep this file in step with the code it describes.
   Text from the API is printed quoted, on a line the script starts, so it cannot forge an annotation.
   A live edit the file already matches is re-sent unchanged to mark it uploaded (`adoptions`; the API leaves `updated_at` alone), so a later change to that entry is an ordinary edit;
   the summary line counts those, and the workflow's "nothing to upload" check greps that line, so the two change together.
-  Against a worker that reports no `source` nothing is called a live edit, and a separate warning says the replaced text could not be checked
+  Both refusals need a worker that records `source` and honours `ifUpdatedAt`, which the descriptions read states (`writeFeatures`, `guardsDescriptionWrites`).
+  Against a worker that does not say so, nothing can be called a live edit and no precondition holds: a dry run prints its plan with the warning "Live edits not checked", and a real run sends nothing and exits 1, unless `--allow-unchecked-live` is given (a run by hand that accepts overwriting any live edit unseen; the workflow never passes it)
   The *Upload waypoint descriptions* workflow runs it after a merge that changes a `descriptions.json`, once approved (`docs/deploys.md`), as *Publish trail data* runs `publish-trail-data.ts`:
   its `plan` job runs the dry run with `--record-live` and passes the line on as a job output (after checking it is one line of that alphabet, under 500 kB), and its `upload` job writes it to a file from an environment variable and passes `--acknowledged-live`.
 - `dependency-audit.ts` - `npm run audit:deps`: `npm audit` over the root, `mobile/`, `workers/comments-api` and `contours/worker` lockfiles as one report (`severeFindings`), failing only on a high or critical advisory `npm audit fix` can fix without a breaking change.

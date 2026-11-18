@@ -212,7 +212,10 @@ describe('curated descriptions and community routes', () => {
     const route = await shareRoute(owner);
     const res = await SELF.fetch(url(`/v1/trails/${route.id}/descriptions`));
     expect(res.status).toBe(200);
-    expect(((await res.json()) as TrailDescriptionsResponse).descriptions).toEqual([]);
+    const body = (await res.json()) as TrailDescriptionsResponse;
+    expect(body.descriptions).toEqual([]);
+    // The marker describes the worker, so a route's empty answer carries it too.
+    expect(body.writeFeatures).toEqual(['source', 'ifUpdatedAt']);
 
     const admin = await registerDevice('Admin');
     await makeAdmin(admin.userId);

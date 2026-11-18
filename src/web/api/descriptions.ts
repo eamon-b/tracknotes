@@ -13,6 +13,7 @@ import type {
   UpsertDescriptionRequest,
   WaypointDescription,
 } from '@lib/comments-api-types';
+import { guardsDescriptionWrites } from '@lib/description-write-features';
 import { ApiError, apiRequest, type FetchLike } from './client';
 import type { WebSession } from './session';
 
@@ -20,15 +21,29 @@ export interface DescriptionsApiDeps {
   fetchImpl?: FetchLike;
 }
 
-/** Every synced description for a curated trail, cleared ones ('') included. Public. */
+/** What the public read answers, as the live editor needs it. */
+export interface SyncedDescriptions {
+  /** Every synced row for the trail, cleared ones ('') included. */
+  descriptions: WaypointDescription[];
+  /**
+   * Whether the worker that answered says it records which tool wrote a
+   * description and refuses a save over a row that changed since it was read
+   * (`writeFeatures`, `@lib/description-write-features`). False for a worker
+   * that predates both: a save sent to it would be last-write-wins and stored
+   * with no origin, so the page must not send one.
+   */
+  guardsWrites: boolean;
+}
+
+/** Every synced description for a curated trail, and whether the worker guards writes. Public. */
 export async function fetchSyncedDescriptions(
   trailId: string,
   deps: DescriptionsApiDeps = {}
-): Promise<WaypointDescription[]> {
+): Promise<SyncedDescriptions> {
   const body = await apiRequest<TrailDescriptionsResponse>(`/v1/trails/${encodeURIComponent(trailId)}/descriptions`, {
     fetchImpl: deps.fetchImpl,
   });
-  return body.descriptions;
+  return { descriptions: body.descriptions, guardsWrites: guardsDescriptionWrites(body) };
 }
 
 /**
@@ -40,7 +55,9 @@ export async function fetchSyncedDescriptions(
  * `null` when it read no row. The worker refuses the write with 409
  * `description_conflict` when the row has changed since (`conflictCurrent`
  * reads the row it has now), so one admin's save cannot silently replace
- * another's. A worker that predates the check ignores it and writes.
+ * another's. A worker that predates the check ignores it and writes, which
+ * is why the page sends nothing unless the read said the worker guards writes
+ * (`SyncedDescriptions.guardsWrites`).
  */
 export async function adminPutDescription(
   session: WebSession,

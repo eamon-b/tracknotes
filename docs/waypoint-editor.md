@@ -432,6 +432,11 @@ It is unlinked and noindex, and it is the only description tool on the deployed 
 
 - **Access:** reading needs nothing; editing needs the browser linked (with a link code from the app) to an admin account, the same as the moderation pages.
   When the account check itself fails (the API is unreachable or answers an error), the page says it could not check and offers **Retry the account check**: it stays read-only until the check succeeds, and never reports that as "not an admin".
+- **Read-only until the comments API is deployed:** the site deploys when a change merges, and the comments API by its own workflow (*Deploy comments API*, `docs/deploys.md`), so the page can be ahead of the API.
+  An API from before this page ignores what makes a live edit safe: it does not record that a text was a live edit (the row would later count as an upload, be left out of the export, and be replaced by the next upload with no `!`), and it does not refuse a save over a text that changed since it was read.
+  So the API says in every descriptions read whether it does both, and until it says so the page offers no **Edit** or **Clear**, sends nothing, and shows why above the list: "Read-only: the comments API has not been deployed with description provenance yet".
+  That holds for an admin too, and on a trail with no synced text, where there is no row to tell the API's version by.
+  The page never tests the API by writing to it; once *Deploy comments API* has succeeded, **Reload** offers the buttons.
 - **The list:** pick a trail, and each waypoint shows its bundled description beside its synced one (with its date and whether a live edit or an upload wrote it), a yellow box where they differ, and a state: *in sync*, *drift*, *awaiting upload*, *cleared*, *not uploaded* (in the file, not yet on the API) or *bundled only*.
   The filters narrow to drift, to rows awaiting an upload, to synced rows, to synced text that differs from the bundle, to the file's entries, or to waypoints with no description at all.
 - **Edit synced text** sends the new text to every phone on its next sync, with the same character limit and voice hints as here.
@@ -461,7 +466,7 @@ The page knows the file as the site was last deployed, and classes a synced row 
   It is not drift: there is nothing to commit, and the export never writes the API's older text back over the file or puts a deleted entry back.
 - **origin unknown**: shown only while the page talks to a comments API that does not report the marker (the worker deploy that adds it has not run).
   The page then cannot tell the two cases apart, so it counts the row as neither and leaves it out of the export.
-  A live edit saved in that window is known as one only until the page is reloaded, and counts as uploaded once the worker is deployed: commit it at once, as the page says when it saves.
+  It is read-only in that window ("Access" above), so no live edit can be made that would later be taken for an upload.
 
 To commit the drift:
 
@@ -480,6 +485,7 @@ The upload then undoes exactly the live edits that plan marked, and no other.
 A live edit made or changed after the plan was read (while the run waited for approval, or in the seconds before a write) is not replaced: its row is left as it is, the rest of the upload goes ahead, and the run fails with an error naming the waypoint.
 Nothing is lost by that: commit the edit and merge, or re-run the workflow (*Re-run all jobs*) so that its new plan shows the edit, and approve it to send the file's text.
 So an urgent live edit is safe from an upload that is already waiting, but not from the next one that is planned after it: it still has to reach the file.
+Against a comments API that does not say it records where a text came from, the upload cannot tell a live edit from uploaded text or protect a row that changes under it: its plan says so in a warning, and the upload itself then sends nothing and fails, until *Deploy comments API* has succeeded and the workflow is run again.
 
 What the export leaves out:
 

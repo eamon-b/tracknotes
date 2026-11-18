@@ -24,6 +24,7 @@ import type {
   TrailDescriptionsResponse,
   WaypointDescription,
 } from '../../../src/lib/comments-api-types';
+import { DESCRIPTION_WRITE_FEATURES } from '../../../src/lib/description-write-features';
 
 interface DescriptionRow {
   waypoint_id: string;
@@ -53,7 +54,16 @@ function toWaypointDescription(row: DescriptionRow): WaypointDescription {
 // GET /v1/trails/:trailId/descriptions — public read (full or delta)
 // ---------------------------------------------------------------------------
 
-/** GET /v1/trails/:trailId/descriptions?since=<iso> — unauthenticated. */
+/**
+ * GET /v1/trails/:trailId/descriptions?since=<iso> — unauthenticated.
+ *
+ * Every answer carries `writeFeatures`: what the PUT below does with `source`
+ * and `ifUpdatedAt`. The site and this worker deploy separately, and a worker
+ * that predates those two ignores them without an error, so both writers (the
+ * live editor and `upload-descriptions`) read this first and write nothing to
+ * a worker that does not say it honours them. It is a top-level field beside
+ * the rows: the phone reads `descriptions` and `syncedAt` and ignores it.
+ */
 export async function getTrailDescriptions(request: Request, env: Env, trailIdRaw: string): Promise<Response> {
   const trail = await resolveTrail(env, trailIdRaw, 'read');
   const trailId = trail.id;
@@ -64,7 +74,11 @@ export async function getTrailDescriptions(request: Request, env: Env, trailIdRa
   // A community route's descriptions are its owner's, in the route itself;
   // curated ones are only ever written for our trails (the admin PUT below).
   if (trail.kind === 'community') {
-    const empty: TrailDescriptionsResponse = { descriptions: [], syncedAt };
+    const empty: TrailDescriptionsResponse = {
+      descriptions: [],
+      syncedAt,
+      writeFeatures: [...DESCRIPTION_WRITE_FEATURES],
+    };
     return json(empty);
   }
 
@@ -86,6 +100,7 @@ export async function getTrailDescriptions(request: Request, env: Env, trailIdRa
   const payload: TrailDescriptionsResponse = {
     descriptions: results.map(toWaypointDescription),
     syncedAt,
+    writeFeatures: [...DESCRIPTION_WRITE_FEATURES],
   };
   return json(payload);
 }
@@ -113,12 +128,13 @@ export async function getTrailDescriptions(request: Request, env: Env, trailIdRa
  * live edit has reached descriptions.json), leaving `updated_at` as it was so
  * no phone re-downloads it.
  *
- * `ifUpdatedAt` is the live editor's optimistic check: the `updated_at` it
- * last read for the row, or null for "no row". When the row has changed since
- * and does not already hold the text sent, nothing is written and the answer
- * is 409 `description_conflict` with the row as it is now. Each conditional
- * write is one statement, so two editors cannot both pass the check. The
- * upload sends no precondition: the file is the source of truth.
+ * `ifUpdatedAt` is the writer's optimistic check: the `updated_at` it last
+ * read for the row, or null for "no row". When the row has changed since and
+ * does not already hold the text sent, nothing is written and the answer is
+ * 409 `description_conflict` with the row as it is now. Each conditional
+ * write is one statement, so two writers cannot both pass the check. Both
+ * send it: the live editor, and the upload, which must not replace a row that
+ * was edited live after it read the set. A PUT without one is unconditional.
  */
 export async function upsertTrailDescription(
   request: Request,

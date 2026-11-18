@@ -29,6 +29,8 @@
  *                               showed (the lines marked `!`) to <file>
  *   --acknowledged-live <file>  The file a dry run wrote: the live edits and clears this
  *                               run may undo. Without it a real run undoes none.
+ *   --allow-unchecked-live      Send to a comments API that does not say it records where a
+ *                               description came from (see "An older worker")
  *
  * Exit codes: 0 when everything planned was sent (a warning never changes
  * that); 1 when the run failed and stopped (bad arguments, a malformed file,
@@ -91,6 +93,15 @@
  * annotation under GitHub Actions. To go on: commit the live edit to the file,
  * or plan again (re-run the whole workflow, or `--dry-run --record-live`) and
  * pass the new plan's file.
+ *
+ * An older worker: both refusals need the worker to record each row's
+ * `source` and to honour `ifUpdatedAt`, and one that predates them ignores
+ * both without an error. The descriptions read says whether the worker does
+ * (`writeFeatures`). Against one that does not, a dry run prints its plan
+ * with a warning ("Live edits not checked"), and a real run sends nothing and
+ * exits 1: wait for the *Deploy comments API* workflow, then plan again.
+ * `--allow-unchecked-live` sends regardless, for a run made by hand that
+ * accepts overwriting any live edit unseen; the workflow never passes it.
  */
 
 import * as fs from 'fs';
@@ -121,10 +132,12 @@ interface Options {
   recordLive?: string;
   /** `--acknowledged-live`: the file a dry run wrote, read back by a real run. */
   acknowledgedLive?: string;
+  /** `--allow-unchecked-live`: write to a worker that does not say it guards writes. */
+  allowUnguarded: boolean;
 }
 
 function parseArgs(argv: string[]): Options {
-  const options: Options = { dryRun: false, withdraw: true };
+  const options: Options = { dryRun: false, withdraw: true, allowUnguarded: false };
   const value = (flag: string, what: string, index: number): string => {
     const next = argv[index];
     if (next === undefined) throw new Error(`${flag} needs ${what}`);
@@ -136,6 +149,8 @@ function parseArgs(argv: string[]): Options {
       options.dryRun = true;
     } else if (arg === '--no-withdraw') {
       options.withdraw = false;
+    } else if (arg === '--allow-unchecked-live') {
+      options.allowUnguarded = true;
     } else if (arg === '--trail') {
       options.trailId = value(arg, 'a trail id', ++i);
     } else if (arg === '--api') {
@@ -237,6 +252,7 @@ async function main(): Promise<void> {
     dryRun: options.dryRun,
     withdraw: options.withdraw,
     acknowledged,
+    allowUnguarded: options.allowUnguarded,
     githubActions: process.env.GITHUB_ACTIONS === 'true',
     fetch,
     log: text => console.log(text),

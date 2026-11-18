@@ -35,7 +35,11 @@ The same holds in the seconds between the upload's read of the live set and each
 So a failed *Upload descriptions* run means some descriptions were not sent, never that a live edit was overwritten unseen.
 To finish it, commit the live edit to `descriptions.json`, or *Re-run all jobs* so a new plan shows it, and approve that.
 *Re-run failed jobs* re-runs `upload` with the old plan's list, so it refuses the same rows again.
-A warning that live edits could not be checked means the comments API does not report where its synced text came from: the worker that does (migration `0012`) is not deployed, so let *Deploy comments API* finish and re-run this workflow before approving.
+A warning that live edits could not be checked ("Live edits not checked") means the comments API does not say that it records where a synced text came from and refuses a stale write: the worker that does (migration `0012`) is not deployed, so let *Deploy comments API* finish and re-run this workflow before approving.
+Approving it all the same sends nothing: against such an API the upload refuses to write at all and the run fails (the script exits 1), because it could neither tell a live edit from uploaded text nor keep from replacing a row edited after it read it.
+The API says which it is in its descriptions read (`writeFeatures`: `source` and `ifUpdatedAt`), so nothing is inferred from the rows.
+The live description editor (`admin-descriptions.html`) reads the same field and is read-only without it: Vercel deploys the page on merge, while a live edit is safe only once *Deploy comments API*'s `deploy` job has succeeded on a `main` that includes the worker change.
+Until then the page says "the comments API has not been deployed with description provenance yet" and offers no edit, so nobody has to remember to hold off.
 
 A run deploys `main` as it is when the run starts, not the commit that triggered it.
 Its first job reads `main`'s head (the GitHub API) and checks that out: a run that queued behind another, or a re-run of an old one, deploys the newest code rather than putting older code back, and a merge after it that did not touch the trigger paths (so started no run of its own) cannot leave it undeployed.
