@@ -25,11 +25,14 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # The admin token lives in its own environment, `moderation` (main only, no
-    # reviewer, nothing else in it), not in `production`, whose deploy jobs run on
-    # every merge. And no package is installed: the script runs on Node's type
-    # stripping with only built-ins and src/lib, so no dependency's code runs
-    # while the token is in the environment.
+    # The check's token is the comments API's counts-only credential
+    # (MODERATION_COUNTS_TOKEN, accepted on GET /v1/admin/moderation/counts and
+    # nowhere else), never the admin token. It lives in its own environment,
+    # `moderation` (main only, no reviewer, nothing else in it), not in
+    # `production`, whose deploy jobs run on every merge. And no package is
+    # installed: the script runs on Node's type stripping with only built-ins
+    # and src/lib types, so no dependency's code runs while the token is in the
+    # environment.
     environment:
       name: moderation
     defaults:
@@ -44,7 +47,7 @@ jobs:
           node-version: 22
       - id: queue
         env:
-          TRACKNOTES_ADMIN_TOKEN: ${{ secrets.TRACKNOTES_ADMIN_TOKEN }}
+          TRACKNOTES_MODERATION_COUNTS_TOKEN: ${{ secrets.MODERATION_COUNTS_TOKEN }}
         run: node scripts/moderation-queue.ts | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Fail while posts are waiting
         env:

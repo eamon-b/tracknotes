@@ -250,11 +250,9 @@ browsers on our servers.
 
 To tell our admins when reported or flagged posts are waiting, a daily
 scheduled job on GitHub Actions (build servers run by GitHub, Inc., in the
-United States) reads the same moderation listing our admins see: the reported
-and flagged comments and the shared waypoints, with their text, photo links,
-authors' display names and account ids, and the reasons, notes and display
-names of the reports against them. It only counts the posts waiting; it does
-not store, log or publish any of that, and its result is the count alone.
+United States) asks our server how many there are. It receives only the
+numbers of comments and shared waypoints waiting, never their text, authors
+or reports.
 
 ## Getting a copy of your comments
 

@@ -78,7 +78,7 @@ A failed scheduled run emails whoever last changed its schedule, so a red run is
 
 | Workflow | When | Does | Needs a person when |
 | --- | --- | --- | --- |
-| `moderation-queue.yml` | daily | counts the reported or flagged posts waiting for an admin (`scripts/moderation-queue.ts`, the rule the moderation page highlights with, `@lib/moderation-attention`), and fails while any wait, so the alert is GitHub's failed-run email (private: the repository and its issues are public, so it posts nowhere, and its summary has counts only). It installs nothing (`node scripts/moderation-queue.ts`, on Node's type stripping), and its admin token sits in its own `moderation` environment | it is red: decide them on the moderation page |
+| `moderation-queue.yml` | daily | counts the reported or flagged posts waiting for an admin (`scripts/moderation-queue.ts`, the rule the moderation page highlights with, `@lib/moderation-attention`), and fails while any wait, so the alert is GitHub's failed-run email (private: the repository and its issues are public, so it posts nowhere, and its summary has counts only). It reads the comments API's counts-only route (`GET /v1/admin/moderation/counts`) with its own read-only token, never the admin token, installs nothing (`node scripts/moderation-queue.ts`, on Node's type stripping), and its token sits in its own `moderation` environment | it is red: decide them on the moderation page |
 | `te-araroa-data.yml` | weekly, Tuesday | when te-araroa-data's `main` has moved past the commit `package-lock.json` pins, runs `npm update te-araroa-data` and the trail rebuild, and opens or updates a PR from `automation/te-araroa-data`. It does nothing while that branch already takes the latest build, and fails rather than overwrite a commit someone else added to the branch. Its token is used for the push alone, never stored in the checkout | the PR is open: review the rebuilt Te Araroa data, add the `data/waypoint-ids.json` migration if upstream changed a waypoint's `type`, and merge it (*Publish trail data* follows) |
 | `r2-cleanup.yml` | weekly, Thursday | dry runs of `cleanup:tiles` (superseded pack files) and `cleanup:tiles -- --trail-data` (superseded trail files), listed in the summary | to delete: *Run workflow* with `delete` ticked, then approve `production-data`; the delete job shares *Publish trail data*'s `publish-trail-data` concurrency group, so it never runs alongside a publish (while it waits for approval, a publish waits behind it, and the other way round). It re-plans against the bucket before deleting, and re-reads the live catalog before each trail file, keeping one a publish has meanwhile listed again |
 | `tile-packs.yml` | weekly, Monday (and when the bundled trail list changes) | `npm run check:tile-packs` on a change: every bundled trail has a good offline pack on the tile host; the weekly run is every check in `e2e-tile-check.mjs` (also the contour Worker's `/health`, z14/z15 tiles and the `contours` alias), and checks the published over-the-air trail data matches `main` | it is red: a pack is missing or bad (`build:tiles`, `upload:tiles`), the contour Worker or an archive is unhealthy (`contours/README.md`), or a trail-data change reached `main` unpublished (`docs/trail-data-updates.md`) |
@@ -108,10 +108,14 @@ PR branches still reach staging, because its deploy job runs on `main` (`staging
 
 **`moderation`** (the daily moderation check only), no required reviewers, and nothing in it but:
 
-- `TRACKNOTES_ADMIN_TOKEN`: the comments API's admin bearer token, which the check reads the queue with.
+- `MODERATION_COUNTS_TOKEN`: the comments API's counts-only credential (issue #365), the same value as the worker secret of that name.
+  It opens `GET /v1/admin/moderation/counts` and nothing else (no listing, restore, delete or ban), so this environment holds no admin token.
+  Make one with `openssl rand -base64 48` (the worker refuses a secret under 32 characters), set it on the worker with `cd workers/comments-api && npx wrangler secret put MODERATION_COUNTS_TOKEN`, put the same value here, then delete `TRACKNOTES_ADMIN_TOKEN` from this environment.
+  Until both are set the daily check fails with `answered 401` (or `is not set`), which is the reminder.
+  To rotate it, put a new value on the worker and here together.
   It is kept out of `production`, whose deploy jobs run on every merge (Dependabot's included) after an `npm ci`, and the check itself installs no package.
-  The comments API has only the one, full-power admin token (delete, ban, reporter identities), while the check needs only to read the queue: a read-only or counts-only admin token, or route, would be the right thing to put here once the API has one.
-  The check downloads the moderation listings (post text, display names, reports) to GitHub's runner and keeps only the counts, so `docs/privacy-policy.md` names GitHub Actions; keep it in step if the check changes.
+  Only the counts reach GitHub's runner, never post text, names or reports;
+  `docs/privacy-policy.md` says so, so keep it in step if the check changes.
 
 **Repository secrets** (no environment, so scheduled runs need no approval):
 

@@ -288,6 +288,16 @@ The admin listings carry `userBanned`, `userAdmin` and `userDeleted`, so the pag
 Every tombstone the ban writes is stamped after its reads, just before the batch that commits it.
 The admin page is `src/web/admin-moderation.html` (unlinked, noindex, client `src/web/api/moderation.ts`).
 
+**Moderation counts** (`src/moderation-counts.ts`, issue #365, no migration).
+`GET /v1/admin/moderation/counts` answers `{ comments: { waiting, hidden }, waypoints: { waiting, hidden }, total }` (`ModerationCountsResponse` in `@lib/comments-api-types`) for the daily *Moderation queue* workflow (`scripts/moderation-queue.ts`, `docs/deploys.md`).
+"Waiting" is `needsAttention` (`@lib/moderation-attention`, the rule the moderation page highlights with) in SQL: `deleted_by = 'reports'`, or live, with no `restored_at`, and a review verdict of `remove` or `needs_human`;
+"hidden" is the `deleted_by = 'reports'` arm alone.
+Like the `?reported=1` listing it reads only rows with a report or a review, and its test checks that its counts equal `needsAttention` over the admin listings.
+Its credential is the worker secret `MODERATION_COUNTS_TOKEN` (`wrangler secret put MODERATION_COUNTS_TOKEN`), a bearer accepted on this route and nowhere else: it is not a device token, so it is no admin on any other route, and an admin's device token gets 401 here.
+The presented token and the secret are both SHA-256 hashed and the digests compared character by character with no early exit;
+while the secret is unset or under 32 characters (`MIN_COUNTS_TOKEN_LENGTH`) the route refuses everyone with 401, so the probe (`scripts/probe-comments-api.sh`, 401 without a token) holds either way.
+It returns counts only, never post text, names or reports, with `Cache-Control: private, no-store`.
+
 ## Comments API Worker: comment and waypoint review (`workers/comments-api/`)
 
 `src/content-review.ts` (migration `0010_content_review`: `review_status`, `review_json`, `review_requested_at` on `comments` and `shared_waypoints`, plain added columns so neither table is rebuilt).
