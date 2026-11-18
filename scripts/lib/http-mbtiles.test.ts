@@ -212,7 +212,24 @@ describe('readZoomTiles', () => {
   it('refuses a file that is not SQLite', async () => {
     const bytes = new Uint8Array(200);
     await expect(readZoomTiles(async (s: number, e: number) => bytes.subarray(s, e + 1), 9)).rejects.toThrow(
-      /not an SQLite/
+      /^the schema: not an SQLite/
+    );
+  });
+
+  it('names the tile it was reading when a read fails', async () => {
+    const file = path.join(dir, 'dedup-zoom-failing.mbtiles');
+    writeDeduplicated(file, tiles, 4096, true);
+    const { read, reads } = readerFor(file);
+    await readZoomTiles(read, 9);
+    // The last read of a whole pass is the last tile's data: fail that one.
+    const failAt = reads.length - 1;
+    let n = 0;
+    const failing = async (start: number, end: number) => {
+      if (n++ === failAt) throw new Error('range request to data.example failed after 5 attempts: fetch failed');
+      return read(start, end);
+    };
+    await expect(readZoomTiles(failing, 9)).rejects.toThrow(
+      /^tile 9\/\d+\/\d+ \(TMS\): range request to data\.example failed after 5 attempts: fetch failed$/
     );
   });
 });
@@ -306,6 +323,112 @@ describe('httpRangeReader', () => {
       async () => {}
     );
     expect(await broken(10, 13)).toHaveLength(4);
+  });
+
+  it('retries a network error and a 5xx with backoff, then takes the 206', async () => {
+    const waits: number[] = [];
+    let cancelled = 0;
+    const answers: Array<number | Error> = [
+      new TypeError('fetch failed'),
+      503,
+      new TypeError('fetch failed'),
+      502,
+      206,
+    ];
+    const flaky = httpRangeReader(
+      'https://data.example/cdt/contours.mbtiles',
+      (async () => {
+        const next = answers.shift();
+        if (next instanceof Error) throw next;
+        return {
+          status: next,
+          headers: new Headers(),
+          body: {
+            cancel: async () => {
+              cancelled++;
+            },
+          },
+          arrayBuffer: async () => new Uint8Array(4).buffer,
+        };
+      }) as unknown as typeof fetch,
+      async (ms: number) => {
+        waits.push(ms);
+      }
+    );
+    expect(await flaky(10, 13)).toHaveLength(4);
+    expect(waits).toEqual([5000, 10000, 20000, 40000]);
+    // Each 5xx body is closed unread; the 206 is not.
+    expect(cancelled).toBe(2);
+  });
+
+  it('honours Retry-After on a 503', async () => {
+    const waits: number[] = [];
+    const statuses = [503, 206];
+    const busy = httpRangeReader(
+      'https://data.example/a.mbtiles',
+      (async () => ({
+        status: statuses.shift(),
+        headers: new Headers({ 'Retry-After': '2' }),
+        arrayBuffer: async () => new Uint8Array(4).buffer,
+      })) as unknown as typeof fetch,
+      async (ms: number) => {
+        waits.push(ms);
+      }
+    );
+    expect(await busy(10, 13)).toHaveLength(4);
+    expect(waits).toEqual([2000]);
+  });
+
+  it('gives up on a lasting network error, naming the host, path, bytes and cause', async () => {
+    const waits: number[] = [];
+    let calls = 0;
+    const down = httpRangeReader(
+      'https://data.example/cdt/contours.mbtiles',
+      (async () => {
+        calls++;
+        throw new TypeError('fetch failed', { cause: new Error('read ECONNRESET') });
+      }) as unknown as typeof fetch,
+      async (ms: number) => {
+        waits.push(ms);
+      }
+    );
+    await expect(down(10, 13)).rejects.toThrow(
+      'range request to data.example /cdt/contours.mbtiles bytes 10-13 failed after 5 attempts: fetch failed (read ECONNRESET)'
+    );
+    expect(calls).toBe(5);
+    expect(waits).toEqual([5000, 10000, 20000, 40000]);
+  });
+
+  it('gives up on a lasting 5xx, naming the host', async () => {
+    let calls = 0;
+    const broken = httpRangeReader(
+      'https://data.example/a.mbtiles',
+      (async () => {
+        calls++;
+        return { status: 500, headers: new Headers() };
+      }) as unknown as typeof fetch,
+      async () => {}
+    );
+    await expect(broken(10, 13)).rejects.toThrow(
+      'range request to data.example /a.mbtiles bytes 10-13 → HTTP 500 (expected 206)'
+    );
+    expect(calls).toBe(5);
+  });
+
+  it('never retries a 404', async () => {
+    let calls = 0;
+    const missing = httpRangeReader(
+      'https://data.example/a.mbtiles',
+      (async () => {
+        calls++;
+        return { status: 404, headers: new Headers() };
+      }) as unknown as typeof fetch,
+      async () => {
+        throw new Error('should not wait');
+      }
+    );
+    await expect(missing(10, 13)).rejects.toThrow(/data\.example .* → HTTP 404/);
+    expect(calls).toBe(1);
   });
 });
 
