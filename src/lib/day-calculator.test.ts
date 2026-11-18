@@ -276,14 +276,25 @@ describe('computeDays', () => {
   });
 
   it('carries the latitude each day is walked at', () => {
-    // makeFlatTrail runs north from -35 at 0.001 degrees per point.
-    const trail = makeFlatTrail(60);
-    const days = computeDays(trail, [{ km: 30, waypointName: 'Camp' }], null, null, 4);
-    const pts = trail.track.points;
-    const latAt = (km: number) =>
-      pts.reduce((best, p) => (Math.abs(p.dist - km) < Math.abs(best.dist - km) ? p : best)).lat;
-    expect(days[0].latitude).toBe(Math.round(((latAt(0) + latAt(30)) / 2) * 100) / 100);
-    expect(days[1].latitude).toBe(Math.round(((latAt(30) + latAt(60)) / 2) * 100) / 100);
+    // 60 km due north from 35 S: a point every km, 0.01 degrees apart.
+    const points = Array.from({ length: 61 }, (_, i) => ({ lat: -35 + i * 0.01, lon: 145, ele: 100, dist: i }));
+    const trail: PlanTrail = { config: { name: 'North' }, track: { points, totalDistance: 60 } };
+
+    const days = computeDays(trail, [{ km: 20, waypointName: 'Camp' }], null, null, 4);
+    // Day 1 runs km 0-20 (35.00 S to 34.80 S), day 2 km 20-60 (34.80 S to 34.40 S).
+    expect(days.map(d => d.latitude)).toEqual([-34.9, -34.6]);
+
+    // The same walk the other way: the trail reversed, the stop mirrored.
+    const reversed: PlanTrail = {
+      config: trail.config,
+      track: { points: [...points].reverse().map((p, i) => ({ ...p, dist: i })), totalDistance: 60 },
+    };
+    const back = computeDays(reversed, [{ km: 40, waypointName: 'Camp' }], null, null, 4);
+    expect(back.map(d => d.latitude)).toEqual([-34.6, -34.9]);
+
+    // A section reads its own ends, not the trail's.
+    const section = { startKm: 40, endKm: 60, startName: 'A', endName: 'B' };
+    expect(computeDays(trail, [], null, section, 4)[0].latitude).toBe(-34.5);
   });
 
   it('has no latitude when the track has no points', () => {

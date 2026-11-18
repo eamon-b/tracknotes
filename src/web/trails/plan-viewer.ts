@@ -105,7 +105,7 @@ import { accessPathLayer, hasAccessPath } from './access-path';
 import { servicesStripHtml } from './stop-services';
 import { waypointOsmDetailsHtml } from './trail-pois-ui';
 import { stopWalk } from '@lib/day-calculator';
-import { dayDaylight, formatDaylightDuration } from '@lib/daylight';
+import { dayDaylight } from '@lib/daylight';
 import { PlanEditQueue, type PlanEdit } from './plan-edit-queue';
 import { initPlanExport, type PlanExportController } from './plan-export-ui';
 import type { PlanExportInput } from '@lib/plan-export';
@@ -1516,11 +1516,11 @@ function renderDayList(): void {
         // the difference and leaves what to do about it to the hiker.
         const light = dayDaylight(day);
         const daylightStr = light
-          ? `<span title="Sunrise to sunset on this date, at this day's latitude">${formatDaylightDuration(light.daylightHours)} daylight</span>`
+          ? `<span title="Sunrise to sunset on this date, at this day's latitude">${light.daylightHours.toFixed(1)}h daylight</span>`
           : '';
         const daylightLine =
           light && light.shortfallHours > 0
-            ? `<div class="day-card-daylight">About ${formatDaylightDuration(light.shortfallHours)} more walking than daylight</div>`
+            ? `<div class="day-card-daylight">About ${light.shortfallHours.toFixed(1)}h more walking than daylight</div>`
             : '';
         // A day is "planned resupply" when one of the ticked stops falls inside it,
         // its own ends included: the day you walk into town is the day it matters.
@@ -2015,7 +2015,10 @@ function renderDayDatasheet(day: ComputedDay | null): void {
   }
 
   title.textContent = `Day ${day.dayNumber}`;
-  subtitle.textContent = `${day.distanceKm.toFixed(1)} km · +${day.ascentM} m · ~${day.estimatedHours}h`;
+  const dayLight = dayDaylight(day);
+  subtitle.textContent =
+    `${day.distanceKm.toFixed(1)} km · +${day.ascentM} m · ~${day.estimatedHours}h` +
+    (dayLight ? ` · ${dayLight.daylightHours.toFixed(1)}h daylight` : '');
 
   const inDay = waypoints.filter(wp => {
     const km = wp.totalDistance ?? 0;

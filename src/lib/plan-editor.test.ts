@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
+import { dayDaylight, daylightHours } from './daylight';
 import {
   assertPlanDocumentWithinLimits,
   chooseResupplyOption,
@@ -256,6 +257,22 @@ describe('computePlanDays', () => {
     expect(days.map(d => d.restDays)).toEqual([1, 0, 0]);
     expect(days.map(d => d.endName)).toEqual(['Camp A', 'Camp B', 'Finish']);
     expect(days.map(d => d.distanceKm)).toEqual([20, 30, 50]);
+  });
+
+  it('keeps each day\u2019s latitude when rest days move its date, so daylight follows the new date', () => {
+    // 100 km due north from 45 S, so the days sit at different latitudes.
+    const trail = flatTrail();
+    trail.track.points = trail.track.points.map((p, i) => ({ ...p, lat: -45 + i * 0.01 }));
+    let plan = setStartDate(emptyPlan(), '2026-04-01', opts);
+    plan = toggleStop(plan, { id: 'w_a', km: 20, name: 'Camp A' }, opts);
+    plan = setNights(plan, { waypointId: 'w_a', km: 20 }, 10, opts);
+
+    const days = computePlanDays(trail, plan, { baseKmh: 4 });
+    expect(days.map(d => d.date)).toEqual(['2026-04-01', '2026-04-11']);
+    expect(days.map(d => d.latitude)).toEqual([-44.9, -44.4]);
+    // Day 2 is read on 11 April at its own latitude, not on 2 April: autumn days are shortening.
+    expect(dayDaylight(days[1])!.daylightHours).toBe(Math.round(daylightHours(-44.4, '2026-04-11')! * 10) / 10);
+    expect(daylightHours(-44.4, '2026-04-11')!).toBeLessThan(daylightHours(-44.4, '2026-04-02')! - 0.3);
   });
 
   it('walks to a stop off the route and back, by its waypoint', () => {

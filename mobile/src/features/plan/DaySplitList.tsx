@@ -22,7 +22,7 @@
 
 import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { dayDaylight, formatDaylightDuration } from '@lib/daylight';
+import { dayDaylight } from '@lib/daylight';
 import { formatDistance, formatElevation } from '@lib/format-distance';
 import type { ComputedDay } from '@lib/plan-types';
 import { countPoisByCategory, POI_CATEGORY_LABELS, poisBetween } from '@lib/poi-display';
@@ -220,7 +220,7 @@ export function DaySplitList({
               <Text style={[styles.date, { color: colors.textSecondary }]}>
                 {light === null
                   ? day.date
-                  : `${day.date} · ${formatDaylightDuration(light.daylightHours)} of daylight`}
+                  : `${day.date} · ${formatHours(light.daylightHours)} daylight`}
               </Text>
             )}
 
@@ -260,8 +260,8 @@ export function DaySplitList({
             )}
 
             {light !== null && light.shortfallHours > 0 && (
-              <Text style={[styles.overHint, { color: colors.warning }]}>
-                {`About ${formatDaylightDuration(light.shortfallHours)} more walking than daylight`}
+              <Text style={[styles.overHint, { color: colors.textSecondary }]}>
+                {`About ${formatHours(light.shortfallHours)} more walking than daylight`}
               </Text>
             )}
 
