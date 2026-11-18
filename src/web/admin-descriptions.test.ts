@@ -57,8 +57,16 @@ let synced: Row[];
 let isAdmin: boolean;
 /** What `GET /v1/me` answers with. */
 let meStatus: number;
-/** False for a worker that predates the `source` marker and the `ifUpdatedAt` check. */
+/**
+ * False for a worker that predates the `source` marker and the `ifUpdatedAt`
+ * check: it stores no origin, checks no precondition, and its read carries no
+ * `writeFeatures`.
+ */
 let workerRecordsSource: boolean;
+/** A PUT answered without a `source`, by a worker whose read said it records one. */
+let putOmitsSource: boolean;
+/** A read answered without `writeFeatures`, whatever the worker's PUT does. */
+let readOmitsFeatures: boolean;
 /** Awaited by the stubbed PUT before it answers, to hold a save in flight. */
 let holdPut: Promise<void> | null;
 let putClock: number;
@@ -88,7 +96,7 @@ function workerPut(
     waypointId,
     description: body.description,
     updatedAt: new Date(Date.UTC(2026, 10, 17, 0, 0, putClock++)).toISOString(),
-    ...(workerRecordsSource ? { source: body.source ?? 'upload' } : {}),
+    ...(workerRecordsSource && !putOmitsSource ? { source: body.source ?? 'upload' } : {}),
   };
   synced = [...synced.filter(s => s.waypointId !== waypointId), row];
   return respond(200, row);
@@ -105,6 +113,8 @@ beforeEach(() => {
   isAdmin = true;
   meStatus = 200;
   workerRecordsSource = true;
+  putOmitsSource = false;
+  readOmitsFeatures = false;
   holdPut = null;
   putClock = 0;
   synced = [
@@ -136,7 +146,11 @@ beforeEach(() => {
         : respond(meStatus, { error: { code: 'unavailable', message: 'Service unavailable' } });
     }
     if (input.startsWith('https://api.example.test/v1/trails/') && input.endsWith('/descriptions')) {
-      return respond(200, { descriptions: input.includes('/heysen/') ? synced : [], syncedAt: 'now' });
+      return respond(200, {
+        descriptions: input.includes('/heysen/') ? synced : [],
+        syncedAt: 'now',
+        ...(workerRecordsSource && !readOmitsFeatures ? { writeFeatures: ['source', 'ifUpdatedAt'] } : {}),
+      });
     }
     const put = /\/v1\/admin\/trails\/heysen\/descriptions\/([^/]+)$/.exec(input);
     if (put && init?.method === 'PUT') {
@@ -160,6 +174,8 @@ afterEach(() => {
 const rowFor = (id: string) => document.querySelector<HTMLElement>(`[data-row="${id}"]`)!;
 const badge = (id: string) => rowFor(id)?.querySelector('.desc-badge')?.textContent;
 const summaryText = () => document.getElementById('desc-summary')!.textContent!;
+/** The banner that says why nothing can be saved. */
+const unguarded = () => document.getElementById('desc-unguarded')!;
 const puts = () =>
   fetchMock.mock.calls
     .filter(([, init]) => (init as RequestInit | undefined)?.method === 'PUT')
@@ -495,20 +511,114 @@ describe('admin-descriptions.html', () => {
       expect(document.getElementById('desc-download')).toBeNull();
     });
 
-    it('still knows, for this visit, the live edit it saved itself, and says the API will not', async () => {
+    it('is read-only for an admin, and says the API has not been deployed with description provenance', async () => {
+      await loaded();
+      expect(document.getElementById('desc-identity')!.textContent).toContain('(admin)');
+      expect(document.querySelector('[data-action="edit"]')).toBeNull();
+      expect(document.querySelector('[data-action="clear"]')).toBeNull();
+      expect(unguarded().hidden).toBe(false);
+      expect(unguarded().textContent).toContain(
+        'Read-only: the comments API has not been deployed with description provenance yet'
+      );
+      expect(unguarded().textContent).toContain('docs/deploys.md');
+      expect(puts()).toHaveLength(0);
+    });
+
+    it('is read-only on a trail with no synced rows too, where there is no row to tell the worker by', async () => {
+      synced = [];
+      await loaded();
+      expect(document.querySelectorAll('.desc-row')).toHaveLength(3);
+      expect(document.querySelector('[data-action="edit"]')).toBeNull();
+      expect(unguarded().hidden).toBe(false);
+    });
+
+    it('sends nothing even when a save or a clear is forced past the missing buttons', async () => {
       vi.spyOn(window, 'confirm').mockReturnValue(true);
       await loaded();
-      edit('w_xss00001', 'Saved to the old worker.');
-      save('w_xss00001');
-      await waitFor(() => badge('w_xss00001') === 'drift');
-      expect(document.getElementById('desc-notice')!.hidden).toBe(false);
-      expect(document.getElementById('desc-notice-text')!.textContent).toContain(
-        'does not record which rows are live edits'
-      );
-      // Also after the refresh that follows the save has re-read the rows without a source.
+      const row = rowFor(second.waypointId);
+      const force = (action: string): void => {
+        row.insertAdjacentHTML(
+          'beforeend',
+          `<button type="button" data-action="${action}" data-id="${second.waypointId}"></button>`
+        );
+        row.querySelector<HTMLButtonElement>(`button[data-action="${action}"]:last-of-type`)!.click();
+      };
+      force('clear');
+      force('edit');
+      // No edit box opened, so there is no draft to save; a forged one is refused as well.
+      expect(rowFor(second.waypointId).querySelector('textarea')).toBeNull();
+      force('save');
       await new Promise(r => setTimeout(r, 30));
-      expect(badge('w_xss00001')).toBe('drift');
-      expect((await downloaded()).descriptions.some(e => e.waypointId === 'w_xss00001')).toBe(true);
+      expect(puts()).toHaveLength(0);
+      expect(rowFor(second.waypointId).querySelector('[data-error]')!.textContent).toContain(
+        'Not sent: the comments API has not been deployed with description provenance yet'
+      );
+      expect(window.confirm).not.toHaveBeenCalled();
     });
+
+    it('offers editing once a reload finds the worker deployed', async () => {
+      await loaded();
+      expect(document.querySelector('[data-action="edit"]')).toBeNull();
+      workerRecordsSource = true;
+      synced = synced.map(row => ({ ...row, source: 'upload' as const }));
+      document.getElementById('desc-reload')!.click();
+      await waitFor(() => document.querySelector('[data-action="edit"]') !== null);
+      expect(unguarded().hidden).toBe(true);
+    });
+  });
+
+  it('offers editing on a trail with no synced rows when the API says it guards writes', async () => {
+    synced = [];
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await loaded();
+    expect(unguarded().hidden).toBe(true);
+    edit('w_xss00001', 'First synced text on this trail.');
+    save('w_xss00001');
+    await waitFor(() => puts().length === 1);
+    expect(puts()[0].body).toEqual({
+      description: 'First synced text on this trail.',
+      source: 'live',
+      ifUpdatedAt: null,
+    });
+  });
+
+  it('stops offering edits, keeping an open draft, when a refresh finds the API no longer guards writes', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await loaded();
+    edit('w_xss00001', 'Typed before the worker was rolled back.');
+    // Another row is saved; the refresh that follows is answered without the marker.
+    edit(first.waypointId, 'A correction that was saved in time.');
+    readOmitsFeatures = true;
+    save(first.waypointId);
+    await waitFor(() => !unguarded().hidden);
+    expect(puts()).toHaveLength(1);
+    expect(document.querySelector('[data-action="edit"]')).toBeNull();
+    expect(document.querySelector('[data-action="clear"]')).toBeNull();
+    // The draft is still there to copy out, and its save is refused in the row.
+    const box = rowFor('w_xss00001').querySelector<HTMLTextAreaElement>('textarea')!;
+    expect(box.value).toBe('Typed before the worker was rolled back.');
+    save('w_xss00001');
+    await new Promise(r => setTimeout(r, 30));
+    expect(puts()).toHaveLength(1);
+    expect(rowFor('w_xss00001').querySelector('[data-error]')!.textContent).toContain('Not sent');
+  });
+
+  it('goes read-only when a save’s answer names no source, and says to commit it', async () => {
+    // The read said the worker records the origin. An older worker replaces it
+    // before the save: the PUT's answer names no source, and nor does a read after it.
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await loaded();
+    putOmitsSource = true;
+    readOmitsFeatures = true;
+    edit('w_xss00001', 'Saved as the worker was rolled back.');
+    save('w_xss00001');
+    await waitFor(() => !document.getElementById('desc-notice')!.hidden);
+    expect(document.getElementById('desc-notice-text')!.textContent).toContain('did not record it as a live edit');
+    expect(unguarded().hidden).toBe(false);
+    expect(document.querySelector('[data-action="edit"]')).toBeNull();
+    expect(document.querySelector('[data-action="clear"]')).toBeNull();
+    await new Promise(r => setTimeout(r, 30));
+    expect(unguarded().hidden).toBe(false);
+    expect(puts()).toHaveLength(1);
   });
 });

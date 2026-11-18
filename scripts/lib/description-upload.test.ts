@@ -28,9 +28,15 @@ interface Row {
  * semantics (`workers/comments-api/src/descriptions.ts`): the `ifUpdatedAt`
  * precondition and its 409, the no-op re-send, and an upload taking a live
  * row over when it re-sends the same text.
+ *
+ * `guards: false` is the worker from before any of that: it stores the text
+ * and nothing else, ignores `source` and `ifUpdatedAt`, and its read carries
+ * no `writeFeatures`.
  */
-function fakeApi(initial: Row[]) {
-  const rows = new Map(initial.map(row => [row.waypointId, { ...row }]));
+function fakeApi(initial: Row[], { guards = true }: { guards?: boolean } = {}) {
+  const stored = ({ waypointId, description, updatedAt, source }: Row): Row =>
+    guards ? { waypointId, description, updatedAt, source } : { waypointId, description, updatedAt };
+  const rows = new Map(initial.map(row => [row.waypointId, stored(row)]));
   const puts: { waypointId: string; body: Record<string, unknown>; status: number }[] = [];
   let clock = Date.parse(T0);
   const tick = () => new Date((clock += 60_000)).toISOString();
@@ -38,16 +44,22 @@ function fakeApi(initial: Row[]) {
 
   /** An admin's edit on admin-descriptions.html. */
   const liveEdit = (waypointId: string, description: string): Row => {
-    const row: Row = { waypointId, description, updatedAt: tick(), source: 'live' };
+    const row: Row = { waypointId, description, updatedAt: tick(), ...(guards ? { source: 'live' as const } : {}) };
     rows.set(waypointId, row);
     return row;
   };
 
   const put = (waypointId: string, body: Record<string, unknown>): [number, unknown] => {
     const description = body.description as string;
+    const current = rows.get(waypointId);
+    if (!guards) {
+      if (current?.description === description) return [200, current];
+      const row: Row = { waypointId, description, updatedAt: tick() };
+      rows.set(waypointId, row);
+      return [200, row];
+    }
     const source = (body.source as Row['source']) ?? 'upload';
     const pre = body.ifUpdatedAt as string | null | undefined;
-    const current = rows.get(waypointId);
     const writes =
       pre === undefined
         ? !current || current.description !== description
@@ -74,7 +86,11 @@ function fakeApi(initial: Row[]) {
     const answer = (status: number, body: unknown) =>
       new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
     if (!init?.method || init.method === 'GET') {
-      const response = answer(200, { descriptions: [...rows.values()].map(row => ({ ...row })), syncedAt: T0 });
+      const response = answer(200, {
+        descriptions: [...rows.values()].map(row => ({ ...row })),
+        syncedAt: T0,
+        ...(guards ? { writeFeatures: ['source', 'ifUpdatedAt'] } : {}),
+      });
       const hook = hooks.afterRead;
       hooks.afterRead = undefined;
       hook?.();
@@ -114,6 +130,7 @@ async function run(api: ReturnType<typeof fakeApi>, overrides: Partial<UploadRun
     dryRun: false,
     withdraw: true,
     acknowledged: null,
+    allowUnguarded: false,
     githubActions: true,
     fetch: api.fetch,
     log: text => lines.push(...text.split('\n')),
@@ -438,6 +455,68 @@ describe('runDescriptionUpload', () => {
   });
 });
 
+describe('against a worker that does not say it guards writes', () => {
+  /** A live edit on the old worker: stored like any text, with nothing to say what wrote it. */
+  function oldWorker() {
+    const api = fakeApi(uploadedRows(), { guards: false });
+    api.liveEdit('w_aaaa0001', 'Tank closed until March.');
+    return api;
+  }
+
+  it('still prints the plan in a dry run, and warns that nothing in it could be checked', async () => {
+    const api = oldWorker();
+    const plan = await run(api, { dryRun: true });
+
+    expect(plan.exitCode).toBe(0);
+    expect(api.puts).toEqual([]);
+    // The live edit cannot be told from uploaded text: no "!" line, and nothing to acknowledge.
+    expect(plan.text).toContain('replaces synced text of unknown origin: "Tank closed until March."');
+    expect(plan.text).not.toContain('! replaces');
+    expect(serializeAcknowledgedLive(plan.liveShown)).toBe('{"version":1,"live":{}}');
+    expect(plan.lines).toContainEqual(
+      expect.stringMatching(
+        /^::warning title=Live edits not checked::This comments API does not say .*\(demo: 2\) is not checked for live edits\. A real run sends nothing to this API/
+      )
+    );
+  });
+
+  it('warns even when the plan replaces nothing, since a trail with no rows shows no sign of the worker', async () => {
+    const plan = await run(fakeApi([], { guards: false }), { dryRun: true });
+    expect(plan.text).toContain('Dry run: would have 3 description(s) sent');
+    expect(plan.lines).toContainEqual(expect.stringMatching(/^::warning title=Live edits not checked::/));
+  });
+
+  it('sends nothing in a real run, and says what to do', async () => {
+    const api = oldWorker();
+    const failure = await run(api, { acknowledged: new Map() }).catch((error: Error) => error);
+
+    expect(failure).toBeInstanceOf(Error);
+    expect((failure as Error).message).toMatch(
+      /^Nothing was sent for demo\. This comments API does not say that it records where a synced text came from/
+    );
+    expect((failure as Error).message).toMatch(/Deploy comments API.*--allow-unchecked-live/);
+    expect(api.puts).toEqual([]);
+    expect(api.rows.get('w_aaaa0001')?.description).toBe('Tank closed until March.');
+  });
+
+  it('sends when told to, and says that it could not check', async () => {
+    const api = oldWorker();
+    const upload = await run(api, { allowUnguarded: true });
+
+    expect(upload.exitCode).toBe(0);
+    expect(api.puts.map(put => put.waypointId)).toEqual(['w_aaaa0001', 'w_aaaa0002']);
+    expect(api.rows.get('w_aaaa0001')?.description).toBe('A hut with a tank.');
+    expect(upload.lines).toContainEqual(
+      expect.stringMatching(/^::warning title=Live edits not checked::.*Sent all the same: --allow-unchecked-live\.$/)
+    );
+  });
+
+  it('has nothing to say about a worker that does guard writes', async () => {
+    const plan = await run(fakeApi(uploadedRows()), { dryRun: true });
+    expect(plan.text).not.toContain('Live edits not checked');
+  });
+});
+
 describe('the acknowledged set', () => {
   it('round-trips as one line of ids and timestamps', () => {
     const shown: AcknowledgedLive = new Map([
@@ -499,13 +578,27 @@ describe('fetchLiveDescriptions', () => {
     ).rejects.toThrow(/descriptions\[0\] has an invalid "waypointId"$/);
   });
 
-  it('reads rows of an older worker, which name no source', async () => {
-    const rows = await fetchLiveDescriptions(
+  it('reads rows of an older worker, which name no source, and knows it for one', async () => {
+    const live = await fetchLiveDescriptions(
       answering({ descriptions: [{ waypointId: 'w_aaaa0001', description: 'x', updatedAt: T0 }] }),
       API,
       'demo'
     );
-    expect(rows).toEqual([{ waypointId: 'w_aaaa0001', description: 'x', updatedAt: T0 }]);
+    expect(live).toEqual({
+      rows: [{ waypointId: 'w_aaaa0001', description: 'x', updatedAt: T0 }],
+      guardsWrites: false,
+    });
+  });
+
+  it('takes the worker’s word that it guards writes, with rows or with none', async () => {
+    const writeFeatures = ['source', 'ifUpdatedAt'];
+    expect(
+      (await fetchLiveDescriptions(answering({ descriptions: [], writeFeatures }), API, 'demo')).guardsWrites
+    ).toBe(true);
+    expect(
+      (await fetchLiveDescriptions(answering({ descriptions: [], writeFeatures: ['source'] }), API, 'demo'))
+        .guardsWrites
+    ).toBe(false);
   });
 });
 

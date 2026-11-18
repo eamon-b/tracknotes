@@ -129,6 +129,12 @@ It is stored whenever a write changes the text, and the read and the PUT answer 
 a row with none stored — every row from before the migration, and a write that names none — is served as `upload`, which is true of the older rows, since the editor did not exist before the column did.
 So only a worker that predates the migration omits the field, and a reader treats its absence as "unknown";
 the phone ignores it.
+The descriptions read also says what the PUT honours: `writeFeatures: ["source", "ifUpdatedAt"]`, a top-level field beside `descriptions` and `syncedAt`, on every answer (a delta, a trail with no rows and a community route's empty list included).
+It exists because the site and this worker deploy separately, and a worker from before `source` and `ifUpdatedAt` ignores both in a PUT without an error: a write to it is last-write-wins and leaves no origin, so the row later reads as an upload.
+A trail with no synced rows shows nothing to tell such a worker by, so both writers read the field instead of inferring (`guardsDescriptionWrites` in `src/lib/description-write-features.ts`, which also holds the list the worker sends):
+the live description editor is read-only without it, and `upload-descriptions` sends nothing without it unless told to (`--allow-unchecked-live`).
+Neither probes with a write.
+The phone's sync reads `descriptions` and `syncedAt` only (`mobile/src/sync/comment-sync.ts`), so shipped builds ignore the extra field.
 It names the tool, never the account or the token: the table has no column about who wrote a description, and curated descriptions are editorial text, not a hiker's data, so `docs/privacy-policy.md` and `docs/data-residency.md` need no line for it.
 A PUT of the text a row already holds changes nothing, `updated_at` included, with one exception: an `upload` of the text a `live` row holds sets `source` to `upload` and leaves `updated_at` alone.
 That is how a live edit that has been committed to `descriptions.json` stops counting as one (`upload-descriptions` re-sends it for that) without any phone downloading it again.

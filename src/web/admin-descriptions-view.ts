@@ -685,7 +685,7 @@ export function summaryHtml(rows: readonly DescriptionRow[], ctx: FileContext): 
   }
   if (unknown) {
     notes.push(
-      `${unknown} synced ${plural(unknown, 'row differs', 'rows differ')} from descriptions.json, and this API does not say whether a live edit or an upload wrote ${plural(unknown, 'it', 'them')} (its worker predates that marker), so ${plural(unknown, 'it is', 'they are')} neither counted as drift nor exported. A live edit saved now is not recognised as one later: commit it by hand.`
+      `${unknown} synced ${plural(unknown, 'row differs', 'rows differ')} from descriptions.json, and this API does not say whether a live edit or an upload wrote ${plural(unknown, 'it', 'them')} (its worker predates that marker), so ${plural(unknown, 'it is', 'they are')} neither counted as drift nor exported. If one is a live edit, commit it by hand; nothing more can be saved from this page until that worker is deployed.`
     );
   }
   const notesHtml = notes.map(n => `<p class="community-hint">${escapeHtml(n)}</p>`).join('');
