@@ -44,7 +44,7 @@ waypoints, or to OpenStreetMap points of interest (shops, cafés, campgrounds
 and the like) shown in the app, are stored on our servers and published: every
 user of the app sees them, and anyone can read them through our public API,
 not only users of the app. What is published is the text, the water status,
-the photos, your display name, and the time of posting to the second (for a
+the photos, your display name, and the time of posting to the millisecond (for a
 water report, also the day you say you saw the water: we keep and show only
 the date, never the time of day). Taken together, a display name's comments
 show where and when its hiker was on a trail, so choose a display name you are
@@ -245,7 +245,7 @@ not store, log or publish any of that, and its result is the count alone.
 Settings → **Your comments** → **Export my comments** (on the phone)
 downloads every comment and water report you have posted, including ones you
 or a moderator have since deleted, as a JSON file you can save or send. It
-holds what we store for each: the trail and waypoint or place, the text, water
+holds, for each: the trail and waypoint or place, the text, water
 status, times, photo links, and whether and by whom it was deleted. It does
 not include your display name. If you want a copy, export it and save the file
 somewhere outside the app (Files, a cloud drive, an email to yourself) before

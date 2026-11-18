@@ -203,7 +203,7 @@ display name the hiker chooses. There is no email, password or sign-up.
    return. The privacy policy now says so plainly, and `docs/public-api.md`
    describes the reads for anyone who finds them. The project does not
    advertise a bulk export or publish a dataset dump, because:
-   - each comment carries its display name and to-the-second times, and a
+   - each comment carries its display name and to-the-millisecond times, and a
      photo can carry its EXIF location, so an easy bulk export would make it
      trivial to follow one hiker along a trail;
    - a mirror keeps what a later delete, account deletion or moderation hide
