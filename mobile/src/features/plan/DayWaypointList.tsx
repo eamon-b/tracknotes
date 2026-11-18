@@ -13,6 +13,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { dayDaylight } from '@lib/daylight';
 import { formatDistance, formatElevation } from '@lib/format-distance';
 import type { ComputedDay } from '@lib/plan-types';
 import { OSM_ATTRIBUTION, poiCategoryLabel, poiDisplayName, poiRouteKey } from '@lib/poi-display';
@@ -51,6 +52,8 @@ export function DayWaypointList({
 }) {
   const router = useRouter();
   const { colors } = useTheme();
+  // Hours of daylight on the day's date, beside the estimate (dated plans only).
+  const light = dayDaylight(day);
   const units = useSettingsStore((s) => s.units);
   const showOnMap = useShowOnMap(trailId);
   const hasPoiRows = entries.some((entry) => entry.kind === 'poi');
@@ -75,7 +78,7 @@ export function DayWaypointList({
               {`${day.startName} → ${day.endName}`}
             </Text>
             <Text style={[styles.summaryStats, { color: colors.textSecondary }]}>
-              {`${formatDistance(day.distanceKm, units)} · ↑ ${formatElevation(day.ascentM, units)} · ↓ ${formatElevation(day.descentM, units)} · ${formatHours(day.estimatedHours)}`}
+              {`${formatDistance(day.distanceKm, units)} · ↑ ${formatElevation(day.ascentM, units)} · ↓ ${formatElevation(day.descentM, units)} · ${formatHours(day.estimatedHours)}${light ? ` · ${formatHours(light.daylightHours)} daylight` : ''}`}
             </Text>
           </View>
           <PoiFilterChips pois={pois} />

@@ -11,8 +11,9 @@
  *
  * The maths is the standard sunrise equation with NOAA's Fourier series for
  * the sun's declination: no dependency, nothing platform-specific. Checked
- * against suncalc it agrees to about a minute at the latitudes the trails
- * are at, and to about five at 65 degrees around the solstice.
+ * against suncalc over a whole year it stays within about two minutes at the
+ * latitudes the trails are at (worst around the equinoxes), and within about
+ * five at 65 degrees.
  */
 
 import type { ComputedDay } from './plan-types';
@@ -73,15 +74,22 @@ export function daylightHours(latitude: number, isoDate: string): number | undef
 
 /** A planned day's daylight, set beside its estimated walking time. */
 export interface DayDaylight {
-  /** Hours from sunrise to sunset where the day is walked, on its date. */
+  /**
+   * Hours from sunrise to sunset where the day is walked, on its date, to
+   * 0.1 h: the precision `estimatedHours` is given to, and all the figure is
+   * good for (see the accuracy note above). Show it in the same form as the
+   * estimate, so the two can be read against each other.
+   */
   daylightHours: number;
   /**
-   * Hours by which the estimated walking time is longer than the daylight, to
-   * the 0.1 h the estimate itself is given to; 0 when the walk fits. Walking
-   * time only - the estimate has no breaks in it.
+   * `estimatedHours` minus `daylightHours`, to 0.1 h; 0 when the walk fits.
+   * Taken from the two figures as shown, so a card never disagrees with its
+   * own arithmetic. Walking time only - the estimate has no breaks in it.
    */
   shortfallHours: number;
 }
+
+const toTenth = (hours: number): number => Math.round(hours * 10) / 10;
 
 /**
  * Daylight for a computed day, or null when it cannot be said: the plan has
@@ -93,19 +101,11 @@ export interface DayDaylight {
  */
 export function dayDaylight(day: Pick<ComputedDay, 'date' | 'latitude' | 'estimatedHours'>): DayDaylight | null {
   if (day.date === undefined || day.latitude === undefined) return null;
-  const hours = daylightHours(day.latitude, day.date);
-  if (hours === undefined) return null;
+  const exact = daylightHours(day.latitude, day.date);
+  if (exact === undefined) return null;
+  const hours = toTenth(exact);
   return {
     daylightHours: hours,
-    shortfallHours: Math.round(Math.max(0, day.estimatedHours - hours) * 10) / 10,
+    shortfallHours: toTenth(Math.max(0, day.estimatedHours - hours)),
   };
-}
-
-/** "9 h 10 min", "12 h", "45 min" - a length of time to the whole minute. */
-export function formatDaylightDuration(hours: number): string {
-  const totalMinutes = Math.max(0, Math.round(hours * 60));
-  const h = Math.floor(totalMinutes / 60);
-  const m = totalMinutes % 60;
-  if (h === 0) return `${m} min`;
-  return m === 0 ? `${h} h` : `${h} h ${m} min`;
 }

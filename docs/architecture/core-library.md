@@ -261,12 +261,13 @@ Shared processing modules (used by both web and mobile):
 - `daylight.ts` - Hours of daylight on a planned day, set beside its estimated walking time.
   `daylightHours(latitude, isoDate)` is the sunrise equation with NOAA's declination series: sunrise to sunset in hours, 0 in polar night and 24 under the midnight sun, undefined for an unusable latitude or date.
   It gives a length and never a clock time, because a length needs no time zone and a clock time does (half-hour zones on Heysen and Larapinta, daylight saving, a phone abroad).
-  It has no dependency; against suncalc it agrees to about a minute at the trails' latitudes.
+  It has no dependency; against suncalc over a whole year it stays within about two minutes at the trails' latitudes (worst around the equinoxes).
   `dayDaylight(day)` reads a `ComputedDay`'s `date` and `latitude` and returns `{ daylightHours, shortfallHours }`, or null without a start date;
-  `shortfallHours` is the estimate minus the daylight to the estimate's own 0.1 h, 0 when the walk fits.
+  both are to 0.1 h, the precision `estimatedHours` is given to, and `shortfallHours` is the difference of the two figures as shown (0 when the walk fits), so a card never disagrees with its own arithmetic.
+  Show the daylight in the same form as the estimate beside it.
   `computeDays` writes `latitude` (the mean of the route's latitude at the day's two ends, two decimals) from the same points and km space as the rest of the day, so a reversed or section-scoped trail needs no special case, and `computePlanDays` moving a date for rest days needs no recompute.
   It states two figures and their difference and sets no threshold: whether to start before dawn is the hiker's call.
-  `formatDaylightDuration` is "9 h 32 min".
+  `plan-export` adds it to a dated day's description ("9.5 h of daylight.").
 - `resupply-calculator.ts` - Town resupply points and the km between them, and food carry weight (grams per day required, never defaulted);
   days and the long-carry flag are worked out per leg in `resupply-plan.ts`;
   which waypoints count comes from `isResupplyWaypoint` in `waypoint-taxonomy.ts`

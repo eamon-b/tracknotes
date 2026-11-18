@@ -19,6 +19,7 @@
  * RN-safe: no DOM, no Node, no crypto.
  */
 
+import { dayDaylight } from './daylight';
 import { hashString } from './gpx-import';
 import { KM_EPSILON, stopsToActive, type PlanDirection } from './plan-direction';
 import { startZeroDateOffset, startZeroDaysOf } from './plan-editor';
@@ -465,6 +466,8 @@ export function planToIcs(input: PlanIcsInput): string | null {
     if (halfStartZero && day === firstDay) desc.push('Half a zero day first, then the walk.');
     const climb = `↑${fmtEle(day.ascentM)} ↓${fmtEle(day.descentM)}`;
     desc.push(`${fmtKm(day.distanceKm)}, ${climb}, about ${day.estimatedHours.toFixed(1)} h walking.`);
+    const light = dayDaylight(day);
+    if (light) desc.push(`${light.daylightHours.toFixed(1)} h of daylight.`);
     if (day.offTrailKm && day.offTrailKm > 0) desc.push(`Includes ${fmtKm(day.offTrailKm)} off the route.`);
     desc.push(`Route km ${day.startKm.toFixed(1)} to ${day.endKm.toFixed(1)}.`);
     if (stop) {

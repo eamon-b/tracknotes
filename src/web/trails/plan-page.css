@@ -252,8 +252,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
   font-weight: 600;
   color: var(--text-secondary);
 }
+/* A statement of two figures, not a warning: muted, like the stats above it. */
+.day-card-daylight {
+  margin-top: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
 .day-card-rest,
-.day-card-daylight,
 .days-start-zero {
   margin-top: 0.3rem;
   font-size: 0.72rem;
