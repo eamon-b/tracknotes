@@ -1,29 +1,29 @@
 import { describe, expect, it } from 'vitest';
-import type { ModeratedRow } from '../src/lib/moderation-attention';
-import { queueMarkdown, summarizeQueue } from './moderation-queue';
+import { parseCounts, queueMarkdown } from './moderation-queue';
 
-const row = (over: Partial<ModeratedRow> = {}): ModeratedRow => ({
-  deletedBy: null,
-  restoredAt: null,
-  reportCount: 1,
-  review: null,
-  ...over,
-});
-const review = (verdict: 'remove' | 'needs_human' | 'keep') => ({ verdict }) as ModeratedRow['review'];
+const body = {
+  comments: { waiting: 2, hidden: 1 },
+  waypoints: { waiting: 1, hidden: 0 },
+  total: 3,
+};
 
-describe('summarizeQueue', () => {
-  it('counts the rows the moderation page highlights, and the hidden ones among them', () => {
-    const summary = summarizeQueue(
-      [
-        row({ deletedBy: 'reports' }),
-        row({ review: review('needs_human') }),
-        row({ review: review('keep') }),
-        row({ review: review('remove'), restoredAt: '2026-11-01T00:00:00Z' }),
-        row({ deletedBy: 'admin' }),
-      ],
-      [row({ deletedBy: 'reports' }), row()]
-    );
-    expect(summary).toEqual({ comments: { waiting: 2, hidden: 1 }, waypoints: { waiting: 1, hidden: 1 }, total: 3 });
+describe('parseCounts', () => {
+  it('takes the counts route answer as it is', () => {
+    expect(parseCounts(body)).toEqual(body);
+  });
+
+  it('refuses a body that is not counts, without quoting it', () => {
+    for (const bad of [
+      null,
+      'secret text',
+      { ...body, total: 4 },
+      { ...body, comments: { waiting: -1, hidden: 0 } },
+      { ...body, waypoints: { waiting: 1, hidden: 2 } },
+      { ...body, comments: { waiting: '2', hidden: 1 } },
+      { comments: body.comments, total: 2 },
+    ]) {
+      expect(() => parseCounts(bad)).toThrow(/^GET \/v1\/admin\/moderation\/counts answered an unexpected body$/);
+    }
   });
 });
 

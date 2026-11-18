@@ -26,7 +26,7 @@ Shared processing modules (used by both web and mobile):
 - `escape.ts` - `escapeHtml` (see the hard rule in `CLAUDE.md`)
 - `comments-api-types.ts` - Wire types for the comments API, imported by the app and the worker.
   Plain types only: no runtime imports, no DOM or Node globals
-- `moderation-attention.ts` - `needsAttention`: which reported or reviewed comments and shared waypoints still need an admin, shared by the moderation page and the daily moderation check (`scripts/moderation-queue.ts`)
+- `moderation-attention.ts` - `needsAttention`: which reported or reviewed comments and shared waypoints still need an admin, shared by the moderation page and the comments API's counts route (`GET /v1/admin/moderation/counts`, which the daily moderation check `scripts/moderation-queue.ts` reads, and whose tests check its SQL agrees)
 - `gpx-optimizer.ts` - `douglasPeuckerIndices` (the one Douglas-Peucker; `community-checks` keeps a budgeted copy of its own), elevation spike removal and smoothing, `calculateElevationStats`/`cumulativeElevationChange` (the hysteresis climb) and `GPX_OPTIMIZER_DEFAULTS` (spike threshold, smoothing window).
   The gpx-tools optimise/batch/serialise pipeline it was ported with is gone: nothing called it
 - `track-simplify.ts` - Target-point-count simplification + coordinate truncation (the mobile point budget); `simplifyTrack` is `douglasPeuckerIndices` mapped back to the points

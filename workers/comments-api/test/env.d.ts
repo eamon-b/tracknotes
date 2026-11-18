@@ -14,6 +14,7 @@ declare global {
       SITE_BASE: string;
       ANTHROPIC_API_KEY?: string;
       OVERPASS_ENDPOINTS?: string;
+      MODERATION_COUNTS_TOKEN?: string;
       TEST_MIGRATIONS: D1Migration[];
     }
   }

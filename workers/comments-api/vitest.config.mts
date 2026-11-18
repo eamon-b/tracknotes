@@ -28,6 +28,8 @@ export default defineConfig(async () => {
             SITE_BASE: 'https://site.test',
             // No real Overpass from tests: the POI tests inject endpoints and a fetch.
             OVERPASS_ENDPOINTS: '',
+            // The read-only credential of GET /v1/admin/moderation/counts.
+            MODERATION_COUNTS_TOKEN: 'test-moderation-counts-token-0123456789abcdef',
           },
           // Local R2 bucket backing the PHOTOS binding (wrangler.toml declares
           // the binding; this provisions its miniflare-local store for tests).

@@ -38,6 +38,13 @@ export interface Env {
    * enrichment off: routes are then shared without POIs.
    */
   OVERPASS_ENDPOINTS?: string;
+  /**
+   * Secret: the read-only credential of `GET /v1/admin/moderation/counts`
+   * (`moderation-counts.ts`), which the daily Moderation queue workflow sends.
+   * Accepted on that route only. Unset (or under 32 characters) = the route
+   * refuses every caller.
+   */
+  MODERATION_COUNTS_TOKEN?: string;
 }
 
 /** Wide-open CORS — this is a public, read-mostly hobby API. */

@@ -38,6 +38,7 @@ PROBES=(
   "405 /v1/comments/00000000-0000-4000-8000-000000000000/report comment report, migration 0003, POST only"
   "405 /v1/admin/users/00000000-0000-4000-8000-000000000000/ban account ban, migration 0008, POST only"
   "405 /v1/admin/comments/00000000-0000-4000-8000-000000000000/restore comment restore, migration 0008, POST only"
+  "401 /v1/admin/moderation/counts moderation counts #365, needs the counts token"
 )
 
 ATTEMPTS=6

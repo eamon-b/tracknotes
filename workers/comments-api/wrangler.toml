@@ -85,6 +85,11 @@ AI_GATEWAY_ID = ""
 #     routes stay Unverified until an admin looks, and comments and waypoints
 #     are neither screened nor reviewed (three reports still hide one).
 #   AI_GATEWAY_TOKEN — only if the gateway is an Authenticated Gateway.
+#   MODERATION_COUNTS_TOKEN — the read-only bearer of GET
+#     /v1/admin/moderation/counts (src/moderation-counts.ts), which the daily
+#     Moderation queue workflow sends; at least 32 characters, the same value
+#     as the `moderation` GitHub environment's secret (docs/deploys.md).
+#     Without it that route refuses everyone.
 
 # ---------------------------------------------------------------------------
 # STAGING: a second copy of this Worker for testing a branch end to end

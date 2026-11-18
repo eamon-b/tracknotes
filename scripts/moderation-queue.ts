@@ -1,20 +1,18 @@
 /**
  * How many reported or flagged posts are waiting for an admin, for the daily
  * Moderation queue workflow, which fails while the count is above zero (the
- * failed-run email is the alert). It reads the moderation page's own listings
- * (`GET /v1/admin/comments?reported=1`, `GET /v1/admin/waypoints`) and counts
- * the rows that page highlights (`needsAttention`, `@lib/moderation-attention`).
- * The decisions stay on the page: this prints counts only, never post text or
- * user names, since the run's summary is public.
- * The API has no counts-only route, so the full listings (post text, display
- * names, reports) reach the runner: they are counted in memory and never
- * printed, written or kept, and an error names only the route and status.
- * docs/privacy-policy.md names GitHub Actions for this.
+ * failed-run email is the alert). It reads the comments API's counts-only route
+ * (`GET /v1/admin/moderation/counts`), which counts the rows the moderation page
+ * highlights (`needsAttention`, `@lib/moderation-attention`), with its own
+ * read-only credential, `MODERATION_COUNTS_TOKEN`: that token opens that one
+ * route and nothing else, and no post text, name or report reaches the runner.
+ * The decisions stay on the page: this prints counts only, since the run's
+ * summary is public, and an error names only the route and status.
  *
- * Usage: TRACKNOTES_ADMIN_TOKEN=... node scripts/moderation-queue.ts
+ * Usage: TRACKNOTES_MODERATION_COUNTS_TOKEN=... node scripts/moderation-queue.ts
  * Runs on Node's own type stripping (Node 22.18+), with no `npm ci`: it imports
- * only Node built-ins and `src/lib` files (by their `.ts` paths), so no
- * installed package runs while the admin token is in the environment.
+ * only Node built-ins and `src/lib` types, so no installed package runs while
+ * the token is in the environment.
  * Env: TRACKNOTES_API_BASE_URL (default https://api.tracknotes.info);
  * GITHUB_OUTPUT, when set, gets `count=<n>`.
  */
@@ -22,28 +20,30 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import type { AdminCommentsResponse, AdminSharedWaypointsResponse } from '../src/lib/comments-api-types.ts';
-import { needsAttention, type ModeratedRow } from '../src/lib/moderation-attention.ts';
+import type { ModerationCountsResponse, ModerationQueueCounts } from '../src/lib/comments-api-types.ts';
 
 const DEFAULT_API_BASE = 'https://api.tracknotes.info';
 const MODERATION_PAGE = 'https://tracknotes.info/admin-moderation.html';
-const LIMIT = 500;
+const COUNTS_ROUTE = '/v1/admin/moderation/counts';
 
-export interface QueueSummary {
-  comments: { waiting: number; hidden: number };
-  waypoints: { waiting: number; hidden: number };
-  total: number;
-}
+export type QueueSummary = ModerationCountsResponse;
 
-/** The rows waiting for an admin, and how many of them reports have hidden. */
-export function summarizeQueue(comments: readonly ModeratedRow[], waypoints: readonly ModeratedRow[]): QueueSummary {
-  const count = (rows: readonly ModeratedRow[]) => {
-    const waiting = rows.filter(needsAttention);
-    return { waiting: waiting.length, hidden: waiting.filter(r => r.deletedBy === 'reports').length };
+const isCount = (n: unknown): n is number => typeof n === 'number' && Number.isInteger(n) && n >= 0;
+
+/** The counts route's answer, checked, or an error that names nothing from the body. */
+export function parseCounts(body: unknown): QueueSummary {
+  const table = (v: unknown): ModerationQueueCounts | null => {
+    if (v === null || typeof v !== 'object') return null;
+    const { waiting, hidden } = v as Record<string, unknown>;
+    return isCount(waiting) && isCount(hidden) && hidden <= waiting ? { waiting, hidden } : null;
   };
-  const c = count(comments);
-  const w = count(waypoints);
-  return { comments: c, waypoints: w, total: c.waiting + w.waiting };
+  const o = (body ?? {}) as Record<string, unknown>;
+  const comments = table(o.comments);
+  const waypoints = table(o.waypoints);
+  if (!comments || !waypoints || o.total !== comments.waiting + waypoints.waiting) {
+    throw new Error(`GET ${COUNTS_ROUTE} answered an unexpected body`);
+  }
+  return { comments, waypoints, total: o.total };
 }
 
 /** The run summary for a queue. */
@@ -62,23 +62,15 @@ export function queueMarkdown(summary: QueueSummary): string {
   ].join('\n');
 }
 
-async function get<T>(base: string, token: string, route: string): Promise<T> {
-  const response = await fetch(`${base}${route}`, {
+async function main(): Promise<void> {
+  const token = process.env.TRACKNOTES_MODERATION_COUNTS_TOKEN;
+  if (!token) throw new Error('TRACKNOTES_MODERATION_COUNTS_TOKEN is not set');
+  const base = (process.env.TRACKNOTES_API_BASE_URL || DEFAULT_API_BASE).replace(/\/+$/, '');
+  const response = await fetch(`${base}${COUNTS_ROUTE}`, {
     headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
   });
-  if (!response.ok) throw new Error(`GET ${route} answered ${response.status}`);
-  return (await response.json()) as T;
-}
-
-async function main(): Promise<void> {
-  const token = process.env.TRACKNOTES_ADMIN_TOKEN;
-  if (!token) throw new Error('TRACKNOTES_ADMIN_TOKEN is not set');
-  const base = (process.env.TRACKNOTES_API_BASE_URL || DEFAULT_API_BASE).replace(/\/+$/, '');
-  const [comments, waypoints] = await Promise.all([
-    get<AdminCommentsResponse>(base, token, `/v1/admin/comments?reported=1&limit=${LIMIT}`),
-    get<AdminSharedWaypointsResponse>(base, token, `/v1/admin/waypoints?limit=${LIMIT}`),
-  ]);
-  const summary = summarizeQueue(comments.comments, waypoints.waypoints);
+  if (!response.ok) throw new Error(`GET ${COUNTS_ROUTE} answered ${response.status}`);
+  const summary = parseCounts(await response.json().catch(() => null));
   console.log(queueMarkdown(summary));
   if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `count=${summary.total}\n`);
 }

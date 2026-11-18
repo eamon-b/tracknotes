@@ -24,6 +24,7 @@ import {
 } from './comments';
 import { uploadCommentPhoto } from './photos';
 import { adminBanUser } from './moderation';
+import { getModerationCounts } from './moderation-counts';
 import {
   adminListSharedWaypoints,
   adminRestoreSharedWaypoint,
@@ -260,6 +261,12 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
     // /v1/admin/comments/:id/restore
     if (rest.length === 4 && rest[0] === 'admin' && rest[1] === 'comments' && rest[3] === 'restore') {
       if (method === 'POST') return await adminRestoreComment(request, env, ctx, rest[2]);
+      return methodNotAllowed();
+    }
+
+    // /v1/admin/moderation/counts — the counts token's only route
+    if (rest.length === 3 && rest[0] === 'admin' && rest[1] === 'moderation' && rest[2] === 'counts') {
+      if (method === 'GET') return await getModerationCounts(request, env);
       return methodNotAllowed();
     }
 

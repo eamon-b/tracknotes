@@ -1,9 +1,11 @@
 /**
  * Which moderated rows (reported or reviewed comments and shared waypoints)
  * still need an admin. The moderation page (`src/web/admin-moderation.ts`)
- * highlights them, and the daily moderation check
- * (`scripts/moderation-queue.ts`) counts them, so both agree on what the
- * queue is.
+ * highlights them, and the comments API's counts route
+ * (`GET /v1/admin/moderation/counts`, `workers/comments-api/src/moderation-counts.ts`),
+ * which the daily moderation check (`scripts/moderation-queue.ts`) reads, counts
+ * them by the same rule in SQL (its tests check the two agree), so both agree on
+ * what the queue is.
  */
 
 import type { ContentReview, DeletedBy } from './comments-api-types';

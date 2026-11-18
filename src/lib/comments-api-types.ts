@@ -264,6 +264,22 @@ export interface AdminSharedWaypointsResponse {
   waypoints: AdminSharedWaypoint[];
 }
 
+/** One table's moderation queue: the rows waiting for an admin, and how many of them are hidden. */
+export interface ModerationQueueCounts {
+  /** Rows the moderation page highlights (`needsAttention`, `@lib/moderation-attention`). */
+  waiting: number;
+  /** Of those, hidden by reports or the review until an admin decides. */
+  hidden: number;
+}
+
+/** GET /v1/admin/moderation/counts response (the counts token's only route). */
+export interface ModerationCountsResponse {
+  comments: ModerationQueueCounts;
+  waypoints: ModerationQueueCounts;
+  /** `comments.waiting + waypoints.waiting`. */
+  total: number;
+}
+
 /** POST /v1/admin/users/:id/ban response. */
 export interface BanUserResponse {
   userId: string;
