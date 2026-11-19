@@ -358,6 +358,8 @@ export default function WaypointDetailScreen() {
 
   // The curated description arrives over the comments sync channel and
   // overrides the near-empty bundled one. The feed's own pull lands it.
+  // The repo resolves it: a later pass of a revisited place (`<id>_2`) shows
+  // its place's text, which is stored under the first pass's id.
   const [syncedDescription, setSyncedDescription] = useState<string | null>(null);
   useEffect(() => {
     if (!commentWaypointId) return;

@@ -70,6 +70,79 @@ describe('waypoint-meta-repo', () => {
     expect(await metaRepo.getDescription(d, 'aawt', 'nope')).toBeNull();
   });
 
+  describe('a later pass of a revisited place (<id>_2)', () => {
+    const FIRST = 'w_07233ee1';
+    const LATER = 'w_07233ee1_2';
+    const ABSENT = undefined;
+
+    // Every combination of the later pass's own row and the first pass's:
+    // absent, cleared ('') or text. `null` means the screen shows the bundled text.
+    it.each<[string | undefined, string | undefined, string | null]>([
+      [ABSENT, ABSENT, null],
+      [ABSENT, 'Place.', 'Place.'],
+      [ABSENT, '', null],
+      ['Own.', ABSENT, 'Own.'],
+      ['Own.', 'Place.', 'Own.'],
+      ['Own.', '', 'Own.'],
+      ['', ABSENT, null],
+      // A cleared row holds no text: it does not hide the first pass.
+      ['', 'Place.', 'Place.'],
+      ['', '', null],
+    ])('own row %j, first-pass row %j: shows %j', async (own, first, shown) => {
+      const d = await db();
+      const rows = [
+        ...(own === ABSENT ? [] : [{ waypointId: LATER, description: own, updatedAt: 'T1' }]),
+        ...(first === ABSENT ? [] : [{ waypointId: FIRST, description: first, updatedAt: 'T1' }]),
+      ];
+      await metaRepo.upsertDescriptions(d, 'three_passes', rows);
+      expect(await metaRepo.getDescription(d, 'three_passes', LATER)).toBe(shown);
+    });
+
+    it('follows the first pass through an edit and a clear', async () => {
+      const d = await db();
+      await metaRepo.upsertDescriptions(d, 'three_passes', [
+        { waypointId: FIRST, description: 'Lodge open.', updatedAt: 'T1' },
+      ]);
+      expect(await metaRepo.getDescription(d, 'three_passes', LATER)).toBe('Lodge open.');
+      await metaRepo.upsertDescriptions(d, 'three_passes', [
+        { waypointId: FIRST, description: 'Lodge closed.', updatedAt: 'T2' },
+      ]);
+      expect(await metaRepo.getDescription(d, 'three_passes', LATER)).toBe('Lodge closed.');
+      await metaRepo.upsertDescriptions(d, 'three_passes', [
+        { waypointId: FIRST, description: '', updatedAt: 'T3' },
+      ]);
+      expect(await metaRepo.getDescription(d, 'three_passes', LATER)).toBeNull();
+    });
+
+    it('never gives the first pass a later pass’s text', async () => {
+      const d = await db();
+      await metaRepo.upsertDescriptions(d, 'three_passes', [
+        { waypointId: LATER, description: 'Own.', updatedAt: 'T1' },
+      ]);
+      expect(await metaRepo.getDescription(d, 'three_passes', FIRST)).toBeNull();
+      expect(await metaRepo.getDescription(d, 'three_passes', 'w_07233ee1_3')).toBeNull();
+    });
+
+    it('reads the first pass from the same trail only', async () => {
+      const d = await db();
+      await metaRepo.upsertDescriptions(d, 'aawt', [
+        { waypointId: FIRST, description: 'Another trail.', updatedAt: 'T1' },
+      ]);
+      expect(await metaRepo.getDescription(d, 'three_passes', LATER)).toBeNull();
+    });
+
+    it('reads no pass into an id that merely ends in digits', async () => {
+      const d = await db();
+      await metaRepo.upsertDescriptions(d, 'aawt', [
+        { waypointId: 'w', description: 'Not a place.', updatedAt: 'T1' },
+        { waypointId: 'osm_node', description: 'Not a place either.', updatedAt: 'T1' },
+      ]);
+      // Hex that is all digits is an id of its own, and an OSM place is no waypoint.
+      expect(await metaRepo.getDescription(d, 'aawt', 'w_00176641')).toBeNull();
+      expect(await metaRepo.getDescription(d, 'aawt', 'osm_node_12')).toBeNull();
+    });
+  });
+
   it('keeps the meta high-water mark separate from the comment cursor', async () => {
     const d = await db();
     expect(await metaRepo.readMetaSyncedAt(d, 'aawt')).toBeUndefined();
