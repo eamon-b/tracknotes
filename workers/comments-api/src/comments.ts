@@ -433,7 +433,7 @@ export async function getMyComments(request: Request, env: Env, ctx: ExecutionCo
 }
 
 // ---------------------------------------------------------------------------
-// GET /v1/admin/comments — admin listing (newest across all trails)
+// GET /v1/admin/comments — admin listing (newest across all trails, or one trail to its end)
 // ---------------------------------------------------------------------------
 
 /**
@@ -445,34 +445,70 @@ export function parseAdminReports(raw: string | null): AdminCommentReport[] {
   return reports.sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id));
 }
 
-/**
- * Every comment, newest first; with `?reported=1` only the reported or
- * reviewed ones: those hidden by reports or the review first, then those the
- * review would remove or wants a human for, then by report count. Each carries its reports
- * (reason and detail) and whether its author is banned, which is what the
- * moderation page (`src/web/admin-moderation.ts`) acts on.
- */
-export async function getAdminComments(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-  await requireAdmin(request, env, ctx);
-  const url = new URL(request.url);
-  const limit = parseLimit(url.searchParams.get('limit'), ADMIN_DEFAULT_LIMIT, ADMIN_MAX_LIMIT);
-  const reportedOnly = url.searchParams.get('reported') === '1';
+/** A comment with a report, or one the automated review has looked at: what `?reported=1` lists. */
+const REPORTED_OR_REVIEWED_SQL = 'c.id IN (SELECT comment_id FROM comment_reports) OR c.review_status IS NOT NULL';
 
-  // Driven from the reports' own index and the reviewed rows' partial index
-  // (a post the screen flagged may have no report), so it scales with what
-  // was reported or reviewed. Unfiltered, it walks `idx_comments_created`
-  // (migration 0012) backwards and stops at the LIMIT. Either way the reports
-  // themselves are gathered only for the page, outside the LIMIT; the outer
-  // query repeats the order, which a subquery's does not carry.
-  const where = reportedOnly
-    ? 'WHERE c.id IN (SELECT comment_id FROM comment_reports) OR c.review_status IS NOT NULL'
-    : '';
+/**
+ * What `?moderated=1` lists: every comment moderation has touched and its
+ * author has not withdrawn — taken down by reports, the review or an admin,
+ * or still published with a report or a review result.
+ */
+const MODERATED_SQL = `c.deleted_by IS NOT 'owner' AND (c.deleted_at IS NOT NULL OR ${REPORTED_OR_REVIEWED_SQL})`;
+
+export interface AdminCommentsQuery {
+  /** `?reported=1`: only comments with a report or a review result. */
+  reportedOnly: boolean;
+  /** `?trail=`: only this trail's comments, in keyset order. */
+  trailId?: string;
+  /** `?moderated=1` (with `trail`): only what moderation has touched (`MODERATED_SQL`). */
+  moderatedOnly?: boolean;
+  /** `?cursor=` (with `trail`): continue after this `(created_at, id)`. */
+  cursor?: { sortValue: string; id: string } | null;
+}
+
+/**
+ * The listing's SQL and its binds, bar the final LIMIT bind.
+ *
+ * Across every trail it is one read with no cursor: every comment newest
+ * first, which walks `idx_comments_created` (migration 0013) backwards and
+ * stops at the LIMIT; or with `reportedOnly` the reported or reviewed ones,
+ * driven from the reports' own index and the reviewed rows' partial index (a
+ * post the screen flagged may have no report), so it scales with what was
+ * reported or reviewed.
+ *
+ * For one trail it is always newest first by `(created_at, id)`, whatever
+ * `reportedOnly` says: both columns are immutable, so a keyset over them
+ * neither skips nor repeats a row however the rows change between pages,
+ * which the reported-first order (hidden, flagged, a report count that moves
+ * with every report) cannot promise.
+ *
+ * Either way the reports themselves are gathered only for the page, outside
+ * the LIMIT; the outer query repeats the order, which a subquery's does not
+ * carry.
+ */
+export function adminCommentsSql(query: AdminCommentsQuery): { sql: string; binds: unknown[] } {
+  const { reportedOnly, trailId, moderatedOnly = false, cursor = null } = query;
+  const binds: unknown[] = [];
+  let where: string;
+  if (trailId === undefined) {
+    where = reportedOnly ? `WHERE ${REPORTED_OR_REVIEWED_SQL}` : '';
+  } else {
+    const conditions = ['c.trail_id = ?'];
+    binds.push(trailId);
+    if (reportedOnly) conditions.push(`(${REPORTED_OR_REVIEWED_SQL})`);
+    if (moderatedOnly) conditions.push(MODERATED_SQL);
+    if (cursor) {
+      // Newest-first keyset: advance to strictly-older rows.
+      conditions.push('(c.created_at < ? OR (c.created_at = ? AND c.id < ?))');
+      binds.push(cursor.sortValue, cursor.sortValue, cursor.id);
+    }
+    where = `WHERE ${conditions.join(' AND ')}`;
+  }
   const order = (a: string, count: string) =>
-    reportedOnly
+    reportedOnly && trailId === undefined
       ? `(${a}.deleted_by IS 'reports') DESC, ${reviewFlaggedSql(a)} DESC, ${count} DESC, ${a}.created_at DESC, ${a}.id DESC`
       : `${a}.created_at DESC, ${a}.id DESC`;
-  const { results } = await env.DB.prepare(
-    `SELECT p.*,
+  const sql = `SELECT p.*,
             (SELECT json_group_array(json_object(
                       'id', r.id, 'reporterUserId', r.user_id,
                       'reporterDisplayName', ru.display_name, 'reason', r.reason,
@@ -486,9 +522,53 @@ export async function getAdminComments(request: Request, env: Env, ctx: Executio
               ${where}
               ORDER BY ${order('c', 'report_count')}
               LIMIT ?) p
-      ORDER BY ${order('p', 'p.report_count')}`
-  )
-    .bind(limit)
+      ORDER BY ${order('p', 'p.report_count')}`;
+  return { sql, binds };
+}
+
+/**
+ * Across every trail (no `trail`): every comment, newest first; with
+ * `?reported=1` only the reported or reviewed ones: those hidden by reports or
+ * the review first, then those the review would remove or wants a human for,
+ * then by report count. One read of up to `limit` rows, with no cursor.
+ *
+ * For one trail (`?trail=<id>`, a curated trail or a community route): that
+ * trail's comments newest first by `(created_at, id)`, paged to the end with
+ * `cursor` (the response's `nextCursor`, null on the last page). `reported=1`
+ * narrows it as above (the order stays newest first), `moderated=1` to what
+ * moderation has touched (`MODERATED_SQL`): the set the waypoint editor lays
+ * over a trail's public comments. The response echoes `trailId`, which a
+ * worker from before the filter does not, so a client can tell an answer for
+ * its trail from an unfiltered one. `cursor` and `moderated` are refused
+ * without `trail`.
+ *
+ * Each row carries its reports (reason and detail) and whether its author is
+ * banned, which is what the moderation page (`src/web/admin-moderation.ts`)
+ * acts on.
+ */
+export async function getAdminComments(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  await requireAdmin(request, env, ctx);
+  const url = new URL(request.url);
+  const limit = parseLimit(url.searchParams.get('limit'), ADMIN_DEFAULT_LIMIT, ADMIN_MAX_LIMIT);
+  const reportedOnly = url.searchParams.get('reported') === '1';
+  const moderatedOnly = url.searchParams.get('moderated') === '1';
+  const trailRaw = url.searchParams.get('trail');
+  const cursor = decodeCursor(url.searchParams.get('cursor'));
+
+  let trailId: string | undefined;
+  if (trailRaw !== null) {
+    trailId = (await resolveTrail(env, trailRaw, 'read')).id;
+  } else {
+    // Only a trail's listing has a keyset order, and only it is narrow enough
+    // for the moderated filter to stay off a walk of the whole table.
+    if (cursor) throw new HttpError(400, 'invalid_cursor', 'cursor needs trail: only one trail’s listing is paged');
+    if (moderatedOnly) throw new HttpError(400, 'invalid_moderated', 'moderated=1 needs trail');
+  }
+
+  const { sql, binds } = adminCommentsSql({ reportedOnly, trailId, moderatedOnly, cursor });
+  const { results } = await env.DB.prepare(sql)
+    // A trail's page reads one row past the limit to learn whether there is another.
+    .bind(...binds, trailId === undefined ? limit : limit + 1)
     .all<
       CommentRow & {
         display_name: string;
@@ -499,6 +579,13 @@ export async function getAdminComments(request: Request, env: Env, ctx: Executio
         reports_json: string | null;
       }
     >();
+
+  let nextCursor: string | null = null;
+  if (trailId !== undefined && results.length > limit) {
+    results.length = limit;
+    const last = results[results.length - 1];
+    nextCursor = encodeCursor(last.created_at, last.id);
+  }
 
   const comments: AdminComment[] = results.map((row) => {
     const reports = parseAdminReports(row.reports_json);
@@ -526,7 +613,8 @@ export async function getAdminComments(request: Request, env: Env, ctx: Executio
     };
   });
 
-  const payload: AdminCommentsResponse = { comments };
+  // The unfiltered answer keeps the shape it has always had.
+  const payload: AdminCommentsResponse = trailId === undefined ? { comments } : { comments, trailId, nextCursor };
   return json(payload);
 }
 
