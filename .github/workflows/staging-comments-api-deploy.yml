@@ -99,7 +99,6 @@ jobs:
       HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
       BUILD_RUN_ID: ${{ github.event.workflow_run.id }}
       RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-      DEPLOY_DIR: ${{ runner.temp }}/deploy
     defaults:
       run:
         shell: bash
@@ -128,6 +127,10 @@ jobs:
       # under names we expect, next to main's wrangler.toml, in a directory with
       # nothing else in it.
       - name: Assemble the deploy directory
+        # Step-level: GitHub refuses the `runner` context in a job's `env`, and
+        # rejects the whole file for it (no run starts at all).
+        env:
+          DEPLOY_DIR: ${{ runner.temp }}/deploy
         run: |
           art="$RUNNER_TEMP/artifact"
           if [ -n "$(find "$art" -type l)" ]; then
