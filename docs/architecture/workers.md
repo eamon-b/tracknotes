@@ -36,11 +36,11 @@ Without it the link's host is the placeholder, deliberately not `tracknotes.info
 **Deploying.**
 Agents may deploy staging; production deploys only from `main` (`docs/deploys.md`).
 The *Staging comments API* workflow (`.github/workflows/staging-comments-api.yml`) runs on every same-repo PR that touches `workers/comments-api/**` (never a fork's), and from *Run workflow* on any branch: a guard, the staging migrations, a staging deploy, then `scripts/probe-comments-api.sh` against the staging URL (in the run's summary).
-It runs no tests (the *Tests* workflow does), because its job holds the staging token: it installs only the runtime dependencies with `--ignore-scripts`, calls a pinned `wrangler` installed outside the checkout instead of `npm run`, and first checks that the branch's `[env.staging]` names `main`'s staging Worker, D1 and R2 and nothing of production's, and has no `[build]` command (the guard step, `docs/deploys.md` for what it cannot stop).
+It runs no tests (the *Tests* workflow does), because its job holds the staging token: it installs only the runtime dependencies with `--ignore-scripts`, calls `wrangler` installed outside the checkout instead of `npm run` (the version `main`'s `package-lock.json` resolves, which production deploys with, so the two cannot drift and a branch cannot choose it), and first checks that the branch's `[env.staging]` names `main`'s staging Worker, D1 and R2 and nothing of production's, and has no `[build]` command (the guard step, `docs/deploys.md` for what it cannot stop).
 Runs never overlap, and GitHub keeps one pending run: a third run cancels the one waiting, so re-run a cancelled run to put that branch back on staging.
 A PR run deploys the PR merged into its base, as CI tests it.
 It uses only the staging secrets `CLOUDFLARE_STAGING_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` and the variable `STAGING_API_BASE_URL` (the staging URL, which it probes), all on the GitHub environment `staging`, never production's `CLOUDFLARE_API_TOKEN`;
-without them it ends with a notice and deploys nothing.
+without them its `configured` job ends with a notice and the `staging` job is skipped (grey, not green), so a green `staging` check always means the branch was deployed and probed.
 By hand, from `workers/comments-api/` with the staging token in `CLOUDFLARE_API_TOKEN`: `npm run migrate:staging && npm run deploy:staging`, `npm run tail:staging` for its logs, and `scripts/probe-comments-api.sh <staging URL>` (or `COMMENTS_API_BASE_URL=<staging URL>`).
 A change only to `src/lib/` (which the worker bundles) does not trigger it: use *Run workflow*.
 
