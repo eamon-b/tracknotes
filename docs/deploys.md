@@ -108,8 +108,10 @@ leave `staging` unrestricted, since PR branches deploy there.
 - `R2_READ_ACCESS_KEY_ID` and `R2_READ_SECRET_ACCESS_KEY`: an R2 API token's S3 keys with *Object Read only* on `tracknotes-data`, for that dry run.
 - `AUTOMATION_TOKEN` (optional): a fine-grained personal access token for this repository with *Contents* and *Pull requests* read and write. *Te Araroa data* pushes and opens its PR with it, so the PR runs CI. A PR opened with the workflow's own token runs no workflows, so without it the PR has no checks, and GitHub must be allowed to open it at all (Settings → Actions → General → *Allow GitHub Actions to create and approve pull requests*).
 
-**`staging`** (the staging comments API, for PR branches, so not restricted to `main`).
-Put its secrets and variables on the environment, not at repository level, so only jobs that name `staging` can read them:
+**`staging`** (the staging comments API).
+Put its secrets and variables on the environment, not at repository level, so only jobs that name `staging` can read them.
+Restrict its *Deployment branches and tags* to `main` as well: the deploy workflow runs on `workflow_run`, whose jobs run on `main` whatever branch was built, so a branch's own workflow that names `staging` is refused the token.
+A repository-level copy of the token would be readable by every branch's workflows, which the split below exists to prevent.
 
 - `CLOUDFLARE_STAGING_API_TOKEN`: its own token, never the production one, with *Account → Workers Scripts → Edit* and *Account → D1 → Edit*, no zone resources (staging is on `workers.dev`; add *Account → Account Settings → Read* if `wrangler deploy` asks for it).
 - `CLOUDFLARE_ACCOUNT_ID`.
