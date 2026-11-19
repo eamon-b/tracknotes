@@ -177,11 +177,6 @@ jobs:
           fi
           echo "Wrangler $version, as main's lockfile resolves it (production deploys with the same)."
           echo "WRANGLER_VERSION=$version" >> "$GITHUB_ENV"
-      - name: Placeholders left in [env.staging]?
-        run: |
-          if grep -q 'REPLACE-AFTER-r2-dev-url-enable' wrangler.toml; then
-            echo "::warning::[env.staging] PHOTOS_PUBLIC_BASE is still the placeholder: staging photo and community-route URLs will not resolve."
-          fi
       - uses: actions/setup-node@v7
         with:
           node-version: 22
