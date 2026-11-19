@@ -95,6 +95,41 @@ describe('pullTrail — waypoint descriptions', () => {
     expect(row?.n).toBe(1); // tombstone kept
   });
 
+  it('shows a place’s pulled description on its later pass too (<id>_2)', async () => {
+    // The API holds one row per place, under the first pass's id.
+    const d = await db();
+    const fetchImpl = routedFetch({
+      descriptions: {
+        descriptions: [{ waypointId: 'w_07233ee1', description: 'Lodge closed.', updatedAt: 'M1' }],
+        syncedAt: 'M1',
+      },
+    });
+
+    await pullTrail('three_passes', { db: d, baseUrl: BASE, fetchImpl });
+    expect(await metaRepo.getDescription(d, 'three_passes', 'w_07233ee1')).toBe('Lodge closed.');
+    expect(await metaRepo.getDescription(d, 'three_passes', 'w_07233ee1_2')).toBe('Lodge closed.');
+  });
+
+  it('lets a later pass follow the first again once its own row is withdrawn', async () => {
+    // An edit made on the pass's own id before passes followed the place, then
+    // cleared (or withdrawn by an upload, which cannot list a `_2` id).
+    const d = await db();
+    await metaRepo.upsertDescriptions(d, 'three_passes', [
+      { waypointId: 'w_07233ee1', description: 'Lodge closed.', updatedAt: 'M0' },
+      { waypointId: 'w_07233ee1_2', description: 'Older note.', updatedAt: 'M0' },
+    ]);
+    expect(await metaRepo.getDescription(d, 'three_passes', 'w_07233ee1_2')).toBe('Older note.');
+    const fetchImpl = routedFetch({
+      descriptions: {
+        descriptions: [{ waypointId: 'w_07233ee1_2', description: '', updatedAt: 'M1' }],
+        syncedAt: 'M1',
+      },
+    });
+
+    await pullTrail('three_passes', { db: d, baseUrl: BASE, fetchImpl });
+    expect(await metaRepo.getDescription(d, 'three_passes', 'w_07233ee1_2')).toBe('Lodge closed.');
+  });
+
   it('emits a sync change for description-only updates', async () => {
     const d = await db();
     const fetchImpl = routedFetch({
