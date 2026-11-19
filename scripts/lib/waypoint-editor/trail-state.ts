@@ -52,6 +52,7 @@ import { haversineDistance } from '../../../src/lib/distance';
 import type { ProcessedTrail, RouteVariant } from '../../../src/lib/trail-types';
 import { classifyWaypoint } from '../../../src/lib/waypoint-classifier';
 import { WAYPOINT_DEDUPE_DEFAULT_RADIUS_METERS } from '../../../src/lib/waypoint-dedupe';
+import { placeIdOf } from '../../../src/lib/waypoint-passes';
 import {
   isAccessWaypoint,
   isResupplyWaypoint,
@@ -376,7 +377,7 @@ function collectBuiltWaypoints(trail: ProcessedTrail): BuiltWaypoint[] {
  * is an id of its own, not pass 176641 of `w`.
  */
 export function registryId(id: string): string {
-  return id.replace(/^(.+_[^_]+)_\d+$/, '$1');
+  return placeIdOf(id);
 }
 
 // ---------------------------------------------------------------------------
