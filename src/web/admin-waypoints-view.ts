@@ -796,6 +796,78 @@ export function takesIdMetaHtml(w: EditorWaypoint, byId: ReadonlyMap<string, Edi
   );
 }
 
+// ---------------------------------------------------------------------------
+// Waypoints that share a position
+// ---------------------------------------------------------------------------
+
+/** The `<wpt>` a row is built from, as far as its id says: a revisited place's passes share one. */
+function placeOf(w: EditorWaypoint): string {
+  return w.pending ? w.id : (laterPassOf(w.id) ?? w.id);
+}
+
+/**
+ * The other rows that stand on exactly `w`'s position, in list order: `<wpt>`s
+ * of their own on the same coordinates (the CDT's towns hitched from one pass).
+ * On the map they are one dot under another, so the form names them. The passes
+ * of a revisited place are one `<wpt>`, not company: they are left out.
+ */
+export function colocatedWith(w: EditorWaypoint, waypoints: readonly EditorWaypoint[]): EditorWaypoint[] {
+  const place = placeOf(w);
+  return waypoints.filter(o => o.id !== w.id && o.lat === w.lat && o.lon === w.lon && placeOf(o) !== place);
+}
+
+/** How many other rows share each row's position ({@link colocatedWith}), for the rows that have company. */
+export function colocatedCounts(waypoints: readonly EditorWaypoint[]): Map<string, number> {
+  const byPosition = new Map<string, EditorWaypoint[]>();
+  for (const w of waypoints) {
+    const key = `${w.lat},${w.lon}`;
+    byPosition.set(key, [...(byPosition.get(key) ?? []), w]);
+  }
+  const counts = new Map<string, number>();
+  for (const group of byPosition.values()) {
+    if (group.length < 2) continue;
+    for (const w of group) {
+      const others = group.filter(o => placeOf(o) !== placeOf(w)).length;
+      if (others) counts.set(w.id, others);
+    }
+  }
+  return counts;
+}
+
+/**
+ * The row a click on the selected marker goes to: the next of those that
+ * share `w`'s position, in list order and round again, so every one of them
+ * can be reached from the map. Null when `w` has the position to itself.
+ */
+export function nextColocatedId(w: EditorWaypoint, waypoints: readonly EditorWaypoint[]): string | null {
+  const others = new Set(colocatedWith(w, waypoints).map(o => o.id));
+  if (!others.size) return null;
+  const group = waypoints.filter(o => o.id === w.id || others.has(o.id));
+  return group[(group.findIndex(o => o.id === w.id) + 1) % group.length].id;
+}
+
+/**
+ * The form's line on the waypoints that share this one's position: each by
+ * name, as a link to its row, with its type and whether it is deleted or
+ * pending. '' when it has the position to itself.
+ */
+export function colocatedMetaHtml(w: EditorWaypoint, waypoints: readonly EditorWaypoint[]): string {
+  const others = colocatedWith(w, waypoints);
+  if (!others.length) return '';
+  const items = others.map(o => {
+    const state = o.deleted ? ' · deleted' : o.pending ? ' · pending rebuild' : '';
+    return (
+      `<button type="button" class="wpe-link" data-goto="${escapeHtml(o.id)}" title="Go to this waypoint">${escapeHtml(o.name)}</button>` +
+      ` <span class="wpe-muted">· ${escapeHtml(waypointTypeLabel(o.type))}${state}</span>`
+    );
+  });
+  const count = others.length === 1 ? '1 other waypoint shares' : `${others.length} other waypoints share`;
+  return (
+    `<span class="wpe-meta-colocated">${count} this position, each a &lt;wpt&gt; of its own that an edit here leaves where it is: ` +
+    `${items.join('; ')}. On the map they are one dot: click the selected marker to step through them</span>`
+  );
+}
+
 /**
  * The form's line on a merge the build made: on a merged-away duplicate, the
  * waypoint it merged into and how far apart they are; on that waypoint, the
@@ -880,13 +952,26 @@ export function dotStyle(w: EditorWaypoint, familyColor: string): DotStyle {
   };
 }
 
-/** A dot's tooltip: name and type, and for a merged-away duplicate what it merged into. Escaped. */
-export function dotTooltipHtml(w: EditorWaypoint): string {
+/**
+ * A dot's tooltip: name and type, for a merged-away duplicate what it merged
+ * into, and how many other waypoints lie under it on the same position
+ * (`sharing`, from {@link colocatedCounts}). Escaped.
+ */
+export function dotTooltipHtml(w: EditorWaypoint, sharing = 0): string {
   return (
     `${escapeHtml(w.name)} <span class="wpe-muted">${escapeHtml(waypointTypeLabel(w.type))}` +
     (w.mergedInto ? ` · merged into ${escapeHtml(w.mergedInto)}` : '') +
+    (sharing ? ` · ${sharing} more on this position` : '') +
     `</span>`
   );
+}
+
+/** The selected marker's tooltip: the name, and where it stands among the waypoints that share its position. Escaped. */
+export function markerTooltipHtml(name: string, w: EditorWaypoint, waypoints: readonly EditorWaypoint[]): string {
+  const others = colocatedWith(w, waypoints);
+  if (!others.length) return escapeHtml(name);
+  const group = waypoints.filter(o => o.id === w.id || others.includes(o));
+  return `${escapeHtml(name)} <span class="wpe-muted">${group.findIndex(o => o.id === w.id) + 1} of ${group.length} on this position: click for the next</span>`;
 }
 
 export interface PositionReadout {
