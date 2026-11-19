@@ -337,7 +337,7 @@ export interface FeedResponse {
  * A live comment as returned by the trail-wide bulk/delta endpoint. Carries
  * `updatedAt` so the client can persist a high-water mark for the next `since`.
  */
-interface SyncComment {
+export interface SyncComment {
   id: string;
   waypointId: string;
   displayName: string;
