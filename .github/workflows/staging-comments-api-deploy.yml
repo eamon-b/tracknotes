@@ -1,0 +1,207 @@
+name: Staging comments API (deploy)
+
+# The second half of the staging deploy (docs/architecture/workers.md,
+# "staging"): after "Staging comments API (build)" succeeds for a same-repo PR
+# (or a Run workflow on any branch), it applies the build's migration SQL to the
+# staging D1, uploads its bundle to the staging Worker, runs
+# scripts/probe-comments-api.sh against the staging URL, and posts a `staging`
+# commit status on the PR's head.
+#
+# Why two workflows: Cloudflare cannot limit a token to one Worker or database,
+# so the staging token could reach production. It must never share a job with
+# the branch's code, which the build half runs with no secrets at all. This
+# half holds the token and runs only main's code:
+# - workflow_run always runs main's copy of THIS file, so a PR cannot edit it;
+# - it checks out main (wrangler.toml, the probe script, the migration check),
+#   so the Worker name, D1 id, R2 bucket and vars all come from main's
+#   [env.staging], never the branch's;
+# - the artifact is data: the bundle is uploaded with --no-bundle (nothing of
+#   the branch's is resolved, imported or run here) and the SQL can reach only
+#   the staging D1 that main's config names;
+# - wrangler is main's version, installed outside the checkout, and runs from a
+#   directory this job builds with --env-file /dev/null (wrangler otherwise
+#   loads .env files, and one setting CLOUDFLARE_API_BASE_URL would send the
+#   token elsewhere).
+#
+# Staging is ONE shared Worker and database: the last deploy wins. Runs never
+# overlap (concurrency below), but a later PR's deploy replaces an earlier
+# one's code, and every PR's migrations stay applied to the one staging D1.
+# GitHub keeps at most ONE pending run per concurrency group: a third run
+# cancels the one waiting, so a cancelled run means "re-run it if you still
+# want your branch on staging", not a failure.
+#
+# Until staging is set up (its token, account id and STAGING_API_BASE_URL on
+# the `staging` environment), `staging` is skipped and no status is posted, so
+# a green `staging` status always means the branch was deployed and probed.
+
+on:
+  workflow_run:
+    workflows: [Staging comments API (build)]
+    types: [completed]
+
+concurrency:
+  group: staging-comments-api
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  # A job's `if` cannot read secrets, so this job looks and the next one is
+  # skipped when staging is not set up.
+  configured:
+    # From this repository's own branches only: a fork's code is never deployed
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      (github.event.workflow_run.event == 'pull_request' || github.event.workflow_run.event == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment:
+      name: staging
+    outputs:
+      ok: ${{ steps.creds.outputs.ok }}
+    steps:
+      - name: Staging credentials present?
+        id: creds
+        env:
+          HAS_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
+          STAGING_API_BASE_URL: ${{ vars.STAGING_API_BASE_URL }}
+        run: |
+          if [ "$HAS_TOKEN" != "true" ] || [ -z "$STAGING_API_BASE_URL" ]; then
+            echo "::notice::CLOUDFLARE_STAGING_API_TOKEN, CLOUDFLARE_ACCOUNT_ID or the STAGING_API_BASE_URL variable is not set on the staging environment: the staging job is skipped and nothing is deployed."
+            echo "Staging is not set up (docs/architecture/workers.md, \"staging\"): **nothing was deployed or probed**." >> "$GITHUB_STEP_SUMMARY"
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          elif ! [[ "$STAGING_API_BASE_URL" =~ ^https://tracknotes-comments-staging\.[a-z0-9-]+\.workers\.dev$ ]]; then
+            echo "::error::STAGING_API_BASE_URL ($STAGING_API_BASE_URL) is not https://tracknotes-comments-staging.<account subdomain>.workers.dev"
+            exit 1
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  staging:
+    needs: configured
+    if: needs.configured.outputs.ok == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Holds the staging-only secrets and variables (set them on the environment).
+    # Never the production token: CLOUDFLARE_API_TOKEN lives in `production`, main only.
+    environment:
+      name: staging
+    permissions:
+      contents: read
+      # The build run's artifact
+      actions: read
+      # The `staging` status on the PR's head
+      statuses: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+      BUILD_RUN_ID: ${{ github.event.workflow_run.id }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      DEPLOY_DIR: ${{ runner.temp }}/deploy
+    defaults:
+      run:
+        shell: bash
+    steps:
+      # main, as workflow_run always checks out: nothing here is the branch's
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Status pending
+        run: |
+          gh api "repos/$REPO/statuses/$HEAD_SHA" -f state=pending -f context=staging \
+            -f description="Deploying to staging" -f target_url="$RUN_URL" > /dev/null
+      - name: Wrangler (main's lockfile, outside the checkout)
+        run: |
+          version=$(python3 -c 'import json; print(json.load(open("workers/comments-api/package-lock.json"))["packages"]["node_modules/wrangler"]["version"])')
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::main's lockfile resolves wrangler to '$version', not a plain version"
+            exit 1
+          fi
+          npm install --prefix "$RUNNER_TEMP/wrangler" --ignore-scripts --no-audit --no-fund --no-save "wrangler@$version"
+          echo "$RUNNER_TEMP/wrangler/node_modules/.bin" >> "$GITHUB_PATH"
+          echo "Wrangler $version, as main's lockfile resolves it (production deploys with the same)."
+      - name: Download the build
+        run: gh run download "$BUILD_RUN_ID" --repo "$REPO" --name staging-comments-api --dir "$RUNNER_TEMP/artifact"
+      # The artifact is the branch's: copy only a bundle and plain .sql files,
+      # under names we expect, next to main's wrangler.toml, in a directory with
+      # nothing else in it.
+      - name: Assemble the deploy directory
+        run: |
+          art="$RUNNER_TEMP/artifact"
+          if [ -n "$(find "$art" -type l)" ]; then
+            echo "::error::the build artifact contains symlinks"
+            exit 1
+          fi
+          if [ ! -f "$art/bundle/index.js" ]; then
+            echo "::error::the build artifact has no bundle/index.js"
+            exit 1
+          fi
+          mkdir -p "$DEPLOY_DIR/bundle" "$DEPLOY_DIR/migrations"
+          cp workers/comments-api/wrangler.toml "$DEPLOY_DIR/"
+          cp "$art/bundle/index.js" "$DEPLOY_DIR/bundle/"
+          for f in "$art"/migrations/*; do
+            name=$(basename "$f")
+            if ! [[ "$name" =~ ^[0-9]{4}_[a-z0-9_]+\.sql$ ]]; then
+              echo "::error::unexpected file in the build's migrations: $name"
+              exit 1
+            fi
+            cp "$f" "$DEPLOY_DIR/migrations/"
+          done
+          node scripts/check-worker-migrations.ts "$DEPLOY_DIR/migrations"
+          ls -la "$DEPLOY_DIR" "$DEPLOY_DIR/bundle" "$DEPLOY_DIR/migrations"
+      - name: Migrations to apply (staging)
+        working-directory: ${{ runner.temp }}/deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: wrangler d1 migrations list DB --remote --env staging --env-file /dev/null
+      - name: Apply migrations (staging)
+        working-directory: ${{ runner.temp }}/deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: wrangler d1 migrations apply DB --remote --env staging --env-file /dev/null
+      - name: Deploy (staging)
+        working-directory: ${{ runner.temp }}/deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # Optional variable on the staging environment
+          STAGING_SITE_BASE: ${{ vars.STAGING_SITE_BASE }}
+        run: |
+          args=()
+          # Share links go to a preview origin when one is configured (wrangler.toml, SITE_BASE)
+          if [ -n "$STAGING_SITE_BASE" ]; then args+=(--var "SITE_BASE:$STAGING_SITE_BASE"); fi
+          wrangler deploy bundle/index.js --no-bundle --env staging --env-file /dev/null "${args[@]}"
+      # main's probes: a PR's new probe lines are checked against the worker by
+      # the Tests workflow (workers/comments-api/test/probes.test.ts) instead
+      - name: Probe the routes (staging)
+        env:
+          COMMENTS_API_BASE_URL: ${{ vars.STAGING_API_BASE_URL }}
+          WHAT: ${{ github.event.workflow_run.head_branch }} (head ${{ github.event.workflow_run.head_sha }})
+        run: |
+          {
+            echo "### Staging route probes"
+            echo
+            echo "Deployed $WHAT to $COMMENTS_API_BASE_URL (shared: the last deploy wins)."
+            echo
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          status=0
+          scripts/probe-comments-api.sh | tee -a "$GITHUB_STEP_SUMMARY" || status=$?
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+      - name: Status
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          case "$JOB_STATUS" in
+            success) state=success; description="Deployed to staging and probed" ;;
+            failure) state=failure; description="Staging deploy or probes failed" ;;
+            *) state=error; description="Staging run $JOB_STATUS: re-run it to put this branch on staging" ;;
+          esac
+          gh api "repos/$REPO/statuses/$HEAD_SHA" -f state="$state" -f context=staging \
+            -f description="$description" -f target_url="$RUN_URL" > /dev/null
