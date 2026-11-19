@@ -497,9 +497,19 @@ export interface AdminCommentReport {
   createdAt: string;
 }
 
-/** GET /v1/admin/comments response (`?reported=1`: reported ones only). */
+/**
+ * GET /v1/admin/comments response (`?reported=1`: reported ones only).
+ * A read of one trail (`?trail=<id>`) adds `trailId` and `nextCursor`; the
+ * read across every trail carries neither, and nor does any answer from a
+ * worker that predates the trail filter (it ignores `trail` and answers for
+ * every trail), which is how a client tells the two apart.
+ */
 export interface AdminCommentsResponse {
   comments: AdminComment[];
+  /** The trail the rows were filtered to. */
+  trailId?: string;
+  /** Keyset cursor for the trail's next page (`?cursor=`), or null when exhausted. */
+  nextCursor?: string | null;
 }
 
 // ---------------------------------------------------------------------------

@@ -326,8 +326,19 @@ Admin: `GET /v1/admin/comments?reported=1` lists reported **or reviewed** commen
 `GET /v1/admin/waypoints` orders the same way.
 Both listings gather each row's reports (`reports_json`) only for the page, in an outer query over the LIMITed rows, which repeats the order;
 the waypoint listing takes its report counts from one grouped pass over `shared_waypoint_reports` rather than a probe per row (its order still reads every waypoint).
-The unfiltered `GET /v1/admin/comments` (newest first) walks `idx_comments_created` on `(created_at, id)` (migration `0012`) and stops at the LIMIT.
-Both carry `review` (`ContentReview` in `@lib/comments-api-types`), which `src/web/admin-moderation.ts` shows ("Hidden by the automated review", the verdict, confidence, categories, summary and trigger).
+The unfiltered `GET /v1/admin/comments` (newest first) walks `idx_comments_created` on `(created_at, id)` (migration `0013_admin_comments_index`) and stops at the LIMIT.
+Across every trail the comment listing is one read: `limit` (default 100, at most 500) and `reported=1` are all it takes, it has no cursor, and its answer is `{ comments }`, so a read that comes back full may have left rows behind.
+`?trail=<id>` reads one trail to its end instead (a curated trail or a community route, checked by `resolveTrail`; anything else is 400 `invalid_trail`).
+A trail's rows come newest first by `(created_at, id)` whatever `reported` says: both columns are immutable, so a keyset over them neither skips nor repeats a row while rows are hidden, restored or reported between pages, which the reported-first order (a report count that moves with every report) cannot promise.
+The answer is `{ comments, trailId, nextCursor }`: `trailId` echoes the filter, and `nextCursor` is the `cursor` for the next page, null on the last (the delta feeds' opaque `base64("created_at|id")`, `src/cursor.ts`; a malformed one is 400 `invalid_cursor`).
+A worker from before the filter ignores `trail` and answers for every trail without either field, which is how a client tells that its filter was not applied (`adminListModeratedComments` in `src/web/api/comments.ts` then falls back to the two unpaged reads).
+With `trail`, `reported=1` narrows to the reported or reviewed comments, and `moderated=1` to what moderation has touched and the author has not withdrawn: hidden by reports or the review, deleted by an admin (reported or not), or still published with a report or a review result;
+never a published comment nobody reported, and never one its author deleted, even a reported one.
+That is the set the waypoint editor lays over a trail's public comments, so its read grows with moderation, not with the trail's comments.
+`cursor` and `moderated=1` without `trail` are 400 (`invalid_cursor`, `invalid_moderated`): only a trail's listing has a keyset order, and unfiltered the moderated filter would walk the table.
+A trail's read finds its rows through `idx_comments_sync` (`trail_id` leads it) and sorts them, so it reads that trail's comments and never scans the table (`test/admin-comments.test.ts` holds the plan);
+it has no index of its own on `(trail_id, created_at, id)`, which would only spare the sort when the unnarrowed `?trail=` listing of a very large trail is paged, and nothing pages that today.
+Both admin listings carry `review` (`ContentReview` in `@lib/comments-api-types`), which `src/web/admin-moderation.ts` shows ("Hidden by the automated review", the verdict, confidence, categories, summary and trigger).
 
 Without `ANTHROPIC_API_KEY` nothing is screened or reviewed and comments and waypoints are hidden by three reporters only.
 Tests run with `remoteBindings: false` (`vitest.config.mts`) and no key, so the binding is never called;
