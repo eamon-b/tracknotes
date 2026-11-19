@@ -82,12 +82,14 @@ import {
   movedSinceBuild,
   nearbyPois,
   nearestLineSnap,
+  newWaypointCompany,
+  newWaypointNeeds,
   nextColocatedId,
-  parseCoordinate,
   parseLatLon,
   placementText,
   positionReadout,
   pruneDraft,
+  readTypedPosition,
   reviewFingerprint,
   reviewStorageKey,
   retypedSinceBuild,
@@ -107,6 +109,7 @@ import {
   type RouteLine,
   type RowState,
   type StatusFilter,
+  type TypedPosition,
   type WaypointDraft,
   type WaypointFields,
   type WaypointFilter,
@@ -210,8 +213,6 @@ const state = {
   map: null as MapState | null,
   /** The main route (cut at its breaks) and each variant's line, to measure and snap to. */
   lines: [] as RouteLine[],
-  /** Lat or Lon was typed into and not yet committed (they commit on `change`, or before a shortcut acts). */
-  positionTyped: false,
   /** The last draft Discard (or Esc) dropped, so it can be put back. */
   discarded: null as { trailId: string; id: string; draft: WaypointDraft; focusId: string } | null,
   /** Each drawn row's content, so an edit re-renders its one row only when it changed. */
@@ -605,7 +606,7 @@ function drawSelection(pan: boolean): void {
   });
   marker.on('drag', () => {
     const at = marker.getLatLng();
-    updatePositionFields(at.lat, at.lng);
+    savedPosition.show(at.lat, at.lng);
     renderReadout(at.lat, at.lng);
   });
   marker.on('dragend', () => {
@@ -614,11 +615,14 @@ function drawSelection(pan: boolean): void {
   });
   m.selected = marker;
 
-  if (pan) {
-    const at = Lf.latLng(draft.lat, draft.lon);
-    if (m.map.getZoom() < 14) m.map.setView(at, 15);
-    else if (!m.map.getBounds().pad(-0.15).contains(at)) m.map.panTo(at);
-  }
+  if (pan) panMapTo(m, draft.lat, draft.lon);
+}
+
+/** Bring a position into view: zoomed in from afar, panned to when it is off the map or near its edge. */
+function panMapTo(m: MapState, lat: number, lon: number): void {
+  const at = m.L.latLng(lat, lon);
+  if (m.map.getZoom() < 14) m.map.setView(at, 15);
+  else if (!m.map.getBounds().pad(-0.15).contains(at)) m.map.panTo(at);
 }
 
 function setPlacing(on: boolean): void {
@@ -642,17 +646,179 @@ function flagField(input: HTMLInputElement, invalid: boolean): void {
   else input.removeAttribute('aria-invalid');
 }
 
-/** Write a position into Lat and Lon, as the draft or a drag has it: nothing typed is pending after that. */
-function updatePositionFields(lat: number, lon: number): void {
-  const latInput = $<HTMLInputElement>('wpe-lat');
-  const lonInput = $<HTMLInputElement>('wpe-lon');
-  latInput.value = round6(lat).toString();
-  lonInput.value = round6(lon).toString();
-  flagField(latInput, false);
-  flagField(lonInput, false);
-  $('wpe-pos-error').textContent = '';
-  state.positionTyped = false;
+/**
+ * The Lat, Lon and paste-box fields of one form, and how they commit: the one
+ * implementation behind the selected waypoint's form and the add form
+ * ({@link positionFields}).
+ */
+interface PositionFields {
+  /** Lat or Lon was typed into and not yet committed (they commit on `change`, or before a shortcut acts). */
+  typed: boolean;
+  /** Write a position into Lat and Lon, as a draft, a click or a drag has it: nothing typed is pending after that. */
+  show(lat: number, lon: number): void;
+  /** Empty the three fields, and their flags. */
+  clear(): void;
+  /** Empty the paste box, and its flag. */
+  clearPaste(): void;
+  /** What Lat and Lon hold as they stand, committed or not. */
+  read(): TypedPosition;
+  /** Whether Lat or Lon is flagged as not holding a coordinate. */
+  invalid(): boolean;
+  /**
+   * Commit what is typed but not yet committed: the paste box, then Lat and
+   * Lon. False when a field does not hold a position: what was about to act
+   * on the form must then not act.
+   */
+  commitPending(): boolean;
+  /** Whether `target` is one of the three fields. */
+  has(target: EventTarget | null): boolean;
 }
+
+/**
+ * Wire one form's Lat, Lon and paste box. Lat and Lon take effect on `change`,
+ * and on `blur` when the field is left holding what it held on focus (typed
+ * over and typed back: no `change` then). The paste box applies a pasted
+ * position at once and one typed by hand on Enter or when it is left, never
+ * keystroke by keystroke: a position typed by hand parses as one from the
+ * first digit of its longitude. A field that holds no coordinate is flagged
+ * and nothing is applied: an empty one is never read as 0 (`readTypedPosition`).
+ */
+function positionFields(
+  ids: { lat: string; lon: string; paste: string; error: string },
+  hooks: {
+    /** Whether a position may be set through the fields now. */
+    enabled: () => boolean;
+    /** The add form before it has a position: an empty field is one still to fill, not an error. */
+    unplaced?: () => boolean;
+    /** A position was typed or pasted: take it (and `show` it). */
+    apply: (lat: number, lon: number) => void;
+    /** What to say, after what a field must be, when Lat and Lon hold no position. */
+    whenInvalid: () => string;
+    /** The typed or flagged state changed: redraw the buttons that follow it. */
+    changed: () => void;
+    /** Enter in Lat or Lon commits the field and nothing more (the add form: never a submit of a half-filled form). */
+    enterCommits?: boolean;
+  }
+): PositionFields {
+  const lat = $<HTMLInputElement>(ids.lat);
+  const lon = $<HTMLInputElement>(ids.lon);
+  const paste = $<HTMLInputElement>(ids.paste);
+  const error = $(ids.error);
+  const read = (): TypedPosition => readTypedPosition(lat.value, lon.value, hooks.unplaced?.() ?? false);
+
+  /** Read Lat and Lon as typed and apply them. False when they do not hold a position. */
+  const commit = (): boolean => {
+    if (!hooks.enabled()) return true;
+    const typed = read();
+    flagField(lat, typed.latInvalid);
+    flagField(lon, typed.lonInvalid);
+    if (!typed.at) {
+      error.textContent = typed.latInvalid || typed.lonInvalid ? `${typed.problem}: ${hooks.whenInvalid()}` : '';
+      hooks.changed();
+      return false;
+    }
+    hooks.apply(typed.at.lat, typed.at.lon);
+    return true;
+  };
+
+  /** Apply what the paste box holds (or `text`, as it is being pasted). False when it is not a position. */
+  const applyPaste = (text?: string): boolean => {
+    if (!hooks.enabled()) return true;
+    const value = text ?? paste.value;
+    if (!value.trim()) {
+      flagField(paste, false);
+      return true;
+    }
+    const at = parseLatLon(value);
+    flagField(paste, !at);
+    if (!at) {
+      error.textContent =
+        'That is not a position the editor reads: “lat, lon”, or a Google Maps or OpenStreetMap link. Nothing has moved.';
+      return false;
+    }
+    paste.value = '';
+    hooks.apply(at.lat, at.lon);
+    return true;
+  };
+
+  const fields: PositionFields = {
+    typed: false,
+    show(atLat, atLon) {
+      lat.value = round6(atLat).toString();
+      lon.value = round6(atLon).toString();
+      flagField(lat, false);
+      flagField(lon, false);
+      error.textContent = '';
+      fields.typed = false;
+    },
+    clear() {
+      lat.value = '';
+      lon.value = '';
+      flagField(lat, false);
+      flagField(lon, false);
+      error.textContent = '';
+      fields.typed = false;
+      fields.clearPaste();
+    },
+    clearPaste() {
+      paste.value = '';
+      flagField(paste, false);
+    },
+    read,
+    invalid: () => [lat, lon].some(input => input.getAttribute('aria-invalid') === 'true'),
+    commitPending() {
+      let ok = applyPaste();
+      if (fields.typed || fields.invalid()) ok = commit() && ok;
+      return ok;
+    },
+    has: target => target === lat || target === lon || target === paste,
+  };
+
+  for (const input of [lat, lon]) {
+    // Typed, not yet committed: `change` commits it, and so does any shortcut before it acts.
+    input.addEventListener('input', () => {
+      fields.typed = true;
+      hooks.changed();
+    });
+    input.addEventListener('change', () => void commit());
+    // `change` does not fire when the field is left holding what it held on focus (typed over
+    // and typed back): commit then too, so nothing typed stays pending once the field is left.
+    input.addEventListener('blur', () => {
+      if (fields.typed) commit();
+    });
+    if (hooks.enterCommits) {
+      input.addEventListener('keydown', e => {
+        if (e.key !== 'Enter' || e.isComposing) return;
+        e.preventDefault(); // not the form's submit
+        commit();
+      });
+    }
+  }
+  // A paste applies at once; text typed by hand applies on Enter or when the box is left.
+  paste.addEventListener('paste', e => {
+    const text = e.clipboardData?.getData('text') ?? '';
+    if (!parseLatLon(text)) return;
+    e.preventDefault();
+    applyPaste(text);
+  });
+  paste.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' || e.isComposing) return;
+    e.preventDefault(); // not the form's submit
+    applyPaste();
+  });
+  paste.addEventListener('change', () => void applyPaste());
+  paste.addEventListener('input', () => {
+    if (paste.value.trim() && !parseLatLon(paste.value)) return;
+    flagField(paste, false);
+    // The message was the paste box's, unless Lat or Lon is flagged too.
+    if (!fields.invalid()) error.textContent = '';
+  });
+  return fields;
+}
+
+/** The selected waypoint's position fields, and the add form's; made in `wire`. */
+let savedPosition: PositionFields;
+let newPosition: PositionFields;
 
 /** The draft's position changed: redraw what follows it. */
 function afterMove(id: string, pan: boolean): void {
@@ -671,70 +837,16 @@ function moveDraftTo(lat: number, lon: number, pan = false): void {
 }
 
 /**
- * Read Lat and Lon as typed and move the draft there. An empty or unparsable
- * field is flagged and moves nothing (`Number('')` is 0, which is a place).
- * False when the fields do not hold a position.
- */
-function commitPosition(): boolean {
-  const w = selected();
-  if (!w || !w.canMove) return true;
-  const latInput = $<HTMLInputElement>('wpe-lat');
-  const lonInput = $<HTMLInputElement>('wpe-lon');
-  const lat = parseCoordinate(latInput.value, 90);
-  const lon = parseCoordinate(lonInput.value, 180);
-  flagField(latInput, lat === null);
-  flagField(lonInput, lon === null);
-  if (lat === null || lon === null) {
-    $('wpe-pos-error').textContent =
-      [
-        lat === null ? 'Lat must be a number from -90 to 90' : '',
-        lon === null ? 'Lon must be a number from -180 to 180' : '',
-      ]
-        .filter(Boolean)
-        .join('; ') + ': the waypoint has not moved. Esc in the field puts the position back.';
-    renderButtons();
-    return false;
-  }
-  moveDraftTo(lat, lon, true);
-  return true;
-}
-
-/** Whether Lat or Lon is flagged as not holding a position. */
-function positionInvalid(): boolean {
-  return ['wpe-lat', 'wpe-lon'].some(id => $(id).getAttribute('aria-invalid') === 'true');
-}
-
-/**
- * Move the draft to what the paste box holds. Called on a paste, on Enter and
- * when the box loses focus, never on each keystroke: a position typed by hand
- * parses as one from the first digit of its longitude.
- */
-function applyPaste(text?: string): boolean {
-  const input = $<HTMLInputElement>('wpe-paste');
-  const value = text ?? input.value;
-  if (!value.trim()) {
-    flagField(input, false);
-    return true;
-  }
-  const at = parseLatLon(value);
-  flagField(input, !at);
-  if (!at) return false;
-  input.value = '';
-  moveDraftTo(at.lat, at.lon, true);
-  return true;
-}
-
-/**
- * Commit what is typed but not yet committed (Lat and Lon commit on `change`,
- * the paste box on Enter or blur), so a shortcut pressed with focus still in
- * the field acts on what the form shows. False, with the reason under the
- * form, when a field does not hold a position: the shortcut must then not act.
+ * Commit what is typed but not yet committed in the selected waypoint's
+ * position fields (Lat and Lon commit on `change`, the paste box on Enter or
+ * blur), so a shortcut pressed with focus still in the field acts on what the
+ * form shows. False, with the reason under the form, when a field does not
+ * hold a position: the shortcut must then not act.
  */
 function commitPendingFields(): boolean {
   const w = selected();
   if (!w || !w.canMove || state.adding !== undefined) return true;
-  let ok = applyPaste();
-  if (state.positionTyped || positionInvalid()) ok = commitPosition() && ok;
+  const ok = savedPosition.commitPending();
   if (!ok) {
     showNotes(['The position fields do not hold a latitude and longitude. Correct them, or press Esc there.'], true);
   }
@@ -762,7 +874,7 @@ function renderSourceElevation(): void {
 function fillPosition(keepTyping = false): void {
   const draft = currentValues();
   if (!draft) return;
-  if (!(keepTyping && state.positionTyped)) updatePositionFields(draft.lat, draft.lon);
+  if (!(keepTyping && savedPosition.typed)) savedPosition.show(draft.lat, draft.lon);
   renderReadout(draft.lat, draft.lon);
   renderSourceElevation();
   $('wpe-links').innerHTML = externalMapLinks(draft.lat, draft.lon)
@@ -814,7 +926,7 @@ function renderButtons(): void {
   const busy = state.saving || state.rebuilding;
   const moved = !!w && draftChanges(w, state.drafts.get(w.id)).position;
   // A typed position counts before it is committed: a click on Save commits it on the way (blur, then `save`).
-  $<HTMLButtonElement>('wpe-save').disabled = !(dirty || state.positionTyped) || busy;
+  $<HTMLButtonElement>('wpe-save').disabled = !(dirty || savedPosition.typed) || busy;
   $<HTMLButtonElement>('wpe-save-next').disabled = busy;
   $<HTMLButtonElement>('wpe-save-next').textContent = dirty ? 'Save & next' : 'Next';
   $<HTMLButtonElement>('wpe-revert').disabled = !dirty;
@@ -824,7 +936,7 @@ function renderButtons(): void {
   del.title = place ? `A later pass of a revisited place: delete the first pass, ${place}` : '';
   $<HTMLButtonElement>('wpe-new').disabled = !state.trail || !!state.trail.readOnlyReason || busy;
   // Also on while a typed position is uncommitted or flagged: it puts the fields back.
-  $<HTMLButtonElement>('wpe-reset-pos').disabled = !(moved || state.positionTyped || (!!w && positionInvalid()));
+  $<HTMLButtonElement>('wpe-reset-pos').disabled = !(moved || savedPosition.typed || (!!w && savedPosition.invalid()));
   $<HTMLButtonElement>('wpe-snap').disabled = !w?.canMove;
   $<HTMLButtonElement>('wpe-place').disabled = !w?.canMove;
   $<HTMLButtonElement>('wpe-rebuild').disabled = busy;
@@ -868,12 +980,8 @@ function fillForm(options: { keepTyping?: boolean } = {}): void {
     : '';
   $<HTMLInputElement>('wpe-lat').disabled = !w.canMove;
   $<HTMLInputElement>('wpe-lon').disabled = !w.canMove;
-  const paste = $<HTMLInputElement>('wpe-paste');
-  paste.disabled = !w.canMove;
-  if (!keepTyping) {
-    paste.value = '';
-    flagField(paste, false);
-  }
+  $<HTMLInputElement>('wpe-paste').disabled = !w.canMove;
+  if (!keepTyping) savedPosition.clearPaste();
   const desc = $<HTMLTextAreaElement>('wpe-desc');
   const field = descriptionField(w);
   setText(desc, draft.description, keepTyping);
@@ -944,7 +1052,7 @@ function select(id: string | null, options: { pan?: boolean } = {}): void {
   setPlacing(false);
   endAdding();
   state.selectedId = id && state.byId.has(id) ? id : null;
-  state.positionTyped = false;
+  savedPosition.typed = false;
   showNotes([]);
   fillForm();
   drawSelection(options.pan ?? true);
@@ -1255,14 +1363,23 @@ function startAdding(): void {
   $('wpe-new').setAttribute('aria-pressed', 'true');
   $('wpe-map').classList.add('is-placing');
   const typeSelect = $<HTMLSelectElement>('wpe-new-type');
-  if (!typeSelect.options.length) typeSelect.innerHTML = typeOptionsHtml(null);
+  // No type is chosen for the reviewer: the first option is a prompt, and the add waits for a choice.
+  if (!typeSelect.options.length) {
+    typeSelect.innerHTML = `<option value="">Choose a type…</option>${typeOptionsHtml(null)}`;
+  }
   $('wpe-new-notes').innerHTML = '';
-  $('wpe-new-where').textContent = 'Click the map (or an OSM POI) to place it; drag the marker to adjust.';
-  renderNewButtons();
+  // What was typed before the form was left (Esc) is still in its fields: a position among it goes back on the map.
+  const kept = newPosition.read().at;
+  if (kept) {
+    placeNew(kept.lat, kept.lon, true);
+  } else {
+    renderNewPosition();
+    renderNewButtons();
+  }
   $('wpe-new-name').focus();
 }
 
-/** Leave "New waypoint" mode, dropping its marker and form. */
+/** Leave "New waypoint" mode, dropping its marker and hiding its form; what was typed in the form is kept. */
 function endAdding(): void {
   if (state.adding === undefined) return;
   state.adding = undefined;
@@ -1272,50 +1389,109 @@ function endAdding(): void {
   $('wpe-new').setAttribute('aria-pressed', 'false');
   $('wpe-map').classList.remove('is-placing');
   $('wpe-empty').hidden = !!selected();
+  $('wpe-readout').textContent = '';
 }
 
-function placeNew(lat: number, lon: number): void {
-  const m = state.map;
-  const trail = state.trail;
-  if (!m || !trail || state.adding === undefined) return;
+/**
+ * Put the new waypoint at a position, from a map click, a drag, or the form's
+ * fields: the fields, the marker and the readout all follow, so each says what
+ * the others do. `pan` brings a typed or pasted position into view.
+ */
+function placeNew(lat: number, lon: number, pan = false): void {
+  if (!state.trail || state.adding === undefined) return;
   state.adding = { lat: round6(lat), lon: round6(lon) };
+  newPosition.show(lat, lon);
+  drawNewMarker(pan);
+  renderNewPosition();
+  renderNewButtons();
+}
+
+/** The new waypoint's marker, where `state.adding` has it (once the map is there). */
+function drawNewMarker(pan: boolean): void {
+  const m = state.map;
+  const at = state.adding;
+  if (!m || !at) return;
   if (!state.newMarker) {
-    const marker = m.L.marker([lat, lon], { draggable: true, zIndexOffset: 1000, keyboard: false })
+    const marker = m.L.marker([at.lat, at.lon], { draggable: true, zIndexOffset: 1000, keyboard: false })
       .bindTooltip('New waypoint', { direction: 'top', offset: [0, -30] })
       .addTo(m.map);
+    // Live while dragging, as the selected waypoint's marker is: the fields and the readout follow the marker.
+    marker.on('drag', () => {
+      const where = marker.getLatLng();
+      newPosition.show(where.lat, where.lng);
+      renderNewPosition({ lat: round6(where.lat), lon: round6(where.lng) });
+    });
     marker.on('dragend', () => {
       const where = marker.getLatLng();
       placeNew(where.lat, where.lng);
     });
     state.newMarker = marker;
   } else {
-    state.newMarker.setLatLng([lat, lon]);
+    state.newMarker.setLatLng([at.lat, at.lon]);
   }
-  const where = positionReadout(state.lines, lat, lon, 0);
-  $('wpe-new-where').textContent = `${state.adding.lat}, ${state.adding.lon}${where ? ` · ${where}` : ''}`;
-  renderNewButtons();
+  if (pan) panMapTo(m, at.lat, at.lon);
 }
 
+/**
+ * Where the new waypoint's position sits against the route: the readout the
+ * selected waypoint's form shows (nearest main-route km, distance from the
+ * route or from a nearer variant's line), in the bar under the map and under
+ * the fields, with links to the spot on other maps. `at` is the marker while
+ * it is dragged.
+ */
+function renderNewPosition(at: { lat: number; lon: number } | null = state.adding ?? null): void {
+  const where = at ? positionReadout(state.lines, at.lat, at.lon, 0) : '';
+  $('wpe-readout').textContent = where;
+  $('wpe-new-where').textContent = at
+    ? where || 'No route to measure to.'
+    : 'Click the map (or an OSM POI), or type or paste a position here; drag the marker to adjust.';
+  $('wpe-new-links').innerHTML = at
+    ? externalMapLinks(at.lat, at.lon)
+        .map(
+          l => `<a href="${escapeHtml(l.href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(l.label)}</a>`
+        )
+        .join('')
+    : '';
+}
+
+/**
+ * The add form's own state: the name's flag, what already stands on the
+ * position, what is still needed, and "Add waypoint", which is off until the
+ * form has a name, a type and a position. The position is read from the
+ * fields as they stand, so one typed and not yet committed counts: a click on
+ * the button commits it on the way (blur, then `addNew`).
+ */
 function renderNewButtons(): void {
   const name = $<HTMLInputElement>('wpe-new-name');
   // A name the build would strip a type prefix from is refused by the server: say so before it is sent.
   const problem = typePrefixProblem(name.value);
   flagField(name, !!problem);
   $('wpe-new-name-error').textContent = problem ?? '';
-  const ready = !!state.adding && !!name.value.trim() && !problem;
-  $<HTMLButtonElement>('wpe-new-add').disabled = !ready || state.saving || state.rebuilding;
+  const type = $<HTMLSelectElement>('wpe-new-type').value;
+  const at = state.adding;
+  $('wpe-new-company').textContent =
+    at && state.trail ? newWaypointCompany(state.trail.waypoints, at, name.value, type) : '';
+  const needs = newWaypointNeeds({ name: name.value, type, position: newPosition.read() });
+  $('wpe-new-needs').textContent = needs;
+  $<HTMLButtonElement>('wpe-new-add').disabled = !!needs || state.saving || state.rebuilding;
 }
 
 async function addNew(): Promise<void> {
   const trail = state.trail;
+  if (!trail || state.adding === undefined || state.saving) return;
+  // What is typed and not yet committed is committed first, so the add is of what the form shows.
+  const committed = newPosition.commitPending();
   const at = state.adding;
-  if (!trail || !at || state.saving || typePrefixProblem($<HTMLInputElement>('wpe-new-name').value)) return;
-  const request: NewWaypointRequest = {
-    name: $<HTMLInputElement>('wpe-new-name').value.trim(),
-    type: $<HTMLSelectElement>('wpe-new-type').value,
-    lat: at.lat,
-    lon: at.lon,
-  };
+  const name = $<HTMLInputElement>('wpe-new-name').value;
+  const type = $<HTMLSelectElement>('wpe-new-type').value;
+  if (!committed || !at || newWaypointNeeds({ name, type, position: newPosition.read() })) {
+    renderNewButtons();
+    $('wpe-new-notes').innerHTML = committed
+      ? ''
+      : '<li class="is-error">The position fields do not hold a latitude and longitude: nothing was added.</li>';
+    return;
+  }
+  const request: NewWaypointRequest = { name: name.trim(), type, lat: at.lat, lon: at.lon };
   const description = $<HTMLTextAreaElement>('wpe-new-desc').value.trim();
   if (description) request.description = description;
   state.saving = true;
@@ -1327,8 +1503,9 @@ async function addNew(): Promise<void> {
     });
     $<HTMLInputElement>('wpe-new-name').value = '';
     $<HTMLTextAreaElement>('wpe-new-desc').value = '';
+    newPosition.clear();
     endAdding();
-    // The map stays where it is: the new waypoint is where it was just clicked.
+    // The map stays where it is: the new waypoint is where it was just placed.
     await loadTrail(trail.dir, { select: result.waypoint.id });
     report([`Added to ${result.changedFiles.join(', ')}.`, ...result.notes]);
     void refreshChanges();
@@ -1427,6 +1604,8 @@ async function loadTrail(dir: string, options: { select?: string | null } = {}):
   if (!same) {
     state.drafts.clear();
     state.discarded = null;
+    // A position typed for a new waypoint was on the trail that is being left.
+    newPosition.clear();
   }
   state.trail = trail;
   state.byId = new Map(trail.waypoints.map(w => [w.id, w]));
@@ -1458,6 +1637,11 @@ async function loadTrail(dir: string, options: { select?: string | null } = {}):
   if (same && id === state.selectedId) refreshSelection();
   else select(id, { pan: !same });
   renderButtons();
+  if (state.adding !== undefined) {
+    // The add form stayed open over a re-read: what it says of its position follows the trail as it now is.
+    renderNewPosition();
+    renderNewButtons();
+  }
   if (!mapReady) {
     // The first trail: the list and the form are live while Leaflet loads, so
     // draw whatever is open and selected once it has, not what was when it began.
@@ -1469,6 +1653,7 @@ async function loadTrail(dir: string, options: { select?: string | null } = {}):
     }
     drawTrail(true);
     drawSelection(true);
+    drawNewMarker(true);
   }
 }
 
@@ -1617,6 +1802,26 @@ function toggleDrawer(buttonId: string, drawerId: string): void {
 // ---------------------------------------------------------------------------
 
 function wire(): void {
+  savedPosition = positionFields(
+    { lat: 'wpe-lat', lon: 'wpe-lon', paste: 'wpe-paste', error: 'wpe-pos-error' },
+    {
+      enabled: () => !!selected()?.canMove,
+      apply: (lat, lon) => moveDraftTo(lat, lon, true),
+      whenInvalid: () => 'the waypoint has not moved. Esc in the field puts the position back.',
+      changed: renderButtons,
+    }
+  );
+  newPosition = positionFields(
+    { lat: 'wpe-new-lat', lon: 'wpe-new-lon', paste: 'wpe-new-paste', error: 'wpe-new-pos-error' },
+    {
+      enabled: () => state.adding !== undefined,
+      unplaced: () => !state.adding,
+      apply: (lat, lon) => placeNew(lat, lon, true),
+      whenInvalid: () => (state.adding ? 'the marker has not moved.' : 'the new waypoint has no position yet.'),
+      changed: renderNewButtons,
+      enterCommits: true,
+    }
+  );
   $<HTMLSelectElement>('wpe-trail').addEventListener('change', e => {
     const dir = (e.target as HTMLSelectElement).value;
     if (anyUnsaved() && !confirm('Discard the unsaved changes on this trail?')) {
@@ -1653,41 +1858,12 @@ function wire(): void {
   $('wpe-new').addEventListener('click', () => (state.adding === undefined ? startAdding() : endAdding()));
   $('wpe-new-cancel').addEventListener('click', () => endAdding());
   $('wpe-new-name').addEventListener('input', renderNewButtons);
+  $('wpe-new-type').addEventListener('change', renderNewButtons);
   $('wpe-new-form').addEventListener('submit', e => {
     e.preventDefault();
     void addNew();
   });
   $('wpe-desc').addEventListener('input', onFormInput);
-  for (const id of ['wpe-lat', 'wpe-lon']) {
-    // Typed, not yet committed: `change` commits it, and so does any shortcut before it acts.
-    $(id).addEventListener('input', () => {
-      state.positionTyped = true;
-      renderButtons();
-    });
-    $(id).addEventListener('change', () => void commitPosition());
-    // `change` does not fire when the field is left holding what it held on focus (typed over
-    // and typed back): commit then too, so nothing typed stays pending once the field is left.
-    $(id).addEventListener('blur', () => {
-      if (state.positionTyped) commitPosition();
-    });
-  }
-  const paste = $<HTMLInputElement>('wpe-paste');
-  // A paste applies at once; text typed by hand applies on Enter or when the box is left.
-  paste.addEventListener('paste', e => {
-    const text = e.clipboardData?.getData('text') ?? '';
-    if (!parseLatLon(text)) return;
-    e.preventDefault();
-    applyPaste(text);
-  });
-  paste.addEventListener('keydown', e => {
-    if (e.key !== 'Enter' || e.isComposing) return;
-    e.preventDefault(); // not the form's submit
-    applyPaste();
-  });
-  paste.addEventListener('change', () => void applyPaste());
-  paste.addEventListener('input', () => {
-    if (!paste.value.trim() || parseLatLon(paste.value)) flagField(paste, false);
-  });
   $('wpe-nearby-list').addEventListener('click', e => {
     const button = (e.target as HTMLElement).closest<HTMLElement>('[data-poi-move]');
     const poi = state.trail?.pois.find(p => p.id === button?.dataset.poiMove);
@@ -1770,10 +1946,9 @@ function wire(): void {
       if (e.isComposing || e.keyCode === 229) return;
       if (state.adding !== undefined) endAdding();
       else if (state.placing) setPlacing(false);
-      else if (e.target === $('wpe-lat') || e.target === $('wpe-lon') || e.target === $('wpe-paste')) {
+      else if (savedPosition.has(e.target)) {
         // Put back what was typed there, not the whole draft.
-        $<HTMLInputElement>('wpe-paste').value = '';
-        flagField($<HTMLInputElement>('wpe-paste'), false);
+        savedPosition.clearPaste();
         fillPosition();
         renderButtons();
       } else if (!typing || e.target === $('wpe-desc') || e.target === $('wpe-name')) discardDraft();

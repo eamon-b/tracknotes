@@ -70,6 +70,7 @@ Drag the marker, click "Click map to place" (`Alt+P`) and click the map or a POI
 - **The paste box** applies a pasted position at once, and one typed by hand on `Enter` or when the box is left (never keystroke by keystroke: `27.6901, 8` is already a position).
   A Google Maps place link is read from its pin (`!3d…!4d…`);
   the centre of the view (`@…`) is used only when the link has no pin.
+  Text that is no position is flagged, with a line saying what the box reads, and moves nothing.
 - **"Snap to route"** moves onto the nearest line: the main route, or an alternate or side trip when its line is nearer, so a side-trip waypoint snaps to its side trip and not across country to the main route.
   It never snaps onto the straight line of a route break.
   The main route is snapped to as drawn (simplified), so the result can sit a few metres off the full-resolution track.
@@ -148,9 +149,29 @@ When that test fails after a change to the build, the editor's prediction is wro
 
 ### Adding a waypoint
 
-"New waypoint" (under the map) opens a form: click the map or an OSM POI to place it (drag the marker to adjust), then give it a name, a type and, optionally, a description.
-A name that starts with a type prefix is flagged under the field as it is typed, and "Add waypoint" stays off until it is corrected (the server refuses it too).
-Any other refusal is shown under the form, which keeps what was typed and where the marker is.
+"New waypoint" (under the map) opens a form: give it a name, a type, a position and, optionally, a description.
+The type is chosen, never defaulted: the select opens on a prompt.
+A name that starts with a type prefix is flagged under the field as it is typed (the server refuses it too).
+
+- **The position** is set by a click on the map or an OSM POI, by dragging the marker, or by number: the form has the Lat and Lon fields and the paste box of the selected waypoint's form ("Moving a waypoint" above), run by the same code and held to the same rules.
+  Lat and Lon take effect when the field is left or on `Enter`;
+  a pasted position or Google Maps / OpenStreetMap link applies at once, and one typed into the paste box on `Enter` or when the box is left.
+  `Enter` in any of the three takes the position and never adds the waypoint.
+- **The fields and the marker say the same thing.**
+  A typed or pasted position moves the marker and brings it into view;
+  a click or a drag fills the fields, live while dragging.
+  Either way the position is the one written, at six decimals.
+- **Where it sits** is said under the fields and in the bar under the map, as for a selected waypoint: the nearest main-route km and the distance from the main route, or from an alternate's or side trip's line when that is nearer.
+  The form also says when other waypoints stand on exactly that position, when one of them has the name typed (the add would be refused: "Waypoints that share a position" below), and when the name and type are those of a waypoint deleted there since the last build (the add puts it back).
+- **What is not a position is never one.**
+  A field that is unparsable or out of range is flagged, with what it must be, and so is one emptied once the form has a position: nothing is read as 0, and the marker stays where it was.
+  Before the form has a position, a field not yet filled is said to be still empty and not flagged.
+- **"Add waypoint" stays off** until the form has a name the build shows as typed, a type and a position, and the line above it says which is missing.
+  A position typed and not yet committed counts: the click on the button commits it on the way.
+- **`Esc` or Cancel** leaves the form and keeps what was typed in it, the position included: opening it again puts the marker back.
+  Opening another trail clears the position.
+
+A refusal by the server is shown under the form, which keeps what was typed and where the marker is.
 "Add waypoint" inserts a `<wpt>` after the last one in the GPX, written like its neighbours: the same indentation and line ending, one line or one child per line as the last `<wpt>` is laid out (a `<desc>` that runs over several lines does not make it one child per line), coordinates padded to six decimals where every `<wpt>`'s are (`lon="151.213190"`), and `<ele>`, `<name>`, `<desc>` and `<type>` in the order the file uses.
 It gets an `<ele>` when the file's `<wpt>`s carry one ("Elevation" below).
 Nothing goes in `data/waypoint-ids.json` or `descriptions.json`: the waypoint has no id until the next build mints one, so the description goes in its `<desc>`, where the build reads it as source text.
@@ -169,7 +190,8 @@ A waypoint deleted since the last build is not retired yet: its registry entry i
 So an add of that type within 100 m is refused until a rebuild has retired the id.
 The one exception is the deleted waypoint itself, added back under its name and type: the next build gives it its id back, and the notes say so.
 Put back on its exact position, it is joined to its id at once and listed as the waypoint it was, not as pending, whether or not another `<wpt>` stands on that position: the next build then mints and retires nothing.
-The delete's notes give that position, and the deleted row's form still shows it (a `<wpt>` whose coordinates had more than six decimals cannot be matched exactly, and waits for the build).
+The delete's notes give that position, and the deleted row's form still shows it, to type into the add form's Lat and Lon (a `<wpt>` whose coordinates had more than six decimals cannot be matched exactly, and waits for the build).
+The add form says, before anything is sent, that the name, type and position typed put that waypoint back.
 Adding it back restores the id, not the `<wpt>`: the new one is written after the last `<wpt>` in the file with the name, type and position given, the description typed and an `<ele>` looked up afresh.
 What the delete took besides is not put back: the old `<wpt>`'s place in the file, its `<desc>` as it was, the `<ele>` it carried, any other child (`<extensions>`, from which the build reads the off-trail access fields, so the rebuilt waypoint loses them), its `descriptions.json` entry, its CalTopo marker and its name in trail.json's `revisitedWaypoints`.
 The notes of the delete name which of those the waypoint had, and the notes of the add say what is still gone: copy them back from `git diff`, or restore the files from git to undo a delete exactly.
@@ -361,7 +383,8 @@ After a save that changes other rows (another pass of a revisited place, a merge
 `Alt`+`↓`/`↑` next / previous;
 `Alt`+`R` toggle reviewed;
 `Alt`+`P` place mode;
-`Esc` leave place mode, put the position back as it was when pressed in Lat, Lon or the paste box, or otherwise discard this waypoint's unsaved edits (with "Undo");
+`Esc` leave place mode or the new-waypoint form (which keeps what was typed in it), put the position back as it was when pressed in Lat, Lon or the paste box, or otherwise discard this waypoint's unsaved edits (with "Undo");
+`Enter` in a new waypoint's Lat, Lon or paste box take the position, without adding the waypoint;
 `/` search.
 `Esc` is ignored while an input method is composing (a Japanese name on Shikoku), where it cancels the composition.
 

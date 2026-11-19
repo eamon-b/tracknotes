@@ -27,11 +27,14 @@ import {
   mergeMetaHtml,
   nearbyPois,
   nearestLineSnap,
+  newWaypointCompany,
+  newWaypointNeeds,
   nextColocatedId,
   parseCoordinate,
   parseLatLon,
   positionReadout,
   pruneDraft,
+  readTypedPosition,
   readoutText,
   reviewFingerprint,
   routeLines,
@@ -297,6 +300,116 @@ describe('parseCoordinate', () => {
     expect(parseCoordinate('91', 90)).toBeNull();
     expect(parseCoordinate('148.5', 90)).toBeNull();
     expect(parseCoordinate('-180.1', 180)).toBeNull();
+  });
+});
+
+describe('readTypedPosition', () => {
+  it('reads Lat and Lon together, at the six decimals the editor writes', () => {
+    expect(readTypedPosition(' 44.8143321 ', '-113.2725499')).toEqual({
+      at: { lat: 44.814332, lon: -113.27255 },
+      latInvalid: false,
+      lonInvalid: false,
+      problem: '',
+    });
+    expect(readTypedPosition('0', '0').at).toEqual({ lat: 0, lon: 0 });
+    // Being unplaced changes nothing about a pair that is a position.
+    expect(readTypedPosition('-36.5', '148.25', true).at).toEqual({ lat: -36.5, lon: 148.25 });
+  });
+
+  it('flags an empty or unparsable field, and one out of range, and never reads it as 0', () => {
+    expect(readTypedPosition('', '148.25')).toEqual({
+      at: null,
+      latInvalid: true,
+      lonInvalid: false,
+      problem: 'Lat must be a number from -90 to 90',
+    });
+    expect(readTypedPosition('abc', '   ')).toMatchObject({
+      at: null,
+      latInvalid: true,
+      lonInvalid: true,
+      problem: 'Lat must be a number from -90 to 90; Lon must be a number from -180 to 180',
+    });
+    expect(readTypedPosition('91', '148.25')).toMatchObject({ at: null, latInvalid: true, lonInvalid: false });
+    expect(readTypedPosition('-36.5', '180.5')).toMatchObject({ at: null, latInvalid: false, lonInvalid: true });
+    // A pair in one field is not a coordinate: the paste box takes those.
+    expect(readTypedPosition('-36.5, 148.25', '')).toMatchObject({ at: null, latInvalid: true, lonInvalid: true });
+  });
+
+  it('takes an empty field of an add form with no position yet as one still to fill, not an error', () => {
+    expect(readTypedPosition('', '', true)).toEqual({ at: null, latInvalid: false, lonInvalid: false, problem: '' });
+    expect(readTypedPosition('-36.5', ' ', true)).toEqual({
+      at: null,
+      latInvalid: false,
+      lonInvalid: false,
+      problem: 'Lon is still empty',
+    });
+    expect(readTypedPosition('', '148.25', true).problem).toBe('Lat is still empty');
+    // What is typed and is no coordinate is flagged all the same, and the empty one beside it only said.
+    expect(readTypedPosition('north', '', true)).toEqual({
+      at: null,
+      latInvalid: true,
+      lonInvalid: false,
+      problem: 'Lat must be a number from -90 to 90; Lon is still empty',
+    });
+    expect(readTypedPosition('-36.5', '500', true)).toMatchObject({ lonInvalid: true, latInvalid: false });
+  });
+});
+
+describe('the add form', () => {
+  const placed = readTypedPosition('-36.5', '148.25', true);
+  const nothing = readTypedPosition('', '', true);
+
+  it('needs a name the build shows as typed, a type and a position before a waypoint can be added', () => {
+    expect(newWaypointNeeds({ name: 'Lower Tank', type: 'water-tank', position: placed })).toBe('');
+    expect(newWaypointNeeds({ name: '  ', type: '', position: nothing })).toBe(
+      'Still needed: a name; a type; a position (click the map, or type or paste one).'
+    );
+    expect(newWaypointNeeds({ name: 'Lower Tank', type: '', position: placed })).toBe('Still needed: a type.');
+    expect(newWaypointNeeds({ name: 'WT: Lower Tank', type: 'water-tank', position: placed })).toBe(
+      'Still needed: a name without a type prefix.'
+    );
+    // Half a position, and a field that is no coordinate, each said for what it is.
+    expect(
+      newWaypointNeeds({ name: 'Lower Tank', type: 'water-tank', position: readTypedPosition('-36.5', '', true) })
+    ).toBe('Still needed: both Lat and Lon.');
+    expect(
+      newWaypointNeeds({ name: 'Lower Tank', type: 'water-tank', position: readTypedPosition('-36.5', 'x', true) })
+    ).toBe('Still needed: a Lat and a Lon that are a position.');
+    // An emptied field of a form that had a position is flagged, and blocks the add like any other.
+    expect(
+      newWaypointNeeds({ name: 'Lower Tank', type: 'water-tank', position: readTypedPosition('', '148.25') })
+    ).toBe('Still needed: a Lat and a Lon that are a position.');
+  });
+
+  it('says what already stands on exactly the position: company, a name that will be refused, or a waypoint put back', () => {
+    const at = { lat: 44.814332, lon: -113.27255 };
+    const here = { ...at, builtLat: at.lat, builtLon: at.lon };
+    const salmon = waypoint({ id: 'w_e7d8d267', name: 'Salmon (access: Bannock Pass)', type: 'town-access', ...here });
+    const leadore = waypoint({
+      id: 'w_5aaaaf44',
+      name: 'Leadore (access: Bannock Pass)',
+      type: 'resupply-access',
+      deleted: true,
+      ...here,
+    });
+    const all = [waypoint(), salmon, leadore];
+    expect(newWaypointCompany(all, { lat: 44.8, lon: -113.2 }, 'Anything', 'hut')).toBe('');
+    expect(newWaypointCompany(all, at, 'Tendoy (access: Bannock Pass)', 'town-access')).toBe(
+      '2 waypoints already stand on exactly this position (“Salmon (access: Bannock Pass)”, “Leadore (access: Bannock Pass)” (deleted)): the new one will share it, as a <wpt> of its own.'
+    );
+    expect(newWaypointCompany([salmon], at, '', '')).toMatch(/^A waypoint already stands on exactly this position/);
+    // Under a name that stands there the server refuses it, whatever the type.
+    expect(newWaypointCompany(all, at, ' Salmon (access: Bannock Pass) ', 'poi')).toMatch(
+      /“Salmon \(access: Bannock Pass\)” already stands on exactly this position.*this add would be refused/
+    );
+    // The deleted waypoint's own name and type: it is that waypoint again.
+    expect(newWaypointCompany(all, at, 'Leadore (access: Bannock Pass)', 'resupply-access')).toMatch(
+      /This puts “Leadore \(access: Bannock Pass\)” \(w_5aaaaf44\) back.*it has its id again at once/
+    );
+    // Under another type it is a new waypoint that shares the position.
+    expect(newWaypointCompany(all, at, 'Leadore (access: Bannock Pass)', 'town-access')).toMatch(
+      /^2 waypoints already stand/
+    );
   });
 });
 

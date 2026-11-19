@@ -511,6 +511,100 @@ export function parseCoordinate(input: string, limit: 90 | 180): number | null {
   return Number.isFinite(value) && Math.abs(value) <= limit ? value : null;
 }
 
+/** What the Lat and Lon fields of a form hold, read together. */
+export interface TypedPosition {
+  /** The position they hold, at the six decimals the editor writes; null when they do not hold one. */
+  at: { lat: number; lon: number } | null;
+  /** Which fields to flag as not holding a coordinate. */
+  latInvalid: boolean;
+  lonInvalid: boolean;
+  /** Why they hold no position, in words; '' when they hold one, or when nothing has been typed yet. */
+  problem: string;
+}
+
+/**
+ * Lat and Lon as typed, for the selected waypoint's form and the add form
+ * alike. A field that is empty or unparsable is never read as 0, and one out
+ * of range is refused: it is flagged, and `problem` says what it must be.
+ *
+ * `unplaced` is the add form before it has a position: an empty field is then
+ * one still to fill, which is said but not flagged (a field that holds
+ * something that is no coordinate is flagged all the same).
+ */
+export function readTypedPosition(latText: string, lonText: string, unplaced = false): TypedPosition {
+  const lat = parseCoordinate(latText, 90);
+  const lon = parseCoordinate(lonText, 180);
+  const latMissing = unplaced && !latText.trim();
+  const lonMissing = unplaced && !lonText.trim();
+  const latInvalid = lat === null && !latMissing;
+  const lonInvalid = lon === null && !lonMissing;
+  const problems = [
+    latInvalid ? 'Lat must be a number from -90 to 90' : '',
+    lonInvalid ? 'Lon must be a number from -180 to 180' : '',
+    // One field filled and the other not yet: half a position.
+    latMissing && !lonMissing ? 'Lat is still empty' : '',
+    lonMissing && !latMissing ? 'Lon is still empty' : '',
+  ];
+  return {
+    at: lat !== null && lon !== null ? { lat: Number(lat.toFixed(6)), lon: Number(lon.toFixed(6)) } : null,
+    latInvalid,
+    lonInvalid,
+    problem: problems.filter(Boolean).join('; '),
+  };
+}
+
+/**
+ * What the add form still lacks before "Add waypoint" can be pressed, in
+ * words; '' when it has a name the build shows as typed, a type and a
+ * position. The button is off until then, and this says why.
+ */
+export function newWaypointNeeds(form: { name: string; type: string; position: TypedPosition }): string {
+  const needs: string[] = [];
+  if (!form.name.trim()) needs.push('a name');
+  else if (typePrefixProblem(form.name)) needs.push('a name without a type prefix');
+  if (!form.type) needs.push('a type');
+  if (!form.position.at) {
+    needs.push(
+      form.position.latInvalid || form.position.lonInvalid
+        ? 'a Lat and a Lon that are a position'
+        : form.position.problem
+          ? 'both Lat and Lon'
+          : 'a position (click the map, or type or paste one)'
+    );
+  }
+  return needs.length ? `Still needed: ${needs.join('; ')}.` : '';
+}
+
+/**
+ * What the add form says of the waypoints that already stand on exactly the
+ * position it holds, which the map shows as one dot: that the new one will
+ * share it, that it will be refused under a name one of them has, or that it
+ * puts back a waypoint deleted there since the last build (the same name and
+ * type, on the exact position, is that waypoint again). '' when the position
+ * is free. The server decides; this says beforehand what it will.
+ */
+export function newWaypointCompany(
+  waypoints: readonly EditorWaypoint[],
+  at: { lat: number; lon: number },
+  name: string,
+  type: string
+): string {
+  const here = waypoints.filter(w => w.lat === at.lat && w.lon === at.lon);
+  if (!here.length) return '';
+  const typed = name.trim();
+  const standing = here.filter(w => !w.deleted);
+  const namesake = standing.find(w => w.name === typed);
+  if (namesake) {
+    return `“${namesake.name}” already stands on exactly this position: waypoints may share a position, but each needs a name of its own there, so this add would be refused.`;
+  }
+  const back = here.find(w => w.deleted && w.name === typed && w.type === type);
+  if (back) {
+    return `This puts “${back.name}” (${back.id}) back: deleted since the last build, and added on its exact position under its name and type it has its id again at once. Only what this form writes comes back with it.`;
+  }
+  const names = [...new Set(here.map(w => `“${w.name}”${w.deleted ? ' (deleted)' : ''}`))];
+  return `${names.length === 1 ? 'A waypoint already stands' : `${names.length} waypoints already stand`} on exactly this position (${names.join(', ')}): the new one will share it, as a <wpt> of its own.`;
+}
+
 // ---------------------------------------------------------------------------
 // The route's lines: the main route and its alternates and side trips
 // ---------------------------------------------------------------------------

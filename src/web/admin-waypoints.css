@@ -686,3 +686,24 @@ kbd {
   font-size: 1rem;
   margin: 0 0 0.5rem;
 }
+
+/* The add form: what already stands on exactly the position it holds, and what it still needs before "Add waypoint". */
+.wpe-new-company {
+  padding: 0.3rem 0.5rem;
+  border-left: 3px solid var(--tint-warn-border);
+  background: var(--tint-warn);
+  color: var(--tint-warn-text);
+  font-size: 0.8rem;
+}
+
+.wpe-new-company:empty,
+.wpe-new-needs:empty {
+  display: none;
+}
+
+.wpe-new-needs {
+  margin: 0 0 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-align: right;
+}
