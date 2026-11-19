@@ -30,6 +30,9 @@ The bucket needs a CORS rule allowing `GET`/`HEAD` from any origin, as the produ
 Vercel Preview builds take `VITE_API_BASE_URL` = the staging URL, so every preview deployment reads and writes staging (CORS is `*`, so any preview origin may call it).
 `shared-plan.html` reads the share from its own build's API, so a staging share opens on *any* preview and on no production page.
 The Worker mints links as `SITE_BASE/shared-plan.html?s=<id>`: set the variable `STAGING_SITE_BASE` on the `staging` environment to a stable preview origin (a branch alias, or a domain assigned to Preview) and the workflow deploys with `--var SITE_BASE:<it>`.
+It is set to `https://tracknotes-git-staging-eamons-projects-081eddcd.vercel.app`, the Vercel branch alias of the long-lived `staging` git branch, which exists only for this: Vercel builds it as a Preview, so it is built against the staging API and sits behind Vercel Authentication.
+Do not delete that branch, and fast-forward it to `main` now and then (`git push origin origin/main:staging`) so the page that opens shared plans stays current.
+Not a custom domain: the project's deployment protection exempts custom domains, so a preview on one would let anyone write to staging.
 Without it the link's host is the placeholder, deliberately not `tracknotes.info` (which would answer "not found"): swap in any preview's host.
 "Open in Tracknotes" (`tracknotes://plan/<id>`) opens whichever API the phone's build was given, so it finds a staging share only on a build pointed at staging.
 

@@ -116,7 +116,7 @@ A repository-level copy of the token would be readable by every branch's workflo
 - `CLOUDFLARE_STAGING_API_TOKEN`: its own token, never the production one, with *Account → Workers Scripts → Edit* and *Account → D1 → Edit*, no zone resources (staging is on `workers.dev`; add *Account → Account Settings → Read* if `wrangler deploy` asks for it).
 - `CLOUDFLARE_ACCOUNT_ID`.
 - Variable `STAGING_API_BASE_URL` (required to deploy): `https://tracknotes-comments-staging.<account subdomain>.workers.dev`, which the workflow probes.
-- Optional variable `STAGING_SITE_BASE`: a preview origin for share links.
+- Optional variable `STAGING_SITE_BASE`: a preview origin for share links (the `staging` branch's alias, `docs/architecture/workers.md`, "Share links from previews").
 
 Why the deploy is split in two: Cloudflare cannot limit a Workers or D1 token to one Worker or database, so in the production account this token could deploy over the production Worker and run SQL on the production D1.
 So it never shares a job with a branch's code.
