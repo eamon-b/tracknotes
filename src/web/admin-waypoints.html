@@ -50,7 +50,8 @@
       <dt><kbd>Alt</kbd> + <kbd>↓</kbd> / <kbd>↑</kbd></dt><dd>Next / previous waypoint in the list</dd>
       <dt><kbd>Alt</kbd> + <kbd>R</kbd></dt><dd>Mark reviewed (or not)</dd>
       <dt><kbd>Alt</kbd> + <kbd>P</kbd></dt><dd>Place mode: the next map click moves the waypoint</dd>
-      <dt><kbd>Esc</kbd></dt><dd>Leave place mode; in Lat, Lon or the paste box, put the position back as it was; otherwise discard this waypoint's unsaved changes (Undo, under the form, brings them back)</dd>
+      <dt><kbd>Esc</kbd></dt><dd>Leave place mode, or the new-waypoint form (what was typed in it is kept); in Lat, Lon or the paste box, put the position back as it was; otherwise discard this waypoint's unsaved changes (Undo, under the form, brings them back)</dd>
+      <dt><kbd>Enter</kbd></dt><dd>In a new waypoint's Lat, Lon or paste box: take the position, without adding the waypoint</dd>
       <dt><kbd>/</kbd></dt><dd>Search the list</dd>
     </dl>
     <p class="wpe-muted">Drag the selected marker to move it; unsaved edits are kept per waypoint while you browse.</p>
@@ -152,7 +153,6 @@
 
       <form id="wpe-new-form" hidden novalidate>
         <h2 class="wpe-new-title">New waypoint</h2>
-        <p class="wpe-muted" id="wpe-new-where">Click the map (or an OSM POI) to place it; drag the marker to adjust.</p>
         <label class="wpe-field">
           <span>Name</span>
           <input type="text" id="wpe-new-name" autocomplete="off" spellcheck="true" aria-describedby="wpe-new-name-error">
@@ -162,11 +162,27 @@
           <span>Type</span>
           <select id="wpe-new-type"></select>
         </label>
+        <fieldset class="wpe-field wpe-position">
+          <legend>Position</legend>
+          <div class="wpe-latlon">
+            <label><span>Lat</span><input type="text" id="wpe-new-lat" inputmode="decimal" autocomplete="off" aria-describedby="wpe-new-pos-error wpe-new-where"></label>
+            <label><span>Lon</span><input type="text" id="wpe-new-lon" inputmode="decimal" autocomplete="off" aria-describedby="wpe-new-pos-error wpe-new-where"></label>
+          </div>
+          <small class="wpe-field-error" id="wpe-new-pos-error" role="alert"></small>
+          <small class="wpe-muted" id="wpe-new-where">Click the map (or an OSM POI), or type or paste a position here; drag the marker to adjust.</small>
+          <small class="wpe-new-company" id="wpe-new-company" aria-live="polite"></small>
+          <label class="wpe-paste">
+            <span>Paste a position or a map link (typed by hand: Enter applies it)</span>
+            <input type="text" id="wpe-new-paste" placeholder="-36.1234, 148.5678 or a Google/OSM link" autocomplete="off" aria-describedby="wpe-new-pos-error">
+          </label>
+          <div class="wpe-links" id="wpe-new-links"></div>
+        </fieldset>
         <label class="wpe-field">
           <span>Description (optional: written to the GPX &lt;desc&gt;, since it has no id yet)</span>
           <textarea id="wpe-new-desc" rows="4" spellcheck="true"></textarea>
         </label>
         <p class="wpe-muted">The next rebuild mints its id; until then it is listed as pending, and edits to it go to its &lt;wpt&gt; in the GPX alone.</p>
+        <p class="wpe-new-needs" id="wpe-new-needs" aria-live="polite"></p>
         <div class="wpe-actions">
           <span class="wpe-header-spacer"></span>
           <button type="button" class="wpe-btn" id="wpe-new-cancel">Cancel</button>
