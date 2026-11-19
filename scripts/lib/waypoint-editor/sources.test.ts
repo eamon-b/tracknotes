@@ -12,6 +12,7 @@ import {
   folderTitlesForType,
   formatElevation,
   gpxWaypointBuildName,
+  gpxWaypointChildTags,
   gpxWaypointElevationStyle,
   insertGpxWaypoint,
   jsonValueSpan,
@@ -80,6 +81,29 @@ describe('GPX waypoints', () => {
     );
     expect(findGpxWaypoint(spans, { lat: -36.6, lon: 148.3, name: 'Somewhere else' })).toBeNull();
     expect(findGpxWaypoint(spans, { lat: -36.50001, lon: 148.25, name: 'Upper Hut' })).toBeNull();
+  });
+
+  it('names the children a <wpt> has, its own only', () => {
+    expect(gpxWaypointChildTags(GPX, spans[0])).toEqual(['ele', 'name', 'desc', 'type']);
+    expect(gpxWaypointChildTags(GPX, spans[3])).toEqual([]);
+    // What is nested in a child, quoted in CDATA or commented out is not a child of the <wpt>.
+    const full = [
+      '<gpx><wpt lat="1" lon="2">',
+      '  <ele>5</ele><name>Pass</name><!-- <cmt>old</cmt> -->',
+      '  <desc><![CDATA[see <sym> below]]></desc>',
+      '  <link href="https://example.org"><text>Site</text><type>text/html</type></link>',
+      '  <sym/>',
+      '  <extensions><tn:offTrailKm>20.9</tn:offTrailKm><tn:accessMode>hitch</tn:accessMode></extensions>',
+      '</wpt></gpx>',
+    ].join('\n');
+    expect(gpxWaypointChildTags(full, listGpxWaypoints(full)[0])).toEqual([
+      'ele',
+      'name',
+      'desc',
+      'link',
+      'sym',
+      'extensions',
+    ]);
   });
 
   it('moves one waypoint by rewriting only its lat/lon attributes', () => {

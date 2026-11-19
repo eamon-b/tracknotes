@@ -606,7 +606,10 @@ describe('editing a pending waypoint', () => {
     const before = snapshot();
     expect(() => request('demo', added.id, { name: 'WT: Lower Tank' })).toThrow(/type prefix/);
     expect(() => request('demo', added.id, { lat: -36.3, lon: 149.3 })).toThrow(/more than 50 km/);
-    expect(() => request('demo', added.id, { lat: -36.52, lon: 148.3 })).toThrow(/exactly this position/);
+    // Onto Spring's own coordinates under Spring's name: the two could not be told apart.
+    expect(() => request('demo', added.id, { name: 'Spring', lat: -36.52, lon: 148.3 })).toThrow(
+      /already stands on exactly this position/
+    );
     expect(() => request('demo', added.id, { type: 'water-access' })).toThrow(/not one of the waypoint types/);
     // A second "Spring" of the same type beside the first would stop the build.
     expect(() => request('demo', added.id, { name: 'Spring', type: 'water', lat: -36.5201, lon: 148.3 })).toThrow(
@@ -1909,6 +1912,227 @@ describe('an id that is not retired yet', () => {
     expect(restored.waypoint.deleted).toBeUndefined();
     expect(restored.notes.join('\n')).toMatch(/w_cccc3333/);
     expect(read('data/trails/demo/demo.gpx')).toBe(GPX);
+  });
+});
+
+describe('waypoints that share a position', () => {
+  const AT = { lat: -36.52, lon: 148.24 };
+  const LEADORE = { name: 'Leadore (access: Bannock Pass)', type: 'resupply-access', ...AT };
+  const LEADORE_WPT =
+    '  <wpt lat="-36.52" lon="148.24"><name>Leadore (access: Bannock Pass)</name><type>resupply-access</type></wpt>\n';
+  const SALMON_WPT =
+    '  <wpt lat="-36.52" lon="148.24"><name>Salmon (access: Bannock Pass)</name><type>town-access</type></wpt>\n';
+  const passFiles = () => ({ gpx: read('data/trails/pass/pass.gpx'), registry: read('data/waypoint-ids.json') });
+
+  beforeEach(writePass);
+
+  it('puts a deleted one back on its exact spot under its id, beside the <wpt> that shares it', () => {
+    const deleted = remove('pass', 'w_5aaaaf44');
+    // The delete says where and as what it comes back, and that only the id does.
+    const said = deleted.notes.join('\n');
+    expect(said).toMatch(/unless it is “Leadore \(access: Bannock Pass\)” itself, added back as a resupply-access/);
+    expect(said).toMatch(/on its exact position \(-36\.52, 148\.24\) it is w_5aaaaf44 again at once/);
+    expect(said).toMatch(/Adding it back restores its id, not its <wpt>/);
+    expect(row('pass', 'w_5aaaaf44')).toMatchObject({ deleted: true, canMove: false, canDelete: false });
+    expect(row('pass', 'w_5aaaaf44').lockedReason).toMatch(/add a waypoint of its type under its name on its exact/);
+    expect(row('pass', 'w_e7d8d267')).toMatchObject({ canMove: true, canDelete: true });
+    expect(row('pass', 'w_e7d8d267').deleted).toBeUndefined();
+
+    const registry = read('data/waypoint-ids.json');
+    const restored = addWaypoint(paths, 'pass', LEADORE);
+    expect(restored.waypoint).toMatchObject({ id: 'w_5aaaaf44', name: LEADORE.name, type: 'resupply-access', ...AT });
+    expect(restored.waypoint.pending).toBeUndefined();
+    expect(restored.waypoint.deleted).toBeUndefined();
+    expect(restored.waypoint.lockedReason).toBeUndefined();
+    expect([restored.waypoint.canMove, restored.waypoint.canDelete]).toEqual([true, true]);
+    const notes = restored.notes.join('\n');
+    expect(notes).toMatch(/Restored: this is “Leadore \(access: Bannock Pass\)” \(w_5aaaaf44\) again/);
+    expect(notes).toMatch(/neither mints nor retires an id/);
+    expect(notes).toMatch(/Only its id is restored, not the <wpt> the delete removed/);
+    expect(notes).not.toMatch(/Rebuild first|until then it is listed as pending|mints w_/);
+
+    // No pending row, both rows as they were, and only the order of the two <wpt>s differs in the file.
+    const waypoints = loadEditorTrail(paths, 'pass').waypoints;
+    expect(waypoints.map(w => [w.id, !!w.pending, !!w.deleted])).toEqual([
+      ['w_5aaaaf44', false, false],
+      ['w_e7d8d267', false, false],
+    ]);
+    expect(read('data/trails/pass/pass.gpx')).toBe(
+      PASS_GPX.replace(LEADORE_WPT + SALMON_WPT, SALMON_WPT + LEADORE_WPT)
+    );
+    expect(read('data/waypoint-ids.json')).toBe(registry);
+
+    // The next build mints nothing and retires nothing.
+    const next = JSON.parse(registry) as WaypointRegistry;
+    expect(nextIds('pass')).toEqual({
+      'Leadore (access: Bannock Pass) -36.52': 'w_5aaaaf44',
+      'Salmon (access: Bannock Pass) -36.52': 'w_e7d8d267',
+    });
+    assignWaypointIds('pass', buildInputs('pass'), next);
+    expect(next.pass).toEqual(PASS_REGISTRY);
+  });
+
+  it('says on the delete what an add would not bring back, and on the restore what is still gone', () => {
+    // Leadore as the CDT has it: an <ele>, a <desc> and the tn: fields the build reads.
+    const full =
+      '  <wpt lat="-36.52" lon="148.24"><ele>2339.7</ele><name>Leadore (access: Bannock Pass)</name><desc>Leave the trail here.</desc><type>resupply-access</type><extensions><tn:offTrailKm>20.9</tn:offTrailKm></extensions></wpt>\n';
+    write('data/trails/pass/pass.gpx', PASS_GPX.replace(LEADORE_WPT, full));
+    const built = JSON.parse(read('public/data/generated/pass.json')) as { waypoints: { description?: string }[] };
+    built.waypoints[0].description = 'Leave the trail here.';
+    write('public/data/generated/pass.json', JSON.stringify(built));
+
+    const said = remove('pass', 'w_5aaaaf44').notes.join('\n');
+    expect(said).toMatch(
+      /Not restored by that: its <desc> \(unless it is typed in again\); the <ele> it carried \(an add looks one up afresh\); <extensions>, which an add never writes\./
+    );
+    expect(said).toMatch(/restore the files from git/);
+
+    const bare = addWaypoint(paths, 'pass', LEADORE);
+    expect(bare.waypoint.id).toBe('w_5aaaaf44');
+    expect(bare.notes.join('\n')).toMatch(
+      /Still gone, where the old one had them: its <desc> as it was, the <ele> it carried, every other child \(<extensions>/
+    );
+    expect(bare.notes.join('\n')).toMatch(
+      /The last build shows it with a description \(“Leave the trail here\.”\) that the new <wpt> does not have/
+    );
+    remove('pass', 'w_5aaaaf44');
+    const described = addWaypoint(paths, 'pass', { ...LEADORE, description: 'Leave the trail here.' });
+    expect(described.notes.join('\n')).toMatch(/The description typed here is the one the last build shows for it/);
+    // That much is back, so it is not listed as gone; the rest still is.
+    expect(described.notes.join('\n')).toMatch(/Still gone, where the old one had them: the <ele> it carried/);
+  });
+
+  it('adds one under a new name there, pending under a key of its own, and edits it like any other', () => {
+    const before = passFiles();
+    const third = addWaypoint(paths, 'pass', { name: 'Tendoy (access: Bannock Pass)', type: 'town-access', ...AT });
+    expect(third.waypoint).toMatchObject({ pending: true, name: 'Tendoy (access: Bannock Pass)', ...AT });
+    expect(third.waypoint.id.startsWith(PENDING_KEY_PREFIX)).toBe(true);
+    // The build says it sits on Salmon, a town-access too: the one warning a human should read.
+    expect(third.notes.join('\n')).toMatch(
+      /The build will warn: .*within 100 m of "Salmon \(access: Bannock Pass\)" \(0 m\)/
+    );
+    const fourth = addWaypoint(paths, 'pass', { name: 'Lemhi (access: Bannock Pass)', type: 'town-access', ...AT });
+    expect(fourth.waypoint.pending).toBe(true);
+    expect(new Set([third.waypoint.id, fourth.waypoint.id, 'w_5aaaaf44', 'w_e7d8d267']).size).toBe(4);
+    expect(loadEditorTrail(paths, 'pass').waypoints.map(w => [w.name, !!w.pending])).toEqual([
+      ['Leadore (access: Bannock Pass)', false],
+      ['Salmon (access: Bannock Pass)', false],
+      ['Lemhi (access: Bannock Pass)', true],
+      ['Tendoy (access: Bannock Pass)', true],
+    ]);
+
+    // The next build mints one id each for the two, and the built pair keep theirs.
+    const minted = (notes: string[]) => /mints (w_[0-9a-f]+)/.exec(notes.join('\n'))![1];
+    const registry = JSON.parse(read('data/waypoint-ids.json')) as WaypointRegistry;
+    const file = ['Leadore', 'Salmon', 'Tendoy', 'Lemhi'].map(town =>
+      buildInputs('pass').find(w => w.name.startsWith(town))!
+    );
+    const ids = assignWaypointIds('pass', file, registry);
+    expect(ids.slice(0, 2)).toEqual(['w_5aaaaf44', 'w_e7d8d267']);
+    expect(ids[2]).toBe(minted(third.notes));
+    expect(new Set(ids).size).toBe(4);
+    expect(registry.pass.filter(e => e.retired)).toEqual([]);
+    expect(registry.pass).toHaveLength(4);
+
+    // Edited while pending, by index: its description, its name (a new key), away and back.
+    const described = request('pass', third.waypoint.id, { description: 'A long hitch.' });
+    expect(described.waypoint.id).toBe(third.waypoint.id);
+    const renamed = request('pass', third.waypoint.id, { name: 'Tendoy store (access: Bannock Pass)' });
+    expect(renamed.waypoint.id).not.toBe(third.waypoint.id);
+    const away = request('pass', renamed.waypoint.id, { lat: -36.53, lon: 148.25 });
+    // Two of one type that are not built yet on one position take their new ids in file order:
+    // with this one gone from it, the other is minted another. Said, not refused: neither has an id to lose.
+    expect(away.notes.join('\n')).toMatch(
+      /“Lemhi \(access: Bannock Pass\)”, not built yet either, will now be minted w_[0-9a-f]+ by the next build, not w_[0-9a-f]+/
+    );
+    const back = request('pass', away.waypoint.id, AT);
+    expect(back.waypoint).toMatchObject({ id: renamed.waypoint.id, description: 'A long hitch.', ...AT });
+    expect(row('pass', fourth.waypoint.id)).toMatchObject({ name: 'Lemhi (access: Bannock Pass)', description: '' });
+    // The built pair were never touched, and deleting the two gives the files back.
+    expect(row('pass', 'w_5aaaaf44')).toMatchObject({ canMove: true, name: LEADORE.name });
+    remove('pass', back.waypoint.id);
+    remove('pass', fourth.waypoint.id);
+    expect(passFiles()).toEqual(before);
+  });
+
+  it('refuses one under a name already on the position, saying why', () => {
+    const before = passFiles();
+    const salmon = { name: 'Salmon (access: Bannock Pass)', ...AT };
+    // The same name and type: twins.
+    expect(() => addWaypoint(paths, 'pass', { ...salmon, type: 'town-access' })).toThrow(
+      /A town-access named “Salmon \(access: Bannock Pass\)” already stands on exactly this position\. Waypoints may share a position .* two of one name and type there are twins: the editor joins an id to its <wpt> by position, name and type/
+    );
+    // The same name under another type: the name is what tells two on one position apart.
+    expect(() => addWaypoint(paths, 'pass', { ...salmon, type: 'poi' })).toThrow(
+      /“Salmon \(access: Bannock Pass\)”, a town-access, already stands on exactly this position\. .* each needs a name of its own there/
+    );
+    expect(passFiles()).toEqual(before);
+
+    // A pending one renamed onto a neighbour's name, or moved onto a namesake's position.
+    const third = addWaypoint(paths, 'pass', { name: 'Tendoy (access: Bannock Pass)', type: 'town-access', ...AT });
+    const withThird = passFiles();
+    expect(() => request('pass', third.waypoint.id, { name: salmon.name })).toThrow(
+      /two of one name and type there are twins/
+    );
+    const far = addWaypoint(paths, 'pass', { name: salmon.name, type: 'poi', lat: -36.56, lon: 148.3 });
+    const withFar = passFiles();
+    expect(() => request('pass', far.waypoint.id, AT)).toThrow(/each needs a name of its own there/);
+    // A built one too: renamed onto its neighbour's name, it would be told from it by type alone.
+    expect(() => request('pass', 'w_5aaaaf44', { name: salmon.name })).toThrow(/each needs a name of its own there/);
+    expect(passFiles()).toEqual(withFar);
+    remove('pass', far.waypoint.id);
+    expect(passFiles()).toEqual(withThird);
+  });
+
+  it('moves a built waypoint onto another’s position, and keeps both ids', () => {
+    // Spring onto Upper Hut: two names, two types, one position.
+    const moved = request('demo', 'w_bbbb2222', { lat: -36.5, lon: 148.25 });
+    expect(moved.waypoint).toMatchObject({ id: 'w_bbbb2222', lat: -36.5, lon: 148.25 });
+    expect(nextIds('demo')).toEqual({
+      'Upper Hut -36.5': 'w_aaaa1111',
+      'Spring -36.5': 'w_bbbb2222',
+      'Saddle Camp -36.55': 'w_cccc3333',
+    });
+    const before = snapshot();
+    expect(() => request('demo', 'w_bbbb2222', { name: 'Upper Hut' })).toThrow(
+      /“Upper Hut”, a hut, already stands on exactly this position/
+    );
+    expect(() => request('demo', 'w_bbbb2222', { name: 'Upper Hut', type: 'hut' })).toThrow(
+      /A hut named “Upper Hut” already stands on exactly this position/
+    );
+    expect(snapshot()).toEqual(before);
+    // Each is still edited on its own.
+    expect(request('demo', 'w_aaaa1111', { name: 'Top Hut' }).waypoint).toMatchObject({ id: 'w_aaaa1111' });
+    expect(row('demo', 'w_bbbb2222')).toMatchObject({ name: 'Spring', lat: -36.5, lon: 148.25 });
+  });
+
+  it('refuses a retype that would make twins of two a hand edit left under one name', () => {
+    const spring = '  <wpt lat="-36.52" lon="148.3"><name>Spring</name><type>water</type></wpt>\n';
+    write('data/trails/demo/demo.gpx', GPX.replace(spring, spring + spring.replace('water', 'poi')));
+    const pending = loadEditorTrail(paths, 'demo').waypoints.find(w => w.pending)!;
+    const before = snapshot();
+    expect(() => request('demo', pending.id, { type: 'water' })).toThrow(/A water named “Spring” already stands/);
+    expect(snapshot()).toEqual(before);
+    // Any other type leaves them told apart as they were.
+    expect(request('demo', pending.id, { type: 'hut' }).waypoint).toMatchObject({ pending: true, type: 'hut' });
+  });
+
+  it('holds the id of one deleted there until a rebuild, against another name of its type and a built waypoint', () => {
+    remove('pass', 'w_5aaaaf44');
+    const before = passFiles();
+    // A resupply-access under another name there is, to the build, Leadore renamed.
+    expect(() =>
+      addWaypoint(paths, 'pass', { name: 'Tendoy (access: Bannock Pass)', type: 'resupply-access', ...AT })
+    ).toThrow(/Rebuild first so w_5aaaaf44 is retired/);
+    // A built waypoint made over into exactly what the deleted one was would leave two entries for one <wpt>.
+    expect(() => request('pass', 'w_e7d8d267', { name: LEADORE.name, type: 'resupply-access' })).toThrow(
+      /“Leadore \(access: Bannock Pass\)” \(w_5aaaaf44\) stood on exactly this position under this name and type.*Rebuild first so w_5aaaaf44 is retired/
+    );
+    expect(passFiles()).toEqual(before);
+    // Any other type is a new waypoint beside Salmon.
+    const added = addWaypoint(paths, 'pass', { name: 'Tendoy (access: Bannock Pass)', type: 'town-access', ...AT });
+    expect(added.waypoint.pending).toBe(true);
+    expect(row('pass', 'w_5aaaaf44').deleted).toBe(true);
   });
 });
 

@@ -408,13 +408,14 @@ kbd {
   font-size: 0.85em;
 }
 
-/* A waypoint id that selects its row (the merge line in the form). */
+/* A waypoint's id or name that selects its row (the form's lines on a merge, and on the waypoints that share its position). */
 .wpe-link {
   padding: 0;
   border: 0;
   background: none;
   color: var(--primary);
   font: inherit;
+  text-align: left;
   text-decoration: underline;
   cursor: pointer;
 }

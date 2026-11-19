@@ -478,6 +478,29 @@ export function insertGpxWaypoint(gpx: string, waypoint: NewGpxWaypoint): string
   return gpx.slice(0, anchor) + element + lead + gpx.slice(anchor);
 }
 
+/**
+ * The names of a `<wpt>`'s child elements, in file order (`ele`, `name`,
+ * `extensions`, …): what a delete takes with the element. Only its own
+ * children count, not what is nested in one of them, and nothing inside a
+ * comment or a CDATA section is an element.
+ */
+export function gpxWaypointChildTags(gpx: string, span: GpxWaypointSpan): string[] {
+  const element = maskMarkup(gpx.slice(span.start, span.end));
+  const closeAt = element.lastIndexOf('</wpt');
+  if (closeAt === -1) return [];
+  const tags: string[] = [];
+  let depth = 0;
+  for (const m of element.slice(element.indexOf('>') + 1, closeAt).matchAll(/<(\/?)([A-Za-z_][\w:.-]*)[^>]*?(\/?)>/g)) {
+    if (m[1]) {
+      depth = Math.max(0, depth - 1);
+      continue;
+    }
+    if (depth === 0) tags.push(m[2]);
+    if (!m[3]) depth++;
+  }
+  return tags;
+}
+
 /** The GPX without one `<wpt>`, and without the spacing that led up to it. */
 export function removeGpxWaypoint(gpx: string, span: GpxWaypointSpan): string {
   return gpx.slice(0, whitespaceStart(gpx, span.start)) + gpx.slice(span.end);

@@ -55,6 +55,9 @@ import {
 } from './admin-waypoints-comments';
 import {
   STATUS_FILTER_LABELS,
+  colocatedCounts,
+  colocatedMetaHtml,
+  colocatedWith,
   compareWaypoints,
   deleteConfirmText,
   descriptionField,
@@ -72,12 +75,14 @@ import {
   isReviewed,
   knownCommentIds,
   laterPassOf,
+  markerTooltipHtml,
   matchesFilter,
   mergeCommentsNote,
   mergeMetaHtml,
   movedSinceBuild,
   nearbyPois,
   nearestLineSnap,
+  nextColocatedId,
   parseCoordinate,
   parseLatLon,
   placementText,
@@ -479,7 +484,9 @@ function drawTrail(fit: boolean): void {
     Lf.polyline([b.from, b.to], { color: '#9e9e9e', weight: 2, dashArray: '6 6' }).addTo(m.route);
   }
 
-  for (const w of trail.waypoints) addDot(m, w);
+  // Waypoints on one position are one dot under another: each says how many lie under it.
+  const sharing = colocatedCounts(trail.waypoints);
+  for (const w of trail.waypoints) addDot(m, w, sharing.get(w.id));
 
   for (const p of trail.pois) {
     Lf.circleMarker([p.lat, p.lon], { radius: 4, color: '#555', weight: 1, fillColor: '#ffd166', fillOpacity: 0.9 })
@@ -498,10 +505,14 @@ function drawTrail(fit: boolean): void {
   if (fit && bounds.length) m.map.fitBounds(Lf.latLngBounds(bounds), { padding: [20, 20] });
 }
 
-/** One waypoint's dot on the map, kept under its id (a pending waypoint's key) in `dotById`. */
-function addDot(m: MapState, w: EditorWaypoint): void {
+/**
+ * One waypoint's dot on the map, kept under its id (a pending waypoint's key)
+ * in `dotById`. `sharing` is how many other waypoints stand on its position:
+ * a click reaches the top dot alone, and the selected marker steps on from there.
+ */
+function addDot(m: MapState, w: EditorWaypoint, sharing = 0): void {
   const dot = m.L.circleMarker([w.lat, w.lon], dotStyle(w, familyColor(w.type)))
-    .bindTooltip(dotTooltipHtml(w), { direction: 'top', offset: [0, -6] })
+    .bindTooltip(dotTooltipHtml(w, sharing), { direction: 'top', offset: [0, -6] })
     .on('click', () => {
       if (state.placing || state.adding !== undefined) return;
       select(w.id, { pan: false });
@@ -582,7 +593,16 @@ function drawSelection(pan: boolean): void {
       iconAnchor: [13, 13],
     }),
   }).addTo(m.map);
-  marker.bindTooltip(escapeHtml(draft.name), { direction: 'top', offset: [0, -14] });
+  const waypoints = state.trail?.waypoints ?? [];
+  marker.bindTooltip(markerTooltipHtml(draft.name, w, waypoints), { direction: 'top', offset: [0, -14] });
+  // The marker covers every dot on its position, so a click on it goes to the
+  // next waypoint that shares the position (Leaflet fires no click after a drag).
+  marker.on('click', () => {
+    if (state.placing || state.adding !== undefined) return;
+    const next = nextColocatedId(w, waypoints);
+    if (next && !draftChanges(w, state.drafts.get(w.id)).position && commitPendingFields())
+      select(next, { pan: false });
+  });
   marker.on('drag', () => {
     const at = marker.getLatLng();
     updatePositionFields(at.lat, at.lng);
@@ -888,6 +908,8 @@ function fillForm(options: { keepTyping?: boolean } = {}): void {
   }
   const shared = sharedSourceText(w);
   if (shared) meta.push(`<span>${escapeHtml(shared)}</span>`);
+  const colocated = colocatedMetaHtml(w, state.trail?.waypoints ?? []);
+  if (colocated) meta.push(colocated);
   const merge = mergeMetaHtml(w, state.byId);
   if (merge) meta.push(merge);
   $('wpe-meta').innerHTML = meta.join('');
@@ -1131,7 +1153,7 @@ function replaceWaypoint(w: EditorWaypoint, previousId = w.id): void {
   if (!m) return;
   m.dotById.get(previousId)?.remove();
   m.dotById.delete(previousId);
-  addDot(m, w);
+  addDot(m, w, colocatedWith(w, trail.waypoints).length);
 }
 
 // ---------------------------------------------------------------------------

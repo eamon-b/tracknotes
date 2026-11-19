@@ -35,6 +35,7 @@ A waypoint added since the last build has only a temporary key there (`id=new:â€
 - **Map** (centre): the route as built (cut at route breaks, variants dashed), every waypoint coloured by family, and the selected one as a draggable marker.
   A waypoint pending a rebuild has a dashed dark edge;
   a merged duplicate is a smaller hollow ring with a dotted edge, since the app does not show it.
+  Waypoints that stand on one position (several towns hitched from one pass) are one dot under another: a click selects the top one, its tooltip says how many more lie there, and a click on the selected marker steps to the next of them and round again.
   The layer control switches between OpenTopoMap, Esri satellite imagery and OpenStreetMap, and shows OSM POIs.
   A grey dashed line joins a saved move to where the last build drew the waypoint;
   a blue one joins an unsaved move to the saved position;
@@ -48,6 +49,7 @@ A waypoint added since the last build has only a temporary key there (`id=new:â€
   id and the lists the waypoint is in, and for an off-route place how far it was from the main route in the last build (metres under a kilometre, kilometres above);
   for a pending waypoint the next build hands an existing id, that id (a link to the row that has it, when one does);
   for a pass of a revisited place, the other passes built from the same `<wpt>`, and that a move, a rename or a type change here changes the place, so every pass;
+  for a waypoint that shares its position with others, each of them by name (a link to its row), with its type and whether it is deleted or pending;
   for a merged duplicate, the waypoint the build merged it into (a link to it) and how far apart they are, and on that waypoint the ids merged into it;
   latitude and longitude, plus a box that takes a pasted position or a Google Maps / OpenStreetMap link;
   the `<ele>` its `<wpt>` has in the GPX, when it has one (a merged duplicate's and a pending waypoint's included);
@@ -132,9 +134,11 @@ Before writing, a save that moves, renames or retypes a waypoint, one with an id
 - **the type holds:** the type the build gives the edited `<wpt>` (`resolveSourceType`: the nearest CalTopo marker with its name, else its `<type>`, else its name) is the one asked for, or, without a type change, the one it has;
 - **the name holds:** the build shows the name that was typed;
 - **no marker comes to be shared:** a CalTopo marker that types another `<wpt>` too is never moved, retitled or refoldered for this one, and an edit after which the waypoint would be typed by a marker that types another `<wpt>` (a rename to that marker's name, say) is refused;
+- **no two of one name on one position:** a move onto the exact coordinates of another `<wpt>`, or a rename there, is refused only when the two would then have the same name ("Waypoints that share a position" below);
 - **every id holds:** the build's id matching (`assignWaypointIds`, on a copy of the registry) is run over every `<wpt>` before and after, and each must come out with the id it had, this waypoint's included.
   A pending waypoint has no id to keep, and the notes name the one the next build gives it.
   The check covers the other pending waypoints too, and runs on an add and a delete as well: an edit after which the build would hand a pending waypoint a built one's id is refused, in those words, until a rebuild has given the pending one its own.
+  One after which another pending waypoint would only be minted a different new id is not refused, since nothing is keyed to an id it does not have yet: the notes name the id it will now get.
 
 A waypoint whose registry entry no longer matches its `<wpt>` (an entry edited by hand, or left behind by a hand edit to the sources) fails the last check whatever the edit, and the refusal says so: put the entry or the `<wpt>` right by hand, or rebuild.
 
@@ -158,13 +162,41 @@ A marker that does have its name would win however far away it is, and the build
 So the add is refused when a marker with the name already types another `<wpt>` (the two would share it, whatever type is asked for): give the new waypoint a name of its own.
 A marker with the name that types no `<wpt>` yet becomes the new waypoint's own, provided it gives the type asked for;
 when it has a description, the notes say that the build shows that and not the `<desc>`.
-The add is also refused for a name that starts with a type prefix (the build strips it), a position more than 50 km from the route, a position another `<wpt>` already has (the editor tells waypoints apart by their coordinates), and anything that would stop the build or change another waypoint's id.
+The add is also refused for a name that starts with a type prefix (the build strips it), a position more than 50 km from the route, the exact position of another `<wpt>` that has its name ("Waypoints that share a position" below), and anything that would stop the build or change another waypoint's id.
 When the new waypoint stands where a retired waypoint of the same type and name stood, the next build hands it that id back (with its comments and description), and the notes say so.
 
 A waypoint deleted since the last build is not retired yet: its registry entry is live until a build runs, and the build reads any `<wpt>` of its type within 100 m of such an entry as that waypoint moved or renamed, handing it the id and the comments keyed to it.
 So an add of that type within 100 m is refused until a rebuild has retired the id.
-The one exception is the deleted waypoint itself, added back under its name: the next build gives it its id back, and the notes say so.
-Put back on its exact position, it is joined to its id at once and listed as the waypoint it was, not as pending.
+The one exception is the deleted waypoint itself, added back under its name and type: the next build gives it its id back, and the notes say so.
+Put back on its exact position, it is joined to its id at once and listed as the waypoint it was, not as pending, whether or not another `<wpt>` stands on that position: the next build then mints and retires nothing.
+The delete's notes give that position, and the deleted row's form still shows it (a `<wpt>` whose coordinates had more than six decimals cannot be matched exactly, and waits for the build).
+Adding it back restores the id, not the `<wpt>`: the new one is written after the last `<wpt>` in the file with the name, type and position given, the description typed and an `<ele>` looked up afresh.
+What the delete took besides is not put back: the old `<wpt>`'s place in the file, its `<desc>` as it was, the `<ele>` it carried, any other child (`<extensions>`, from which the build reads the off-trail access fields, so the rebuilt waypoint loses them), its `descriptions.json` entry, its CalTopo marker and its name in trail.json's `revisitedWaypoints`.
+The notes of the delete name which of those the waypoint had, and the notes of the add say what is still gone: copy them back from `git diff`, or restore the files from git to undo a delete exactly.
+
+### Waypoints that share a position
+
+Any number of `<wpt>`s may stand on the same coordinates, and the CDT has 18 such groups of two to four: the turn-offs to several towns hitched from one pass.
+The editor adds, moves, renames, retypes, describes and deletes each on its own: a save follows a `<wpt>` by its place in the file, and a waypoint is joined to its id by its coordinates, name and type together.
+What it refuses is two `<wpt>`s on one position under one name, as the build shows names:
+
+- **of one type too**, they are twins.
+  The editor could not tell which `<wpt>` is whose (it lists each id locked: "What it will not edit"), and the build keeps an id on the same three things: it stops on a second waypoint of one type and name within 100 m of a registry entry, and `dedupeWaypoints` merges the two into one row.
+- **of different types**, the join could tell them apart, but a waypoint that is not built yet is keyed by its position and name alone, whatever its type, and an added `<wpt>` is read back the same way.
+
+So an add, a move (of a built or a pending waypoint) or a rename that would put a `<wpt>` on the exact position of another with its name is refused, and the refusal says which of the two cases it is.
+A retype is refused only where it would make twins of two `<wpt>`s a hand edit left there under one name.
+Under a name of its own, a waypoint may be put on any position, occupied or not.
+The rest of the checks still apply there:
+
+- a new waypoint of the type of one deleted on the position since the last build is refused until a rebuild, as anywhere within 100 m of it, unless it is that waypoint coming back under its name ("Adding a waypoint" above);
+- a built waypoint moved, renamed and retyped into exactly what such a deleted one was is refused too, since two registry entries would then read the same for one `<wpt>`;
+- a new waypoint of the type of one that stands there mints an id of its own, and the build warns that it is within 100 m of the other: check the two are not one place under two names.
+
+A new id is made from the type and position, so two waypoints of one type that are not built yet on one position take theirs in file order.
+Moving or deleting the first can then change the id the second will be minted, and the notes say so.
+
+On the map such waypoints are one dot under another, and the form of each names the others ("The screen" above).
 
 ### Editing a waypoint before its rebuild
 
@@ -180,7 +212,7 @@ It has no id, so a save writes its `<wpt>` and nothing that keys by id: no regis
   The save answers with the waypoint under its new key and the page follows it: the list row, the map marker, the selection, the address (`?id=`) and any unsaved edits.
   Nothing is kept under the old key, and a pending waypoint takes no review mark.
 
-A save is held to what an add is held to, and refused (writing nothing) for a name that starts with a type prefix, a position more than 50 km from the route or one another `<wpt>` already has, a name a CalTopo marker would type differently or already types another `<wpt>` by, a move, rename or retype after which the build would hand it the id of a waypoint deleted since the last build (rebuild first), and anything that would stop the build or change another waypoint's id.
+A save is held to what an add is held to, and refused (writing nothing) for a name that starts with a type prefix, a position more than 50 km from the route, the exact position of another `<wpt>` under that one's name ("Waypoints that share a position" above), a name a CalTopo marker would type differently or already types another `<wpt>` by, a move, rename or retype after which the build would hand it the id of a waypoint deleted since the last build (rebuild first), and anything that would stop the build or change another waypoint's id.
 The same stale-content check applies: the save is refused if the `<wpt>` changed on disk since the page read it.
 After a move, rename or retype the notes name the id the next build will mint for it (or hand back to it) as it now stands: the id is minted from the type and position, so it changes with either.
 
@@ -220,8 +252,9 @@ The save's notes say what was written and where it came from ("812.3 m, from the
 It removes the `<wpt>`, the CalTopo marker that typed it (unless that marker also types another waypoint) and its `descriptions.json` entries.
 Its registry entry stays: the next build marks it `retired`, and a retired id is never handed to a different place.
 Until that build the entry is not retired, and the build would hand the id to a waypoint of the same type added within 100 m: the editor refuses such an add until a rebuild ("Adding a waypoint" above), and the notes say so.
+The notes also say how the waypoint itself comes back before then (added under its name and type: on its exact position, which they give, it has its id again at once), and what an add would not bring back of what this `<wpt>` had: its `<desc>` unless typed again, its `<ele>`, and every other child by name (`<extensions>`), with the CalTopo marker, `descriptions.json` entry or `revisitedWaypoints` name the delete took.
 Until the rebuild the waypoint stays in the list as `deleted`, locked.
-That holds when another waypoint's `<wpt>` stands on the same coordinates (the CDT's towns hitched from one pass): a `<wpt>` is joined to an id only by its coordinates, name and type together, so the deleted waypoint is never shown as its neighbour.
+That holds when another waypoint's `<wpt>` stands on the same coordinates (the CDT's towns hitched from one pass): a `<wpt>` is joined to an id only by its coordinates, name and type together, so the deleted waypoint is never shown as its neighbour, and it can be put back beside it.
 A revisited place's later pass (`<id>_2`) cannot be deleted on its own, since it is built from the first pass's `<wpt>`: deleting the first pass deletes every pass and the place's description.
 It also takes the place's name out of trail.json's `revisitedWaypoints` in the same save (the notes say so), since the build warns on every run about a name listed there that the route no longer passes twice;
 the name stays listed, with a note, while another `<wpt>` still goes by it.
@@ -377,7 +410,8 @@ A save is refused, writing nothing, if the waypoint changed on disk since the pa
 
 After a rebuild the Changed files drawer lists the ids the build **minted** or **retired**.
 A move, rename or type change made here should produce neither;
-a waypoint added here should mint exactly the id its last save named (a move, rename or retype of a pending waypoint names it afresh), and one deleted here should retire exactly its own.
+a waypoint added here should mint exactly the id its last save named (a move, rename or retype of a pending waypoint names it afresh, and so does a save that changes the new id of another pending waypoint on its position), and one deleted here should retire exactly its own.
+A deleted waypoint added back on its exact position before the rebuild produces neither.
 That holds for a merged duplicate too: deleting one retires its id alone, and a duplicate that comes back as a row (renamed apart, freed from a chain, or left behind by a deleted survivor) keeps the id it had, so nothing is minted.
 Anything else means a waypoint lost its id (and the comments keyed to it).
 The editor refuses an edit that would do that, so look for a change made by hand (a type or a name prefix edited in the GPX, a registry entry that was not migrated): fix the source and rebuild before committing.
@@ -405,11 +439,13 @@ If only the dev server is killed, the step that is running finishes (a half-writ
 ## What it will not edit
 
 - **Te Araroa** is read-only: its waypoints come from `te-araroa-data` (`npm run sync:te-araroa`) and are fixed upstream.
-- A waypoint whose `<wpt>` cannot be found (deleted here, or the GPX was edited by hand since the build) is locked until a rebuild.
+- A waypoint whose `<wpt>` cannot be found (deleted here, or the GPX was edited by hand since the build) is locked until a rebuild, or until a `<wpt>` of its name and type is added on its exact position ("Adding a waypoint").
   A `<wpt>` is a waypoint's when it stands on the exact coordinates the build or the registry has for it, under the name the build shows and with the type it gives: the same three things the build keeps an id on.
   So a `<wpt>` renamed or retyped by hand shows as a deleted waypoint and a pending one;
   when the next build will read the pending one as the deleted one moved or renamed (the same type, within 100 m), the deleted row's lock note says so in place of "the next build retires its id", the pending row carries the id it takes, and the pending one cannot be moved, renamed or retyped until a rebuild.
 - Two `<wpt>`s on one position with one name and type (twins): the editor cannot tell which is whose, lists each id locked and neither `<wpt>` as pending, and says to give them names of their own.
+  It never makes twins itself, and refuses any two `<wpt>`s of one name on one position ("Waypoints that share a position");
+  `<wpt>`s that share a position under names of their own are edited like any others.
 - A `<wpt>` that has an id in `data/waypoint-ids.json` but no row in the last build on this machine, and is in no row's merged ids.
   The build lists every `<wpt>` (main route, off-trail, a variant's waypoints, which include a terminus's endpoint, or the ids merged into another), so this is the registry ahead of the generated data: the registry is committed, the generated data is built on each machine, and a pull that brings a new waypoint needs a rebuild.
   It is listed under its id, badged `not built` and locked, until then.

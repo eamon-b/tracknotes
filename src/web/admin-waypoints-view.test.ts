@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { EditorWaypoint } from '../../scripts/lib/waypoint-editor/api-types';
 import {
+  colocatedCounts,
+  colocatedMetaHtml,
+  colocatedWith,
   compareWaypoints,
   deleteConfirmText,
   descriptionField,
@@ -18,11 +21,13 @@ import {
   isReviewed,
   knownCommentIds,
   laterPassOf,
+  markerTooltipHtml,
   matchesFilter,
   mergeCommentsNote,
   mergeMetaHtml,
   nearbyPois,
   nearestLineSnap,
+  nextColocatedId,
   parseCoordinate,
   parseLatLon,
   positionReadout,
@@ -159,6 +164,81 @@ describe('merged near-duplicates', () => {
     expect(away.radius).toBeLessThan(built.radius);
     expect(dotTooltipHtml(duplicate)).toContain('merged into w_1');
     expect(dotTooltipHtml(waypoint({ name: '<img>' }))).not.toContain('<img>');
+  });
+});
+
+describe('waypoints that share a position', () => {
+  // Two towns hitched from one pass, a third added there since the build, and a hut elsewhere.
+  const at = { lat: 44.814332, lon: -113.27255, builtLat: 44.814332, builtLon: -113.27255 };
+  const leadore = waypoint({
+    id: 'w_5aaaaf44',
+    name: 'Leadore (access: Bannock Pass)',
+    type: 'resupply-access',
+    ...at,
+  });
+  const salmon = waypoint({ id: 'w_e7d8d267', name: 'Salmon (access: Bannock Pass)', type: 'town-access', ...at });
+  const tendoy = waypoint({ id: 'new:0123456789', pending: true, name: 'Tendoy <store>', type: 'town-access', ...at });
+  const hut = waypoint();
+  const all = [hut, leadore, salmon, tendoy];
+
+  it('names the others on the position, in list order, and no waypoint that merely stands near', () => {
+    expect(colocatedWith(leadore, all).map(w => w.id)).toEqual(['w_e7d8d267', 'new:0123456789']);
+    expect(colocatedWith(hut, all)).toEqual([]);
+    expect(colocatedWith(leadore, [leadore, waypoint({ id: 'w_near', ...at, lat: 44.814333 })])).toEqual([]);
+    expect([...colocatedCounts(all)]).toEqual([
+      ['w_5aaaaf44', 2],
+      ['w_e7d8d267', 2],
+      ['new:0123456789', 2],
+    ]);
+  });
+
+  it('does not count the passes of a revisited place, which are one <wpt>', () => {
+    const first = waypoint({ id: 'w_07233ee1', sharesSourceWith: ['w_07233ee1_2'] });
+    const second = waypoint({ id: 'w_07233ee1_2', sharesSourceWith: ['w_07233ee1'] });
+    const other = waypoint({ id: 'w_00176641', name: 'Lobuche lodge' });
+    expect(colocatedWith(first, [first, second])).toEqual([]);
+    expect(colocatedCounts([first, second]).size).toBe(0);
+    expect(colocatedMetaHtml(second, [first, second])).toBe('');
+    // A different <wpt> on the spot is company for both passes; an id that only ends in digits is its own place.
+    expect(colocatedWith(second, [first, second, other]).map(w => w.id)).toEqual(['w_00176641']);
+    expect(colocatedCounts([first, second, other])).toEqual(
+      new Map([
+        ['w_07233ee1', 1],
+        ['w_07233ee1_2', 1],
+        ['w_00176641', 2],
+      ])
+    );
+  });
+
+  it('steps from each to the next and round again, so the map reaches every one', () => {
+    expect(nextColocatedId(leadore, all)).toBe('w_e7d8d267');
+    expect(nextColocatedId(salmon, all)).toBe('new:0123456789');
+    expect(nextColocatedId(tendoy, all)).toBe('w_5aaaaf44');
+    expect(nextColocatedId(hut, all)).toBeNull();
+  });
+
+  it('says so in the form, with a link to each, its type and its state, escaped', () => {
+    const html = colocatedMetaHtml(leadore, [...all, waypoint({ id: 'w_gone', name: 'Gone', deleted: true, ...at })]);
+    expect(html).toContain('3 other waypoints share this position');
+    expect(html).toContain('data-goto="w_e7d8d267"');
+    expect(html).toContain('>Salmon (access: Bannock Pass)</button> <span class="wpe-muted">· Town (turn-off)</span>');
+    expect(html).toContain('data-goto="new:0123456789"');
+    expect(html).toContain(
+      'Tendoy &lt;store&gt;</button> <span class="wpe-muted">· Town (turn-off) · pending rebuild</span>'
+    );
+    expect(html).toContain('>Gone</button> <span class="wpe-muted">· Hut / shelter · deleted</span>');
+    expect(html).not.toContain('<store>');
+    expect(colocatedMetaHtml(salmon, [leadore, salmon])).toContain('1 other waypoint shares this position');
+    expect(colocatedMetaHtml(hut, all)).toBe('');
+  });
+
+  it('says on the map how many lie under a dot, and where the selected marker stands among them', () => {
+    expect(dotTooltipHtml(salmon, 2)).toContain('Town (turn-off) · 2 more on this position');
+    expect(dotTooltipHtml(hut)).not.toContain('more on this position');
+    expect(markerTooltipHtml('Salmon <b>', salmon, all)).toBe(
+      'Salmon &lt;b&gt; <span class="wpe-muted">2 of 3 on this position: click for the next</span>'
+    );
+    expect(markerTooltipHtml('Upper <Hut>', hut, all)).toBe('Upper &lt;Hut&gt;');
   });
 });
 

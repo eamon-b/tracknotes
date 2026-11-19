@@ -96,6 +96,7 @@ import {
   findGpxWaypoint,
   formatCoordinate,
   formatElevation,
+  gpxWaypointChildTags,
   gpxWaypointElevationStyle,
   insertGpxWaypoint,
   listGpxWaypoints,
@@ -757,7 +758,7 @@ function freedByLeaving(
 }
 
 const GONE_REASON =
-  'Its <wpt> is no longer in the GPX: deleted since the last build (or edited by hand). The next build retires its id; rebuild before editing it.';
+  'Its <wpt> is no longer in the GPX: deleted since the last build (or edited by hand). The next build retires its id; rebuild before editing it. To put it back before that, add a waypoint of its type under its name on its exact position: it is then this waypoint again, with its id (within 100 m of it, the next build hands the id back instead). Whatever else its <wpt> had comes back only from git.';
 
 const AMBIGUOUS_REASON =
   'More than one <wpt> stands on its position under its name and type, so the editor cannot tell which is its: give them names of their own by hand in the GPX (the build cannot tell them apart either), then rebuild.';
@@ -1291,8 +1292,44 @@ function assertNearRoute(context: TrailContext, lat: number, lon: number): void 
   }
 }
 
-const SAME_POSITION_ERROR =
-  'Another <wpt> is at exactly this position, and the editor tells waypoints apart by their coordinates: place it a little to one side.';
+/**
+ * The index of another `<wpt>` on exactly the coordinates `at`, under the
+ * build name `at.name`; -1 when there is none. `except` is the `<wpt>` asked
+ * about, when it is in `sources` itself.
+ *
+ * Any number of `<wpt>`s may stand on one position (the CDT's towns hitched
+ * from one pass: 18 groups of two to four), so long as each has a name of its
+ * own there. Two under one name on one position are what nothing tells apart:
+ *  - of one type too, they are twins. The editor joins an id to its `<wpt>` by
+ *    coordinates, name and type (`claimSpans`), so it claims neither and locks
+ *    both; the build keeps an id on the same three (`assignWaypointIds` stops
+ *    on a second waypoint of one type and name within its radius of an entry,
+ *    and `dedupeWaypoints` merges the two into one row);
+ *  - of different types, the join could tell them apart, but a `<wpt>` that is
+ *    not built yet is keyed by its coordinates and name alone (`pendingKey`),
+ *    and an added one is read back the same way (`findGpxWaypoint`).
+ * Names are compared as the build shows them, so a hand-written `C Flat` and
+ * `Flat` are one name.
+ */
+function namesakeAt(
+  sources: Pick<Sources, 'spans' | 'typed'>,
+  at: { lat: number; lon: number; name: string },
+  except = -1
+): number {
+  return sources.spans.findIndex(
+    (span, i) => i !== except && span.lat === at.lat && span.lon === at.lon && sources.typed[i].cleanedName === at.name
+  );
+}
+
+/** Why a `<wpt>` cannot stand where `other` does under its name ({@link namesakeAt}), as the type `type`. */
+function namesakeError(other: TypeSource, type: string): EditorError {
+  const shared = 'Waypoints may share a position (several towns hitched from one pass do), but';
+  return new EditorError(
+    other.type === type
+      ? `A ${type} named “${other.cleanedName}” already stands on exactly this position. ${shared} two of one name and type there are twins: the editor joins an id to its <wpt> by position, name and type, so it could not tell which <wpt> is whose, and the build keeps an id on the same three. Give this one a name of its own. Nothing was written.`
+      : `“${other.cleanedName}”, a ${other.type}, already stands on exactly this position. ${shared} each needs a name of its own there: the editor tells them apart by name (a waypoint that is not built yet is keyed by its position and name alone, whatever its type). Give this one a name of its own. Nothing was written.`
+  );
+}
 
 function kmAway(at: { lat: number; lon: number }, marker: { lat: number; lon: number }): string {
   return (haversineDistance(at.lat, at.lon, marker.lat, marker.lon) / 1000).toFixed(1);
@@ -1604,9 +1641,11 @@ interface IdRun {
  * Run the build's id matching (on a copy of the registry) over the sources
  * before and after an edit, and refuse the edit if any waypoint the two share
  * would come out of the next build with a different id: that is a waypoint
- * losing its comments and description. `pairs` maps each after-index to the
- * before-index of the same `<wpt>`. Returns the ids before and after, and the
- * build's warnings about the after state.
+ * losing its comments and description. A `<wpt>` that is not built yet has no
+ * id to lose, but is refused the id of one that is. `pairs` maps each
+ * after-index to the before-index of the same `<wpt>`. Returns the ids before
+ * and after, the build's warnings about the after state, and a line for each
+ * unbuilt `<wpt>` whose new id would merely be another new one (`reminted`).
  */
 function assertIdsKept(
   trailId: string,
@@ -1614,7 +1653,7 @@ function assertIdsKept(
   after: IdRun,
   pairs: readonly [number, number][],
   doing: { after: string; retry: string } = { after: 'after this edit', retry: 'make this edit again' }
-): { ids: string[]; beforeIds: string[]; warnings: string[] } {
+): { ids: string[]; beforeIds: string[]; warnings: string[]; reminted: string[] } {
   let beforeIds: string[];
   try {
     beforeIds = assignWaypointIds(trailId, before.inputs, trailRegistry(before.registry, trailId));
@@ -1645,16 +1684,22 @@ function assertIdsKept(
       `That would change the id of ${lost.join(', ')}, orphaning the comments and description keyed to it; the editor will not do that.`
     );
   }
-  const unbuilt = changed.map(([a, b]) => {
-    const name = `“${after.inputs[a].name}”`;
+  const unbuilt = changed.flatMap(([a, b]) => {
     const taken = entries.get(ids[a]);
-    const would = taken
-      ? `read it as “${taken.name}” moved or renamed and give it ${taken.id}, with the comments and description keyed to that id`
-      : `mint it ${ids[a]} instead`;
-    return `${name} is not built yet, so it has no id of its own (the next build would mint it ${beforeIds[b]}): ${doing.after}, the build would ${would}. Rebuild first, so that ${name} has its own id (${beforeIds[b]}), then ${doing.retry}.`;
+    if (!taken) return [];
+    const name = `“${after.inputs[a].name}”`;
+    return `${name} is not built yet, so it has no id of its own (the next build would mint it ${beforeIds[b]}): ${doing.after}, the build would read it as “${taken.name}” moved or renamed and give it ${taken.id}, with the comments and description keyed to that id. Rebuild first, so that ${name} has its own id (${beforeIds[b]}), then ${doing.retry}.`;
   });
   if (unbuilt.length) throw new EditorError(`${unbuilt.join(' ')} Nothing was written.`);
-  return { ids, beforeIds, warnings };
+  // What is left is a <wpt> with no id yet that would now be minted another new
+  // one: nothing is keyed to either, so nothing is lost. A new id is made from
+  // the type and position, and the waypoints of one type that are not built yet
+  // on one position take theirs in file order, so an edit to one can change the next one's.
+  const reminted = changed.map(
+    ([a, b]) =>
+      `“${after.inputs[a].name}”, not built yet either, will now be minted ${ids[a]} by the next build, not ${beforeIds[b]}: a new id comes from the type and position, and waypoints of one type that share a position take theirs in file order. Nothing is keyed to an id it does not have yet.`
+  );
+  return { ids, beforeIds, warnings, reminted };
 }
 
 /**
@@ -1944,6 +1989,8 @@ export function saveWaypointEdit(
   let configText = context.configText;
   let elevationNote: string | undefined;
   let nextId: string | null = null;
+  /** What the edit does to the id another unbuilt `<wpt>` will be minted. */
+  let otherIdNotes: string[] = [];
   const spanIndex = view.spanOf.get(current.id);
   const spanNow = (): GpxWaypointSpan => listGpxWaypoints(texts.gpx)[spanIndex!];
 
@@ -1956,12 +2003,7 @@ export function saveWaypointEdit(
     // Every move, rename and retype is held to one set of rules, whether the
     // waypoint has an id or is still pending.
     if (rename) assertNoTypePrefix(newName);
-    if (current.pending && move) {
-      assertNearRoute(context, lat, lon);
-      if (sources.spans.some((s, i) => i !== spanIndex && s.lat === lat && s.lon === lon)) {
-        throw new EditorError(SAME_POSITION_ERROR);
-      }
-    }
+    if (current.pending && move) assertNearRoute(context, lat, lon);
     // The build types every <wpt> of a name from the nearest marker with it:
     // a marker that types another <wpt> too is never edited for this one.
     const sharers = markerSharers(sources, spanIndex);
@@ -2067,6 +2109,13 @@ export function saveWaypointEdit(
         `Under that name the build would show it as “${own.cleanedName}”, not “${name}”: nothing was written.`
       );
     }
+    // Another <wpt> may share its position, but not under its name: a move or
+    // a rename onto a namesake is refused whatever the types, and so is a
+    // retype that would make twins of two a hand edit left there under one name.
+    const namesake = namesakeAt(after, { ...after.spans[spanIndex], name }, spanIndex);
+    if (namesake !== -1 && (move || rename || after.typed[namesake].type === own.type)) {
+      throw namesakeError(after.typed[namesake], own.type);
+    }
     const sharedAfter = own.marker
       ? after.spans.filter((_, i) => i !== spanIndex && after.typed[i].marker?.index === own.marker!.index)
       : [];
@@ -2088,12 +2137,35 @@ export function saveWaypointEdit(
 
     // Then the ids: every <wpt> must come out of the next build with the id it
     // has now, this one included when it has one.
-    const { ids, beforeIds, warnings } = assertIdsKept(
+    const registryAfter = JSON.parse(texts.registry) as WaypointRegistry;
+    if (!current.pending) {
+      // No other <wpt> stands here under this name (the check above), so a live
+      // entry that reads exactly as this waypoint now does has lost its own
+      // <wpt> since the last build. Its id is not retired until a build runs,
+      // and two entries for one <wpt> are twins in the registry: the join
+      // could show this waypoint as the deleted one, and the other as back.
+      const ghost = (registryAfter[context.trailId] ?? []).find(
+        e =>
+          !e.retired &&
+          e.id !== place &&
+          e.name === name &&
+          e.type === own.type &&
+          e.lat === after.spans[spanIndex].lat &&
+          e.lon === after.spans[spanIndex].lon
+      );
+      if (ghost) {
+        throw new EditorError(
+          `“${ghost.name}” (${ghost.id}) stood on exactly this position under this name and type, and its <wpt> is gone since the last build, but its id is not retired until a build runs: this edit would leave two registry entries that read the same for the one <wpt>, and neither the editor nor the build could say whose it is. Rebuild first so ${ghost.id} is retired, then make this edit. Nothing was written.`
+        );
+      }
+    }
+    const { ids, beforeIds, warnings, reminted } = assertIdsKept(
       context.trailId,
       { registry: sources.registryEntries, inputs: idInputs(sources) },
-      { registry: JSON.parse(texts.registry) as WaypointRegistry, inputs: idInputs(after) },
+      { registry: registryAfter, inputs: idInputs(after) },
       after.spans.flatMap((_, i) => (i === spanIndex ? [] : [[i, i] as [number, number]]))
     );
+    otherIdNotes = reminted;
     if (current.pending) {
       nextId = ids[spanIndex];
       assertNoLiveIdTaken(sources.registryEntries, context.trailId, nextId, name, 'edit', current.takesId);
@@ -2210,8 +2282,9 @@ export function saveWaypointEdit(
       notes.push(`Also retypes ${current.sharesSourceWith.join(', ')}, built from the same <wpt>.`);
     }
   }
-  if (nextId !== null) notes.push(nextIdNote(sources.registryEntries, context.trailId, nextId));
+  if (nextId !== null) notes.push(idNote(after, sources.registryEntries, context.trailId, nextId));
   else if (move || rename || retype) notes.push('Run Rebuild to see its km, lists and type from the new source.');
+  notes.push(...otherIdNotes);
 
   // The build merges on name, type and distance: an edit to the waypoint that
   // duplicates were merged into can end the merge, and they come back as rows.
@@ -2264,9 +2337,63 @@ function nextIdNote(registry: WaypointRegistry, trailId: string, id: string): st
   return `The next build gives it back the id ${id} of “${entry.name}”, whose <wpt> went since the last build: a ${entry.type} of that name within ${MATCH_RADIUS_METERS} m is the same waypoint restored, and the comments keyed to ${id} come with it.`;
 }
 
+/**
+ * {@link nextIdNote} for a `<wpt>` just added or edited that had no id, as it
+ * is now listed (`row`). One put back on the exact position of a waypoint
+ * deleted since the last build, under its name and type, is that waypoint
+ * again at once: the editor joins it to the id (`claimSpans`), and no build is
+ * needed to hand it back.
+ */
+function idNote(row: EditorWaypoint, registry: WaypointRegistry, trailId: string, nextId: string): string {
+  if (row.pending || row.notBuilt) return nextIdNote(registry, trailId, nextId);
+  return `Restored: this is “${row.name}” (${row.id}) again. Its <wpt> stands on the exact position its registry entry has, under its name and type, so it is listed as the waypoint it was and not as pending, and the next build neither mints nor retires an id for it: the comments keyed to ${row.id} are its again.`;
+}
+
 // ---------------------------------------------------------------------------
 // Adding and deleting
 // ---------------------------------------------------------------------------
+
+/**
+ * Said on a delete: what adding the waypoint back would and would not restore.
+ * `tags` are the children its `<wpt>` had ({@link gpxWaypointChildTags}), and
+ * `alsoRemoved` what the delete took from the other files.
+ */
+function addBackNote(tags: readonly string[], alsoRemoved: readonly string[]): string {
+  // An add writes these four itself; whatever else the <wpt> carried only git has.
+  const rewritten = ['name', 'type', 'desc', 'ele'];
+  const lost = [...new Set(tags.filter(tag => !rewritten.includes(tag)))].map(tag => `<${tag}>`);
+  const gone = [
+    ...(tags.includes('desc') ? ['its <desc> (unless it is typed in again)'] : []),
+    ...(tags.includes('ele') ? ['the <ele> it carried (an add looks one up afresh)'] : []),
+    ...(lost.length ? [`${lost.join(', ')}, which an add never writes`] : []),
+    ...alsoRemoved,
+  ];
+  return `Adding it back restores its id, not its <wpt>: an add writes a new <wpt> after the last one, with a name, a type, a position, the description typed and an <ele> it looks up.${
+    gone.length ? ` Not restored by that: ${gone.join('; ')}.` : ''
+  } git diff shows what the delete removed: to undo it exactly, restore the files from git.`;
+}
+
+/**
+ * What adding a deleted waypoint back does not bring back. An add writes a new
+ * `<wpt>` from what the form gives, and the delete took the old one whole,
+ * with whatever was the waypoint's in the other files; nothing here remembers
+ * it. `builtDescription` is the text the last build shows for the waypoint,
+ * which is still the one it had before the delete.
+ */
+function restoreGapsNote(builtDescription: string | undefined, description: string, wroteEle: boolean): string {
+  const had = builtDescription?.trim();
+  const wrote = `the name, type and position given${description ? ', the description typed here as its <desc>' : ''}${wroteEle ? ' and an <ele> looked up for the position' : ''}`;
+  // The text typed is the text it had: that much of the old <wpt> is back.
+  const sameText = !!had && had === description;
+  let text = '';
+  if (sameText) {
+    text = ' The description typed here is the one the last build shows for it.';
+  } else if (had) {
+    const excerpt = had.length > 80 ? `${had.slice(0, 80)}…` : had;
+    text = ` The last build shows it with a description (“${excerpt}”) that ${description ? 'is not the one typed here' : 'the new <wpt> does not have'}.`;
+  }
+  return `Only its id is restored, not the <wpt> the delete removed. The new <wpt> has ${wrote}, and stands after the last <wpt> in the file.${text} Still gone, where the old one had them: ${sameText ? '' : 'its <desc> as it was, '}the <ele> it carried, every other child (<extensions>, from which the build reads the off-trail access fields, <cmt>, <sym>, <link>), its ${DESCRIPTIONS_FILENAME} entry, its CalTopo marker and its name in trail.json's ${REVISITED_KEY}. git diff shows each: copy them back from there, or restore the files from git to undo the delete exactly.`;
+}
 
 /**
  * Add a waypoint: a new `<wpt>` (name, `<type>`, optional `<desc>`, and an
@@ -2306,7 +2433,9 @@ export function addWaypoint(
   assertNearRoute(context, lat, lon);
 
   const sources = readSources(paths, context);
-  if (sources.spans.some(s => s.lat === lat && s.lon === lon)) throw new EditorError(SAME_POSITION_ERROR);
+  // It may share its position with other <wpt>s, but not under the name of one of them.
+  const namesake = namesakeAt(sources, { lat, lon, name });
+  if (namesake !== -1) throw namesakeError(sources.typed[namesake], type);
   const { ele, note: elevationNote } = newWaypointElevation(sources.spans, () =>
     elevationAt(context, lat, lon, elevation)
   );
@@ -2321,7 +2450,7 @@ export function addWaypoint(
     if (others.length) throw sharedMarkerError(context, resolved.marker, others, { lat, lon });
   }
   if (resolved.type !== type) throw typeClashError(context, resolved, type, { lat, lon });
-  const { ids, warnings } = assertIdsKept(
+  const { ids, warnings, reminted } = assertIdsKept(
     context.trailId,
     { registry: sources.registryEntries, inputs: idInputs(sources) },
     { registry: sources.registryEntries, inputs: idInputs(after) },
@@ -2343,7 +2472,14 @@ export function addWaypoint(
   }
   commitWrites([{ file: context.gpxPath, text: gpx }]);
 
-  const notes: string[] = [nextIdNote(sources.registryEntries, context.trailId, nextId), elevationNote];
+  const notes: string[] = [idNote(waypoint, sources.registryEntries, context.trailId, nextId), elevationNote];
+  // A live entry is handed only to its own name (`assertNoLiveIdTaken`): the waypoint
+  // deleted since the last build, coming back. The id comes back; its old <wpt> does not.
+  const comesBack = (sources.registryEntries[context.trailId] ?? []).find(e => e.id === nextId && !e.retired);
+  if (comesBack && !waypoint.notBuilt) {
+    const lastBuilt = collectBuiltWaypoints(context.built).find(b => b.id === comesBack.id);
+    notes.push(restoreGapsNote(lastBuilt?.description, description.trim(), ele !== undefined));
+  }
   if (description.trim()) {
     notes.push(
       resolved.marker?.description
@@ -2351,7 +2487,7 @@ export function addWaypoint(
         : 'The description went into its GPX <desc>; once it has an id it can become curated text in descriptions.json.'
     );
   }
-  notes.push(...warnings.map(w => `The build will warn: ${w.replace(/^!\s*/, '')}`));
+  notes.push(...warnings.map(w => `The build will warn: ${w.replace(/^!\s*/, '')}`), ...reminted);
   return { waypoint, changedFiles: [relative(paths, context.gpxPath)], notes };
 }
 
@@ -2411,7 +2547,7 @@ export function deleteWaypoint(
     if (text !== null) writes.push({ file: context.descriptionsPath, text });
   }
   const after = parseSources(context, { ...sources, gpx, geojson });
-  assertIdsKept(
+  const { reminted } = assertIdsKept(
     context.trailId,
     { registry: sources.registryEntries, inputs: idInputs(sources) },
     { registry: sources.registryEntries, inputs: idInputs(after) },
@@ -2477,7 +2613,18 @@ export function deleteWaypoint(
       `The next build marks ${current.id} retired in data/waypoint-ids.json (entries are never deleted, and a retired id never passes to another place); comments keyed to ${removed.join(', ')} are orphaned.`
     );
     notes.push(
-      `Until that build ${current.id} is not retired, and the build would read a ${current.type} added within ${MATCH_RADIUS_METERS} m as this waypoint moved or renamed: the editor refuses such an add until a rebuild (adding “${current.name}” back there restores it under ${current.id}).`
+      `Until that build ${current.id} is not retired, and the build would read a ${current.type} added within ${MATCH_RADIUS_METERS} m as this waypoint moved or renamed: the editor refuses such an add until a rebuild, unless it is “${current.name}” itself, added back as a ${current.type}. Within ${MATCH_RADIUS_METERS} m the next build then hands it ${current.id} back; ${
+        span.lat === writtenCoordinate(span.lat) && span.lon === writtenCoordinate(span.lon)
+          ? `on its exact position (${formatCoordinate(span.lat)}, ${formatCoordinate(span.lon)}) it is ${current.id} again at once`
+          : `its <wpt> had more decimals than the six the editor writes, so an add cannot land on its exact position (it was at ${span.latText.trim()}, ${span.lonText.trim()}) and waits for that build`
+      }.`
+    );
+    notes.push(
+      addBackNote(gpxWaypointChildTags(sources.gpx, span), [
+        ...(geojson !== sources.geojson ? ['its CalTopo marker'] : []),
+        ...(writes.some(w => w.file === context.descriptionsPath) ? [`its ${DESCRIPTIONS_FILENAME} entry`] : []),
+        ...(writes.some(w => w.file === context.configPath) ? [`its name in trail.json's ${REVISITED_KEY}`] : []),
+      ])
     );
     const duplicates = mergeGroup(rows, current.id).filter(w => w.id !== current.id && w.mergedInto === current.id);
     if (duplicates.length) {
@@ -2496,5 +2643,6 @@ export function deleteWaypoint(
       );
     }
   }
+  notes.push(...reminted);
   return { removed, changedFiles: changed, notes };
 }
