@@ -11,11 +11,11 @@ The site is not among them: Vercel builds `main` on push.
 | `upload-descriptions.yml` | `data/trails/*/descriptions.json` | a dry run of `upload:descriptions` against the live API, then, once approved, the upload | `production-data` |
 | `deploy-contours-site.yml` | `contours/site/**` | `wrangler pages deploy` to the `aus-contour-tiles` Pages project (contour-map-tiles.net), then checks the page answers; it installs only wrangler, at the version the root lockfile resolves, with no install scripts | `production` |
 
-Separately, `staging-comments-api.yml` deploys a same-repo PR that touches `workers/comments-api/**` to the **staging** comments API (its own Worker, D1 and R2; `docs/architecture/workers.md`, "staging") with the staging-only secrets below, never production's.
+Separately, `staging-comments-api.yml` (build, no secrets) and `staging-comments-api-deploy.yml` (deploy) put a same-repo PR that touches `workers/comments-api/**` or `src/lib/**` on the **staging** comments API (its own Worker, D1 and R2; `docs/architecture/workers.md`, "staging") with the staging-only secrets below, never production's.
 
 Each workflow in the table also has *Run workflow* (Actions → the workflow), for a re-deploy or a first run;
 it runs from `main` only.
-The staging workflow's *Run workflow* takes any branch.
+The staging build's *Run workflow* takes any branch (its deploy follows).
 A change to one of their workflow files alone does not trigger it: use *Run workflow* to try one.
 
 ## How they behave
@@ -116,16 +116,13 @@ Put its secrets and variables on the environment, not at repository level, so on
 - Variable `STAGING_API_BASE_URL` (required to deploy): `https://tracknotes-comments-staging.<account subdomain>.workers.dev`, which the workflow probes.
 - Optional variable `STAGING_SITE_BASE`: a preview origin for share links.
 
-The risk, and the owner's call: Cloudflare cannot limit a Workers or D1 token to one Worker or database, so in the production account this token can deploy over the production Worker and run SQL on the production D1.
-Any collaborator who can push a branch can start a run that holds it.
-The workflow guards against a branch's config (its guard step pins `[env.staging]` to `main`'s staging Worker, D1 and R2, and the token's job runs no npm scripts or tests and the `wrangler` that `main`'s lockfile resolves), but not against a PR that edits the workflow file itself, which runs as the PR has it.
-To close that, pick at least one:
-
-- a required reviewer on the `staging` environment, so every staging run waits for you (it costs two approvals per PR push, since the `configured` job, which reads whether the secrets are set, names the environment too);
-- a separate Cloudflare account for staging, with the staging Worker, D1 and R2 there and the token limited to that account, so the token cannot touch production at all;
-- at the least, a short token expiry.
-
-Give each token an expiry you will notice, and replace it in the environment before then.
+Why the deploy is split in two: Cloudflare cannot limit a Workers or D1 token to one Worker or database, so in the production account this token could deploy over the production Worker and run SQL on the production D1.
+So it never shares a job with a branch's code.
+Building a branch is running its code: a branch can make the bundler read any file on the runner (a symlink to `/proc/self/environ` imported as text puts the job's environment, token included, inside the Worker, where the branch's code can serve it), and a `.env` file can point wrangler's API calls at another host.
+The build workflow runs the branch with no secrets;
+the deploy workflow holds the token, runs only `main`'s code (`workflow_run` always takes `main`'s copy of the file, so a PR that edits it changes nothing until it merges), takes every name and id from `main`'s `[env.staging]`, and only uploads the branch's bundle (`--no-bundle`) and applies its SQL, which reaches the staging D1 alone.
+What it still trusts is `main` itself and wrangler, as the production deploy does.
+Give the token an expiry you will notice, and replace it in the environment before then.
 A personal `wrangler login` still works for anything run by hand.
 
 ## Running by hand
