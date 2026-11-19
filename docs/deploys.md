@@ -118,10 +118,10 @@ Put its secrets and variables on the environment, not at repository level, so on
 
 The risk, and the owner's call: Cloudflare cannot limit a Workers or D1 token to one Worker or database, so in the production account this token can deploy over the production Worker and run SQL on the production D1.
 Any collaborator who can push a branch can start a run that holds it.
-The workflow guards against a branch's config (its guard step pins `[env.staging]` to `main`'s staging Worker, D1 and R2, and the token's job runs no npm scripts or tests and a pinned `wrangler`), but not against a PR that edits the workflow file itself, which runs as the PR has it.
+The workflow guards against a branch's config (its guard step pins `[env.staging]` to `main`'s staging Worker, D1 and R2, and the token's job runs no npm scripts or tests and the `wrangler` that `main`'s lockfile resolves), but not against a PR that edits the workflow file itself, which runs as the PR has it.
 To close that, pick at least one:
 
-- a required reviewer on the `staging` environment, so every staging run waits for you (it costs an approval per PR push);
+- a required reviewer on the `staging` environment, so every staging run waits for you (it costs two approvals per PR push, since the `configured` job, which reads whether the secrets are set, names the environment too);
 - a separate Cloudflare account for staging, with the staging Worker, D1 and R2 there and the token limited to that account, so the token cannot touch production at all;
 - at the least, a short token expiry.
 

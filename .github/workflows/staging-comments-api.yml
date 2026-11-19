@@ -17,10 +17,15 @@ name: Staging comments API
 # The staging token can do more than staging (Cloudflare cannot limit a token
 # to one Worker or database), and this job runs branch code. So the job that
 # holds it runs no npm scripts and no tests (the Tests workflow runs those),
-# runs a pinned wrangler installed outside the checkout, never `npm run`, and
+# runs main's wrangler (the version main's lockfile resolves, as production
+# deploys with) installed outside the checkout, never `npm run`, and
 # first checks that the branch's [env.staging] still names main's staging
 # Worker, D1 and R2 and nothing of production's. What this cannot stop is a PR
 # that edits THIS file: docs/deploys.md ("staging") says what guards that.
+#
+# Until staging is set up (its token, account id and STAGING_API_BASE_URL on
+# the `staging` environment), the `staging` job is SKIPPED, not green, so a
+# green tick always means the branch was deployed and probed (#363).
 
 on:
   pull_request:
@@ -41,8 +46,6 @@ permissions:
   contents: read
 
 env:
-  # Bump with workers/comments-api/package.json's wrangler.
-  WRANGLER_VERSION: 4.158.0
   # The staging resources, used only until main's wrangler.toml has an
   # [env.staging] (the merge of the PR that adds it); from then on the guard
   # takes them from main, which a branch cannot change.
@@ -51,9 +54,38 @@ env:
   FALLBACK_STAGING_R2: tracknotes-data-staging
 
 jobs:
-  staging:
+  # A job's `if` cannot read secrets, so this job looks and the next one is
+  # skipped when staging is not set up. It runs no branch code.
+  configured:
     # Same-repo PRs only: a fork's PR gets no secrets, and must never deploy
     if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment:
+      name: staging
+    outputs:
+      ok: ${{ steps.creds.outputs.ok }}
+    steps:
+      - name: Staging credentials present?
+        id: creds
+        env:
+          HAS_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
+          STAGING_API_BASE_URL: ${{ vars.STAGING_API_BASE_URL }}
+        run: |
+          if [ "$HAS_TOKEN" != "true" ] || [ -z "$STAGING_API_BASE_URL" ]; then
+            echo "::notice::CLOUDFLARE_STAGING_API_TOKEN, CLOUDFLARE_ACCOUNT_ID or the STAGING_API_BASE_URL variable is not set on the staging environment: the staging job is skipped and nothing is deployed."
+            echo "Staging is not set up (docs/architecture/workers.md, \"staging\"): **nothing was deployed or probed**." >> "$GITHUB_STEP_SUMMARY"
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          elif ! [[ "$STAGING_API_BASE_URL" =~ ^https://tracknotes-comments-staging\.[a-z0-9-]+\.workers\.dev$ ]]; then
+            echo "::error::STAGING_API_BASE_URL ($STAGING_API_BASE_URL) is not https://tracknotes-comments-staging.<account subdomain>.workers.dev"
+            exit 1
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  staging:
+    needs: configured
+    if: needs.configured.outputs.ok == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     # Holds the staging-only secrets and variables (set them on the environment).
@@ -136,51 +168,42 @@ jobs:
               print(f"::error file=workers/comments-api/wrangler.toml::{e}")
           sys.exit(1 if errors else 0)
           PY
-      - name: Staging credentials present?
-        id: creds
-        env:
-          HAS_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
-          STAGING_API_BASE_URL: ${{ vars.STAGING_API_BASE_URL }}
+      - name: Wrangler version (main's lockfile)
         run: |
-          if [ "$HAS_TOKEN" != "true" ] || [ -z "$STAGING_API_BASE_URL" ]; then
-            echo "::notice::CLOUDFLARE_STAGING_API_TOKEN, CLOUDFLARE_ACCOUNT_ID or the STAGING_API_BASE_URL variable is not set on the staging environment: nothing deployed to staging."
-            echo "ok=false" >> "$GITHUB_OUTPUT"
-          elif ! [[ "$STAGING_API_BASE_URL" =~ ^https://tracknotes-comments-staging\.[a-z0-9-]+\.workers\.dev$ ]]; then
-            echo "::error::STAGING_API_BASE_URL ($STAGING_API_BASE_URL) is not https://tracknotes-comments-staging.<account subdomain>.workers.dev"
+          version=$(git show FETCH_HEAD:workers/comments-api/package-lock.json | python3 -c 'import json, sys; print(json.load(sys.stdin)["packages"]["node_modules/wrangler"]["version"])')
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::main's lockfile resolves wrangler to '$version', not a plain version"
             exit 1
-          else
-            echo "ok=true" >> "$GITHUB_OUTPUT"
           fi
+          echo "Wrangler $version, as main's lockfile resolves it (production deploys with the same)."
+          echo "WRANGLER_VERSION=$version" >> "$GITHUB_ENV"
+      - name: Placeholders left in [env.staging]?
+        run: |
           if grep -q 'REPLACE-AFTER-r2-dev-url-enable' wrangler.toml; then
             echo "::warning::[env.staging] PHOTOS_PUBLIC_BASE is still the placeholder: staging photo and community-route URLs will not resolve."
           fi
       - uses: actions/setup-node@v7
-        if: steps.creds.outputs.ok == 'true'
         with:
           node-version: 22
       # Only what the bundle imports (the runtime dependencies), with no install
-      # scripts; wrangler itself is the pinned version, outside the checkout, so
+      # scripts; wrangler itself is main's version, outside the checkout, so
       # neither the branch's lockfile nor its package.json scripts choose it.
       - name: Install (no scripts)
-        if: steps.creds.outputs.ok == 'true'
         run: |
           npm ci --ignore-scripts --omit=dev --no-audit --no-fund
           npm install --prefix "$RUNNER_TEMP/wrangler" --ignore-scripts --no-audit --no-fund --no-save "wrangler@$WRANGLER_VERSION"
           echo "$RUNNER_TEMP/wrangler/node_modules/.bin" >> "$GITHUB_PATH"
       - name: Migrations to apply (staging)
-        if: steps.creds.outputs.ok == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: wrangler d1 migrations list DB --remote --env staging
       - name: Apply migrations (staging)
-        if: steps.creds.outputs.ok == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: wrangler d1 migrations apply DB --remote --env staging
       - name: Deploy (staging)
-        if: steps.creds.outputs.ok == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -192,7 +215,6 @@ jobs:
           if [ -n "$STAGING_SITE_BASE" ]; then args+=(--var "SITE_BASE:$STAGING_SITE_BASE"); fi
           wrangler deploy --env staging "${args[@]}"
       - name: Probe the routes (staging)
-        if: steps.creds.outputs.ok == 'true'
         working-directory: .
         env:
           COMMENTS_API_BASE_URL: ${{ vars.STAGING_API_BASE_URL }}
