@@ -135,15 +135,14 @@ binding = "AI"
 remote = true
 
 [env.staging.vars]
-# The staging bucket's public read URL (photos and community-route JSON). A new
-# bucket has none: `wrangler r2 bucket dev-url enable tracknotes-data-staging`
-# (or dashboard: R2 → the bucket → Settings → Public Development URL), then put
-# the https://pub-<hash>.r2.dev it prints here. r2.dev is rate-limited and
+# The staging bucket's public read URL (photos and community-route JSON), from
+# `wrangler r2 bucket dev-url enable tracknotes-data-staging` (or dashboard:
+# R2 → the bucket → Settings → Public Development URL). r2.dev is rate-limited and
 # uncached, which is fine for test traffic; it is on no zone of ours, so no zone
 # rule (CSAM scanning included) covers it — staging photos are test images only.
 # Give the bucket a CORS rule (GET/HEAD, any origin): the web fetches a
 # community route's JSON from here cross-origin.
-PHOTOS_PUBLIC_BASE = "https://REPLACE-AFTER-r2-dev-url-enable.invalid"
+PHOTOS_PUBLIC_BASE = "https://pub-bd317cee58664a4ba8dceaadab645981.r2.dev"
 
 # Shared-plan links are minted as SITE_BASE/shared-plan.html?s=<id>, and that
 # page reads the share from the API its own build was given. A link to
