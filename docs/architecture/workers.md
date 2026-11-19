@@ -276,9 +276,11 @@ The admin page is `src/web/admin-moderation.html` (unlinked, noindex, client `sr
 
 `src/content-review.ts` (migration `0010_content_review`: `review_status`, `review_json`, `review_requested_at` on `comments` and `shared_waypoints`, plain added columns so neither table is rebuilt).
 `0010_content_review` shares its number with `0010_observed_at_day`: wrangler records migrations by file name, so both apply and neither may be renamed (the one after them is `0011_requeue_community_route_pois`).
-`scripts/worker-migrations.test.ts` (root suite) fails on any other shared number, a gap or a misnamed file.
-Two branches that each add "the next migration" pass alone, and the test catches the collision only when the second one's CI runs on top of the first after it merges (rebased onto `main`), while its file can still be renumbered.
-A pull request whose CI last ran before the other merged still shows green, so require branches to be up to date before merging (the repository's branch protection setting) for the test to be a guarantee.
+`scripts/check-worker-migrations.ts` fails on any other shared number, a gap or a misnamed file, and two places run it.
+The root suite (`scripts/worker-migrations.test.ts`) catches two branches that each add "the next migration" only when the second one's CI runs on top of the first after it merges (rebased onto `main`), while its file can still be renumbered.
+A pull request whose CI last ran before the other merged still shows green, and `main` does not require branches to be up to date before merging (#369), so both can merge;
+*Deploy comments API* therefore runs the check before it applies any migration, and a collision on `main` stops the deploy (and the push's Tests run goes red) rather than reaching production.
+To recover, renumber the migration that is not yet applied in production (`npx wrangler d1 migrations list DB --remote` names the unapplied ones) and re-run the deploy.
 Its job is to take clearly bad or malicious posts down after **one** report rather than three.
 Two triggers claim a review (`claimContentReview`, one `UPDATE … RETURNING`, so concurrent reports claim it once; the claim leaves `updated_at` alone, so phones do not re-sync):
 

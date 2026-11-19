@@ -46,6 +46,7 @@ Every merge that touches `src/lib/` redeploys the comments API (and runs `migrat
 *Deploy comments API* applies pending migrations and then deploys, so between the two the running worker is the old code on the new schema.
 Every migration must keep the deployed worker working: add tables, columns and indexes (expand), and remove what the old code reads only in a later release, once no deployed worker reads it (contract).
 The deploy job refuses any pending migration that drops or renames anything (a SQLite table rebuild, as `0008` was, does both), and the run fails before applying it.
+It also fails, before applying anything, when two migrations share a number (`scripts/check-worker-migrations.ts`; `docs/architecture/workers.md`, "comment and waypoint review").
 Apply such a migration by hand, at a moment you choose: from `main`, `cd workers/comments-api && npm run migrate:remote && npm run deploy`, then `scripts/probe-comments-api.sh`, then re-run the workflow, which then finds nothing to apply.
 
 Credentials are passed only to the steps that call Cloudflare or the API, never to `npm ci` or the tests.

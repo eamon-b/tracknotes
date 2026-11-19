@@ -70,6 +70,12 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: workers/comments-api/package-lock.json
+      # Two pull requests that each took "the next migration number" can both
+      # pass CI and both merge (the root suite catches it only when one's CI
+      # runs on top of the other). Stop here, before any migration is applied,
+      # while the unapplied one can still be renumbered (#369).
+      - name: Migration numbers are unique
+        run: node ../../scripts/check-worker-migrations.ts migrations
       # The token is passed only to the steps that call Cloudflare, not to npm ci or the tests
       - run: npm ci
       # The Tests workflow's checks, so a deploy neither waits on that run nor races it
