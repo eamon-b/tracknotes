@@ -5,11 +5,13 @@
  *
  * One public bulk read per trail (`listTrailComments`) is grouped by stable
  * waypoint id; when this browser is linked to an admin account, the admin
- * listing adds hidden ones and report counts. That listing has no trail filter
- * and no cursor (`api/comments.ts`), so it is read twice, newest first and
- * reported first, and the section says how far the two reads reach
- * (`AdminCoverage`). The editor only reads: nothing here posts, edits or
- * moderates.
+ * listing adds hidden ones and report counts. It is asked for this trail's
+ * moderated comments and read to the end by its cursor
+ * (`adminListModeratedComments`, `api/comments.ts`), and the section says
+ * whether that read was complete (`AdminCoverage`): it stops at a cap, a page
+ * can fail, and a comments API from before the trail filter can only be read
+ * across every trail, 500 rows at a time. The editor only reads: nothing here
+ * posts, edits or moderates.
  *
  * A waypoint's comments are paged: the form shows the newest
  * `COMMENTS_PAGE_SIZE` and reveals more on request, so a hut with hundreds of
@@ -25,7 +27,13 @@ import { commentTargetKind } from '@lib/comment-targets';
 import type { AdminComment, DeletedBy, SyncComment, WaterStatus } from '@lib/comments-api-types';
 import { safeHttpUrl } from '@lib/poi-display';
 import { ApiError, NetworkError, getApiBase, type FetchLike } from './api/client';
-import { ADMIN_LIST_LIMIT, adminListComments, listTrailComments } from './api/comments';
+import {
+  ADMIN_LIST_LIMIT,
+  MODERATED_ROW_CAP,
+  adminListModeratedComments,
+  listTrailComments,
+  type ModeratedCoverage,
+} from './api/comments';
 import type { WebSession } from './api/session';
 import { escapeHtml } from './web-utils';
 
@@ -49,17 +57,12 @@ export interface EditorComment {
 export type AdminAccess = 'unlinked' | 'admin' | 'not-admin' | 'expired' | 'failed';
 
 /**
- * How far an admin's two reads of the listing reach. It covers every trail,
- * has no trail filter or cursor, and one read stops at `ADMIN_LIST_LIMIT` rows.
- * - `complete`: the newest-first read held every comment on every trail.
- * - `recent`: it was cut, so only the newest `ADMIN_LIST_LIMIT` comments on
- *   all trails are known from it; the reported-first read was whole, so every
- *   comment with a report or an automated-review result is known too. Missing:
- *   an older comment an admin deleted that nobody reported.
- * - `partial`: the reported-first read was cut as well, so some reported or
- *   hidden comments may be missing.
+ * How far an admin's read of this trail's moderated comments got
+ * (`ModeratedCoverage`): `complete`; cut short (`capped`, `interrupted`); or,
+ * from a comments API without the trail filter, as far as two reads of the
+ * listing of every trail reach (`complete`, `recent`, `partial`).
  */
-export type AdminCoverage = 'complete' | 'recent' | 'partial';
+export type AdminCoverage = ModeratedCoverage;
 
 export type CommentsState =
   | { kind: 'unconfigured' }
@@ -71,7 +74,7 @@ export type CommentsState =
       byWaypoint: ReadonlyMap<string, readonly EditorComment[]>;
       total: number;
       admin: AdminAccess;
-      /** What the admin listing could be shown to include; null unless `admin` is `'admin'`. */
+      /** How much of the trail's moderated comments was read; null unless `admin` is `'admin'`. */
       adminCoverage: AdminCoverage | null;
     };
 
@@ -225,27 +228,12 @@ export async function loadTrailComments(trailId: string, deps: LoadCommentsDeps)
   if (!base) return { kind: 'unconfigured' };
   const api = { fetchImpl: deps.fetchImpl, baseUrl: base };
 
-  // The admin listing cannot be asked for one trail or paged, so it is read
-  // both ways it can be ordered: newest first (which holds comments an admin
-  // deleted that nobody reported, as far back as one read goes) and reported
-  // first (every comment with a report or a review result, however old).
+  // One request sequence for the trail's moderated comments, beside the public read.
   const session = deps.session;
   const moderated: Promise<{ rows: AdminComment[] | null; admin: AdminAccess; coverage: AdminCoverage | null }> =
     session
-      ? Promise.all([
-          adminListComments(session, { reportedOnly: false }, api),
-          adminListComments(session, { reportedOnly: true }, api),
-        ]).then(
-          ([newest, reported]) => ({
-            // One row per comment: the two reads overlap.
-            rows: [...new Map([...newest.comments, ...reported.comments].map(c => [c.id, c])).values()],
-            admin: 'admin' as const,
-            coverage: !newest.truncated
-              ? ('complete' as const)
-              : !reported.truncated
-                ? ('recent' as const)
-                : ('partial' as const),
-          }),
+      ? adminListModeratedComments(session, trailId, api).then(
+          listing => ({ rows: listing.comments, admin: 'admin' as const, coverage: listing.coverage }),
           (error: unknown) => ({
             rows: null,
             admin:
@@ -344,27 +332,45 @@ const ADMIN_NOTES: Record<Exclude<AdminAccess, 'admin'>, string> = {
   failed: 'The admin listing did not load: hidden comments are not shown.',
 };
 
-const ADMIN_LISTING_LIMITS = `The admin listing covers every trail, with no trail filter or cursor, and one read stops at ${ADMIN_LIST_LIMIT} rows`;
+const OWNER_DELETED_NOTE = 'Comments deleted by their author are left out.';
 
-/** What an admin's reads added to the public comments, and what they could not be shown to include. */
+/** Why a comments API without the trail filter may leave this trail's moderated comments short. */
+const OLD_LISTING_LIMITS = `This comments API predates the admin listing for one trail, so the listing of every trail was read instead, and one read of it stops at ${ADMIN_LIST_LIMIT} rows`;
+
+/** What an admin's read added to the public comments, and what it could not be shown to include. */
 const ADMIN_COVERAGE_NOTES: Record<AdminCoverage, string> = {
   complete:
-    'Linked as an admin: comments hidden by reports or deleted by an admin are included, with report counts. Comments deleted by their author are left out.',
+    'Linked as an admin: complete for this trail. ' +
+    'Every comment hidden by reports or deleted by an admin is included, with every report count. ' +
+    OWNER_DELETED_NOTE,
+  capped:
+    `Linked as an admin, but this trail has more than ${MODERATED_ROW_CAP} hidden, deleted or reported comments and the read stops there. ` +
+    `The newest ${MODERATED_ROW_CAP} are included, so older hidden or reported comments are missing, and report counts with them. ` +
+    OWNER_DELETED_NOTE,
+  interrupted:
+    'Linked as an admin, but the read of this trail’s hidden and reported comments failed part-way. ' +
+    'Those read before it failed (the newest) are included, so older hidden or reported comments may be missing, and report counts with them: reload to read them again. ' +
+    OWNER_DELETED_NOTE,
   recent:
     'Linked as an admin: report counts are included, with every comment that has a report or an automated-review result, hidden or not. ' +
-    `${ADMIN_LISTING_LIMITS}, so a comment an admin deleted that was never reported or reviewed is included only when it is among the newest ${ADMIN_LIST_LIMIT} comments on all trails. ` +
-    'Comments deleted by their author are left out.',
+    `${OLD_LISTING_LIMITS}, so a comment an admin deleted that was never reported or reviewed is included only when it is among the newest ${ADMIN_LIST_LIMIT} comments on all trails. ` +
+    OWNER_DELETED_NOTE,
   partial:
     'Linked as an admin, but the admin listing was truncated. ' +
-    `${ADMIN_LISTING_LIMITS} (those hidden by reports first), so some reported or hidden comments on this trail may be missing, and report counts with them; ` +
+    `${OLD_LISTING_LIMITS} (those hidden by reports first), so some reported or hidden comments on this trail may be missing, and report counts with them; ` +
     `a comment an admin deleted that was never reported is included only when it is among the newest ${ADMIN_LIST_LIMIT} comments on all trails. ` +
-    'Comments deleted by their author are left out.',
+    OWNER_DELETED_NOTE,
 };
+
+/** An admin read whose coverage was never stated claims nothing it cannot show. */
+const ADMIN_COVERAGE_UNKNOWN =
+  'Linked as an admin, but how much of this trail’s hidden and reported comments was read is not known: some may be missing, and report counts with them. ' +
+  OWNER_DELETED_NOTE;
 
 /** The line under the comments that says whose view this is: what is included, and what is not. */
 export function adminNoteText(state: { admin: AdminAccess; adminCoverage: AdminCoverage | null }): string {
-  // An admin read with no stated coverage claims nothing it cannot show.
-  return state.admin === 'admin' ? ADMIN_COVERAGE_NOTES[state.adminCoverage ?? 'partial'] : ADMIN_NOTES[state.admin];
+  if (state.admin !== 'admin') return ADMIN_NOTES[state.admin];
+  return state.adminCoverage ? ADMIN_COVERAGE_NOTES[state.adminCoverage] : ADMIN_COVERAGE_UNKNOWN;
 }
 
 /** The comment count for the section heading: blank until loaded. */
