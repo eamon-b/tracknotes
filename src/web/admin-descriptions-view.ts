@@ -16,6 +16,13 @@
  *    absent, live text, or `''` (cleared). A phone shows `synced || bundled`:
  *    a cleared row falls back to the bundled text, it does not blank it.
  *
+ * A description belongs to a place. A later pass of a revisited place
+ * (`<id>_2`) has no entry in the file and no synced row of its own: the build
+ * bundles every pass with the first pass's text, and a phone shows the first
+ * pass's synced row on every pass (`@lib/waypoint-passes`
+ * `resolveSyncedDescription`, the rule the app reads too). So a later pass's
+ * row here shows the place's synced text, and is edited on the first pass.
+ *
  * A synced row also says which tool last changed its text (`source`): `live`
  * is this page, `upload` is `scripts/upload-descriptions.ts`. That is what
  * tells the two ways a synced row can differ from the file apart:
@@ -31,6 +38,7 @@ import type { DescriptionSource, WaypointDescription } from '@lib/comments-api-t
 import { snapToTrail } from '@lib/position-on-trail';
 import { routeBreakStarts } from '@lib/route-breaks';
 import type { ProcessedTrail } from '@lib/trail-types';
+import { firstPassIdOf as firstPassOf, resolveSyncedDescription } from '@lib/waypoint-passes';
 import { MAX_DESCRIPTION_LENGTH } from '@lib/waypoint-description-limits';
 import { waypointTypeLabel } from '@lib/waypoint-taxonomy';
 import { voiceHints, type VoiceHint } from './description-voice';
@@ -111,10 +119,12 @@ export function trailWaypoints(trail: TrailForDescriptions): TrailWaypoint[] {
  * trail's ids. The build mints the suffix after it applies `descriptions.json`,
  * which is keyed by the first pass's id: every pass is bundled with that
  * entry's text, and an entry for a suffixed id matches no waypoint.
+ *
+ * The id rule is `@lib/waypoint-passes`'s; this page also holds the trail, so
+ * it asks that the first pass be one of its waypoints.
  */
 export function firstPassIdOf(id: string, ids: ReadonlySet<string>): string | null {
-  const match = /^(.+)_(\d+)$/.exec(id);
-  return match && Number(match[2]) >= 2 && ids.has(match[1]) ? match[1] : null;
+  return firstPassOf(id, candidate => ids.has(candidate));
 }
 
 // ---------------------------------------------------------------------------
@@ -233,6 +243,17 @@ export interface DescriptionRow extends TrailWaypoint {
   firstPassId?: string;
   /** On the first pass of a revisited place: its later passes' ids. */
   laterPassIds?: string[];
+  /**
+   * On a later pass: the first pass's synced row, when the API has one
+   * (`description` '' = cleared). A phone shows its text on this pass too,
+   * unless the pass has synced text of its own.
+   */
+  place?: Pick<WaypointDescription, 'description' | 'updatedAt' | 'source'>;
+  /**
+   * The synced text a phone shows for the waypoint, when it shows one: its own
+   * row's, else (a later pass) its place's. Absent: it shows the bundled text.
+   */
+  shownSynced?: string;
 }
 
 function stateOf(
@@ -268,6 +289,12 @@ export function buildRows(
     const live = syncedById.get(id);
     const firstPassId = firstPassIdOf(id, ids);
     const later = laterPasses.get(id);
+    const first = firstPassId ? syncedById.get(firstPassId) : undefined;
+    const shown = resolveSyncedDescription(
+      id,
+      rowId => syncedById.get(rowId)?.description,
+      candidate => ids.has(candidate)
+    );
     return {
       ...(fileText === undefined ? {} : { file: fileText }),
       ...(live === undefined ? {} : { synced: live.description, syncedAt: live.updatedAt }),
@@ -275,6 +302,16 @@ export function buildRows(
       state: stateOf(fileText, live),
       ...(firstPassId ? { firstPassId } : {}),
       ...(later ? { laterPassIds: later } : {}),
+      ...(first
+        ? {
+            place: {
+              description: first.description,
+              updatedAt: first.updatedAt,
+              ...(first.source === undefined ? {} : { source: first.source }),
+            },
+          }
+        : {}),
+      ...(shown ? { shownSynced: shown.description } : {}),
     };
   };
   const rows: DescriptionRow[] = waypoints.map(w => ({ ...w, ...join(w.id) }));
@@ -293,14 +330,27 @@ export function buildRows(
   return rows;
 }
 
-/** What a phone shows for the waypoint now: the synced text, else the bundled. */
-export function shownText(row: Pick<DescriptionRow, 'synced' | 'bundled'>): string {
-  return row.synced ? row.synced : row.bundled;
+/**
+ * What a phone shows for the waypoint now: the synced text (its own row's, or
+ * on a later pass its place's), else the bundled.
+ */
+export function shownText(row: Pick<DescriptionRow, 'shownSynced' | 'bundled'>): string {
+  return row.shownSynced ? row.shownSynced : row.bundled;
 }
 
-/** True when the synced and bundled texts both exist and differ (what the phone shows is not the bundle's). */
-export function syncedDiffersFromBundled(row: Pick<DescriptionRow, 'synced' | 'bundled'>): boolean {
-  return !!row.synced && row.synced !== row.bundled;
+/** True when the phone shows a synced text that is not the bundle's. */
+export function syncedDiffersFromBundled(row: Pick<DescriptionRow, 'shownSynced' | 'bundled'>): boolean {
+  return !!row.shownSynced && row.shownSynced !== row.bundled;
+}
+
+/** A later pass with no synced text of its own: a phone shows the first pass's there, or the bundled text. */
+export function followsFirstPass(row: Pick<DescriptionRow, 'firstPassId' | 'synced'>): boolean {
+  return !!row.firstPassId && !row.synced;
+}
+
+/** A later pass that holds synced text under its own id, which a phone shows there instead of the place's. */
+export function hasOwnPassText(row: Pick<DescriptionRow, 'firstPassId' | 'synced'>): boolean {
+  return !!row.firstPassId && !!row.synced;
 }
 
 /** A drift row that is a live clear of an id the file lists, not a live edit. */
@@ -318,9 +368,30 @@ export const STATE_LABELS: Record<SyncState, string> = {
   bundled: 'bundled only',
 };
 
-/** The badge on a row: its state, with a live clear told apart from a live edit. */
-export function stateLabel(row: Pick<DescriptionRow, 'state' | 'synced'>): string {
+/** A later pass with no row of its own, or a cleared one, that nothing else is to be said about. */
+function onlyFollows(row: Pick<DescriptionRow, 'state' | 'synced' | 'firstPassId'>): boolean {
+  return followsFirstPass(row) && (row.state === 'bundled' || row.state === 'cleared');
+}
+
+/**
+ * The badge on a row: its state, with a live clear told apart from a live
+ * edit, and a later pass that has no text of its own said to follow its first
+ * pass, not to be "bundled only".
+ */
+export function stateLabel(row: Pick<DescriptionRow, 'state' | 'synced' | 'firstPassId'>): string {
+  if (onlyFollows(row)) return 'follows first pass';
   return isLiveClear(row) ? 'drift: cleared live' : STATE_LABELS[row.state];
+}
+
+/** What a later pass with no text of its own shows on a phone, in words. */
+function followsText(row: DescriptionRow): string {
+  const own = row.synced === '' ? ' Its own synced row is cleared.' : '';
+  if (row.place?.description) {
+    return `Follows the first pass (${row.firstPassId}): phones show that row’s synced text on this pass too. Edit it there.${own}`;
+  }
+  return `Follows the first pass (${row.firstPassId}), which has ${
+    row.place ? 'a cleared synced row' : 'no synced row'
+  }: phones show the bundled text.${own}`;
 }
 
 /** What the uploads do, or do not do, to a live edit on this trail. */
@@ -335,13 +406,14 @@ function liveEditFate(row: DescriptionRow, ctx: FileContext): string {
 
 /** What a row's state means, and what the next *Upload descriptions* run does to it, in words. */
 export function nextUploadText(row: DescriptionRow, ctx: FileContext): string {
+  if (onlyFollows(row)) return followsText(row);
   switch (row.state) {
     case 'drift':
       if (row.synced === '') {
         return 'Cleared live, but descriptions.json still has an entry: phones show the bundled text now, and the next upload re-sends the file’s text. To remove the description for good, delete its entry from the file.';
       }
       if (row.firstPassId) {
-        return `A live edit on a later pass, which descriptions.json cannot hold. ${liveEditFate(row, ctx)}`;
+        return `Synced text on this later pass’s own id, which phones show here instead of the place’s (the first pass’s, ${row.firstPassId}) and which descriptions.json cannot hold. Clear it so that this pass follows the first pass. ${liveEditFate(row, ctx)}`;
       }
       if (row.placement === 'unknown') {
         return `A live edit on an id this trail no longer has: no waypoint shows it, and it cannot be committed. ${liveEditFate(row, ctx)}`;
@@ -378,30 +450,65 @@ export function nextUploadText(row: DescriptionRow, ctx: FileContext): string {
 }
 
 /**
- * What a revisited place's row must say, whatever its state: phones look each
- * pass up by its own id, and only the first pass's text can be committed.
+ * Said once, to the admin about to send a first pass's text: an app build from
+ * before passes followed the place does not show it on the later passes.
+ */
+export const OLDER_APP_PASS_NOTE =
+  'A phone whose app has not been updated since later passes began following the first pass still looks each pass up by its own id: until it updates, it shows this text on the first pass and the bundled text on the later ones.';
+
+/**
+ * What a revisited place's row must say, whatever its state: the description
+ * is the place's, held and edited on the first pass and shown on every pass.
  */
 export function passNote(row: Pick<DescriptionRow, 'firstPassId' | 'laterPassIds'>): string {
   if (row.firstPassId) {
-    return `A later pass of a revisited place (first pass: ${row.firstPassId}). descriptions.json is keyed by the first pass’s id, and the build gives every pass that entry’s text, so a live edit here reaches phones on this pass only and cannot be committed to the file. For a lasting fix, edit the first pass and commit that.`;
+    return `A later pass of a revisited place (first pass: ${row.firstPassId}). The description is the place’s: descriptions.json and the synced text are keyed by the first pass’s id, the build gives every pass that entry’s text, and phones show the first pass’s synced text on every pass. Edit it on the first pass; a later pass is never exported.`;
   }
   if (row.laterPassIds?.length) {
-    return `The first pass of a revisited place (also ${row.laterPassIds.join(', ')}). A descriptions.json entry for this id is the text the build gives every pass, but phones look each pass up by its own id: an urgent live edit has to be made on each pass, and only this one can be committed.`;
+    return `The first pass of a revisited place (also ${row.laterPassIds.join(', ')}). Its descriptions.json entry and its synced text are the place’s: every pass shows them, and this is the row to edit and to commit.`;
   }
   return '';
 }
 
 /** What to tell an admin about to save a live edit on this row: where it goes next. */
 export function liveEditAdvice(row: DescriptionRow, ctx: FileContext): string {
-  if (row.firstPassId) {
-    return `This is a later pass of a revisited place: the edit reaches phones on this pass only and cannot be committed to descriptions.json. Make the lasting fix on the first pass (${row.firstPassId}).`;
-  }
+  const passes = row.laterPassIds?.length
+    ? `\n\nThis is the first pass of a revisited place: the text shows on every pass (also ${row.laterPassIds.join(', ')}). ${OLDER_APP_PASS_NOTE}`
+    : '';
   if (ctx.upstream) {
-    return `It is a live edit. This trail’s descriptions are built upstream in ${ctx.upstream}: make the lasting fix there, then clear this synced text.`;
+    return `It is a live edit. This trail’s descriptions are built upstream in ${ctx.upstream}: make the lasting fix there, then clear this synced text.${passes}`;
   }
-  return ctx.hasFile
-    ? 'It is a live edit: commit it to descriptions.json too (the export above), or the next Upload descriptions run overwrites it.'
-    : 'It is a live edit, held only by the API: this trail has no descriptions.json, so no upload overwrites it, and it is not in the repository until it is committed (the export above creates the file).';
+  return (
+    (ctx.hasFile
+      ? 'It is a live edit: commit it to descriptions.json too (the export above), or the next Upload descriptions run overwrites it.'
+      : 'It is a live edit, held only by the API: this trail has no descriptions.json, so no upload overwrites it, and it is not in the repository until it is committed (the export above creates the file).') +
+    passes
+  );
+}
+
+/** Why a later pass's row takes no edit of its own, said when one is asked for anyway. */
+export function laterPassEditRefusal(row: Pick<DescriptionRow, 'firstPassId'>): string {
+  return `Not sent: this is a later pass of a revisited place. Its description is the place’s, edited on the first pass (${row.firstPassId}); a text saved under this id could not be committed to descriptions.json, and would hide the place’s text on this pass.`;
+}
+
+/** What to ask before clearing a row's synced text. */
+export function clearConfirmText(row: DescriptionRow): string {
+  if (row.firstPassId) {
+    const then = row.place?.description
+      ? `phones show the first pass’s synced text here (${row.firstPassId})`
+      : 'phones show the bundled text here';
+    return `Clear this pass’s own synced text for “${row.name}”? It then follows the first pass: ${then}.`;
+  }
+  const passes = row.laterPassIds?.length
+    ? `\n\nThis is the first pass of a revisited place: its later passes (${row.laterPassIds.join(', ')}) fall back with it, unless one has synced text of its own.`
+    : '';
+  const file =
+    row.file !== undefined
+      ? '\n\ndescriptions.json has an entry for this waypoint, so the next upload re-sends the file’s text.'
+      : '';
+  return `Clear the synced text for “${row.name}”? Phones fall back to the bundled text${
+    row.bundled ? '' : ' (this waypoint has none)'
+  }.${file}${passes}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -422,7 +529,8 @@ export const ROW_FILTER_LABELS: Record<RowFilter, string> = {
 
 export function matchesRow(row: DescriptionRow, filter: RowFilter, query: string): boolean {
   const q = query.trim().toLowerCase();
-  if (q && !row.name.toLowerCase().includes(q) && row.id !== q) return false;
+  // An id finds its waypoint, and a first pass's id its later passes too.
+  if (q && !row.name.toLowerCase().includes(q) && row.id !== q && row.firstPassId !== q) return false;
   switch (filter) {
     case 'drift':
       return row.state === 'drift';
@@ -554,31 +662,74 @@ export interface RowOptions {
   ctx: FileContext;
 }
 
+/** "Synced (2026-11-17, live edit)": a synced cell's heading, with what is known of its row. */
+function syncedHeading(label: string, at: string | undefined, source: DescriptionSource | undefined): string {
+  const stamp = [at?.slice(0, 10), sourceText(source)].filter(Boolean).join(', ');
+  return stamp ? `${label} (${stamp})` : label;
+}
+
+/**
+ * The synced cell. A later pass with no text of its own shows what phones show
+ * there: the first pass's synced text, under a heading that says whose it is.
+ */
+function syncedCell(row: DescriptionRow): string {
+  const different = syncedDiffersFromBundled(row) ? 'is-different' : '';
+  if (followsFirstPass(row)) {
+    const first = row.firstPassId!;
+    if (row.place?.description) {
+      const label = syncedHeading(`Synced: the first pass’s, ${first}`, row.place.updatedAt, row.place.source);
+      return textCell(label, row.place.description, '', ['is-followed', different].filter(Boolean).join(' '));
+    }
+    return textCell(
+      `Synced: follows the first pass, ${first}`,
+      undefined,
+      row.place
+        ? 'The first pass is cleared: phones show the bundled text.'
+        : 'No synced row on the first pass: phones show the bundled text.',
+      row.place ? 'is-cleared' : ''
+    );
+  }
+  const label = syncedHeading(row.firstPassId ? 'Synced on this pass’s own id' : 'Synced', row.syncedAt, row.source);
+  if (row.synced === undefined) return textCell(label, undefined, 'No synced row.');
+  if (row.synced === '') return textCell(label, undefined, 'Cleared: phones show the bundled text.', 'is-cleared');
+  return textCell(label, row.synced, '', different);
+}
+
+/**
+ * The buttons under a row. A later pass is never edited under its own id (the
+ * text could not be committed, the next upload would withdraw it, and it would
+ * hide the place's text on that pass): its button opens the first pass's edit
+ * box. Text it already holds under its own id can be cleared, so that it
+ * follows the first pass again.
+ */
+function actionsHtml(row: DescriptionRow, opts: RowOptions): string {
+  if (!opts.canEdit) return '';
+  const id = escapeHtml(row.id);
+  if (row.firstPassId) {
+    return `<div class="admin-row-actions"><button type="button" class="community-btn" data-action="edit-first" data-id="${id}">Edit on the first pass</button>${
+      row.synced
+        ? `<button type="button" class="community-btn is-danger" data-action="clear" data-id="${id}">Clear this pass’s own text</button>`
+        : ''
+    }</div>`;
+  }
+  return `<div class="admin-row-actions">${
+    opts.editing
+      ? ''
+      : `<button type="button" class="community-btn" data-action="edit" data-id="${id}">Edit synced text</button>`
+  }${
+    row.synced
+      ? `<button type="button" class="community-btn is-danger" data-action="clear" data-id="${id}">Clear synced text</button>`
+      : ''
+  }</div>`;
+}
+
 /** One waypoint: its texts side by side, its state, and the edit controls. */
 export function rowHtml(row: DescriptionRow, opts: RowOptions): string {
   const id = escapeHtml(row.id);
-  const stamp = [row.syncedAt?.slice(0, 10), sourceText(row.source)].filter(Boolean).join(', ');
-  const syncedLabel = stamp ? `Synced (${stamp})` : 'Synced';
-  const synced =
-    row.synced === undefined
-      ? textCell(syncedLabel, undefined, 'No synced row.')
-      : row.synced === ''
-        ? textCell(syncedLabel, undefined, 'Cleared: phones show the bundled text.', 'is-cleared')
-        : textCell(syncedLabel, row.synced, '', syncedDiffersFromBundled(row) ? 'is-different' : '');
   const fileCell =
     row.file !== undefined && row.file !== row.bundled ? textCell('descriptions.json', row.file, '') : '';
-  const editor = opts.editing ? editorHtml(row, opts.draft ?? shownText(row), opts.conflict) : '';
-  const actions = opts.canEdit
-    ? `<div class="admin-row-actions">${
-        opts.editing
-          ? ''
-          : `<button type="button" class="community-btn" data-action="edit" data-id="${id}">Edit synced text</button>`
-      }${
-        row.synced
-          ? `<button type="button" class="community-btn is-danger" data-action="clear" data-id="${id}">Clear synced text</button>`
-          : ''
-      }</div>`
-    : '';
+  // A later pass has no edit box of its own, whatever the caller holds for it.
+  const editor = opts.editing && !row.firstPassId ? editorHtml(row, opts.draft ?? shownText(row), opts.conflict) : '';
   const pass = passNote(row);
   const passBadge = row.firstPassId ? ' <span class="desc-badge desc-badge-pass">later pass</span>' : '';
   return `
@@ -588,13 +739,13 @@ export function rowHtml(row: DescriptionRow, opts: RowOptions): string {
       <p class="community-hint">${escapeHtml(placementText(row))} · <code>${id}</code></p>
       <div class="desc-compare">
         ${textCell('Bundled (site and app data)', row.bundled, 'No bundled description.')}
-        ${synced}
+        ${syncedCell(row)}
         ${fileCell}
       </div>
       <p class="desc-next community-hint">${escapeHtml(nextUploadText(row, opts.ctx))}</p>
       ${pass ? `<p class="desc-pass community-hint">${escapeHtml(pass)}</p>` : ''}
       ${editor}
-      ${actions}
+      ${actionsHtml(row, opts)}
       <p class="import-error" data-error="${id}" hidden></p>
     </article>`;
 }
@@ -665,7 +816,7 @@ export function summaryHtml(rows: readonly DescriptionRow[], ctx: FileContext): 
   const count = (s: SyncState): number => rows.filter(r => r.state === s).length;
   const edits = exportableDrift(rows).length;
   const clears = rows.filter(isLiveClear).length;
-  const laterPass = rows.filter(r => r.state === 'drift' && !!r.synced && !!r.firstPassId).length;
+  const laterPass = rows.filter(r => r.state === 'drift' && hasOwnPassText(r)).length;
   const lostIds = rows.filter(
     r => r.state === 'drift' && !!r.synced && r.placement === 'unknown' && !r.firstPassId
   ).length;
@@ -718,7 +869,7 @@ export function summaryHtml(rows: readonly DescriptionRow[], ctx: FileContext): 
   }
   if (laterPass) {
     extras.push(
-      `${laterPass} live ${plural(laterPass, 'edit is', 'edits are')} on a later pass of a revisited place, which descriptions.json cannot hold: the export leaves ${plural(laterPass, 'it', 'them')} out. Make the lasting fix on the first pass.`
+      `${laterPass} later ${plural(laterPass, 'pass of a revisited place has', 'passes of a revisited place have')} synced text under ${plural(laterPass, 'its', 'their')} own id, which phones show there instead of the place’s and which descriptions.json cannot hold: the export leaves it out. Clear it so that the pass follows the first pass, and make the lasting fix there.`
     );
   }
   if (lostIds) {

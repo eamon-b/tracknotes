@@ -4,12 +4,15 @@ import { describe, expect, it } from 'vitest';
 import type { DescriptionSource, WaypointDescription } from '@lib/comments-api-types';
 import {
   MAX_DESCRIPTION_LENGTH,
+  OLDER_APP_PASS_NOTE,
   buildRows,
   checkDraft,
+  clearConfirmText,
   exportFileText,
   exportableDrift,
   fileContext,
   firstPassIdOf,
+  laterPassEditRefusal,
   liveEditAdvice,
   matchesRow,
   nextUploadText,
@@ -300,46 +303,166 @@ describe('a revisited place (<id>_2)', () => {
     { id: 'w_12345678', name: 'Hex id ending in digits', type: 'hut', placement: 'main', km: 70, bundled: '' },
     { id: 'w_07233ee1_2', name: 'Lobuche', type: 'town', placement: 'main', km: 95, bundled: 'First pass text.' },
   ];
-  const rows = buildRows(waypoints, null, [
-    live('w_07233ee1', 'Lodge closed.', 'live'),
-    live('w_07233ee1_2', 'Lodge closed.', 'live'),
-  ]);
+  /** The rows for a set of synced rows: first pass, the plain id, later pass. */
+  const rowsFor = (synced: WaypointDescription[]) => buildRows(waypoints, null, synced);
+  // One live edit, on the place.
+  const rows = rowsFor([live('w_07233ee1', 'Lodge closed.', 'live')]);
   const [first, plain, later] = rows;
+  // Saved on each pass, as the page advised before passes followed the place.
+  const both = rowsFor([live('w_07233ee1', 'Lodge closed.', 'live'), live('w_07233ee1_2', 'Own text.', 'live')]);
 
   it('tells a later pass from an id that merely ends in digits', () => {
     const ids = new Set(waypoints.map(w => w.id));
     expect(firstPassIdOf('w_07233ee1_2', ids)).toBe('w_07233ee1');
     expect(firstPassIdOf('w_12345678', ids)).toBeNull();
     expect(firstPassIdOf('w_07233ee1', ids)).toBeNull();
+    // A pass by its form, of a place this trail does not have.
+    expect(firstPassIdOf('w_aaaa1111_2', ids)).toBeNull();
     expect(later.firstPassId).toBe('w_07233ee1');
     expect(first.laterPassIds).toEqual(['w_07233ee1_2']);
     expect(plain.firstPassId).toBeUndefined();
     expect(plain.laterPassIds).toBeUndefined();
   });
 
-  it('never exports a later-pass id, which the build cannot apply', () => {
-    expect(exportableDrift(rows).map(r => r.id)).toEqual(['w_07233ee1']);
-    const out = JSON.parse(exportFileText('three_passes', null, rows));
-    expect(out.descriptions).toEqual([{ waypointId: 'w_07233ee1', name: 'Lobuche', description: 'Lodge closed.' }]);
-    expect(patchSnippet(rows)).not.toContain('w_07233ee1_2');
+  it('shows on a later pass what a phone shows there: the first pass’s synced text', () => {
+    expect(later.synced).toBeUndefined();
+    expect(later.place).toEqual({
+      description: 'Lodge closed.',
+      updatedAt: '2026-11-01T00:00:00.000Z',
+      source: 'live',
+    });
+    expect(shownText(later)).toBe('Lodge closed.');
+    expect(shownText(first)).toBe('Lodge closed.');
+    expect(first.place).toBeUndefined();
+    // Not drift of its own: the one live edit is the first pass's.
+    expect(later.state).toBe('bundled');
+    expect(stateLabel(later)).toBe('follows first pass');
+    expect(nextUploadText(later, NO_FILE)).toContain('Follows the first pass (w_07233ee1)');
+    expect(rows.filter(r => r.state === 'drift').map(r => r.id)).toEqual(['w_07233ee1']);
+
+    const host = document.createElement('div');
+    host.innerHTML = rowHtml(later, { canEdit: true, editing: false, ctx: NO_FILE });
+    const cell = host.querySelectorAll('.desc-cell')[1];
+    expect(cell.querySelector('h4')!.textContent).toBe('Synced: the first pass’s, w_07233ee1 (2026-11-01, live edit)');
+    expect(cell.querySelector('.desc-text')!.textContent).toBe('Lodge closed.');
+    expect(cell.classList.contains('is-different')).toBe(true);
   });
 
-  it('marks both passes, and counts the later one apart from what can be committed', () => {
+  // The later pass's own row and the first pass's, each absent, cleared or text:
+  // the precedence the app applies (`@lib/waypoint-passes`).
+  it.each<[string | undefined, string | undefined, string, string]>([
+    [undefined, undefined, 'First pass text.', 'follows first pass'],
+    [undefined, 'Place.', 'Place.', 'follows first pass'],
+    [undefined, '', 'First pass text.', 'follows first pass'],
+    ['Own.', undefined, 'Own.', 'drift'],
+    ['Own.', 'Place.', 'Own.', 'drift'],
+    ['Own.', '', 'Own.', 'drift'],
+    ['', undefined, 'First pass text.', 'follows first pass'],
+    ['', 'Place.', 'Place.', 'follows first pass'],
+    ['', '', 'First pass text.', 'follows first pass'],
+  ])('own row %j, first-pass row %j: a phone shows %j (%s)', (own, place, shown, label) => {
+    const row = rowsFor([
+      ...(own === undefined ? [] : [live('w_07233ee1_2', own, 'live')]),
+      ...(place === undefined ? [] : [live('w_07233ee1', place, 'live')]),
+    ])[2];
+    expect(shownText(row)).toBe(shown);
+    expect(stateLabel(row)).toBe(label);
+  });
+
+  it('says why a later pass shows the bundled text when the first pass has none', () => {
+    const host = document.createElement('div');
+    const cellOf = (synced: WaypointDescription[]) => {
+      host.innerHTML = rowHtml(rowsFor(synced)[2], { canEdit: true, editing: false, ctx: NO_FILE });
+      return host.querySelectorAll('.desc-cell')[1].textContent;
+    };
+    expect(cellOf([])).toContain('No synced row on the first pass: phones show the bundled text.');
+    expect(cellOf([live('w_07233ee1', '', 'live')])).toContain('The first pass is cleared');
+    const cleared = rowsFor([live('w_07233ee1_2', '', 'live')])[2];
+    expect(nextUploadText(cleared, NO_FILE)).toContain('Its own synced row is cleared.');
+  });
+
+  it('filters a later pass by what a phone shows, and finds every pass by the first pass’s id', () => {
+    const ids = (f: Parameters<typeof matchesRow>[1], q = '') => rows.filter(r => matchesRow(r, f, q)).map(r => r.id);
+    expect(ids('differs')).toEqual(['w_07233ee1', 'w_07233ee1_2']);
+    // Only the first pass has a row, and only it is drift.
+    expect(ids('synced')).toEqual(['w_07233ee1']);
+    expect(ids('drift')).toEqual(['w_07233ee1']);
+    expect(ids('none')).toEqual(['w_12345678']);
+    expect(ids('all', 'w_07233ee1')).toEqual(['w_07233ee1', 'w_07233ee1_2']);
+    expect(ids('all', 'w_07233ee1_2')).toEqual(['w_07233ee1_2']);
+  });
+
+  it('never exports a later-pass id, which the build cannot apply', () => {
+    expect(exportableDrift(both).map(r => r.id)).toEqual(['w_07233ee1']);
+    const out = JSON.parse(exportFileText('three_passes', null, both));
+    expect(out.descriptions).toEqual([{ waypointId: 'w_07233ee1', name: 'Lobuche', description: 'Lodge closed.' }]);
+    expect(patchSnippet(both)).not.toContain('w_07233ee1_2');
+    expect(exportableDrift(rows).map(r => r.id)).toEqual(['w_07233ee1']);
+  });
+
+  it('edits the place on the first pass: a later pass offers no edit of its own', () => {
     const host = document.createElement('div');
     host.innerHTML = rowHtml(later, { canEdit: true, editing: false, ctx: NO_FILE });
     expect(host.querySelector('.desc-badge-pass')!.textContent).toBe('later pass');
-    expect(host.querySelector('.desc-pass')!.textContent).toContain('cannot be committed to the file');
+    expect(host.querySelector('.desc-pass')!.textContent).toContain('Edit it on the first pass');
+    expect(host.querySelector('.desc-pass')!.textContent).toContain('a later pass is never exported');
     expect(host.querySelector('.desc-pass')!.textContent).toContain('w_07233ee1');
+    expect(host.querySelector('[data-action="edit"]')).toBeNull();
+    expect(host.querySelector('[data-action="clear"]')).toBeNull();
+    expect(host.querySelector('[data-action="edit-first"]')!.textContent).toBe('Edit on the first pass');
+    // No edit box, whatever the caller holds for the row.
+    host.innerHTML = rowHtml(later, { canEdit: true, editing: true, draft: 'x', ctx: NO_FILE });
+    expect(host.querySelector('textarea')).toBeNull();
+    // Read-only: no buttons at all.
+    host.innerHTML = rowHtml(later, { canEdit: false, editing: false, ctx: NO_FILE });
+    expect(host.querySelector('button')).toBeNull();
+
     host.innerHTML = rowHtml(first, { canEdit: true, editing: false, ctx: NO_FILE });
     expect(host.querySelector('.desc-badge-pass')).toBeNull();
-    expect(host.querySelector('.desc-pass')!.textContent).toContain('has to be made on each pass');
+    expect(host.querySelector('.desc-pass')!.textContent).toContain('every pass shows them');
+    expect(host.querySelector('.desc-pass')!.textContent).toContain('w_07233ee1_2');
+    expect(host.querySelector('[data-action="edit"]')).not.toBeNull();
     host.innerHTML = rowHtml(plain, { canEdit: true, editing: false, ctx: NO_FILE });
     expect(host.querySelector('.desc-pass')).toBeNull();
+  });
 
-    const html = summaryHtml(rows, NO_FILE);
+  it('tells the admin sending a first pass’s text about every pass, and about older app builds, once', () => {
+    const advice = liveEditAdvice(first, NO_FILE);
+    expect(advice).toContain('the text shows on every pass (also w_07233ee1_2)');
+    expect(advice).toContain(OLDER_APP_PASS_NOTE);
+    expect(OLDER_APP_PASS_NOTE).toContain('the bundled text on the later ones');
+    expect(liveEditAdvice(first, WITH_FILE)).toContain(OLDER_APP_PASS_NOTE);
+    expect(liveEditAdvice(plain, NO_FILE)).not.toContain('pass');
+    // Nowhere else on the page.
+    const host = document.createElement('div');
+    host.innerHTML = rows.map(r => rowHtml(r, { canEdit: true, editing: false, ctx: NO_FILE })).join('');
+    expect(host.textContent).not.toContain('has not been updated');
+    expect(summaryHtml(rows, NO_FILE)).not.toContain('has not been updated');
+    expect(clearConfirmText(first)).toContain('its later passes (w_07233ee1_2) fall back with it');
+    expect(laterPassEditRefusal(later)).toContain('edited on the first pass (w_07233ee1)');
+  });
+
+  it('offers only a clear for text a later pass holds under its own id, and counts it apart', () => {
+    const own = both[2];
+    expect(own.state).toBe('drift');
+    expect(nextUploadText(own, NO_FILE)).toContain('Clear it so that this pass follows the first pass');
+    const host = document.createElement('div');
+    host.innerHTML = rowHtml(own, { canEdit: true, editing: false, ctx: NO_FILE });
+    expect(host.querySelectorAll('.desc-cell')[1].querySelector('h4')!.textContent).toContain(
+      'Synced on this pass’s own id'
+    );
+    expect(host.querySelector('[data-action="edit"]')).toBeNull();
+    expect(host.querySelector('[data-action="clear"]')!.textContent).toBe('Clear this pass’s own text');
+    expect(clearConfirmText(own)).toContain('phones show the first pass’s synced text here (w_07233ee1)');
+    expect(clearConfirmText(rowsFor([live('w_07233ee1_2', 'Own text.', 'live')])[2])).toContain(
+      'phones show the bundled text here'
+    );
+
+    const html = summaryHtml(both, NO_FILE);
     expect(html).toContain('1 live edit is held only by the API');
-    expect(html).toContain('1 live edit is on a later pass of a revisited place');
-    expect(liveEditAdvice(later, NO_FILE)).toContain('Make the lasting fix on the first pass (w_07233ee1)');
+    expect(html).toContain('1 later pass of a revisited place has synced text under its own id');
+    // With the edit on the first pass alone, there is nothing to say about the later pass.
+    expect(summaryHtml(rows, NO_FILE)).not.toContain('later pass');
   });
 });
 
