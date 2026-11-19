@@ -221,24 +221,37 @@ describe('commentsSectionHtml', () => {
     expect(commentsStatusText(ready([editor()]), 'w_0000aaaa')).toBe('1 comment on this waypoint.');
   });
 
-  it('says exactly what an admin’s listing includes, and when it was truncated', () => {
+  it('says exactly what an admin’s listing includes: complete, or how it fell short', () => {
     const note = (adminCoverage: AdminCoverage | null) => adminNoteText({ admin: 'admin', adminCoverage });
-    expect(note('complete')).toMatch(/hidden by reports or deleted by an admin are included/);
-    expect(note('complete')).not.toMatch(/truncated|only when/);
-    // The newest-first read was cut: an old admin delete nobody reported is out of reach.
+    expect(note('complete')).toMatch(/^Linked as an admin: complete for this trail\./);
+    expect(note('complete')).toMatch(/Every comment hidden by reports or deleted by an admin is included/);
+    expect(note('complete')).not.toMatch(/truncated|only when|missing|predates|more than/);
+    // The read stopped at its cap: the trail has more than it holds.
+    expect(note('capped')).toMatch(/this trail has more than 5000 hidden, deleted or reported comments/);
+    expect(note('capped')).toMatch(/The newest 5000 are included, so older hidden or reported comments are missing/);
+    // A page after the first failed.
+    expect(note('interrupted')).toMatch(/failed part-way/);
+    expect(note('interrupted')).toMatch(/older hidden or reported comments may be missing/);
+    expect(note('interrupted')).toMatch(/reload to read them again/);
+    // A comments API without the trail filter. Its newest-first read was cut:
+    // an old admin delete nobody reported is out of reach.
     expect(note('recent')).toMatch(/every comment that has a report or an automated-review result/);
-    expect(note('recent')).toMatch(/no trail filter or cursor, and one read stops at 500 rows/);
+    expect(note('recent')).toMatch(
+      /predates the admin listing for one trail, so the listing of every trail was read instead, and one read of it stops at 500 rows/
+    );
     expect(note('recent')).toMatch(
       /an admin deleted that was never reported or reviewed is included only when it is among the newest 500/
     );
     expect(note('recent')).not.toMatch(/was truncated/);
-    // Both reads were cut.
+    // Both of its reads were cut.
     expect(note('partial')).toMatch(/the admin listing was truncated/);
+    expect(note('partial')).toMatch(/predates the admin listing for one trail/);
     expect(note('partial')).toMatch(/some reported or hidden comments on this trail may be missing/);
-    // Coverage that was never stated claims the least.
-    expect(note(null)).toBe(note('partial'));
-    for (const coverage of ['complete', 'recent', 'partial'] as const) {
+    // Coverage that was never stated claims nothing.
+    expect(note(null)).toMatch(/is not known: some may be missing/);
+    for (const coverage of ['complete', 'capped', 'interrupted', 'recent', 'partial', null] as const) {
       expect(note(coverage)).toMatch(/deleted by their author are left out/);
+      if (coverage !== 'complete') expect(note(coverage)).not.toMatch(/complete/);
     }
     expect(adminNoteText({ admin: 'unlinked', adminCoverage: null })).toMatch(/only in a browser linked to an admin/);
     expect(commentsSectionHtml(ready([editor()], 'admin', 'recent'), 'w_0000aaaa')).toContain(
@@ -513,60 +526,205 @@ describe('loadTrailComments', () => {
     expect(state).toMatchObject({ kind: 'ready', total: 2, admin: 'unlinked' });
   });
 
-  it('adds the admin listing for an admin, and degrades for anyone else', async () => {
-    const make = (adminStatus: number) =>
-      vi.fn(async (url: string | URL | Request) =>
-        String(url).includes('/admin/')
-          ? adminStatus === 200
-            ? respond(200, { comments: [moderated()] })
-            : respond(adminStatus, { error: { code: 'forbidden', message: 'no' } })
-          : respond(200, { comments: [live()], nextCursor: null, syncedAt: 'x' })
-      );
-    const asAdmin = await loadTrailComments('heysen', { session, fetchImpl: make(200), baseUrl: BASE });
-    // Both admin reads return the one row: it is counted once.
+  /** A stubbed comments API, and every admin request a load made of it (path and query), in order. */
+  interface AdminStub {
+    fetchImpl: typeof fetch;
+    urls: string[];
+  }
+
+  /**
+   * A comments API whose public read holds one live comment and whose admin
+   * listing answers through `admin` (given the request's query).
+   */
+  function stubApi(admin: (query: URLSearchParams) => Response | Promise<Response>): AdminStub {
+    const urls: string[] = [];
+    const fetchImpl = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      const u = String(url);
+      if (!u.includes('/admin/')) return respond(200, { comments: [live()], nextCursor: null, syncedAt: 'x' });
+      urls.push(u.slice(BASE.length));
+      expect((init?.headers as Record<string, string>).Authorization).toBe('Bearer tok');
+      return admin(new URL(u).searchParams);
+    });
+    return { fetchImpl: fetchImpl as unknown as typeof fetch, urls };
+  }
+
+  /** The worker with the trail filter: `pages` of one trail's moderated rows, each naming the next. */
+  function trailPages(pages: AdminComment[][]) {
+    return (query: URLSearchParams): Response => {
+      const at = Number(query.get('cursor')?.slice('page '.length) ?? 0);
+      return respond(200, {
+        comments: pages[at] ?? [],
+        trailId: query.get('trail'),
+        nextCursor: at + 1 < pages.length ? `page ${at + 1}` : null,
+      });
+    };
+  }
+
+  const TRAIL_READ = '/v1/admin/comments?trail=heysen&moderated=1&limit=500';
+
+  /** One waypoint's comments as `[id, hiddenBy]`, sorted by id. */
+  function shown(state: CommentsState, waypointId = 'w_0000aaaa'): [string, string | null][] {
+    const list = state.kind === 'ready' ? (state.byWaypoint.get(waypointId) ?? []) : [];
+    return list.map(c => [c.id, c.hiddenBy] as [string, string | null]).sort();
+  }
+
+  it('adds the trail’s moderated comments for an admin, and degrades for anyone else', async () => {
+    const api = stubApi(trailPages([[moderated()]]));
+    const asAdmin = await loadTrailComments('heysen', { session, fetchImpl: api.fetchImpl, baseUrl: BASE });
     expect(asAdmin).toMatchObject({ kind: 'ready', total: 2, admin: 'admin', adminCoverage: 'complete' });
-    expect(await loadTrailComments('heysen', { session, fetchImpl: make(403), baseUrl: BASE })).toMatchObject({
+    // One request: the trail's own listing, which said it had no more.
+    expect(api.urls).toEqual([TRAIL_READ]);
+    expect(commentsSectionHtml(asAdmin, 'w_0000aaaa')).toContain('Linked as an admin: complete for this trail.');
+
+    const refused = (status: number) =>
+      stubApi(() => respond(status, { error: { code: 'refused', message: 'no' } })).fetchImpl;
+    expect(await loadTrailComments('heysen', { session, fetchImpl: refused(403), baseUrl: BASE })).toMatchObject({
       total: 1,
       admin: 'not-admin',
       adminCoverage: null,
     });
-    expect(await loadTrailComments('heysen', { session, fetchImpl: make(401), baseUrl: BASE })).toMatchObject({
+    expect(await loadTrailComments('heysen', { session, fetchImpl: refused(401), baseUrl: BASE })).toMatchObject({
       admin: 'expired',
     });
+    // A trail the worker does not take (400), or a listing that is down: the public comments still show.
+    for (const status of [400, 500]) {
+      const state = await loadTrailComments('heysen', { session, fetchImpl: refused(status), baseUrl: BASE });
+      expect(state).toMatchObject({ kind: 'ready', total: 1, admin: 'failed', adminCoverage: null });
+      expect(commentsSectionHtml(state, 'w_0000aaaa')).toContain('The admin listing did not load');
+    }
   });
 
-  it('reads the admin listing both ways, since it has no trail filter or cursor, and says how far that reaches', async () => {
+  it('follows the trail listing’s cursor to the end, and then says it is complete', async () => {
+    const api = stubApi(
+      trailPages([
+        [moderated({ id: 'p0-hidden' }), moderated({ id: 'c1', deletedAt: null, deletedBy: null, reportCount: 2 })],
+        [moderated({ id: 'p1-admin', deletedBy: 'admin', reportCount: 0 })],
+        [moderated({ id: 'p2-old', waypointId: 'w_0000bbbb' })],
+      ])
+    );
+    const state = await loadTrailComments('heysen', { session, fetchImpl: api.fetchImpl, baseUrl: BASE });
+    // One sequence, each request continuing from the cursor the last one gave.
+    expect(api.urls).toEqual([TRAIL_READ, `${TRAIL_READ}&cursor=page+1`, `${TRAIL_READ}&cursor=page+2`]);
+    expect(state).toMatchObject({ kind: 'ready', total: 4, admin: 'admin', adminCoverage: 'complete' });
+    expect(shown(state)).toEqual([
+      ['c1', null],
+      ['p0-hidden', 'reports'],
+      ['p1-admin', 'admin'],
+    ]);
+    expect(shown(state, 'w_0000bbbb')).toEqual([['p2-old', 'reports']]);
+    // The live comment gained its report count from the first page.
+    const c1 = state.kind === 'ready' ? state.byWaypoint.get('w_0000aaaa')!.find(c => c.id === 'c1') : undefined;
+    expect(c1?.reportCount).toBe(2);
+    expect(commentsSectionHtml(state, 'w_0000aaaa')).toContain('Linked as an admin: complete for this trail.');
+  });
+
+  it('stops at its cap when the listing keeps naming another page, and says there are more', async () => {
+    // Ten full pages of 500, and a cursor after the last: more than the 5000 a load reads.
+    const api = stubApi(query => {
+      const at = Number(query.get('cursor') ?? 0);
+      return respond(200, {
+        comments: Array.from({ length: 500 }, (_, i) => moderated({ id: `m${at}-${i}` })),
+        trailId: 'heysen',
+        nextCursor: String(at + 1),
+      });
+    });
+    const state = await loadTrailComments('heysen', { session, fetchImpl: api.fetchImpl, baseUrl: BASE });
+    expect(api.urls).toHaveLength(10);
+    expect(state).toMatchObject({ kind: 'ready', total: 5001, admin: 'admin', adminCoverage: 'capped' });
+    const html = commentsSectionHtml(state, 'w_0000aaaa');
+    expect(html).toContain('this trail has more than 5000 hidden, deleted or reported comments');
+    expect(html).not.toContain('complete for this trail');
+  });
+
+  it('shows what was read when a later page fails, and says the read stopped part-way', async () => {
+    const pages = trailPages([
+      [moderated({ id: 'newest' })],
+      [moderated({ id: 'older' })],
+      [moderated({ id: 'oldest' })],
+    ]);
+    const failures: (() => Response)[] = [
+      () => respond(500, { error: { code: 'internal_error', message: 'boom' } }),
+      () => {
+        throw new TypeError('Failed to fetch');
+      },
+      // The worker was rolled back mid-read: an answer for every trail is no page of this one.
+      () => respond(200, { comments: [moderated({ id: 'stray' })] }),
+    ];
+    for (const fail of failures) {
+      const api = stubApi(query => (query.get('cursor') === 'page 2' ? fail() : pages(query)));
+      const state = await loadTrailComments('heysen', { session, fetchImpl: api.fetchImpl, baseUrl: BASE });
+      expect(api.urls).toHaveLength(3);
+      // The public comments and the two pages that arrived, never the stray answer.
+      expect(state).toMatchObject({ kind: 'ready', total: 3, admin: 'admin', adminCoverage: 'interrupted' });
+      expect(shown(state)).toEqual([
+        ['c1', null],
+        ['newest', 'reports'],
+        ['older', 'reports'],
+      ]);
+      const html = commentsSectionHtml(state, 'w_0000aaaa');
+      expect(html).toContain('failed part-way');
+      expect(html).not.toContain('complete for this trail');
+      expect(html).toContain('data-comments-reload');
+    }
+  });
+
+  it('falls back to both reads of every trail’s listing when the worker predates the trail filter', async () => {
     // `full` rows fill a read to its limit, so the listing may hold more than it sent.
     const full = (prefix: string) =>
       Array.from({ length: 500 }, (_, i) => moderated({ id: `${prefix}${i}`, trailId: 'larapinta' }));
     const adminDeleted = moderated({ id: 'quiet', deletedBy: 'admin', reportCount: 0 });
+    // The old worker ignores `trail`, `moderated` and `cursor`, and answers with no `trailId` or `nextCursor`.
     const load = async (newest: AdminComment[], reported: AdminComment[]) => {
-      const urls: string[] = [];
-      const fetchImpl = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
-        const u = String(url);
-        if (!u.includes('/admin/')) return respond(200, { comments: [live()], nextCursor: null, syncedAt: 'x' });
-        urls.push(u.slice(BASE.length));
-        expect((init?.headers as Record<string, string>).Authorization).toBe('Bearer tok');
-        return respond(200, { comments: u.includes('reported=1') ? reported : newest });
-      });
-      return { state: await loadTrailComments('heysen', { session, fetchImpl, baseUrl: BASE }), urls };
+      const api = stubApi(query => respond(200, { comments: query.get('reported') === '1' ? reported : newest }));
+      return {
+        state: await loadTrailComments('heysen', { session, fetchImpl: api.fetchImpl, baseUrl: BASE }),
+        urls: api.urls,
+      };
     };
 
     // Everything fits one newest-first read: a comment an admin deleted that nobody reported is there.
     const whole = await load([adminDeleted, moderated()], [moderated()]);
-    expect(whole.urls.sort()).toEqual(['/v1/admin/comments?limit=500', '/v1/admin/comments?reported=1&limit=500']);
+    // The trail read is seen to be unfiltered, then the listing is read both ways, with no cursor.
+    expect(whole.urls[0]).toBe(TRAIL_READ);
+    expect(whole.urls.slice(1).sort()).toEqual([
+      '/v1/admin/comments?limit=500',
+      '/v1/admin/comments?reported=1&limit=500',
+    ]);
     expect(whole.state).toMatchObject({ kind: 'ready', total: 3, adminCoverage: 'complete' });
-    const hidden = whole.state.kind === 'ready' ? whole.state.byWaypoint.get('w_0000aaaa')! : [];
-    expect(hidden.map(c => [c.id, c.hiddenBy]).sort()).toEqual([
+    expect(shown(whole.state)).toEqual([
       ['c1', null],
       ['c9', 'reports'],
       ['quiet', 'admin'],
     ]);
 
-    // The newest-first read is cut: reported ones are all known, older unreported admin deletes are not.
-    expect((await load(full('n'), [moderated()])).state).toMatchObject({ total: 2, adminCoverage: 'recent' });
+    // The newest-first read is cut and holds none of this trail: it is never taken for the trail's
+    // whole set. Reported ones are all known from the other read; older unreported admin deletes are not.
+    const recent = await load(full('n'), [moderated()]);
+    expect(recent.state).toMatchObject({ total: 2, adminCoverage: 'recent' });
+    expect(recent.urls).toHaveLength(3);
+    const html = commentsSectionHtml(recent.state, 'w_0000aaaa');
+    expect(html).toContain('predates the admin listing for one trail');
+    expect(html).not.toContain('complete for this trail');
     // Both are cut.
-    expect((await load(full('n'), full('r'))).state).toMatchObject({ adminCoverage: 'partial' });
+    const partial = await load(full('n'), full('r'));
+    expect(partial.state).toMatchObject({ total: 1, adminCoverage: 'partial' });
+    expect(commentsSectionHtml(partial.state, 'w_0000aaaa')).toContain('the admin listing was truncated');
+
+    // An answer that names some other trail is not this trail's listing either.
+    const other = stubApi(query =>
+      respond(
+        200,
+        query.has('trail')
+          ? { comments: [moderated({ id: 'theirs' })], trailId: 'larapinta', nextCursor: null }
+          : { comments: [moderated()] }
+      )
+    );
+    const state = await loadTrailComments('heysen', { session, fetchImpl: other.fetchImpl, baseUrl: BASE });
+    expect(other.urls).toHaveLength(3);
+    expect(shown(state)).toEqual([
+      ['c1', null],
+      ['c9', 'reports'],
+    ]);
   });
 
   it('reports a failed read as an error state', async () => {

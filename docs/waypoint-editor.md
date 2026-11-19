@@ -274,16 +274,21 @@ Comments are keyed by stable waypoint id, so a comment filed under an id no wayp
 That list shows 20 ids at a time, with the same "Show more" and "Show all", and what is revealed of it lasts until another trail is opened.
 An id the build merged into another waypoint is not lost: it has a row of its own, which shows its comments ("Merged near-duplicates" above).
 In a browser linked to an admin account (the link from `admin-moderation.html`), the page also reads the admin listing, `GET /v1/admin/comments`, to add hidden comments and report counts.
-That listing covers every trail, with no trail filter and no cursor, and one read stops at 500 rows, so it cannot be read to the end for one trail.
-The page reads it both ways it can be ordered and keeps this trail's rows: `?limit=500` (every comment, newest first) and `?reported=1&limit=500` (only comments with a report or an automated-review result, those hidden by reports first).
-What that reaches, the line under the comments says:
+It asks for this trail's moderated comments, `?trail=<trail>&moderated=1&limit=500`: those hidden by reports or the automated review, those an admin deleted (reported or not), and those still published that have a report or a review result.
+The listing answers newest first and names the next page, and the page follows that cursor to the end: one sequence of requests per trail load and per Reload, beside the public read.
+The line under the comments then says "Linked as an admin: complete for this trail", which is the normal case: every hidden or reported comment on the trail is there, with every report count.
+It says otherwise in four cases:
 
-- **The newest-first read came back short of 500 rows:** it is every comment on every trail, so each comment on this trail hidden by reports or deleted by an admin is included.
-- **It came back full:** every comment with a report or a review result is still included, hidden or not, but a comment an admin deleted that was never reported or reviewed is included only when it is among the newest 500 comments on all trails.
-- **Both came back full:** the listing was truncated, and some reported or hidden comments on this trail may be missing, with their report counts.
+- **More than 5000:** the read stops after ten pages of 500, the newest 5000 are included, and the line says the trail has more than that, so older ones are missing.
+- **A page failed part-way:** the pages read before it (the newest) are included, the line says older ones may be missing, and Reload reads them again.
+  A failure of the first request shows the public comments alone, with "The admin listing did not load".
+- **The comments API predates the trail filter** (a worker deployed before this read existed ignores `trail` and answers for every trail, without the `trailId` and `nextCursor` a filtered answer carries): the page sees that the answer is not for this trail, never takes it for the trail's whole set, and reads the listing of every trail both ways it can be ordered instead, `?limit=500` (every comment, newest first) and `?reported=1&limit=500` (only comments with a report or a review result, those hidden by reports first), keeping this trail's rows.
+  Neither of those can be paged, so the line says how far they reach: complete when the newest-first read came back short of 500 rows (it is then every comment on every trail);
+  when it came back full, every comment with a report or a review result is still included, but a comment an admin deleted that was never reported or reviewed only when it is among the newest 500 comments on all trails;
+  when both came back full, some reported or hidden comments on this trail may be missing, with their report counts.
+- **Not an admin, or no link:** without a linked browser, with a non-admin account or with an expired link, the line says hidden comments are not shown and the public ones are listed.
 
-A comment deleted by its author is never listed.
-Without a linked browser, or with a non-admin account, the line says hidden comments are not shown and the public ones are listed.
+A comment deleted by its author is never listed: `moderated=1` leaves those out, and the page drops them from an older worker's answers.
 Hidden and reported comments sit in the same newest-first list and page with it, so the "showing" line says how many of the comments not yet shown are hidden, and how many more are published but reported ("The 227 not shown include 3 hidden and 2 more reported.").
 Reload (and "Try again" after a failed read) keeps keyboard focus on the control while the section is redrawn.
 The section is not a live region, so a screen reader does not read every comment again: one short status line ("Showing the newest 20 of 237 comments.") is announced after a load, a Reload or "Show more".
