@@ -6,6 +6,11 @@
  * pulls and shows over the bundled text), marks where they differ, and lets an
  * admin's linked browser PUT a new synced text or clear it.
  *
+ * A description belongs to a place: a later pass of a revisited place
+ * (`<id>_2`) shows the first pass's synced text, as phones do, and is edited
+ * on the first pass's row. Nothing is ever saved under a later pass's id; text
+ * one already holds can only be cleared.
+ *
  * The drift rule (`docs/waypoint-editor.md`): a live edit that is not in the
  * trail's `descriptions.json` is overwritten by the next *Upload descriptions*
  * run of that trail. The file as this site was built is bundled into this page
@@ -37,9 +42,11 @@ import {
   ROW_FILTER_LABELS,
   buildRows,
   checkDraft,
+  clearConfirmText,
   draftStatusHtml,
   exportFileText,
   fileContext,
+  laterPassEditRefusal,
   liveEditAdvice,
   matchesRow,
   parseCuratedFile,
@@ -254,6 +261,15 @@ function init(): void {
   };
 
   /**
+   * Redraw a row whose synced text changed, and the later passes of its place,
+   * which show that text too. A later pass never has an edit box to disturb.
+   */
+  const redrawPlace = (id: string): void => {
+    redrawRow(id);
+    for (const pass of rows.find(r => r.id === id)?.laterPassIds ?? []) redrawRow(pass);
+  };
+
+  /**
    * Bring the list up to date after the data changed underneath it, without
    * touching a row whose edit box is open: someone may be typing in it, and
    * its save is checked against what they were shown (`bases`). With no edit
@@ -454,11 +470,11 @@ function init(): void {
         if (drafts.has(id)) {
           bases.set(id, current?.updatedAt ?? null);
           conflicts.set(id, current);
-          redrawRow(id);
+          redrawPlace(id);
           setRowBusy(id, false);
           focusDraft(id);
         } else {
-          redrawRow(id);
+          redrawPlace(id);
           setRowBusy(id, false);
           showRowError(
             id,
@@ -521,7 +537,7 @@ function init(): void {
     recompute();
     renderSummary();
     if (unrecorded) renderList();
-    else redrawRow(id);
+    else redrawPlace(id);
     setRowBusy(id, false);
     void refreshSynced().catch(() => {
       /* the PUT's answer is already drawn */
@@ -538,8 +554,14 @@ function init(): void {
     // The buttons are not drawn unless the page may write; a click that gets
     // here anyway (an edit box left open when the worker stopped guarding
     // writes) opens nothing and sends nothing. Cancel always works.
-    if ((action === 'edit' || action === 'save' || action === 'clear') && !mayWrite()) {
+    if ((action === 'edit' || action === 'edit-first' || action === 'save' || action === 'clear') && !mayWrite()) {
       showRowError(id, NOT_SENT);
+      return;
+    }
+    // A later pass takes no text under its own id; its buttons never ask for
+    // one, so this only stops a click that got here some other way.
+    if ((action === 'edit' || action === 'save') && row.firstPassId) {
+      showRowError(id, laterPassEditRefusal(row));
       return;
     }
     switch (action) {
@@ -549,6 +571,25 @@ function init(): void {
         redrawRow(id);
         focusDraft(id);
         return;
+      case 'edit-first': {
+        // The place's description is edited on its first pass: open that
+        // row's edit box, bringing the row into the list if a filter hides it.
+        const first = rows.find(r => r.id === row.firstPassId);
+        if (!first) return;
+        if (!rowElement(first.id)) {
+          filterSelect.value = 'all';
+          search.value = first.id;
+          renderList();
+        }
+        if (!drafts.has(first.id)) {
+          drafts.set(first.id, first.synced || first.bundled);
+          bases.set(first.id, first.syncedAt ?? null);
+          redrawRow(first.id);
+        }
+        rowElement(first.id)?.scrollIntoView?.({ block: 'center' });
+        focusDraft(first.id);
+        return;
+      }
       case 'cancel':
         closeEditor(id);
         redrawRow(id);
@@ -573,19 +614,7 @@ function init(): void {
         return;
       }
       case 'clear':
-        if (
-          !window.confirm(
-            `Clear the synced text for “${row.name}”? Phones fall back to the bundled text${
-              row.bundled ? '' : ' (this waypoint has none)'
-            }.${
-              row.file !== undefined
-                ? '\n\ndescriptions.json has an entry for this waypoint, so the next upload re-sends the file’s text.'
-                : ''
-            }`
-          )
-        ) {
-          return;
-        }
+        if (!window.confirm(clearConfirmText(row))) return;
         void write(id, '');
         return;
       default:

@@ -427,7 +427,12 @@ Merging a change to `descriptions.json` runs the *Upload descriptions* workflow 
 The upload visits only the trails that have a `descriptions.json`.
 On a trail without one (the CDT, Great Ocean Walk, Great South West Walk, Shikoku, Te Araroa and Three Passes) no upload changes or withdraws a synced row.
 The phone looks a waypoint's synced text up by the waypoint's own id, and the upload sends each entry to the id the file names.
-So a later pass of a revisited place (`<id>_2`) never shows the first pass's synced text: it shows its bundled text, which is the first pass's entry as the build applied it.
+A description belongs to the place, so a revisited place has one synced row, under its first pass's id, and a later pass (`<id>_2`) has none of its own.
+The phone shows a later pass the first pass's synced text, so an upload or a live edit reaches every pass (`resolveSyncedDescription` in `src/lib/waypoint-passes.ts`, applied by `getDescription` in `mobile/src/db/waypoint-meta-repo.ts`, the app's one reader of synced text).
+The order is the pass's own row, then the first pass's row, then the bundled text.
+A cleared row holds no text wherever it sits, so it never hides the next one: a later pass whose own row is cleared or withdrawn follows the first pass, and a cleared first pass leaves the bundled text.
+Nothing writes a later pass's row any more (below), so the first case is a row left from before.
+An app build from before this rule looks each pass up by its own id only: until a phone updates the app, its later passes show their bundled text, which is the first pass's entry as the build applied it.
 
 ## Live edits on the deployed site
 
@@ -445,6 +450,12 @@ It is unlinked and noindex, and it is the only description tool on the deployed 
   The filters narrow to drift, to rows awaiting an upload, to synced rows, to synced text that differs from the bundle, to the file's entries, or to waypoints with no description at all.
 - **Edit synced text** sends the new text to every phone on its next sync, with the same character limit and voice hints as here.
 - **Clear synced text** sends an empty description (a tombstone): phones fall back to the bundled text, so a clear can undo a live edit but cannot hide a curated text; to correct one, edit it.
+- **A revisited place** (badged *later pass* on its later passes; eight rows, all on Three Passes): the description is the place's, so it is edited on the first pass's row, and that text reaches every pass.
+  A later pass's row shows the first pass's synced text, as phones show it there, under a heading that names the first pass, and its state reads *follows first pass*.
+  It has no **Edit synced text**: **Edit on the first pass** opens the first pass's edit box, listing the first pass if a filter had hidden it.
+  The page saves nothing under a later pass's id: that text could not be committed, the next upload of a trail with a `descriptions.json` would withdraw it, and on phones it would hide the place's text on that pass.
+  A later pass that holds text under its own id from before shows it as *drift*, with **Clear this pass's own text**, after which the pass follows the first pass again.
+  The confirmation before a save on a first pass says, once, that a phone on an app build from before passes followed the first pass shows the new text on the first pass only, until it updates the app.
 - **Two admins at once:** a save or a clear carries the version of the row the page was showing, and the API refuses it when someone else has changed the row since.
   Nothing is written; the page shows the text now on the server above the draft, which is kept, and saving again replaces their text knowingly.
 - **While typing:** saving one row redraws that row only, and the refresh that follows leaves every open edit box as it is.
@@ -498,9 +509,8 @@ What the export leaves out:
   To remove a description for good, delete its entry from the file.
 - **A later pass of a revisited place** (`<id>_2`, badged *later pass*; eight rows, all on Three Passes).
   The build applies `descriptions.json` before it mints the suffix, so the file is keyed by the first pass's id, every pass is bundled with that entry's text, and an entry for `<id>_2` matches no waypoint.
-  A live edit on a later pass reaches phones on that pass only and cannot be committed: make the lasting fix on the first pass's id.
-  For an urgent correction, edit each pass, since phones look each one up by its own id; the first pass's row names the others.
-  The page does not copy a first-pass edit to the later passes itself: on a trail with a `descriptions.json` the next upload would withdraw those rows, which the file cannot list.
+  The page saves nothing under a later pass's id, and text one holds from before is left out: clear it there, and make the lasting fix on the first pass's id.
+  The page does not copy a first-pass edit to the later passes' rows either: phones read the first pass's row for every pass, and on a trail with a `descriptions.json` the next upload would withdraw rows the file cannot list.
 - **Te Araroa.**
   Its waypoints and their descriptions are built upstream in the `te-araroa-data` package (`npm run sync:te-araroa`) and are not curated in this repository, so it has no `descriptions.json` and the page offers none to download.
   A live edit there works, and no upload touches it: make the lasting fix upstream, and clear the synced text once a build carries it.

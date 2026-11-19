@@ -167,7 +167,9 @@ Raising the floor is a deliberate change to that list, not a side effect of a Vi
   origin unknown (a differing row from a worker that reports no `source`, claimed as neither);
   cleared, not uploaded, bundled only.
   Only live edits are exported, as the updated `descriptions.json` (download) or as the changed entries (copy), written as the committed files are so the `git diff` shows only the carried text.
-  The export leaves out a live clear, an id the trail has lost, and a later pass of a revisited place (`firstPassIdOf`: `<id>_2` where `<id>` is a waypoint of the trail), which the build cannot apply; both passes' rows say so.
+  The export leaves out a live clear, an id the trail has lost, and a later pass of a revisited place (`firstPassIdOf`: `@lib/waypoint-passes`' id rule, with `<id>` a waypoint of the trail), which the build cannot apply.
+  A later pass's row shows what phones show there (`shownSynced`, from `@lib/waypoint-passes` `resolveSyncedDescription`: the first pass's synced text unless the pass holds its own), reads *follows first pass*, and is edited on the first pass's row (`edit-first`); nothing is saved under a later pass's id, and text one holds from before can only be cleared.
+  The save confirmation on a first pass carries `OLDER_APP_PASS_NOTE`: app builds from before that rule look each pass up by its own id.
   The wording follows the trail (`fileContext`): with a `descriptions.json` the next upload overwrites a live edit, without one no upload ever touches it, and for Te Araroa, which is built upstream (`UPSTREAM_TRAILS`), there is no file to commit to and no export.
   The list is redrawn row by row (`redrawRow`, `patchRows`): a save redraws its own row, and the refresh that follows never touches a row whose edit box is open.
   An answer to a PUT is drawn only into the list it was sent from (`loadSeq`), so a save that lands after a switch of trail adds no row to the other trail's list.
@@ -188,7 +190,7 @@ Raising the floor is a deliberate change to that list, not a side effect of a Vi
   The key is a hash of its name and position, so a save that renames or moves it answers with a new one: `save` re-keys the row, the map dot, the selection, the `?id=` address, the draft and what "Show more" had revealed of its comments, and leaves nothing under the old key.
   A pending row the next build hands an existing id carries `takesId`: its badge names the id, and the form links to the row that has it (`takesIdMetaHtml`).
   A `<wpt>` with a registry id that the last build here does not list is `notBuilt`: a locked row badged `not built`, matched by "Changed since build" and by neither "No curated text" nor "Off the route".
-  A later pass of a revisited place (`laterPassOf`, the server's `registryId` rule) shows the place's description read-only, with no count or voice hints, and both passes say that a move, a rename or a type change is the place's (`sharedSourceText`).
+  A later pass of a revisited place (`laterPassOf`, the server's `registryId` rule, both `@lib/waypoint-passes`) shows the place's description read-only, with no count or voice hints, and both passes say that a move, a rename or a type change is the place's (`sharedSourceText`).
   A trail the server refuses (422 for a GPX the build cannot read) leaves the list and the map empty with the reason in the banner, and "Reload trail" asks for it again.
   The add form checks the name for a type prefix before sending (`typePrefixProblem`, the classifier the server uses).
   A rebuild found running when the page loads is followed as if the page had started it, and the last one's report is put back in the drawer (`resumeRebuild`, `followRebuild`): a reload mid-rebuild must not lose the report of minted and retired ids.

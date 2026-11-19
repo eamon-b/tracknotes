@@ -5,6 +5,8 @@
  * tells a live edit the file does not match (drift, exported) from a row that
  * only waits for an upload (neither), writes only through the admin PUT with
  * the version it read, and offers editing only to an admin's linked browser.
+ * A later pass of a revisited place shows its first pass's synced text, and is
+ * edited there: nothing is ever saved under its own id.
  */
 
 import fs from 'node:fs';
@@ -45,6 +47,21 @@ const trail = {
   sideTrips: [],
 };
 
+/** Three Passes walks back out through Lobuche: two passes of one place, and no descriptions.json. */
+const LOBUCHE = 'w_07233ee1';
+const LOBUCHE_2 = 'w_07233ee1_2';
+const passesTrail = {
+  track: { points: [] },
+  waypoints: [
+    wp(LOBUCHE, 'Lobuche', 60, 'Bundled Lobuche.'),
+    wp('w_00176641', 'Gorak Shep', 65, 'Bundled Gorak Shep.'),
+    wp(LOBUCHE_2, 'Lobuche', 70, 'Bundled Lobuche.'),
+  ],
+  offTrailWaypoints: [],
+  alternates: [],
+  sideTrips: [],
+};
+
 interface Row {
   waypointId: string;
   description: string;
@@ -54,6 +71,8 @@ interface Row {
 
 /** The API's rows for heysen. */
 let synced: Row[];
+/** The API's rows for three_passes. */
+let passesSynced: Row[];
 let isAdmin: boolean;
 /** What `GET /v1/me` answers with. */
 let meStatus: number;
@@ -78,10 +97,12 @@ function respond(status: number, body: unknown) {
 
 /** The worker's PUT (`workers/comments-api/src/descriptions.ts`), in its response shapes. */
 function workerPut(
+  trailId: string,
   waypointId: string,
   body: { description: string; source?: 'live' | 'upload'; ifUpdatedAt?: string | null }
 ) {
-  const current = synced.find(s => s.waypointId === waypointId);
+  const stored = trailId === 'heysen' ? synced : passesSynced;
+  const current = stored.find(s => s.waypointId === waypointId);
   const checked = workerRecordsSource && body.ifUpdatedAt !== undefined;
   const stale =
     checked && (body.ifUpdatedAt === null ? current !== undefined : current?.updatedAt !== body.ifUpdatedAt);
@@ -98,7 +119,9 @@ function workerPut(
     updatedAt: new Date(Date.UTC(2026, 10, 17, 0, 0, putClock++)).toISOString(),
     ...(workerRecordsSource && !putOmitsSource ? { source: body.source ?? 'upload' } : {}),
   };
-  synced = [...synced.filter(s => s.waypointId !== waypointId), row];
+  const next = [...stored.filter(s => s.waypointId !== waypointId), row];
+  if (trailId === 'heysen') synced = next;
+  else passesSynced = next;
   return respond(200, row);
 }
 
@@ -131,14 +154,17 @@ beforeEach(() => {
       source: 'live',
     },
   ];
+  passesSynced = [];
   fetchMock = vi.fn(async (input: string, init?: RequestInit) => {
     if (input.endsWith('data/generated/index.json')) {
       return respond(200, [
         { id: 'aawt', name: 'Australian Alps Walking Track' },
         { id: 'heysen', name: 'Heysen Trail' },
+        { id: 'three_passes', name: 'Everest Three Passes' },
       ]);
     }
     if (input.endsWith('data/generated/heysen.json')) return respond(200, trail);
+    if (input.endsWith('data/generated/three_passes.json')) return respond(200, passesTrail);
     if (input.endsWith('data/generated/aawt.json')) return respond(200, { ...trail, waypoints: [] });
     if (input === 'https://api.example.test/v1/me') {
       return meStatus === 200
@@ -147,15 +173,15 @@ beforeEach(() => {
     }
     if (input.startsWith('https://api.example.test/v1/trails/') && input.endsWith('/descriptions')) {
       return respond(200, {
-        descriptions: input.includes('/heysen/') ? synced : [],
+        descriptions: input.includes('/heysen/') ? synced : input.includes('/three_passes/') ? passesSynced : [],
         syncedAt: 'now',
         ...(workerRecordsSource && !readOmitsFeatures ? { writeFeatures: ['source', 'ifUpdatedAt'] } : {}),
       });
     }
-    const put = /\/v1\/admin\/trails\/heysen\/descriptions\/([^/]+)$/.exec(input);
+    const put = /\/v1\/admin\/trails\/(heysen|three_passes)\/descriptions\/([^/]+)$/.exec(input);
     if (put && init?.method === 'PUT') {
       if (holdPut) await holdPut;
-      return workerPut(put[1], JSON.parse(String(init.body)) as Parameters<typeof workerPut>[1]);
+      return workerPut(put[1], put[2], JSON.parse(String(init.body)) as Parameters<typeof workerPut>[2]);
     }
     return respond(404, { error: { code: 'not_found', message: input } });
   });
@@ -620,5 +646,144 @@ describe('admin-descriptions.html', () => {
     await new Promise(r => setTimeout(r, 30));
     expect(unguarded().hidden).toBe(false);
     expect(puts()).toHaveLength(1);
+  });
+
+  describe('a revisited place (<id>_2)', () => {
+    const liveRow = (waypointId: string, description: string): Row => ({
+      waypointId,
+      description,
+      updatedAt: '2026-11-05T00:00:00.000Z',
+      source: 'live',
+    });
+    const syncedCellOf = (id: string) => rowFor(id).querySelectorAll<HTMLElement>('.desc-cell')[1];
+
+    async function loadedPasses(): Promise<void> {
+      window.history.replaceState(null, '', '/admin-descriptions.html?trail=three_passes');
+      await import('./admin-descriptions');
+      await waitFor(() => document.querySelectorAll('.desc-row').length === 3);
+    }
+
+    it('shows a live edit on the first pass on its later pass too, as phones do, and exports the first pass only', async () => {
+      const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+      await loadedPasses();
+
+      expect(badge(LOBUCHE_2)).toBe('follows first pass');
+      expect(syncedCellOf(LOBUCHE_2).textContent).toContain('No synced row on the first pass');
+      // Nothing is offered that would save under the later pass's id.
+      expect(rowFor(LOBUCHE_2).querySelector('[data-action="edit"]')).toBeNull();
+      expect(rowFor(LOBUCHE_2).querySelector('[data-action="clear"]')).toBeNull();
+
+      edit(LOBUCHE, 'Lodge closed until March.');
+      save(LOBUCHE);
+      await waitFor(() => badge(LOBUCHE) === 'drift');
+
+      // Said once, to the admin sending it: older app builds, and every pass.
+      expect(confirm).toHaveBeenCalledTimes(1);
+      expect(confirm.mock.calls[0][0]).toContain(`the text shows on every pass (also ${LOBUCHE_2})`);
+      expect(confirm.mock.calls[0][0]).toContain('has not been updated since later passes began following');
+      expect(puts()).toHaveLength(1);
+      expect(puts()[0].url).toBe(`https://api.example.test/v1/admin/trails/three_passes/descriptions/${LOBUCHE}`);
+
+      // The later pass shows what phones show there, straight away.
+      expect(syncedCellOf(LOBUCHE_2).textContent).toContain('Lodge closed until March.');
+      expect(syncedCellOf(LOBUCHE_2).querySelector('h4')!.textContent).toContain(`the first pass’s, ${LOBUCHE}`);
+      expect(syncedCellOf(LOBUCHE_2).classList.contains('is-different')).toBe(true);
+      expect(badge(LOBUCHE_2)).toBe('follows first pass');
+      expect(rowFor(LOBUCHE_2).querySelector('.desc-next')!.textContent).toContain('Follows the first pass');
+      // An id that merely ends in digits is no pass of anything.
+      expect(rowFor('w_00176641').querySelector('.desc-pass')).toBeNull();
+      expect(syncedCellOf('w_00176641').textContent).toContain('No synced row.');
+
+      // One live edit, on the place; the later pass is not exported.
+      expect(summaryText()).toContain('1 live edit is held only by the API');
+      const exported = await downloaded();
+      expect(exported.descriptions.map(e => e.waypointId)).toEqual([LOBUCHE]);
+      expect(passesSynced.map(s => s.waypointId)).toEqual([LOBUCHE]);
+    });
+
+    it('opens the first pass’s edit box from a later pass, even when a filter hides the first pass', async () => {
+      vi.spyOn(window, 'confirm').mockReturnValue(true);
+      passesSynced = [liveRow(LOBUCHE, 'Lodge closed.')];
+      await loadedPasses();
+      const search = document.getElementById('desc-search') as HTMLInputElement;
+      search.value = LOBUCHE_2;
+      search.dispatchEvent(new Event('input'));
+      expect(document.querySelectorAll('.desc-row')).toHaveLength(1);
+
+      rowFor(LOBUCHE_2).querySelector<HTMLButtonElement>('[data-action="edit-first"]')!.click();
+
+      // Both passes of the place are listed, and the edit box is the first pass's.
+      expect([...document.querySelectorAll<HTMLElement>('.desc-row')].map(r => r.dataset.row)).toEqual([
+        LOBUCHE,
+        LOBUCHE_2,
+      ]);
+      expect(rowFor(LOBUCHE_2).querySelector('textarea')).toBeNull();
+      const box = rowFor(LOBUCHE).querySelector<HTMLTextAreaElement>('textarea')!;
+      expect(box.value).toBe('Lodge closed.');
+      box.value = 'Lodge open again.';
+      box.dispatchEvent(new Event('input', { bubbles: true }));
+      save(LOBUCHE);
+      await waitFor(() => syncedCellOf(LOBUCHE_2).textContent!.includes('Lodge open again.'));
+      expect(puts().map(p => p.url)).toEqual([
+        `https://api.example.test/v1/admin/trails/three_passes/descriptions/${LOBUCHE}`,
+      ]);
+    });
+
+    it('never saves under a later pass’s id, even when an edit is forced past the missing buttons', async () => {
+      vi.spyOn(window, 'confirm').mockReturnValue(true);
+      await loadedPasses();
+      const row = rowFor(LOBUCHE_2);
+      for (const action of ['edit', 'save']) {
+        row.insertAdjacentHTML(
+          'beforeend',
+          `<button type="button" data-action="${action}" data-id="${LOBUCHE_2}"></button>`
+        );
+        row.querySelector<HTMLButtonElement>(`button[data-action="${action}"]:last-of-type`)!.click();
+        expect(rowFor(LOBUCHE_2).querySelector('textarea')).toBeNull();
+        expect(rowFor(LOBUCHE_2).querySelector('[data-error]')!.textContent).toContain(
+          `edited on the first pass (${LOBUCHE})`
+        );
+      }
+      await new Promise(r => setTimeout(r, 30));
+      expect(puts()).toHaveLength(0);
+      expect(window.confirm).not.toHaveBeenCalled();
+    });
+
+    it('clears text a later pass holds under its own id, so that it follows the first pass again', async () => {
+      const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+      // Saved on each pass, as the page once advised.
+      passesSynced = [liveRow(LOBUCHE, 'Lodge closed until March.'), liveRow(LOBUCHE_2, 'Lodge closed.')];
+      await loadedPasses();
+
+      expect(badge(LOBUCHE_2)).toBe('drift');
+      expect(syncedCellOf(LOBUCHE_2).querySelector('h4')!.textContent).toContain('Synced on this pass’s own id');
+      expect(syncedCellOf(LOBUCHE_2).textContent).toContain('Lodge closed.');
+      expect(summaryText()).toContain('1 later pass of a revisited place has synced text under its own id');
+      expect(rowFor(LOBUCHE_2).querySelector('[data-action="edit"]')).toBeNull();
+
+      rowFor(LOBUCHE_2).querySelector<HTMLButtonElement>('[data-action="clear"]')!.click();
+      await waitFor(() => badge(LOBUCHE_2) === 'follows first pass');
+
+      expect(confirm.mock.calls[0][0]).toContain(`phones show the first pass’s synced text here (${LOBUCHE})`);
+      expect(puts()).toHaveLength(1);
+      expect(puts()[0].url).toBe(`https://api.example.test/v1/admin/trails/three_passes/descriptions/${LOBUCHE_2}`);
+      expect(puts()[0].body).toEqual({ description: '', source: 'live', ifUpdatedAt: '2026-11-05T00:00:00.000Z' });
+      expect(syncedCellOf(LOBUCHE_2).textContent).toContain('Lodge closed until March.');
+      expect(rowFor(LOBUCHE_2).querySelector('[data-action="clear"]')).toBeNull();
+    });
+
+    it('lets the later pass fall back with the first when the first is cleared', async () => {
+      vi.spyOn(window, 'confirm').mockReturnValue(true);
+      passesSynced = [liveRow(LOBUCHE, 'Lodge closed.')];
+      await loadedPasses();
+      expect(syncedCellOf(LOBUCHE_2).textContent).toContain('Lodge closed.');
+
+      rowFor(LOBUCHE).querySelector<HTMLButtonElement>('[data-action="clear"]')!.click();
+      await waitFor(() => syncedCellOf(LOBUCHE_2).textContent!.includes('The first pass is cleared'));
+      expect(syncedCellOf(LOBUCHE_2).classList.contains('is-different')).toBe(false);
+      expect(puts().map(p => p.url)).toEqual([
+        `https://api.example.test/v1/admin/trails/three_passes/descriptions/${LOBUCHE}`,
+      ]);
+    });
   });
 });
