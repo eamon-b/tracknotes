@@ -19,10 +19,9 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
 
-    /* Paths */
-    "baseUrl": ".",
+    /* Paths (relative to this file: TypeScript 7 drops baseUrl, #364) */
     "paths": {
-      "@lib/*": ["src/lib/*"]
+      "@lib/*": ["./src/lib/*"]
     }
   },
   "include": [
