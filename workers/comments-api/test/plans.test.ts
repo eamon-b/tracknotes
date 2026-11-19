@@ -259,34 +259,26 @@ describe('PUT /v1/plans/:id', () => {
     expect(results.map((r) => r.id)).toEqual([winner.id]);
   });
 
-  it('maps a lost index race to plan_exists rather than a 500', async () => {
-    // The race the pre-check cannot close: another device's plan for this trail
-    // lands between the check and the INSERT. Drive the handler with a DB that
-    // slips that row in at exactly that point, since two real requests are
-    // served one after the other here.
-    const device = await registerDevice('Interleaved');
-    const sneaked = crypto.randomUUID();
-    const mine = crypto.randomUUID();
-    const now = new Date().toISOString();
-
-    let injected = false;
-    const racingDb = {
+  /**
+   * A DB that runs `inject` just before the first statement matching `pattern`
+   * executes: the race the pre-check cannot close, placed exactly between the
+   * check and the write, since two real requests are served one after the
+   * other here.
+   */
+  function racingDb(pattern: RegExp, inject: () => Promise<unknown>) {
+    const state = { injected: false };
+    const db = {
       prepare(query: string) {
         const statement = env.DB.prepare(query);
-        if (injected || !/INSERT INTO plans/.test(query)) return statement;
-        injected = true;
+        if (state.injected || !pattern.test(query)) return statement;
+        state.injected = true;
         const bind = statement.bind.bind(statement);
         return {
           bind: (...args: unknown[]) => {
             const bound = bind(...args);
             return {
               first: async () => {
-                await env.DB.prepare(
-                  `INSERT INTO plans (id, user_id, trail_id, document_json, share_id, created_at, updated_at, deleted_at)
-                   VALUES (?, ?, 'heysen', '{}', NULL, ?, ?, NULL)`
-                )
-                  .bind(sneaked, device.userId, now, now)
-                  .run();
+                await inject();
                 return bound.first();
               },
             };
@@ -295,23 +287,69 @@ describe('PUT /v1/plans/:id', () => {
       },
       batch: (statements: unknown[]) => env.DB.batch(statements as never),
     };
+    return { db, state };
+  }
 
-    const request = new Request(url(`/v1/plans/${mine}`), {
+  async function sneakInPlan(userId: string, id: string): Promise<void> {
+    const now = new Date().toISOString();
+    await env.DB.prepare(
+      `INSERT INTO plans (id, user_id, trail_id, document_json, share_id, created_at, updated_at, deleted_at)
+       VALUES (?, ?, 'heysen', '{}', NULL, ?, ?, NULL)`
+    )
+      .bind(id, userId, now, now)
+      .run();
+  }
+
+  async function putThrough(db: unknown, device: Device, id: string): Promise<Response> {
+    const request = new Request(url(`/v1/plans/${id}`), {
       method: 'PUT',
       headers: authHeaders(device),
-      body: JSON.stringify(planBody(mine)),
+      body: JSON.stringify(planBody(id)),
     });
     const ctx = createExecutionContext();
-    const racingEnv = { ...env, DB: racingDb } as unknown as Env;
-    const res = await putPlanHandler(request, racingEnv, ctx, mine);
+    const res = await putPlanHandler(request, { ...env, DB: db } as unknown as Env, ctx, id);
     await waitOnExecutionContext(ctx);
+    return res;
+  }
 
-    expect(injected).toBe(true);
+  it('maps a lost index race to plan_exists rather than a 500', async () => {
+    // Another device's plan for this trail lands between the check and the INSERT.
+    const device = await registerDevice('Interleaved');
+    const sneaked = crypto.randomUUID();
+    const mine = crypto.randomUUID();
+    const { db, state } = racingDb(/INSERT INTO plans/, () => sneakInPlan(device.userId, sneaked));
+
+    const res = await putThrough(db, device, mine);
+
+    expect(state.injected).toBe(true);
     expect(res.status).toBe(409);
     const body = (await res.json()) as { error: { code: string }; existingId: string };
     expect(body.error.code).toBe('plan_exists');
     expect(body.existingId).toBe(sneaked);
     expect(await planRow(mine)).toBeNull();
+  });
+
+  it('maps a lost index race on an undelete (the UPDATE) to plan_exists too', async () => {
+    // A deleted plan revived by its id meets a plan for the same trail that went
+    // live between the check and the UPDATE.
+    const device = await registerDevice('Revived');
+    const mine = crypto.randomUUID();
+    const sneaked = crypto.randomUUID();
+    expect((await putPlan(device, mine, planBody(mine))).status).toBe(201);
+    expect((await deletePlan(device, mine)).status).toBe(204);
+    const deletedAt = (await planRow(mine))?.deleted_at;
+    expect(deletedAt).not.toBeNull();
+
+    const { db, state } = racingDb(/UPDATE plans\s+SET trail_id/, () => sneakInPlan(device.userId, sneaked));
+    const res = await putThrough(db, device, mine);
+
+    expect(state.injected).toBe(true);
+    expect(res.status).toBe(409);
+    const body = (await res.json()) as { error: { code: string }; existingId: string };
+    expect(body.error.code).toBe('plan_exists');
+    expect(body.existingId).toBe(sneaked);
+    // The refused revival left the plan as it was: still deleted.
+    expect((await planRow(mine))?.deleted_at).toBe(deletedAt);
   });
 
   it('rejects two stops at the same place', async () => {
