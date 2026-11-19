@@ -208,10 +208,17 @@ they outline where the route goes. We do not log or keep them
 beyond Cloudflare's own request handling.
 
 **Online maps.** When you are online, the background map comes from third
-parties, not from us: the app loads it from OpenFreeMap (tiles.openfreemap.org)
-and the website from OpenTopoMap (tile.opentopomap.org), and the website loads
-its map software from unpkg.com. As with any website, each sees the network
-address the request came from and, for the map, which area you are looking at.
+parties: the app loads it from OpenFreeMap (tiles.openfreemap.org) and the
+website from OpenTopoMap (tile.opentopomap.org).
+The app also draws contour lines over it from our own contour tile server
+(tiles.contour-map-tiles.net, run on Cloudflare), so that server sees the same
+kind of request: the tiles' map coordinates, the network address and the app's
+technical details, but not your account, your route or your plan.
+We do not log or keep them beyond Cloudflare's own request handling.
+The website loads its map software from unpkg.com and, on the climate pages, its
+chart software from cdnjs.cloudflare.com.
+As with any website, each of these third parties sees the network address the
+request came from and, for the map, which area you are looking at.
 We send them nothing else: not your account, your route or your plan.
 
 ## Where data is stored
@@ -237,8 +244,9 @@ is sent to the automated review above, and hidden at once if the review finds
 it clearly abusive, spam or harmful; one that several established users report
 is hidden whatever the review found, as is an unverified community route that
 several established users report. Hidden content stays hidden until an admin
-looks at it. Repeat abuse may result in a device being blocked from posting, sharing and
-saving plans to our servers.
+looks at it. Repeat abuse may result in a device being blocked from posting, sharing,
+reporting, saving or deleting plans, changing its display name and linking
+browsers on our servers.
 
 To tell our admins when reported or flagged posts are waiting, a daily
 scheduled job on GitHub Actions (build servers run by GitHub, Inc., in the

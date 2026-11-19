@@ -24,7 +24,7 @@ shown as a courtesy, not as an attribution requirement.
   accounts are deleted. Poll with `?since=` and remove every id that comes back
   as a tombstone (`"deleted": true`).
 - **Leave display names out of anything you republish in bulk.** With
-  to-the-second times, a name's comments show where and when one person was on
+  to-the-millisecond times, a name's comments show where and when one person was on
   a trail.
 - **Show a water report's age.** A report is what one hiker saw at
   `observedAt`. The app ignores reports older than 120 days and weights the
