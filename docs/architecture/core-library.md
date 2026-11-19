@@ -56,6 +56,9 @@ Shared processing modules (used by both web and mobile):
   Mobile resolves a family to its `waypoint*` theme tokens (`elevation/waypoint-category.ts`, which also drives the list filter chips);
   the web inlines `glyphSvg` (`src/web/trails/waypoint-icons.ts`) and colours it with the `--wp-*` custom properties in `styles.css`.
   No emoji anywhere a waypoint type is drawn
+- `waypoint-passes.ts` - The passes of a revisited place, by id: `firstPassIdOf` (the first pass's id for `<id>_2`, `<id>_3`, else null; a later pass is a whole `w_…` or `uw_…` id followed by a suffix from 2, so `w_00176641` and `osm_node_12` are ids of their own; an optional `isWaypointId` also requires the first pass to be a waypoint the caller holds) and `placeIdOf` (the id a place's registry entry, `descriptions.json` entry and synced description are keyed by).
+  `resolveSyncedDescription` is the one rule for the synced description a waypoint shows: its own row's text, else for a later pass its first pass's, else none (the bundled text shows), with a cleared row (`''`) holding no text wherever it sits; `syncedDescriptionIds` is the lookup order.
+  Read by the phone's `waypoint-meta-repo.getDescription`, the live description editor (`admin-descriptions-view.ts`) and the waypoint editor (`registryId` in `scripts/lib/waypoint-editor/trail-state.ts`, `laterPassOf` in `admin-waypoints-view.ts`)
 - `waypoint-taxonomy.ts` - The waypoint type vocabulary (`WAYPOINT_TYPES`, `WAYPOINT_TYPE_LABELS`, `waypointTypeLabel`) and the water/resupply family predicates (`isWaterWaypoint`, `isResupplyWaypoint`, `matchesWaypointFamily`).
   These predicates are the single home of rules that used to be duplicated across `water-carry-calculator`, `day-calculator` and `resupply-calculator`;
   they also accept the type aliases real-world GPX uses (`spring`, `supermarket`, …), which our own classifier never emits.

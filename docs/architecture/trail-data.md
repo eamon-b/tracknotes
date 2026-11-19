@@ -77,6 +77,8 @@ A route that genuinely comes back the way it went, days later, lists those waypo
 A repeat of a waypoint that is not listed still fails the build (the error names the entry to add), and a listed name the route no longer repeats is warned about.
 The list is by name, so a listed waypoint renamed in the GPX must be renamed in it too, or the build fails on the repeat: the waypoint editor does both in one save.
 A curated description is applied to the source waypoint before its later passes are made, so it belongs to the place and shows on every pass: `descriptions.json` keys it by the first pass's id, and an entry under `<id>_2` matches no waypoint.
+The synced copy on the comments API is keyed the same way, one row per place, and the app shows a later pass the first pass's row (`docs/waypoint-editor.md`, "Descriptions on the phone").
+Everything that reads a pass id uses `src/lib/waypoint-passes.ts` (`firstPassIdOf`, `placeIdOf`): a later pass is a whole `w_…` or `uw_…` id followed by `_2` or more, so `w_00176641` is an id of its own.
 Three Passes lists eight: it walks back down through Namche and the Dudh Koshi villages to Lukla, and passes Lobuche either side of Gorak Shep.
 Its store-only `access.json` gives every teahouse village `meals`, Kharikhola and Jorsalle `limited`, and Jiri, Namche and Lukla `full`;
 its `maxJunctionDistanceMeters` of 150 keeps the Ama Dablam Base Camp side trip, whose far end is 175 m across the valley from the route, from being read as a connector.
