@@ -9,6 +9,7 @@
 import { haversineDistance } from '@lib/distance';
 import { nameMatches } from '@lib/name-filter';
 import { classifyWaypoint } from '@lib/waypoint-classifier';
+import { firstPassIdOf } from '@lib/waypoint-passes';
 import { snapToTrail, type SnapPoint } from '@lib/position-on-trail';
 import { WAYPOINT_TYPES, waypointTypeLabel } from '@lib/waypoint-taxonomy';
 import type {
@@ -173,7 +174,7 @@ export function changedSinceBuild(w: EditorWaypoint): boolean {
  * after a whole id counts, so `w_00176641` is an id of its own.
  */
 export function laterPassOf(id: string): string | null {
-  return /^(.+_[^_]+)_\d+$/.exec(id)?.[1] ?? null;
+  return firstPassIdOf(id);
 }
 
 /**
