@@ -80,8 +80,8 @@ Under `mobile/` the audit lists advisories whose only "fix" npm offers is an old
 ## Setup
 
 The environments are under Settings → Environments, and the repository secrets under Settings → Secrets and variables → Actions.
-Restrict the *Deployment branches and tags* of `production`, `production-data` and `moderation` to `main`, so no other branch's workflow can read their secrets;
-leave `staging` unrestricted, since PR branches deploy there.
+Restrict the *Deployment branches and tags* of `production`, `production-data`, `moderation` and `staging` to `main`, so no other branch's workflow can read their secrets;
+PR branches still reach staging, because its deploy job runs on `main` (`staging` below).
 
 **`production`** (the workers and the contours site), no required reviewers:
 
