@@ -355,6 +355,10 @@ function init(): void {
     conflicts.clear();
     setError('');
     section.hidden = true;
+    // What the last trail's read said about the worker is not this trail's:
+    // nothing is sent and no read-only banner shows until this read says.
+    guardsWrites = false;
+    unguarded.hidden = true;
     status.hidden = false;
     status.textContent = 'Loading…';
     try {

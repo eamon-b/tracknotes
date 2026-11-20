@@ -440,6 +440,7 @@ It is unlinked and noindex, and it is the only description tool on the deployed 
   An API from before this page ignores what makes a live edit safe: it does not record that a text was a live edit (the row would later count as an upload, be left out of the export, and be replaced by the next upload with no `!`), and it does not refuse a save over a text that changed since it was read.
   So the API says in every descriptions read whether it does both, and until it says so the page offers no **Edit** or **Clear**, sends nothing, and shows why above the list: "Read-only: the comments API has not been deployed with description provenance yet".
   That holds for an admin too, and on a trail with no synced text, where there is no row to tell the API's version by.
+  Each trail's own read decides it: switching trails forgets what the last read said, so a trail that fails to load shows its error and neither the banner nor any button.
   The page never tests the API by writing to it; once *Deploy comments API* has succeeded, **Reload** offers the buttons.
 - **The list:** pick a trail, and each waypoint shows its bundled description beside its synced one (with its date and whether a live edit or an upload wrote it), a yellow box where they differ, and a state: *in sync*, *drift*, *awaiting upload*, *cleared*, *not uploaded* (in the file, not yet on the API) or *bundled only*.
   The filters narrow to drift, to rows awaiting an upload, to synced rows, to synced text that differs from the bundle, to the file's entries, or to waypoints with no description at all.

@@ -556,6 +556,21 @@ describe('admin-descriptions.html', () => {
       expect(window.confirm).not.toHaveBeenCalled();
     });
 
+    it('drops the read-only banner when the next trail fails to load, claiming nothing about its worker', async () => {
+      await loaded();
+      expect(unguarded().hidden).toBe(false);
+      const answer = fetchMock.getMockImplementation() as (input: string, init?: RequestInit) => Promise<unknown>;
+      fetchMock.mockImplementation(async (input: string, init?: RequestInit) =>
+        input.endsWith('data/generated/aawt.json') ? respond(500, {}) : answer(input, init)
+      );
+      const select = document.getElementById('desc-trail') as HTMLSelectElement;
+      select.value = 'aawt';
+      select.dispatchEvent(new Event('change'));
+      await waitFor(() => document.getElementById('desc-error')!.textContent!.includes('Could not load aawt'));
+      expect(document.getElementById('desc-error')!.textContent).toContain('Could not load aawt');
+      expect(unguarded().hidden).toBe(true);
+    });
+
     it('offers editing once a reload finds the worker deployed', async () => {
       await loaded();
       expect(document.querySelector('[data-action="edit"]')).toBeNull();
