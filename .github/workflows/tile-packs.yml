@@ -38,7 +38,9 @@ permissions:
 jobs:
   tile-packs:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # Above the tiered pack reads' own 6-minute budget (TIERED_PACKS_BUDGET_MS)
+    # plus the other checks, so a slow run ends in its RESULT block, not a kill.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
