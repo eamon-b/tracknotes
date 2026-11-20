@@ -110,8 +110,10 @@ PR branches still reach staging, because its deploy job runs on `main` (`staging
 
 - `MODERATION_COUNTS_TOKEN`: the comments API's counts-only credential (issue #365), the same value as the worker secret of that name.
   It opens `GET /v1/admin/moderation/counts` and nothing else (no listing, restore, delete or ban), so this environment holds no admin token.
-  Make one with `openssl rand -base64 48` (the worker refuses a secret under 32 characters), set it on the worker with `cd workers/comments-api && npx wrangler secret put MODERATION_COUNTS_TOKEN`, put the same value here, then delete `TRACKNOTES_ADMIN_TOKEN` from this environment.
-  Until both are set the daily check fails with `answered 401` (or `is not set`), which is the reminder.
+  Make one with `openssl rand -base64 48` (the worker refuses a secret under 32 characters), set it on the worker with `cd workers/comments-api && npx wrangler secret put MODERATION_COUNTS_TOKEN`, and put the same value here.
+  Do both before the change that reads it reaches `main`: the secret is harmless on a worker without the route, while the other way round every daily run is red for setup, which looks the same as a real backlog.
+  Delete `TRACKNOTES_ADMIN_TOKEN` from this environment only after the first green run on the counts route.
+  If either is missing the daily check fails with `answered 401` (or `is not set`).
   To rotate it, put a new value on the worker and here together.
   It is kept out of `production`, whose deploy jobs run on every merge (Dependabot's included) after an `npm ci`, and the check itself installs no package.
   Only the counts reach GitHub's runner, never post text, names or reports;
