@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest';
 import {
   buildTrailPOIFile,
   markTrailPOIsForBuild,
+  checksShrink,
   choosePoiWriteMode,
   mergeTrailPOIs,
   parseTrailPOIFile,
@@ -334,6 +335,40 @@ describe('choosePoiWriteMode', () => {
     const mode = choosePoiWriteMode({ ...base, failedChunks: 1 });
     const pois = mode === 'merge' ? mergeTrailPOIs(existing, fetched).pois : fetched;
     expect(pois.map(p => p.id)).toEqual([1, 2, 3, 4]);
+  });
+});
+
+describe('checksShrink', () => {
+  const base = { hasExisting: true, windowed: false, failedChunks: 0, forceReplace: false };
+  const checks = (options: Partial<typeof base> & { allowShrink?: boolean } = {}) => {
+    const { allowShrink = false, ...modeOptions } = options;
+    const merged = { ...base, ...modeOptions };
+    return checksShrink({ mode: choosePoiWriteMode(merged), hasExisting: merged.hasExisting, allowShrink });
+  };
+
+  it('checks a clean whole-trail replace', () => {
+    expect(checks()).toBe(true);
+  });
+
+  it('checks a --force-replace too, with or without failed chunks', () => {
+    expect(checks({ forceReplace: true })).toBe(true);
+    expect(checks({ forceReplace: true, failedChunks: 2 })).toBe(true);
+  });
+
+  it('skips a merge, which cannot shrink the file', () => {
+    expect(checks({ failedChunks: 1 })).toBe(false);
+    expect(checks({ windowed: true })).toBe(false);
+    expect(checks({ windowed: true, forceReplace: true })).toBe(false);
+  });
+
+  it('skips a first file, which has nothing to compare against', () => {
+    expect(checks({ hasExisting: false })).toBe(false);
+    expect(checks({ hasExisting: false, windowed: true })).toBe(false);
+  });
+
+  it('skips with --allow-shrink', () => {
+    expect(checks({ allowShrink: true })).toBe(false);
+    expect(checks({ allowShrink: true, forceReplace: true, failedChunks: 1 })).toBe(false);
   });
 });
 

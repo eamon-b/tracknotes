@@ -77,10 +77,13 @@ keep this file in step with the code it describes.
   The guard cannot tell that fault from a corridor whose stored POIs really were all deleted or retagged in OSM, and such a chunk fails on every run: `--force-replace` writes the fetch without them once it is the only chunk still failing;
   when it is the trail's only chunk the fetch fails before any write, `--force-replace` or not, and those entries have to be removed from `pois.json` by hand.
   An empty answer is caught chunk by chunk, but a short one passes that guard: Shikoku's 2026-10-06 file (from `maps.mail.ru`) lacked Kamiyama's long-mapped POIs at km 56–59 until the next refresh.
-  So a clean whole-trail fetch that would replace the file with more than 30% fewer POIs (`MAX_SHRINK_FRACTION`), and at least 5 fewer (`MIN_SHRINK_DROP`), not counting `rejected` keys, writes nothing for that trail and exits 1 (`shrinkRefusal`);
-  re-run it, against another mirror or with a smaller `--max-vertices`, or pass `--allow-shrink` when the POIs really are gone from OSM.
-  `--force-replace` skips that check (it already accepts a partial file), and a merge never shrinks the file.
-  A drop under the threshold still passes, so check which km a new file's POIs span before committing it.
+  So a whole-trail replace writes nothing for that trail and exits 1 (`shrinkRefusal`, gated by `checksShrink`) when the fetch lacks more than half the stored POIs of any 5 km band holding at least 10 (`SHRINK_BAND_KM`, `MIN_BAND_POIS`, `MAX_BAND_LOSS_FRACTION`), or has more than 30% fewer POIs overall and at least 5 fewer (`MAX_SHRINK_FRACTION`, `MIN_SHRINK_DROP`);
+  the band check is the one that catches a regional loss: the truncated Shikoku file had only 21% fewer POIs than the complete one (1206 against 1525) but lacked 16 of the 23 at km 55–60, and none of the committed re-fetches would have tripped it.
+  `rejected` keys are left out of both checks;
+  re-run, against another mirror or with a smaller `--max-vertices`, or pass `--allow-shrink` when the POIs really are gone from OSM.
+  `--force-replace` is checked too, leaving out the stored POIs inside its failed chunks' areas (the loss it accepts), so a short answer elsewhere in that run is still refused;
+  a merge (`--from-km`/`--to-km`, or failed chunks) never shrinks the file and is not checked, and `--allow-shrink` has no effect there or with `--dry-run` or `--reposition`.
+  A loss spread thinly under both thresholds still passes, so check which km a new file's POIs span before committing it.
   A POI's km is measured against the track as fetched, so a later track edit (or placement fix) leaves it stale;
   `--reposition` re-places the POIs already in `pois.json` on the current track with no Overpass query (exactly a fetch's placement, so an unchanged trail comes out byte-identical; with `--dry-run` it only reports what would move or drop, and writes nothing), and `build-trails` fails when any stored km or category differs from that placement (`misplacedPois`, about 12 s across all trails) — it writes the trail's generated JSON first, so `--reposition` (which reads the track from it) sees the edited track;
   any windowed fetch (merged, or the first file for a trail with no `pois.json` yet) and any partial fetch's merge are re-placed on the whole route for the same reason (`placesOnWholeRoute`) — the AAWT's Blue Waterholes POIs sat at km 790 of 688 and the SOBO view listed them at km 0.
