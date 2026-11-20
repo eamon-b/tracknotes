@@ -99,7 +99,7 @@ Shared processing modules (used by both web and mobile):
   It is rendered into the site as `how-import-works.html` at build time (the `gpx-import-doc` plugin in `vite.config.ts`)
 - `elevation-backfill.ts` - Open-Elevation backfill for GPX without `<ele>` (`backfillElevation` batches of 100, ≤2000 samples interpolated by distance; `applyElevation` re-derives ascent/waypoint stats via `recomputeTrailElevation`);
   `trailHasElevation`/`trailElevationIsUsable` drive the "distance-only estimate" labels
-- `comment-targets.ts` - The ids a comment may be filed under, by form (`commentTargetKind`): `w_` curated registry ids, `uw_` a community route's own waypoint ids (what the import minted, `_<n>` suffix allowed), `hw_` shared hiker waypoints, `osm_…` POIs;
+- `comment-targets.ts` - The ids a comment may be filed under, by form (`commentTargetKind`): `w_` curated registry ids (and a revisited place's later passes, `<id>_2`), `uw_` a community route's own waypoint ids (what the import minted, `_<n>` suffix allowed), `hw_` shared hiker waypoints, `osm_…` POIs;
   `commentTargetFitsTrail` keeps `w_` to curated trails and `uw_` to `c_` routes.
   The comments API's `validateCommentTarget` and the phone's `CommentsSection` both use it, so the composer is offered only where the server takes the comment
 - `contribution-licence.ts` - The licence line under everything a hiker makes public (CC0 + the terms of service, `contributionLicenceLine`) and the published `TERMS_URL`/`PRIVACY_POLICY_URL` (`public/terms.html`, `public/privacy.html`, drafted from `docs/terms-of-service.md` / `docs/privacy-policy.md`).

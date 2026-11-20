@@ -87,8 +87,10 @@ describe('comment targets — the ids the clients send', () => {
       expect(validateCommentTarget(id, 'community').kind).toBe('community');
       expect(() => validateCommentTarget(id, 'curated')).toThrow();
     }
-    // And a curated id is no waypoint of a community route.
+    // And a curated id is no waypoint of a community route, whichever pass it names.
     expect(() => validateCommentTarget('w_00176641', 'community')).toThrow();
+    expect(() => validateCommentTarget('w_07233ee1_2', 'community')).toThrow();
+    expect(validateCommentTarget('w_07233ee1_2', 'curated').kind).toBe('curated');
   });
 });
 
@@ -96,6 +98,8 @@ describe('comment targets — per-prefix ids', () => {
   it.each([
     ['a curated waypoint (8 hex)', 'w_00176641'],
     ['a curated waypoint (12 hex, a registry collision)', 'w_b375dd112326'],
+    ['a later pass of a revisited curated waypoint', 'w_07233ee1_2'],
+    ['a third pass of a revisited curated waypoint', 'w_07233ee1_3'],
     ['an OSM node', 'osm_node_12345'],
     ['an OSM way', 'osm_way_987654321'],
     ['an OSM relation', 'osm_relation_0'],
@@ -110,6 +114,9 @@ describe('comment targets — per-prefix ids', () => {
     ['a free-form id the old pattern allowed', 'spring-01'],
     ['an unprefixed hex id', '00176641'],
     ['a short curated id', 'w_0017664'],
+    ['a curated id with a pass suffix the build never writes', 'w_07233ee1_1'],
+    ['a curated id with a zero-padded pass suffix', 'w_07233ee1_02'],
+    ['a curated id with two pass suffixes', 'w_07233ee1_2_3'],
     ['upper-case hex', 'w_0017664A'],
     ['a non-hex curated id', 'w_camp-one'],
     ['an import id (never synced)', 'uw_00176641'],
