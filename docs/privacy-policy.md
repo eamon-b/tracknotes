@@ -17,7 +17,7 @@ Where Cloudflare actually holds the data, and how that is checked, is in
 `docs/data-residency.md`.
 -->
 
-**Last updated: 2026-11-18**
+**Last updated: 2026-11-20**
 
 Tracknotes is a hiking guide app for long-distance trails, mostly in
 Australia, with built-in guides for New Zealand, the United States, Japan and
