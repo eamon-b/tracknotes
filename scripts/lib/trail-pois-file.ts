@@ -337,6 +337,18 @@ export function choosePoiWriteMode(options: {
   return 'replace';
 }
 
+/**
+ * Whether a write must first pass `fetch-pois`' `shrinkRefusal`: every
+ * replace of an existing file unless `--allow-shrink` says the drop is real.
+ * That includes `--force-replace`, which accepts losing its failed chunks'
+ * areas (left out of the comparison) but not a short answer everywhere else.
+ * A merge keeps every stored POI, so it cannot shrink the file, and a first
+ * file has nothing to compare against.
+ */
+export function checksShrink(options: { mode: PoiWriteMode; hasExisting: boolean; allowShrink: boolean }): boolean {
+  return options.mode === 'replace' && options.hasExisting && !options.allowShrink;
+}
+
 /** Stable 2-space JSON with a trailing newline, so re-fetch diffs stay readable. */
 export function stringifyTrailPOIFile(file: TrailPOIFile): string {
   return `${JSON.stringify(file, null, 2)}\n`;

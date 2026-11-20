@@ -34,8 +34,11 @@
  *                       note on MAX_VERTICES_PER_CHUNK before reaching for it
  *   - --force-replace:  replace pois.json even when chunks failed (default:
  *                       merge into it, and exit non-zero)
- *   - --allow-shrink:   let a clean whole-trail fetch replace pois.json even
- *                       when it is much shorter (see `shrinkRefusal`)
+ *   - --allow-shrink:   let a whole-trail replace (clean or --force-replace)
+ *                       write a file that lacks most of a stretch's POIs, or
+ *                       much of the whole file's (see `shrinkRefusal`); has
+ *                       no effect with --from-km/--to-km or a merge (neither
+ *                       can shrink the file), --dry-run or --reposition
  *   - --reposition:     no network: re-place the POIs already in pois.json on
  *                       the current track (see `repositionTrailPois`)
  *
@@ -115,6 +118,7 @@ import type { LatLon, RouteScale } from '../src/lib/trail-pois.js';
 import type { ProcessedTrail, TrailPOI } from '../src/lib/trail-types.js';
 import {
   buildTrailPOIFile,
+  checksShrink,
   choosePoiWriteMode,
   mergeTrailPOIs,
   readTrailPOIFile,
@@ -321,41 +325,104 @@ export function guardEmptyAnswers(
 }
 
 /**
- * How far a clean whole-trail fetch may fall below the stored file before the
- * write is refused: more than this fraction of the stored POIs, and at least
- * `MIN_SHRINK_DROP` of them.
+ * How far a replace may fall below the stored file before the write is
+ * refused (`shrinkRefusal`): more than this fraction of the stored POIs, and
+ * at least `MIN_SHRINK_DROP` of them. A backstop for a mirror that truncates
+ * most of its answer; a loss confined to one area is the band check's job.
  */
 export const MAX_SHRINK_FRACTION = 0.3;
 export const MIN_SHRINK_DROP = 5;
+/**
+ * The band check: the stored POIs are grouped into `SHRINK_BAND_KM` km bands
+ * by `distanceAlongTrail`, and a band holding at least `MIN_BAND_POIS` of them
+ * may not lose more than `MAX_BAND_LOSS_FRACTION` of them to the fetch.
+ */
+export const SHRINK_BAND_KM = 5;
+export const MIN_BAND_POIS = 10;
+export const MAX_BAND_LOSS_FRACTION = 0.5;
+/** Bands named in a refusal before the rest are summarised as a count. */
+const MAX_BANDS_LISTED = 5;
+
+/** A percentage to one decimal place, so a 30.4% drop never reads as "30%, over the 30% limit". */
+function percent(fraction: number): string {
+  return `${Math.round(fraction * 1000) / 10}%`;
+}
 
 /**
- * Why a clean whole-trail fetch should not replace `pois.json`, or null when
- * it may.
+ * Why a fetch should not replace `pois.json`, or null when it may.
  *
  * `guardEmptyAnswers` catches an empty answer, but a mirror can also return a
  * truncated or timed-out answer that still has some elements: every chunk
  * "succeeds", the write mode is a replace, and the missing POIs vanish on
- * commit (Shikoku's 2026-10-06 file lacked Kamiyama's km 56–59). A real OSM
- * clean-up rarely removes a third of a corridor at once, so a drop that large
- * is refused unless `--allow-shrink` says it is expected. Rejected keys are
- * left out of both counts, as in `guardEmptyAnswers`.
+ * commit. Two checks, either of which refuses:
+ *
+ * - Bands: a 5 km stretch whose stored POIs have mostly gone. Shikoku's
+ *   2026-10-06 file (`maps.mail.ru`) had 1206 POIs where the complete fetch
+ *   of 2026-11-13 has 1525, only 21% fewer, but 16 of the 23 at km 55–60
+ *   (Kamiyama) were missing: replacing the complete file with that one would
+ *   be refused here. Real OSM edits rarely empty a populated stretch at once,
+ *   and none of the committed re-fetches would have tripped it.
+ * - The whole file: more than 30% fewer POIs overall, for a truncation spread
+ *   too thinly for any one band to show it.
+ *
+ * Neither catches a short answer spread thinly under both thresholds, so still
+ * check which km a new file's POIs span before committing it.
+ *
+ * Rejected keys are left out on both sides, as in `guardEmptyAnswers`. So are
+ * stored POIs inside `failedAreas` (the areas of chunks that failed, on a
+ * `--force-replace`): their loss is the one `--force-replace` accepts.
  */
 export function shrinkRefusal(
   stored: readonly TrailPOI[],
   fetched: readonly TrailPOI[],
-  rejected: readonly string[] = []
+  options: { rejected?: readonly string[]; failedAreas?: readonly OverpassArea[] } = {}
 ): string | null {
-  const rejectedKeys = new Set(rejected);
-  const count = (pois: readonly TrailPOI[]) => pois.filter(poi => !rejectedKeys.has(poiKey(poi))).length;
-  const before = count(stored);
-  const after = count(fetched);
-  const drop = before - after;
-  if (drop < MIN_SHRINK_DROP || drop <= before * MAX_SHRINK_FRACTION) return null;
+  const rejectedKeys = new Set(options.rejected ?? []);
+  const failedAreas = options.failedAreas ?? [];
+  const expected = stored.filter(
+    poi => !rejectedKeys.has(poiKey(poi)) && !failedAreas.some(area => areaContains(area, poi))
+  );
+  const kept = fetched.filter(poi => !rejectedKeys.has(poiKey(poi)));
+  const reasons: string[] = [];
+
+  const fetchedKeys = new Set(kept.map(poiKey));
+  const bands = new Map<number, { stored: number; lost: number }>();
+  for (const poi of expected) {
+    const band = Math.floor(poi.distanceAlongTrail / SHRINK_BAND_KM);
+    const counts = bands.get(band) ?? { stored: 0, lost: 0 };
+    counts.stored++;
+    if (!fetchedKeys.has(poiKey(poi))) counts.lost++;
+    bands.set(band, counts);
+  }
+  const emptied = [...bands]
+    .filter(([, counts]) => counts.stored >= MIN_BAND_POIS && counts.lost > counts.stored * MAX_BAND_LOSS_FRACTION)
+    .sort(([a], [b]) => a - b);
+  if (emptied.length > 0) {
+    const listed = emptied
+      .slice(0, MAX_BANDS_LISTED)
+      .map(
+        ([band, { stored: n, lost }]) => `km ${band * SHRINK_BAND_KM}–${(band + 1) * SHRINK_BAND_KM}: ${lost} of ${n}`
+      );
+    const more = emptied.length > MAX_BANDS_LISTED ? ` and ${emptied.length - MAX_BANDS_LISTED} more` : '';
+    reasons.push(
+      `the fetch lacks most of pois.json's POIs in ${emptied.length} ${SHRINK_BAND_KM} km band(s) ` +
+        `(${listed.join(', ')}${more}; over the ${percent(MAX_BAND_LOSS_FRACTION)} limit)`
+    );
+  }
+
+  const before = expected.length;
+  const drop = before - kept.length;
+  if (drop >= MIN_SHRINK_DROP && drop > before * MAX_SHRINK_FRACTION) {
+    reasons.push(
+      `the fetch has ${kept.length} POI(s) where pois.json has ${before} ` +
+        `(${percent(drop / before)} fewer, over the ${percent(MAX_SHRINK_FRACTION)} limit)`
+    );
+  }
+
+  if (reasons.length === 0) return null;
   return (
-    `the fetch has ${after} POI(s) where pois.json has ${before} ` +
-    `(${Math.round((drop / before) * 100)}% fewer, over the ${Math.round(MAX_SHRINK_FRACTION * 100)}% limit); ` +
-    'a mirror may have truncated its answer. Re-run (try another --endpoint or a smaller --max-vertices), ' +
-    'or pass --allow-shrink if the drop is real'
+    `${reasons.join('; and ')}; a mirror may have truncated its answer. ` +
+    'Re-run (try another --endpoint or a smaller --max-vertices), or pass --allow-shrink if the drop is real'
   );
 }
 
@@ -597,14 +664,14 @@ function dryRunTrail(trailPath: string, trailDir: string, maxVertices: number, k
  * What one trail's fetch did: whether it found POIs, whether any chunk failed,
  * and whether the write was refused for shrinking the file (`shrinkRefusal`).
  */
-interface ProcessOutcome {
+export interface ProcessOutcome {
   updated: boolean;
   incomplete: boolean;
   shrunk: boolean;
 }
 
-/** Fetch POIs for one trail and write them to its `pois.json`. */
-async function processTrail(
+/** Fetch POIs for one trail and write them to its `pois.json`. Exported for tests. */
+export async function processTrail(
   trailPath: string,
   trailDir: string,
   fetchPOIs: POIFetcher,
@@ -623,7 +690,18 @@ async function processTrail(
   // survive every refresh.
   const existing = readTrailPOIFile(trailDir);
   const guarded = existing ? guardEmptyAnswers(fetchPOIs, existing.pois, existing.rejected) : fetchPOIs;
-  const result = await processTrailData(trail, guarded, maxVertices, kmRange);
+  // Each chunk is fetched once, and a throw is that chunk's failure: record
+  // its area, so a --force-replace's shrink check can leave it out.
+  const failedAreas: OverpassArea[] = [];
+  const recording: POIFetcher = async (area, types, signal) => {
+    try {
+      return await guarded(area, types, signal);
+    } catch (error) {
+      failedAreas.push(area);
+      throw error;
+    }
+  };
+  const result = await processTrailData(trail, recording, maxVertices, kmRange);
 
   if (result.queryChunks === 0) {
     console.log('  No track points found. Skipping.');
@@ -656,10 +734,8 @@ async function processTrail(
     forceReplace,
   });
   const merging = mode === 'merge' && existing !== null;
-  // --force-replace already accepts a partial result, so only the clean
-  // replace (the one that looks complete) is checked.
-  if (mode === 'replace' && existing !== null && !forceReplace && !allowShrink) {
-    const refusal = shrinkRefusal(existing.pois, result.pois, existing.rejected);
+  if (existing !== null && checksShrink({ mode, hasExisting: true, allowShrink })) {
+    const refusal = shrinkRefusal(existing.pois, result.pois, { rejected: existing.rejected, failedAreas });
     if (refusal) {
       console.log(`  NOT WRITTEN: ${refusal}.`);
       return { updated: false, incomplete: false, shrunk: true };
@@ -730,7 +806,11 @@ function printUsage(): void {
   console.log('  --from-km <km>, --to-km <km>  Fetch only this window and merge it into the file');
   console.log('  --force-replace  Replace pois.json even when chunks failed (default: merge, exit 1)');
   console.log(
-    `  --allow-shrink   Replace pois.json even when the fetch has over ${Math.round(MAX_SHRINK_FRACTION * 100)}% fewer POIs (default: write nothing, exit 1)`
+    `  --allow-shrink   Replace pois.json even when the fetch lacks over ${percent(MAX_BAND_LOSS_FRACTION)} of a ` +
+      `${SHRINK_BAND_KM} km stretch's POIs or ${percent(MAX_SHRINK_FRACTION)} of the file's (default: write nothing, exit 1)`
+  );
+  console.log(
+    '                   No effect with --from-km/--to-km, --dry-run or --reposition, which never shrink the file'
   );
   console.log('  --reposition     No network: re-place the POIs in pois.json on the current track');
   console.log('  --help, -h       Show this message');
@@ -1006,7 +1086,7 @@ async function main(): Promise<void> {
   }
   if (shrunk.length > 0) {
     console.log(
-      `WARNING: not written for ${shrunk.join(', ')} — the fetch was much shorter than pois.json. ` +
+      `WARNING: not written for ${shrunk.join(', ')} — the fetch lacked POIs that pois.json has (see above). ` +
         'Re-run, or pass --allow-shrink if the POIs really are gone.'
     );
     process.exitCode = 1;

@@ -1,13 +1,16 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import type { POI, POIType, OverpassArea } from '../src/lib/osm-poi.js';
 import type { POIFetcher } from '../src/lib/overpass-client.js';
 
+import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 
 import {
   areaContains,
   guardEmptyAnswers,
   positionalArgs,
+  processTrail,
   processTrailData,
   repositionTrailPois,
   misplacedPois,
@@ -20,10 +23,12 @@ import {
   shrinkRefusal,
   MAX_SHRINK_FRACTION,
   MIN_SHRINK_DROP,
+  MIN_BAND_POIS,
   trailDirsById,
   type TrailDirIO,
 } from './fetch-pois.js';
 import type { ProcessedTrail, RouteVariant, TrackPoint, TrailPOI } from '../src/lib/trail-types.js';
+import { buildTrailPOIFile, writeTrailPOIFile } from './lib/trail-pois-file.js';
 
 const START_LAT = -34;
 const LON = 115;
@@ -644,33 +649,169 @@ describe('guardEmptyAnswers', () => {
 });
 
 describe('shrinkRefusal', () => {
-  /** Stand-in POIs: only `type` and `id` feed `poiKey`. */
-  function pois(count: number, startId = 1): TrailPOI[] {
-    return Array.from({ length: count }, (_, i) => ({ type: 'node', id: startId + i }) as unknown as TrailPOI);
+  /** Stand-in POIs, `spacingKm` apart from `startKm`: `type`, `id`, the position and km feed the checks. */
+  function pois(count: number, startId = 1, startKm = 0, spacingKm = 1): TrailPOI[] {
+    return Array.from(
+      { length: count },
+      (_, i) =>
+        ({
+          type: 'node',
+          id: startId + i,
+          lat: START_LAT,
+          lon: LON,
+          distanceAlongTrail: startKm + i * spacingKm,
+        }) as unknown as TrailPOI
+    );
   }
 
   it('allows growth, an equal count and ordinary churn', () => {
     expect(shrinkRefusal(pois(100), pois(120))).toBeNull();
     expect(shrinkRefusal(pois(100), pois(100))).toBeNull();
+    // A third of the POIs swapped for new ones, spread along the trail.
+    const churned = pois(100).filter(poi => poi.id % 3 !== 0);
+    expect(shrinkRefusal(pois(100), [...churned, ...pois(33, 1000)])).toBeNull();
     expect(shrinkRefusal(pois(100), pois(100 - 100 * MAX_SHRINK_FRACTION))).toBeNull();
   });
 
-  it('refuses a drop past the limit, naming both counts', () => {
-    expect(shrinkRefusal(pois(1206), pois(600))).toMatch(/600 POI\(s\) where pois\.json has 1206 \(50% fewer/);
-    expect(shrinkRefusal(pois(100), pois(69))).toMatch(/--allow-shrink/);
+  it('refuses a whole-file drop past the limit, naming both counts', () => {
+    // Spread thinly (20 km apart) so no band holds enough POIs to trip.
+    const stored = pois(1206, 1, 0, 20);
+    expect(
+      shrinkRefusal(
+        stored,
+        stored.filter(poi => poi.id % 2 === 0)
+      )
+    ).toMatch(/603 POI\(s\) where pois\.json has 1206 \(50% fewer, over the 30% limit/);
+    expect(shrinkRefusal(pois(100, 1, 0, 20), pois(69, 1, 0, 20))).toMatch(/--allow-shrink/);
+  });
+
+  it('gives the percentage to one decimal, so it never equals the limit it exceeds', () => {
+    // 1000 → 696 is a 30.4% drop, which Math.round would print as 30%.
+    const stored = pois(1000, 1, 0, 20);
+    expect(shrinkRefusal(stored, stored.slice(0, 696))).toMatch(/30\.4% fewer, over the 30% limit/);
   });
 
   it('ignores small files, where a few POIs are a large fraction', () => {
-    expect(shrinkRefusal(pois(MIN_SHRINK_DROP), pois(1))).toBeNull();
-    expect(shrinkRefusal(pois(MIN_SHRINK_DROP + 1), pois(1))).not.toBeNull();
+    expect(shrinkRefusal(pois(MIN_SHRINK_DROP, 1, 0, 20), pois(1, 1, 0, 20))).toBeNull();
+    expect(shrinkRefusal(pois(MIN_SHRINK_DROP + 1, 1, 0, 20), pois(1, 1, 0, 20))).not.toBeNull();
+  });
+
+  it('refuses a stretch that has mostly gone, though the file is well under the whole-file limit', () => {
+    // Shikoku's shape: 1525 → 1206 overall (21% fewer), but 16 of the 23 POIs
+    // at km 55–60 missing.
+    const elsewhere = pois(1502, 1, 100, 0.05);
+    const kamiyama = pois(23, 5000, 55, 0.2);
+    const stored = [...kamiyama, ...elsewhere];
+    // Ordinary churn elsewhere: every fifth POI gone, spread along the trail.
+    const fetched = [...kamiyama.slice(0, 7), ...elsewhere.filter((_, i) => i % 5 !== 0)];
+    expect(fetched).toHaveLength(1208);
+    expect(shrinkRefusal(stored, fetched)).toMatch(/1 5 km band\(s\) \(km 55–60: 16 of 23; over the 50% limit\)/);
+  });
+
+  it('passes a stretch that loses half its POIs or fewer, or holds too few to judge', () => {
+    const band = pois(MIN_BAND_POIS * 2, 1, 10, 0.1);
+    expect(
+      shrinkRefusal([...band, ...pois(200, 100, 100)], [...band.slice(0, MIN_BAND_POIS), ...pois(200, 100, 100)])
+    ).toBeNull();
+    const sparse = pois(MIN_BAND_POIS - 1, 1, 10, 0.1);
+    expect(shrinkRefusal([...sparse, ...pois(200, 100, 100)], pois(200, 100, 100))).toBeNull();
+  });
+
+  it('does not let new POIs in a stretch hide the loss of the stored ones', () => {
+    const band = pois(20, 1, 10, 0.1);
+    expect(shrinkRefusal(band, [...band.slice(0, 5), ...pois(30, 100, 10, 0.1)])).toMatch(/km 10–15: 15 of 20/);
+  });
+
+  it('names the first bands and counts the rest', () => {
+    const stored = pois(80, 1, 0, 0.5);
+    const refusal = shrinkRefusal(stored, []);
+    expect(refusal).toMatch(/8 5 km band\(s\) \(km 0–5: 10 of 10, .*km 20–25: 10 of 10 and 3 more;/);
   });
 
   it('leaves rejected keys out of both counts', () => {
-    const stored = pois(20);
+    const stored = pois(20, 1, 0, 20);
     const rejected = stored.slice(0, 10).map(poi => `node/${poi.id}`);
     // 10 kept POIs before, 10 after: the rejected half is not a loss.
-    expect(shrinkRefusal(stored, stored.slice(10), rejected)).toBeNull();
+    expect(shrinkRefusal(stored, stored.slice(10), { rejected })).toBeNull();
     // A rejected POI returned by the fetch does not pad the new count.
-    expect(shrinkRefusal(stored, [...stored.slice(0, 10), ...stored.slice(10, 13)], rejected)).not.toBeNull();
+    expect(shrinkRefusal(stored, [...stored.slice(0, 10), ...stored.slice(10, 13)], { rejected })).not.toBeNull();
+  });
+
+  it("leaves out stored POIs inside a --force-replace's failed chunks, and only those", () => {
+    const lost = pois(20, 1, 10, 0.1).map(poi => ({ ...poi, lat: -20, lon: 130 }));
+    const rest = pois(200, 100, 100);
+    const failedArea: OverpassArea = { corridor: [{ lat: -20, lon: 130 }], radiusMeters: 2500 };
+    expect(shrinkRefusal([...lost, ...rest], rest, { failedAreas: [failedArea] })).toBeNull();
+    // A short answer elsewhere is still refused.
+    expect(shrinkRefusal([...lost, ...rest], rest.slice(0, 100), { failedAreas: [failedArea] })).not.toBeNull();
+    // With no failed area, losing that stretch is refused.
+    expect(shrinkRefusal([...lost, ...rest], rest)).not.toBeNull();
+  });
+});
+
+describe('processTrail', () => {
+  const dirs: string[] = [];
+  afterEach(() => {
+    for (const dir of dirs.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  /** Twelve shops along km 20–23, inside one band. */
+  const shops = Array.from({ length: 12 }, (_, i) =>
+    node(i + 1, START_LAT + 2 * LAT_STEP + i * 0.0003, LON, { shop: 'convenience' })
+  );
+
+  /** A trail directory holding the generated trail and a `pois.json` of every shop. */
+  async function trailDir(): Promise<{ dir: string; trailPath: string; before: string }> {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fetch-pois-'));
+    dirs.push(dir);
+    const trailPath = path.join(dir, 'test.json');
+    fs.writeFileSync(trailPath, JSON.stringify(makeTrail()));
+    const stored = (await processTrailData(makeTrail(), fixedFetcher(shops))).pois;
+    expect(stored).toHaveLength(12);
+    writeTrailPOIFile(
+      dir,
+      buildTrailPOIFile({
+        existing: null,
+        pois: stored,
+        fetchedAt: '2026-01-01T00:00:00.000Z',
+        searchRadiusKm: 2.5,
+        endpoint: 'https://example.invalid',
+      })
+    );
+    return { dir, trailPath, before: fs.readFileSync(path.join(dir, 'pois.json'), 'utf-8') };
+  }
+
+  const quiet = () => vi.spyOn(console, 'log').mockImplementation(() => {});
+
+  it('writes nothing and reports the refusal when a clean fetch has lost most of a stretch', async () => {
+    quiet();
+    const { dir, trailPath, before } = await trailDir();
+    const outcome = await processTrail(trailPath, dir, fixedFetcher(shops.slice(0, 4)), 'x', 300, null, false, false);
+    expect(outcome).toEqual({ updated: false, incomplete: false, shrunk: true });
+    expect(fs.readFileSync(path.join(dir, 'pois.json'), 'utf-8')).toBe(before);
+  });
+
+  it('still refuses with --force-replace', async () => {
+    quiet();
+    const { dir, trailPath, before } = await trailDir();
+    const outcome = await processTrail(trailPath, dir, fixedFetcher(shops.slice(0, 4)), 'x', 300, null, true, false);
+    expect(outcome.shrunk).toBe(true);
+    expect(fs.readFileSync(path.join(dir, 'pois.json'), 'utf-8')).toBe(before);
+  });
+
+  it('writes the shorter file with --allow-shrink', async () => {
+    quiet();
+    const { dir, trailPath } = await trailDir();
+    const outcome = await processTrail(trailPath, dir, fixedFetcher(shops.slice(0, 4)), 'x', 300, null, false, true);
+    expect(outcome).toEqual({ updated: true, incomplete: false, shrunk: false });
+    expect(JSON.parse(fs.readFileSync(path.join(dir, 'pois.json'), 'utf-8')).pois).toHaveLength(4);
+  });
+
+  it('writes a fetch that keeps the stretch', async () => {
+    quiet();
+    const { dir, trailPath } = await trailDir();
+    const outcome = await processTrail(trailPath, dir, fixedFetcher(shops.slice(0, 8)), 'x', 300, null, false, false);
+    expect(outcome.shrunk).toBe(false);
+    expect(JSON.parse(fs.readFileSync(path.join(dir, 'pois.json'), 'utf-8')).pois).toHaveLength(8);
   });
 });
