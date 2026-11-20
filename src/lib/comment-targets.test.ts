@@ -3,11 +3,13 @@ import { commentTargetFitsTrail, commentTargetKind } from './comment-targets';
 import { mintImportedWaypointIds } from './gpx-import';
 import { poiCommentId } from './poi-display';
 import { userWaypointId } from './user-waypoints';
+import { firstPassIdOf } from './waypoint-passes';
 import type { TrailConfig, TrailWaypoint } from './trail-types';
 
 describe('commentTargetKind', () => {
   it('names each kind by its form', () => {
     expect(commentTargetKind('w_00176641')).toBe('curated');
+    expect(commentTargetKind('w_07233ee1_2')).toBe('curated');
     expect(commentTargetKind('uw_0a1b2c3d4e5f')).toBe('community');
     expect(commentTargetKind('uw_0a1b2c3d4e5f_2')).toBe('community');
     expect(commentTargetKind(userWaypointId('6f1c2a7e-1b2c-4d3e-8f90-123456789abc'))).toBe('shared');
@@ -21,6 +23,30 @@ describe('commentTargetKind', () => {
     ] as TrailWaypoint[];
     for (const id of mintImportedWaypointIds(waypoints, { id: 'u_abc123' } as TrailConfig)) {
       expect(commentTargetKind(id)).toBe('community');
+    }
+  });
+
+  it('takes a later pass of a revisited curated waypoint, as the build writes it', () => {
+    for (const id of ['w_07233ee1_2', 'w_07233ee1_3', 'w_07233ee1_10', 'w_b375dd112326_2', 'w_07233ee1_999999']) {
+      expect(commentTargetKind(id)).toBe('curated');
+      // The same form the shared pass rule reads as a later pass of that place.
+      expect(firstPassIdOf(id)).toBe(id.slice(0, id.lastIndexOf('_')));
+    }
+  });
+
+  it('takes no pass suffix the build never writes', () => {
+    for (const id of [
+      'w_07233ee1_0',
+      'w_07233ee1_1',
+      'w_07233ee1_02',
+      'w_07233ee1_',
+      'w_07233ee1__2',
+      'w_07233ee1_2_3',
+      'w_07233ee1_x',
+      'w_07233ee1_1000000',
+      'w_0017664_2',
+    ]) {
+      expect(commentTargetKind(id)).toBeNull();
     }
   });
 

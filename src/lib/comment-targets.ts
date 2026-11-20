@@ -4,8 +4,11 @@
  * server will take the comment). One form per kind of place a screen shows
  * comments for:
  *
- * - `w_` + 8-40 hex: a curated waypoint (`data/waypoint-ids.json`, minted by
- *   `scripts/lib/waypoint-ids.ts`; up to 40 hex in case the mint is widened).
+ * - `w_` + 8-40 hex, optionally `_<n>` with n from 2: a curated waypoint
+ *   (`data/waypoint-ids.json`, minted by `scripts/lib/waypoint-ids.ts`; up to
+ *   40 hex in case the mint is widened), or a later pass of a revisited one
+ *   (`<id>_2`, `<id>_3`, as the build writes them: `waypoint-passes.ts`). Each
+ *   pass is a waypoint of its own on the phone and takes its own comments.
  *   Only on a curated trail.
  * - `uw_` + 1-40 lowercase alphanumerics, optionally `_<n>`: a community
  *   route's own waypoint. A route keeps the ids its import minted
@@ -29,7 +32,7 @@ export type CommentTargetKind = 'curated' | 'community' | 'shared' | 'osm';
 /** Which kind of trail a comment is filed on: ours, or a community route. */
 export type CommentTrailKind = 'curated' | 'community';
 
-const CURATED_WAYPOINT_ID_RE = /^w_[0-9a-f]{8,40}$/;
+const CURATED_WAYPOINT_ID_RE = /^w_[0-9a-f]{8,40}(?:_(?:[2-9]|[1-9][0-9]{1,5}))?$/;
 const COMMUNITY_WAYPOINT_ID_RE = /^uw_[a-z0-9]{1,40}(?:_[0-9]{1,6})?$/;
 const OSM_COMMENT_ID_RE = /^osm_(?:node|way|relation)_(0|[1-9][0-9]{0,15})$/;
 

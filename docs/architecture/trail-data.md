@@ -74,6 +74,7 @@ A retrace that *is* the route as drawn goes in `knownRetraces` (`turnaroundKm` a
 A route that passes the same place twice matches its waypoint twice, and the build fails on the repeated id (the minter runs before the fan-out, so it cannot tell a real second pass from a waypoint matched by mistake).
 An out-and-back goes in `extractSpurs` as above.
 A route that genuinely comes back the way it went, days later, lists those waypoints by name in `"revisitedWaypoints"`: every pass of a listed waypoint is kept, the later ones as `<id>_2`, `<id>_3`, as imported trails do, so each pass takes its own comments, and the build logs each one.
+The comments API takes a comment under a later pass's id as it does under the first's (`commentTargetKind` in `src/lib/comment-targets.ts`, the worker's gate and the phone's), while what is authored once per place (the registry entry, the description) stays under the first pass's id (`src/lib/waypoint-passes.ts`).
 A repeat of a waypoint that is not listed still fails the build (the error names the entry to add), and a listed name the route no longer repeats is warned about.
 The list is by name, so a listed waypoint renamed in the GPX must be renamed in it too, or the build fails on the repeat: the waypoint editor does both in one save.
 A curated description is applied to the source waypoint before its later passes are made, so it belongs to the place and shows on every pass: `descriptions.json` keys it by the first pass's id, and an entry under `<id>_2` matches no waypoint.
