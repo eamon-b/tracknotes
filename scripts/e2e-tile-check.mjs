@@ -87,7 +87,7 @@
 
 import { readFileSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
-import { httpRangeReader, readPrefix, readZoomTiles } from './lib/http-mbtiles.mjs';
+import { fetchWithRetries, httpRangeReader, readPrefix, readZoomTiles } from './lib/http-mbtiles.mjs';
 import { checkZ9Tiered } from './lib/mvt-contours.mjs';
 
 const CONTOUR_URL = (process.env.CONTOUR_TILE_URL || 'https://tiles.contour-map-tiles.net').replace(/\/$/, '');
@@ -495,12 +495,16 @@ async function checkTrailOfflineArtifacts() {
     const manifestUrl = `${TILE_BASE_URL}/${trailId}/manifest.json`;
     let manifest;
     try {
-      const res = await fetch(manifestUrl);
-      if (res.status !== 200) {
-        failures.push(`[${trailId}] manifest.json → HTTP ${res.status}`);
+      // Retried like the range reads (network errors, 5xx, 429): one blip on
+      // the data domain is not a missing pack.
+      const answer = await fetchWithRetries(manifestUrl, {}, async res =>
+        res.status === 200 ? { manifest: await res.json() } : { status: res.status }
+      );
+      if (answer.status !== undefined) {
+        failures.push(`[${trailId}] manifest.json → HTTP ${answer.status}`);
         continue;
       }
-      manifest = await res.json();
+      manifest = answer.manifest;
     } catch (e) {
       failures.push(`[${trailId}] manifest.json fetch/parse failed: ${e.message}`);
       continue;
@@ -534,17 +538,28 @@ async function checkTrailOfflineArtifacts() {
       try {
         // Range-read the first 16 bytes: verifies existence, SQLite magic,
         // and (via Content-Range) the full object size — no full download.
-        const res = await fetch(fileUrl, { headers: { Range: 'bytes=0-15' } });
+        // A 200 is the whole object (the edge ignored the Range): take its
+        // first bytes and drop the rest unread, not a gigabyte for the CDT.
+        // Network errors, 5xx and 429s are retried (fetchWithRetries).
+        const res = await fetchWithRetries(fileUrl, { headers: { Range: 'bytes=0-15' } }, async r => {
+          if (r.status !== 206 && r.status !== 200) {
+            await r.body?.cancel?.().catch(() => {});
+            return { status: r.status };
+          }
+          const contentRange = r.headers.get('content-range') || '';
+          const totalSize =
+            r.status === 206
+              ? parseInt(contentRange.split('/')[1] ?? '', 10)
+              : parseInt(r.headers.get('content-length') ?? '', 10);
+          const head = Buffer.from(r.status === 206 ? await r.arrayBuffer() : await readPrefix(r, 16));
+          return { status: r.status, totalSize, head };
+        });
         if (res.status !== 206 && res.status !== 200) {
           failures.push(`[${trailId}] ${label} → HTTP ${res.status}`);
           continue;
         }
 
-        const contentRange = res.headers.get('content-range') || '';
-        const totalSize =
-          res.status === 206
-            ? parseInt(contentRange.split('/')[1] ?? '', 10)
-            : parseInt(res.headers.get('content-length') ?? '', 10);
+        const { totalSize, head } = res;
         if (Number.isFinite(totalSize) && totalSize !== file.size) {
           failures.push(`[${trailId}] ${label} size mismatch: manifest says ${file.size}, object is ${totalSize}`);
         }
@@ -552,9 +567,6 @@ async function checkTrailOfflineArtifacts() {
           failures.push(`[${trailId}] ${label} is suspiciously small (${file.size} bytes) — likely an empty stub`);
         }
 
-        // A 200 is the whole object (the edge ignored the Range): take its
-        // first bytes and drop the rest unread, not a gigabyte for the CDT.
-        const head = Buffer.from(res.status === 206 ? await res.arrayBuffer() : await readPrefix(res, 16));
         const magic = head.subarray(0, 16).toString('latin1');
         if (res.status === 206 || head.length >= 16) {
           if (magic !== SQLITE_MAGIC) {
@@ -714,22 +726,42 @@ async function checkContoursAlias() {
   }
 }
 
-/** The manifest of each bundled trail, or null where it cannot be had. */
-async function fetchPackManifest(trailId) {
-  try {
-    const res = await fetch(`${TILE_BASE_URL}/${trailId}/manifest.json?m=${Math.floor(Date.now() / 60_000)}`);
-    return res.status === 200 ? await res.json() : null;
-  } catch {
-    return null;
-  }
+/**
+ * The manifest of a bundled trail, or null where the host answers without one
+ * (a 404, which the pack check reports). Network errors, 5xx and 429s are
+ * retried, and one that lasts throws: an unreadable manifest is a failure, not
+ * a pack to skip.
+ */
+async function fetchPackManifest(trailId, retry) {
+  return fetchWithRetries(
+    `${TILE_BASE_URL}/${trailId}/manifest.json?m=${Math.floor(Date.now() / 60_000)}`,
+    { ...retry, describe: 'manifest.json' },
+    async res => (res.status === 200 ? await res.json() : null)
+  );
 }
 
 /** Packs read at once: each is a chain of sequential range requests. */
 const TIERED_PACK_CONCURRENCY = 4;
 
-/** Check one pack's z9: `{ line }` to print, or `{ failure }` to record. */
-async function checkTieredPack(trailId) {
-  const manifest = await fetchPackManifest(trailId);
+/**
+ * The tiered pack reads' whole budget, retries included: past it no read waits
+ * to retry, so a brownout ends in a logged failure, not the job's
+ * timeout-minutes killing the run before it prints anything. The section takes
+ * 2–3 minutes on a good day.
+ */
+const TIERED_PACKS_BUDGET_MS = 6 * 60_000;
+
+/**
+ * Check one pack's z9: `{ line }` to print, or `{ failure }` to record.
+ * `retry` is the RetryOptions (the section's deadline) for every request.
+ */
+async function checkTieredPack(trailId, retry = {}) {
+  let manifest;
+  try {
+    manifest = await fetchPackManifest(trailId, retry);
+  } catch (e) {
+    return { failure: `[tiered] [${trailId}] could not read the pack's ${e.message}` };
+  }
   const file = Array.isArray(manifest?.files) && manifest.files.find(f => f?.name === 'contours.mbtiles');
   if (!file) {
     // The pack check reports a missing manifest or file; don't count it twice.
@@ -738,7 +770,7 @@ async function checkTieredPack(trailId) {
   const url = `${TILE_BASE_URL}/${trailId}/${file.key ?? file.name}`;
   let tiles;
   try {
-    tiles = await readZoomTiles(httpRangeReader(url), 9);
+    tiles = await readZoomTiles(httpRangeReader(url, undefined, undefined, retry), 9);
   } catch (e) {
     return { failure: `[tiered] [${trailId}] could not read contours.mbtiles z9: ${e.message}` };
   }
@@ -782,11 +814,12 @@ async function checkTieredPack(trailId) {
 async function checkTieredPacks() {
   console.log(`\n[tiered] z9 of each pack's contours.mbtiles tiered`);
   const results = new Array(TRAIL_IDS.length);
+  const retry = { deadline: Date.now() + TIERED_PACKS_BUDGET_MS };
   let next = 0;
   const worker = async () => {
     while (next < TRAIL_IDS.length) {
       const i = next++;
-      results[i] = await checkTieredPack(TRAIL_IDS[i]);
+      results[i] = await checkTieredPack(TRAIL_IDS[i], retry);
     }
   };
   await Promise.all(Array.from({ length: TIERED_PACK_CONCURRENCY }, worker));

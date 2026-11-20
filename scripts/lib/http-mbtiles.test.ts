@@ -6,7 +6,15 @@ import * as path from 'path';
 import { gzipSync } from 'zlib';
 import { execFileSync } from 'child_process';
 import { randomBytes } from 'crypto';
-import { httpRangeReader, readPrefix, readZoomTiles, tableColumns, indexColumns } from './http-mbtiles.mjs';
+import {
+  MAX_RETRY_AFTER_MS,
+  fetchWithRetries,
+  httpRangeReader,
+  readPrefix,
+  readZoomTiles,
+  tableColumns,
+  indexColumns,
+} from './http-mbtiles.mjs';
 import { checkZ9Tiered, contourElevations } from './mvt-contours.mjs';
 
 // --- A minimal vector tile encoder, enough to build contour tiles ---
@@ -216,7 +224,7 @@ describe('readZoomTiles', () => {
     );
   });
 
-  it('names the tile it was reading when a read fails', async () => {
+  itWithSqlite3('names the tile it was reading when a read fails', async () => {
     const file = path.join(dir, 'dedup-zoom-failing.mbtiles');
     writeDeduplicated(file, tiles, 4096, true);
     const { read, reads } = readerFor(file);
@@ -285,7 +293,7 @@ describe('httpRangeReader', () => {
     expect(calls).toBe(2);
   });
 
-  it('keeps separate budgets for 429s and ignored Ranges, and never cancels a 206', async () => {
+  it('keeps separate budgets for 429s and ignored Ranges, and closes every body but the 206 unread', async () => {
     const waits: number[] = [];
     let cancelled = 0;
     const body = {
@@ -308,7 +316,7 @@ describe('httpRangeReader', () => {
     );
     expect(await mixed(10, 13)).toHaveLength(4);
     expect(waits).toEqual([5000, 5000, 10000, 10000]);
-    expect(cancelled).toBe(2);
+    expect(cancelled).toBe(4);
   });
 
   it('keeps retrying when cancelling a failed body throws', async () => {
@@ -393,7 +401,7 @@ describe('httpRangeReader', () => {
       }
     );
     await expect(down(10, 13)).rejects.toThrow(
-      'range request to data.example /cdt/contours.mbtiles bytes 10-13 failed after 5 attempts: fetch failed (read ECONNRESET)'
+      'range request to data.example /cdt/contours.mbtiles bytes 10-13 request failed after 5 attempts: fetch failed (read ECONNRESET)'
     );
     expect(calls).toBe(5);
     expect(waits).toEqual([5000, 10000, 20000, 40000]);
@@ -428,6 +436,185 @@ describe('httpRangeReader', () => {
       }
     );
     await expect(missing(10, 13)).rejects.toThrow(/data\.example .* → HTTP 404/);
+    expect(calls).toBe(1);
+  });
+
+  it('caps Retry-After at a minute, on a 5xx and a 429', async () => {
+    const waits: number[] = [];
+    const answers = [503, 429, 206];
+    const busy = httpRangeReader(
+      'https://data.example/a.mbtiles',
+      (async () => ({
+        status: answers.shift(),
+        headers: new Headers({ 'Retry-After': '3600' }),
+        arrayBuffer: async () => new Uint8Array(4).buffer,
+      })) as unknown as typeof fetch,
+      async (ms: number) => {
+        waits.push(ms);
+      }
+    );
+    expect(await busy(10, 13)).toHaveLength(4);
+    expect(waits).toEqual([MAX_RETRY_AFTER_MS, MAX_RETRY_AFTER_MS]);
+  });
+
+  it('retries a body cut off mid-read, naming the request when it keeps failing', async () => {
+    let calls = 0;
+    const cutOff = () => Promise.reject(new TypeError('terminated', { cause: new Error('other side closed') }));
+    const flaky = httpRangeReader(
+      'https://data.example/a.mbtiles',
+      (async () => {
+        calls++;
+        return {
+          status: 206,
+          headers: new Headers(),
+          arrayBuffer: calls === 1 ? cutOff : async () => new Uint8Array(4).buffer,
+        };
+      }) as unknown as typeof fetch,
+      async () => {}
+    );
+    expect(await flaky(10, 13)).toHaveLength(4);
+    expect(calls).toBe(2);
+
+    const always = httpRangeReader(
+      'https://data.example/a.mbtiles',
+      (async () => ({ status: 206, headers: new Headers(), arrayBuffer: cutOff })) as unknown as typeof fetch,
+      async () => {}
+    );
+    await expect(always(10, 13)).rejects.toThrow(
+      'range request to data.example /a.mbtiles bytes 10-13 body read failed after 5 attempts: terminated (other side closed)'
+    );
+  });
+
+  it('gives each attempt a timeout signal, and retries an attempt that times out', async () => {
+    const signals: AbortSignal[] = [];
+    let calls = 0;
+    const slow = httpRangeReader(
+      'https://data.example/a.mbtiles',
+      (async (_url: string, init: { signal: AbortSignal }) => {
+        signals.push(init.signal);
+        calls++;
+        if (calls === 1) throw new DOMException('The operation was aborted due to timeout', 'TimeoutError');
+        return { status: 206, headers: new Headers(), arrayBuffer: async () => new Uint8Array(4).buffer };
+      }) as unknown as typeof fetch,
+      async () => {},
+      { attemptTimeoutMs: 1000 }
+    );
+    expect(await slow(10, 13)).toHaveLength(4);
+    expect(calls).toBe(2);
+    expect(signals.every(signal => signal instanceof AbortSignal)).toBe(true);
+    expect(signals[0]).not.toBe(signals[1]);
+  });
+
+  it('fails at once on an error that is not a network failure', async () => {
+    let calls = 0;
+    const bad = httpRangeReader(
+      'not a url',
+      (async () => {
+        calls++;
+        throw new TypeError('Failed to parse URL from not a url', { cause: new TypeError('Invalid URL') });
+      }) as unknown as typeof fetch,
+      async () => {
+        throw new Error('should not wait');
+      }
+    );
+    await expect(bad(10, 13)).rejects.toThrow(
+      'range request to not a url bytes 10-13 request failed: Failed to parse URL from not a url (Invalid URL)'
+    );
+    expect(calls).toBe(1);
+  });
+
+  it('shares one budget between network errors and 5xx, apart from 429s', async () => {
+    const waits: number[] = [];
+    const answers: Array<number | Error> = [
+      429,
+      new TypeError('fetch failed'),
+      503,
+      429,
+      new TypeError('fetch failed'),
+      502,
+      new TypeError('fetch failed'),
+    ];
+    let calls = 0;
+    const flaky = httpRangeReader(
+      'https://data.example/a.mbtiles',
+      (async () => {
+        calls++;
+        const next = answers.shift() ?? 206;
+        if (next instanceof Error) throw next;
+        return { status: next, headers: new Headers(), arrayBuffer: async () => new Uint8Array(4).buffer };
+      }) as unknown as typeof fetch,
+      async (ms: number) => {
+        waits.push(ms);
+      }
+    );
+    // Four transient retries (5, 10, 20, 40 s) and two 429s (5, 10 s): the fifth
+    // transient failure is one too many.
+    await expect(flaky(10, 13)).rejects.toThrow(/request failed after 7 attempts: fetch failed$/);
+    expect(waits).toEqual([5000, 5000, 10000, 10000, 20000, 40000]);
+    expect(calls).toBe(7);
+  });
+
+  it('says how many attempts a lasting 5xx took', async () => {
+    const broken = httpRangeReader(
+      'https://data.example/a.mbtiles',
+      (async () => ({ status: 503, headers: new Headers() })) as unknown as typeof fetch,
+      async () => {}
+    );
+    await expect(broken(10, 13)).rejects.toThrow('→ HTTP 503 (expected 206) after 5 attempts');
+  });
+
+  it('gives up with a message once a wait would pass the deadline', async () => {
+    let clock = 0;
+    const waits: number[] = [];
+    const down = httpRangeReader(
+      'https://data.example/a.mbtiles',
+      (async () => {
+        throw new TypeError('fetch failed');
+      }) as unknown as typeof fetch,
+      async (ms: number) => {
+        waits.push(ms);
+        clock += ms;
+      },
+      { now: () => clock, deadline: 20_000 }
+    );
+    await expect(down(10, 13)).rejects.toThrow(
+      'range request to data.example /a.mbtiles bytes 10-13 out of time to retry after 3 attempts (last: request failed: fetch failed)'
+    );
+    // 5 s and 10 s fit in 20 s; the next 20 s wait would not.
+    expect(waits).toEqual([5000, 10000]);
+  });
+});
+
+describe('fetchWithRetries', () => {
+  it('hands a non-retried answer to read, and passes on read errors unretried', async () => {
+    let calls = 0;
+    const fetchFn = (async () => {
+      calls++;
+      return { status: 404, headers: new Headers() };
+    }) as unknown as typeof fetch;
+    const status = await fetchWithRetries('https://data.example/x/manifest.json', { fetchFn }, async res => res.status);
+    expect(status).toBe(404);
+    await expect(
+      fetchWithRetries('https://data.example/x/manifest.json', { fetchFn }, async () => {
+        throw new SyntaxError('Unexpected token');
+      })
+    ).rejects.toThrow('Unexpected token');
+    expect(calls).toBe(2);
+  });
+
+  it('does not retry a 200 unless asked to', async () => {
+    let calls = 0;
+    const body = await fetchWithRetries(
+      'https://data.example/x/manifest.json',
+      {
+        fetchFn: (async () => {
+          calls++;
+          return { status: 200, headers: new Headers(), json: async () => ({ files: [] }) };
+        }) as unknown as typeof fetch,
+      },
+      async res => res.json()
+    );
+    expect(body).toEqual({ files: [] });
     expect(calls).toBe(1);
   });
 });

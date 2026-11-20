@@ -3,7 +3,7 @@
  * with HTTP Range requests and no download of the rest.
  *
  * An offline pack's contours.mbtiles runs to hundreds of MB (the CDT's is
- * over half a GB), and `check:tile-packs` runs weekly in CI with a ten-minute
+ * over half a GB), and `check:tile-packs` runs weekly in CI with a fifteen-minute
  * budget, so checking a pack's z9 by downloading it is out. Its z9 tiles are
  * a handful of rows, reached through the zoom index in a few page reads.
  *
@@ -40,29 +40,47 @@ const RATE_LIMIT_RETRIES = 6;
 const RANGE_IGNORED_RETRIES = 4;
 
 /**
- * Network errors (fetch rejects: a bare "fetch failed", a reset) and 5xx
- * answers retried before giving up, 5 s doubling (75 s in all): the weekly
- * tile-packs run failed every other week on "fetch failed" for a few packs at
- * once (#368). Any other 4xx (a 404) is an answer and is never retried.
+ * Transient failures retried before giving up, all on one shared budget: a
+ * network error (fetch rejects with a bare "fetch failed", a reset), a body cut
+ * off mid-read ("terminated"), an attempt that timed out, and a 5xx answer.
+ * The weekly tile-packs run failed every other week on "fetch failed" for a
+ * few packs at once (#368). Any other 4xx (a 404) is an answer, never retried.
  */
 const TRANSIENT_RETRIES = 4;
 
+/** One attempt, headers and body, before it is abandoned (and retried). */
+export const ATTEMPT_TIMEOUT_MS = 30_000;
+
+/** The longest a Retry-After header can make a retry wait, on a 429 or a 5xx. */
+export const MAX_RETRY_AFTER_MS = 60_000;
+
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-/** `host path bytes a-b` of a range request, for an error message. */
-function describeRange(url, start, end) {
+/** `host path` of a URL, for an error message. */
+function describeUrl(url) {
   try {
     const { host, pathname } = new URL(url);
-    return `${host} ${pathname} bytes ${start}-${end}`;
+    return `${host} ${pathname}`;
   } catch {
-    return `${url} bytes ${start}-${end}`;
+    return String(url);
   }
 }
 
 /** An error's message with its cause's: Node's fetch puts the reason there. */
 function errorText(error) {
+  if (error?.name === 'TimeoutError') return 'timed out';
   const cause = error?.cause?.message ?? error?.cause?.code;
   return cause ? `${error.message} (${cause})` : String(error?.message ?? error);
+}
+
+/**
+ * A failure worth another attempt: Node's fetch rejecting on the network
+ * ("fetch failed"), a body cut off mid-read ("terminated"), or the attempt's
+ * own timeout. Anything else (a malformed URL, a bug) fails at once.
+ */
+export function isTransientFetchError(error) {
+  if (error?.name === 'TimeoutError') return true;
+  return error instanceof TypeError && (error.message === 'fetch failed' || error.message === 'terminated');
 }
 
 /**
@@ -104,52 +122,140 @@ export async function readPrefix(res, n) {
 }
 
 /**
- * A RangeReader over HTTP. Throws on anything but a 206 of the right length,
- * after waiting out a 429 (Retry-After, else 5 s doubling) a few times: a
- * pack read is hundreds of small requests, enough to trip the zone's
- * rate limit when several packs are read at once. A 200 (the edge ignored
- * the Range) is retried a few times too, without reading its body, and so is
- * a network error or a 5xx (Retry-After, else 5 s doubling); a 404 is not.
- * Each kind has its own budget. The final error names the host, path and bytes.
+ * @typedef {object} RetryOptions
+ * @property {typeof fetch} [fetchFn]
+ * @property {(ms: number) => Promise<void>} [sleep]
+ * @property {() => number} [now] The clock `deadline` is read on.
+ * @property {number} [attemptTimeoutMs] Per attempt, headers and body; 0 for none.
+ * @property {number} [deadline] A `now()` after which no retry starts, nor a
+ *   wait that would end past it: the caller's whole budget, so a brownout fails
+ *   the check with a message instead of the job's timeout killing it unlogged.
  */
-export function httpRangeReader(url, fetchFn = fetch, sleep = delay) {
-  return async (start, end) => {
-    const where = () => describeRange(url, start, end);
+
+/**
+ * GET `url`, retrying what is likely to pass a moment later, and hand the
+ * answer to `read`, which reads the body within the same attempt (so a body
+ * cut off mid-read, or one that times out, is retried too).
+ *
+ * Retried: a 429 (Retry-After, else 5 s doubling, up to six times); a network
+ * error, a cut-off body, a timed-out attempt or a 5xx (Retry-After, else 5 s
+ * doubling, up to four times, one budget shared by all of them); and with
+ * `retryIgnoredRange`, a 200 (5 s doubling, up to four times). A Retry-After is
+ * capped at a minute. Every other answer goes to `read`, and an error `read`
+ * throws itself (not a network one) is final. A retried answer's body is
+ * closed unread.
+ *
+ * Errors start with `describe` (the host and path by default) and, after a
+ * retry, say how many attempts were made.
+ *
+ * @template T
+ * @param {string} url
+ * @param {{ headers?: Record<string, string>, describe?: string, retryIgnoredRange?: boolean } & RetryOptions} options
+ * @param {(res: Response, attempts: number) => Promise<T>} read
+ * @returns {Promise<T>}
+ */
+export async function fetchWithRetries(url, options, read) {
+  const {
+    headers,
+    describe = describeUrl(url),
+    retryIgnoredRange = false,
+    fetchFn = fetch,
+    sleep = delay,
+    now = Date.now,
+    attemptTimeoutMs = ATTEMPT_TIMEOUT_MS,
+    deadline,
+  } = options;
+  let limited = 0;
+  let ignored = 0;
+  let transient = 0;
+  let attempts = 0;
+  const after = () => (attempts > 1 ? ` after ${attempts} attempts` : '');
+  /** Wait `ms` before the next attempt, or give up when that passes the deadline. */
+  const wait = async (ms, last) => {
+    if (deadline !== undefined && now() + ms > deadline) {
+      throw new Error(`${describe} out of time to retry after ${attempts} attempts (last: ${last})`);
+    }
+    await sleep(ms);
+  };
+  const waitFor = (res, backoff) => {
+    const seconds = Number(res.headers?.get?.('retry-after'));
+    return seconds > 0 ? Math.min(seconds * 1000, MAX_RETRY_AFTER_MS) : backoff;
+  };
+  /** Retry a thrown error if it is transient and budget remains; else throw it, named. */
+  const retryOrThrow = async (error, what) => {
+    if (!isTransientFetchError(error) || transient >= TRANSIENT_RETRIES) {
+      throw new Error(`${describe} ${what} failed${after()}: ${errorText(error)}`, { cause: error });
+    }
+    await wait(5000 * 2 ** transient++, `${what} failed: ${errorText(error)}`);
+  };
+
+  for (;;) {
+    attempts++;
+    const signal = attemptTimeoutMs > 0 ? AbortSignal.timeout(attemptTimeoutMs) : undefined;
     let res;
-    for (let limited = 0, ignored = 0, transient = 0; ;) {
-      try {
-        res = await fetchFn(url, { headers: { Range: `bytes=${start}-${end}` } });
-      } catch (e) {
-        if (transient >= TRANSIENT_RETRIES) {
-          throw new Error(`range request to ${where()} failed after ${transient + 1} attempts: ${errorText(e)}`, {
-            cause: e,
-          });
-        }
-        await sleep(5000 * 2 ** transient++);
-        continue;
-      }
-      const retryable5xx = res.status >= 500 && transient < TRANSIENT_RETRIES;
-      if ((res.status === 429 && limited < RATE_LIMIT_RETRIES) || retryable5xx) {
-        const retryAfter = Number(res.headers?.get?.('retry-after'));
-        const backoff = res.status === 429 ? 5000 * 2 ** limited++ : 5000 * 2 ** transient++;
-        if (res.status !== 429) await discardBody(res);
-        await sleep(retryAfter > 0 ? retryAfter * 1000 : backoff);
-      } else if (res.status === 200 && ignored < RANGE_IGNORED_RETRIES) {
-        await discardBody(res);
-        await sleep(5000 * 2 ** ignored++);
-      } else {
-        break;
-      }
+    try {
+      res = await fetchFn(url, { headers, signal });
+    } catch (e) {
+      await retryOrThrow(e, 'request');
+      continue;
     }
-    if (res.status !== 206) {
+    if (res.status === 429 && limited < RATE_LIMIT_RETRIES) {
       await discardBody(res);
-      throw new Error(`range request to ${where()} → HTTP ${res.status} (expected 206)`);
+      await wait(waitFor(res, 5000 * 2 ** limited++), '→ HTTP 429');
+      continue;
     }
-    const bytes = new Uint8Array(await res.arrayBuffer());
-    if (bytes.length !== end - start + 1) {
-      throw new Error(`range request to ${where()} returned ${bytes.length} bytes, expected ${end - start + 1}`);
+    if (res.status >= 500 && transient < TRANSIENT_RETRIES) {
+      await discardBody(res);
+      await wait(waitFor(res, 5000 * 2 ** transient++), `→ HTTP ${res.status}`);
+      continue;
     }
-    return bytes;
+    if (res.status === 200 && retryIgnoredRange && ignored < RANGE_IGNORED_RETRIES) {
+      await discardBody(res);
+      await wait(5000 * 2 ** ignored++, '→ HTTP 200 (Range ignored)');
+      continue;
+    }
+    try {
+      return await read(res, attempts);
+    } catch (e) {
+      if (!isTransientFetchError(e)) throw e;
+      await retryOrThrow(e, 'body read');
+    }
+  }
+}
+
+/**
+ * A RangeReader over HTTP. Throws on anything but a 206 of the right length,
+ * after the retries of `fetchWithRetries` with `retryIgnoredRange`: a pack read
+ * is hundreds of small requests, enough to trip the zone's rate limit when
+ * several packs are read at once, and the edge now and then ignores the Range
+ * on the packs too big for its cache. A 404 is not retried. Errors name the
+ * host, path and bytes.
+ * @param {string} url
+ * @param {typeof fetch} [fetchFn]
+ * @param {(ms: number) => Promise<void>} [sleep]
+ * @param {Omit<RetryOptions, 'fetchFn' | 'sleep'>} [options]
+ * @returns {RangeReader}
+ */
+export function httpRangeReader(url, fetchFn = fetch, sleep = delay, options = {}) {
+  return (start, end) => {
+    const describe = `range request to ${describeUrl(url)} bytes ${start}-${end}`;
+    const headers = { Range: `bytes=${start}-${end}` };
+    return fetchWithRetries(
+      url,
+      { ...options, headers, describe, retryIgnoredRange: true, fetchFn, sleep },
+      async (res, attempts) => {
+        if (res.status !== 206) {
+          await discardBody(res);
+          const after = attempts > 1 ? ` after ${attempts} attempts` : '';
+          throw new Error(`${describe} → HTTP ${res.status} (expected 206)${after}`);
+        }
+        const bytes = new Uint8Array(await res.arrayBuffer());
+        if (bytes.length !== end - start + 1) {
+          throw new Error(`${describe} returned ${bytes.length} bytes, expected ${end - start + 1}`);
+        }
+        return bytes;
+      }
+    );
   };
 }
 
