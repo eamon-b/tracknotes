@@ -5,9 +5,7 @@ it live behind the contour Worker. The design decisions behind it are in the
 next section; the rest of this document is the operational side — what to
 rent, what to run, what breaks, and what it costs.
 
-Build from `main`. The `feat/world-contour-tiles` branch the first build ran
-from still exists on origin but predates the zoom-tier fix (#132) and the
-#158 safety nets: a box bootstrapped from it builds untiered contours again.
+Build from `main`.
 The tooling:
 
 | Piece | Path |
