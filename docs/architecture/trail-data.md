@@ -138,6 +138,18 @@ Their waypoints have since been reviewed by hand (2026-10: towns and trail ends 
 Where their climate locations sit off the trail's height (a river camp under a slope, a range crossing the terrain model smooths down, a coastal point on a sea cell), `climateLocations[].elevation` makes `fetch-climate.ts` correct the temperatures to that height.
 The six guidebook trails' locations were checked the same way in 2026-10: points on sea cells, up to 14 km off the line or hundreds of metres below the ground they stand for were moved onto the trail, and unrepresented high ground (Baw Baw, Paddys River Dam, Brinkley Bluff) was added.
 
+**Heysen Trail: the Georgetown re-route (#301).**
+Since January 2026 the Friends of the Heysen Trail route bypasses sections 34–36 while the Georgetown wind farm is built (expected to take 2–3 years), with section 35 and Curnows Hut closed.
+The Friends' GPX files are now a members-only download with no licence we could find, so the bundled `Map 5A` track keeps its old points up to the divergence about 750 m north of Baderloo and from Georgetown on, and between them carries our own line, traced from the Friends' public [re-route map](https://heysentrail.asn.au/wp-content/uploads/2026/01/Georgetown-Re-route.pdf) (January 2026).
+The trace is that PDF's blue line, georeferenced on its 1 km MGA zone 54 grid (the Lang Road/Cloverhill-Abbeville Road corner the Friends give as GR 067 050 sits on it), shifted 20 m to fit where it overlaps the old line (median 15 m off there after the shift), smoothed, and written every 40 m at most;
+a 185 m straight join crosses the stretch the map's label hides.
+Its `<ele>` is Copernicus GLO-30 smoothed over five samples, as for the open-data trails.
+The re-route is 20.3 km where the old line was 37.4 km (the Friends say about 18 km shorter);
+it follows public roads (a fire track west of Baderloo, Abbeville Road, Cloverhill-Abbeville Road and Lang Road into Georgetown).
+Curnows Hut is now off-trail, keeping its id and its dated description, and the stored POIs were re-placed with `fetch:pois -- heysen --reposition` (Curnows Hut and its campsite dropped as beyond 2 km).
+The six `access.json` walk-ins north of the re-route kept their junctions, so only their `junctionKm`/`nearestKm` moved, by the build's −16.9 km (Overpass was unreachable from the session that made the change, so `fetch:access` and a fresh `fetch:pois` for the new corridor are still to run).
+When the wind farm is finished, put the old points back from git history rather than re-tracing.
+
 ## Generated Data (`public/data/generated/`)
 
 Built at build time:
