@@ -1,8 +1,8 @@
 {
   "source": "OpenStreetMap ways via Overpass; heights from Copernicus GLO-30",
   "attribution": "© OpenStreetMap contributors (ODbL); Copernicus DEM © DLR e.V. 2010-2014 and © Airbus 2014-2018",
-  "fetchedAt": "2026-10-11T21:53:37.093Z",
-  "endpoint": "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+  "fetchedAt": "2026-11-23T10:48:23.190Z",
+  "endpoint": "https://overpass-api.de/api/interpreter",
   "minDistanceM": 150,
   "places": {
     "w_00dae8b4": {
@@ -110,7 +110,7 @@
       ]
     },
     "w_32b969ff": {
-      "name": "Outback Chapmanton Motor Inn",
+      "name": "The Outback Motel",
       "method": "osm",
       "variant": "N4.11 Alternative route into Hawker",
       "junction": [-31.888113, 138.420529],
@@ -137,7 +137,7 @@
       "descentM": 25,
       "crossCountryM": 170,
       "straightLineM": 167,
-      "nearestKm": 820.98,
+      "nearestKm": 820.99,
       "path": [
         [-32.526144, 138.034038],
         [-32.525533, 138.035704]
@@ -285,7 +285,7 @@
       "descentM": 0,
       "crossCountryM": 97,
       "straightLineM": 198,
-      "nearestKm": 674.41,
+      "nearestKm": 674.42,
       "path": [
         [-33.346268, 138.202501],
         [-33.346247, 138.201664],
@@ -382,7 +382,7 @@
     "w_88a3da5f": {
       "name": "Wonoka Station",
       "straightLineM": 300,
-      "nearestKm": 984.85,
+      "nearestKm": 967.95,
       "method": "none",
       "reason": "no mapped way reaches the route within 3.0 km"
     },
@@ -576,7 +576,7 @@
     "w_beb039db": {
       "name": "Pichi Richi Park",
       "straightLineM": 452,
-      "nearestKm": 856.92,
+      "nearestKm": 840.03,
       "method": "none",
       "reason": "no mapped way reaches the route within 3.0 km"
     },
