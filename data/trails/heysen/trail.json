@@ -8,7 +8,7 @@
   "lengthKm": 39.6,
   "gpxFile": "Heysen.gpx",
   "dataSource": {
-    "text": "Track and waypoints from the official Heysen Trail website.",
+    "text": "Track and waypoints from the official Heysen Trail website; the temporary Georgetown re-route (2026) was traced from their published re-route map.",
     "url": "https://heysentrail.asn.au/",
     "linkText": "Friends of the Heysen Trail"
   },

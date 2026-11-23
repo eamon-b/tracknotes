@@ -8618,39 +8618,6 @@
       "distanceFromTrail": 0.027145797524160235
     },
     {
-      "id": 2990353096,
-      "type": "node",
-      "category": "camping",
-      "lat": -33.3247046,
-      "lon": 138.5482307,
-      "name": "Curnows Hut Campsite",
-      "tags": {
-        "name": "Curnows Hut Campsite",
-        "tourism": "camp_site"
-      },
-      "distanceAlongTrail": 642.7078414752609,
-      "distanceFromTrail": 0.013185759284480271
-    },
-    {
-      "id": 863435230,
-      "type": "way",
-      "category": "camping",
-      "lat": -33.3247015,
-      "lon": 138.5480516,
-      "name": "Curnows Hut",
-      "tags": {
-        "building": "hut",
-        "drinking_water": "rainwater_tank",
-        "fireplace": "yes",
-        "name": "Curnows Hut",
-        "source": "https://l.facebook.com/l.php?u=https%3A%2F%2Flookaside.fbsbx.com%2Ffile%2FMawson%2520Huts.pdf%3Ftoken%3DAWwGvf7S4_Ee2MgzlOIkuuul7W5YjdlFr15As_rRyvm5MV3MCNKrW-y6kzvqOmYrVVsNiQsWfWSBNM3MsgRwGoAIyqfz9amdfP2o-o7wwqsot0KDg_oMNFxiSWKJwvmZXjzyPgSTtoT6S0et0J78eu9",
-        "toilets": "yes",
-        "tourism": "wilderness_hut"
-      },
-      "distanceAlongTrail": 642.7244393580669,
-      "distanceFromTrail": 0.011948326532035808
-    },
-    {
       "id": 9753891636,
       "type": "node",
       "category": "camping",
@@ -8664,8 +8631,8 @@
         "toilets": "yes",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 667.3204263062836,
-      "distanceFromTrail": 0.14478791764309512
+      "distanceAlongTrail": 650.3153480414709,
+      "distanceFromTrail": 0.07812659293642239
     },
     {
       "id": 2755566648,
@@ -8678,8 +8645,8 @@
         "amenity": "pub",
         "name": "Georgetown Hotel"
       },
-      "distanceAlongTrail": 667.3438730568588,
-      "distanceFromTrail": 0.014690630258931841
+      "distanceAlongTrail": 650.4820635888441,
+      "distanceFromTrail": 0.03850481232571713
     },
     {
       "id": 10696375177,
@@ -8693,8 +8660,8 @@
         "name": "Georgetown General Store",
         "outdoor_seating": "yes"
       },
-      "distanceAlongTrail": 667.3444561272628,
-      "distanceFromTrail": 0.011656088788351641
+      "distanceAlongTrail": 650.4881630866857,
+      "distanceFromTrail": 0.031757476072262175
     },
     {
       "id": 2755566649,
@@ -8707,8 +8674,8 @@
         "name": "Georgetown General Store",
         "shop": "general"
       },
-      "distanceAlongTrail": 667.3467770077089,
-      "distanceFromTrail": 0.014875690261346976
+      "distanceAlongTrail": 650.4913453645769,
+      "distanceFromTrail": 0.029385694723398345
     },
     {
       "id": 9667112307,
@@ -8724,7 +8691,7 @@
         "operator:wikidata": "Q7566104",
         "operator:wikipedia": "en:South Australian Country Fire Service"
       },
-      "distanceAlongTrail": 667.4054062586898,
+      "distanceAlongTrail": 650.5093692049592,
       "distanceFromTrail": 0.016399532312344874
     },
     {
@@ -8738,7 +8705,7 @@
         "name": "Hiskeys Hut Campground",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 670.6486768657843,
+      "distanceAlongTrail": 653.7526398120536,
       "distanceFromTrail": 0.11529801943802771
     },
     {
@@ -8751,7 +8718,7 @@
       "tags": {
         "amenity": "drinking_water"
       },
-      "distanceAlongTrail": 670.6587197488396,
+      "distanceAlongTrail": 653.762682695109,
       "distanceFromTrail": 0.11382737143513112
     },
     {
@@ -8766,7 +8733,7 @@
         "healthcare": "hospital",
         "name": "Crystal Brook Hospital"
       },
-      "distanceAlongTrail": 689.396518236764,
+      "distanceAlongTrail": 672.5004811830333,
       "distanceFromTrail": 0.5244353525184934
     },
     {
@@ -8783,7 +8750,7 @@
         "operator": "Australia Post",
         "operator:wikidata": "Q1142936"
       },
-      "distanceAlongTrail": 690.2927927996948,
+      "distanceAlongTrail": 673.3967557459641,
       "distanceFromTrail": 0.04958368844516331
     },
     {
@@ -8797,7 +8764,7 @@
         "amenity": "pub",
         "building": "yes"
       },
-      "distanceAlongTrail": 690.3193380781771,
+      "distanceAlongTrail": 673.4233010244465,
       "distanceFromTrail": 0.04143293516667185
     },
     {
@@ -8811,7 +8778,7 @@
         "name": "Kupsch Bakery",
         "shop": "bakery"
       },
-      "distanceAlongTrail": 690.3441774474992,
+      "distanceAlongTrail": 673.4481403937685,
       "distanceFromTrail": 0.005154837272319316
     },
     {
@@ -8824,7 +8791,7 @@
       "tags": {
         "amenity": "shelter"
       },
-      "distanceAlongTrail": 690.3711754036472,
+      "distanceAlongTrail": 673.4751383499165,
       "distanceFromTrail": 0.012805796781974344
     },
     {
@@ -8839,7 +8806,7 @@
         "name": "Crystal Brook Foodland",
         "shop": "supermarket"
       },
-      "distanceAlongTrail": 690.4030548945418,
+      "distanceAlongTrail": 673.5070178408112,
       "distanceFromTrail": 0.056088160021679365
     },
     {
@@ -8852,7 +8819,7 @@
       "tags": {
         "amenity": "cafe"
       },
-      "distanceAlongTrail": 690.4607775603579,
+      "distanceAlongTrail": 673.5647405066272,
       "distanceFromTrail": 0.03608318621347022
     },
     {
@@ -8867,7 +8834,7 @@
         "building": "yes",
         "name": "Royal Hotel"
       },
-      "distanceAlongTrail": 690.4642757992398,
+      "distanceAlongTrail": 673.5682387455091,
       "distanceFromTrail": 0.020958819631995883
     },
     {
@@ -8881,7 +8848,7 @@
         "access": "yes",
         "amenity": "drinking_water"
       },
-      "distanceAlongTrail": 690.5140376369782,
+      "distanceAlongTrail": 673.6180005832475,
       "distanceFromTrail": 0.03852081051334687
     },
     {
@@ -8896,7 +8863,7 @@
         "building": "yes",
         "shelter_type": "picnic_shelter"
       },
-      "distanceAlongTrail": 690.5140376369782,
+      "distanceAlongTrail": 673.6180005832475,
       "distanceFromTrail": 0.03807852878606081
     },
     {
@@ -8912,7 +8879,7 @@
         "brand:wikidata": "Q152057",
         "name": "BP"
       },
-      "distanceAlongTrail": 690.8527311605399,
+      "distanceAlongTrail": 673.9566941068092,
       "distanceFromTrail": 0.008771793983650543
     },
     {
@@ -8926,7 +8893,7 @@
         "name": "Crystal Brook Caravan Park",
         "tourism": "caravan_site"
       },
-      "distanceAlongTrail": 691.1854021194563,
+      "distanceAlongTrail": 674.2893650657256,
       "distanceFromTrail": 0.04068785105393402
     },
     {
@@ -8940,7 +8907,7 @@
         "name": "Bowman Hut Campsite",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 695.4876115627368,
+      "distanceAlongTrail": 678.5915745090061,
       "distanceFromTrail": 0.05851594693829441
     },
     {
@@ -8953,7 +8920,7 @@
       "tags": {
         "amenity": "drinking_water"
       },
-      "distanceAlongTrail": 695.5085645523772,
+      "distanceAlongTrail": 678.6125274986465,
       "distanceFromTrail": 0.0694301121968097
     },
     {
@@ -8966,7 +8933,7 @@
       "tags": {
         "amenity": "drinking_water"
       },
-      "distanceAlongTrail": 720.1123890456096,
+      "distanceAlongTrail": 703.2163519918789,
       "distanceFromTrail": 0.01757123840026939
     },
     {
@@ -8980,7 +8947,7 @@
         "name": "Beetaloo Tank Campsite",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 720.1229276300061,
+      "distanceAlongTrail": 703.2268905762754,
       "distanceFromTrail": 0.007284532811829106
     },
     {
@@ -8994,7 +8961,7 @@
         "name": "Go-Cart Track Shelter",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 740.0376932884386,
+      "distanceAlongTrail": 723.141656234708,
       "distanceFromTrail": 0.06108775660208498
     },
     {
@@ -9007,7 +8974,7 @@
       "tags": {
         "amenity": "drinking_water"
       },
-      "distanceAlongTrail": 740.0410719950784,
+      "distanceAlongTrail": 723.1450349413477,
       "distanceFromTrail": 0.07408239548872725
     },
     {
@@ -9022,7 +8989,7 @@
         "bin": "yes",
         "shelter_type": "picnic_shelter"
       },
-      "distanceAlongTrail": 765.6832469027144,
+      "distanceAlongTrail": 748.7872098489837,
       "distanceFromTrail": 1.0249523935385227
     },
     {
@@ -9039,7 +9006,7 @@
         "shelter_type": "picnic_shelter",
         "source": "microsoft/BuildingFootprints"
       },
-      "distanceAlongTrail": 765.6907364576455,
+      "distanceAlongTrail": 748.7946994039148,
       "distanceFromTrail": 1.0722915039924588
     },
     {
@@ -9053,7 +9020,7 @@
         "amenity": "shelter",
         "shelter_type": "picnic_shelter"
       },
-      "distanceAlongTrail": 765.7242225317947,
+      "distanceAlongTrail": 748.828185478064,
       "distanceFromTrail": 1.098133623322765
     },
     {
@@ -9078,7 +9045,7 @@
         "toilets": "yes",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 765.8381792255707,
+      "distanceAlongTrail": 748.94214217184,
       "distanceFromTrail": 1.0479092100857026
     },
     {
@@ -9093,7 +9060,7 @@
         "amenity": "water_point",
         "drinking_water": "unknown"
       },
-      "distanceAlongTrail": 765.8544764955315,
+      "distanceAlongTrail": 748.9584394418008,
       "distanceFromTrail": 1.0548759957434304
     },
     {
@@ -9108,7 +9075,7 @@
         "toilets": "no",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 770.5209461817217,
+      "distanceAlongTrail": 753.624909127991,
       "distanceFromTrail": 0.4855444752296262
     },
     {
@@ -9122,7 +9089,7 @@
         "name": "Bartagunyah Estate Camping",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 778.9492853925794,
+      "distanceAlongTrail": 762.0532483388488,
       "distanceFromTrail": 0.9881262939470852
     },
     {
@@ -9136,7 +9103,7 @@
         "amenity": "drinking_water",
         "name": "Bartagunyah Estate Camping"
       },
-      "distanceAlongTrail": 778.9601007661431,
+      "distanceAlongTrail": 762.0640637124125,
       "distanceFromTrail": 0.9834639447553611
     },
     {
@@ -9150,7 +9117,7 @@
         "amenity": "pub",
         "name": "Northstar Hotel"
       },
-      "distanceAlongTrail": 783.1748484599349,
+      "distanceAlongTrail": 766.2788114062042,
       "distanceFromTrail": 0.040821594580485496
     },
     {
@@ -9168,7 +9135,7 @@
         "operator:wikidata": "Q7566104",
         "operator:wikipedia": "en:South Australian Country Fire Service"
       },
-      "distanceAlongTrail": 783.2065761217318,
+      "distanceAlongTrail": 766.3105390680012,
       "distanceFromTrail": 0.18672236061305086
     },
     {
@@ -9190,7 +9157,7 @@
         "post_office:type:AU": "CPA",
         "source": "Q1142936"
       },
-      "distanceAlongTrail": 783.2090162190678,
+      "distanceAlongTrail": 766.3129791653372,
       "distanceFromTrail": 0.00350272283804058
     },
     {
@@ -9209,7 +9176,7 @@
         "amenity": "cafe",
         "name": "Over the Edge"
       },
-      "distanceAlongTrail": 783.2208086395476,
+      "distanceAlongTrail": 766.324771585817,
       "distanceFromTrail": 0.03184951933236401
     },
     {
@@ -9223,7 +9190,7 @@
         "amenity": "cafe",
         "name": "Wozza's Vault Cafe"
       },
-      "distanceAlongTrail": 783.2558292093051,
+      "distanceAlongTrail": 766.3597921555745,
       "distanceFromTrail": 0.02322161001919419
     },
     {
@@ -9240,7 +9207,7 @@
         "name": "Mount Remarkable Hotel",
         "tourism": "hotel;motel"
       },
-      "distanceAlongTrail": 783.284223565157,
+      "distanceAlongTrail": 766.3881865114264,
       "distanceFromTrail": 0.03547438105635386
     },
     {
@@ -9259,7 +9226,7 @@
         "name": "Store 54 Cafe & Food Market",
         "shop": "convenience"
       },
-      "distanceAlongTrail": 783.2883758004082,
+      "distanceAlongTrail": 766.3923387466775,
       "distanceFromTrail": 0.07253249779383773
     },
     {
@@ -9282,7 +9249,7 @@
         "fuel:octane_91": "yes",
         "name": "Ampol Melrose"
       },
-      "distanceAlongTrail": 783.2883758004082,
+      "distanceAlongTrail": 766.3923387466775,
       "distanceFromTrail": 0.06765231786877265
     },
     {
@@ -9301,7 +9268,7 @@
         "amenity": "cafe",
         "name": "Store 54 Cafe & Food Market"
       },
-      "distanceAlongTrail": 783.2883758004082,
+      "distanceAlongTrail": 766.3923387466775,
       "distanceFromTrail": 0.06497425324702796
     },
     {
@@ -9321,7 +9288,7 @@
         "tourism": "camp_site",
         "website": "https://www.melrosecaravanpark.com.au/c"
       },
-      "distanceAlongTrail": 783.3883187961908,
+      "distanceAlongTrail": 766.4922817424601,
       "distanceFromTrail": 0.12580068361893268
     },
     {
@@ -9341,7 +9308,7 @@
         "toilets": "yes",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 783.704222845938,
+      "distanceAlongTrail": 766.8081857922074,
       "distanceFromTrail": 0.03337478546661787
     },
     {
@@ -9366,7 +9333,7 @@
         "toilets": "yes",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 783.8970223014309,
+      "distanceAlongTrail": 767.0009852477002,
       "distanceFromTrail": 1.6424711770025429
     },
     {
@@ -9380,7 +9347,7 @@
         "name": "Racecourse Camp",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 794.2031153323194,
+      "distanceAlongTrail": 777.3070782785887,
       "distanceFromTrail": 0.0009723966527103486
     },
     {
@@ -9393,7 +9360,7 @@
       "tags": {
         "amenity": "drinking_water"
       },
-      "distanceAlongTrail": 794.2103129831777,
+      "distanceAlongTrail": 777.314275929447,
       "distanceFromTrail": 0.028245579014006116
     },
     {
@@ -9407,7 +9374,7 @@
         "name": "Grays Hut",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 794.6091734688623,
+      "distanceAlongTrail": 777.7131364151317,
       "distanceFromTrail": 0.04865825744880381
     },
     {
@@ -9421,7 +9388,7 @@
         "name": "Goat Rock Campsite",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 796.4022329167964,
+      "distanceAlongTrail": 779.5061958630657,
       "distanceFromTrail": 1.4627691470868318
     },
     {
@@ -9435,7 +9402,7 @@
         "name": "Sugargum Dam Camp",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 797.797475120059,
+      "distanceAlongTrail": 780.9014380663283,
       "distanceFromTrail": 0.8912476433599593
     },
     {
@@ -9448,7 +9415,7 @@
       "tags": {
         "amenity": "drinking_water"
       },
-      "distanceAlongTrail": 797.797475120059,
+      "distanceAlongTrail": 780.9014380663283,
       "distanceFromTrail": 0.8856578184566406
     },
     {
@@ -9461,7 +9428,7 @@
       "tags": {
         "amenity": "drinking_water"
       },
-      "distanceAlongTrail": 808.5379148382654,
+      "distanceAlongTrail": 791.6418777845347,
       "distanceFromTrail": 0.03191705856393863
     },
     {
@@ -9475,7 +9442,7 @@
         "name": "Stony Creek Campsite",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 808.5443813784862,
+      "distanceAlongTrail": 791.6483443247555,
       "distanceFromTrail": 0.022785095372304914
     },
     {
@@ -9489,7 +9456,7 @@
         "name": "Horrocks Pass",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 820.9082688021069,
+      "distanceAlongTrail": 804.0122317483763,
       "distanceFromTrail": 0.015320471832324194
     },
     {
@@ -9503,7 +9470,7 @@
         "amenity": "drinking_water",
         "name": "Catninga Shed"
       },
-      "distanceAlongTrail": 841.5439092627738,
+      "distanceAlongTrail": 824.6478722090432,
       "distanceFromTrail": 0.046145761406125245
     },
     {
@@ -9518,7 +9485,7 @@
         "name": "Waukarie Creek/Mt Brown North Campsite",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 849.0732520509823,
+      "distanceAlongTrail": 832.1772149972517,
       "distanceFromTrail": 0.019298269689122082
     },
     {
@@ -9532,7 +9499,7 @@
         "name": "Woolshed Flat Rest Area",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 853.9264274830385,
+      "distanceAlongTrail": 837.0303904293079,
       "distanceFromTrail": 1.3995729914712038
     },
     {
@@ -9546,7 +9513,7 @@
         "name": "Woolshed Flat",
         "railway": "station"
       },
-      "distanceAlongTrail": 853.9264274830385,
+      "distanceAlongTrail": 837.0303904293079,
       "distanceFromTrail": 0.277001178674054
     },
     {
@@ -9560,7 +9527,7 @@
         "name": "Devil’s Peak B&B Bush Camp",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 858.4682096816098,
+      "distanceAlongTrail": 841.5721726278791,
       "distanceFromTrail": 0.22831357609969286
     },
     {
@@ -9574,7 +9541,7 @@
         "name": "Old Willows",
         "railway": "station"
       },
-      "distanceAlongTrail": 860.1699155307849,
+      "distanceAlongTrail": 843.2738784770543,
       "distanceFromTrail": 0.019656284121387452
     },
     {
@@ -9590,7 +9557,7 @@
         "name": "Quorn District and Memorial Hospital",
         "source": "http://www.myhospitals.gov.au/hospital/41NF00208/quorn-and-district-memorial-hospital"
       },
-      "distanceAlongTrail": 870.0898548107488,
+      "distanceAlongTrail": 853.1898548107487,
       "distanceFromTrail": 0.4515182420512963
     },
     {
@@ -9605,7 +9572,7 @@
         "compressed_air": "no",
         "source": "Bing Image"
       },
-      "distanceAlongTrail": 870.1774591228032,
+      "distanceAlongTrail": 853.2774591228031,
       "distanceFromTrail": 0.3160456251466532
     },
     {
@@ -9620,7 +9587,7 @@
         "cuisine": "japanese",
         "name": "Michie's Kitchen"
       },
-      "distanceAlongTrail": 870.2061668792729,
+      "distanceAlongTrail": 853.3061668792728,
       "distanceFromTrail": 0.5674526481522774
     },
     {
@@ -9639,7 +9606,7 @@
         "amenity": "pub",
         "name": "Austral Hotel"
       },
-      "distanceAlongTrail": 870.2061668792729,
+      "distanceAlongTrail": 853.3061668792728,
       "distanceFromTrail": 0.40552501495744847
     },
     {
@@ -9654,7 +9621,7 @@
         "name": "Quandong Cafe",
         "phone": "+61 8 8648 6155"
       },
-      "distanceAlongTrail": 870.2061668792729,
+      "distanceAlongTrail": 853.3061668792728,
       "distanceFromTrail": 0.4387079794346577
     },
     {
@@ -9669,7 +9636,7 @@
         "cuisine": "coffee_shop",
         "name": "Emily's Bistro"
       },
-      "distanceAlongTrail": 870.2061668792729,
+      "distanceAlongTrail": 853.3061668792728,
       "distanceFromTrail": 0.563821208597099
     },
     {
@@ -9695,7 +9662,7 @@
         "outdoor_seating": "yes",
         "smoking": "no"
       },
-      "distanceAlongTrail": 870.2061668792729,
+      "distanceAlongTrail": 853.3061668792728,
       "distanceFromTrail": 0.5180365622653577
     },
     {
@@ -9715,7 +9682,7 @@
         "building": "yes",
         "name": "Teas on the Terrace"
       },
-      "distanceAlongTrail": 870.2061668792729,
+      "distanceAlongTrail": 853.3061668792728,
       "distanceFromTrail": 0.18646058276653457
     },
     {
@@ -9735,7 +9702,7 @@
         "building": "yes",
         "name": "Austral Inn"
       },
-      "distanceAlongTrail": 870.2061668792729,
+      "distanceAlongTrail": 853.3061668792728,
       "distanceFromTrail": 0.40623044470447406
     },
     {
@@ -9752,7 +9719,7 @@
         "building": "yes",
         "name": "Transcontinental Hotel"
       },
-      "distanceAlongTrail": 870.2061668792729,
+      "distanceAlongTrail": 853.3061668792728,
       "distanceFromTrail": 0.3599725737257748
     },
     {
@@ -9768,7 +9735,7 @@
         "name": "IGA Quorn",
         "shop": "supermarket"
       },
-      "distanceAlongTrail": 870.2061668792729,
+      "distanceAlongTrail": 853.3061668792728,
       "distanceFromTrail": 0.5403900298575632
     },
     {
@@ -9782,7 +9749,7 @@
         "amenity": "shelter",
         "building": "yes"
       },
-      "distanceAlongTrail": 870.3568388986607,
+      "distanceAlongTrail": 853.4568388986606,
       "distanceFromTrail": 0.1467845812399739
     },
     {
@@ -9795,7 +9762,7 @@
       "tags": {
         "amenity": "shelter"
       },
-      "distanceAlongTrail": 870.3765391842877,
+      "distanceAlongTrail": 853.4765391842876,
       "distanceFromTrail": 0.030475608247740513
     },
     {
@@ -9808,7 +9775,7 @@
       "tags": {
         "amenity": "shelter"
       },
-      "distanceAlongTrail": 870.3805937715431,
+      "distanceAlongTrail": 853.480593771543,
       "distanceFromTrail": 0.04523613721657307
     },
     {
@@ -9821,7 +9788,7 @@
       "tags": {
         "amenity": "shelter"
       },
-      "distanceAlongTrail": 870.3897784086795,
+      "distanceAlongTrail": 853.4897784086794,
       "distanceFromTrail": 0.03509561419782462
     },
     {
@@ -9836,7 +9803,7 @@
         "building": "yes",
         "shelter_type": "picnic_shelter"
       },
-      "distanceAlongTrail": 870.4401913656966,
+      "distanceAlongTrail": 853.5401913656965,
       "distanceFromTrail": 0.1175041249475159
     },
     {
@@ -9853,7 +9820,7 @@
         "name": "CFS & State Emergency Service",
         "source": "https://www.pichirichirailway.org.au/images/History/Quorn_heritage_walk/walk_map.png"
       },
-      "distanceAlongTrail": 870.5051989415816,
+      "distanceAlongTrail": 853.6051989415815,
       "distanceFromTrail": 0.7180126808864914
     },
     {
@@ -9868,7 +9835,7 @@
         "tourism": "caravan_site",
         "website": "https://quorncaravanpark.com.au/"
       },
-      "distanceAlongTrail": 870.5445235697218,
+      "distanceAlongTrail": 853.6445235697217,
       "distanceFromTrail": 0.3956598170520821
     },
     {
@@ -9881,7 +9848,7 @@
       "tags": {
         "natural": "spring"
       },
-      "distanceAlongTrail": 876.2310119625512,
+      "distanceAlongTrail": 859.3349749088205,
       "distanceFromTrail": 0.7297909294354781
     },
     {
@@ -9897,7 +9864,7 @@
         "name": "Dutchman's Hut",
         "shelter_type": "basic_hut"
       },
-      "distanceAlongTrail": 878.0919889655324,
+      "distanceAlongTrail": 861.1959519118018,
       "distanceFromTrail": 0.1727913254828905
     },
     {
@@ -9911,7 +9878,7 @@
         "name": "Dutchman's Hut",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 878.2310383469162,
+      "distanceAlongTrail": 861.3350012931855,
       "distanceFromTrail": 0.16725883529643604
     },
     {
@@ -9926,7 +9893,7 @@
         "place": "locality",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 894.2083221323294,
+      "distanceAlongTrail": 877.3122850785987,
       "distanceFromTrail": 0.02506013192694185
     },
     {
@@ -9940,7 +9907,7 @@
         "amenity": "shelter",
         "building": "yes"
       },
-      "distanceAlongTrail": 894.210636117006,
+      "distanceAlongTrail": 877.3145990632753,
       "distanceFromTrail": 0.02715242956503622
     },
     {
@@ -9954,7 +9921,7 @@
         "name": "Mt Arden South Campsite",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 906.164230033554,
+      "distanceAlongTrail": 889.2681929798233,
       "distanceFromTrail": 0.017985428222629878
     },
     {
@@ -9967,7 +9934,7 @@
       "tags": {
         "amenity": "drinking_water"
       },
-      "distanceAlongTrail": 928.2489585923435,
+      "distanceAlongTrail": 911.3529215386128,
       "distanceFromTrail": 0.016528376971184262
     },
     {
@@ -9981,7 +9948,7 @@
         "name": "Buckaringa North Campsite",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 928.2587288716597,
+      "distanceAlongTrail": 911.3626918179291,
       "distanceFromTrail": 0.005099346328858816
     },
     {
@@ -9995,7 +9962,7 @@
         "name": "Callabrinda Creek Campsite",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 947.1486117974678,
+      "distanceAlongTrail": 930.2525747437371,
       "distanceFromTrail": 0.1261625375647226
     },
     {
@@ -10009,7 +9976,7 @@
         "name": "Mt Elm",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 963.2109924160495,
+      "distanceAlongTrail": 946.3149553623189,
       "distanceFromTrail": 0.011810971065742287
     },
     {
@@ -10023,7 +9990,7 @@
         "amenity": "hospital",
         "name": "Hawker Hospital"
       },
-      "distanceAlongTrail": 973.0120815648177,
+      "distanceAlongTrail": 956.1220815648176,
       "distanceFromTrail": 0.8874959002382798
     },
     {
@@ -10041,7 +10008,7 @@
         "short_name": "Hawker Hospital",
         "source": "https://www.health.gov.au/resources/publications/list-of-declared-hospitals"
       },
-      "distanceAlongTrail": 973.0120815648177,
+      "distanceAlongTrail": 956.1220815648176,
       "distanceFromTrail": 0.8532440493997717
     },
     {
@@ -10060,7 +10027,7 @@
         "source": "survey",
         "website": "https://map.bp.com/en-AU/AU/gas-station/hawker/bp-hawker/6828"
       },
-      "distanceAlongTrail": 973.0307730714638,
+      "distanceAlongTrail": 956.1407730714637,
       "distanceFromTrail": 0.3307827892333627
     },
     {
@@ -10081,7 +10048,7 @@
         "operator": "South Australian Country Fire Service",
         "operator:wikidata": "Q7566104"
       },
-      "distanceAlongTrail": 973.0307730714638,
+      "distanceAlongTrail": 956.1407730714637,
       "distanceFromTrail": 0.23088489436133458
     },
     {
@@ -10094,7 +10061,7 @@
       "tags": {
         "amenity": "shelter"
       },
-      "distanceAlongTrail": 973.0307730714638,
+      "distanceAlongTrail": 956.1407730714637,
       "distanceFromTrail": 0.7872155671472777
     },
     {
@@ -10114,7 +10081,7 @@
         "source:name": "survey",
         "tourism": "caravan_site"
       },
-      "distanceAlongTrail": 973.0927632927337,
+      "distanceAlongTrail": 956.2027632927336,
       "distanceFromTrail": 0.5807361644507802
     },
     {
@@ -10128,7 +10095,7 @@
         "amenity": "shelter",
         "building": "yes"
       },
-      "distanceAlongTrail": 973.1022922586652,
+      "distanceAlongTrail": 956.2122922586651,
       "distanceFromTrail": 0.08732030821904611
     },
     {
@@ -10148,7 +10115,7 @@
         "source": "survey",
         "tourism": "information"
       },
-      "distanceAlongTrail": 973.1126941576107,
+      "distanceAlongTrail": 956.2226941576106,
       "distanceFromTrail": 0.2801055399349642
     },
     {
@@ -10163,7 +10130,7 @@
         "brand": "Mobil",
         "name": "Mogas"
       },
-      "distanceAlongTrail": 973.1166420007672,
+      "distanceAlongTrail": 956.2266420007671,
       "distanceFromTrail": 0.2861134977963624
     },
     {
@@ -10178,7 +10145,7 @@
         "name": "Flinders Food Co",
         "opening_hours": "Tu-Su 07:30-15:00"
       },
-      "distanceAlongTrail": 973.1370199081273,
+      "distanceAlongTrail": 956.2470199081272,
       "distanceFromTrail": 0.13204561357770425
     },
     {
@@ -10192,7 +10159,7 @@
         "name": "Hawker General Store",
         "shop": "supermarket"
       },
-      "distanceAlongTrail": 973.1471943765251,
+      "distanceAlongTrail": 956.257194376525,
       "distanceFromTrail": 0.2552373669816408
     },
     {
@@ -10206,7 +10173,7 @@
         "name": "Hawker Town Park",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 973.1501690801113,
+      "distanceAlongTrail": 956.2601690801112,
       "distanceFromTrail": 0.09848172674499917
     },
     {
@@ -10223,7 +10190,7 @@
         "operator": "Australia Post",
         "operator:wikidata": "Q1142936"
       },
-      "distanceAlongTrail": 973.1505254610504,
+      "distanceAlongTrail": 956.2605254610503,
       "distanceFromTrail": 0.25107083807883
     },
     {
@@ -10237,7 +10204,7 @@
         "name": "Hawker General Store",
         "shop": "outdoor"
       },
-      "distanceAlongTrail": 973.1584672782463,
+      "distanceAlongTrail": 956.2684672782462,
       "distanceFromTrail": 0.2505743106727346
     },
     {
@@ -10257,7 +10224,7 @@
         "phone": "+61 8 8648 4176",
         "website": "https://theoldghanrestaurant.weebly.com/"
       },
-      "distanceAlongTrail": 973.4629574024407,
+      "distanceAlongTrail": 956.5729574024406,
       "distanceFromTrail": 0.009621450495755675
     },
     {
@@ -10271,7 +10238,7 @@
         "name": "Hawker Caravan Park",
         "tourism": "caravan_site"
       },
-      "distanceAlongTrail": 973.7682583283599,
+      "distanceAlongTrail": 956.8782583283598,
       "distanceFromTrail": 0.3333289468523893
     },
     {
@@ -10287,7 +10254,7 @@
         "name": "Hawker Overflow",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 974.9859791074302,
+      "distanceAlongTrail": 958.0959791074301,
       "distanceFromTrail": 1.1029249000483339
     },
     {
@@ -10301,7 +10268,7 @@
         "name": "Nooltana Creek Rest Area",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 979.9629462378072,
+      "distanceAlongTrail": 963.0669091840765,
       "distanceFromTrail": 1.5670120083289454
     },
     {
@@ -10315,7 +10282,7 @@
         "name": "Mayo Hut",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 988.3910728623229,
+      "distanceAlongTrail": 971.4950358085922,
       "distanceFromTrail": 0.044563457214776024
     },
     {
@@ -10331,7 +10298,7 @@
         "tourism": "wilderness_hut",
         "website": "https://heysentrail.asn.au/heysen-trail/accommodation/provider/mayo-hut/"
       },
-      "distanceAlongTrail": 988.3910728623229,
+      "distanceAlongTrail": 971.4950358085922,
       "distanceFromTrail": 0.038463338668523875
     },
     {
@@ -10345,7 +10312,7 @@
         "name": "Mt Little Station",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 989.6611210060453,
+      "distanceAlongTrail": 972.7650839523146,
       "distanceFromTrail": 1.4516567302330436
     },
     {
@@ -10358,7 +10325,7 @@
       "tags": {
         "amenity": "drinking_water"
       },
-      "distanceAlongTrail": 1005.5295424074317,
+      "distanceAlongTrail": 988.633505353701,
       "distanceFromTrail": 0.0010969337653523737
     },
     {
@@ -10372,7 +10339,7 @@
         "name": "Red Range Camp",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 1005.5445268771407,
+      "distanceAlongTrail": 988.64848982341,
       "distanceFromTrail": 0.0014023347804367112
     },
     {
@@ -10386,7 +10353,7 @@
         "amenity": "shelter",
         "name": "Arkaba Stockyard Tank"
       },
-      "distanceAlongTrail": 1016.7634011143836,
+      "distanceAlongTrail": 999.8673640606529,
       "distanceFromTrail": 0.003628955417745384
     },
     {
@@ -10399,7 +10366,7 @@
       "tags": {
         "amenity": "drinking_water"
       },
-      "distanceAlongTrail": 1030.0977278691532,
+      "distanceAlongTrail": 1013.2016908154237,
       "distanceFromTrail": 0.03481516388567931
     },
     {
@@ -10418,7 +10385,7 @@
         "shop": "general",
         "wheelchair": "yes"
       },
-      "distanceAlongTrail": 1033.487734870518,
+      "distanceAlongTrail": 1016.5916978167886,
       "distanceFromTrail": 0.04594769248241511
     },
     {
@@ -10438,7 +10405,7 @@
         "opening_hours": "PH,Mo-Su 08:00-18:00",
         "wheelchair": "yes"
       },
-      "distanceAlongTrail": 1033.5000189740663,
+      "distanceAlongTrail": 1016.603981920337,
       "distanceFromTrail": 0.05699603933860638
     },
     {
@@ -10460,7 +10427,7 @@
         "tourism": "camp_site",
         "wheelchair": "yes"
       },
-      "distanceAlongTrail": 1033.6188586277979,
+      "distanceAlongTrail": 1016.7228215740683,
       "distanceFromTrail": 0.18592426410206989
     },
     {
@@ -10477,7 +10444,7 @@
         "shelter_type": "picnic_shelter",
         "source": "microsoft/BuildingFootprints"
       },
-      "distanceAlongTrail": 1033.7027716086047,
+      "distanceAlongTrail": 1016.8067345548754,
       "distanceFromTrail": 0.02328452188472478
     },
     {
@@ -10491,7 +10458,7 @@
         "name": "Unpowered camp\\caravan sites",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 1033.7403707757396,
+      "distanceAlongTrail": 1016.8443337220101,
       "distanceFromTrail": 0.005876931295870463
     },
     {
@@ -10508,7 +10475,7 @@
         "shelter_type": "picnic_shelter",
         "source": "microsoft/BuildingFootprints"
       },
-      "distanceAlongTrail": 1033.7676897729134,
+      "distanceAlongTrail": 1016.8716527191838,
       "distanceFromTrail": 0.09000402062393084
     },
     {
@@ -10525,7 +10492,7 @@
         "shelter_type": "picnic_shelter",
         "source": "microsoft/BuildingFootprints"
       },
-      "distanceAlongTrail": 1033.7676897729134,
+      "distanceAlongTrail": 1016.8716527191838,
       "distanceFromTrail": 0.05546804640881215
     },
     {
@@ -10539,7 +10506,7 @@
         "name": "Wilcolo Campground",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 1040.2128637450587,
+      "distanceAlongTrail": 1023.3168266913299,
       "distanceFromTrail": 0.06592076655733438
     },
     {
@@ -10558,7 +10525,7 @@
         "toilets": "no",
         "tourism": "wilderness_hut"
       },
-      "distanceAlongTrail": 1055.650160524337,
+      "distanceAlongTrail": 1038.754123470608,
       "distanceFromTrail": 0.0764030408033026
     },
     {
@@ -10572,7 +10539,7 @@
         "name": "Yanyanna Hut Campsite",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 1055.663989606947,
+      "distanceAlongTrail": 1038.767952553218,
       "distanceFromTrail": 0.0427719766100493
     },
     {
@@ -10586,7 +10553,7 @@
         "name": "Middlesight Water Hut",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 1064.0845991364968,
+      "distanceAlongTrail": 1047.1885620827677,
       "distanceFromTrail": 0.018985799113404776
     },
     {
@@ -10606,7 +10573,7 @@
         "toilets": "no",
         "tourism": "wilderness_hut"
       },
-      "distanceAlongTrail": 1064.0845991364968,
+      "distanceAlongTrail": 1047.1885620827677,
       "distanceFromTrail": 0.01732704935368938
     },
     {
@@ -10619,7 +10586,7 @@
       "tags": {
         "man_made": "water_tap"
       },
-      "distanceAlongTrail": 1066.4306219932605,
+      "distanceAlongTrail": 1049.5345849395314,
       "distanceFromTrail": 0.0036545927507431043
     },
     {
@@ -10633,7 +10600,7 @@
         "name": "Trezona Campground",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 1066.4479506554987,
+      "distanceAlongTrail": 1049.5519136017697,
       "distanceFromTrail": 0.38676797713166894
     },
     {
@@ -10648,7 +10615,7 @@
         "source": "survey",
         "tourism": "caravan_site"
       },
-      "distanceAlongTrail": 1066.4479506554987,
+      "distanceAlongTrail": 1049.5519136017697,
       "distanceFromTrail": 0.03556325385205673
     },
     {
@@ -10662,7 +10629,7 @@
         "name": "Slippery Dip Camp area",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 1066.4479506554987,
+      "distanceAlongTrail": 1049.5519136017697,
       "distanceFromTrail": 1.9912216747570581
     },
     {
@@ -10676,7 +10643,7 @@
         "name": "Trezona Campground",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 1066.4479506554987,
+      "distanceAlongTrail": 1049.5519136017697,
       "distanceFromTrail": 0.19965318460818507
     },
     {
@@ -10690,7 +10657,7 @@
         "name": "Youngoona Campground",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 1068.2317932050817,
+      "distanceAlongTrail": 1051.3357561513526,
       "distanceFromTrail": 1.327180097300706
     },
     {
@@ -10704,7 +10671,7 @@
         "name": "Koolamon Campground",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 1079.4857947550815,
+      "distanceAlongTrail": 1062.5897577013525,
       "distanceFromTrail": 1.3651718228163119
     },
     {
@@ -10719,7 +10686,7 @@
         "source": "survey",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 1079.4857947550815,
+      "distanceAlongTrail": 1062.5897577013525,
       "distanceFromTrail": 1.1794070091965652
     },
     {
@@ -10733,7 +10700,7 @@
         "name": "Aroona Campground",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 1080.5614613312562,
+      "distanceAlongTrail": 1063.665424277527,
       "distanceFromTrail": 0.15092712865975833
     },
     {
@@ -10747,7 +10714,7 @@
         "name": "Parachilna Gorge",
         "tourism": "camp_site"
       },
-      "distanceAlongTrail": 1098.944209844788,
+      "distanceAlongTrail": 1082.048172791059,
       "distanceFromTrail": 0.05065156051424341
     },
     {
@@ -10761,7 +10728,7 @@
         "amenity": "drinking_water",
         "created_by": "Potlatch 0.10f"
       },
-      "distanceAlongTrail": 1098.944209844788,
+      "distanceAlongTrail": 1082.048172791059,
       "distanceFromTrail": 0.034971881951732384
     }
   ]

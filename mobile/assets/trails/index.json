@@ -129,15 +129,15 @@
     "id": "heysen",
     "name": "Heysen Trail",
     "shortName": "Heysen",
-    "lengthKm": 1098.9,
+    "lengthKm": 1082,
     "country": "AU",
     "states": [
       "SA"
     ],
-    "dataVersion": "2026-11-18",
-    "updatedAt": "2026-11-18T10:11:59.344Z",
-    "md5": "0634c9a1f1692a10aba5d359294de43b",
-    "bytes": 1248595
+    "dataVersion": "2026-11-23",
+    "updatedAt": "2026-11-23T10:05:23.152Z",
+    "md5": "b4b4f4333b32f8a57501af9a6bfd4f5b",
+    "bytes": 1229802
   },
   {
     "id": "kep_track",
