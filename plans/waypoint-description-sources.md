@@ -13,11 +13,12 @@ The trails authored before this note (Cape to Cape, AAWT, Bibbulmun, Hume & Hove
 
 ## Temporary closures in the descriptions
 
-Every dated sentence in the bundled text, across all trails, is tracked on #219 for review each quarter and before each fire season; find them with `grep -rn "As of " data/trails/*/descriptions.json`. Each was re-checked against its source on 2026-10-30, and again on 2026-11-11, when every one still held and its date moved to "As of November 2026". The Heysen ones are listed under that trail. The other three, added on #219:
+Every dated sentence in the bundled text, across all trails, is tracked on #219 for review each quarter and before each fire season; find them with `grep -rn "As of " data/trails/*/descriptions.json`. Each was re-checked against its source on 2026-10-30, again on 2026-11-11, when every one still held and its date moved to "As of November 2026", and again with WebFetch on 2026-11-23, when every one still held. The Heysen ones are listed under that trail. The other three, added on #219:
 
 - **Jenolan Caves** (Six Foot Track `w_9853df4e`): NSW National Parks' Six Foot Track [local alerts](https://www.nationalparks.nsw.gov.au/things-to-do/walking-tracks/six-foot-track/local-alerts), read through the alerts feed the page loads (`api-prd.nswparks.cloud/api/v1/AlertsClosures/alerts/…`). The "Closure due to construction works" alert (published 9 Oct 2026, to be reviewed 18 Jan 2027) says the Jenolan Karst Conservation Reserve, "including the visitor precinct and walking tracks", is closed until 31 December 2026 for "major infrastructure repairs and upgrades", with "no access to the Reserve or Jenolan Caves via the Six Foot Track". The Blue Mountains "Closure due to damaged areas" alert adds that the Six Foot Track is closed at the reserve boundary. NSW National Parks still gives Binda Bush cabins as the track's end; the descriptions do not mention it. (On 2026-10-19 Visit NSW gave flood damage and landslips as the cause; the description follows NSW National Parks.) On 2026-11-11 the same feed still carried both alerts unchanged: the reserve closure (last modified 18 Oct 2026, review 18 Jan 2027) and the boundary closure (last modified 19 Oct 2026).
-- **George Point** (Thorsborne `w_fc1b14f4`): Queensland Parks [park alert 22907](https://parks.qld.gov.au/park-alerts/22907), "George Point toilet and sign removed due to erosion", read in full with curl on 2026-10-30. It runs from 17 September 2024 to 30 June 2027 (updated 30 June 2026) and gives: severe erosion from high tides over several years; the camping-area signs and infrastructure, toilet included, removed; no sign marking the pickup point; bush camping under a stand of trees about 2.6 km south of the Mulligan Creek crossing, with no toilet or pack rack; the pickup point 250 m south-west of it along the beach; QPWS reviewing the site's future under the Thorsborne Trail Enhancement project. The description says Queensland Parks removed the toilet and signs because of erosion, gives the alert's 30 June 2027 end date, and places the bush camping 250 m short of the unmarked pickup point. The alert page answered, but the Queensland Parks trail pages listed under the Thorsborne section still answered 403 on 2026-10-30, so the trail's normal facilities remain unconfirmed. Re-read with curl on 2026-11-11: unchanged (still 17 September 2024 to 30 June 2027, updated 30 June 2026).
-- **Three Capes annual maintenance closure:** PWS Tasmania's [Cape Pillar](https://parks.tas.gov.au/explore-our-parks/tasman-national-park/tasman-cape-pillar) page says the track closes every year for maintenance and fuel-reduction burns, for 14 days, and lists 5–18 April 2027 next (then 24 April – 7 May 2028 and 9–22 April 2029). The closure covers the Three Capes Track, Bare Knoll campground and the Old Cape Pillar Track; the Cape Hauy Track was not affected in 2026. The sentence is on **Denmans Cove** (`w_b4f525ef`) and **Bare Knoll Campground** (`w_e2522cc4`); move it to the next year's dates once the April 2027 closure is over. Re-read with curl on 2026-11-11: the same dates.
+  On 2026-11-23 the local-alerts page, read with WebFetch, still said the reserve is closed until 31 December 2026 with "no access to the Reserve or Jenolan Caves via the Six Foot Track", and still listed the track as closed at the reserve boundary; remove or rewrite the sentence once that date passes.
+- **George Point** (Thorsborne `w_fc1b14f4`): Queensland Parks [park alert 22907](https://parks.qld.gov.au/park-alerts/22907), "George Point toilet and sign removed due to erosion", read in full with curl on 2026-10-30. It runs from 17 September 2024 to 30 June 2027 (updated 30 June 2026) and gives: severe erosion from high tides over several years; the camping-area signs and infrastructure, toilet included, removed; no sign marking the pickup point; bush camping under a stand of trees about 2.6 km south of the Mulligan Creek crossing, with no toilet or pack rack; the pickup point 250 m south-west of it along the beach; QPWS reviewing the site's future under the Thorsborne Trail Enhancement project. The description says Queensland Parks removed the toilet and signs because of erosion, gives the alert's 30 June 2027 end date, and places the bush camping 250 m short of the unmarked pickup point. The alert page answered, but the Queensland Parks trail pages listed under the Thorsborne section still answered 403 on 2026-10-30, so the trail's normal facilities remain unconfirmed. Re-read with curl on 2026-11-11, and with WebFetch on 2026-11-23: unchanged (still 17 September 2024 to 30 June 2027, updated 30 June 2026).
+- **Three Capes annual maintenance closure:** PWS Tasmania's [Cape Pillar](https://parks.tas.gov.au/explore-our-parks/tasman-national-park/tasman-cape-pillar) page says the track closes every year for maintenance and fuel-reduction burns, for 14 days, and lists 5–18 April 2027 next (then 24 April – 7 May 2028 and 9–22 April 2029). The closure covers the Three Capes Track, Bare Knoll campground and the Old Cape Pillar Track; the Cape Hauy Track was not affected in 2026. The sentence is on **Denmans Cove** (`w_b4f525ef`) and **Bare Knoll Campground** (`w_e2522cc4`); move it to the next year's dates once the April 2027 closure is over. Re-read with curl on 2026-11-11, and with WebFetch on 2026-11-23: the same dates, which the page calls proposed.
 
 ## Three Capes Track (`three_capes`)
 
@@ -60,7 +61,23 @@ All six PWS Tasmania pages below were read in full with curl on 2026-10-19.
 
 ## Thorsborne Trail (`thorsborne`)
 
-**What could not be read.** Every Queensland Parks page and PDF below answered 403 (a Cloudflare challenge) to both curl, with a browser User-Agent, and WebFetch on 2026-10-19, and the parks.qld.gov.au trail pages still did on 2026-10-30. The one exception is park alert 22907, read in full on 2026-10-30, which confirmed the George Point closure (see [Temporary closures in the descriptions](#temporary-closures-in-the-descriptions)):
+**Queensland Parks camping page (2026-11-23).** The camping page has moved to [parks.qld.gov.au/parks/hinchinbrook-thorsborne/camping/thorsborne-trail](https://parks.qld.gov.au/parks/hinchinbrook-thorsborne/camping/thorsborne-trail), which WebFetch read in full on 2026-11-23 (#312); the old `hinchinbrook-island` addresses below still fail.
+It gives, per camping area:
+- Nina Bay: "composting toilets, pack rack", sites for Thorsborne Trail hikers only
+- Little Ramsay Bay, Zoe Bay and Mulligan Falls: "composting toilets, platforms, pack poles"; at Zoe Bay, boat-based campers have separate sites within the camping area
+- Banksia Bay: no facilities, a small open area without separately defined sites, also used by boat-based campers and sea kayakers
+- Sunken Reef Bay (no waypoint): no facilities, an open area
+- George Point: no facilities, an open area without separate sites, reached by kayak and from the trail
+- open fires prohibited and generators not permitted at every area
+
+The page's summary icons say "No toilets" and "No picnic tables", which contradicts the per-area lists; the descriptions follow the per-area lists.
+The overview page ([camping](https://parks.qld.gov.au/parks/hinchinbrook-thorsborne/camping)) gives seven camping areas, a two-night limit except one night at Mulligan Falls, and permits for at most 12 people starting each day; none of that was added.
+The Hinchinbrook discovery guide PDF (April 2020) now loads too; it lists a toilet and pack racks at George Point, which the current camping page and park alert 22907 supersede, so the descriptions do not use it.
+The `hinchinbrook-thorsborne/walking`, `hinchinbrook/journeys/thorsborne-trail` and Thorsborne Trail enhancement project pages still failed on 2026-11-23.
+
+The descriptions now add each area's facilities from that page: Nina Bay, Little Ramsay Bay, Zoe Bay (with the separate boat-based sites), Mulligan Falls, Banksia Bay (no facilities, open area, boats and kayaks) and George Point (no facilities, beside the dated closure sentence, which was shortened to stay within 400 characters).
+
+**What could not be read (2026-10-19 to 2026-10-30).** Every Queensland Parks page and PDF below answered 403 (a Cloudflare challenge) to both curl, with a browser User-Agent, and WebFetch on 2026-10-19, and the parks.qld.gov.au trail pages still did on 2026-10-30. The one exception is park alert 22907, read in full on 2026-10-30, which confirmed the George Point closure (see [Temporary closures in the descriptions](#temporary-closures-in-the-descriptions)):
 - parks.qld.gov.au: the `walking`, `camping/thorsborne-trail`, `visiting-safely` and `journeys/thorsborne-trail` pages
 - parks.des.qld.gov.au: the Thorsborne map PDF and the Hinchinbrook discovery guide PDF
 
@@ -80,7 +97,7 @@ The Wayback Machine has a snapshot of the walking page (2025-11-22), but web.arc
 
 Every Thorsborne statement now rests on that page.
 
-**Removed in review.** Each of these came only from search-result snippets of the Queensland Parks pages:
+**Removed in review.** Each of these came only from search-result snippets of the Queensland Parks pages (the toilets, platforms and pack poles, Banksia Bay's lack of facilities, Zoe Bay's separate boat-based sites and George Point's "no facilities" are back since 2026-11-23, from the camping page itself):
 - composting toilets, platforms and pack poles at Nina Bay, Little Ramsay Bay, Zoe Bay and Mulligan Falls
 - "about 4 km in" at Nina Bay
 - Banksia Bay's "no facilities, no toilet"
@@ -93,7 +110,7 @@ Every Thorsborne statement now rests on that page.
 
 **Little Ramsay Bay** quotes TEQ's water sources for that leg, the Nina Bay creeks and the Blacksand Beach lagoon. It no longer claims a creek upstream of the Little Ramsay lagoon.
 
-**Still to do:** once the Queensland Parks trail pages can be read, re-add the facilities and confirm George Point's normal facilities (the alert covers only the temporary removal).
+**Still to do:** the walking and journey pages (track notes and water sources) remain unread; when they can be read, check the water sources against TEQ.
 
 ## Six Foot Track (`six_foot_track`)
 
@@ -301,6 +318,8 @@ Covers main-route waypoints after Burra (km > 489.3, Burra Caravan Park to Parac
 
 All five re-checked against the FOHT pages on 2026-10-30 (#219) and unchanged; the Whistling Trig page still gave the 28 Sep 2026 reading.
 Re-checked again with curl on 2026-11-11 (#219): four unchanged, with their date moved to November 2026, and the Tanunda sentence rewritten for the new fire season.
+Re-checked with WebFetch on 2026-11-23 (#219): all five unchanged, including the 6 Nov 2026 fire-season news item and the district dates on the Trail reroutes and closures page.
+On the Curnows Hut page, a FOHT reply in the visitor comments (19 June 2026) says the hut "remains open as far as I am aware"; the page's own notes and title still say closed, and the description follows them.
 The tank-level list the place pages link to is a Knack app on tecpws.knack.com, not on heysentrail.asn.au, and was not read; the Whistling Trig figure rests on the place page.
 
 - **Whistling Trig Tank** (`w_37b9b2d5`): FOHT says the tank is leaking and stood at 4% on 28 Sep 2026; volunteers are replacing it, "but due to the logistics of accessing the property, this will not be a quick fix" (unchanged on 2026-11-11).

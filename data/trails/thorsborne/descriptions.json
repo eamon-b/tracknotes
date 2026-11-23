@@ -1,26 +1,26 @@
 {
   "trailId": "thorsborne",
-  "note": "Curated waypoint descriptions, keyed by the stable ids in data/waypoint-ids.json. Applied by scripts/build-trails.ts (overriding any description from the GPX source) and uploadable to the comments API with scripts/upload-descriptions.ts. Listed north to south, from Ramsay Bay to George Point, matching the km order of the generated trail data. Facilities (toilets, platforms) are left out until the Queensland Parks trail pages can be read in full; the George Point closure comes from a Queensland Parks park alert. Temporary closures are dated ('As of October 2026') so they can be found and removed. Sources for each fact: plans/waypoint-description-sources.md.",
+  "note": "Curated waypoint descriptions, keyed by the stable ids in data/waypoint-ids.json. Applied by scripts/build-trails.ts (overriding any description from the GPX source) and uploadable to the comments API with scripts/upload-descriptions.ts. Listed north to south, from Ramsay Bay to George Point, matching the km order of the generated trail data. Facilities come from the Queensland Parks Thorsborne Trail camping page; the George Point closure comes from a Queensland Parks park alert. Temporary closures are dated ('As of October 2026') so they can be found and removed. Sources for each fact: plans/waypoint-description-sources.md.",
   "descriptions": [
     {
       "waypointId": "w_360268e6",
       "name": "Nina Bay",
-      "description": "Camping area on the white sand of Nina Bay, the bay after the Ramsay Bay start and before Little Ramsay Bay. Water is in the creeks at each end of the bay, 100–200 m upstream."
+      "description": "Camping area on the white sand of Nina Bay, the bay after the Ramsay Bay start and before Little Ramsay Bay. Queensland Parks list composting toilets and a pack rack, with sites for Thorsborne Trail walkers only. Water is in the creeks at each end of the bay, 100–200 m upstream."
     },
     {
       "waypointId": "w_43389253",
       "name": "Little Ramsay Bay campsite",
-      "description": "Camping area on the south side of the lagoon at Little Ramsay Bay, reached from Nina Bay by rock-hopping around the headland. The water sources listed for this stretch are the Nina Bay creeks and the lagoon at Blacksand Beach."
+      "description": "Camping area on the south side of the lagoon at Little Ramsay Bay, reached from Nina Bay by rock-hopping around the headland. Queensland Parks list composting toilets, tent platforms and pack poles. The water sources listed for this stretch are the Nina Bay creeks and the lagoon at Blacksand Beach."
     },
     {
       "waypointId": "w_b47033ee",
       "name": "Banksia Bay campsite",
-      "description": "Small, quieter camping area on Banksia Bay, on the stretch between Little Ramsay Bay and Zoe Bay. Water is in Banksia Creek, about 100 m upstream from the beach."
+      "description": "Small, quieter camping area on Banksia Bay, on the stretch between Little Ramsay Bay and Zoe Bay. An open area without marked sites and with no facilities, also used by boat-based campers and sea kayakers. Water is in Banksia Creek, about 100 m upstream from the beach."
     },
     {
       "waypointId": "w_9ac0c3d4",
       "name": "Zoe Bay campsite",
-      "description": "Camping area at South Zoe Bay, about half a kilometre from Zoe Falls. Water is in Zoe Creek, about 600 m upstream of the camp sites."
+      "description": "Camping area at South Zoe Bay, about half a kilometre from Zoe Falls. Queensland Parks list composting toilets, tent platforms and pack poles; boat-based campers have their own sites within the area. Water is in Zoe Creek, about 600 m upstream of the camp sites."
     },
     {
       "waypointId": "w_531bd2c6",
@@ -35,12 +35,12 @@
     {
       "waypointId": "w_2053b158",
       "name": "Mulligan Falls campsite",
-      "description": "Camping area at the foot of Mulligan Falls, the one camping area with a one-night limit. The area beyond the falls is restricted access. The falls are the last reliable water on the trail before George Point."
+      "description": "Camping area at the foot of Mulligan Falls, the one camping area with a one-night limit. Queensland Parks list composting toilets, tent platforms and pack poles. The area beyond the falls is restricted access. The falls are the last reliable water on the trail before George Point."
     },
     {
       "waypointId": "w_fc1b14f4",
       "name": "George Point campsite",
-      "description": "The southern end of the trail, at the end of a 5 km beach along Mulligan Bay, where boats from Lucinda (Dungeness) drop off and collect walkers. There is no reliable water between Mulligan Falls and here. As of November 2026 Queensland Parks have removed the toilet and signs because of erosion, under an alert to 30 June 2027; walkers bush camp under trees 250 m short of the unmarked pickup point."
+      "description": "The southern end of the trail, after a 5 km beach along Mulligan Bay, where boats from Lucinda (Dungeness) drop off and collect walkers. There is no reliable water after Mulligan Falls, and Queensland Parks list no facilities. As of November 2026 an erosion alert to 30 June 2027 covers the removed toilet and signs; walkers bush camp under trees 250 m short of the unmarked pickup point."
     }
   ]
 }
