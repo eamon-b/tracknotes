@@ -5,7 +5,7 @@
     {
       "waypointId": "w_e922c729",
       "name": "Koonjeree Rotunda",
-      "description": "Picnic shelter at Koonjeree picnic area, a large, flat grassy area on the bank of the Lane Cove River at the eastern end of Lane Cove National Park, near Killara. The picnic area has flush toilets, picnic tables, free gas or electric barbecues and a car park. The park is open 9 am to 7 pm in daylight saving time and until 6 pm the rest of the year."
+      "description": "Picnic shelter at Koonjeree picnic area, an open, level lawn beside the Lane Cove River at the eastern end of Lane Cove National Park, near Killara. The picnic area has flush toilets, drinking water, picnic tables, free gas or electric barbecues and a car park. The park is open 9 am to 7 pm in daylight saving time and until 6 pm the rest of the year."
     },
     {
       "waypointId": "w_9ca4b9bf",
@@ -15,17 +15,12 @@
     {
       "waypointId": "w_88752b13",
       "name": "The Jungo",
-      "description": "Marked as a campsite in OpenStreetMap, in Berowra Valley National Park. The park's 2023 plan of management permits camping in three places only: Crosslands Reserve, Lyrebird Gully and Tunks Ridge, which is about 11 km further north."
+      "description": "Marked as a campsite in OpenStreetMap, in Berowra Valley National Park. The park's 2023 plan of management permits camping in three places only: Crosslands Reserve, Lyrebird Gully and Tunks Ridge, which is about 11 km further along the walk."
     },
     {
       "waypointId": "w_67f74c1f",
       "name": "Quarter Sessions Road Lookout",
-      "description": "Hornsby Shire Council viewing platform on Quarter Sessions Road, beside the fenced Quarter Sessions Road Aboriginal engraving site, also known as Blackfellows Head. The council rebuilt the platform, path and sandstone seating in 2022, after consulting the local community and traditional owners."
-    },
-    {
-      "waypointId": "w_3a4e04a7",
-      "name": "Fishponds Lookout",
-      "description": "Lookout in Berowra Valley National Park, named for Fishponds Waterhole. At the waterhole the Pogsons Link Track leaves the Great North Walk for Dural, by Pogson Trig Trail and then Quarry Trail."
+      "description": "Hornsby Shire Council viewing platform on Quarter Sessions Road, beside the fenced Quarter Sessions Road Aboriginal engraving site, also known as Blackfellows Head. After consulting the local community and traditional owners, the council upgraded the site in 2022, adding a split-level platform, a granite path and sandstone seating."
     },
     {
       "waypointId": "w_af0f77ae",
@@ -63,6 +58,11 @@
       "description": "Remote bush campground below Mount Wondabyne in Brisbane Water National Park, on the 23 km Wondabyne to Patonga section. Drinking and cooking water is limited or unavailable in this area, and campfires and solid-fuel burners are banned in the park."
     },
     {
+      "waypointId": "w_efa53436",
+      "name": "Bimbadeen Lookout",
+      "description": "Lookout at Mount View over several mountains, Mount Sugarloaf among them, with Cessnock, Kurri Kurri and Maitland in the distance. In clear weather Stockton Beach at Newcastle and the Barrington Tops are in sight."
+    },
+    {
       "waypointId": "w_afe5e9ce",
       "name": "Barraba Campsite",
       "description": "Campsite on private property near Watagans National Park, known as Barraba Trig, which is open to walkers."
@@ -71,11 +71,6 @@
       "waypointId": "w_2e79260f",
       "name": "The Narrow Place Lookout",
       "description": "Lookout on the walk's Watagans National Park section along Georges Road, looking north over Quorrobolong to Ellalong, Cessnock and Kurri Kurri. The park has no drinking or cooking water."
-    },
-    {
-      "waypointId": "w_efa53436",
-      "name": "Bimbadeen Lookout",
-      "description": "Lookout at Mount View over several mountains, Mount Sugarloaf among them, with Cessnock, Kurri Kurri and Maitland in the distance. On a clear day the view reaches Stockton Beach at Newcastle and the Barrington Tops."
     },
     {
       "waypointId": "w_3715cb03",
@@ -105,12 +100,12 @@
     {
       "waypointId": "w_94a67c72",
       "name": "Shepherds Hill",
-      "description": "Hill on the southern boundary of King Edward Park, with the remains of the Shepherds Hill Battery and the Gunner's Cottage, which were in regular use from 1890 until the Second World War."
+      "description": "Hill beside King Edward Park, whose southern boundary holds what is left of the Shepherds Hill Battery and the Gunner's Cottage, both used regularly from 1890 through the Second World War."
     },
     {
       "waypointId": "w_f6e3bcd8",
       "name": "King Edward Park Fountain",
-      "description": "Water point in King Edward Park on York Drive, a recreation reserve since 1863, with ocean views, a playground and public toilets. The park also holds a Victorian rotunda, a sunken garden and the Obelisk, built in 1850 as a navigation marker, and the Bogey Hole, a convict-cut ocean bathing pool, lies at the foot of its eastern cliff."
+      "description": "Water point in King Edward Park on York Drive, a recreation reserve since 1863, with ocean views, a playground and public toilets. The park also holds a Victorian rotunda, a sunken garden and the Obelisk, built in 1850 as a navigation marker, and the Bogey Hole, an ocean pool cut by convicts, sits below its eastern cliff."
     },
     {
       "waypointId": "w_68f80f93",
