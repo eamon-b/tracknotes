@@ -59,8 +59,10 @@ import {
 } from '../src/features/community/community-route';
 import {
   DELETE_SHARED_ROUTE_TITLE,
+  deleteSharedRouteAction,
   deleteMySharedRoute,
   deleteSharedRouteMessage,
+  releasesOnDelete,
 } from '../src/features/community/my-shared-routes';
 import {
   MAX_DISPLAY_NAME_LENGTH,
@@ -162,26 +164,40 @@ export default function CommunityRouteScreen() {
   const onDelete = useCallback(() => {
     const baseUrl = getBaseUrl();
     if (!baseUrl || !session) return;
-    Alert.alert(DELETE_SHARED_ROUTE_TITLE, deleteSharedRouteMessage(detail?.name ?? cached?.name), [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => {
-          void (async () => {
-            try {
-              // A 404 is already deleted; the route's file, plan,
-              // favourites, pin and the rest go too.
-              await deleteMySharedRoute({ baseUrl, token: session.token }, trailId);
-              router.dismissTo('/');
-            } catch (err) {
-              Alert.alert('Couldn’t delete the route', apiErrorMessage(err, 'Please try again.'));
-            }
-          })();
+    const release = releasesOnDelete(detail);
+    Alert.alert(
+      DELETE_SHARED_ROUTE_TITLE,
+      deleteSharedRouteMessage(detail?.name ?? cached?.name, detail),
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: deleteSharedRouteAction(detail),
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              try {
+                // A 404 is already deleted; the route's file, plan,
+                // favourites, pin and the rest go too. A released route
+                // stays shared, and on this phone.
+                const { released } = await deleteMySharedRoute(
+                  { baseUrl, token: session.token },
+                  trailId,
+                  {},
+                  { release },
+                );
+                if (released) {
+                  Alert.alert('Route released', 'It stays in the community without your name.');
+                }
+                router.dismissTo('/');
+              } catch (err) {
+                Alert.alert('Couldn’t delete the route', apiErrorMessage(err, 'Please try again.'));
+              }
+            })();
+          },
         },
-      },
-    ]);
-  }, [session, trailId, router, detail?.name, cached?.name]);
+      ],
+    );
+  }, [session, trailId, router, detail, cached?.name]);
 
   const onRemoveFromPhone = useCallback(() => {
     Alert.alert(

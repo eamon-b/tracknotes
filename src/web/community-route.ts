@@ -32,6 +32,7 @@ import {
   UNVERIFIED_EXPLANATION,
   VERIFIED_EXPLANATION,
   checksListHtml,
+  deleteRouteConfirmText,
   hiddenReasonText,
   initRegionPicker,
   localCopyId,
@@ -380,10 +381,16 @@ function initOwnerTools(page: RoutePage): void {
 
   const deleteBtn = $('delete-btn') as HTMLButtonElement;
   deleteBtn.addEventListener('click', () => {
-    if (!window.confirm(`Delete "${page.detail.name}" from the community list? This cannot be undone.`)) return;
+    const release = page.detail.established === true;
+    if (!window.confirm(deleteRouteConfirmText(page.detail))) return;
     deleteBtn.disabled = true;
-    void deleteCommunityRoute(session, page.detail.id)
-      .then(() => {
+    void deleteCommunityRoute(session, page.detail.id, { release })
+      .then(({ released }) => {
+        if (released) {
+          window.alert(
+            `"${page.detail.name}" stays in the community without your name. It is no longer yours to edit or delete.`
+          );
+        }
         window.location.href = './';
       })
       .catch((err: unknown) => {

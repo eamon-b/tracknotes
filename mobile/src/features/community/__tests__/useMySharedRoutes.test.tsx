@@ -61,7 +61,7 @@ describe('useMySharedRoutes', () => {
       hydrate: jest.fn(async () => undefined),
     });
     mockForget.mockResolvedValue(undefined);
-    mockDelete.mockResolvedValue(undefined);
+    mockDelete.mockResolvedValue({ released: false });
   });
 
   afterEach(() => {
@@ -134,6 +134,7 @@ describe('useMySharedRoutes', () => {
     expect(mockDelete).toHaveBeenCalledWith(
       { baseUrl: 'https://api.test', token: 'tok-1' },
       'c_AAAAAAAAAAAAAAAA',
+      {},
     );
     expect(mockForget).toHaveBeenCalledWith('c_AAAAAAAAAAAAAAAA');
     expect(hook.state).toEqual({ kind: 'ready', routes: [other], error: null });

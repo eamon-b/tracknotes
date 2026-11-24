@@ -4,7 +4,7 @@ import { authHeaders, makeAdmin, putComment, putDescription, putPlan, planBody, 
 import type { Device } from './helpers';
 import { submitBody, submitRoute } from './community-fixtures';
 import { putComment as putCommentHandler } from '../src/comments';
-import { LIVE_CACHE_MS, clearTrailCache } from '../src/trails';
+import { LIVE_CACHE_MS, REMOVED_FEED_MS, clearTrailCache } from '../src/trails';
 import type { CommunityRouteDetail } from '../../../src/lib/community-types';
 import type { BulkSyncResponse, TrailDescriptionsResponse } from '../../../src/lib/comments-api-types';
 import type { ProcessedTrail } from '../../../src/lib/trail-types';
@@ -28,8 +28,12 @@ async function shareRoute(device: Device): Promise<Route> {
   return { id: detail.id, waypointIds: trail.waypoints.map((w) => w.id as string) };
 }
 
-async function setStatus(id: string, status: 'hidden' | 'removed'): Promise<void> {
-  await env.DB.prepare(`UPDATE community_routes SET status = ? WHERE id = ?`).bind(status, id).run();
+async function setStatus(id: string, status: 'hidden' | 'removed', removedDaysAgo = 0): Promise<void> {
+  const removedAt =
+    status === 'removed' ? new Date(Date.now() - removedDaysAgo * 24 * 60 * 60 * 1000).toISOString() : null;
+  await env.DB.prepare(`UPDATE community_routes SET status = ?, removed_at = ? WHERE id = ?`)
+    .bind(status, removedAt, id)
+    .run();
 }
 
 function commentOn(device: Device, trailId: string, waypointId: string): Promise<Response> {
@@ -139,6 +143,92 @@ describe('comments on community routes', () => {
     } finally {
       Date.now = realNow;
     }
+  });
+});
+
+describe('the public feeds of a removed route (#386)', () => {
+  async function routeWithPosts(): Promise<{ route: Route; waypointId: string }> {
+    const owner = await registerDevice();
+    const hiker = await registerDevice();
+    const route = await shareRoute(owner);
+    const waypointId = route.waypointIds[0];
+    expect((await commentOn(hiker, route.id, waypointId)).status).toBe(201);
+    expect((await shareWaypoint(hiker, route.id)).status).toBe(201);
+    return { route, waypointId };
+  }
+
+  async function feeds(trailId: string, waypointId: string): Promise<{ bulk: number; feed: number; shared: number }> {
+    const feedRes = await SELF.fetch(url(`/v1/trails/${trailId}/waypoints/${waypointId}/comments`));
+    expect(feedRes.status).toBe(200);
+    const sharedRes = await SELF.fetch(url(`/v1/trails/${trailId}/waypoints`));
+    expect(sharedRes.status).toBe(200);
+    return {
+      bulk: (await bulk(trailId)).comments.length,
+      feed: ((await feedRes.json()) as { comments: unknown[] }).comments.length,
+      shared: ((await sharedRes.json()) as { waypoints: unknown[] }).waypoints.length,
+    };
+  }
+
+  it('keeps serving them for 30 days after the removal, then answers empty', async () => {
+    const { route, waypointId } = await routeWithPosts();
+    await setStatus(route.id, 'removed', 29);
+    clearTrailCache();
+    expect(await feeds(route.id, waypointId)).toEqual({ bulk: 1, feed: 1, shared: 1 });
+
+    await setStatus(route.id, 'removed', 31);
+    clearTrailCache();
+    expect(await feeds(route.id, waypointId)).toEqual({ bulk: 0, feed: 0, shared: 0 });
+    // A delta read is empty too, and still carries its mark.
+    const delta = (await (
+      await SELF.fetch(url(`/v1/trails/${route.id}/comments?since=${encodeURIComponent('1970-01-01T00:00:00.000Z')}`))
+    ).json()) as BulkSyncResponse;
+    expect(delta.comments).toEqual([]);
+    expect(typeof delta.syncedAt).toBe('string');
+  });
+
+  it('closes them as the clock passes the 30 days, a cached removal included', async () => {
+    const { route, waypointId } = await routeWithPosts();
+    await setStatus(route.id, 'removed');
+    clearTrailCache();
+    expect((await feeds(route.id, waypointId)).bulk).toBe(1);
+    const realNow = Date.now;
+    Date.now = () => realNow() + REMOVED_FEED_MS + 1;
+    try {
+      expect(await feeds(route.id, waypointId)).toEqual({ bulk: 0, feed: 0, shared: 0 });
+    } finally {
+      Date.now = realNow;
+    }
+  });
+
+  it('learns of a removal within a minute of having read the route as live', async () => {
+    const { route, waypointId } = await routeWithPosts();
+    clearTrailCache();
+    expect((await feeds(route.id, waypointId)).bulk).toBe(1);
+    await setStatus(route.id, 'removed', 31);
+    const realNow = Date.now;
+    Date.now = () => realNow() + LIVE_CACHE_MS + 1;
+    try {
+      expect(await feeds(route.id, waypointId)).toEqual({ bulk: 0, feed: 0, shared: 0 });
+    } finally {
+      Date.now = realNow;
+    }
+  });
+
+  it('keeps a hidden route’s feeds open, however long it has been hidden', async () => {
+    const { route, waypointId } = await routeWithPosts();
+    await setStatus(route.id, 'hidden');
+    clearTrailCache();
+    const realNow = Date.now;
+    Date.now = () => realNow() + REMOVED_FEED_MS + 1;
+    try {
+      expect(await feeds(route.id, waypointId)).toEqual({ bulk: 1, feed: 1, shared: 1 });
+    } finally {
+      Date.now = realNow;
+    }
+  });
+
+  it('still answers an empty feed for a community id that names no route', async () => {
+    expect((await bulk('c_CCCCCCCCCCCCCCCC')).comments).toEqual([]);
   });
 });
 

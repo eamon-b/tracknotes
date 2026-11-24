@@ -283,17 +283,22 @@ describe('authenticated calls', () => {
     const { impl, calls } = mockFetch([
       { status: 200, body: { id: 'c_1', name: 'New' } },
       { status: 204 },
+      { status: 200, body: { released: true } },
       { status: 204 },
     ]);
     await patchCommunityRoute(SESSION, 'c_1', { name: 'New' }, { fetchImpl: impl });
-    await deleteCommunityRoute(SESSION, 'c_1', { fetchImpl: impl });
+    expect(await deleteCommunityRoute(SESSION, 'c_1', {}, { fetchImpl: impl })).toEqual({ released: false });
+    expect(await deleteCommunityRoute(SESSION, 'c_1', { release: true }, { fetchImpl: impl })).toEqual({
+      released: true,
+    });
     await reportCommunityRoute(SESSION, 'c_1', 'spam', '  ', { fetchImpl: impl });
     expect(calls.map(c => `${c.init.method} ${c.url}`)).toEqual([
       'PATCH https://api.example.test/v1/community/routes/c_1',
       'DELETE https://api.example.test/v1/community/routes/c_1',
+      'DELETE https://api.example.test/v1/community/routes/c_1?release=1',
       'POST https://api.example.test/v1/community/routes/c_1/report',
     ]);
-    expect(JSON.parse(String(calls[2].init.body))).toEqual({ reason: 'spam', note: null });
+    expect(JSON.parse(String(calls[3].init.body))).toEqual({ reason: 'spam', note: null });
     for (const c of calls) expect(authHeader(c.init)).toBe('Bearer tok_secret');
   });
 

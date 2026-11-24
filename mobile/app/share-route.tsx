@@ -26,6 +26,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { COMMUNITY_LIMITS, type CommunityCheck } from '@lib/community-types';
+import { ESTABLISHED_ROUTE_NOTICE } from '@lib/contribution-licence';
 import {
   checkCommunityMetadata,
   hasFailures,
@@ -363,7 +364,7 @@ export default function ShareRouteScreen() {
         <Text style={[styles.checkboxText, { color: colors.textPrimary }]}>{RIGHTS_TEXT}</Text>
       </Pressable>
       {fieldError(errors.rights)}
-      <ContributionLicence verb="sharing" what="this route" />
+      <ContributionLicence verb="sharing" what="this route" note={ESTABLISHED_ROUTE_NOTICE} />
 
       {checks && (
         <View

@@ -148,6 +148,8 @@ Raising the floor is a deliberate change to that list, not a side effect of a Vi
 - `community-route.html` / `.ts` - Public `?id=c_…` page: detail from the API, trail from `trailUrl`, drawn by the trail viewer as `preloadedTrail`.
   Report (linked browser; not offered to the owner; kept when only the track download failed), "Save to my trails" (IndexedDB under a `u_` id, so plan sync stays off), "Export for Tracknotes" (offering the plan stored under the saved copy's `localCopyId`), owner Edit/Delete with checks and the AI review (kept in the no-track view of a hidden route, whose header also says why it was hidden);
   an owner's edit updates one shared detail that Save, the export and the viewer (`setTrailName`) read
+  the owner's Delete of an established route (`detail.established`, issue #386) confirms with `deleteRouteConfirmText` (`community-ui.ts`), which says it is released, not removed, and sends `?release=1` (`deleteCommunityRoute(…, { release: true })`);
+  the share form's licence lines end with `ESTABLISHED_ROUTE_NOTICE`
 - `admin-community.html` / `.ts` - Unlinked, noindex review queue for admins (AI-rejected/hidden first): Verify / Unverify / Hide / Restore / Re-run review / Delete.
   Each row's Map section draws the route from the worker's admin-only `GET /v1/admin/community/routes/:id/trail` (`adminFetchCommunityTrail`), so a hidden route, which has no `trailUrl`, can be judged with its line;
   Leaflet (`loadLeaflet` from `landing-map.ts`) and the trail load only when the section is opened, and the maps are removed on every reload of the list.

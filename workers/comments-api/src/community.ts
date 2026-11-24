@@ -86,6 +86,7 @@ import {
 } from '../../../src/lib/community-checks';
 import type { CommunityRouteStats } from '../../../src/lib/community-checks';
 import {
+  COMMUNITY_ESTABLISHED,
   COMMUNITY_LIMITS,
   COMMUNITY_REPORTS_TO_HIDE,
   COMMUNITY_REPORT_REASONS,
@@ -97,6 +98,7 @@ import type {
   CommunityCheck,
   CommunityChecksFailedBody,
   CommunityListResponse,
+  CommunityReleaseResponse,
   CommunityReportReason,
   CommunityRouteDetail,
   CommunityRouteStatus,
@@ -210,6 +212,8 @@ export interface CommunityRouteRow {
   removed_by: 'owner' | 'admin' | null;
   /** 1 on a removed route whose track may not be shared again (0006). */
   blocks_resubmit: number;
+  /** When its owner released it (0015): live, de-attributed, no longer theirs. */
+  released_at: string | null;
   /** OSM POI enrichment (0009; `enrichCommunityRoutePois`). Never returned. */
   pois_status: 'pending' | 'done' | 'failed' | 'skipped';
   /** The `content_hash` the POI answer was for; NULL before the first. */
@@ -281,6 +285,67 @@ function hiddenReasonOf(note: string | null): NonNullable<CommunityRouteDetail['
   return 'admin';
 }
 
+/**
+ * Whether `user` owns `row`: submitted it, and has not released it. A released
+ * route is no longer its submitter's to see as owner, edit or delete (#386).
+ */
+function ownsRoute(row: CommunityRouteRow, user: AuthUser | null): boolean {
+  return !!user && row.user_id === user.id && row.released_at === null;
+}
+
+/**
+ * How many accounts other than the owner have a live comment or shared
+ * waypoint on a route. Tombstoned posts (an owner's or admin's delete, a hide
+ * by reports, a deleted account's) do not count.
+ */
+function otherPostersStatement(env: Env, row: CommunityRouteRow): D1PreparedStatement {
+  return env.DB.prepare(
+    `SELECT COUNT(*) AS n FROM (
+        SELECT user_id FROM comments WHERE trail_id = ?1 AND deleted_at IS NULL AND user_id != ?2
+        UNION
+        SELECT user_id FROM shared_waypoints WHERE trail_id = ?1 AND deleted_at IS NULL AND user_id != ?2
+      )`
+  ).bind(row.id, row.user_id);
+}
+
+export interface RouteEstablishment {
+  established: boolean;
+  otherPosters: number;
+}
+
+/**
+ * Whether a route is established (`COMMUNITY_ESTABLISHED`): live, shared at
+ * least `minAgeDays` ago, and posted on by at least `minOtherPosters` other
+ * accounts. A hidden or removed route never is.
+ */
+function establishmentOf(row: CommunityRouteRow, otherPosters: number, nowMs: number): RouteEstablishment {
+  const ageMs = nowMs - Date.parse(row.created_at);
+  const established =
+    isLive(row.status) &&
+    ageMs >= COMMUNITY_ESTABLISHED.minAgeDays * 24 * 60 * 60 * 1000 &&
+    otherPosters >= COMMUNITY_ESTABLISHED.minOtherPosters;
+  return { established, otherPosters };
+}
+
+/**
+ * Each live row's establishment, by id, in one batch (hidden and removed rows
+ * are left out: they are never established and their delete is a removal).
+ */
+async function establishmentsFor(
+  env: Env,
+  rows: CommunityRouteRow[],
+  nowMs = Date.now()
+): Promise<Map<string, RouteEstablishment>> {
+  const live = rows.filter((row) => isLive(row.status));
+  const out = new Map<string, RouteEstablishment>();
+  if (live.length === 0) return out;
+  const results = await env.DB.batch<{ n: number }>(live.map((row) => otherPostersStatement(env, row)));
+  live.forEach((row, i) => {
+    out.set(row.id, establishmentOf(row, results[i].results[0]?.n ?? 0, nowMs));
+  });
+  return out;
+}
+
 function toDetail(
   env: Env,
   row: CommunityRouteRow,
@@ -288,7 +353,9 @@ function toDetail(
   isOwner: boolean,
   reports: ReportRow[] = [],
   /** Every report's count, when `reports` is only the newest few. */
-  reportCount = reports.length
+  reportCount = reports.length,
+  /** The owner's and admins' view of a live route carries it, when it was read. */
+  establishment?: RouteEstablishment
 ): CommunityRouteDetail {
   const detail: CommunityRouteDetail = {
     ...toSummary(env, row),
@@ -301,8 +368,13 @@ function toDetail(
     detail.review = reviewOf(row);
     detail.isOwner = isOwner;
     if (row.status === 'hidden') detail.hiddenReason = hiddenReasonOf(row.status_note);
+    if (establishment) {
+      detail.established = establishment.established;
+      detail.otherPosters = establishment.otherPosters;
+    }
   }
   if (viewer === 'admin') {
+    detail.releasedAt = row.released_at;
     detail.reportCount = reportCount;
     detail.reports = reports.map((r) => ({ reason: r.reason, note: r.note, createdAt: r.created_at }));
     detail.statusNote = row.status_note;
@@ -1103,17 +1175,22 @@ export async function getCommunityRoute(
   // it holds only the public detail: never let a shared cache keep it.
   const personal = request.headers.has('Authorization');
   const user = await getUser(request, env, ctx);
-  const isOwner = !!user && user.id === row.user_id;
+  const isOwner = ownsRoute(row, user);
   const isAdmin = !!user && user.is_admin === 1;
   const live = row.status === 'unverified' || row.status === 'verified';
   if (!live && !isOwner && !isAdmin) throw notFound();
 
-  if (isAdmin) {
-    const reports = await reportsFor(env, id);
-    return json(toDetail(env, row, 'admin', isOwner, reports), 200, { 'Cache-Control': 'private, no-store' });
-  }
-  if (isOwner) {
-    return json(toDetail(env, row, 'owner', true), 200, { 'Cache-Control': 'private, no-store' });
+  if (isAdmin || isOwner) {
+    const establishment = (await establishmentsFor(env, [row])).get(row.id);
+    if (isAdmin) {
+      const reports = await reportsFor(env, id);
+      return json(toDetail(env, row, 'admin', isOwner, reports, reports.length, establishment), 200, {
+        'Cache-Control': 'private, no-store',
+      });
+    }
+    return json(toDetail(env, row, 'owner', true, [], 0, establishment), 200, {
+      'Cache-Control': 'private, no-store',
+    });
   }
   return json(toDetail(env, row, 'public', false), 200, {
     'Cache-Control': personal ? 'private, no-store' : 'public, max-age=60',
@@ -1135,7 +1212,7 @@ export async function patchCommunityRoute(
   const user = await requireUser(request, env, ctx);
   assertNotBanned(user, 'edit routes');
   const row = await loadRoute(env, id);
-  if (!row || row.status === 'removed' || row.user_id !== user.id) throw notFound();
+  if (!row || row.status === 'removed' || !ownsRoute(row, user)) throw notFound();
 
   const body = await readSmallJson(request);
   const name =
@@ -1260,6 +1337,13 @@ export async function patchCommunityRoute(
 // DELETE /v1/community/routes/:id — owner or admin
 // ---------------------------------------------------------------------------
 
+/**
+ * An admin removes any route. Its owner removes it too, unless it is
+ * established (`COMMUNITY_ESTABLISHED`, #386): then the owner's delete must
+ * say `?release=1` and releases it instead (`releaseCommunityRoute`), and
+ * without it is refused with 409 `route_established`, so a client from before
+ * releases existed never tells its hiker a route was deleted when it was not.
+ */
 export async function deleteCommunityRoute(
   request: Request,
   env: Env,
@@ -1269,8 +1353,25 @@ export async function deleteCommunityRoute(
   const user = await requireUser(request, env, ctx);
   const row = await loadRoute(env, id);
   const isAdmin = user.is_admin === 1;
-  if (!row || (row.user_id !== user.id && !isAdmin)) throw notFound();
+  const isOwner = !!row && ownsRoute(row, user);
+  if (!row || (!isOwner && !isAdmin)) throw notFound();
   if (row.status === 'removed') return noContent();
+
+  // An admin removes any route, their own included.
+  if (isOwner && !isAdmin && isLive(row.status)) {
+    const establishment = (await establishmentsFor(env, [row])).get(row.id);
+    if (establishment?.established) {
+      if (new URL(request.url).searchParams.get('release') !== '1') {
+        throw new HttpError(
+          409,
+          'route_established',
+          `Other hikers use this route (${establishment.otherPosters} have posted on it), so it stays in the community. ` +
+            'Update the app to release it: it stays public without your name. To have it taken down, report it or email us.'
+        );
+      }
+      return releaseCommunityRoute(env, ctx, row);
+    }
+  }
 
   // Unguarded: a delete wins over whatever else is in flight, and every
   // guarded write that loses to it drops its own objects.
@@ -1300,6 +1401,34 @@ export async function deleteCommunityRoute(
   return noContent();
 }
 
+/**
+ * The owner's delete of an established route: it stays live but is no longer
+ * theirs. The same de-attribution an account deletion does (the name cleared
+ * here; the stored JSON rewritten without it, older copies and the uploaded
+ * GPX purged by `deattributeRoute`, retried by the cron while
+ * `deattribute_pending`), and `released_at` takes it out of their hands: off
+ * their list, and only admins can edit, hide or remove it from now on.
+ * Guarded on the row as read, so a hide or edit that lands first is not
+ * overwritten: the hiker gets 409 `conflict` and can try again.
+ */
+async function releaseCommunityRoute(env: Env, ctx: ExecutionContext, row: CommunityRouteRow): Promise<Response> {
+  const now = stampAfter(row.updated_at);
+  const done = await env.DB.prepare(
+    `UPDATE community_routes
+        SET released_at = ?, submitted_by_name = NULL, deattribute_pending = 1, updated_at = ?
+      WHERE id = ? AND updated_at = ? AND status IN ('unverified', 'verified') AND released_at IS NULL`
+  )
+    .bind(now, now, row.id, row.updated_at)
+    .run();
+  if (done.meta.changes === 0) {
+    throw new HttpError(409, 'conflict', 'This route changed while it was being released. Try again.');
+  }
+  const released = await loadRoute(env, row.id);
+  if (released) ctx.waitUntil(deattributeRows(env, [released], DEATTRIBUTE_SWEEP_GRACE_MS));
+  const body: CommunityReleaseResponse = { released: true };
+  return json(body, 200);
+}
+
 // ---------------------------------------------------------------------------
 // POST /v1/community/routes/:id/report
 // ---------------------------------------------------------------------------
@@ -1325,7 +1454,7 @@ export async function reportCommunityRoute(
 
   const row = await loadRoute(env, id);
   if (!row || (row.status !== 'unverified' && row.status !== 'verified')) throw notFound();
-  if (row.user_id === user.id) {
+  if (ownsRoute(row, user)) {
     throw new HttpError(400, 'own_route', 'You cannot report your own route');
   }
 
@@ -1389,12 +1518,13 @@ export async function listMyCommunityRoutes(
   deps: ListDeps = {}
 ): Promise<Response> {
   const user = await requireUser(request, env, ctx);
-  const where = ['user_id = ?', `status != 'removed'`];
+  const where = ['user_id = ?', `status != 'removed'`, 'released_at IS NULL'];
   const binds: unknown[] = [user.id];
   appendPageCursor(new URL(request.url), where, binds);
   const { rows, nextCursor } = await runPage(env, where, binds, deps.pageSize ?? LIST_LIMIT);
+  const establishments = await establishmentsFor(env, rows);
   const payload: CommunityAdminListResponse = {
-    routes: rows.map((row) => toDetail(env, row, 'owner', true)),
+    routes: rows.map((row) => toDetail(env, row, 'owner', true, [], 0, establishments.get(row.id))),
     nextCursor,
   };
   return json(payload, 200, { 'Cache-Control': 'private, no-store' });
@@ -1604,7 +1734,10 @@ export function deattributeStatement(env: Env, userId: string): D1PreparedStatem
   return env.DB.prepare(
     `UPDATE community_routes
         SET submitted_by_name = NULL,
-            deattribute_pending = CASE WHEN status != 'removed' THEN 1 ELSE deattribute_pending END
+            deattribute_pending = CASE
+              WHEN status != 'removed' AND released_at IS NULL THEN 1
+              ELSE deattribute_pending
+            END
       WHERE user_id = ?`
   ).bind(userId);
 }

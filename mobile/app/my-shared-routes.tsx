@@ -25,8 +25,10 @@ import { useMySharedRoutes } from '../src/features/community/useMySharedRoutes';
 import { MySharedRouteCard, MySharedRouteDetail } from '../src/features/community/MySharedRoutes';
 import {
   DELETE_SHARED_ROUTE_TITLE,
+  deleteSharedRouteAction,
   MY_ROUTE_DELETE_FAILED,
   deleteSharedRouteMessage,
+  releasesOnDelete,
   isLiveRoute,
 } from '../src/features/community/my-shared-routes';
 import { ScreenFlatList } from '../src/navigation/ScreenScrollView';
@@ -42,14 +44,14 @@ export default function MySharedRoutesScreen() {
 
   const onDelete = useCallback(
     (route: CommunityRouteDetail) => {
-      Alert.alert(DELETE_SHARED_ROUTE_TITLE, deleteSharedRouteMessage(route.name), [
+      Alert.alert(DELETE_SHARED_ROUTE_TITLE, deleteSharedRouteMessage(route.name, route), [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Delete',
+          text: deleteSharedRouteAction(route),
           style: 'destructive',
           onPress: () => {
             setDeleting(route.id);
-            remove(route.id)
+            remove(route.id, { release: releasesOnDelete(route) })
               .catch((err: unknown) => {
                 Alert.alert(
                   'Couldn’t delete the route',

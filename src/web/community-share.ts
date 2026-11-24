@@ -23,6 +23,7 @@
 import { runCommunityChecks } from '@lib/community-checks';
 import { detectRegion } from '@lib/region-detect';
 import { COMMUNITY_LIMITS, type CommunityCheck, type CommunitySubmitRequest } from '@lib/community-types';
+import { ESTABLISHED_ROUTE_NOTICE } from '@lib/contribution-licence';
 import type { ProcessedTrail } from '@lib/trail-types';
 import { ApiError, NetworkError } from './api/client';
 import { checksFromError, communityRouteHref, duplicateRouteId, submitCommunityRoute } from './api/community';
@@ -86,7 +87,7 @@ export function initCommunityShare(): CommunityShareController {
   const stateSelect = byId<HTMLSelectElement>('community-state');
   const stateWrapper = byId('community-state-field');
   const rightsBox = byId<HTMLInputElement>('community-rights');
-  renderContributionLicence(byId('community-licence'), 'sharing', 'this route');
+  renderContributionLicence(byId('community-licence'), 'sharing', 'this route', ESTABLISHED_ROUTE_NOTICE);
   const includeGpxField = byId('community-include-gpx-field');
   const includeGpxBox = byId<HTMLInputElement>('community-include-gpx');
   const includeGpxNote = byId('community-include-gpx-note');
