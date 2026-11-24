@@ -185,7 +185,7 @@ pairs in Bibbulmun, 29 in Hume & Hovell) counted bus stops and pairs whose both
 halves phase 1 already hides (`Mount Clare hut` + `Mount Clare campsite` and
 `Browns Creek Campsite` twice are both flagged against their waypoint). What
 was left to do, measured on the 2026-11 build: 7 on the Bibbulmun (`The
-Kalamunda Hotel` + `Kalamunda Hotel`, `Karta Burnu` + `Karta Burnu Camp Site`),
+Kalamunda Hotel` + `Kalamunda Hotel`, `Karta Burnu` + `Karta Burnu Camp Site`, which #286 later split: a hut or shelter now stays beside its camp site),
 6 on Hume & Hovell (`Ampol` + `Ampol Foodary`, `Mobil` + `Mobil Mart`), about
 90 across all trails — most of them a fuel station and its shop, or a building
 outline and a node for the same pub.
