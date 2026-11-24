@@ -3,6 +3,31 @@
   "note": "Curated waypoint descriptions, keyed by the stable ids in data/waypoint-ids.json. Applied by scripts/build-trails.ts (overriding any description from the GPX source) and uploadable to the comments API with scripts/upload-descriptions.ts. Listed in walking order from Sydney to Newcastle. Most of the trail's waypoints are OpenStreetMap features (taps, bubblers, lookouts, informal campsites) that no land manager's page describes, so they have no entry, and waypoints whose existing text was reviewed by hand (Sydney, Thornleigh, Brooklyn, Somersby, Warners Bay and the non-public camps) keep it. Sources for each fact: plans/waypoint-description-sources.md.",
   "descriptions": [
     {
+      "waypointId": "w_e922c729",
+      "name": "Koonjeree Rotunda",
+      "description": "Picnic shelter at Koonjeree picnic area, a large, flat grassy area on the bank of the Lane Cove River at the eastern end of Lane Cove National Park, near Killara. The picnic area has flush toilets, picnic tables, free gas or electric barbecues and a car park. The park is open 9 am to 7 pm in daylight saving time and until 6 pm the rest of the year."
+    },
+    {
+      "waypointId": "w_9ca4b9bf",
+      "name": "Commandment Rock Rotunda 2",
+      "description": "Picnic shelter at Commandment Rock picnic area in Lane Cove National Park, beside a wide, flat grassy area. The picnic area has flush toilets, drinking water, picnic tables, a wood barbecue and a car park, and can be booked for groups. The park is open 9 am to 7 pm in daylight saving time and until 6 pm the rest of the year."
+    },
+    {
+      "waypointId": "w_88752b13",
+      "name": "The Jungo",
+      "description": "Marked as a campsite in OpenStreetMap, in Berowra Valley National Park. The park's 2023 plan of management permits camping in three places only: Crosslands Reserve, Lyrebird Gully and Tunks Ridge, which is about 11 km further north."
+    },
+    {
+      "waypointId": "w_67f74c1f",
+      "name": "Quarter Sessions Road Lookout",
+      "description": "Hornsby Shire Council viewing platform on Quarter Sessions Road, beside the fenced Quarter Sessions Road Aboriginal engraving site, also known as Blackfellows Head. The council rebuilt the platform, path and sandstone seating in 2022, after consulting the local community and traditional owners."
+    },
+    {
+      "waypointId": "w_3a4e04a7",
+      "name": "Fishponds Lookout",
+      "description": "Lookout in Berowra Valley National Park, named for Fishponds Waterhole. At the waterhole the Pogsons Link Track leaves the Great North Walk for Dural, by Pogson Trig Trail and then Quarry Trail."
+    },
+    {
       "waypointId": "w_af0f77ae",
       "name": "Tunks Ridge Campground",
       "description": "Campground on Tunks Ridge in Berowra Valley, on the Benowie walking track, the 27 km of the Great North Walk that follows Berowra Creek from Pennant Hills to Berowra Waters. The Hornsby Rifle Range between Quarry trail and Tunks Ridge has no public access, and the signposted route goes round it by Manor Road and Simon trail."
@@ -13,9 +38,24 @@
       "description": "Hornsby Shire Council reserve in Berowra Valley, reached on foot along the Benowie walking track. Camping is basic and booked through the council: toilets, barbecues, picnic tables and a playground, but no showers or power. The reserve's gate closes at 7.30 pm in daylight saving time and 5 pm the rest of the year."
     },
     {
+      "waypointId": "w_f6dc9108",
+      "name": "Barnett Lookout",
+      "description": "Barnetts Lookout, off Barnetts Road in Berowra Heights, in Berowra Valley National Park, looks over the Berowra Valley and Berowra Creek. A wheelchair-accessible path leads to it, and the precinct has picnic tables, seats and a small playground but no toilets."
+    },
+    {
       "waypointId": "w_86918dab",
       "name": "Cowan",
       "description": "Village on the Pacific Highway by Cowan station, where the walk's Ku-ring-gai Chase National Park section starts: the Jerusalem Bay track, 11 km to Brooklyn, steep with many steps and boggy after rain. There are toilets at the station, and a cafe and a convenience store by the highway."
+    },
+    {
+      "waypointId": "w_84b62fac",
+      "name": "Brooklyn Dam Campsite",
+      "description": "Marked as a campsite in OpenStreetMap, in Ku-ring-gai Chase National Park on the Jerusalem Bay track between Cowan and Brooklyn. NSW National Parks lists one campground in the park, The Basin, and none here."
+    },
+    {
+      "waypointId": "w_d34c4e46",
+      "name": "Warrah Lookout",
+      "description": "Lookout in Brisbane Water National Park over Broken Bay and the Hawkesbury River. Locals call it Waratah Patch, for the waratahs that flower here in late winter. A track with steps and rough ground, about 15 minutes long, leads to it from the car park at the end of unsealed Warrah Trig Road."
     },
     {
       "waypointId": "w_de32becf",
@@ -31,6 +71,11 @@
       "waypointId": "w_2e79260f",
       "name": "The Narrow Place Lookout",
       "description": "Lookout on the walk's Watagans National Park section along Georges Road, looking north over Quorrobolong to Ellalong, Cessnock and Kurri Kurri. The park has no drinking or cooking water."
+    },
+    {
+      "waypointId": "w_efa53436",
+      "name": "Bimbadeen Lookout",
+      "description": "Lookout at Mount View over several mountains, Mount Sugarloaf among them, with Cessnock, Kurri Kurri and Maitland in the distance. On a clear day the view reaches Stockton Beach at Newcastle and the Barrington Tops."
     },
     {
       "waypointId": "w_3715cb03",
@@ -51,6 +96,21 @@
       "waypointId": "w_15857c70",
       "name": "Heaton Lookout",
       "description": "Lookout and picnic area in Heaton State Forest with coastal and mountain views, named after Richard Heaton, an English convict who became a timber cutter in the area."
+    },
+    {
+      "waypointId": "w_f75cefdf",
+      "name": "Leichhardts Lookout",
+      "description": "Lookout over Glenrock Lagoon about halfway along the Yuelarbah walking track, the walk's section through Glenrock State Conservation Area. The track follows Flaggy Creek, where there is a picnic area, past two waterfalls to Glenrock Lagoon and Glenrock Beach."
+    },
+    {
+      "waypointId": "w_94a67c72",
+      "name": "Shepherds Hill",
+      "description": "Hill on the southern boundary of King Edward Park, with the remains of the Shepherds Hill Battery and the Gunner's Cottage, which were in regular use from 1890 until the Second World War."
+    },
+    {
+      "waypointId": "w_f6e3bcd8",
+      "name": "King Edward Park Fountain",
+      "description": "Water point in King Edward Park on York Drive, a recreation reserve since 1863, with ocean views, a playground and public toilets. The park also holds a Victorian rotunda, a sunken garden and the Obelisk, built in 1850 as a navigation marker, and the Bogey Hole, a convict-cut ocean bathing pool, lies at the foot of its eastern cliff."
     },
     {
       "waypointId": "w_68f80f93",
