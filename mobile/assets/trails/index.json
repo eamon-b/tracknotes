@@ -92,10 +92,10 @@
     "states": [
       "NSW"
     ],
-    "dataVersion": "2026-11-18",
-    "updatedAt": "2026-11-18T10:11:59.344Z",
-    "md5": "85647fbd37a1a54142bf6562ffc8799f",
-    "bytes": 777988
+    "dataVersion": "2026-11-24",
+    "updatedAt": "2026-11-24T10:46:28.542Z",
+    "md5": "abcbe2022c09a0f60a21e62b672cd755",
+    "bytes": 781576
   },
   {
     "id": "great_ocean_walk",
@@ -148,10 +148,10 @@
     "states": [
       "WA"
     ],
-    "dataVersion": "2026-11-05",
-    "updatedAt": "2026-11-05T21:14:21.656Z",
-    "md5": "a25ec73ef3acfaed3db8f1b11e83df43",
-    "bytes": 313421
+    "dataVersion": "2026-11-24",
+    "updatedAt": "2026-11-24T10:46:28.542Z",
+    "md5": "b2a3c2d2f1dc104c8e59e58943b83205",
+    "bytes": 314094
   },
   {
     "id": "larapinta",
