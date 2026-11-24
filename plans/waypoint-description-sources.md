@@ -9,7 +9,7 @@ The trails authored before this note (Cape to Cape, AAWT, Bibbulmun, Hume & Hove
 - **Permanent place only.** A bundled description describes the place as it normally is, with its facilities as normally provided. Where a facility's normal state is unclear, the description leaves it out. A temporary closure goes in the bundled text only as a dated sentence ("As of October 2026, …") so it can be found and removed later: there is no separate synced-only channel, because `upload:descriptions` pushes the same file (owner's decision on #217). The dated sentences are listed under [Temporary closures in the descriptions](#temporary-closures-in-the-descriptions) below, except the Heysen ones, which are listed under that trail.
 - **Facts, not advice.** Agency advice is turned into the fact behind it. For example, "boiling … is recommended" becomes "the tank water is untreated", and "should not be relied on" becomes "there is no reliable natural water". The agency's own wording stays here in the sources file.
 - **Primary or authoritative sources only.** A primary source here is the land manager's page, or a government tourism body's full page. The track's own long-standing notes site counts as authoritative. A claim that could not be checked against one of these was removed. Blogs, tour operators and search-result snippets do not count.
-- **Own wording.** The descriptions paraphrase their sources. The phrases flagged in review, and every other close echo found in a pass over the 29 descriptions that existed then, were rewritten (the `descriptions.json` files now hold 700 across 15 trails).
+- **Own wording.** The descriptions paraphrase their sources. The phrases flagged in review, and every other close echo found in a pass over the 29 descriptions that existed then, were rewritten (the `descriptions.json` files now hold 699 across 15 trails).
 
 ## Temporary closures in the descriptions
 
@@ -193,9 +193,9 @@ Read 2026-10-23.
 
 **Second pass (2026-11-24, issue #30).**
 - Trails WA (above): the track passes through Mount Helena.
-- OpenStreetMap, through the committed `data/trails/kep_track/pois.json`: **Mount Helena**'s Mount Helena Tavern (`amenity=pub`, 0.10 km from the track) and Mount Helena Deli (`amenity=fast_food`, 0.16 km), and the Transperth bus stops on Keane Street and Sawyers Road (a `shop=supermarket` node there carries a `fixme` saying it may now be a fuel station, so it is left out);
-  the three **Drinking water** points, each an `amenity=drinking_water` node at the waypoint's position: at Mundaring Weir 0.27 km off the track, 250 m from the Mundaring Weir Hotel;
-  in Mundaring 0.24 km off the track;
+- OpenStreetMap, through the committed `data/trails/kep_track/pois.json`: **Mount Helena**'s Mount Helena Tavern (`amenity=pub`, 0.10 km from the track) and Mount Helena Deli (`amenity=fast_food`, 0.16 km from the track but about 1 km along it from the waypoint, at 14.75 km against 13.7 km), and the Transperth bus stops on Keane Street and Sawyers Road (a `shop=supermarket` node there carries a `fixme` saying it may now be a fuel station, so it is left out);
+  the three **Drinking water** points, each an `amenity=drinking_water` node at the waypoint's position: at Mundaring Weir 0.29 km off the track, 250 m from the Mundaring Weir Hotel;
+  in Mundaring 0.26 km off the track;
   at Clackline on the track, beside picnic shelters, 0.4 km along the track from the Clackline community postal agency (`Clackline CPA`, `amenity=post_office`).
 
 No entry: **Bakers Hill** (its hand-reviewed text stands), **Summer Creek Farm Camping** (a private farm campground known only from booking-site listings) and **Northam RV 48hr Stay** (its hand-reviewed text stands).
@@ -411,18 +411,19 @@ Official coverage of this walk is thin: it crosses many land managers and none p
 - Forestry Corporation of NSW, [Heaton State Forest](https://www.forestrycorporation.com.au/visit/forests/heaton-state-forest): Watagan Headquarters' 1940s road-workers' camp and later maintenance-crew barracks, its open grassed camping area among native forest and blue-leaved stringybark plantations, on the Great North Walk; Hunter Lookout's and McLeans Lookout's views; Heaton Lookout's coastal and mountain views, picnic area and Richard Heaton.
 - OpenStreetMap, through the committed `data/trails/great_north_walk/pois.json`: the cafe and convenience store at Cowan; Newcastle's cafes, restaurants, pubs, pharmacy and bus stops.
 
-**Second pass (2026-11-24, issue #30).** Twelve more entries. Pages read in full with curl on 2026-11-24 unless marked otherwise.
+**Second pass (2026-11-24, issue #30).**
+Eleven more entries.
+Pages were read in full with curl on 2026-11-24 unless marked otherwise.
 Which park each place is in comes from the NPWS managed-land layer (`mapprod3.environment.nsw.gov.au/arcgis/rest/services/Tenure/NPWS_AllManagedLand/MapServer/0`, queried at each waypoint's position).
 Where an NPWS page gives a position (its schema.org `latitude`/`longitude`), it is compared with the waypoint's below.
 
 - NPWS, [Koonjeree picnic area](https://www.nationalparks.nsw.gov.au/things-to-do/picnic-areas/koonjeree-picnic-area) and its visitor info (page position 60 m from **Koonjeree Rotunda**): riverside, on the banks of the Lane Cove River, a large flat grassy area, the eastern-most part of the park, near Killara;
-  flush toilets, picnic tables, free gas/electric barbecues, carpark;
+  flush toilets, picnic tables, free gas/electric barbecues, carpark, drinking water;
   the park open 9am–7pm in daylight saving and until 6pm otherwise.
 - NPWS, [Commandment Rock picnic area](https://www.nationalparks.nsw.gov.au/things-to-do/picnic-areas/commandment-rock-picnic-area) and its visitor info (page position 50 m from **Commandment Rock Rotunda 2**): a large grassy stretch, bookable, a main shelter and two more shelters within 30 m;
   flush toilets, picnic tables, one wood barbecue, carpark, drinking water.
 - NPWS, [Berowra Valley National Park and Berowra Valley Regional Park Plan of Management](https://www.environment.nsw.gov.au/sites/default/files/berowra-valley-national-park-regional-park-plan-of-management-230071.pdf) (adopted 2 February 2023):
   "Camping is currently permitted at Crosslands Reserve, Lyrebird Gully and Tunks Ridge" (**The Jungo**, which is in the national park and 11 km by the track from Tunks Ridge Campground);
-  the Pogsons Link Track "connects the Great North Walk at Fishponds Waterhole to Dural via Pogson Trig Trail and then Quarry Trail" (**Fishponds Lookout**, in the national park);
   Barnetts Lookout, off Barnetts Road, Berowra Heights, with a playground, picnic tables and seats, a wheelchair-accessible pathway, and no toilets (**Barnett Lookout**).
 - NPWS, [Barnetts lookout](https://www.nationalparks.nsw.gov.au/things-to-do/lookouts/barnetts-lookout) (page position 10 m from the waypoint): views across the Berowra Valley and Berowra Creek, Barnetts Road Reserve, a small playground near the picnic area.
 - Hornsby Shire Council, [Quarter Sessions Road Viewing Platform and Landscaping Works](https://www.hornsby.nsw.gov.au/Council/Noticeboard/Infrastructure-works-and-projects/Bushland-projects/Completed-works/Quarter-Sessions-Road-Viewing-Platform-and-Landscaping-Works) (curl answered 403; read with WebFetch): the viewing platform beside the Quarter Sessions Road Engraving Site ("also known as 'Blackfellows Head'"), upgraded after consultation with the local community and traditional owners;
@@ -440,21 +441,47 @@ Where an NPWS page gives a position (its schema.org `latitude`/`longitude`), it 
   ocean views, Norfolk Island pines and a sunken garden;
   "On the southern boundary are the remains of the Shepherds Hill Battery and Gunner's Cottage which were in regular use from 1890 to World War II" (**Shepherds Hill**);
   the Bogey Hole, a convict-hewn ocean bathing pool, at the foot of the eastern cliff;
-  a playground and public toilets (**King Edward Park Fountain**).
+  a playground and public toilets (**King Edward Park Fountain**, which OpenStreetMap maps as `amenity=drinking_water`, `fountain=bubbler`).
+  The Shepherds Hill description places the hill beside the park, since the page puts the battery remains, not the hill, on the boundary.
 - Visit NSW, [Bimbadeen Lookout](https://www.visitnsw.com/destinations/hunter/hunter-valley/destination-information/bimbadeen-lookout): Mount View;
   views over several mountains including Mount Sugarloaf, and of Cessnock, Kurri Kurri and Maitland;
   Stockton Beach and Barrington Tops on a clear day.
+  Bimbadeen is on the Pokolbin Spur side trip, which leaves the walk at 182.6 km, so its entry sits before Barraba Campsite.
 
 Not a source: the Jungo's and Brooklyn Dam's own status comes only from OpenStreetMap, which marks them as campsites; the descriptions say so.
 
-**No entry:** the ~60 generic "Drinking water" bubblers and taps (including the four tagged not drinkable), most rotundas (Blackbutt Rotunda 2 is 135 m from Commandment Rock picnic area's position, and no NPWS page names it or Blue Wren), Cubby House Kukundi, Cahill Expressway Lookout, The Step Lookout, Elouera Lookout and Naa Badu Lookout (only walking blogs describe them), Sugarloaf Hill, Blue Hole (NPWS's Blue Hole picnic area is in another park), Berowra Creek camp (550 m from Crosslands Reserve, possibly within its camping area, so the plan of management's list does not settle it), the Tap near Crosslands, Ridge Top Campground (not on NPWS land), the Spring, Patonga Rest Area, Mount Wondabyne summit, Scopas Peak, the three unnamed "Campsite" points, Mooney Mooney (Upper) (NPWS names a "Mooney Mooney Creek campground" on this section but gives no position), Palm Grove camping area (NSW Government's Palm Grove Nature Reserve page does not mention camping), Stringy Bark Point, Walkers Rest, Mt Warrawolong, Flat Rock Lookout and Crawford Hut (Forestry Corporation's pages answer 403 to both curl and WebFetch; NPWS's Flat Rock lookout page is a different lookout, in Coorabakh National Park), Merewether Lookout, Strzelecki Lookout (Visit Newcastle's Memorial Walk page now 404s) and Mt Bright Lookout (only a guidebook listing). Sydney, Thornleigh, Brooklyn, Somersby, Warners Bay, Crosslands Youth Camp and Glenrock Scout Training Camp keep their hand-reviewed GPX text.
+**No entry:**
+the ~60 generic "Drinking water" bubblers and taps (including the four tagged not drinkable),
+most rotundas (Blackbutt Rotunda 2 is 135 m from Commandment Rock picnic area's position, and no NPWS page names it or Blue Wren),
+Cubby House Kukundi,
+Cahill Expressway Lookout,
+The Step Lookout, Elouera Lookout and Naa Badu Lookout (only walking blogs describe them),
+Fishponds Lookout (the plan of management names Fishponds Waterhole, where the Pogsons Link Track joins the walk, but nothing ties the lookout to it),
+Sugarloaf Hill,
+Blue Hole (NPWS's Blue Hole picnic area is in another park),
+the Tunks Ridge summit,
+Berowra Creek camp (550 m from Crosslands Reserve, possibly within its camping area, so the plan of management's list does not settle it),
+the Tap near Crosslands,
+Ridge Top Campground (not on NPWS land),
+the Spring,
+Patonga Rest Area,
+Mount Wondabyne summit,
+Scopas Peak,
+the three unnamed "Campsite" points,
+Mooney Mooney (Upper) (NPWS names a "Mooney Mooney Creek campground" on this section but gives no position),
+Palm Grove camping area (NSW Government's Palm Grove Nature Reserve page does not mention camping),
+Stringy Bark Point, Walkers Rest, Mt Warrawolong, Flat Rock Lookout and Crawford Hut (Forestry Corporation's pages answer 403 to both curl and WebFetch; NPWS's Flat Rock lookout page is a different lookout, in Coorabakh National Park),
+Merewether Lookout,
+Strzelecki Lookout (Visit Newcastle's Memorial Walk page now 404s)
+and Mt Bright Lookout (only a guidebook listing).
 
 **Uncertain:**
 - Tunks Ridge Campground is named as an NPWS campground only on an NPWS local-alert page seen as a search result; its facilities are not described, so none are given.
 - Crosslands' gate times are from Hornsby Council's page; NPWS's Berowra Valley visitor info gives Crosslands' opening as 8am–7.30pm in daylight saving and 9am–5pm otherwise. The description gives only the closing times, on which both agree.
 - Barraba Trig's facilities and any conditions of use are unknown.
 - Mooney Mooney (Upper), The Jungo and the unnamed campsite at km 133.7 carried OSM text that read as a walker's note ("Water seems OK to drink from (filtered)", tent counts, phone reception). It could not be verified and was removed from the GPX `<desc>` on #217.
-- Search budget ran out before a Forestry Corporation page for Palm Grove/Ourimbah or a Brooklyn Dam source could be found.
+- Search budget ran out before a Forestry Corporation page for Palm Grove/Ourimbah could be found.
+  No source describes Brooklyn Dam itself; its entry rests only on OpenStreetMap's campsite tag and NPWS's campground list.
 
 ## South Coast Track (`south_coast_track`)
 
