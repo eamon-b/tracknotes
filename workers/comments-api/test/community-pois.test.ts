@@ -1026,3 +1026,29 @@ describe('migration 0011: re-run POI enrichment for the self-dedup flags (#286)'
     expect(again.updated_at).toBe(after.updated_at);
   });
 });
+
+describe('migration 0014: re-run POI enrichment for the hut/shelter rule (#286)', () => {
+  it('requeues answered routes that are not removed, as 0011 does', async () => {
+    const migration = env.TEST_MIGRATIONS.find((m) => m.name.startsWith('0014_requeue_community_route_pois_huts'));
+    expect(migration).toBeDefined();
+    const owner = await registerDevice();
+    const live = await submitAt(owner, freshStart());
+    const removed = await submitAt(owner, freshStart());
+    await env.DB.batch([
+      env.DB.prepare(
+        `UPDATE community_routes SET pois_status = 'done', pois_due_at = NULL, pois_attempts = 2 WHERE id = ?`
+      ).bind(live.id),
+      env.DB.prepare(
+        `UPDATE community_routes SET status = 'removed', pois_status = 'done', pois_due_at = NULL WHERE id = ?`
+      ).bind(removed.id),
+    ]);
+
+    for (const query of migration!.queries) await env.DB.prepare(query).run();
+
+    const requeued = await row(live.id);
+    expect(requeued.pois_due_at).toBe('');
+    expect(requeued.pois_attempts).toBe(0);
+    expect(requeued.pois_status).toBe('done');
+    expect((await row(removed.id)).pois_due_at).toBeNull();
+  });
+});
