@@ -40,6 +40,14 @@ export function contributionLicenceLine(
 }
 
 /**
+ * Said beside the licence on the route-share forms, web and phone: once other
+ * hikers rely on a route, deleting it releases it rather than removing it
+ * (`COMMUNITY_ESTABLISHED`, issue #386), so the hiker knows before sharing.
+ */
+export const ESTABLISHED_ROUTE_NOTICE =
+  'Once a route has been shared for a month and other hikers have posted on it, deleting it keeps it in the community without your name.';
+
+/**
  * "The privacy policy says what is stored and who can see it." — shown under
  * {@link contributionLicenceLine}, split so a UI can make "privacy policy" a
  * link to {@link PRIVACY_POLICY_URL}.

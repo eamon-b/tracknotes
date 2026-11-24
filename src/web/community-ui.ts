@@ -6,7 +6,8 @@
  * Every string that came from a user or the server goes through `escapeHtml`.
  */
 
-import type { CommunityAiReview, CommunityCheck } from '@lib/community-types';
+import { COMMUNITY_ESTABLISHED } from '@lib/community-types';
+import type { CommunityAiReview, CommunityCheck, CommunityRouteDetail } from '@lib/community-types';
 import {
   PRIVACY_POLICY_URL,
   TERMS_URL,
@@ -54,7 +55,13 @@ export function checksListHtml(checks: readonly CommunityCheck[]): string {
  * upload page's share step, the route page's owner Edit form), in the words
  * the phone's forms use (`@lib/contribution-licence`), with their links.
  */
-export function renderContributionLicence(el: HTMLElement, verb: 'posting' | 'sharing', what: string): void {
+export function renderContributionLicence(
+  el: HTMLElement,
+  verb: 'posting' | 'sharing',
+  what: string,
+  /** A sentence after the two lines (the share form's `ESTABLISHED_ROUTE_NOTICE`). */
+  note?: string
+): void {
   const lines = [
     { ...contributionLicenceLine(verb, what), href: TERMS_URL },
     { ...contributionPrivacyLine(), href: PRIVACY_POLICY_URL },
@@ -67,7 +74,8 @@ export function renderContributionLicence(el: HTMLElement, verb: 'posting' | 'sh
       link.rel = 'noopener';
       link.textContent = line.link;
       return [...(i > 0 ? [' '] : []), line.before, link, line.after];
-    })
+    }),
+    ...(note ? [` ${note}`] : [])
   );
 }
 
@@ -198,4 +206,25 @@ export function reviewHtml(review: CommunityAiReview | undefined): string {
     parts.push(`<ul>${review.concerns.map(c => `<li>${escapeHtml(c)}</li>`).join('')}</ul>`);
   }
   return parts.join('');
+}
+
+/**
+ * What the owner confirms before Delete. An established route (shared for a
+ * month and posted on by other hikers: `COMMUNITY_ESTABLISHED`) is released
+ * rather than removed, so the wording says what happens instead (#386).
+ */
+export function deleteRouteConfirmText(
+  detail: Pick<CommunityRouteDetail, 'name' | 'established' | 'otherPosters'>
+): string {
+  if (detail.established !== true) {
+    return `Delete "${detail.name}" from the community list? This cannot be undone.`;
+  }
+  const others = detail.otherPosters ?? COMMUNITY_ESTABLISHED.minOtherPosters;
+  return (
+    `Other hikers use "${detail.name}" (${others} have posted on it), so deleting it releases it instead of removing it. ` +
+    'It stays in the community without your name: your name comes off it, the GPX file you uploaded is deleted, ' +
+    'and it is no longer yours to edit or delete. ' +
+    'To have it taken down for a safety or privacy problem, report it or email us instead. ' +
+    'This cannot be undone.'
+  );
 }

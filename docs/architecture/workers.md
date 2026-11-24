@@ -109,6 +109,13 @@ Reports spend the `communityReport` bucket (20 a day) through `consumeRateLimit`
 A banned account may still report a route (reporting is a safety action, as for comments and shared waypoints).
 The public list and "my routes" are keyset-paged (`?cursor=` / `nextCursor`).
 A route an admin removed (or its owner deleted while an admin had it hidden) sets `blocks_resubmit`, refusing the same track again.
+**Established routes** (issue #386, migration `0015`): a live route shared at least `COMMUNITY_ESTABLISHED.minAgeDays` (30) ago, by `created_at`, with a live comment or shared waypoint from at least `minOtherPosters` (3) accounts other than its owner, is established.
+The owner's and admins' detail (`GET /v1/community/routes/:id`, `GET /v1/me/community/routes`) carries `established` and `otherPosters` for a live route (one `UNION` count per route, batched for the list); the public detail never does.
+The owner's `DELETE` of an established route is refused 409 `route_established` unless it says `?release=1`, so an app from before releases never tells its hiker a route was deleted when it was not;
+with it, `releaseCommunityRoute` sets `released_at`, clears `submitted_by_name` and sets `deattribute_pending` in one statement guarded on `updated_at` (409 `conflict` if the route changed), answers 200 `{ released: true }`, and runs the account-deletion de-attribution (`deattributeRoute`: the JSON rewritten without the name, the GPX and older copies purged; retried by the cron).
+A released route stays live but is no longer its owner's (`ownsRoute`): it leaves "my routes", their detail is the public one, a PATCH or DELETE from them is 404, and they may report it like anyone; admins keep every power over it and see `releasedAt`.
+`deattributeStatement` leaves a released route's `deattribute_pending` as it is.
+An admin's delete is always a removal, of their own route too, and a hidden route is never established.
 Comments, plan sync and shared hiker waypoints take a community route's id as well as `ALLOWED_TRAILS` (next section).
 
 ## Comments API Worker: which trails (`workers/comments-api/src/trails.ts`)
@@ -117,10 +124,13 @@ Comments, plan sync and shared hiker waypoints take a community route's id as we
 A trail is either curated (`ALLOWED_TRAILS`, held equal to the bundled trails by `scripts/server-trail-allowlist.test.ts`) or a community route (`isCommunityRouteId`, plus a row in `community_routes`: one primary-key read).
 Anything else — a `u_` import above all — is 400 (`invalid_trail`; `trail_not_allowed` for a plan).
 What a route takes depends on its status: a **public write** (`PUT /v1/comments/:id`, `PUT /v1/waypoints/:id`, a new share or an edit) needs a live route (`unverified`/`verified`), else 403 `trail_not_live`, so nothing new is published on a route nobody can see;
-a **private write** (`PUT /v1/plans/:id`) and the **reads** (`GET /v1/trails/:id/waypoints`, `/descriptions`) take any route the server has a row for, hidden or removed included — a plan is the hiker's own, and the phone keeps a route that was taken down ("No longer shared");
-the feeds keep serving what was posted while it was up (the comment feeds never checked the trail).
+a **private write** (`PUT /v1/plans/:id`) and the **reads** (`GET /v1/trails/:id/waypoints`, `/descriptions`) take any route the server has a row for, hidden or removed included — a plan is the hiker's own, and the phone keeps a route that was taken down ("No longer shared").
+The public feeds of a removed route close `REMOVED_ROUTE_FEED_DAYS` (30) after its `removed_at` (issue #386): `resolveTrail` returns `feedOpen`, and the shared-waypoint list, the bulk comment sync and the waypoint comment feed answer an empty page (with `syncedAt` where they carry one) once it is false, so a phone keeps what it already holds.
+The comment feeds take any trail id, so they ask `publicFeedOpen`, which looks up only a `c_` id and answers open for one with no row (empty, as before);
+a hidden route's feeds stay open, and the admin comment list ignores `feedOpen`.
 Deletes, reports and replays are not gated by trail.
 Rows are never deleted (removal is a tombstone), so "is a community route" is cached for the isolate's life and "is live" for `LIVE_CACHE_MS` (60 s, live results only): a hide stops new comments within a minute on every isolate, and a restore is read at once.
+A read re-reads any entry older than `LIVE_CACHE_MS` that is not yet removed (a removal is final, and the cache keeps its `removed_at`), so a feed closes on time on every isolate.
 The descriptions read answers an empty list for a route (its descriptions are in the route itself);
 the admin description PUT stays curated-only (`validateTrailId`).
 That PUT is `requireAdmin`, which takes any live token of an admin account, a linked browser's included, so the live description editor (`src/web/admin-descriptions.html`) writes with the browser's own token and needs no route of its own;

@@ -31,7 +31,16 @@ export const TERMS_OPEN_FAILED_MESSAGE = `Couldn't open the terms of service. Yo
 /** Shown when the OS refuses to open the privacy policy. */
 export const PRIVACY_OPEN_FAILED_MESSAGE = `Couldn't open the privacy policy. You can read it at ${PRIVACY_POLICY_URL}`;
 
-export function ContributionLicence({ verb, what }: { verb: 'posting' | 'sharing'; what: string }) {
+export function ContributionLicence({
+  verb,
+  what,
+  note,
+}: {
+  verb: 'posting' | 'sharing';
+  what: string;
+  /** A plain sentence after the two lines (the route-share form's `ESTABLISHED_ROUTE_NOTICE`). */
+  note?: string;
+}) {
   const { colors } = useTheme();
   const [failed, setFailed] = useState<string | null>(null);
   const line = contributionLicenceLine(verb, what);
@@ -68,6 +77,7 @@ export function ContributionLicence({ verb, what }: { verb: 'posting' | 'sharing
         <Text style={{ color: colors.accent }}>{privacy.link}</Text>
         {privacy.after}
       </Text>
+      {note ? <Text style={[styles.line, { color: colors.textSecondary }]}>{note}</Text> : null}
       {failed ? (
         <Text style={[styles.line, { color: colors.danger }]} accessibilityRole="alert">
           {failed}

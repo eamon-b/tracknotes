@@ -376,7 +376,7 @@ export async function getTrailSharedWaypoints(
   ctx: ExecutionContext,
   trailIdRaw: string
 ): Promise<Response> {
-  const { id: trailId } = await resolveTrail(env, trailIdRaw, 'read');
+  const { id: trailId, feedOpen } = await resolveTrail(env, trailIdRaw, 'read');
   // Optional: a signed-in reader learns which waypoints are their own (after a
   // reinstall, say). Never required — the read is public.
   const viewer = await getUser(request, env, ctx);
@@ -384,6 +384,11 @@ export async function getTrailSharedWaypoints(
   const since = url.searchParams.get('since');
   const cursor = decodeCursor(url.searchParams.get('cursor'));
   const syncedAt = new Date().toISOString();
+  // A route removed over `REMOVED_ROUTE_FEED_DAYS` ago serves nothing (#386).
+  if (!feedOpen) {
+    const closed: SharedWaypointsResponse = { waypoints: [], nextCursor: null, syncedAt };
+    return json(closed, 200, { 'Cache-Control': 'no-store' });
+  }
 
   const conditions = ['w.trail_id = ?'];
   const binds: unknown[] = [trailId];

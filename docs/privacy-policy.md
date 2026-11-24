@@ -17,7 +17,7 @@ Where Cloudflare actually holds the data, and how that is checked, is in
 `docs/data-residency.md`.
 -->
 
-**Last updated: 2026-11-20**
+**Last updated: 2026-11-24**
 
 Tracknotes is a hiking guide app for long-distance trails, mostly in
 Australia, with built-in guides for New Zealand, the United States, Japan and
@@ -298,19 +298,33 @@ your post is erased. Reports you filed are kept as a moderation record (the
 reason you chose and when), but any text you wrote in them is erased. This is
 immediate and irreversible.
 
-A community route you shared can be deleted at any time from its page
-(**Delete**); this removes it from the public list and deletes the stored route
-and GPX file. We keep a record of the route, marked removed: its name,
+A community route you shared can be deleted from its page (**Delete**) until it
+becomes established: shared for 30 days, with comments or shared waypoints
+from at least 3 other people.
+Deleting a route that is not established removes it from the public list and
+deletes the stored route and GPX file. We keep a record of the route, marked removed: its name,
 description, credit line and country/region, the display name it was shared
 under, its summary statistics, its bounding box and exact start and end points,
 the results of its automated checks and review, and a fingerprint of its track,
-which lets moderation stop a removed route from being shared again. Because shared routes are released as CC0, copies others have
+which lets moderation stop a removed route from being shared again.
+Comments and shared waypoints other people posted on a removed route stay
+readable for 30 days after it is removed, for hikers out on a copy they had
+downloaded, and are then no longer served.
+Once a route is established, other hikers rely on it, so **Delete** releases it
+instead of removing it: it stays public, without your name.
+The stored route is rewritten without your display name, the earlier copies
+that named you and the original GPX file are deleted, and the route is no longer
+yours to edit or delete. The description and credit line you wrote stay
+published. We keep a record that you shared and released it, for moderation.
+If a route needs to come down (it is unsafe, shows somewhere private, or was
+shared by mistake), report it or email us and a moderator will look at it.
+Because shared routes are released as CC0, copies others have
 already downloaded or saved may remain on their devices. Deleting your account
 leaves the routes you shared public but removes your display name from them:
 the stored route is rewritten without it and the earlier copies that named you
 are deleted. The original GPX file, if you included one, is deleted too. The
-description and credit line you wrote stay published. Delete the routes first
-if you want them gone.
+description and credit line you wrote stay published. Delete the routes that
+are not yet established first if you want them gone.
 
 ## Children
 

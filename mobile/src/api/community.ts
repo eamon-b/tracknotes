@@ -13,6 +13,7 @@ import type {
   CommunityCheck,
   CommunityListResponse,
   CommunityPatchRequest,
+  CommunityReleaseResponse,
   CommunityReportReason,
   CommunityRouteDetail,
   CommunitySubmitRequest,
@@ -162,14 +163,27 @@ export async function patchCommunityRoute(
   });
 }
 
-/** Remove an owned route (owner or admin). */
-export async function deleteCommunityRoute(ctx: ApiContext, id: string): Promise<void> {
-  await apiRequest<void>(routePath(id), {
-    baseUrl: ctx.baseUrl,
-    fetchImpl: ctx.fetchImpl,
-    token: ctx.token,
-    method: 'DELETE',
-  });
+/**
+ * Remove an owned route (owner or admin). The owner of an established route
+ * (`detail.established`) passes `release`: the server then releases it
+ * instead, keeping it public without their name (#386), and refuses the delete
+ * without it (409 `route_established`). Resolves to whether it was released.
+ */
+export async function deleteCommunityRoute(
+  ctx: ApiContext,
+  id: string,
+  options: { release?: boolean } = {},
+): Promise<{ released: boolean }> {
+  const body = await apiRequest<CommunityReleaseResponse | undefined>(
+    options.release ? `${routePath(id)}?release=1` : routePath(id),
+    {
+      baseUrl: ctx.baseUrl,
+      fetchImpl: ctx.fetchImpl,
+      token: ctx.token,
+      method: 'DELETE',
+    },
+  );
+  return { released: body?.released === true };
 }
 
 /** Report a route. */

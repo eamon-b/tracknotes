@@ -36,7 +36,7 @@ export interface UseMySharedRoutes {
   /** Pull-to-refresh. Never throws. */
   refresh: () => Promise<void>;
   /** Delete on the server and on this phone; throws on failure (the caller words it). */
-  remove: (id: string) => Promise<void>;
+  remove: (id: string, options?: { release?: boolean }) => Promise<void>;
 }
 
 export function useMySharedRoutes(): UseMySharedRoutes {
@@ -96,9 +96,10 @@ export function useMySharedRoutes(): UseMySharedRoutes {
   }, [baseUrl, token, fetchList]);
 
   const remove = useCallback(
-    async (id: string) => {
+    async (id: string, options: { release?: boolean } = {}) => {
       if (!baseUrl || !token) throw new Error('This phone has no account to delete with.');
-      await deleteMySharedRoute({ baseUrl, token }, id);
+      // A released route leaves this list too: it is no longer the owner's.
+      await deleteMySharedRoute({ baseUrl, token }, id, {}, options);
       if (!mounted.current) return;
       setResult((prev) =>
         prev && prev.routes ? { ...prev, routes: prev.routes.filter((r) => r.id !== id) } : prev,

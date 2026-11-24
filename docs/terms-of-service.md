@@ -14,7 +14,7 @@ the owner (2026-10-31); it has had no legal read (issue #148). Still
 outstanding: link it from the App Store / Play Store listings (#31).
 -->
 
-**Last updated: 2026-11-18**
+**Last updated: 2026-11-24**
 
 These terms cover the Tracknotes app and the Tracknotes website, tracknotes.info (together,
 "Tracknotes"). By using Tracknotes, or by posting anything to it, you agree to
@@ -48,6 +48,12 @@ you. Showing your display name beside it is a courtesy, not a condition of the
 licence. Where CC0 cannot waive a right in your jurisdiction, you grant
 everyone an unconditional, worldwide, royalty-free licence to use the content
 in the same ways.
+
+Once a community route you shared is established (shared for 30 days, with
+comments or shared waypoints from at least 3 other people), other hikers rely
+on it, so deleting it releases it rather than removing it: it stays in the
+community without your name, and is no longer yours to edit or delete. To have
+an established route taken down, report it or contact us.
 
 So only post what you are entitled to give away: your own words, photos you
 took, and routes and waypoints you recorded or are free to share. Do not post

@@ -19,7 +19,7 @@ import {
   validateText,
   validateWaterStatus,
 } from './validation';
-import { resolveTrail } from './trails';
+import { publicFeedOpen, resolveTrail } from './trails';
 import { parseContentReview, reviewFlaggedSql, screenOnPost } from './content-review';
 import type { CommentTarget } from './validation';
 import type {
@@ -256,6 +256,11 @@ export async function getWaypointFeed(
   const url = new URL(request.url);
   const limit = parseLimit(url.searchParams.get('limit'), FEED_DEFAULT_LIMIT, FEED_MAX_LIMIT);
   const cursor = decodeCursor(url.searchParams.get('cursor'));
+  // A route removed over `REMOVED_ROUTE_FEED_DAYS` ago serves nothing (#386).
+  if (!(await publicFeedOpen(env, trailId))) {
+    const closed: FeedResponse = { comments: [], nextCursor: null };
+    return json(closed);
+  }
 
   const conditions = ['c.trail_id = ?', 'c.waypoint_id = ?', 'c.deleted_at IS NULL'];
   const binds: unknown[] = [trailId, waypointId];
@@ -308,6 +313,12 @@ export async function getBulkSync(
   const cursor = decodeCursor(url.searchParams.get('cursor'));
   const since = url.searchParams.get('since');
   const syncedAt = new Date().toISOString();
+  // A route removed over `REMOVED_ROUTE_FEED_DAYS` ago serves nothing (#386):
+  // an empty page, so a phone keeps what it already holds rather than erroring.
+  if (!(await publicFeedOpen(env, trailId))) {
+    const closed: BulkSyncResponse = { comments: [], nextCursor: null, syncedAt };
+    return json(closed, 200, viewerId !== null ? { 'Cache-Control': 'private, no-store' } : {});
+  }
 
   const conditions = ['c.trail_id = ?'];
   const binds: unknown[] = [trailId];

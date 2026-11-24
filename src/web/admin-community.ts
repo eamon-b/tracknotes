@@ -232,7 +232,7 @@ function init(): void {
         case 'review':
           return adminRerunReview(current, id);
         case 'delete':
-          return deleteCommunityRoute(current, id);
+          return deleteCommunityRoute(current, id).then(() => undefined);
         default:
           return Promise.resolve();
       }

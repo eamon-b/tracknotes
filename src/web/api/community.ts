@@ -24,6 +24,7 @@ import {
   type CommunityAdminListResponse,
   type CommunityCheck,
   type CommunityPatchRequest,
+  type CommunityReleaseResponse,
   type CommunityReportReason,
   type CommunityRouteDetail,
   type CommunityRouteStatus,
@@ -194,17 +195,28 @@ export async function patchCommunityRoute(
   });
 }
 
-/** Remove a route (its owner, or an admin). */
+/**
+ * Remove a route (its owner, or an admin). An owner deleting an established
+ * route (`detail.established`) passes `release`, and the server releases it
+ * instead: it stays public without their name (#386). Without `release` the
+ * server refuses that delete with 409 `route_established`. Resolves to
+ * whether the route was released rather than removed.
+ */
 export async function deleteCommunityRoute(
   session: WebSession,
   id: string,
+  options: { release?: boolean } = {},
   deps: CommunityApiDeps = {}
-): Promise<void> {
-  await apiRequest<unknown>(routePath(id), {
-    method: 'DELETE',
-    token: session.token,
-    fetchImpl: deps.fetchImpl,
-  });
+): Promise<{ released: boolean }> {
+  const body = await apiRequest<CommunityReleaseResponse | undefined>(
+    options.release ? `${routePath(id)}?release=1` : routePath(id),
+    {
+      method: 'DELETE',
+      token: session.token,
+      fetchImpl: deps.fetchImpl,
+    }
+  );
+  return { released: body?.released === true };
 }
 
 /** Report a route. A repeat report from the same user is the server's to dedupe. */

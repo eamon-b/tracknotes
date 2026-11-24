@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   checksListHtml,
+  deleteRouteConfirmText,
   initRegionPicker,
   localCopyId,
   multilineHtml,
@@ -12,6 +13,16 @@ import {
 } from './community-ui';
 
 describe('community-ui', () => {
+  it('says an established route is released, not deleted', () => {
+    expect(deleteRouteConfirmText({ name: 'Ridge' })).toBe(
+      'Delete "Ridge" from the community list? This cannot be undone.'
+    );
+    const text = deleteRouteConfirmText({ name: 'Ridge', established: true, otherPosters: 7 });
+    expect(text).toContain('7 have posted on it');
+    expect(text).toContain('releases it instead of removing it');
+    expect(text).toContain('without your name');
+  });
+
   it('escapes check messages and lists fails first', () => {
     const html = checksListHtml([
       { id: 'a', level: 'pass', message: 'ok' },

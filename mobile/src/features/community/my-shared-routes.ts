@@ -49,14 +49,43 @@ export function mySharedRoutesError(err: unknown): string {
 
 export const DELETE_SHARED_ROUTE_TITLE = 'Delete shared route';
 
+/** What the server says about a route its owner may delete or release. */
+export type RouteEstablishment = Pick<CommunityRouteDetail, 'established' | 'otherPosters'>;
+
+/** Whether the owner's delete releases this route rather than removing it (#386). */
+export function releasesOnDelete(route?: RouteEstablishment | null): boolean {
+  return route?.established === true;
+}
+
+/** The confirm button: "Release" for an established route, "Delete" otherwise. */
+export function deleteSharedRouteAction(route?: RouteEstablishment | null): string {
+  return releasesOnDelete(route) ? 'Release' : 'Delete';
+}
+
 /**
  * The owner's delete confirmation, on both screens that offer it. Deleting
  * also removes the downloaded community copy from this phone, with its plan,
  * favourites, routes and "Hiking now" pin (`forgetCommunityRoute`), so it says
  * so; the `u_` guide the route was shared from is a different trail and stays.
+ *
+ * An established route (shared for a month and posted on by other hikers) is
+ * released instead: it stays in the community without the owner's name, and
+ * any copy on this phone stays, since it is still a shared route.
  */
-export function deleteSharedRouteMessage(name?: string | null): string {
+export function deleteSharedRouteMessage(
+  name?: string | null,
+  route?: RouteEstablishment | null,
+): string {
   const what = name ? `“${name}”` : 'this route';
+  if (releasesOnDelete(route)) {
+    const others = route?.otherPosters;
+    return (
+      `Other hikers use ${what}${others ? ` (${others} have posted on it)` : ''}, so it stays in the community without your name. ` +
+      'Your name comes off it, the GPX file you uploaded is deleted, and it is no longer yours to edit or delete. ' +
+      'To have it taken down for a safety or privacy problem, report it or email us instead. ' +
+      'This can’t be undone.'
+    );
+  }
   return (
     `Remove ${what} from the community for everyone? ` +
     'If the community copy is downloaded on this phone, it is removed too, along with its plan, favourites and routes. ' +
@@ -75,18 +104,25 @@ export interface DeleteMySharedRouteDeps {
  * `forgetCommunityRoute`). A 404 means it is already gone, which is what was
  * asked for, so the local cleanup still runs. Any other failure throws before
  * anything local is touched.
+ *
+ * With `release` (an established route), the server releases it instead: it
+ * stays shared, so nothing on this phone is touched. Resolves to whether it
+ * was released.
  */
 export async function deleteMySharedRoute(
   ctx: ApiContext,
   id: string,
   deps: DeleteMySharedRouteDeps = {},
-): Promise<void> {
+  options: { release?: boolean } = {},
+): Promise<{ released: boolean }> {
   const deleteRoute = deps.deleteRoute ?? deleteCommunityRoute;
   const forget = deps.forget ?? ((routeId: string) => forgetCommunityRoute(routeId));
   try {
-    await deleteRoute(ctx, id);
+    const { released } = await deleteRoute(ctx, id, options.release ? { release: true } : {});
+    if (released) return { released: true };
   } catch (err) {
     if (!(err instanceof ApiError && err.status === 404)) throw err;
   }
   await forget(id);
+  return { released: false };
 }

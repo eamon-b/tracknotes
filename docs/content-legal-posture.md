@@ -174,6 +174,24 @@ display name the hiker chooses. There is no email, password or sign-up.
      - CC0 copies others already hold cannot be recalled.
 
      The privacy policy states exactly what remains.
+   - *Deleting an established community route* (decided 2026-11-24, issue
+     #386). The same reasoning covers one route: once it is established
+     (`COMMUNITY_ESTABLISHED`: shared 30 days, live comments or shared
+     waypoints from 3 other accounts), its owner's Delete releases it instead
+     of removing it.
+     It is de-attributed exactly as an account deletion de-attributes it, and
+     it is no longer the owner's to edit or delete; admins keep every power
+     over it.
+     What the hiker is owed is control of their identity, which they keep in
+     full at once; the route itself was given away under CC0, and the share
+     form and terms say established routes stay.
+     A route that must come down for a real reason (safety, a private place, a
+     mistake) goes through Report or `privacy@tracknotes.info`, like any
+     takedown.
+     A route that is not established is removed as before, and the comments
+     and shared waypoints others posted on it stay in the public feeds for 30
+     days after its removal (`REMOVED_ROUTE_FEED_DAYS`), for hikers out on a
+     copy, and are then no longer served; the privacy policy says both.
    - *APP 1, 12 and 13, requests by email* (decided 2026-11-02, issue #250).
      Access and correction requests and complaints go to
      `privacy@tracknotes.info`, the same address as takedowns: this is a

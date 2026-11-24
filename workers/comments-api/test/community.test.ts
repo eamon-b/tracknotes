@@ -744,6 +744,161 @@ describe('DELETE /v1/community/routes/:id', () => {
   });
 });
 
+/** Back-date a route's sharing by `days`. */
+async function ageRoute(id: string, days: number): Promise<void> {
+  const at = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  await env.DB.prepare(`UPDATE community_routes SET created_at = ? WHERE id = ?`).bind(at, id).run();
+}
+
+/** A comment on a route, by the SQL (the route's own waypoint ids do not matter here). */
+async function postOn(routeId: string, device: Device, deleted = false): Promise<void> {
+  const now = new Date().toISOString();
+  await env.DB.prepare(
+    `INSERT INTO comments (id, trail_id, waypoint_id, user_id, text, created_at, updated_at, deleted_at, deleted_by)
+     VALUES (?, ?, 'uw_abc', ?, 'Water at the tank', ?, ?, ?, ?)`
+  )
+    .bind(crypto.randomUUID(), routeId, device.userId, now, now, deleted ? now : null, deleted ? 'owner' : null)
+    .run();
+}
+
+/** A shared waypoint on a route, by the SQL. */
+async function shareOn(routeId: string, device: Device): Promise<void> {
+  const now = new Date().toISOString();
+  await env.DB.prepare(
+    `INSERT INTO shared_waypoints (id, trail_id, user_id, name, type, lat, lon, created_at, updated_at)
+     VALUES (?, ?, ?, 'Spring', 'water', -37.5, 145.5, ?, ?)`
+  )
+    .bind(`hw_${crypto.randomUUID()}`, routeId, device.userId, now, now)
+    .run();
+}
+
+/** A route that is established: 31 days old, with three other accounts posting on it. */
+async function establishedRoute(owner: Device, overrides: Record<string, unknown> = {}): Promise<CommunityRouteDetail> {
+  const route = await submitOk(owner, overrides);
+  await ageRoute(route.id, 31);
+  await postOn(route.id, await registerDevice());
+  await postOn(route.id, await registerDevice());
+  await shareOn(route.id, await registerDevice());
+  return route;
+}
+
+async function release(device: Device, id: string): Promise<Response> {
+  return SELF.fetch(url(`/v1/community/routes/${id}?release=1`), { method: 'DELETE', headers: authHeaders(device) });
+}
+
+describe('established routes (#386)', () => {
+  it('counts other accounts with a live post, and needs both the age and the posters', async () => {
+    const owner = await registerDevice();
+    const route = await submitOk(owner);
+    const a = await registerDevice();
+    const b = await registerDevice();
+    await postOn(route.id, owner); // the owner's own posts never count
+    await postOn(route.id, a);
+    await shareOn(route.id, a); // one account, however many posts
+    await postOn(route.id, b, true); // a deleted post does not count
+    const detail = async (): Promise<CommunityRouteDetail> =>
+      (await (await getRoute(route.id, owner)).json()) as CommunityRouteDetail;
+    expect(await detail()).toMatchObject({ established: false, otherPosters: 1 });
+
+    await postOn(route.id, b);
+    await shareOn(route.id, await registerDevice());
+    // Three other posters, but shared only today.
+    expect(await detail()).toMatchObject({ established: false, otherPosters: 3 });
+    await ageRoute(route.id, 31);
+    expect(await detail()).toMatchObject({ established: true, otherPosters: 3 });
+
+    // The public never sees it; the owner's list does.
+    expect(await (await getRoute(route.id)).json()).not.toHaveProperty('established');
+    const mine = (await (
+      await SELF.fetch(url('/v1/me/community/routes'), { headers: authHeaders(owner) })
+    ).json()) as CommunityAdminListResponse;
+    expect(mine.routes.find((r) => r.id === route.id)).toMatchObject({ established: true, otherPosters: 3 });
+  });
+
+  it('is never established while hidden, so the owner’s delete removes it', async () => {
+    const owner = await registerDevice();
+    const admin = await registerDevice();
+    await makeAdmin(admin.userId);
+    const route = await establishedRoute(owner);
+    expect((await setStatus(admin, route.id, { status: 'hidden' })).status).toBe(200);
+    expect((await del(owner, route.id)).status).toBe(204);
+    expect((await row(route.id)).status).toBe('removed');
+  });
+
+  it('removes a young route on its owner’s delete, however many have posted', async () => {
+    const owner = await registerDevice();
+    const route = await establishedRoute(owner);
+    await ageRoute(route.id, 29);
+    expect((await del(owner, route.id)).status).toBe(204);
+    expect((await row(route.id)).status).toBe('removed');
+  });
+
+  it('refuses a plain owner delete of an established route, leaving it up', async () => {
+    const owner = await registerDevice();
+    const route = await establishedRoute(owner);
+    const res = await del(owner, route.id);
+    expect(res.status).toBe(409);
+    expect(((await res.json()) as { error: { code: string } }).error.code).toBe('route_established');
+    const r = await row(route.id);
+    expect(r.status).toBe('unverified');
+    expect(r.released_at).toBeNull();
+  });
+
+  it('releases it on ?release=1: still public, without the owner’s name, GPX or control', async () => {
+    const owner = await registerDevice('Route Maker');
+    const admin = await registerDevice();
+    await makeAdmin(admin.userId);
+    const route = await establishedRoute(owner, { gpxBase64: base64(GPX_TEXT) });
+    const gpxKey = (await row(route.id)).gpx_key as string;
+
+    const res = await release(owner, route.id);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ released: true });
+
+    const r = await row(route.id);
+    expect(r.status).toBe('unverified');
+    expect(r.released_at).not.toBeNull();
+    expect(r.submitted_by_name).toBeNull();
+    expect((await list()).routes.map((x) => x.id)).toContain(route.id);
+
+    // The stored JSON is rewritten without the name, and the GPX and the old copy go.
+    await eventually(async () => (await row(route.id)).deattribute_pending === 0);
+    const detail = (await (await getRoute(route.id)).json()) as CommunityRouteDetail;
+    expect(detail.submittedBy).toBeNull();
+    expect(JSON.stringify(await storedTrail(detail.trailUrl!))).not.toContain('Route Maker');
+    expect(await env.PHOTOS.head(gpxKey)).toBeNull();
+    await eventually(async () => (await env.PHOTOS.head(keyOf(route.trailUrl!))) === null);
+
+    // No longer the owner's: their view is the public one, and edits and deletes are refused.
+    const ownerView = (await (await getRoute(route.id, owner)).json()) as CommunityRouteDetail;
+    expect(ownerView).not.toHaveProperty('isOwner');
+    expect((await patch(owner, route.id, { name: 'Taking it back' })).status).toBe(404);
+    expect((await del(owner, route.id)).status).toBe(404);
+    expect((await release(owner, route.id)).status).toBe(404);
+    const mine = (await (
+      await SELF.fetch(url('/v1/me/community/routes'), { headers: authHeaders(owner) })
+    ).json()) as CommunityAdminListResponse;
+    expect(mine.routes.map((x) => x.id)).not.toContain(route.id);
+    // They can still report it, as anyone can.
+    const reported = await report(owner, route.id);
+    expect(((await reported.json()) as { error?: { code: string } }).error?.code).not.toBe('own_route');
+
+    // Admins see when it was released and can still remove it.
+    const adminView = (await (await getRoute(route.id, admin)).json()) as CommunityRouteDetail;
+    expect(adminView.releasedAt).toBe(r.released_at);
+    expect((await del(admin, route.id)).status).toBe(204);
+  });
+
+  it('does not let an account deletion re-run a release’s finished de-attribution', async () => {
+    const owner = await registerDevice('Released Then Gone');
+    const route = await establishedRoute(owner);
+    expect((await release(owner, route.id)).status).toBe(200);
+    await eventually(async () => (await row(route.id)).deattribute_pending === 0);
+    await deattributeStatement(env as unknown as Env, owner.userId).run();
+    expect((await row(route.id)).deattribute_pending).toBe(0);
+  });
+});
+
 describe('POST /v1/community/routes/:id/report', () => {
   it('hides an unverified route after three distinct reports', async () => {
     const owner = await registerDevice();

@@ -21,6 +21,22 @@ export type CommunityRouteStatus = 'unverified' | 'verified' | 'hidden' | 'remov
 /** Statuses anyone can see. */
 export const PUBLIC_COMMUNITY_STATUSES: readonly CommunityRouteStatus[] = ['unverified', 'verified'];
 
+/**
+ * When a route counts as established (issue #386): shared publicly for at
+ * least `minAgeDays` (from `createdAt`), and at least `minOtherPosters`
+ * accounts other than its owner have a live comment or shared waypoint on it.
+ * Its owner's delete then releases it rather than removing it: the route stays
+ * public, without their name, and is no longer theirs to edit or delete.
+ */
+export const COMMUNITY_ESTABLISHED = { minAgeDays: 30, minOtherPosters: 3 } as const;
+
+/**
+ * How long the public comment and shared-waypoint feeds of a removed route
+ * keep answering after its removal, for hikers out on a copy they hold. After
+ * that they answer empty.
+ */
+export const REMOVED_ROUTE_FEED_DAYS = 30;
+
 /** Whether `id` is a community route id: `c_` + 16 url-safe random chars. */
 export function isCommunityRouteId(id: string): boolean {
   return /^c_[A-Za-z0-9_-]{16}$/.test(id);
@@ -138,6 +154,24 @@ export interface CommunityRouteDetail extends CommunityRouteSummary {
   statusNote?: string | null;
   /** Present for the owner and admins when status is 'hidden': what hid the route. */
   hiddenReason?: 'review' | 'reports' | 'admin';
+  /**
+   * Present for the owner and admins on a live route: whether it is
+   * established ({@link COMMUNITY_ESTABLISHED}), so the owner's delete
+   * releases it, and how many other accounts have posted on it.
+   */
+  established?: boolean;
+  /** Present with `established`: other accounts with a live comment or shared waypoint on it. */
+  otherPosters?: number;
+  /** Present only for admins: when its owner released it (null if never). */
+  releasedAt?: string | null;
+}
+
+/**
+ * `DELETE /v1/community/routes/:id?release=1` on an established route: 200
+ * with this body. The route stays public, without its owner's name.
+ */
+export interface CommunityReleaseResponse {
+  released: true;
 }
 
 export interface CommunitySubmitRequest {

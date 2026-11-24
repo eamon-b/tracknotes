@@ -5,6 +5,7 @@ import {
   HIDDEN_UNKNOWN_TEXT,
   MY_ROUTES_LOAD_FAILED,
   deleteMySharedRoute,
+  deleteSharedRouteAction,
   deleteSharedRouteMessage,
   hiddenReasonText,
   isLiveRoute,
@@ -61,14 +62,32 @@ describe('deleteMySharedRoute', () => {
     const calls: string[] = [];
     const deleteRoute = jest.fn(async () => {
       calls.push('server');
+      return { released: false };
     });
     const forget = jest.fn(async () => {
       calls.push('local');
     });
-    await deleteMySharedRoute(ctx, 'c_AAAAAAAAAAAAAAAA', { deleteRoute, forget });
-    expect(deleteRoute).toHaveBeenCalledWith(ctx, 'c_AAAAAAAAAAAAAAAA');
+    expect(await deleteMySharedRoute(ctx, 'c_AAAAAAAAAAAAAAAA', { deleteRoute, forget })).toEqual({
+      released: false,
+    });
+    expect(deleteRoute).toHaveBeenCalledWith(ctx, 'c_AAAAAAAAAAAAAAAA', {});
     expect(forget).toHaveBeenCalledWith('c_AAAAAAAAAAAAAAAA');
     expect(calls).toEqual(['server', 'local']);
+  });
+
+  it('releases an established route and keeps it on this phone', async () => {
+    const deleteRoute = jest.fn(async () => ({ released: true }));
+    const forget = jest.fn(async () => undefined);
+    expect(
+      await deleteMySharedRoute(
+        ctx,
+        'c_AAAAAAAAAAAAAAAA',
+        { deleteRoute, forget },
+        { release: true },
+      ),
+    ).toEqual({ released: true });
+    expect(deleteRoute).toHaveBeenCalledWith(ctx, 'c_AAAAAAAAAAAAAAAA', { release: true });
+    expect(forget).not.toHaveBeenCalled();
   });
 
   it('treats a 404 as already deleted', async () => {
@@ -97,6 +116,17 @@ describe('deleteMySharedRoute', () => {
 });
 
 describe('deleteSharedRouteMessage', () => {
+  it('says an established route is released, not removed', () => {
+    const route = { established: true, otherPosters: 5 };
+    const text = deleteSharedRouteMessage('Ridge Loop', route);
+    expect(text).toContain('(5 have posted on it)');
+    expect(text).toContain('stays in the community without your name');
+    expect(text).not.toContain('downloaded on this phone');
+    expect(deleteSharedRouteAction(route)).toBe('Release');
+    expect(deleteSharedRouteAction({ established: false })).toBe('Delete');
+    expect(deleteSharedRouteAction(null)).toBe('Delete');
+  });
+
   it('says the downloaded community copy and its plan leave this phone', () => {
     const text = deleteSharedRouteMessage('Ridge Loop');
     expect(text).toContain('“Ridge Loop”');
