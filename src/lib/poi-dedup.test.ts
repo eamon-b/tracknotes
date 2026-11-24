@@ -579,19 +579,43 @@ describe('markSelfDuplicatePois (OSM mapping one place twice)', () => {
     expect(flagged(out)).toEqual({ 'node/2': 'node/1', 'node/4': 'node/3' });
   });
 
-  it('folds a hut and the camp site mapped round it: Karta Burnu, 14 m', () => {
+  it('keeps a shelter beside the camp site mapped round it: Karta Burnu, 14 m (#286)', () => {
     const out = markSelfDuplicatePois([
       at(1, 0, { name: 'Karta Burnu Camp Site', tags: { tourism: 'camp_site', toilets: 'yes', water: 'yes' } }),
       at(2, 14, { name: 'Karta Burnu', tags: { amenity: 'shelter' } }),
     ]);
-    expect(flagged(out)).toEqual({ 'node/2': 'node/1' });
+    expect(flagged(out)).toEqual({});
+  });
+
+  it('keeps a hut beside a same-named camp site whichever has more tags', () => {
+    const out = markSelfDuplicatePois([
+      // Overland: the hut has fewer tags, so it would have joined the campsite.
+      at(1, 0, { name: 'Scott-Kilvert Hut Campsite', tags: { tourism: 'camp_site', a: '1', b: '2' } }),
+      at(2, 20, { name: 'Scott-Kilvert Memorial Hut', tags: { tourism: 'wilderness_hut' } }),
+      // AAWT: the hut has more tags, so the camp site would have joined it.
+      at(3, 5000, { name: 'Federation Hut', tags: { tourism: 'camp_site' } }),
+      at(4, 5010, { name: 'Federation Hut', tags: { amenity: 'shelter', tourism: 'wilderness_hut', a: '1' } }),
+    ]);
+    expect(flagged(out)).toEqual({});
+  });
+
+  it('still folds two records of one roof, and two of one pitch', () => {
+    const out = markSelfDuplicatePois([
+      at(1, 0, { name: "Vance's Cabin", tags: { tourism: 'alpine_hut', a: '1' } }),
+      at(2, 12, { name: "Vance's Cabin", tags: { tourism: 'wilderness_hut' } }),
+      at(3, 5000, { name: 'Federation Hut', tags: { amenity: 'shelter', tourism: 'wilderness_hut', a: '1' } }),
+      at(4, 5030, { name: 'Federation Hut', tags: { amenity: 'shelter' } }),
+      at(5, 10000, { name: 'Rawson Caravan Park', tags: { tourism: 'caravan_site', a: '1' } }),
+      at(6, 10040, { name: 'Rawson Caravan Park', tags: { tourism: 'camp_site' } }),
+    ]);
+    expect(flagged(out)).toEqual({ 'node/2': 'node/1', 'node/4': 'node/3', 'node/6': 'node/5' });
   });
 
   it('reads `Mt` as `Mount` and drops generic words and `The`, as against waypoints', () => {
     const out = markSelfDuplicatePois([
       at(1, 0, { name: 'The Kalamunda Hotel', category: 'restaurant', tags: { amenity: 'pub', a: '1' } }),
       at(2, 6, { name: 'Kalamunda Hotel', category: 'restaurant', tags: { amenity: 'pub' } }),
-      at(3, 5000, { name: 'Mt Dale Hut', tags: { tourism: 'wilderness_hut', a: '1' } }),
+      at(3, 5000, { name: 'Mt Dale Campsite', tags: { tourism: 'camp_site', a: '1' } }),
       at(4, 5016, { name: 'Mount Dale Campsite', tags: { tourism: 'camp_site' } }),
     ]);
     expect(flagged(out)).toEqual({ 'node/2': 'node/1', 'node/4': 'node/3' });

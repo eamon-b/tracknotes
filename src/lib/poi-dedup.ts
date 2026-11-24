@@ -610,10 +610,10 @@ export function applyDuplicateOverrides(
 // === OSM duplicating itself (POI ↔ POI) ===
 //
 // Separately from the waypoints, OSM maps one place twice: a fuel station and
-// its shop (`Ampol` + `Ampol Foodary`, `Mobil` + `Mobil Mart`), a hut and the
-// camp site around it (`Karta Burnu` + `Karta Burnu Camp Site`), a building
+// its shop (`Ampol` + `Ampol Foodary`, `Mobil` + `Mobil Mart`), a building
 // outline and a node for the same pub (`The Kalamunda Hotel` + `Kalamunda
-// Hotel`). Left alone the map draws two markers a few metres apart and the
+// Hotel`). A hut and the camp site around it (`Karta Burnu` + `Karta Burnu
+// Camp Site`) are *not* one place: see `sameShelterKind`. Left alone the map draws two markers a few metres apart and the
 // datasheet lists the place twice. See `plans/poi-waypoint-dedup.md`.
 
 /** Two POIs further apart than this are never one place — except campgrounds. */
@@ -689,6 +689,31 @@ function sameEmergencyService(a: TrailPOI, b: TrailPOI): boolean {
   return kind(a) === kind(b);
 }
 
+/** OSM tags that put a roof over a hiker: a hut or a shelter, not a pitch. */
+export function isRoofedCampingPoi(poi: Pick<TrailPOI, 'tags'>): boolean {
+  const tags = poi.tags ?? {};
+  return tags.tourism === 'alpine_hut' || tags.tourism === 'wilderness_hut' || tags.amenity === 'shelter';
+}
+
+/**
+ * A hut or shelter and the camp site mapped round it share a name, but they are
+ * two facilities, and the roof is what a hiker in bad weather is looking for
+ * (issue #286). Folding them hid the roof under the pitch on four trails: the
+ * Bibbulmun's `Karta Burnu` shelter under `Karta Burnu Camp Site`, the
+ * Overland's `Scott-Kilvert Memorial Hut` under `Scott-Kilvert Hut Campsite`,
+ * and Te Araroa's `Klondyke`, `Greyneys` and `Clarkes Flat` shelters under
+ * their campsites. So two camping records are one place only when both are
+ * roofed (an `alpine_hut` and a `wilderness_hut` node for one cabin, as the
+ * AAWT's `Vance's Cabin`) or neither is (a `camp_site` and a `caravan_site`).
+ * Symmetric on purpose, so whether the pair shows as one or two never depends
+ * on which record has more tags: the AAWT's `Federation Hut` camp site now
+ * shows beside its hut too.
+ */
+function sameShelterKind(a: TrailPOI, b: TrailPOI): boolean {
+  if (a.category !== 'camping' || b.category !== 'camping') return true;
+  return isRoofedCampingPoi(a) === isRoofedCampingPoi(b);
+}
+
 interface SelfDedupEntry {
   poi: TrailPOI;
   key: string;
@@ -759,7 +784,9 @@ function selfNamesMatch(a: SelfDedupEntry, b: SelfDedupEntry, metres: number): b
  *
  * Never flagged: `transport` (bus-stop names carry direction in word order, and
  * two stops either side of a road are two stops), unnamed POIs (two nameless
- * taps 20 m apart are two taps), and names `nameTokens` cannot read.
+ * taps 20 m apart are two taps), names `nameTokens` cannot read, a hut or
+ * shelter against a camp site (`sameShelterKind`), and two different emergency
+ * services (`sameEmergencyService`).
  *
  * Run after `thinUrbanPois`, so a record city thinning drops can never be the
  * survivor of one it keeps. Returns a new array; stale flags in the input are
@@ -832,6 +859,7 @@ export function markSelfDuplicatePois(pois: readonly TrailPOI[] | undefined): Tr
       if (Math.abs(entry.poi.lat - survivor.poi.lat) > SELF_DUPLICATE_LAT_DEGREES) continue;
       if (!compatible.includes(survivor.poi.category)) continue;
       if (!sameEmergencyService(entry.poi, survivor.poi)) continue;
+      if (!sameShelterKind(entry.poi, survivor.poi)) continue;
       const metres = haversineDistance(entry.poi.lat, entry.poi.lon, survivor.poi.lat, survivor.poi.lon);
       if (metres > SELF_DUPLICATE_CAMPING_M) continue;
       if (!selfNamesMatch(entry, survivor, metres)) continue;

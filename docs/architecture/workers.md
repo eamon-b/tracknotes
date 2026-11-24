@@ -184,6 +184,8 @@ Because the POIs live in the canonical private JSON, every republish keeps them:
 `content_hash` is never recomputed, so the duplicate check is unaffected.
 Backfill: migration `0009` makes every stored route due, so after it is switched on each live route is republished once with its POIs (a new md5 and `updated_at` each).
 Re-run: migration `0011` makes every `done` route that is not removed due again (`pois_due_at = ''`, attempts and failures 0), so the cron re-runs the current passes over routes enriched before the POI self-dedup pass (#282, #286) and they get `duplicateOfPoi`.
+The cron runs whatever passes are deployed, so the re-run follows the rule that ships beside it: since #286 a hut or shelter is not folded into the camp site mapped round it.
+*Deploy comments API* migrates and then deploys, so only a cron run landing between those two steps (at most 3 routes) could use the previous rule.
 It costs one Overpass round per route, 3 routes a run;
 a route whose POIs come out the same is marked done without a rewrite, one that changed is republished (a new md5 and `updated_at`).
 A hidden route is requeued too, and waits until a restore makes it a candidate.
