@@ -179,6 +179,11 @@ export default function CommunityRouteScreen() {
         );
         if (released) {
           Alert.alert('Route released', 'It stays in the community without your name.');
+        } else if (release) {
+          Alert.alert(
+            'Route not released',
+            'It is no longer yours to release: it was taken down or released already. Any copy on this phone stays.',
+          );
         }
         router.dismissTo('/');
       } catch (err) {

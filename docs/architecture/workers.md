@@ -117,7 +117,8 @@ An owner's `?release=1` always releases a live route, established or not by then
 `releaseCommunityRoute` sets `released_at`, clears `submitted_by_name` and sets `deattribute_pending` in one statement guarded on `updated_at` (409 `conflict` if the route changed), answers 200 `{ released: true }`, and runs the account-deletion de-attribution (`deattributeRoute`: the JSON rewritten without the name, the GPX and older copies purged; retried by the cron).
 A released route stays live but is no longer its owner's (`ownsRoute`): it leaves "my routes", their detail is the public one, a PATCH or DELETE from them is 404, and they may report it like anyone; admins keep every power over it and see `releasedAt`.
 `deattributeStatement` leaves a released route's `deattribute_pending` as it is.
-An admin's delete is always a removal, of their own route too, and a hidden route is never established.
+An admin's delete is a removal (of their own route too, unless they ask for `?release=1` as its owner), and a hidden route is never established.
+The API lets an owner release any live route with `?release=1`, established or not; the clients offer it only for an established one.
 Comments, plan sync and shared hiker waypoints take a community route's id as well as `ALLOWED_TRAILS` (next section).
 
 ## Comments API Worker: which trails (`workers/comments-api/src/trails.ts`)

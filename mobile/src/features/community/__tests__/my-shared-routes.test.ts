@@ -91,6 +91,19 @@ describe('deleteMySharedRoute', () => {
     expect(forget).not.toHaveBeenCalled();
   });
 
+  it('keeps the route on this phone when a release finds it removed (204)', async () => {
+    const forget = jest.fn(async () => undefined);
+    expect(
+      await deleteMySharedRoute(
+        ctx,
+        'c_AAAAAAAAAAAAAAAA',
+        { deleteRoute: jest.fn(async () => ({ released: false })), forget },
+        { release: true },
+      ),
+    ).toEqual({ released: false });
+    expect(forget).not.toHaveBeenCalled();
+  });
+
   it('keeps the route on this phone when a release 404s', async () => {
     const forget = jest.fn(async () => undefined);
     expect(

@@ -1401,7 +1401,8 @@ export async function deleteCommunityRoute(
     }
     return releaseCommunityRoute(env, ctx, row);
   }
-  // An admin removes any route, their own included.
+  // Without `?release=1` an admin removes any route, their own included (an
+  // admin's own route with it is released, as its owner confirmed).
   if (isOwner && !isAdmin && isLive(row.status)) {
     const establishment = (await establishmentsFor(env, [row])).get(row.id);
     if (establishment?.established) {
