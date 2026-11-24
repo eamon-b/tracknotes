@@ -25,6 +25,7 @@
  */
 
 import { haversineDistance } from './distance';
+import { MINOR_SHELTER_TYPES } from './poi-noise';
 import { poiKey } from './trail-pois';
 import type { TrailPOI, TrailPOICategory } from './trail-types';
 
@@ -612,9 +613,10 @@ export function applyDuplicateOverrides(
 // Separately from the waypoints, OSM maps one place twice: a fuel station and
 // its shop (`Ampol` + `Ampol Foodary`, `Mobil` + `Mobil Mart`), a building
 // outline and a node for the same pub (`The Kalamunda Hotel` + `Kalamunda
-// Hotel`). A hut and the camp site around it (`Karta Burnu` + `Karta Burnu
-// Camp Site`) are *not* one place: see `sameShelterKind`. Left alone the map draws two markers a few metres apart and the
-// datasheet lists the place twice. See `plans/poi-waypoint-dedup.md`.
+// Hotel`). Left alone the map draws two markers a few metres apart and the
+// datasheet lists the place twice. A hut and the camp site around it
+// (`Karta Burnu` + `Karta Burnu Camp Site`) are *not* one place: see
+// `sameShelterKind`. See `plans/poi-waypoint-dedup.md`.
 
 /** Two POIs further apart than this are never one place — except campgrounds. */
 export const SELF_DUPLICATE_M = 50;
@@ -689,10 +691,16 @@ function sameEmergencyService(a: TrailPOI, b: TrailPOI): boolean {
   return kind(a) === kind(b);
 }
 
-/** OSM tags that put a roof over a hiker: a hut or a shelter, not a pitch. */
+/**
+ * OSM tags that put a roof over a hiker: a hut or a shelter, not a pitch.
+ *
+ * A picnic roof is not one (`MINOR_SHELTER_TYPES`): the ones `poi-noise` lets
+ * through are campgrounds OSM mis-tagged, the Heysen's `Ponderosa Campground`.
+ */
 export function isRoofedCampingPoi(poi: Pick<TrailPOI, 'tags'>): boolean {
   const tags = poi.tags ?? {};
-  return tags.tourism === 'alpine_hut' || tags.tourism === 'wilderness_hut' || tags.amenity === 'shelter';
+  if (tags.tourism === 'alpine_hut' || tags.tourism === 'wilderness_hut') return true;
+  return tags.amenity === 'shelter' && !(tags.shelter_type && MINOR_SHELTER_TYPES.has(tags.shelter_type));
 }
 
 /**

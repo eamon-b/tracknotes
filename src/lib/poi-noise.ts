@@ -28,7 +28,13 @@ export type NoiseReason =
  * `weather_shelter` is deliberately absent: on the Bibbulmun and Larapinta those
  * are real trail infrastructure. So are `basic_hut` and `lean_to`.
  */
-const MINOR_SHELTER_TYPES = new Set(['picnic_shelter', 'gazebo', 'pavilion', 'sun_shelter', 'pergola']);
+export const MINOR_SHELTER_TYPES: ReadonlySet<string> = new Set([
+  'picnic_shelter',
+  'gazebo',
+  'pavilion',
+  'sun_shelter',
+  'pergola',
+]);
 
 /**
  * Name fragments that override `MINOR_SHELTER_TYPES`.

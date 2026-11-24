@@ -607,8 +607,11 @@ describe('markSelfDuplicatePois (OSM mapping one place twice)', () => {
       at(4, 5030, { name: 'Federation Hut', tags: { amenity: 'shelter' } }),
       at(5, 10000, { name: 'Rawson Caravan Park', tags: { tourism: 'caravan_site', a: '1' } }),
       at(6, 10040, { name: 'Rawson Caravan Park', tags: { tourism: 'camp_site' } }),
+      // A campground mis-tagged as a picnic roof is still the campground.
+      at(7, 20000, { name: 'Ponderosa Campground', tags: { tourism: 'camp_site', a: '1' } }),
+      at(8, 20030, { name: 'Ponderosa Campground', tags: { amenity: 'shelter', shelter_type: 'picnic_shelter' } }),
     ]);
-    expect(flagged(out)).toEqual({ 'node/2': 'node/1', 'node/4': 'node/3', 'node/6': 'node/5' });
+    expect(flagged(out)).toEqual({ 'node/2': 'node/1', 'node/4': 'node/3', 'node/6': 'node/5', 'node/8': 'node/7' });
   });
 
   it('reads `Mt` as `Mount` and drops generic words and `The`, as against waypoints', () => {
