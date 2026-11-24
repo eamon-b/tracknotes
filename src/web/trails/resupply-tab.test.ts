@@ -318,6 +318,33 @@ describe('leaving inside the save debounce', () => {
   });
 });
 
+describe("a tick replayed on another tab's save", () => {
+  it('keeps an untick when the resupply page said No to the same town meanwhile', async () => {
+    await boot();
+    const key = `trail-plan-doc-${TRAIL_ID}`;
+    // The page's first save gives both tabs the same stored copy to start from.
+    check('w_005').click();
+    flushSave();
+    const base = JSON.parse(localStorage.getItem(key) ?? '{}');
+
+    // Unticked here, and still inside the debounce…
+    check('w_004').click();
+    // …when the resupply page, open in another tab, saves its own No to Delta.
+    const theirs = {
+      ...base,
+      resupplyStops: base.resupplyStops.filter((id: string) => id !== 'w_004'),
+      updatedAt: new Date(Date.now() + 1000).toISOString(),
+    };
+    localStorage.setItem(key, JSON.stringify(theirs));
+    window.dispatchEvent(new StorageEvent('storage', { key }));
+    flushSave();
+
+    // The replayed untick is an untick, not a flip back to ticked.
+    expect(JSON.parse(localStorage.getItem(key) ?? '{}').resupplyStops).not.toContain('w_004');
+    expect(check('w_004').checked).toBe(false);
+  });
+});
+
 describe('a selection holding a town on another route', () => {
   const key = `trail-plan-doc-${TRAIL_ID}`;
   const docWith = (over: Record<string, unknown>) => ({
