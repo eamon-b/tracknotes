@@ -2284,13 +2284,20 @@ function changeNights(key: StopKey, delta: number): void {
  * this route does not offer are kept, as `chooseResupplyOption` keeps them:
  * they may be towns on an alternate, with zero days of their own, and a tick
  * here says nothing about those.
+ *
+ * The edit records which way the box went, not "flip it": it may be replayed
+ * on a copy another tab saved (`plan-edit-queue.ts`), and a flip replayed on a
+ * copy where the resupply page already said No to the same town would tick it
+ * again.
  */
 function toggleResupply(id: string): void {
   if (readOnly) return;
   const every = everyRouteResupplyOptionIds(trail);
+  const tick = !(storedPlan.resupplyStops ?? every).includes(id);
   applyEdit(doc => {
     const current = doc.resupplyStops ?? every;
-    return editResupplyStops(doc, current.includes(id) ? current.filter(other => other !== id) : [...current, id]);
+    if (current.includes(id) === tick) return doc;
+    return editResupplyStops(doc, tick ? [...current, id] : current.filter(other => other !== id));
   });
 }
 
