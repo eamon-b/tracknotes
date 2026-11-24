@@ -6,7 +6,6 @@
  * Every string that came from a user or the server goes through `escapeHtml`.
  */
 
-import { COMMUNITY_ESTABLISHED } from '@lib/community-types';
 import type { CommunityAiReview, CommunityCheck, CommunityRouteDetail } from '@lib/community-types';
 import {
   PRIVACY_POLICY_URL,
@@ -219,9 +218,10 @@ export function deleteRouteConfirmText(
   if (detail.established !== true) {
     return `Delete "${detail.name}" from the community list? This cannot be undone.`;
   }
-  const others = detail.otherPosters ?? COMMUNITY_ESTABLISHED.minOtherPosters;
+  const others = detail.otherPosters;
+  const count = others ? ` (${others} have posted on it)` : '';
   return (
-    `Other hikers use "${detail.name}" (${others} have posted on it), so deleting it releases it instead of removing it. ` +
+    `Other hikers use "${detail.name}"${count}, so deleting it releases it instead of removing it. ` +
     'It stays in the community without your name: your name comes off it, the GPX file you uploaded is deleted, ' +
     'and it is no longer yours to edit or delete. ' +
     'To have it taken down for a safety or privacy problem, report it or email us instead. ' +

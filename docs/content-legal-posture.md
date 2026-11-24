@@ -191,7 +191,11 @@ display name the hiker chooses. There is no email, password or sign-up.
      A route that is not established is removed as before, and the comments
      and shared waypoints others posted on it stay in the public feeds for 30
      days after its removal (`REMOVED_ROUTE_FEED_DAYS`), for hikers out on a
-     copy, and are then no longer served; the privacy policy says both.
+     copy, and are then dropped from the public feeds (photos keep their
+     address until their comment is deleted); the privacy policy says both.
+     Only accounts a day old when they posted count towards "established", as
+     for reports, so a few fresh accounts cannot take a route out of its
+     owner's hands.
    - *APP 1, 12 and 13, requests by email* (decided 2026-11-02, issue #250).
      Access and correction requests and complaints go to
      `privacy@tracknotes.info`, the same address as takedowns: this is a

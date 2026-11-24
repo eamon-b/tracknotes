@@ -7,6 +7,7 @@ import {
   deleteMySharedRoute,
   deleteSharedRouteAction,
   deleteSharedRouteMessage,
+  isRouteEstablishedError,
   hiddenReasonText,
   isLiveRoute,
   mySharedRoutesError,
@@ -88,6 +89,30 @@ describe('deleteMySharedRoute', () => {
     ).toEqual({ released: true });
     expect(deleteRoute).toHaveBeenCalledWith(ctx, 'c_AAAAAAAAAAAAAAAA', { release: true });
     expect(forget).not.toHaveBeenCalled();
+  });
+
+  it('keeps the route on this phone when a release 404s', async () => {
+    const forget = jest.fn(async () => undefined);
+    expect(
+      await deleteMySharedRoute(
+        ctx,
+        'c_AAAAAAAAAAAAAAAA',
+        {
+          deleteRoute: jest.fn(async () => {
+            throw new ApiError(404, 'not_found', 'gone');
+          }),
+          forget,
+        },
+        { release: true },
+      ),
+    ).toEqual({ released: false });
+    expect(forget).not.toHaveBeenCalled();
+  });
+
+  it('knows the refusal that asks for a release', () => {
+    expect(isRouteEstablishedError(new ApiError(409, 'route_established', 'x'))).toBe(true);
+    expect(isRouteEstablishedError(new ApiError(409, 'conflict', 'x'))).toBe(false);
+    expect(isRouteEstablishedError(new Error('x'))).toBe(false);
   });
 
   it('treats a 404 as already deleted', async () => {

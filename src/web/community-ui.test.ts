@@ -21,6 +21,7 @@ describe('community-ui', () => {
     expect(text).toContain('7 have posted on it');
     expect(text).toContain('releases it instead of removing it');
     expect(text).toContain('without your name');
+    expect(deleteRouteConfirmText({ name: 'Ridge', established: true })).toMatch(/^Other hikers use "Ridge", so/);
   });
 
   it('escapes check messages and lists fails first', () => {

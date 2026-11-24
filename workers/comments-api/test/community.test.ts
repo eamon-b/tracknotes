@@ -776,9 +776,9 @@ async function shareOn(routeId: string, device: Device): Promise<void> {
 async function establishedRoute(owner: Device, overrides: Record<string, unknown> = {}): Promise<CommunityRouteDetail> {
   const route = await submitOk(owner, overrides);
   await ageRoute(route.id, 31);
-  await postOn(route.id, await registerDevice());
-  await postOn(route.id, await registerDevice());
-  await shareOn(route.id, await registerDevice());
+  await postOn(route.id, await registerAgedDevice());
+  await postOn(route.id, await registerAgedDevice());
+  await shareOn(route.id, await registerAgedDevice());
   return route;
 }
 
@@ -790,9 +790,10 @@ describe('established routes (#386)', () => {
   it('counts other accounts with a live post, and needs both the age and the posters', async () => {
     const owner = await registerDevice();
     const route = await submitOk(owner);
-    const a = await registerDevice();
-    const b = await registerDevice();
+    const a = await registerAgedDevice();
+    const b = await registerAgedDevice();
     await postOn(route.id, owner); // the owner's own posts never count
+    await postOn(route.id, await registerDevice()); // nor a fresh account's
     await postOn(route.id, a);
     await shareOn(route.id, a); // one account, however many posts
     await postOn(route.id, b, true); // a deleted post does not count
@@ -801,7 +802,7 @@ describe('established routes (#386)', () => {
     expect(await detail()).toMatchObject({ established: false, otherPosters: 1 });
 
     await postOn(route.id, b);
-    await shareOn(route.id, await registerDevice());
+    await shareOn(route.id, await registerAgedDevice());
     // Three other posters, but shared only today.
     expect(await detail()).toMatchObject({ established: false, otherPosters: 3 });
     await ageRoute(route.id, 31);
@@ -874,7 +875,7 @@ describe('established routes (#386)', () => {
     expect(ownerView).not.toHaveProperty('isOwner');
     expect((await patch(owner, route.id, { name: 'Taking it back' })).status).toBe(404);
     expect((await del(owner, route.id)).status).toBe(404);
-    expect((await release(owner, route.id)).status).toBe(404);
+    expect((await release(owner, route.id)).status).toBe(200); // a repeat, answered as before
     const mine = (await (
       await SELF.fetch(url('/v1/me/community/routes'), { headers: authHeaders(owner) })
     ).json()) as CommunityAdminListResponse;
@@ -887,6 +888,61 @@ describe('established routes (#386)', () => {
     const adminView = (await (await getRoute(route.id, admin)).json()) as CommunityRouteDetail;
     expect(adminView.releasedAt).toBe(r.released_at);
     expect((await del(admin, route.id)).status).toBe(204);
+  });
+
+  it('answers a repeated release with the same 200, not a 404 a phone takes for deleted', async () => {
+    const owner = await registerDevice();
+    const route = await establishedRoute(owner);
+    expect((await release(owner, route.id)).status).toBe(200);
+    const again = await release(owner, route.id);
+    expect(again.status).toBe(200);
+    expect(await again.json()).toEqual({ released: true });
+    // Only the account that released it; anyone else still gets 404.
+    expect((await release(await registerDevice(), route.id)).status).toBe(404);
+  });
+
+  it('releases on ?release=1 even when the route has dropped below the bar since', async () => {
+    const owner = await registerDevice();
+    const route = await submitOk(owner);
+    const res = await release(owner, route.id);
+    expect(res.status).toBe(200);
+    const r = await row(route.id);
+    expect(r.status).toBe('unverified');
+    expect(r.released_at).not.toBeNull();
+  });
+
+  it('refuses ?release=1 on a route hidden since, leaving it as it is', async () => {
+    const owner = await registerDevice();
+    const admin = await registerDevice();
+    await makeAdmin(admin.userId);
+    const route = await establishedRoute(owner);
+    expect((await setStatus(admin, route.id, { status: 'hidden' })).status).toBe(200);
+    const res = await release(owner, route.id);
+    expect(res.status).toBe(409);
+    expect(((await res.json()) as { error: { code: string } }).error.code).toBe('conflict');
+    const r = await row(route.id);
+    expect(r.status).toBe('hidden');
+    expect(r.released_at).toBeNull();
+  });
+
+  it('lets an admin remove an established route outright', async () => {
+    const owner = await registerDevice();
+    const admin = await registerDevice();
+    await makeAdmin(admin.userId);
+    const route = await establishedRoute(owner);
+    expect((await del(admin, route.id)).status).toBe(204);
+    expect((await row(route.id)).status).toBe('removed');
+  });
+
+  it('gives no existingId for a released route when its old owner shares the track again', async () => {
+    const owner = await registerDevice();
+    const body = submitBody();
+    const res = await submitRoute(owner, body);
+    const route = (await res.json()) as CommunityRouteDetail;
+    expect((await release(owner, route.id)).status).toBe(200);
+    const dup = await submitRoute(owner, body);
+    expect(dup.status).toBe(409);
+    expect(await dup.json()).not.toHaveProperty('existingId');
   });
 
   it('does not let an account deletion re-run a release’s finished de-attribution', async () => {

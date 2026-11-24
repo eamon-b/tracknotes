@@ -309,7 +309,9 @@ the results of its automated checks and review, and a fingerprint of its track,
 which lets moderation stop a removed route from being shared again.
 Comments and shared waypoints other people posted on a removed route stay
 readable for 30 days after it is removed, for hikers out on a copy they had
-downloaded, and are then no longer served.
+downloaded, and are then no longer shown in the app or on the website (the
+author still finds their own comments in their export, and a photo already
+posted stays at its web address until its comment is deleted).
 Once a route is established, other hikers rely on it, so **Delete** releases it
 instead of removing it: it stays public, without your name.
 The stored route is rewritten without your display name, the earlier copies

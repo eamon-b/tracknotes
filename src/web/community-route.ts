@@ -380,9 +380,7 @@ function initOwnerTools(page: RoutePage): void {
   });
 
   const deleteBtn = $('delete-btn') as HTMLButtonElement;
-  deleteBtn.addEventListener('click', () => {
-    const release = page.detail.established === true;
-    if (!window.confirm(deleteRouteConfirmText(page.detail))) return;
+  const runDelete = (release: boolean): void => {
     deleteBtn.disabled = true;
     void deleteCommunityRoute(session, page.detail.id, { release })
       .then(({ released }) => {
@@ -395,8 +393,17 @@ function initOwnerTools(page: RoutePage): void {
       })
       .catch((err: unknown) => {
         deleteBtn.disabled = false;
+        if (!release && err instanceof ApiError && err.code === 'route_established') {
+          // It became established since the page loaded: ask again, as a release.
+          if (window.confirm(deleteRouteConfirmText({ name: page.detail.name, established: true }))) runDelete(true);
+          return;
+        }
         window.alert(`Could not delete this route: ${messageOf(err)}`);
       });
+  };
+  deleteBtn.addEventListener('click', () => {
+    if (!window.confirm(deleteRouteConfirmText(page.detail))) return;
+    runDelete(page.detail.established === true);
   });
 }
 
