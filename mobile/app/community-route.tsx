@@ -62,6 +62,7 @@ import {
   deleteSharedRouteAction,
   deleteMySharedRoute,
   deleteSharedRouteMessage,
+  isRouteEstablishedError,
   releasesOnDelete,
 } from '../src/features/community/my-shared-routes';
 import {
@@ -164,39 +165,46 @@ export default function CommunityRouteScreen() {
   const onDelete = useCallback(() => {
     const baseUrl = getBaseUrl();
     if (!baseUrl || !session) return;
-    const release = releasesOnDelete(detail);
-    Alert.alert(
-      DELETE_SHARED_ROUTE_TITLE,
-      deleteSharedRouteMessage(detail?.name ?? cached?.name, detail),
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: deleteSharedRouteAction(detail),
-          style: 'destructive',
-          onPress: () => {
-            void (async () => {
-              try {
-                // A 404 is already deleted; the route's file, plan,
-                // favourites, pin and the rest go too. A released route
-                // stays shared, and on this phone.
-                const { released } = await deleteMySharedRoute(
-                  { baseUrl, token: session.token },
-                  trailId,
-                  {},
-                  { release },
-                );
-                if (released) {
-                  Alert.alert('Route released', 'It stays in the community without your name.');
-                }
-                router.dismissTo('/');
-              } catch (err) {
-                Alert.alert('Couldn’t delete the route', apiErrorMessage(err, 'Please try again.'));
-              }
-            })();
-          },
-        },
-      ],
-    );
+    const name = detail?.name ?? cached?.name;
+    const run = async (release: boolean): Promise<void> => {
+      try {
+        // A 404 is already deleted; the route's file, plan,
+        // favourites, pin and the rest go too. A released route
+        // stays shared, and on this phone.
+        const { released } = await deleteMySharedRoute(
+          { baseUrl, token: session.token },
+          trailId,
+          {},
+          { release },
+        );
+        if (released) {
+          Alert.alert('Route released', 'It stays in the community without your name.');
+        }
+        router.dismissTo('/');
+      } catch (err) {
+        if (!release && isRouteEstablishedError(err)) {
+          // It became established since this screen read it: ask again, as a release.
+          Alert.alert(
+            DELETE_SHARED_ROUTE_TITLE,
+            deleteSharedRouteMessage(name, { established: true }),
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Release', style: 'destructive', onPress: () => void run(true) },
+            ],
+          );
+          return;
+        }
+        Alert.alert('Couldn’t delete the route', apiErrorMessage(err, 'Please try again.'));
+      }
+    };
+    Alert.alert(DELETE_SHARED_ROUTE_TITLE, deleteSharedRouteMessage(name, detail), [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: deleteSharedRouteAction(detail),
+        style: 'destructive',
+        onPress: () => void run(releasesOnDelete(detail)),
+      },
+    ]);
   }, [session, trailId, router, detail, cached?.name]);
 
   const onRemoveFromPhone = useCallback(() => {

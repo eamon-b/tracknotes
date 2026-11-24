@@ -106,7 +106,8 @@ export interface DeleteMySharedRouteDeps {
  * anything local is touched.
  *
  * With `release` (an established route), the server releases it instead: it
- * stays shared, so nothing on this phone is touched. Resolves to whether it
+ * stays shared, so nothing on this phone is touched, a 404 included (the
+ * route may have been released from another device). Resolves to whether it
  * was released.
  */
 export async function deleteMySharedRoute(
@@ -122,7 +123,16 @@ export async function deleteMySharedRoute(
     if (released) return { released: true };
   } catch (err) {
     if (!(err instanceof ApiError && err.status === 404)) throw err;
+    if (options.release) return { released: false };
   }
   await forget(id);
   return { released: false };
+}
+
+/**
+ * The server refused a plain delete because the route became established
+ * since this phone read it: the screen asks again, as a release.
+ */
+export function isRouteEstablishedError(err: unknown): err is ApiError {
+  return err instanceof ApiError && err.status === 409 && err.code === 'route_established';
 }

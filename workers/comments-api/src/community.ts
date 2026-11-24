@@ -295,17 +295,34 @@ function ownsRoute(row: CommunityRouteRow, user: AuthUser | null): boolean {
 
 /**
  * How many accounts other than the owner have a live comment or shared
- * waypoint on a route. Tombstoned posts (an owner's or admin's delete, a hide
- * by reports, a deleted account's) do not count.
+ * waypoint on each route in `ids`, in one statement whatever their number.
+ * Tombstoned posts (an owner's or admin's delete, a hide by reports, a deleted
+ * account's) do not count, and neither do posts by an account less than
+ * `REPORTER_MIN_ACCOUNT_AGE_MS` old when it posted: registering is free, so a
+ * few fresh accounts must not be able to take a route out of its owner's
+ * hands, as they cannot take one down by reporting it.
  */
-function otherPostersStatement(env: Env, row: CommunityRouteRow): D1PreparedStatement {
-  return env.DB.prepare(
-    `SELECT COUNT(*) AS n FROM (
-        SELECT user_id FROM comments WHERE trail_id = ?1 AND deleted_at IS NULL AND user_id != ?2
-        UNION
-        SELECT user_id FROM shared_waypoints WHERE trail_id = ?1 AND deleted_at IS NULL AND user_id != ?2
-      )`
-  ).bind(row.id, row.user_id);
+async function otherPosterCounts(env: Env, ids: string[]): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  if (ids.length === 0) return out;
+  const { results } = await env.DB.prepare(
+    `SELECT r.id AS id,
+            (SELECT COUNT(*) FROM (
+                SELECT c.user_id FROM comments c JOIN users u ON u.id = c.user_id
+                 WHERE c.trail_id = r.id AND c.deleted_at IS NULL AND c.user_id != r.user_id
+                   AND (julianday(c.created_at) - julianday(u.created_at)) * 86400000.0 >= ?1
+                UNION
+                SELECT w.user_id FROM shared_waypoints w JOIN users u ON u.id = w.user_id
+                 WHERE w.trail_id = r.id AND w.deleted_at IS NULL AND w.user_id != r.user_id
+                   AND (julianday(w.created_at) - julianday(u.created_at)) * 86400000.0 >= ?1
+              )) AS n
+       FROM community_routes r
+      WHERE r.id IN (SELECT value FROM json_each(?2))`
+  )
+    .bind(REPORTER_MIN_ACCOUNT_AGE_MS, JSON.stringify(ids))
+    .all<{ id: string; n: number }>();
+  for (const row of results) out.set(row.id, row.n);
+  return out;
 }
 
 export interface RouteEstablishment {
@@ -328,8 +345,8 @@ function establishmentOf(row: CommunityRouteRow, otherPosters: number, nowMs: nu
 }
 
 /**
- * Each live row's establishment, by id, in one batch (hidden and removed rows
- * are left out: they are never established and their delete is a removal).
+ * Each live row's establishment, by id, in one statement (hidden and removed
+ * rows are left out: they are never established and their delete is a removal).
  */
 async function establishmentsFor(
   env: Env,
@@ -337,12 +354,12 @@ async function establishmentsFor(
   nowMs = Date.now()
 ): Promise<Map<string, RouteEstablishment>> {
   const live = rows.filter((row) => isLive(row.status));
+  const counts = await otherPosterCounts(
+    env,
+    live.map((row) => row.id)
+  );
   const out = new Map<string, RouteEstablishment>();
-  if (live.length === 0) return out;
-  const results = await env.DB.batch<{ n: number }>(live.map((row) => otherPostersStatement(env, row)));
-  live.forEach((row, i) => {
-    out.set(row.id, establishmentOf(row, results[i].results[0]?.n ?? 0, nowMs));
-  });
+  for (const row of live) out.set(row.id, establishmentOf(row, counts.get(row.id) ?? 0, nowMs));
   return out;
 }
 
@@ -942,7 +959,7 @@ export async function submitCommunityRoute(
     .first<{ id: string }>();
   if (blocked) return removedByModeratorResponse();
   const existing = await env.DB.prepare(
-    `SELECT id, user_id FROM community_routes WHERE content_hash = ? AND status != 'removed'`
+    `SELECT id, user_id, released_at FROM community_routes WHERE content_hash = ? AND status != 'removed'`
   )
     .bind(hash)
     .first<DuplicateRow>();
@@ -1022,7 +1039,7 @@ export async function submitCommunityRoute(
     if (isUniqueConstraintError(err)) {
       // Lost a race with an identical submission.
       const winner = await env.DB.prepare(
-        `SELECT id, user_id FROM community_routes WHERE content_hash = ? AND status != 'removed'`
+        `SELECT id, user_id, released_at FROM community_routes WHERE content_hash = ? AND status != 'removed'`
       )
         .bind(hash)
         .first<DuplicateRow>();
@@ -1043,6 +1060,7 @@ export async function submitCommunityRoute(
 interface DuplicateRow {
   id: string;
   user_id: string;
+  released_at: string | null;
 }
 
 /**
@@ -1071,7 +1089,8 @@ function duplicateResponse(existing: DuplicateRow | null, user: AuthUser): Respo
   return json(
     {
       error: { code: 'duplicate', message: 'This exact track has been shared before' },
-      ...(existing && existing.user_id === user.id ? { existingId: existing.id } : {}),
+      // Not for a route they released: it is no longer theirs to open as owner.
+      ...(existing && existing.user_id === user.id && existing.released_at === null ? { existingId: existing.id } : {}),
     },
     409
   );
@@ -1343,6 +1362,9 @@ export async function patchCommunityRoute(
  * say `?release=1` and releases it instead (`releaseCommunityRoute`), and
  * without it is refused with 409 `route_established`, so a client from before
  * releases existed never tells its hiker a route was deleted when it was not.
+ * An owner's `?release=1` always releases a live route (what they confirmed,
+ * established or not by now), and repeating it after the release answers the
+ * same 200.
  */
 export async function deleteCommunityRoute(
   request: Request,
@@ -1352,24 +1374,44 @@ export async function deleteCommunityRoute(
 ): Promise<Response> {
   const user = await requireUser(request, env, ctx);
   const row = await loadRoute(env, id);
+  const releaseAsked = new URL(request.url).searchParams.get('release') === '1';
+  // A release asked again by the account that released it (its response was
+  // lost, a double tap, a release made from another device) gets the same
+  // answer, never a 404 a client would take for "already deleted".
+  if (row && releaseAsked && row.released_at !== null && row.user_id === user.id && row.status !== 'removed') {
+    const again: CommunityReleaseResponse = { released: true };
+    return json(again, 200);
+  }
   const isAdmin = user.is_admin === 1;
   const isOwner = !!row && ownsRoute(row, user);
   if (!row || (!isOwner && !isAdmin)) throw notFound();
   if (row.status === 'removed') return noContent();
 
+  if (isOwner && releaseAsked) {
+    // The owner confirmed a release, so a release is what happens, even if the
+    // route has since dropped below the bar: never a removal they were told
+    // would not happen. A route hidden since cannot be released (it is not
+    // public); they are told to look again.
+    if (!isLive(row.status)) {
+      throw new HttpError(
+        409,
+        'conflict',
+        'This route is no longer shared, so it cannot be released. Reload it and try again.'
+      );
+    }
+    return releaseCommunityRoute(env, ctx, row);
+  }
   // An admin removes any route, their own included.
   if (isOwner && !isAdmin && isLive(row.status)) {
     const establishment = (await establishmentsFor(env, [row])).get(row.id);
     if (establishment?.established) {
-      if (new URL(request.url).searchParams.get('release') !== '1') {
-        throw new HttpError(
-          409,
-          'route_established',
-          `Other hikers use this route (${establishment.otherPosters} have posted on it), so it stays in the community. ` +
-            'Update the app to release it: it stays public without your name. To have it taken down, report it or email us.'
-        );
-      }
-      return releaseCommunityRoute(env, ctx, row);
+      throw new HttpError(
+        409,
+        'route_established',
+        `Other hikers use this route (${establishment.otherPosters} have posted on it), so deleting it releases it instead: ` +
+          'it stays in the community without your name. Confirm the release to go ahead (an older version of the app cannot: update it first). ' +
+          'To have it taken down, report it or email us.'
+      );
     }
   }
 

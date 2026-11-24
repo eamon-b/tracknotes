@@ -28,6 +28,7 @@ import {
   deleteSharedRouteAction,
   MY_ROUTE_DELETE_FAILED,
   deleteSharedRouteMessage,
+  isRouteEstablishedError,
   releasesOnDelete,
   isLiveRoute,
 } from '../src/features/community/my-shared-routes';
@@ -44,22 +45,32 @@ export default function MySharedRoutesScreen() {
 
   const onDelete = useCallback(
     (route: CommunityRouteDetail) => {
+      const run = (release: boolean): void => {
+        setDeleting(route.id);
+        remove(route.id, { release })
+          .catch((err: unknown) => {
+            if (!release && isRouteEstablishedError(err)) {
+              // It became established since the list was read: ask again, as a release.
+              Alert.alert(
+                DELETE_SHARED_ROUTE_TITLE,
+                deleteSharedRouteMessage(route.name, { established: true }),
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Release', style: 'destructive', onPress: () => run(true) },
+                ],
+              );
+              return;
+            }
+            Alert.alert('Couldn’t delete the route', apiErrorMessage(err, MY_ROUTE_DELETE_FAILED));
+          })
+          .finally(() => setDeleting(null));
+      };
       Alert.alert(DELETE_SHARED_ROUTE_TITLE, deleteSharedRouteMessage(route.name, route), [
         { text: 'Cancel', style: 'cancel' },
         {
           text: deleteSharedRouteAction(route),
           style: 'destructive',
-          onPress: () => {
-            setDeleting(route.id);
-            remove(route.id, { release: releasesOnDelete(route) })
-              .catch((err: unknown) => {
-                Alert.alert(
-                  'Couldn’t delete the route',
-                  apiErrorMessage(err, MY_ROUTE_DELETE_FAILED),
-                );
-              })
-              .finally(() => setDeleting(null));
-          },
+          onPress: () => run(releasesOnDelete(route)),
         },
       ]);
     },
