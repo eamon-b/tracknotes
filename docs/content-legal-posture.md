@@ -188,6 +188,9 @@ display name the hiker chooses. There is no email, password or sign-up.
      A route that must come down for a real reason (safety, a private place, a
      mistake) goes through Report or `privacy@tracknotes.info`, like any
      takedown.
+     (The API also lets an owner release a route that is not established, by
+     asking for it; the apps offer only Delete there, and nothing is lost by
+     it: the route stays as public as they made it, without their name.)
      A route that is not established is removed as before, and the comments
      and shared waypoints others posted on it stay in the public feeds for 30
      days after its removal (`REMOVED_ROUTE_FEED_DAYS`), for hikers out on a

@@ -106,8 +106,8 @@ export interface DeleteMySharedRouteDeps {
  * anything local is touched.
  *
  * With `release` (an established route), the server releases it instead: it
- * stays shared, so nothing on this phone is touched, a 404 included (the
- * route may have been released from another device). Resolves to whether it
+ * stays shared, so nothing on this phone is touched, a 204 or 404 included
+ * (a moderator removed it meanwhile, or it is no longer this account's). Resolves to whether it
  * was released.
  */
 export async function deleteMySharedRoute(
@@ -120,7 +120,10 @@ export async function deleteMySharedRoute(
   const forget = deps.forget ?? ((routeId: string) => forgetCommunityRoute(routeId));
   try {
     const { released } = await deleteRoute(ctx, id, options.release ? { release: true } : {});
-    if (released) return { released: true };
+    // Asked as a release, nothing on this phone goes, whatever the answer: a
+    // 204 means a moderator removed it meanwhile, and a route taken down stays
+    // on the phone as "No longer shared".
+    if (released || options.release) return { released };
   } catch (err) {
     if (!(err instanceof ApiError && err.status === 404)) throw err;
     if (options.release) return { released: false };
