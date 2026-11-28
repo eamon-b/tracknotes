@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Not found — Contour Map Tiles</title>
 <meta name="robots" content="noindex" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 <style>
   :root {
     --ink: #2b2620;
@@ -13,6 +15,18 @@
     --line: #e6e0d8;
     --contour: #a67442;
     --accent: #3d6b4f;
+    --card: #fff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink: #ece6dd;
+      --ink-soft: #a69d90;
+      --paper: #171512;
+      --line: #38332c;
+      --contour: #d19a63;
+      --accent: #8cc4a0;
+      --card: #211e1a;
+    }
   }
   * { box-sizing: border-box; }
   body {
@@ -42,7 +56,7 @@
     padding: 6px 12px;
     border: 1px solid var(--line);
     border-radius: 999px;
-    background: #fff;
+    background: var(--card);
     text-decoration: none;
   }
   nav a:hover { border-color: var(--contour); }

@@ -3,13 +3,28 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
 <title>Contour Map Tiles — free 10 m contour vector tiles for the whole world</title>
 <meta name="description" content="Free contour line vector tiles for the whole world. 10 m intervals from the Copernicus GLO-30 DEM, smoothed, packaged as a single PMTiles archive with HTTP range access — no API key, no tile server." />
+<link rel="canonical" href="https://contour-map-tiles.net/" />
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+<meta name="theme-color" content="#faf8f5" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#171512" media="(prefers-color-scheme: dark)" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://contour-map-tiles.net/" />
+<meta property="og:title" content="Contour Map Tiles — free 10 m contours for the whole world" />
+<meta property="og:description" content="10 m contour lines from the Copernicus GLO-30 DEM as one PMTiles archive. No API key, no tile server." />
+<meta property="og:image" content="https://contour-map-tiles.net/og.jpg" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="Contour lines around the Matterhorn on a light basemap" />
+<meta name="twitter:card" content="summary_large_image" />
 <link rel="stylesheet" href="vendor/maplibre-gl.css" />
 <script src="vendor/maplibre-gl.js"></script>
 <script src="vendor/pmtiles.js"></script>
 <style>
   :root {
+    color-scheme: light dark;
     --ink: #2b2620;
     --ink-soft: #6b6257;
     --paper: #faf8f5;
@@ -19,8 +34,30 @@
     --accent: #3d6b4f;
     --code-bg: #2b2620;
     --code-ink: #ede7de;
+    --code-inline: #efe9e0;
+    --map-bg: #eee;
+    --overlay: rgba(255, 255, 255, 0.92);
+    --shadow: 0 1px 4px rgba(43, 38, 32, 0.15);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink: #ece6dd;
+      --ink-soft: #a69d90;
+      --paper: #171512;
+      --card: #211e1a;
+      --line: #38332c;
+      --contour: #d19a63;
+      --accent: #8cc4a0;
+      --code-bg: #0f0d0b;
+      --code-ink: #ede7de;
+      --code-inline: #2a2621;
+      --map-bg: #1d1b18;
+      --overlay: rgba(33, 30, 26, 0.92);
+      --shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+    }
   }
   * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   body {
     margin: 0;
     background: var(--paper);
@@ -28,7 +65,7 @@
     font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
   }
   .wrap { max-width: 880px; margin: 0 auto; padding: 0 20px; }
-  header.hero { padding: 44px 0 20px; }
+  header.hero { padding: 44px 0 16px; }
   h1 { font-size: 2rem; margin: 0 0 8px; letter-spacing: -0.02em; }
   .tagline { color: var(--ink-soft); font-size: 1.1rem; margin: 0 0 16px; max-width: 640px; }
   .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
@@ -38,10 +75,19 @@
   }
   .badge strong { color: var(--ink); font-weight: 600; }
 
-  .map-shell { position: relative; margin: 20px 0 8px; }
+  nav.toc {
+    display: flex; flex-wrap: wrap; gap: 4px 16px;
+    font-size: 0.88rem; margin: 4px 0 0; padding: 0;
+  }
+  nav.toc a { color: var(--ink-soft); text-decoration: none; }
+  nav.toc a:hover { color: var(--accent); text-decoration: underline; }
+
+  /* --- Demo map ------------------------------------------------------------ */
+  .map-shell { position: relative; margin: 20px 0 0; }
   #map {
-    height: 480px; border-radius: 10px; border: 1px solid var(--line);
-    background: #eee;
+    height: clamp(320px, 60vh, 520px);
+    border-radius: 10px; border: 1px solid var(--line);
+    background: var(--map-bg);
   }
   .chips {
     position: absolute; top: 10px; left: 10px; right: 48px; z-index: 5;
@@ -49,31 +95,91 @@
   }
   .chips button {
     font: 600 0.78rem/1 system-ui, sans-serif; color: var(--ink);
-    background: rgba(255,255,255,0.92); border: 1px solid var(--line);
-    border-radius: 999px; padding: 7px 12px; cursor: pointer;
+    background: var(--overlay); border: 1px solid var(--line);
+    border-radius: 999px; padding: 7px 12px; cursor: pointer; white-space: nowrap;
+    box-shadow: var(--shadow);
   }
-  .chips button:hover { background: #fff; border-color: var(--contour); }
+  .chips button:hover { border-color: var(--contour); }
+  @media (max-width: 600px) {
+    /* One scrolling row instead of two rows covering the map. */
+    .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 4px; }
+    .chips::-webkit-scrollbar { display: none; }
+  }
+  .map-status {
+    position: absolute; left: 50%; bottom: 36px; transform: translateX(-50%); z-index: 5;
+    font-size: 0.85rem; padding: 6px 14px; border-radius: 999px;
+    background: var(--overlay); color: var(--ink); border: 1px solid var(--line);
+    box-shadow: var(--shadow); pointer-events: none; white-space: nowrap;
+    max-width: calc(100% - 24px); overflow: hidden; text-overflow: ellipsis;
+  }
+  .map-status[hidden] { display: none; }
+  .map-status.error { border-color: #c0563a; color: #c0563a; white-space: normal; text-align: center; }
+  .map-status .spinner {
+    display: inline-block; width: 10px; height: 10px; margin-right: 8px; vertical-align: -1px;
+    border: 2px solid var(--line); border-top-color: var(--contour); border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .elev-tip {
+    position: absolute; z-index: 6; pointer-events: none;
+    font: 600 0.8rem/1 system-ui, sans-serif; padding: 5px 8px; border-radius: 6px;
+    background: var(--overlay); color: var(--ink); border: 1px solid var(--contour);
+    box-shadow: var(--shadow); transform: translate(12px, -130%); white-space: nowrap;
+  }
+  .elev-tip[hidden] { display: none; }
+  .map-controls {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px;
+    font-size: 0.85rem; color: var(--ink-soft); margin: 10px 0 6px;
+  }
+  .map-controls label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+  .map-controls input { accent-color: var(--contour); margin: 0; }
+  .segmented { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+  .segmented label { padding: 3px 12px; }
+  .segmented input { position: absolute; opacity: 0; pointer-events: none; }
+  .segmented label:has(input:checked) { background: var(--contour); color: var(--paper); }
+  .segmented label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: -2px; }
   .map-note { color: var(--ink-soft); font-size: 0.85rem; margin: 0 0 8px; }
 
-  section { margin: 40px 0; }
+  /* MapLibre's controls are white by default. */
+  @media (prefers-color-scheme: dark) {
+    .maplibregl-ctrl-group { background: var(--card); }
+    .maplibregl-ctrl-group button + button { border-top-color: var(--line); }
+    .maplibregl-ctrl button .maplibregl-ctrl-icon { filter: invert(1); }
+    .maplibregl-ctrl-attrib, .maplibregl-ctrl-attrib.maplibregl-compact { background: var(--card); color: var(--ink-soft); }
+    .maplibregl-ctrl-attrib a { color: var(--ink-soft); }
+    .maplibregl-ctrl-attrib-button { filter: invert(1); }
+  }
+
+  /* --- Docs ---------------------------------------------------------------- */
+  section { margin: 40px 0; scroll-margin-top: 16px; }
   h2 { font-size: 1.3rem; margin: 0 0 12px; letter-spacing: -0.01em; }
   h3 { font-size: 1.02rem; margin: 20px 0 8px; }
   p { margin: 0 0 12px; }
   a { color: var(--accent); }
   code {
-    background: #efe9e0; border-radius: 4px; padding: 1px 5px;
+    background: var(--code-inline); border-radius: 4px; padding: 1px 5px;
     font: 0.86em/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    overflow-wrap: anywhere;
   }
+  .code-block { position: relative; margin: 0 0 12px; }
   pre {
-    background: var(--code-bg); color: var(--code-ink);
+    background: var(--code-bg); color: var(--code-ink); margin: 0;
     border-radius: 8px; padding: 14px 16px; overflow-x: auto;
     font: 0.82rem/1.55 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   }
-  pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+  .code-block pre { padding-right: 76px; }
+  pre code { background: none; padding: 0; color: inherit; font-size: inherit; overflow-wrap: normal; }
+  .copy-btn {
+    position: absolute; top: 8px; right: 8px;
+    font: 600 0.72rem/1 system-ui, sans-serif; color: var(--code-ink);
+    background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px; padding: 6px 9px; cursor: pointer;
+  }
+  .copy-btn:hover { background: rgba(255, 255, 255, 0.16); }
   table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
   th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
   th { font-weight: 600; white-space: nowrap; }
-  .table-scroll { overflow-x: auto; }
+  .table-scroll { overflow-x: auto; margin-bottom: 12px; }
   footer {
     border-top: 1px solid var(--line); margin-top: 56px; padding: 24px 0 40px;
     color: var(--ink-soft); font-size: 0.88rem;
@@ -96,21 +202,40 @@
     <span class="badge">~<strong>232 M</strong> tiles</span>
     <span class="badge"><strong>Free</strong>, attribution required</span>
   </div>
+  <nav class="toc" aria-label="Contents">
+    <a href="#demo">Demo</a>
+    <a href="#archive">The archive</a>
+    <a href="#quick-start">Quick start</a>
+    <a href="#download">Extract a region</a>
+    <a href="#data">What's in the tiles</a>
+    <a href="#built">How it was built</a>
+    <a href="#license">Licence</a>
+  </nav>
 </header>
 
-<div class="map-shell">
+<div class="map-shell" id="demo">
   <div class="chips" id="chips"></div>
-  <div id="map"></div>
+  <div id="map" role="region" aria-label="Live contour map demo"></div>
+  <div class="map-status" id="map-status" role="status" aria-live="polite" hidden></div>
+  <div class="elev-tip" id="elev-tip" hidden></div>
+</div>
+<div class="map-controls">
+  <span class="segmented" role="radiogroup" aria-label="Contour lines">
+    <label><input type="radio" name="lines" value="all" checked /> All lines</label>
+    <label><input type="radio" name="lines" value="index" /> Index only (50&nbsp;m)</label>
+  </span>
+  <label><input type="checkbox" id="hillshade-toggle" checked /> Hillshade</label>
 </div>
 <p class="map-note">Live demo — contours are range-read straight out of the world archive in your browser,
-no tile server involved; basemap by <a href="https://openfreemap.org">OpenFreeMap</a>. Zoom in for full
-10&nbsp;m detail, or drag anywhere on Earth. Lines appear from zoom&nbsp;9.</p>
+no tile server involved; basemap by <a href="https://openfreemap.org">OpenFreeMap</a>, hillshade from
+<a href="https://registry.opendata.aws/terrain-tiles/">Terrain Tiles on AWS</a>. Hover over (or tap) a line
+for its elevation. Lines appear from zoom&nbsp;9; zoom in for full 10&nbsp;m detail.</p>
 
-<section id="archives">
+<section id="archive">
   <h2>The archive</h2>
   <div class="table-scroll">
   <table>
-    <tr><th>Archive</th><td><code class="archive-url">ARCHIVE_URL</code></td></tr>
+    <tr><th>Archive</th><td><code>https://data.contour-map-tiles.net/contours/world.pmtiles</code></td></tr>
     <tr><th>z/x/y endpoint</th><td><code>https://tiles.contour-map-tiles.net/world/{z}/{x}/{y}.pbf</code></td></tr>
     <tr><th>Coverage</th><td>All land on Earth except the Antarctic and Greenland ice sheets (Iceland is in)</td></tr>
     <tr><th>Source DEM</th><td>Copernicus GLO-30 (~30 m)</td></tr>
@@ -118,30 +243,12 @@ no tile server involved; basemap by <a href="https://openfreemap.org">OpenFreeMa
     <tr><th>Licence</th><td>Copernicus DEM licence (free, attribution notice required)</td></tr>
   </table>
   </div>
-  <p style="margin-top:12px">Use the world archive everywhere, Australia included.</p>
-  <h3>Deprecated: Australia archive</h3>
-  <p>An Australia-only archive built from Geoscience Australia's 1-second SRTM DEM-S is still
-  downloadable but no longer maintained: last built 2026-10-23, it will not be rebuilt, and the
-  z/x/y endpoint no longer serves it. Compared tile for tile against the world archive at seven
-  Australian trails, the two drew near-identical lines (elevations within 10–30&nbsp;m); the world
-  archive has slightly more detail because DEM-S is hydrologically smoothed.</p>
-  <div class="table-scroll">
-  <table>
-    <tr><th>Archive</th><td><code class="australia-url">AUSTRALIA_URL</code></td></tr>
-    <tr><th>Coverage</th><td>Mainland Australia + Tasmania (112.92°E–154°E, 43.86°S–10°S)</td></tr>
-    <tr><th>Source DEM</th><td><a href="https://elevation.fsdf.org.au/">Geoscience Australia 1-second SRTM DEM-S</a> (~30 m, hydrologically smoothed)</td></tr>
-    <tr><th>Size</th><td>13.5 GB, ~9.6 million tiles</td></tr>
-    <tr><th>Licence</th><td>CC-BY 4.0 (see below)</td></tr>
-  </table>
-  </div>
-  <p style="margin-top:12px">It shares the world archive's schema and zoom range, so a style
-  written for one works with the other unchanged.</p>
 </section>
 
 <section id="quick-start">
   <h2>Quick start (MapLibre GL JS)</h2>
-  <p>The archives are served with CORS enabled and HTTP range support, so MapLibre can read tiles
-  directly from them using the <a href="https://github.com/protomaps/PMTiles">pmtiles</a> protocol —
+  <p>The archive is served with CORS enabled and HTTP range support, so MapLibre can read tiles
+  directly from it using the <a href="https://github.com/protomaps/PMTiles">pmtiles</a> protocol —
   no tile server involved. A client only ever fetches the directory entries and tiles for the area
   on screen, so the size of the world archive is irrelevant to page weight:</p>
 <pre><code>&lt;!-- maplibre-gl v5 is the last major with a script-tag (UMD) build; v6+ is ESM-only --&gt;
@@ -150,12 +257,11 @@ no tile server involved; basemap by <a href="https://openfreemap.org">OpenFreeMa
 &lt;script&gt;
   const protocol = new pmtiles.Protocol();
   maplibregl.addProtocol("pmtiles", protocol.tile);
-
   const map = new maplibregl.Map({ container: "map", /* your base style */ });
   map.on("load", () =&gt; {
     map.addSource("contours", {
       type: "vector",
-      url: "pmtiles://<span class="archive-url">ARCHIVE_URL</span>",
+      url: "pmtiles://https://data.contour-map-tiles.net/contours/world.pmtiles",
       attribution: "Contours produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved",
     });
     // is_index arrives as the STRING "0"/"1", so wrap it in to-number —
@@ -181,8 +287,8 @@ no tile server involved; basemap by <a href="https://openfreemap.org">OpenFreeMa
   <p>If your client can't speak PMTiles, a conventional tile endpoint fronts the archive,
   edge-cached on Cloudflare's network:</p>
 <pre><code>https://tiles.contour-map-tiles.net/world/{z}/{x}/{y}.pbf</code></pre>
-  <p><code>/contours/{z}/{x}/{y}.pbf</code>, which used to serve the Australia archive, is now an
-  alias of <code>/world/</code>: it returns the same tiles, so carry the Copernicus notice. Empty
+  <p><code>/contours/{z}/{x}/{y}.pbf</code> is an alias of <code>/world/</code>, kept for older
+  clients: it returns the same tiles, so carry the Copernicus notice. Empty
   tiles (ocean, the ice sheets) answer <code>204</code> rather than <code>404</code>;
   <code>GET /health</code> reports the archive. Prefer the <code>pmtiles://</code> URL where you
   can — it's served straight from storage with no request limits in front of it.</p>
@@ -193,16 +299,14 @@ no tile server involved; basemap by <a href="https://openfreemap.org">OpenFreeMa
   <p>The world archive is ~613&nbsp;GB, so you almost certainly don't want all of it. Pull just
   your area of interest with the <a href="https://github.com/protomaps/go-pmtiles">pmtiles CLI</a> —
   it range-reads only the tiles inside your bounding box, so it's fast and small (Switzerland is a
-  few GB, Tasmania ~350&nbsp;MB, a single national park usually a few MB):</p>
+  few GB, a single national park usually a few MB):</p>
 <pre><code># bbox = minLon,minLat,maxLon,maxLat  (this one is Switzerland)
-pmtiles extract <span class="archive-url">ARCHIVE_URL</span> \
+pmtiles extract https://data.contour-map-tiles.net/contours/world.pmtiles \
   switzerland-contours.pmtiles \
   --bbox=5.9,45.8,10.5,47.9</code></pre>
-  <p>Extracts of the world archive from mountain regions run larger than the same area of
-  Australia: there is simply more relief to draw. Cap the zoom with <code>--maxzoom=13</code>
-  for a much smaller file if 20&nbsp;m detail is enough.</p>
-  <p>The deprecated Australia archive is small enough to take whole (13.5&nbsp;GB):</p>
-<pre><code>curl -O <span class="australia-url">AUSTRALIA_URL</span></code></pre>
+  <p>Mountain regions run larger than flat ones of the same area: there is simply more relief to
+  draw. Cap the zoom with <code>--maxzoom=13</code> for a much smaller file if 20&nbsp;m detail is
+  enough.</p>
   <p>Need MBTiles for an offline mobile app? <code>pmtiles convert</code> does the conversion.</p>
 </section>
 
@@ -211,7 +315,7 @@ pmtiles extract <span class="archive-url">ARCHIVE_URL</span> \
   <div class="table-scroll">
   <table>
     <tr><th>Layer</th><td>One vector layer, <code>contour</code> (MVT/pbf, gzip)</td></tr>
-    <tr><th>Attributes</th><td><code>elevation</code> — metres, a number · <code>is_index</code> — <code>"1"</code> on 50&nbsp;m multiples (bold "index" lines), else <code>"0"</code>.
+    <tr><th>Attributes</th><td><code>elevation</code> — metres, a number · <code>is_index</code> — <code>"1"</code> on 50&nbsp;m multiples (bold "index" lines), else <code>"0"</code><br />
       <strong>Note the quotes:</strong> <code>is_index</code> is encoded as a string, so compare it with
       <code>["==", ["to-number", ["get", "is_index"]], 1]</code> — a plain
       <code>["==", ["get", "is_index"], 1]</code> is type-strict in MapLibre and silently matches nothing,
@@ -219,13 +323,13 @@ pmtiles extract <span class="archive-url">ARCHIVE_URL</span> \
     <tr><th>Interval</th><td>10 m contours, 50 m index contours</td></tr>
     <tr><th>Zoom range</th><td>z9–z15 (overzooms cleanly beyond 15)</td></tr>
     <tr><th>Density by zoom</th><td>z9: 100 m contours · z10–11: 50 m · z12: 20 m · z13+: full 10 m</td></tr>
-    <tr><th>Coverage</th><td>World: every land mass covered by the Copernicus DEM, excluding the Antarctic and Greenland ice sheets (contours there are enormous and almost meaningless).</td></tr>
+    <tr><th>Coverage</th><td>World: every land mass covered by the Copernicus DEM, excluding the Antarctic and Greenland ice sheets (contours there are enormous and almost featureless)</td></tr>
     <tr><th>Source DEM</th><td>World: <a href="https://registry.opendata.aws/copernicus-dem/">Copernicus GLO-30</a> (~30 m, a surface model — tree canopy and buildings are in it)</td></tr>
     <tr><th>Size</th><td>~613 GB, ~232 million tiles</td></tr>
     <tr><th>Built with</th><td>GDAL (cubic-spline oversampled warp + <code>gdal_contour</code>) and <a href="https://github.com/felt/tippecanoe">tippecanoe</a></td></tr>
   </table>
   </div>
-  <p style="margin-top:12px">The DEM is warped to 2× its native density with cubic-spline resampling
+  <p>The DEM is warped to 2× its native density with cubic-spline resampling
   before contouring, which traces smooth curves between the 30&nbsp;m elevation samples instead of
   polygonal lines along the pixel lattice. The world is processed as ~7,000 2°×2° cells with
   buffered edges, so contours join seamlessly across cell boundaries, and the cells are grouped into
@@ -234,7 +338,7 @@ pmtiles extract <span class="archive-url">ARCHIVE_URL</span> \
 
 <section id="built">
   <h2>How it was built</h2>
-  <p>These tilesets are a by-product of building offline topo maps for
+  <p>This tileset is a by-product of building offline topo maps for
   <a href="https://github.com/eamon-b/tracknotes">a hiking-trail guide app</a>. The full pipeline —
   chunked, resumable, per-cell and per-shard — is open source in that repo:
   <a href="https://github.com/eamon-b/tracknotes/blob/main/contours/scripts/build-contours-world.ts"><code>contours/scripts/build-contours-world.ts</code></a>,
@@ -246,7 +350,6 @@ pmtiles extract <span class="archive-url">ARCHIVE_URL</span> \
 
 <section id="license">
   <h2>Licence &amp; attribution</h2>
-  <h3>World archive</h3>
   <p>Elevation data from the
   <a href="https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM">Copernicus GLO-30 DEM</a>,
   provided free of charge under the Copernicus DEM licence. The licence requires this notice on
@@ -254,11 +357,6 @@ pmtiles extract <span class="archive-url">ARCHIVE_URL</span> \
 <pre><code>Contours produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved</code></pre>
   <p>The contour geometry itself is free for any use, including commercial, as long as that notice
   stays attached.</p>
-  <h3>Australia archive (deprecated)</h3>
-  <p>Elevation data © Commonwealth of Australia (Geoscience Australia), licensed under
-  <a href="https://creativecommons.org/licenses/by/4.0/">CC-BY 4.0</a>. The derived contour tiles
-  are likewise CC-BY 4.0 — free for any use, including commercial, with attribution:</p>
-<pre><code>Contours © Geoscience Australia, CC-BY 4.0</code></pre>
   <p>The tiles are provided as-is, with no uptime guarantee — for production use, please
   <code>pmtiles extract</code> your region and host it yourself (any static bucket works).</p>
 </section>
@@ -266,25 +364,60 @@ pmtiles extract <span class="archive-url">ARCHIVE_URL</span> \
 <footer>
   Contour tiles by <a href="https://github.com/eamon-b">eamon-b</a> ·
   pipeline source on <a href="https://github.com/eamon-b/tracknotes">GitHub</a> ·
-  basemap on this page by <a href="https://openfreemap.org">OpenFreeMap</a> © OpenStreetMap contributors
+  basemap on this page by <a href="https://openfreemap.org">OpenFreeMap</a> © OpenStreetMap contributors ·
+  hillshade from <a href="https://github.com/tilezen/joerd/blob/master/docs/attribution.md">Mapzen terrain tiles</a>
 </footer>
 
 </div>
 
 <script>
+// The archive URL also appears, written out, in the docs above; change both
+// together if it moves.
 const ARCHIVE_URL = "https://data.contour-map-tiles.net/contours/world.pmtiles";
-const AUSTRALIA_URL = "https://data.contour-map-tiles.net/contours/australia.pmtiles";
+const ARCHIVE_MIN_ZOOM = 9;
 const ATTRIBUTION =
   "Contours produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and " +
   "© Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved";
 
-// Inject the archive URLs everywhere the docs reference them (single swap
-// point for when an archive moves).
-document.querySelectorAll(".archive-url").forEach((el) => { el.textContent = ARCHIVE_URL; });
-document.querySelectorAll(".australia-url").forEach((el) => { el.textContent = AUSTRALIA_URL; });
+// --- Copy buttons on every code block ----------------------------------------
+document.querySelectorAll("pre").forEach((pre) => {
+  const wrapper = document.createElement("div");
+  wrapper.className = "code-block";
+  pre.parentNode.insertBefore(wrapper, pre);
+  wrapper.appendChild(pre);
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "copy-btn";
+  btn.textContent = "Copy";
+  btn.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(pre.innerText.replace(/\n$/, ""));
+      btn.textContent = "Copied";
+    } catch {
+      btn.textContent = "Press Ctrl+C";
+      const range = document.createRange();
+      range.selectNodeContents(pre);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+    setTimeout(() => { btn.textContent = "Copy"; }, 1600);
+  });
+  wrapper.appendChild(btn);
+});
 
+// --- Demo map ----------------------------------------------------------------
 const protocol = new pmtiles.Protocol();
 maplibregl.addProtocol("pmtiles", protocol.tile);
+// Read the archive with cache: "no-store". On a revisit Chrome answers the
+// first range request from its HTTP cache with a response pmtiles rejects
+// ("no content-length header or content-length exceeding request"), and
+// pmtiles keeps that failure for the life of the page: no contours until a
+// hard reload. pmtiles already does this on Windows Chrome; the archive's
+// header and directories stay cached in memory, and tiles in MapLibre's cache.
+const archiveSource = new pmtiles.FetchSource(ARCHIVE_URL);
+archiveSource.chromeWindowsNoCache = true;
+protocol.add(new pmtiles.PMTiles(archiveSource));
 
 const PLACES = [
   { name: "Matterhorn", lon: 7.66, lat: 45.98, zoom: 12.3 },
@@ -297,75 +430,159 @@ const PLACES = [
   { name: "Kosciuszko", lon: 148.27, lat: -36.43, zoom: 12.3 },
 ];
 
-const CONTOUR_SOURCE = {
-  type: "vector",
-  url: "pmtiles://" + ARCHIVE_URL,
-  attribution: ATTRIBUTION,
-};
-const CONTOUR_LAYERS = [
-  {
-    id: "contour-regular",
-    type: "line",
-    source: "contours",
-    "source-layer": "contour",
-    minzoom: 11,
-    filter: ["!=", ["to-number", ["get", "is_index"]], 1],
-    paint: {
-      "line-color": "rgb(179,134,89)",
-      "line-width": ["interpolate", ["linear"], ["zoom"], 11, 0.3, 15, 0.7],
-      "line-opacity": ["interpolate", ["linear"], ["zoom"], 11, 0.25, 14, 0.5],
-    },
+// Colours per page theme: the light browns vanish on a dark basemap.
+const THEMES = {
+  light: {
+    basemap: "https://tiles.openfreemap.org/styles/positron",
+    regular: "rgb(179,134,89)",
+    index: "rgb(166,116,66)",
+    label: "rgb(131,66,37)",
+    halo: "rgba(255,255,255,0.85)",
+    shadow: "#4a3e2c",
+    highlight: "#ffffff",
+    accent: "#8a7a62",
+    exaggeration: 0.35,
   },
-  {
-    id: "contour-index",
-    type: "line",
+  dark: {
+    basemap: "https://tiles.openfreemap.org/styles/dark",
+    regular: "rgb(201,160,112)",
+    index: "rgb(226,180,124)",
+    label: "rgb(240,206,160)",
+    halo: "rgba(20,18,15,0.85)",
+    shadow: "#000000",
+    highlight: "#4d453a",
+    accent: "#3a3329",
+    exaggeration: 0.4,
+  },
+};
+
+const state = { lines: "all", hillshade: true, contourError: false };
+const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
+const currentTheme = () => (darkQuery.matches ? "dark" : "light");
+
+function contourLayers(t) {
+  return [
+    {
+      id: "contour-regular",
+      type: "line",
+      source: "contours",
+      "source-layer": "contour",
+      minzoom: 11,
+      filter: ["!=", ["to-number", ["get", "is_index"]], 1],
+      layout: { visibility: state.lines === "all" ? "visible" : "none" },
+      paint: {
+        "line-color": t.regular,
+        "line-width": ["interpolate", ["linear"], ["zoom"], 11, 0.3, 15, 0.7],
+        "line-opacity": ["interpolate", ["linear"], ["zoom"], 11, 0.3, 14, 0.55],
+      },
+    },
+    {
+      id: "contour-index",
+      type: "line",
+      source: "contours",
+      "source-layer": "contour",
+      filter: ["==", ["to-number", ["get", "is_index"]], 1],
+      paint: {
+        "line-color": t.index,
+        "line-width": ["interpolate", ["linear"], ["zoom"], 9, 0.6, 12, 1.0, 15, 1.6],
+        "line-opacity": ["interpolate", ["linear"], ["zoom"], 9, 0.4, 11, 0.55, 14, 0.7],
+      },
+    },
+  ];
+}
+
+function labelLayer(t) {
+  return {
+    id: "contour-label",
+    type: "symbol",
     source: "contours",
     "source-layer": "contour",
+    minzoom: 12,
     filter: ["==", ["to-number", ["get", "is_index"]], 1],
-    paint: {
-      "line-color": "rgb(166,116,66)",
-      "line-width": ["interpolate", ["linear"], ["zoom"], 9, 0.5, 12, 1.0, 15, 1.6],
-      "line-opacity": ["interpolate", ["linear"], ["zoom"], 9, 0.2, 11, 0.45, 14, 0.65],
+    layout: {
+      "symbol-placement": "line",
+      "text-field": ["concat", ["to-string", ["get", "elevation"]], " m"],
+      "text-size": ["interpolate", ["linear"], ["zoom"], 12, 9.5, 15, 11.5],
+      "text-max-angle": 25,
+      "text-padding": 120,
+      "text-font": ["Noto Sans Regular"],
     },
-  },
-];
-const CONTOUR_LABEL_LAYER = {
-  id: "contour-label",
-  type: "symbol",
-  source: "contours",
-  "source-layer": "contour",
-  minzoom: 12,
-  filter: ["==", ["to-number", ["get", "is_index"]], 1],
-  layout: {
-    "symbol-placement": "line",
-    "text-field": ["concat", ["to-string", ["get", "elevation"]], " m"],
-    "text-size": ["interpolate", ["linear"], ["zoom"], 12, 9.5, 15, 11.5],
-    "text-max-angle": 25,
-    "text-padding": 120,
-    "text-font": ["Noto Sans Regular"],
-  },
-  paint: {
-    "text-color": "rgb(131,66,37)",
-    "text-halo-color": "rgba(255,255,255,0.85)",
-    "text-halo-width": 1.5,
-  },
-};
+    paint: {
+      "text-color": t.label,
+      "text-halo-color": t.halo,
+      "text-halo-width": 1.5,
+    },
+  };
+}
+
+function hillshadeLayer(t) {
+  return {
+    id: "hillshade",
+    type: "hillshade",
+    source: "terrain",
+    layout: { visibility: state.hillshade ? "visible" : "none" },
+    paint: {
+      "hillshade-exaggeration": t.exaggeration,
+      "hillshade-shadow-color": t.shadow,
+      "hillshade-highlight-color": t.highlight,
+      "hillshade-accent-color": t.accent,
+    },
+  };
+}
+
+const basemapCache = {};
+async function buildStyle(themeName) {
+  const t = THEMES[themeName];
+  if (!basemapCache[themeName]) {
+    const res = await fetch(t.basemap);
+    if (!res.ok) throw new Error(`basemap style ${res.status}`);
+    basemapCache[themeName] = await res.json();
+  }
+  const style = structuredClone(basemapCache[themeName]);
+  // OpenFreeMap's ne2_shaded raster source can hang forever, which blocks the
+  // map's "load" event. Drop it (the hillshade below replaces it) and splice
+  // our layers straight into the style instead of adding them on "load".
+  delete style.sources.ne2_shaded;
+  style.layers = style.layers.filter((l) => !l.source || style.sources[l.source]);
+
+  style.sources.terrain = {
+    type: "raster-dem",
+    tiles: ["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"],
+    encoding: "terrarium",
+    tileSize: 256,
+    maxzoom: 15,
+    attribution:
+      'Hillshade: <a href="https://github.com/tilezen/joerd/blob/master/docs/attribution.md">Mapzen terrain tiles</a>',
+  };
+  style.sources.contours = { type: "vector", url: "pmtiles://" + ARCHIVE_URL, attribution: ATTRIBUTION };
+
+  // Hillshade sits under roads and buildings; contour lines under the first
+  // symbol layer so road/place labels stay readable; elevation labels on top.
+  const firstSymbol = style.layers.findIndex((l) => l.type === "symbol");
+  style.layers.splice(firstSymbol === -1 ? style.layers.length : firstSymbol, 0, ...contourLayers(t));
+  const firstStructure = style.layers.findIndex((l) => /tunnel|road|highway|bridge|building|rail/.test(l.id));
+  style.layers.splice(firstStructure === -1 ? 1 : firstStructure, 0, hillshadeLayer(t));
+  style.layers.push(labelLayer(t));
+  return style;
+}
+
+const statusEl = document.getElementById("map-status");
+function setStatus(html, isError = false) {
+  if (!html) { statusEl.hidden = true; return; }
+  statusEl.innerHTML = html;
+  statusEl.classList.toggle("error", isError);
+  statusEl.hidden = false;
+}
 
 async function initMap() {
-  // Build the style up front instead of adding layers in a map "load" handler:
-  // positron's ne2_shaded raster source can hang forever, which blocks the
-  // "load" event from ever firing. We drop that source (it adds nothing under
-  // contours) and splice the contour layers straight into the style JSON.
-  const style = await (await fetch("https://tiles.openfreemap.org/styles/positron")).json();
-  delete style.sources.ne2_shaded;
-  style.layers = style.layers.filter((l) => l.source !== "ne2_shaded");
-  style.sources.contours = CONTOUR_SOURCE;
-
-  // Contour lines go under the basemap's first symbol layer so road/place
-  // labels stay readable; elevation labels go on top of everything.
-  const firstSymbol = style.layers.findIndex((l) => l.type === "symbol");
-  style.layers.splice(firstSymbol === -1 ? style.layers.length : firstSymbol, 0, ...CONTOUR_LAYERS);
-  style.layers.push(CONTOUR_LABEL_LAYER);
+  setStatus('<span class="spinner"></span>Loading map…');
+  let style;
+  try {
+    style = await buildStyle(currentTheme());
+  } catch (err) {
+    setStatus("Couldn't load the basemap. Check your connection and reload the page.", true);
+    return;
+  }
 
   const map = new maplibregl.Map({
     container: "map",
@@ -379,9 +596,89 @@ async function initMap() {
   // Exposed on purpose: lets anyone poke at the tileset from the console.
   window.contourMap = map;
 
+  // Status pill: loading, zoomed out past the archive, or a failed archive.
+  function updateStatus() {
+    if (state.contourError) {
+      setStatus("Couldn't load the contour archive. Try a hard reload (Ctrl+Shift+R).", true);
+    } else if (map.getZoom() < ARCHIVE_MIN_ZOOM) {
+      setStatus(`Zoom in to see contours — they start at zoom ${ARCHIVE_MIN_ZOOM}`);
+    } else if (map.getSource("contours") && !map.isSourceLoaded("contours")) {
+      setStatus('<span class="spinner"></span>Loading contours…');
+    } else {
+      setStatus(null);
+    }
+  }
+  map.on("error", (e) => {
+    if (e.sourceId === "contours" || /pmtiles|contours/.test(String(e.error && e.error.message))) {
+      state.contourError = true;
+      updateStatus();
+    }
+  });
+  ["moveend", "zoom", "sourcedata", "idle", "styledata"].forEach((ev) => map.on(ev, updateStatus));
+
+  // Elevation readout on hover (mouse) or tap (touch).
+  const tip = document.getElementById("elev-tip");
+  let tipTimer = null;
+  function showElevation(point, radius) {
+    const layers = ["contour-index", "contour-regular"].filter(
+      (id) => map.getLayer(id) && map.getLayoutProperty(id, "visibility") !== "none",
+    );
+    const hits = layers.length
+      ? map.queryRenderedFeatures(
+          [[point.x - radius, point.y - radius], [point.x + radius, point.y + radius]],
+          { layers },
+        )
+      : [];
+    if (!hits.length) { tip.hidden = true; map.getCanvas().style.cursor = ""; return false; }
+    const f = hits[0].properties;
+    const index = Number(f.is_index) === 1;
+    tip.textContent = `${Number(f.elevation).toLocaleString("en")} m${index ? " · index" : ""}`;
+    tip.style.left = point.x + "px";
+    tip.style.top = point.y + "px";
+    tip.hidden = false;
+    map.getCanvas().style.cursor = "crosshair";
+    return true;
+  }
+  let pending = null;
+  map.on("mousemove", (e) => {
+    pending = e.point;
+    requestAnimationFrame(() => { if (pending) { showElevation(pending, 4); pending = null; } });
+  });
+  map.getCanvas().addEventListener("mouseleave", () => { tip.hidden = true; });
+  map.on("movestart", () => { tip.hidden = true; });
+  map.on("click", (e) => {
+    if (e.originalEvent.pointerType === "mouse") return;
+    if (showElevation(e.point, 12)) {
+      clearTimeout(tipTimer);
+      tipTimer = setTimeout(() => { tip.hidden = true; }, 2500);
+    }
+  });
+
+  // Controls under the map.
+  document.querySelectorAll('input[name="lines"]').forEach((input) => {
+    input.addEventListener("change", () => {
+      state.lines = input.value;
+      map.setLayoutProperty("contour-regular", "visibility", state.lines === "all" ? "visible" : "none");
+    });
+  });
+  document.getElementById("hillshade-toggle").addEventListener("change", (e) => {
+    state.hillshade = e.target.checked;
+    map.setLayoutProperty("hillshade", "visibility", state.hillshade ? "visible" : "none");
+  });
+
+  // Follow the system theme live; the camera is kept across setStyle.
+  darkQuery.addEventListener("change", async () => {
+    try {
+      map.setStyle(await buildStyle(currentTheme()));
+    } catch {
+      /* keep the current style if the other basemap can't be fetched */
+    }
+  });
+
   const chips = document.getElementById("chips");
   PLACES.forEach((p) => {
     const b = document.createElement("button");
+    b.type = "button";
     b.textContent = p.name;
     b.addEventListener("click", () => map.flyTo({ center: [p.lon, p.lat], zoom: p.zoom }));
     chips.appendChild(b);
